@@ -7,6 +7,7 @@
  */
 
 import { attrBoolean, attrInt, attrRecord, attrString, classList } from '../../support/attributes';
+import { applyDimensions, hasDimensionStyle } from '../../support/dimensions';
 import type { BlockRendererProps } from '../../types';
 
 export function ParagraphBlock({ attributes }: BlockRendererProps): JSX.Element {
@@ -115,9 +116,11 @@ export function QuoteBlock({ attributes, children }: BlockRendererProps): JSX.El
     const className = attrString(attributes.className);
     const citation = attrString(attributes.citation);
     const classes = classList(['wp-block-quote', className]);
+    const dimensionStyle = applyDimensions(attributes);
+    const style = hasDimensionStyle(dimensionStyle) ? dimensionStyle : undefined;
 
     return (
-        <blockquote className={classes}>
+        <blockquote className={classes} style={style}>
             {children}
             {citation.trim() !== '' ? (
                 <cite dangerouslySetInnerHTML={{ __html: citation }} />
@@ -151,8 +154,10 @@ export function VerseBlock({ attributes }: BlockRendererProps): JSX.Element {
         'wp-block-verse',
         textAlign !== '' ? `has-text-align-${textAlign}` : null,
     ]);
+    const dimensionStyle = applyDimensions(attributes);
+    const style = hasDimensionStyle(dimensionStyle) ? dimensionStyle : undefined;
 
-    return <pre className={classes} dangerouslySetInnerHTML={{ __html: content }} />;
+    return <pre className={classes} style={style} dangerouslySetInnerHTML={{ __html: content }} />;
 }
 
 export function PullquoteBlock({ attributes }: BlockRendererProps): JSX.Element {
@@ -160,9 +165,11 @@ export function PullquoteBlock({ attributes }: BlockRendererProps): JSX.Element 
     const value = attrString(attributes.value);
     const citation = attrString(attributes.citation);
     const classes = classList(['wp-block-pullquote', className]);
+    const dimensionStyle = applyDimensions(attributes);
+    const style = hasDimensionStyle(dimensionStyle) ? dimensionStyle : undefined;
 
     return (
-        <figure className={classes}>
+        <figure className={classes} style={style}>
             <blockquote>
                 {value.trim() !== '' ? (
                     <span dangerouslySetInnerHTML={{ __html: value }} />

@@ -1000,6 +1000,33 @@
                     ]
                 }
             ]
+        },
+        {
+            "name": "group-dimensions-min-height",
+            "$comment": "#776 — style.dimensions.minHeight and .aspectRatio must reach the wrapper inline style across all three renderers.",
+            "tree": [
+                {
+                    "clientId": "g-dim",
+                    "name": "core/group",
+                    "attributes": {
+                        "layout": { "type": "flow" },
+                        "style": {
+                            "dimensions": {
+                                "minHeight": "200px",
+                                "aspectRatio": "16/9"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "g-dim-p",
+                            "name": "core/paragraph",
+                            "attributes": { "content": "Dim" },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
         }
     ]
 }

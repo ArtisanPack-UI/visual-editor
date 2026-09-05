@@ -27,6 +27,7 @@
 import { __ } from '@wordpress/i18n';
 
 import { mediaUploadSetting } from './media-bridge';
+import { getHostPresets, mergePresetList } from './preset-registry';
 import { TEXT_DOMAIN } from './vendor/i18n';
 
 /**
@@ -94,6 +95,29 @@ export const DEFAULT_FONT_FAMILIES = [
             'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
     },
 ];
+
+/**
+ * Effective preset arrays after host `config('artisanpack.visual-editor.presets')`
+ * additions/overrides are merged into the package defaults (#773). Read at
+ * module-load time from the `data-presets` mount attribute; when no host
+ * presets are configured these are byte-equal to the `DEFAULT_*` arrays.
+ *
+ * When a theme ships `theme.json` presets, `useThemedEditorSettings`
+ * layers the same host presets on top of the theme layer too — so brand
+ * entries reach the picker regardless of whether the host also runs a
+ * theme.
+ */
+const HOST_PRESETS = getHostPresets();
+export const EFFECTIVE_PALETTE = mergePresetList(DEFAULT_PALETTE, HOST_PRESETS.palette);
+export const EFFECTIVE_FONT_SIZES = mergePresetList(DEFAULT_FONT_SIZES, HOST_PRESETS.fontSizes);
+export const EFFECTIVE_FONT_FAMILIES = mergePresetList(
+    DEFAULT_FONT_FAMILIES,
+    HOST_PRESETS.fontFamilies,
+);
+export const EFFECTIVE_SPACING_SIZES = mergePresetList(
+    DEFAULT_SPACING_SIZES,
+    HOST_PRESETS.spacingSizes,
+);
 
 /**
  * Default canvas stylesheet. Injected via `settings.styles` so blocks
@@ -365,9 +389,11 @@ export const editorSettings = {
      */
     styles: [{ css: DEFAULT_CANVAS_STYLES }],
     // Top-level legacy keys are still read by some core blocks that
-    // haven't migrated to `__experimentalFeatures`.
-    colors: DEFAULT_PALETTE,
-    fontSizes: DEFAULT_FONT_SIZES,
+    // haven't migrated to `__experimentalFeatures`. Sourced from the
+    // effective preset arrays so host-registered additions (#773) reach
+    // the legacy code paths too.
+    colors: EFFECTIVE_PALETTE,
+    fontSizes: EFFECTIVE_FONT_SIZES,
     // `__experimentalFeatures` lights up the inspector panels
     // (Color, Typography, Dimensions, Border) plus the toolbar
     // text-alignment control.
@@ -415,7 +441,7 @@ export const editorSettings = {
             // empty array; user-defined custom colors get added via
             // the picker UI at runtime, not seeded here.
             palette: {
-                theme: DEFAULT_PALETTE,
+                theme: EFFECTIVE_PALETTE,
                 custom: [],
             },
         },
@@ -437,8 +463,8 @@ export const editorSettings = {
             // `custom` while the hook adds `theme:` produced duplicate
             // React keys (e.g. `small`, `large`) in `FontSizePickerSelect`
             // when slug sets overlapped (#547).
-            fontSizes: { theme: DEFAULT_FONT_SIZES, custom: [] },
-            fontFamilies: { theme: DEFAULT_FONT_FAMILIES, custom: [] },
+            fontSizes: { theme: EFFECTIVE_FONT_SIZES, custom: [] },
+            fontFamilies: { theme: EFFECTIVE_FONT_FAMILIES, custom: [] },
         },
         spacing: {
             // Padding, margin, blockGap → the Dimensions panel on
@@ -451,7 +477,7 @@ export const editorSettings = {
             customSpacingSize: true,
             units: DEFAULT_SPACING_UNITS,
             spacingScale: { steps: 0 },
-            spacingSizes: { theme: DEFAULT_SPACING_SIZES, custom: [] },
+            spacingSizes: { theme: EFFECTIVE_SPACING_SIZES, custom: [] },
         },
         border: {
             // Border controls (color, radius, style, width) → the

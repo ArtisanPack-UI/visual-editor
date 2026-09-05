@@ -31,6 +31,87 @@ it( 'renders the data attributes the React bootstrap needs', function () {
 		->and( $html )->toContain( 'data-api-base="/visual-editor/api"' );
 } );
 
+it( 'stamps the configured taxonomies for the post-terms block (#771)', function () {
+	config()->set( 'artisanpack.visual-editor.taxonomies', [
+		'category' => 'Category',
+		'genre'    => 'Genre',
+	] );
+
+	$model = TestBlockContentModel::create( [
+		'title'   => 'Terms',
+		'status'  => 'published',
+		'content' => [],
+	] );
+
+	$html = Blade::render(
+		'<x-visual-editor :model="$model" />',
+		[ 'model' => $model ]
+	);
+
+	expect( $html )->toContain( 'data-taxonomies=' )
+		->and( $html )->toContain( 'category' )
+		->and( $html )->toContain( 'Genre' );
+} );
+
+it( 'falls back to the default taxonomies when none are configured (#771)', function () {
+	config()->set( 'artisanpack.visual-editor.taxonomies', [] );
+
+	$model = TestBlockContentModel::create( [
+		'title'   => 'Terms',
+		'status'  => 'published',
+		'content' => [],
+	] );
+
+	$html = Blade::render(
+		'<x-visual-editor :model="$model" />',
+		[ 'model' => $model ]
+	);
+
+	expect( $html )->toContain( 'post_tag' );
+} );
+
+it( 'stamps the configured host presets on the mount (#773)', function () {
+	config()->set( 'artisanpack.visual-editor.presets.palette', [
+		[ 'slug' => 'brand-navy', 'name' => 'Brand Navy', 'color' => '#0a2540' ],
+	] );
+
+	$model = TestBlockContentModel::create( [
+		'title'   => 'Presets',
+		'status'  => 'published',
+		'content' => [],
+	] );
+
+	$html = Blade::render(
+		'<x-visual-editor :model="$model" />',
+		[ 'model' => $model ]
+	);
+
+	expect( $html )->toContain( 'data-presets=' )
+		->and( $html )->toContain( 'brand-navy' )
+		->and( $html )->toContain( 'Brand Navy' );
+} );
+
+it( 'always emits data-presets even when no host presets are configured (#773)', function () {
+	config()->set( 'artisanpack.visual-editor.presets', [] );
+
+	$model = TestBlockContentModel::create( [
+		'title'   => 'Empty presets',
+		'status'  => 'published',
+		'content' => [],
+	] );
+
+	$html = Blade::render(
+		'<x-visual-editor :model="$model" />',
+		[ 'model' => $model ]
+	);
+
+	// Empty lists still ship so the JS side has a stable shape to
+	// deserialise; the JS registry treats empty entries as a no-op
+	// and keeps the package defaults.
+	expect( $html )->toContain( 'data-presets=' )
+		->and( $html )->toContain( '&quot;palette&quot;' );
+} );
+
 it( 'infers the resource slug from the page fixture', function () {
 	$page = TestBlockContentPageModel::create( [
 		'title' => 'A page',

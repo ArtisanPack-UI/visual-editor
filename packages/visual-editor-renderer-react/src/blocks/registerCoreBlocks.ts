@@ -19,12 +19,19 @@ import {
     AccordionsBlock,
 } from './artisanpack/accordion';
 import { BreadcrumbsBlock } from './artisanpack/breadcrumbs';
+import { BusinessAddressBlock } from './artisanpack/businessAddress';
+import { BusinessEmailBlock } from './artisanpack/businessEmail';
+import { BusinessHoursBlock } from './artisanpack/businessHours';
+import { BusinessPhoneBlock } from './artisanpack/businessPhone';
 import { CalloutBlock } from './artisanpack/callout';
 import { CommentsNumberBlock } from './artisanpack/commentsNumber';
 import { CopyrightBlock } from './artisanpack/copyright';
+import { FaqBlock } from './artisanpack/faq';
 import { GridBlock, GridItemBlock } from './artisanpack/grid';
+import { HowtoBlock } from './artisanpack/howto';
 import { MarqueeBlock } from './artisanpack/marquee';
 import { TabSectionBlock, TabsBlock } from './artisanpack/tabs';
+import { TocBlock } from './artisanpack/toc';
 import { LoginoutBlock } from './artisanpack/loginout';
 import {
     NextPostBlock,
@@ -241,7 +248,19 @@ const CORE_BLOCKS: Record<string, BlockRenderer> = {
     'core/navigation-link': NavigationLinkBlock,
     'core/navigation-submenu': NavigationSubmenuBlock,
     'artisanpack/breadcrumbs': BreadcrumbsBlock,
+    // Business-info cluster (#761) — display blocks that read from a
+    // host-supplied envelope via the `ap.visualEditor.businessInfo`
+    // filter, stamped onto `_resolvedBusinessInfo` by BusinessInfoResolver
+    // on the Blade renderer (consumers on the React / Vue side are
+    // responsible for stamping the equivalent envelope themselves).
+    'artisanpack/business-hours': BusinessHoursBlock,
+    'artisanpack/business-address': BusinessAddressBlock,
+    'artisanpack/business-phone': BusinessPhoneBlock,
+    'artisanpack/business-email': BusinessEmailBlock,
     'artisanpack/callout': CalloutBlock,
+    'artisanpack/faq': FaqBlock,
+    'artisanpack/howto': HowtoBlock,
+    'artisanpack/toc': TocBlock,
     // Accordion + tabs families (#497). Interactive blocks with
     // parent/child inner-block relationships preserved across renderers.
     'artisanpack/accordions': AccordionsBlock,

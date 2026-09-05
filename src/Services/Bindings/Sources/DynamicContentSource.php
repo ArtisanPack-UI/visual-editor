@@ -27,6 +27,8 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Services\Bindings\Sources;
 
+use ArtisanPackUI\VisualEditor\DynamicContent\HostDynamicContentSource;
+use ArtisanPackUI\VisualEditor\Registries\DynamicContentSourceRegistry;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BlockBindingSource;
 use Throwable;
@@ -68,14 +70,6 @@ class DynamicContentSource implements BlockBindingSource
 		}
 
 		$token = $this->applyLoopIndex( $token, $context );
-
-		$accessorClass = 'ArtisanPackUI\\CMSFramework\\Modules\\DynamicContent\\Services\\DynamicContentAccessor';
-
-		// Accept either a real cms-framework autoload or a
-		// container-bound test fake keyed by the class string.
-		if ( ! class_exists( $accessorClass ) && ! app()->bound( $accessorClass ) ) {
-			return null;
-		}
 
 		try {
 			$value = $this->readToken( $token );
@@ -155,10 +149,38 @@ class DynamicContentSource implements BlockBindingSource
 
 	public function availableFields( string $resource, ?string $modelClass = null ): array
 	{
+		$fields    = [];
+		$seenSlugs = [];
+
+		// #762 — host-registered sources first, so their fields sort ahead
+		// of any same-slug cms-framework type. `seenSlugs` blocks a
+		// cms-framework duplicate from appending its own copy below.
+		foreach ( $this->hostRegistry()?->all() ?? [] as $slug => $hostSource ) {
+			$cardinality = 'collection' === $hostSource->cardinality ? 'collection' : 'singleton';
+
+			foreach ( $hostSource->fields as $field ) {
+				$fields[] = [
+					'key'   => $slug . '.' . $field['slug'],
+					'label' => $hostSource->label . ' → ' . $field['label'],
+					'type'  => $this->mapFieldType( $field['type'] ),
+					'meta'  => [
+						'source_slug'  => $slug,
+						'source_label' => $hostSource->label,
+						'field_slug'   => $field['slug'],
+						'field_type'   => $field['type'],
+						'cardinality'  => $cardinality,
+						'origin'       => 'host',
+					],
+				];
+			}
+
+			$seenSlugs[ $slug ] = true;
+		}
+
 		$registryClass = 'ArtisanPackUI\\CMSFramework\\Modules\\DynamicContent\\Managers\\DynamicContentTypeRegistry';
 
 		if ( ! class_exists( $registryClass ) && ! app()->bound( $registryClass ) ) {
-			return [];
+			return $fields;
 		}
 
 		try {
@@ -168,16 +190,18 @@ class DynamicContentSource implements BlockBindingSource
 		} catch ( Throwable $e ) {
 			report( $e );
 
-			return [];
+			return $fields;
 		}
 
 		if ( ! is_array( $types ) ) {
-			return [];
+			return $fields;
 		}
 
-		$fields = [];
-
 		foreach ( $types as $typeSlug => $definition ) {
+			if ( is_string( $typeSlug ) && isset( $seenSlugs[ $typeSlug ] ) ) {
+				continue;
+			}
+
 			if ( ! is_string( $typeSlug ) || ! is_array( $definition ) ) {
 				continue;
 			}
@@ -247,17 +271,13 @@ class DynamicContentSource implements BlockBindingSource
 	}
 
 	/**
-	 * Read a token through the cms-framework accessor.
+	 * Read a token through the host registry, then the cms-framework
+	 * accessor.
 	 *
 	 * @since 1.4.0
 	 */
 	protected function readToken( string $token ): mixed
 	{
-		$accessorClass = 'ArtisanPackUI\\CMSFramework\\Modules\\DynamicContent\\Services\\DynamicContentAccessor';
-
-		/** @var object $accessor */
-		$accessor = app( $accessorClass );
-
 		$segments = preg_split( '/[.\[\]]+/', $token, -1, PREG_SPLIT_NO_EMPTY );
 
 		if ( false === $segments || [] === $segments ) {
@@ -267,6 +287,23 @@ class DynamicContentSource implements BlockBindingSource
 		$sourceSlug = array_shift( $segments );
 
 		if ( ! is_string( $sourceSlug ) || '' === $sourceSlug ) {
+			return null;
+		}
+
+		// #762 — host-registered sources win: an app or package that
+		// declared this slug in code owns the resolution, and we never
+		// fall back to cms-framework for the same slug.
+		$hostSource = $this->hostRegistry()?->get( $sourceSlug );
+
+		if ( null !== $hostSource ) {
+			$data = $this->readHostSourceData( $hostSource, $segments );
+
+			return null === $data ? null : $this->walk( $data, $segments );
+		}
+
+		$accessor = $this->resolveCmsFrameworkAccessor();
+
+		if ( null === $accessor ) {
 			return null;
 		}
 
@@ -307,6 +344,75 @@ class DynamicContentSource implements BlockBindingSource
 		// Implicit "first record" for a collection — mirrors the string
 		// resolver's convention (`team.name` == `team[0].name`).
 		return $accessor->collectionItem( $sourceSlug, 0 );
+	}
+
+	/**
+	 * Fetch either the singleton bag or a collection row from a host
+	 * source, mirroring the accessor-backed path in
+	 * {@see self::readSourceData()}.
+	 *
+	 * @param  list<int|string>  $segments
+	 *
+	 * @return array<string, mixed>|null
+	 *
+	 * @since 1.9.0
+	 */
+	protected function readHostSourceData( HostDynamicContentSource $source, array &$segments ): ?array
+	{
+		// Explicit index: `team[0].name` → segments start with an int.
+		// Mirroring the cms-framework path, an explicit index against
+		// a singleton is a shape mismatch and returns null.
+		if ( isset( $segments[0] ) && is_numeric( $segments[0] ) ) {
+			$index = (int) array_shift( $segments );
+
+			return $source->readItem( $index );
+		}
+
+		if ( 'singleton' === $source->cardinality ) {
+			return $source->resolveSingleton();
+		}
+
+		// Implicit "first record" for a collection — mirrors the string
+		// resolver's convention (`team.name` == `team[0].name`).
+		return $source->readItem( 0 );
+	}
+
+	/**
+	 * Resolve the cms-framework DynamicContentAccessor, or null when
+	 * the package is not installed and no container-bound test fake is
+	 * present.
+	 *
+	 * @since 1.9.0
+	 */
+	protected function resolveCmsFrameworkAccessor(): ?object
+	{
+		$accessorClass = 'ArtisanPackUI\\CMSFramework\\Modules\\DynamicContent\\Services\\DynamicContentAccessor';
+
+		if ( ! class_exists( $accessorClass ) && ! app()->bound( $accessorClass ) ) {
+			return null;
+		}
+
+		$accessor = app( $accessorClass );
+
+		return is_object( $accessor ) ? $accessor : null;
+	}
+
+	/**
+	 * Resolve the host source registry from the container, or null
+	 * when the container has no binding (e.g. a bare unit test that
+	 * constructs the source without booting the service provider).
+	 *
+	 * @since 1.9.0
+	 */
+	protected function hostRegistry(): ?DynamicContentSourceRegistry
+	{
+		if ( ! app()->bound( DynamicContentSourceRegistry::class ) ) {
+			return null;
+		}
+
+		$registry = app( DynamicContentSourceRegistry::class );
+
+		return $registry instanceof DynamicContentSourceRegistry ? $registry : null;
 	}
 
 	/**

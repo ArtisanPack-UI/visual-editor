@@ -28,6 +28,7 @@ The bundled `.svg` source assets live under
 | form | [`clipboard-list`](https://fontawesome.com/icons/clipboard-list) |
 | grid | [`table-cells`](https://fontawesome.com/icons/table-cells) |
 | grid-item | [`square`](https://fontawesome.com/icons/square) |
+| howto | [`list-check`](https://fontawesome.com/icons/list-check) |
 | marquee | [`bullhorn`](https://fontawesome.com/icons/bullhorn) |
 | post-types-search-results | [`magnifying-glass-arrow-right`](https://fontawesome.com/icons/magnifying-glass-arrow-right) |
 | related-posts | [`newspaper`](https://fontawesome.com/icons/newspaper) |
@@ -41,6 +42,7 @@ The bundled `.svg` source assets live under
 | social-share-content | [`share-nodes`](https://fontawesome.com/icons/share-nodes) |
 | tab-section | [`window-maximize`](https://fontawesome.com/icons/window-maximize) |
 | tabs | [`window-restore`](https://fontawesome.com/icons/window-restore) |
+| toc | [`list-ol`](https://fontawesome.com/icons/list-ol) |
 
 [fa-free]: https://fontawesome.com/license/free
 [cc-by-4]: https://creativecommons.org/licenses/by/4.0/

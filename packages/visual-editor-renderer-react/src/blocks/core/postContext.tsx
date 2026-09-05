@@ -18,6 +18,7 @@ import {
     classList,
     layoutWrapperForBlock,
 } from '../../support/attributes';
+import { applyDimensions, hasDimensionStyle } from '../../support/dimensions';
 import { safeUrl } from '../../support/urlSanitizer';
 import type { BlockRendererProps } from '../../types';
 
@@ -95,7 +96,10 @@ export function PostContentBlock({ attributes }: BlockRendererProps): JSX.Elemen
         className,
     ]);
 
-    return <div className={classes} dangerouslySetInnerHTML={{ __html: content }} />;
+    const dimensionStyle = applyDimensions(attributes);
+    const style = hasDimensionStyle(dimensionStyle) ? dimensionStyle : undefined;
+
+    return <div className={classes} style={style} dangerouslySetInnerHTML={{ __html: content }} />;
 }
 
 export function PostExcerptBlock({ attributes }: BlockRendererProps): JSX.Element {

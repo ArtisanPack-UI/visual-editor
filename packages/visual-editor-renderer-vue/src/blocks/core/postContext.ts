@@ -16,6 +16,7 @@ import {
     classList,
     layoutWrapperForBlock,
 } from '../../support/attributes';
+import { applyDimensions, hasDimensionStyle } from '../../support/dimensions';
 import { safeUrl } from '../../support/urlSanitizer';
 import { blockRendererProps } from '../shared';
 
@@ -99,7 +100,14 @@ export const PostContentBlock = defineComponent({
                 className,
             ]);
 
-            return h('div', { class: classes, innerHTML: content });
+            const dimensionStyle = applyDimensions(props.attributes);
+            const nodeProps: Record<string, unknown> = { class: classes, innerHTML: content };
+
+            if (hasDimensionStyle(dimensionStyle)) {
+                nodeProps.style = dimensionStyle;
+            }
+
+            return h('div', nodeProps);
         };
     },
 });

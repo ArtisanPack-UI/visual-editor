@@ -20,6 +20,8 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\View\Components;
 
+use ArtisanPackUI\VisualEditor\Resources\PresetRegistry;
+use ArtisanPackUI\VisualEditor\Resources\TaxonomyRegistry;
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Model;
@@ -92,6 +94,17 @@ class VisualEditorComponent extends Component
 	public array $contentTypes;
 
 	/**
+	 * Registered taxonomies (#771) — one inserter variation + the
+	 * Settings-sidebar taxonomy picker per entry for the
+	 * `artisanpack/post-terms` block. Resolved from
+	 * `config('artisanpack.visual-editor.taxonomies')` via
+	 * {@see TaxonomyRegistry::fromConfig()}.
+	 *
+	 * @var array<int, array{slug: string, label: string, plural: string}>
+	 */
+	public array $taxonomies;
+
+	/**
 	 * Serialised breakpoint registry (#617) — the merged config +
 	 * theme.json + defaults snapshot the React shell hydrates the
 	 * viewport switcher against.
@@ -99,6 +112,24 @@ class VisualEditorComponent extends Component
 	 * @var array<int, array{key: string, minWidthPx: int, previewWidthPx: int, label: string}>
 	 */
 	public array $breakpoints;
+
+	/**
+	 * Host-provided editor presets (#773) — palette, font sizes, font
+	 * families, and spacing sizes contributed by the application without
+	 * requiring a `theme.json` or cms-framework. Resolved from
+	 * `config('artisanpack.visual-editor.presets')` via
+	 * {@see PresetRegistry::fromConfig()} and stamped onto the mount as
+	 * the `data-presets` JSON attribute for the JS-side preset registry
+	 * to merge into `editorSettings` at hydration time.
+	 *
+	 * @var array{
+	 *     palette: array{mode: string, entries: array<int, array{slug: string, name: string, color: string}>},
+	 *     fontSizes: array{mode: string, entries: array<int, array{slug: string, name: string, size: string}>},
+	 *     fontFamilies: array{mode: string, entries: array<int, array{slug: string, name: string, fontFamily: string}>},
+	 *     spacingSizes: array{mode: string, entries: array<int, array{slug: string, name: string, size: string}>}
+	 * }
+	 */
+	public array $presets;
 
 	public function __construct(
 		public Model $model,
@@ -140,7 +171,9 @@ class VisualEditorComponent extends Component
 		$this->initialCreatedAt     = $this->resolveTimestamp( $model, 'created_at' );
 		$this->initialUpdatedAt     = $this->resolveTimestamp( $model, 'updated_at' );
 		$this->contentTypes         = $this->resolveContentTypes();
+		$this->taxonomies           = TaxonomyRegistry::fromConfig();
 		$this->breakpoints          = app( BreakpointRegistry::class )->toArray();
+		$this->presets              = PresetRegistry::fromConfig();
 
 		$this->applyEditorConfigFilter();
 	}
@@ -235,7 +268,9 @@ class VisualEditorComponent extends Component
 			'initialCreatedAt'     => $nullableString,
 			'initialUpdatedAt'     => $nullableString,
 			'contentTypes'         => $array,
+			'taxonomies'           => $array,
 			'breakpoints'          => $array,
+			'presets'              => $array,
 		];
 	}
 

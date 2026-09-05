@@ -34,6 +34,19 @@
 		     viewport switcher's registry from this so host-configured
 		     `label` / `previewWidthPx` overrides reach the UI. --}}
 		data-breakpoints="{{ json_encode( app( \ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry::class )->toArray() ) }}"
+		{{-- #771 — registered taxonomies drive the post-terms inserter
+		     variations + the Settings-sidebar taxonomy picker. Templates
+		     live in the site editor, so the post-terms block needs the
+		     taxonomy list here too. --}}
+		data-taxonomies="{{ json_encode( \ArtisanPackUI\VisualEditor\Resources\TaxonomyRegistry::fromConfig(), JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS ) }}"
+		{{-- #773 — host-provided palette / font-size / font-family /
+		     spacing-size presets. The site editor also boots the block
+		     inspector and needs the same seam so brand entries reach the
+		     Color / Typography / Dimensions panels when editing
+		     templates. Layered on top of theme.json by
+		     `useThemedEditorSettings`; host entries override same-slug
+		     entries from either theme.json or the package defaults. --}}
+		data-presets="{{ json_encode( \ArtisanPackUI\VisualEditor\Resources\PresetRegistry::fromConfig(), JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS ) }}"
 	></div>
 </body>
 </html>

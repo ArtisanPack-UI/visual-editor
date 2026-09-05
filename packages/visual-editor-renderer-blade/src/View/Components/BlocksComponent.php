@@ -29,10 +29,12 @@ use ArtisanPackUI\VisualEditor\Resources\PatternInliner;
 use ArtisanPackUI\VisualEditor\Resources\PostResolver;
 use ArtisanPackUI\VisualEditor\Resources\QueryInliner;
 use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
+use ArtisanPackUI\VisualEditor\Resources\TocResolver;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesEmissionTracker;
 use ArtisanPackUI\VisualEditor\SiteEditor\NavigationBlockRefResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\BreadcrumbsResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\BusinessInfoResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\BoxShadowCssAccumulator;
@@ -65,7 +67,9 @@ class BlocksComponent extends Component
 		protected QueryInliner $queryInliner,
 		protected CommentInliner $commentInliner,
 		protected PostResolver $postResolver,
+		protected TocResolver $tocResolver,
 		protected BreadcrumbsResolver $breadcrumbsResolver,
+		protected BusinessInfoResolver $businessInfoResolver,
 		protected NavigationBlockRefResolver $navigationResolver,
 		protected GlobalStylesEmissionResolver $globalStyles,
 		protected GlobalStylesEmissionTracker $emissionTracker,
@@ -82,9 +86,11 @@ class BlocksComponent extends Component
 		bool $resolveComments = true,
 		bool $resolvePost = true,
 		bool $resolveBreadcrumbs = true,
+		bool $resolveBusinessInfo = true,
 		bool $resolveNavigation = true,
 		protected ?BoxShadowCssAccumulator $boxShadowAccumulator = null,
 		protected ?PositionCssAccumulator $positionAccumulator = null,
+		bool $resolveToc = true,
 	) {
 		if ( null === $this->boxShadowAccumulator ) {
 			$this->boxShadowAccumulator = app( BoxShadowCssAccumulator::class );
@@ -150,6 +156,31 @@ class BlocksComponent extends Component
 		// filter; see `BreadcrumbsResolver::buildTrail()`.
 		$resolved = $resolveBreadcrumbs
 			? $this->breadcrumbsResolver->stampTree( $resolved, is_object( $post ) ? $post : null )
+			: $resolved;
+
+		// Business-info resolution (#761) stamps `_resolvedBusinessInfo`
+		// on every business-info display block from the host's
+		// `ap.visualEditor.businessInfo` filter. Runs unconditionally —
+		// like the breadcrumbs resolver, an empty envelope is a valid
+		// result (renderers render an empty container gracefully). Also
+		// composes the address block's final `mapEmbedUrl` from the
+		// block's `mapProvider` / `showMap` / `zoom` attributes and the
+		// `artisanpack.visual-editor.business.google_maps_api_key`
+		// config; see `BusinessInfoResolver::composeMapEmbedUrl()`.
+		$resolved = $resolveBusinessInfo
+			? $this->businessInfoResolver->stampTree( $resolved, is_object( $post ) ? $post : null )
+			: $resolved;
+
+		// TOC resolution (#760) stamps auto-generated anchors on every
+		// `core/heading` / `artisanpack/heading` block that lacks one,
+		// then stamps `_resolvedItems` on every `artisanpack/toc` block
+		// with the ordered list of headings that fall within its
+		// configured `minLevel` / `maxLevel` range. Runs after
+		// post/query/pattern/template-part resolution so headings that
+		// were injected by a resolver (a post-content expansion inside
+		// a template part, for example) also participate in the TOC.
+		$resolved = $resolveToc
+			? $this->tocResolver->resolveTree( $resolved )
 			: $resolved;
 
 		// Navigation resolution mirrors the editor's read path

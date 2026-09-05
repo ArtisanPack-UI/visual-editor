@@ -39,6 +39,94 @@ return [
 
 	/*
 	|--------------------------------------------------------------------------
+	| Taxonomies
+	|--------------------------------------------------------------------------
+	|
+	| The taxonomies the editor surfaces when authors configure a
+	| `post-terms` block: one inserter variation per entry (so
+	| "Categories", "Tags", and any custom taxonomy each get their own
+	| tile) plus the taxonomy picker in the block's Settings sidebar.
+	|
+	| Keys are the taxonomy slug stamped onto the block's `term`
+	| attribute — matching the slugs `PostResolver::resolvePostTerms()`
+	| reads from the post's relations. Each value is either a display
+	| label string, or an array with `label` (and optional `plural`)
+	| for richer inserter keywords:
+	|
+	|     'genre' => 'Genre',
+	|     'topic' => [ 'label' => 'Topic', 'plural' => 'Topics' ],
+	|
+	| The `category` and `post_tag` defaults mirror WordPress core's
+	| built-in public taxonomies; hosts append their custom taxonomies
+	| here so they show up in the editor automatically.
+	|
+	*/
+
+	'taxonomies' => [
+		'category' => 'Category',
+		'post_tag' => 'Tag',
+	],
+
+	/*
+	|--------------------------------------------------------------------------
+	| Editor presets
+	|--------------------------------------------------------------------------
+	|
+	| Host-provided extensions to the editor's default palette, font sizes,
+	| font families, and spacing sizes (#773). Gives applications that don't
+	| ship a `theme.json` and don't sit on top of cms-framework a supported
+	| seam for adding brand entries to the inspector's Color, Typography, and
+	| Dimensions panels without patching `editor-settings.ts` in a fork.
+	|
+	| Each list accepts either a bare array of entries (implicit `append`
+	| mode) or an explicit wrapper:
+	|
+	|     'palette' => [
+	|         ['slug' => 'brand-navy', 'name' => 'Brand Navy', 'color' => '#0a2540'],
+	|     ],
+	|
+	|     // Or, to wipe the package defaults and ship only host entries:
+	|     'palette' => [
+	|         'mode'    => 'replace',
+	|         'entries' => [
+	|             ['slug' => 'brand-navy', 'name' => 'Brand Navy', 'color' => '#0a2540'],
+	|         ],
+	|     ],
+	|
+	| Entry shapes:
+	|   - palette:       ['slug', 'name', 'color']       — hex or any CSS color
+	|   - font_sizes:    ['slug', 'name', 'size']        — any CSS length ('14px', '1rem', ...)
+	|   - font_families: ['slug', 'name', 'fontFamily']  — CSS `font-family` stack
+	|   - spacing_sizes: ['slug', 'name', 'size']        — any CSS length
+	|
+	| Order of precedence, lowest to highest:
+	|   1. Package defaults baked into the JS bundle.
+	|   2. Active theme's `theme.json` presets (when a theme ships them),
+	|      applied through `useThemedEditorSettings`.
+	|   3. This config — layered on top of whichever base exists. Under
+	|      `append` mode, host slugs that collide with a theme/default
+	|      slug replace that entry in place, and an empty list is a
+	|      no-op; under `replace` mode, the host list wins outright for
+	|      that preset kind — including an empty `entries` array, which
+	|      is an explicit "no presets for this list" instruction that
+	|      wipes both the theme and the defaults.
+	|
+	| Slugs must match `/^[a-z0-9_-]+$/`. Entries whose slug is invalid or
+	| whose value is empty are silently dropped so a typo can't break the
+	| picker. Within a list, host slugs that collide with a package-default
+	| slug replace that default (typical CSS-cascade behaviour).
+	|
+	*/
+
+	'presets' => [
+		'palette'       => [],
+		'font_sizes'    => [],
+		'font_families' => [],
+		'spacing_sizes' => [],
+	],
+
+	/*
+	|--------------------------------------------------------------------------
 	| Site meta
 	|--------------------------------------------------------------------------
 	|
@@ -228,6 +316,13 @@ return [
 		'artisanpack/post-types-search-results',
 		'artisanpack/single-post-types-search-results',
 		'artisanpack/skills-slider',
+		// Business-info cluster (#761): four generic dynamic display
+		// blocks that read from a host-supplied `businessInfo` contract
+		// via the `ap.visualEditor.businessInfo` filter.
+		'artisanpack/business-hours',
+		'artisanpack/business-address',
+		'artisanpack/business-phone',
+		'artisanpack/business-email',
 	],
 
 	'disabled_blocks' => [
@@ -362,6 +457,36 @@ return [
 	'breadcrumbs' => [
 		'home_url'   => null,
 		'home_label' => null,
+	],
+
+	/*
+	|--------------------------------------------------------------------------
+	| Business-info blocks (#761)
+	|--------------------------------------------------------------------------
+	|
+	| Configures the `artisanpack/business-*` block cluster's server-side
+	| resolver. The blocks are generic; the host supplies the actual
+	| contact data through the `ap.visualEditor.businessInfo` filter.
+	|
+	| `google_maps_api_key` opts the address block's map embed into the
+	| Google Maps `/maps/embed/v1/place` endpoint when the block's
+	| `mapProvider` attribute is set to `google`. Leave null to fall back
+	| to the keyless OpenStreetMap embed regardless of the block's
+	| `mapProvider` selection.
+	|
+	| ⚠️  This key ships to the browser inside the composed
+	| `/maps/embed/v1/place?key=…` URL, so it MUST be an HTTP-referrer-
+	| restricted "Maps Embed API" key (Google Cloud Console → Credentials
+	| → API key → Application restrictions → HTTP referrers, then API
+	| restrictions → only "Maps Embed API"). Never paste a
+	| server-unrestricted key here — a public key with no referrer /
+	| API restrictions can be lifted straight out of the rendered page
+	| and abused against your billing account.
+	|
+	*/
+
+	'business' => [
+		'google_maps_api_key' => null,
 	],
 
 	/*

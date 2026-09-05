@@ -1,0 +1,53 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "artisanpack/business-phone",
+    "title": "Business Phone",
+    "category": "theme",
+    "description": "Display your business's phone number as a click-to-call link.",
+    "keywords": [
+        "business",
+        "phone",
+        "call",
+        "tel"
+    ],
+    "textdomain": "artisanpack-visual-editor",
+    "attributes": {
+        "label": {
+            "type": "string",
+            "default": ""
+        },
+        "showIcon": {
+            "type": "boolean",
+            "default": false
+        }
+    },
+    "supports": {
+        "position": true,
+        "artisanpackAnimations": true,
+        "ariaLabel": true,
+        "className": true,
+        "html": false,
+        "spacing": {
+            "margin": [ "top", "bottom" ],
+            "padding": true
+        },
+        "color": {
+            "gradients": true,
+            "link": true,
+            "__experimentalDefaultControls": {
+                "background": true,
+                "text": true
+            }
+        },
+        "typography": {
+            "fontSize": true,
+            "lineHeight": true,
+            "__experimentalFontFamily": true,
+            "__experimentalFontWeight": true,
+            "__experimentalDefaultControls": {
+                "fontSize": true
+            }
+        }
+    }
+}

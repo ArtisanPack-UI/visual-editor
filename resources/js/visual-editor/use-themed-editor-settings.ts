@@ -18,6 +18,7 @@
 import { useMemo } from 'react';
 
 import { editorSettings } from './editor-settings';
+import { getHostPresets, mergePresetList } from './preset-registry';
 import { useThemeGlobalStylesCss } from './site-editor/use-theme-global-styles-css';
 import { useThemeGlobalStylesSettings } from './site-editor/use-theme-global-styles-settings';
 
@@ -65,6 +66,22 @@ export interface UseThemedEditorSettingsOptions {
 }
 
 /**
+ * Canonicalise a theme preset slug so it compares equal to the
+ * host-preset registry's slug (which is `trim().toLowerCase()`d in
+ * `preset-registry.ts`). Themes occasionally ship title-cased slugs
+ * (`Primary`, `Foreground`) — without canonicalisation, `mergePresetList`
+ * treats them as distinct from the host's `primary` and the documented
+ * host-override behaviour silently breaks (CR #773).
+ */
+function canonicaliseSlug(value: unknown): string | null {
+    if (typeof value !== 'string') {
+        return null;
+    }
+    const slug = value.trim().toLowerCase();
+    return slug === '' ? null : slug;
+}
+
+/**
  * Pull `settings.color.palette` out of the `/global-styles/base`
  * payload as a normalized `{ slug, name, color }` list. Returns
  * `null` (not an empty array) when the theme didn't define one so
@@ -88,10 +105,10 @@ export function extractThemePalette(
             continue;
         }
 
-        const slug = (entry as { slug?: unknown }).slug;
+        const slug = canonicaliseSlug((entry as { slug?: unknown }).slug);
         const color = (entry as { color?: unknown }).color;
 
-        if (typeof slug !== 'string' || slug === '' || typeof color !== 'string') {
+        if (slug === null || typeof color !== 'string') {
             continue;
         }
 
@@ -129,10 +146,10 @@ export function extractThemeFontSizes(
             continue;
         }
 
-        const slug = (entry as { slug?: unknown }).slug;
+        const slug = canonicaliseSlug((entry as { slug?: unknown }).slug);
         const size = (entry as { size?: unknown }).size;
 
-        if (typeof slug !== 'string' || slug === '' || typeof size !== 'string') {
+        if (slug === null || typeof size !== 'string') {
             continue;
         }
 
@@ -170,10 +187,10 @@ export function extractThemeFontFamilies(
             continue;
         }
 
-        const slug = (entry as { slug?: unknown }).slug;
+        const slug = canonicaliseSlug((entry as { slug?: unknown }).slug);
         const fontFamily = (entry as { fontFamily?: unknown }).fontFamily;
 
-        if (typeof slug !== 'string' || slug === '' || typeof fontFamily !== 'string') {
+        if (slug === null || typeof fontFamily !== 'string') {
             continue;
         }
 
@@ -211,10 +228,10 @@ export function extractThemeSpacingSizes(
             continue;
         }
 
-        const slug = (entry as { slug?: unknown }).slug;
+        const slug = canonicaliseSlug((entry as { slug?: unknown }).slug);
         const size = (entry as { size?: unknown }).size;
 
-        if (typeof slug !== 'string' || slug === '' || typeof size !== 'string') {
+        if (slug === null || typeof size !== 'string') {
             continue;
         }
 
@@ -310,12 +327,39 @@ export function useThemedEditorSettings(
 
     return useMemo(() => {
         const themeSettings = themeBase?.settings ?? {};
-        const themePalette = extractThemePalette(themeSettings);
-        const themeFontSizes = extractThemeFontSizes(themeSettings);
-        const themeFontFamilies = extractThemeFontFamilies(themeSettings);
-        const themeSpacingSizes = extractThemeSpacingSizes(themeSettings);
+        const rawThemePalette = extractThemePalette(themeSettings);
+        const rawThemeFontSizes = extractThemeFontSizes(themeSettings);
+        const rawThemeFontFamilies = extractThemeFontFamilies(themeSettings);
+        const rawThemeSpacingSizes = extractThemeSpacingSizes(themeSettings);
         const themeGradients = extractThemeGradients(themeSettings);
         const themePhotoGrid = extractThemePhotoGrid(themeSettings);
+
+        // #773 — layer host-registered presets on top of whichever base
+        // layer exists (theme.json when a theme ships presets, package
+        // defaults otherwise) so brand entries always reach the picker
+        // regardless of what's underneath. `replace` mode still wins,
+        // matching the documented per-list contract in PresetRegistry.
+        const hostPresets = getHostPresets();
+        const paletteBase = rawThemePalette ?? null;
+        const fontSizesBase = rawThemeFontSizes ?? null;
+        const fontFamiliesBase = rawThemeFontFamilies ?? null;
+        const spacingSizesBase = rawThemeSpacingSizes ?? null;
+        const themePalette =
+            paletteBase !== null && hostPresets.palette.entries.length > 0
+                ? mergePresetList(paletteBase, hostPresets.palette)
+                : paletteBase;
+        const themeFontSizes =
+            fontSizesBase !== null && hostPresets.fontSizes.entries.length > 0
+                ? mergePresetList(fontSizesBase, hostPresets.fontSizes)
+                : fontSizesBase;
+        const themeFontFamilies =
+            fontFamiliesBase !== null && hostPresets.fontFamilies.entries.length > 0
+                ? mergePresetList(fontFamiliesBase, hostPresets.fontFamilies)
+                : fontFamiliesBase;
+        const themeSpacingSizes =
+            spacingSizesBase !== null && hostPresets.spacingSizes.entries.length > 0
+                ? mergePresetList(spacingSizesBase, hostPresets.spacingSizes)
+                : spacingSizesBase;
 
         // #490 — propagate the theme's color-customization booleans so
         // Gutenberg's `useSettings('color.customGradient')` / `'color.custom'`

@@ -1,0 +1,29 @@
+/**
+ * FAQ block styles (#758).
+ *
+ * Loaded in the editor via `blocks/faq/index.ts`. Host apps ship a
+ * matching frontend stylesheet if they want the same visual treatment on
+ * the public site — the block's semantic markup (heading per question +
+ * div per answer) renders without any of these rules applied.
+ */
+
+.ap-faq {
+    display: flex;
+    flex-direction: column;
+    gap: var(--wp--style--block-gap, 1.5rem);
+}
+
+.ap-faq__item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.ap-faq__question {
+    margin: 0;
+    font-weight: 600;
+}
+
+.ap-faq__answer {
+    margin: 0;
+}

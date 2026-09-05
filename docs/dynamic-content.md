@@ -143,3 +143,43 @@ Fields become tokens immediately — no VE restart needed.
 ## Naming note
 
 The block-bindings source name on the wire is `dynamic_content` (snake_case, to satisfy the registry's `/^[a-z][a-z0-9_]*$/` pattern), not the friendlier `artisanpack/dynamic-content` label used in the issue prose.
+
+## Registering a source from a host app (v1.9+)
+
+**Since v1.9 (#762).** Hosts, packages, plugins, and themes can register their own token sources without going through cms-framework's DB-authored types. Use `VisualEditor::registerDynamicContentSource()`:
+
+```php
+use ArtisanPackUI\VisualEditor\Facades\VisualEditor;
+
+VisualEditor::registerDynamicContentSource( [
+    'slug'        => 'business',
+    'label'       => 'Business',
+    'cardinality' => 'singleton', // or 'collection'
+    'fields'      => [
+        [ 'slug' => 'name',  'label' => 'Name',  'type' => 'text' ],
+        [ 'slug' => 'phone', 'label' => 'Phone', 'type' => 'phone' ],
+    ],
+    'resolver'    => static function (): array {
+        return [
+            'name'  => config( 'business.name' ),
+            'phone' => config( 'business.phone' ),
+        ];
+    },
+] );
+```
+
+### Definition shape
+
+| Key           | Type            | Notes |
+|---------------|-----------------|-------|
+| `slug`        | string          | Lowercase snake_case. Required. |
+| `label`       | string          | Defaults to the slug. |
+| `cardinality` | string          | `singleton` (one bag of fields) or `collection` (list of rows). Required. |
+| `fields`      | array           | List of `{slug, label, type, description?}`. |
+| `resolver`    | callable        | Returns the source's data — a `array<string, mixed>` (or `null`) for singletons; a `list<array<string, mixed>>` for collections. |
+| `description` | string          | Optional prose for the inserter panel. |
+| `icon`        | string          | Optional icon slug for the inserter panel. |
+
+### Precedence
+
+Host sources merge with cms-framework's DB-authored types in the editor's inserter and the render-time binding resolver. On a slug collision the host registration wins — an app can intentionally shadow a cms-framework type.

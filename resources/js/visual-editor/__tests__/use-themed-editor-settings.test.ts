@@ -70,6 +70,27 @@ describe('extractThemePalette', () => {
             { slug: 'primary', name: 'Primary', color: '#3b82f6' },
         ]);
     });
+
+    it('canonicalises theme slugs so the merge boundary with host presets collides properly (#773 CR)', () => {
+        // Themes occasionally ship title-cased or whitespace-padded slugs.
+        // Host presets are already `trim().toLowerCase()`d in the registry;
+        // without matching normalisation here, `mergePresetList` treats
+        // `Primary` and `primary` as distinct and the documented host-override
+        // behaviour silently breaks.
+        const settings = {
+            color: {
+                palette: [
+                    { slug: '  Primary  ', name: 'Primary', color: '#3b82f6' },
+                    { slug: 'FOREGROUND', name: 'Foreground', color: '#000' },
+                ],
+            },
+        };
+
+        expect(extractThemePalette(settings)).toEqual([
+            { slug: 'primary', name: 'Primary', color: '#3b82f6' },
+            { slug: 'foreground', name: 'Foreground', color: '#000' },
+        ]);
+    });
 });
 
 describe('extractThemeFontSizes', () => {

@@ -699,6 +699,201 @@ describe('Core design blocks', () => {
         expect(html).not.toContain('<li class="ap-breadcrumbs__item');
     });
 
+    // Business-info cluster (#761). Reads a server-stamped
+    // `_resolvedBusinessInfo` envelope; when the envelope is missing the
+    // renderers fall through to an empty wrapper so a host that forgot
+    // to populate the filter gets a well-formed but empty document
+    // rather than an exception.
+
+    it('renders the artisanpack/business-phone block as a tel: link when the envelope is populated', () => {
+        const tree = [
+            makeBlock('artisanpack/business-phone', {
+                _resolvedBusinessInfo: { phone: '+1 (555) 123-4567' },
+            }),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('ap-business-phone');
+        expect(html).toContain('href="tel:+15551234567"');
+        expect(html).toContain('+1 (555) 123-4567');
+    });
+
+    it('renders an empty artisanpack/business-phone wrapper when the envelope is missing', () => {
+        const tree = [makeBlock('artisanpack/business-phone', {})];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('ap-business-phone');
+        expect(html).not.toContain('href="tel:');
+    });
+
+    it('surfaces attributes.ariaLabel on the artisanpack/business-phone wrapper', () => {
+        const tree = [
+            makeBlock('artisanpack/business-phone', {
+                ariaLabel: 'Call our support line',
+                _resolvedBusinessInfo: { phone: '+1 (555) 123-4567' },
+            }),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('aria-label="Call our support line"');
+    });
+
+    it('percent-encodes mailto local + domain so specials cannot inject headers', () => {
+        const tree = [
+            makeBlock('artisanpack/business-email', {
+                _resolvedBusinessInfo: { email: 'a?b&c#d%e@ex.test' },
+            }),
+        ];
+
+        const html = renderTree(tree);
+
+        // Local part encoded — no raw ?, &, #, or % remain before the @.
+        expect(html).toContain('href="mailto:a%3Fb%26c%23d%25e@ex.test"');
+        expect(html).not.toContain('mailto:a?b&c#d%e@');
+    });
+
+    it('renders the artisanpack/business-email block as a mailto: link for a valid address', () => {
+        const tree = [
+            makeBlock('artisanpack/business-email', {
+                _resolvedBusinessInfo: { email: 'hello@example.test' },
+            }),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('href="mailto:hello@example.test"');
+        expect(html).toContain('hello@example.test');
+    });
+
+    it('drops the mailto: link on an invalid email address', () => {
+        const tree = [
+            makeBlock('artisanpack/business-email', {
+                _resolvedBusinessInfo: { email: 'not-an-email' },
+            }),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).not.toContain('mailto:');
+    });
+
+    it('renders the artisanpack/business-hours weekly table', () => {
+        const tree = [
+            makeBlock('artisanpack/business-hours', {
+                _resolvedBusinessInfo: {
+                    hours: {
+                        monday: { open: '09:00', close: '17:00' },
+                        sunday: { closed: true },
+                    },
+                },
+            }),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('Monday');
+        expect(html).toContain('09:00');
+        expect(html).toContain('17:00');
+        expect(html).toContain('Sunday');
+        expect(html).toContain('Closed');
+    });
+
+    it('renders artisanpack/business-hours special-hours overrides when supplied', () => {
+        const tree = [
+            makeBlock('artisanpack/business-hours', {
+                showSpecialHours: true,
+                _resolvedBusinessInfo: {
+                    hours: { monday: { open: '09:00', close: '17:00' } },
+                    specialHours: [
+                        { date: '2030-12-25', label: 'Christmas', closed: true },
+                    ],
+                },
+            }),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('Christmas');
+        expect(html).toContain('Closed');
+    });
+
+    it('renders the artisanpack/business-address block with an iframe when mapEmbedUrl is set', () => {
+        const tree = [
+            makeBlock('artisanpack/business-address', {
+                _resolvedBusinessInfo: {
+                    address: { street: '123 Main St', city: 'Springfield' },
+                    mapEmbedUrl:
+                        'https://www.openstreetmap.org/export/embed.html?bbox=0,0,1,1',
+                },
+            }),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('123 Main St');
+        expect(html).toContain('Springfield');
+        expect(html).toContain('<iframe');
+        expect(html).toContain('openstreetmap.org');
+        expect(html).toContain('referrerpolicy="no-referrer"');
+        expect(html).not.toContain('no-referrer-when-downgrade');
+        expect(html).toContain('sandbox="allow-scripts allow-same-origin allow-popups"');
+    });
+
+    it('renders the artisanpack/business-address block without an iframe when mapEmbedUrl is absent', () => {
+        const tree = [
+            makeBlock('artisanpack/business-address', {
+                _resolvedBusinessInfo: {
+                    address: { street: '123 Main St' },
+                },
+            }),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('123 Main St');
+        expect(html).not.toContain('<iframe');
+    });
+
+    it('renders an empty artisanpack/business-address wrapper when the envelope is missing', () => {
+        const tree = [makeBlock('artisanpack/business-address', {})];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('ap-business-address');
+        expect(html).not.toContain('<iframe');
+        expect(html).not.toContain('<address');
+    });
+
+    it('emits no JSON-LD from any business-info block', () => {
+        const tree = [
+            makeBlock('artisanpack/business-hours', {
+                _resolvedBusinessInfo: {
+                    hours: { monday: { open: '09:00', close: '17:00' } },
+                },
+            }),
+            makeBlock('artisanpack/business-address', {
+                _resolvedBusinessInfo: {
+                    address: { street: '123 Main St' },
+                    mapEmbedUrl: 'https://openstreetmap.org/x',
+                },
+            }),
+            makeBlock('artisanpack/business-phone', {
+                _resolvedBusinessInfo: { phone: '+1 555-000-1111' },
+            }),
+            makeBlock('artisanpack/business-email', {
+                _resolvedBusinessInfo: { email: 'hello@example.test' },
+            }),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).not.toContain('application/ld+json');
+        expect(html).not.toContain('schema.org/LocalBusiness');
+    });
+
     describe('artisanpack/copyright (year is read at render time)', () => {
         // Pin the clock so these specs don't drift on the Dec 31 → Jan 1
         // boundary; the renderer reads `new Date().getUTCFullYear()` so

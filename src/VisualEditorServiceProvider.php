@@ -6,6 +6,7 @@ use ArtisanPackUI\CMSFramework\Modules\Blog\Managers\BlogManager;
 use ArtisanPackUI\VisualEditor\Blocks\Core\ArchivesBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Core\CategoriesBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Core\LatestPostsBlock;
+use ArtisanPackUI\VisualEditor\Blocks\Core\ReviewsBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Core\TagCloudBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Forms\FormBlock;
 use ArtisanPackUI\Icons\Registries\IconSetRegistration;
@@ -38,6 +39,7 @@ use ArtisanPackUI\VisualEditor\Fonts\Support\FontStylesheetEnqueuer;
 use ArtisanPackUI\VisualEditor\Registries\BlockBindingSourceRegistry;
 use ArtisanPackUI\VisualEditor\Registries\BlockTypeRegistry;
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
+use ArtisanPackUI\VisualEditor\Registries\DynamicContentSourceRegistry;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingResolver;
 use ArtisanPackUI\VisualEditor\Services\Bindings\Sources\CustomFieldSource;
 use ArtisanPackUI\VisualEditor\Services\Bindings\Sources\DynamicContentSource;
@@ -51,6 +53,7 @@ use ArtisanPackUI\VisualEditor\Resources\PostResolver;
 use ArtisanPackUI\VisualEditor\Resources\CommentInliner;
 use ArtisanPackUI\VisualEditor\Resources\CommentResolver;
 use ArtisanPackUI\VisualEditor\Resources\QueryInliner;
+use ArtisanPackUI\VisualEditor\Resources\TocResolver;
 use ArtisanPackUI\VisualEditor\Resources\ResourceResolver;
 use ArtisanPackUI\VisualEditor\Ai\Agents\ContentBlockSuggestionAgent;
 use ArtisanPackUI\VisualEditor\Ai\Agents\HeadingHierarchyAgent;
@@ -333,10 +336,21 @@ class VisualEditorServiceProvider extends ServiceProvider
 			);
 		} );
 
+		// #762 — Host-registerable Dynamic Content sources: a shared
+		// registry that host apps, other packages, and cms-framework
+		// plugins/themes push token sources into during their own boot()
+		// pass. The DynamicContent binding source and the sources-listing
+		// controller consult this registry first, then fall back to
+		// cms-framework's own DB-authored types.
+		$this->app->singleton( DynamicContentSourceRegistry::class, function () {
+			return new DynamicContentSourceRegistry();
+		} );
+
 		$this->app->singleton( VisualEditor::class, function ( $app ) {
 			return new VisualEditor(
 				$app->make( BlockTypeRegistry::class ),
 				$app->make( DynamicBlockRegistry::class ),
+				$app->make( DynamicContentSourceRegistry::class ),
 			);
 		} );
 
@@ -386,6 +400,13 @@ class VisualEditorServiceProvider extends ServiceProvider
 				$app,
 				$app->make( PostResolver::class ),
 			);
+		} );
+
+		// #760 — `TocResolver` stamps heading anchors and derives
+		// `artisanpack/toc` items across the block tree. Stateless, so
+		// safe to share as a singleton.
+		$this->app->singleton( TocResolver::class, function () {
+			return new TocResolver();
 		} );
 
 		// #519 — `CommentResolver` stamps `_resolved*` keys on
@@ -984,6 +1005,16 @@ class VisualEditorServiceProvider extends ServiceProvider
 		//     simply does not appear in the inserter in that case.
 		$this->registerFormBlock();
 
+		// 4c. Reviews — register the `artisanpack/reviews` block. The
+		//     block collects payloads at render time via the
+		//     `ap.visualEditor.reviews.collectReviews` filter so host
+		//     apps, other packages, and any cms-framework plugins /
+		//     themes active at runtime can all contribute reviews. No
+		//     external dependency to gate on; the block is always
+		//     available in the inserter and renders its empty state
+		//     when no contributor supplies data (Keystone #763).
+		$this->registerReviewsBlock();
+
 		// 5. Tag the config file for the scaffold command.
 		if ( $this->app->runningInConsole() ) {
 			$this->publishes( [
@@ -1278,9 +1309,100 @@ class VisualEditorServiceProvider extends ServiceProvider
 					];
 				}
 
+				// #764 — seed a location-landing starter that composes
+				// the business-info blocks (address+map, hours, phone,
+				// email) alongside a reviews block. Scoped to the `page`
+				// post type since it's a landing-page layout, not a
+				// per-post pattern. Same contributor-wins rule as above.
+				if ( ! array_key_exists( 'page/location', $patterns ) ) {
+					$patterns['page/location'] = [
+						'slug'        => 'page/location',
+						'title'       => __( 'Location page' ),
+						'source'      => 'theme',
+						'synced'      => false,
+						'categories'  => [ 'page' ],
+						'blocks'      => [],
+						'raw_content' => self::locationPagePatternRawContent(),
+						'post_types'  => [ 'page' ],
+					];
+				}
+
 				return $patterns;
 			},
 		);
+	}
+
+	/**
+	 * Raw block markup for the #764 `page/location` starter pattern.
+	 *
+	 * Composes only server-rendered ArtisanPack blocks + core layout
+	 * primitives — no PHP, no shortcodes — so the pattern is SSR-safe
+	 * everywhere the visual-editor renderers run (Blade, React, Vue).
+	 * Every embedded block relies on its own registered render callback
+	 * to fetch the runtime values (address, hours, phone, email,
+	 * reviews); the pattern itself carries only static copy.
+	 *
+	 * @since 1.9.0
+	 */
+	protected static function locationPagePatternRawContent(): string
+	{
+		// Escape the translated copy before it lands in HTML text
+		// positions. Pattern raw content is trusted markup, but the
+		// translations flowing into these headings come from a catalog
+		// this package doesn't own once shipped; a translator who slips
+		// a tag into a string shouldn't be able to alter the pattern's
+		// block structure or inject markup that survives `parse()`.
+		$flags = ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5;
+
+		$visitHeading   = htmlspecialchars( __( 'Visit us' ), $flags, 'UTF-8' );
+		$hoursHeading   = htmlspecialchars( __( 'Hours' ), $flags, 'UTF-8' );
+		$contactHeading = htmlspecialchars( __( 'Contact' ), $flags, 'UTF-8' );
+		$reviewsHeading = htmlspecialchars( __( 'What our customers are saying' ), $flags, 'UTF-8' );
+
+		// Every layout primitive here uses the `artisanpack/*` fork, not
+		// the upstream `core/*` slug. The editor bundle registers only
+		// the fork namespace (`resources/js/visual-editor/blocks/index.ts`
+		// replaced `registerCoreBlocks()`); a `core/group` in the raw
+		// content silently drops during `parse()` on the client, which
+		// is why a pattern that referenced `core/*` blocks would show
+		// in the inserter but do nothing on click.
+		//
+		// The wrapper classes must include BOTH the auto
+		// `wp-block-artisanpack-<name>` class the fork's `save()` emits
+		// AND the legacy `wp-block-<name>` alias. Gutenberg validates
+		// the class attr as an order-independent set: markup carrying
+		// only the alias raises "Block validation failed" and flags the
+		// block "unexpected or invalid content".
+		//
+		// Zero whitespace anywhere between block delimiters and their
+		// wrapper markup. Whitespace between inner-block markers (or
+		// between a block's opening delimiter and its wrapper element)
+		// gets parsed as a freeform block, and this editor never
+		// registers `core/freeform`, so those parse to `null` and blow
+		// up `serializeRawBlock` with "Cannot destructure property
+		// blockName". Concatenate rather than break lines.
+		$container1 = '<!-- wp:artisanpack/group {"tagName":"section","layout":{"type":"constrained"}} --><section class="wp-block-artisanpack-group wp-block-group">'
+			. '<!-- wp:artisanpack/heading {"level":2} --><h2 class="wp-block-artisanpack-heading wp-block-heading">' . $visitHeading . '</h2><!-- /wp:artisanpack/heading -->'
+			. '<!-- wp:artisanpack/columns --><div class="wp-block-artisanpack-columns wp-block-columns">'
+			. '<!-- wp:artisanpack/column --><div class="wp-block-artisanpack-column wp-block-column">'
+			. '<!-- wp:artisanpack/business-address /-->'
+			. '</div><!-- /wp:artisanpack/column -->'
+			. '<!-- wp:artisanpack/column --><div class="wp-block-artisanpack-column wp-block-column">'
+			. '<!-- wp:artisanpack/heading {"level":3} --><h3 class="wp-block-artisanpack-heading wp-block-heading">' . $hoursHeading . '</h3><!-- /wp:artisanpack/heading -->'
+			. '<!-- wp:artisanpack/business-hours /-->'
+			. '<!-- wp:artisanpack/heading {"level":3} --><h3 class="wp-block-artisanpack-heading wp-block-heading">' . $contactHeading . '</h3><!-- /wp:artisanpack/heading -->'
+			. '<!-- wp:artisanpack/business-phone /-->'
+			. '<!-- wp:artisanpack/business-email /-->'
+			. '</div><!-- /wp:artisanpack/column -->'
+			. '</div><!-- /wp:artisanpack/columns -->'
+			. '</section><!-- /wp:artisanpack/group -->';
+
+		$container2 = '<!-- wp:artisanpack/group {"tagName":"section","layout":{"type":"constrained"}} --><section class="wp-block-artisanpack-group wp-block-group">'
+			. '<!-- wp:artisanpack/heading {"level":2} --><h2 class="wp-block-artisanpack-heading wp-block-heading">' . $reviewsHeading . '</h2><!-- /wp:artisanpack/heading -->'
+			. '<!-- wp:artisanpack/reviews /-->'
+			. '</section><!-- /wp:artisanpack/group -->';
+
+		return $container1 . "\n\n" . $container2;
 	}
 
 	/**
@@ -1334,6 +1456,32 @@ class VisualEditorServiceProvider extends ServiceProvider
 		}
 
 		$editor->registerDynamicBlock( FormBlock::class );
+	}
+
+	/**
+	 * Registers the `artisanpack/reviews` dynamic block.
+	 *
+	 * Loads the bundled `block.json` so the inserter surfaces the
+	 * block, then registers {@see ReviewsBlock} as the server-side
+	 * renderer. The block collects payloads through the
+	 * `ap.visualEditor.reviews.collectReviews` filter at render time,
+	 * so host apps, other packages, and cms-framework plugins/themes
+	 * that activate at runtime can all contribute reviews without a
+	 * boot-order dependency (Keystone #763).
+	 *
+	 * @since 1.9.0
+	 */
+	protected function registerReviewsBlock(): void
+	{
+		$editor = $this->app->make( VisualEditor::class );
+
+		$blockJsonPath = __DIR__ . '/../resources/js/visual-editor/blocks/reviews/block.json';
+
+		if ( file_exists( $blockJsonPath ) ) {
+			$editor->registerBlock( $blockJsonPath );
+		}
+
+		$editor->registerDynamicBlock( ReviewsBlock::class );
 	}
 
 	/**

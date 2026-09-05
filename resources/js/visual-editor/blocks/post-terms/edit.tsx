@@ -14,8 +14,20 @@
  * block-level extractors don't have access to the per-block `term` attribute
  * needed to pick the right taxonomy from the entity's `_preview.terms`.
  *
+ * `InspectorControls` (#771) surfaces a taxonomy picker — populated from
+ * the {@see getTaxonomies} runtime registry — alongside the `separator` /
+ * `prefix` / `suffix` attributes, so authors can bind the block to a
+ * taxonomy and tune its display without hand-editing markup. Paired with
+ * the per-taxonomy inserter variations (`./variations`), this closes the
+ * gap where `term` was previously only settable in the code editor.
+ *
  * Phase I-Block-Fork — post navigation / metadata family (#520).
  */
+
+import type { ReactElement } from 'react';
+import { InspectorControls } from '@wordpress/block-editor';
+import { PanelBody, SelectControl, TextControl } from '@wordpress/components';
+import { __ } from '@wordpress/i18n';
 
 import {
     createEntityPlaceholderEdit,
@@ -23,6 +35,8 @@ import {
     type EntityPreviewValue,
 } from '../_shared/entity-placeholder-edit';
 import type { QueryPreviewPost } from '../../editor/use-query-preview';
+import { getTaxonomies } from '../../editor/taxonomy-registry';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 
 interface TermReference {
     readonly name?: string;
@@ -104,11 +118,44 @@ const PlaceholderEdit = createEntityPlaceholderEdit( {
     dummyValue: { text: 'Category, Updates' },
 } );
 
-export default function PostTermsEdit( props: {
-    attributes?: PostTermsAttributes;
-    context?: unknown;
-} ): ReturnType<typeof PlaceholderEdit > {
+interface PostTermsEditProps {
+    readonly attributes?: PostTermsAttributes;
+    readonly setAttributes?: ( attrs: Partial<PostTermsAttributes> ) => void;
+    readonly context?: unknown;
+}
+
+/**
+ * Builds the taxonomy `SelectControl` options from the runtime registry.
+ * A leading blank option lets an unbound block (`term: undefined`) render
+ * a "no taxonomy" state instead of silently pinning the first taxonomy,
+ * and a currently-set `term` that isn't in the registry is appended so
+ * the control never drops the author's stored value.
+ */
+function taxonomyOptions(
+    currentTerm: string,
+): { label: string; value: string }[] {
+    const options: { label: string; value: string }[] = [
+        { label: __( 'Select a taxonomy…', TEXT_DOMAIN ), value: '' },
+    ];
+
+    let matched = false;
+    for ( const taxonomy of getTaxonomies() ) {
+        options.push( { label: taxonomy.label, value: taxonomy.slug } );
+        if ( taxonomy.slug === currentTerm ) {
+            matched = true;
+        }
+    }
+
+    if ( currentTerm !== '' && ! matched ) {
+        options.push( { label: currentTerm, value: currentTerm } );
+    }
+
+    return options;
+}
+
+export default function PostTermsEdit( props: PostTermsEditProps ): ReactElement {
     const attributes = props.attributes ?? {};
+    const setAttributes = props.setAttributes;
     const taxonomy = typeof attributes.term === 'string' ? attributes.term : '';
     const separator =
         typeof attributes.separator === 'string' ? attributes.separator : ', ';
@@ -132,16 +179,70 @@ export default function PostTermsEdit( props: {
         }
     }
 
-    if ( label === '' ) {
-        // No resolved data and no preview context — fall through to the
-        // labelled chip placeholder from createEntityPlaceholderEdit.
-        return PlaceholderEdit( props );
-    }
+    // No resolved data and no preview context — fall through to the
+    // labelled chip placeholder from createEntityPlaceholderEdit.
+    // Otherwise synthesize the resolved label for the preview chip.
+    const preview =
+        label === ''
+            ? PlaceholderEdit( props )
+            : PlaceholderEdit( {
+                  ...props,
+                  attributes: {
+                      ...attributes,
+                      _resolvedTermsLabel: label,
+                  } as PostTermsAttributes & EntityPreviewValue,
+              } );
 
-    const synthesizedAttributes: PostTermsAttributes & EntityPreviewValue = {
-        ...attributes,
-        _resolvedTermsLabel: label,
-    };
-
-    return PlaceholderEdit( { ...props, attributes: synthesizedAttributes } );
+    return (
+        <>
+            { setAttributes !== undefined && (
+                <InspectorControls>
+                    <PanelBody title={ __( 'Settings', TEXT_DOMAIN ) }>
+                        <SelectControl
+                            // @ts-expect-error - upstream prop
+                            __next40pxDefaultSize
+                            __nextHasNoMarginBottom
+                            label={ __( 'Taxonomy', TEXT_DOMAIN ) }
+                            value={ taxonomy }
+                            options={ taxonomyOptions( taxonomy ) }
+                            onChange={ ( value: string ) =>
+                                setAttributes( { term: value } )
+                            }
+                        />
+                        <TextControl
+                            // @ts-expect-error - upstream prop
+                            __next40pxDefaultSize
+                            __nextHasNoMarginBottom
+                            label={ __( 'Separator', TEXT_DOMAIN ) }
+                            value={ separator }
+                            onChange={ ( value: string ) =>
+                                setAttributes( { separator: value } )
+                            }
+                        />
+                        <TextControl
+                            // @ts-expect-error - upstream prop
+                            __next40pxDefaultSize
+                            __nextHasNoMarginBottom
+                            label={ __( 'Prefix', TEXT_DOMAIN ) }
+                            value={ prefix }
+                            onChange={ ( value: string ) =>
+                                setAttributes( { prefix: value } )
+                            }
+                        />
+                        <TextControl
+                            // @ts-expect-error - upstream prop
+                            __next40pxDefaultSize
+                            __nextHasNoMarginBottom
+                            label={ __( 'Suffix', TEXT_DOMAIN ) }
+                            value={ suffix }
+                            onChange={ ( value: string ) =>
+                                setAttributes( { suffix: value } )
+                            }
+                        />
+                    </PanelBody>
+                </InspectorControls>
+            ) }
+            { preview }
+        </>
+    );
 }

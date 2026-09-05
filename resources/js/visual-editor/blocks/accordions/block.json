@@ -12,7 +12,12 @@
         "faq"
     ],
     "textdomain": "artisanpack-visual-editor",
-    "attributes": {},
+    "attributes": {
+        "faqSchema": {
+            "type": "boolean",
+            "default": false
+        }
+    },
     "supports": {
         "position": true,
         "artisanpackAnimations": true,

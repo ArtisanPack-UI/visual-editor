@@ -17,6 +17,7 @@ import {
 import { isNonEmptyWidth, normalizeBasis } from '../../support/columnWidth';
 import { flexClassNames } from '../../support/flex-serializer';
 import { safeCssValue } from '../../support/cssValue';
+import { applyDimensions, hasDimensionStyle } from '../../support/dimensions';
 import { safeUrl } from '../../support/urlSanitizer';
 import type { BlockRendererProps } from '../../types';
 
@@ -70,6 +71,15 @@ export function GroupBlock({ attributes, children }: BlockRendererProps): JSX.El
         photoGridScope !== '' ? photoGridScope : null,
         className,
     ]);
+
+    // #776 — surface `style.dimensions.minHeight` / `.aspectRatio` on
+    // the wrapper so a Group opted into `supports.dimensions.minHeight`
+    // matches the Blade renderer's inline style output.
+    const dimensionStyle = applyDimensions(attributes);
+
+    if (hasDimensionStyle(dimensionStyle)) {
+        return <Tag className={classes} style={dimensionStyle}>{children}</Tag>;
+    }
 
     return <Tag className={classes}>{children}</Tag>;
 }

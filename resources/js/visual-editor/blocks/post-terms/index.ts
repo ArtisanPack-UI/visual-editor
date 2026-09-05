@@ -20,8 +20,9 @@ import save from './save';
 import deprecated from './deprecated';
 import transforms from './transforms';
 import icon from './inserter-icon';
+import variations from './variations';
 
-export { edit, save, metadata, icon, deprecated, transforms };
+export { edit, save, metadata, icon, deprecated, transforms, variations };
 
 export default {
     name: metadata.name,
@@ -31,4 +32,5 @@ export default {
     icon,
     deprecated,
     transforms,
+    variations,
 };

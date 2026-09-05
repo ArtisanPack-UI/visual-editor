@@ -15,10 +15,7 @@ namespace ArtisanPackUI\VisualEditor\Http\Controllers\Ai;
 
 use ArtisanPackUI\Ai\Agents\AltTextGenerationAgent;
 use ArtisanPackUI\Ai\Agents\ContentRewriteAgent;
-use ArtisanPackUI\Ai\Contracts\FeatureRegistry;
-use ArtisanPackUI\Ai\Exceptions\FeatureDisabledException;
-use ArtisanPackUI\Ai\Exceptions\FeatureError;
-use ArtisanPackUI\Ai\Exceptions\MissingCredentialsException;
+use ArtisanPackUI\Ai\Concerns\HandlesAiFeatureResponses;
 use ArtisanPackUI\VisualEditor\Ai\Agents\ContentBlockSuggestionAgent;
 use ArtisanPackUI\VisualEditor\Ai\Agents\HeadingHierarchyAgent;
 use ArtisanPackUI\VisualEditor\Ai\Agents\LayoutSuggestionAgent;
@@ -29,8 +26,6 @@ use ArtisanPackUI\VisualEditor\Http\Requests\Ai\SuggestLayoutRequest;
 use ArtisanPackUI\VisualEditor\Http\Requests\Ai\SuggestNextBlockRequest;
 use ArtisanPackUI\VisualEditor\VisualEditorServiceProvider;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Log;
-use Throwable;
 
 /**
  * REST surface used by the React editor. Each endpoint runs one agent
@@ -46,6 +41,8 @@ use Throwable;
  */
 class AiController
 {
+	use HandlesAiFeatureResponses;
+
 	/**
 	 * Return the enabled state of the five features the editor cares about.
 	 *
@@ -55,15 +52,7 @@ class AiController
 	 */
 	public function features(): JsonResponse
 	{
-		/** @var FeatureRegistry $registry */
-		$registry = app( FeatureRegistry::class );
-
-		$state = [];
-		foreach ( VisualEditorServiceProvider::AI_FEATURE_KEYS as $key ) {
-			$state[ $key ] = null !== $registry->get( $key ) && $registry->isToggleOn( $key );
-		}
-
-		return new JsonResponse( [ 'features' => $state ] );
+		return new JsonResponse( [ 'features' => $this->aiFeatureStateMap( VisualEditorServiceProvider::AI_FEATURE_KEYS ) ] );
 	}
 
 	/**
@@ -152,8 +141,21 @@ class AiController
 	}
 
 	/**
-	 * Shared wrapper — normalizes the four agent-exception categories into
-	 * consistent status codes + JSON envelopes.
+	 * Tag the shared handler's log line with this surface.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @return string
+	 */
+	protected function aiFeatureLogMessage(): string
+	{
+		return 'visual-editor AI API call failed';
+	}
+
+	/**
+	 * Shared wrapper — delegates the exception ladder to the shared
+	 * {@see HandlesAiFeatureResponses::handleAiFeature()} trait and folds
+	 * the outcome into the JSON envelope.
 	 *
 	 * @since 1.3.0
 	 *
@@ -164,40 +166,19 @@ class AiController
 	 */
 	private function runAgent( string $featureKey, callable $callback ): JsonResponse
 	{
-		try {
-			$output = $callback();
+		$outcome = $this->handleAiFeature( $featureKey, $callback );
+
+		if ( $outcome->succeeded ) {
 			return new JsonResponse( [
-				'feature' => $featureKey,
-				'output'  => $output,
+				'feature' => $outcome->feature,
+				'output'  => $outcome->output,
 			] );
-		} catch ( FeatureDisabledException $e ) {
-			return new JsonResponse( [
-				'feature' => $featureKey,
-				'error'   => 'feature_disabled',
-				'message' => $e->getMessage(),
-			], 403 );
-		} catch ( MissingCredentialsException $e ) {
-			return new JsonResponse( [
-				'feature' => $featureKey,
-				'error'   => 'missing_credentials',
-				'message' => $e->getMessage(),
-			], 503 );
-		} catch ( FeatureError $e ) {
-			return new JsonResponse( [
-				'feature' => $featureKey,
-				'error'   => 'invalid_input',
-				'message' => $e->getMessage(),
-			], 422 );
-		} catch ( Throwable $e ) {
-			Log::error( 'visual-editor AI API call failed', [
-				'feature' => $featureKey,
-				'error'   => $e->getMessage(),
-			] );
-			return new JsonResponse( [
-				'feature' => $featureKey,
-				'error'   => 'internal_error',
-				'message' => 'Unexpected error running AI feature.',
-			], 500 );
 		}
+
+		return new JsonResponse( [
+			'feature' => $outcome->feature,
+			'error'   => $outcome->errorCode,
+			'message' => $outcome->message,
+		], $outcome->status );
 	}
 }

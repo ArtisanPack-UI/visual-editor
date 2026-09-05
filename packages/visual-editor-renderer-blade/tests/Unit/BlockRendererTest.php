@@ -938,6 +938,826 @@ it( 'omits accordion-title aria wiring when the parent panel id is empty', funct
 		->and( $html )->not->toContain( 'id="-control"' );
 } );
 
+it( 'emits FAQPage JSON-LD from accordion panels when the accordions faqSchema toggle is on (#757)', function () {
+	$tree = [
+		makeBlock( 'artisanpack/accordions', [ 'faqSchema' => true ], [
+			makeBlock( 'artisanpack/accordion', [ 'panelId' => 'faq-1' ], [
+				makeBlock( 'artisanpack/accordion-title', [], [
+					makeBlock( 'core/heading', [ 'level' => 3, 'content' => 'What is ArtisanPack?' ], [], 'h-1' ),
+				], 'title-1' ),
+				makeBlock( 'artisanpack/accordion-body', [], [
+					makeBlock( 'core/paragraph', [ 'content' => 'A Laravel package suite.' ], [], 'p-1' ),
+				], 'body-1' ),
+			], 'panel-1' ),
+			makeBlock( 'artisanpack/accordion', [ 'panelId' => 'faq-2' ], [
+				makeBlock( 'artisanpack/accordion-title', [], [
+					makeBlock( 'core/heading', [ 'level' => 3, 'content' => 'Is it free?' ], [], 'h-2' ),
+				], 'title-2' ),
+				makeBlock( 'artisanpack/accordion-body', [], [
+					makeBlock( 'core/paragraph', [ 'content' => 'Yes, MIT licensed.' ], [], 'p-2' ),
+				], 'body-2' ),
+			], 'panel-2' ),
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( '<script type="application/ld+json">' );
+
+	preg_match( '#<script type="application/ld\+json">(.*?)</script>#s', $html, $matches );
+	expect( $matches[1] ?? '' )->not->toBe( '' );
+
+	$decoded = json_decode( $matches[1], true );
+
+	expect( $decoded )->toBeArray()
+		->and( $decoded['@context'] )->toBe( 'https://schema.org' )
+		->and( $decoded['@type'] )->toBe( 'FAQPage' )
+		->and( $decoded['mainEntity'] )->toHaveCount( 2 )
+		->and( $decoded['mainEntity'][0]['@type'] )->toBe( 'Question' )
+		->and( $decoded['mainEntity'][0]['name'] )->toBe( 'What is ArtisanPack?' )
+		->and( $decoded['mainEntity'][0]['acceptedAnswer']['@type'] )->toBe( 'Answer' )
+		->and( $decoded['mainEntity'][0]['acceptedAnswer']['text'] )->toBe( 'A Laravel package suite.' )
+		->and( $decoded['mainEntity'][1]['name'] )->toBe( 'Is it free?' )
+		->and( $decoded['mainEntity'][1]['acceptedAnswer']['text'] )->toBe( 'Yes, MIT licensed.' );
+} );
+
+it( 'strips renderer wrapper tags and class attributes from the FAQPage answer text', function () {
+	$tree = [
+		makeBlock( 'artisanpack/accordions', [ 'faqSchema' => true ], [
+			makeBlock( 'artisanpack/accordion', [ 'panelId' => 'faq-1' ], [
+				makeBlock( 'artisanpack/accordion-title', [], [
+					makeBlock( 'core/heading', [ 'level' => 3, 'content' => 'Q' ], [], 'h-1' ),
+				], 'title-1' ),
+				makeBlock( 'artisanpack/accordion-body', [], [
+					makeBlock( 'core/paragraph', [ 'content' => 'Line one.' ], [], 'p-1' ),
+					makeBlock( 'core/paragraph', [ 'content' => 'Line two.' ], [], 'p-2' ),
+				], 'body-1' ),
+			], 'panel-1' ),
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	preg_match( '#<script type="application/ld\+json">(.*?)</script>#s', $html, $matches );
+	$decoded = json_decode( $matches[1] ?? '', true );
+	$text    = $decoded['mainEntity'][0]['acceptedAnswer']['text'] ?? '';
+
+	expect( $text )->not->toContain( '<p' )
+		->and( $text )->not->toContain( 'wp-block-paragraph' )
+		->and( $text )->toBe( 'Line one. Line two.' );
+} );
+
+it( 'omits FAQPage JSON-LD when the accordions faqSchema toggle is off (default)', function () {
+	$tree = [
+		makeBlock( 'artisanpack/accordions', [], [
+			makeBlock( 'artisanpack/accordion', [ 'panelId' => 'faq-1' ], [
+				makeBlock( 'artisanpack/accordion-title', [], [
+					makeBlock( 'core/heading', [ 'level' => 3, 'content' => 'Q' ], [], 'h-1' ),
+				], 'title-1' ),
+				makeBlock( 'artisanpack/accordion-body', [], [
+					makeBlock( 'core/paragraph', [ 'content' => 'A' ], [], 'p-1' ),
+				], 'body-1' ),
+			], 'panel-1' ),
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->not->toContain( 'application/ld+json' )
+		->and( $html )->not->toContain( 'FAQPage' );
+} );
+
+it( 'skips FAQPage entries for panels missing a title or a body', function () {
+	$tree = [
+		makeBlock( 'artisanpack/accordions', [ 'faqSchema' => true ], [
+			// Full pair — should appear.
+			makeBlock( 'artisanpack/accordion', [ 'panelId' => 'faq-1' ], [
+				makeBlock( 'artisanpack/accordion-title', [], [
+					makeBlock( 'core/heading', [ 'level' => 3, 'content' => 'Real question' ], [], 'h-1' ),
+				], 'title-1' ),
+				makeBlock( 'artisanpack/accordion-body', [], [
+					makeBlock( 'core/paragraph', [ 'content' => 'Real answer.' ], [], 'p-1' ),
+				], 'body-1' ),
+			], 'panel-1' ),
+			// Title only — no answer, must be skipped.
+			makeBlock( 'artisanpack/accordion', [ 'panelId' => 'faq-2' ], [
+				makeBlock( 'artisanpack/accordion-title', [], [
+					makeBlock( 'core/heading', [ 'level' => 3, 'content' => 'Orphan question' ], [], 'h-2' ),
+				], 'title-2' ),
+			], 'panel-2' ),
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	preg_match( '#<script type="application/ld\+json">(.*?)</script>#s', $html, $matches );
+	$decoded = json_decode( $matches[1] ?? '', true );
+
+	expect( $decoded['mainEntity'] )->toHaveCount( 1 )
+		->and( $decoded['mainEntity'][0]['name'] )->toBe( 'Real question' );
+} );
+
+it( 'ignores non-accordion inner blocks when building FAQPage entries', function () {
+	$tree = [
+		makeBlock( 'artisanpack/accordions', [ 'faqSchema' => true ], [
+			// Stray non-panel child — must be skipped without breaking emission.
+			makeBlock( 'core/paragraph', [ 'content' => 'Stray text.' ], [], 'stray-1' ),
+			makeBlock( 'artisanpack/accordion', [ 'panelId' => 'faq-1' ], [
+				makeBlock( 'artisanpack/accordion-title', [], [
+					makeBlock( 'core/heading', [ 'level' => 3, 'content' => 'Panel question' ], [], 'h-1' ),
+				], 'title-1' ),
+				makeBlock( 'artisanpack/accordion-body', [], [
+					makeBlock( 'core/paragraph', [ 'content' => 'Panel answer.' ], [], 'p-1' ),
+				], 'body-1' ),
+			], 'panel-1' ),
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	preg_match( '#<script type="application/ld\+json">(.*?)</script>#s', $html, $matches );
+	$decoded = json_decode( $matches[1] ?? '', true );
+
+	expect( $decoded['mainEntity'] )->toHaveCount( 1 )
+		->and( $decoded['mainEntity'][0]['name'] )->toBe( 'Panel question' );
+} );
+
+it( 'omits the FAQPage script when faqSchema is on but no accordion panels are present', function () {
+	$tree = [
+		makeBlock( 'artisanpack/accordions', [ 'faqSchema' => true ], [] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'class="ap-accordions"' )
+		->and( $html )->not->toContain( 'application/ld+json' )
+		->and( $html )->not->toContain( 'FAQPage' );
+} );
+
+it( 'hex-encodes tag characters via JSON_HEX_TAG so entity-encoded </script> in content cannot break out of the inline script', function () {
+	// Entity-encoded input round-trips: core/paragraph & core/heading
+	// emit the raw `&lt;/script&gt;` markup, strip_tags leaves the
+	// entities alone, and html_entity_decode restores the literal
+	// `</script>` before it reaches json_encode — where JSON_HEX_TAG
+	// is the actual line of defense (turning `<` / `>` into
+	// `<` / `>`). Using a literal `</script>` in the source
+	// content would be stripped by strip_tags and never exercise the
+	// JSON encoder — a weaker test.
+	$tree = [
+		makeBlock( 'artisanpack/accordions', [ 'faqSchema' => true ], [
+			makeBlock( 'artisanpack/accordion', [ 'panelId' => 'faq-1' ], [
+				makeBlock( 'artisanpack/accordion-title', [], [
+					makeBlock( 'core/heading', [ 'level' => 3, 'content' => 'Malicious &lt;/script&gt;' ], [], 'h-1' ),
+				], 'title-1' ),
+				makeBlock( 'artisanpack/accordion-body', [], [
+					makeBlock( 'core/paragraph', [ 'content' => 'Payload &lt;/script&gt;&lt;script&gt;alert(1)&lt;/script&gt;' ], [], 'p-1' ),
+				], 'body-1' ),
+			], 'panel-1' ),
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	// Exactly one JSON-LD script opens and closes; the payload contains
+	// the hex-encoded escapes (proving JSON_HEX_TAG fired) and never
+	// the raw `</script>` or `<script>alert(1)` sequences that would
+	// otherwise close the JSON-LD element early and inject markup.
+	preg_match_all( '#<script type="application/ld\+json">(.*?)</script>#s', $html, $matches );
+	expect( $matches[0] )->toHaveCount( 1 )
+		->and( $matches[1][0] )->not->toContain( '</script>' )
+		->and( $matches[1][0] )->not->toContain( '<script>alert(1)' )
+		->and( $matches[1][0] )->toContain( '\u003C\/script\u003E' )
+		->and( $matches[1][0] )->toContain( '\u003Cscript\u003E' )
+		->and( $html )->not->toContain( '<script>alert(1)' );
+} );
+
+it( 'renders an artisanpack/faq block with question/answer pairs (#758)', function () {
+	$tree = [
+		makeBlock( 'artisanpack/faq', [
+			'headingLevel' => 3,
+			'emitSchema'   => true,
+			'items'        => [
+				[ 'question' => 'What is ArtisanPack?', 'answer' => 'A Laravel package suite.' ],
+				[ 'question' => 'Is it free?', 'answer' => 'Yes, MIT licensed.' ],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'class="ap-faq"' )
+		->and( $html )->toContain( '<h3 class="ap-faq__question">What is ArtisanPack?</h3>' )
+		->and( $html )->toContain( '<div class="ap-faq__answer">A Laravel package suite.</div>' )
+		->and( $html )->toContain( '<h3 class="ap-faq__question">Is it free?</h3>' )
+		->and( $html )->toContain( '<div class="ap-faq__answer">Yes, MIT licensed.</div>' );
+} );
+
+it( 'renders artisanpack/faq questions with the configured heading level', function () {
+	$tree = [
+		makeBlock( 'artisanpack/faq', [
+			'headingLevel' => 2,
+			'items'        => [
+				[ 'question' => 'Q', 'answer' => 'A' ],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( '<h2 class="ap-faq__question">Q</h2>' );
+} );
+
+it( 'clamps invalid artisanpack/faq heading levels to the 2-6 range', function () {
+	$tooHigh = [
+		makeBlock( 'artisanpack/faq', [
+			'headingLevel' => 99,
+			'items'        => [ [ 'question' => 'Q', 'answer' => 'A' ] ],
+		] ),
+	];
+	$tooLow = [
+		makeBlock( 'artisanpack/faq', [
+			'headingLevel' => 0,
+			'items'        => [ [ 'question' => 'Q', 'answer' => 'A' ] ],
+		] ),
+	];
+
+	expect( makeRenderer()->render( $tooHigh ) )->toContain( '<h6 class="ap-faq__question">Q</h6>' );
+	expect( makeRenderer()->render( $tooLow ) )->toContain( '<h2 class="ap-faq__question">Q</h2>' );
+} );
+
+it( 'emits FAQPage JSON-LD for artisanpack/faq when emitSchema is on', function () {
+	$tree = [
+		makeBlock( 'artisanpack/faq', [
+			'emitSchema' => true,
+			'items'      => [
+				[ 'question' => 'What is ArtisanPack?', 'answer' => 'A Laravel package suite.' ],
+				[ 'question' => 'Is it free?', 'answer' => 'Yes, MIT licensed.' ],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( '<script type="application/ld+json">' );
+
+	preg_match( '#<script type="application/ld\+json">(.*?)</script>#s', $html, $matches );
+	$decoded = json_decode( $matches[1] ?? '', true );
+
+	expect( $decoded )->toBeArray()
+		->and( $decoded['@context'] )->toBe( 'https://schema.org' )
+		->and( $decoded['@type'] )->toBe( 'FAQPage' )
+		->and( $decoded['mainEntity'] )->toHaveCount( 2 )
+		->and( $decoded['mainEntity'][0]['@type'] )->toBe( 'Question' )
+		->and( $decoded['mainEntity'][0]['name'] )->toBe( 'What is ArtisanPack?' )
+		->and( $decoded['mainEntity'][0]['acceptedAnswer']['@type'] )->toBe( 'Answer' )
+		->and( $decoded['mainEntity'][0]['acceptedAnswer']['text'] )->toBe( 'A Laravel package suite.' )
+		->and( $decoded['mainEntity'][1]['name'] )->toBe( 'Is it free?' )
+		->and( $decoded['mainEntity'][1]['acceptedAnswer']['text'] )->toBe( 'Yes, MIT licensed.' );
+} );
+
+it( 'defaults artisanpack/faq to emitting FAQPage JSON-LD when emitSchema is absent', function () {
+	$tree = [
+		makeBlock( 'artisanpack/faq', [
+			'items' => [
+				[ 'question' => 'Q', 'answer' => 'A' ],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'application/ld+json' )
+		->and( $html )->toContain( 'FAQPage' );
+} );
+
+it( 'omits FAQPage JSON-LD for artisanpack/faq when emitSchema is off', function () {
+	$tree = [
+		makeBlock( 'artisanpack/faq', [
+			'emitSchema' => false,
+			'items'      => [
+				[ 'question' => 'Q', 'answer' => 'A' ],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( '<h3 class="ap-faq__question">Q</h3>' )
+		->and( $html )->not->toContain( 'application/ld+json' )
+		->and( $html )->not->toContain( 'FAQPage' );
+} );
+
+it( 'strips answer HTML wrappers from the artisanpack/faq schema text', function () {
+	$tree = [
+		makeBlock( 'artisanpack/faq', [
+			'emitSchema' => true,
+			'items'      => [
+				[
+					'question' => 'Question with <strong>emphasis</strong>',
+					'answer'   => '<p class="wp-block-paragraph">Line one.</p><p>Line two.</p>',
+				],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	preg_match( '#<script type="application/ld\+json">(.*?)</script>#s', $html, $matches );
+	$decoded = json_decode( $matches[1] ?? '', true );
+
+	expect( $decoded['mainEntity'][0]['name'] )->toBe( 'Question with emphasis' )
+		->and( $decoded['mainEntity'][0]['acceptedAnswer']['text'] )->toBe( 'Line one. Line two.' );
+} );
+
+it( 'rounds fractional artisanpack/faq heading levels to match the React/Vue renderers', function () {
+	$tree = [
+		makeBlock( 'artisanpack/faq', [
+			'headingLevel' => 2.5,
+			'items'        => [ [ 'question' => 'Q', 'answer' => 'A' ] ],
+		] ),
+	];
+
+	expect( makeRenderer()->render( $tree ) )->toContain( '<h3 class="ap-faq__question">Q</h3>' );
+} );
+
+it( 'accepts numeric-string artisanpack/faq heading levels', function () {
+	$tree = [
+		makeBlock( 'artisanpack/faq', [
+			'headingLevel' => '4',
+			'items'        => [ [ 'question' => 'Q', 'answer' => 'A' ] ],
+		] ),
+	];
+
+	expect( makeRenderer()->render( $tree ) )->toContain( '<h4 class="ap-faq__question">Q</h4>' );
+} );
+
+it( 'skips artisanpack/faq schema entries whose question or answer are empty', function () {
+	$tree = [
+		makeBlock( 'artisanpack/faq', [
+			'emitSchema' => true,
+			'items'      => [
+				[ 'question' => 'Real question', 'answer' => 'Real answer.' ],
+				[ 'question' => 'Orphan question', 'answer' => '' ],
+				[ 'question' => '', 'answer' => 'Orphan answer.' ],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	preg_match( '#<script type="application/ld\+json">(.*?)</script>#s', $html, $matches );
+	$decoded = json_decode( $matches[1] ?? '', true );
+
+	expect( $decoded['mainEntity'] )->toHaveCount( 1 )
+		->and( $decoded['mainEntity'][0]['name'] )->toBe( 'Real question' );
+} );
+
+it( 'skips fully-empty artisanpack/faq items from the rendered markup', function () {
+	$tree = [
+		makeBlock( 'artisanpack/faq', [
+			'emitSchema' => false,
+			'items'      => [
+				[ 'question' => 'Kept', 'answer' => 'A' ],
+				[ 'question' => '', 'answer' => '' ],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( '<h3 class="ap-faq__question">Kept</h3>' );
+	expect( substr_count( $html, 'class="ap-faq__item"' ) )->toBe( 1 );
+} );
+
+it( 'omits FAQPage JSON-LD for artisanpack/faq when emitSchema is on but every item is empty', function () {
+	$tree = [
+		makeBlock( 'artisanpack/faq', [
+			'emitSchema' => true,
+			'items'      => [
+				[ 'question' => '', 'answer' => '' ],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'class="ap-faq"' )
+		->and( $html )->not->toContain( 'application/ld+json' )
+		->and( $html )->not->toContain( 'FAQPage' );
+} );
+
+it( 'hex-encodes tag characters in the artisanpack/faq JSON-LD payload so entity-encoded </script> cannot break out', function () {
+	$tree = [
+		makeBlock( 'artisanpack/faq', [
+			'emitSchema' => true,
+			'items'      => [
+				[
+					'question' => 'Malicious &lt;/script&gt;',
+					'answer'   => 'Payload &lt;/script&gt;&lt;script&gt;alert(1)&lt;/script&gt;',
+				],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	preg_match_all( '#<script type="application/ld\+json">(.*?)</script>#s', $html, $matches );
+	expect( $matches[0] )->toHaveCount( 1 )
+		->and( $matches[1][0] )->not->toContain( '</script>' )
+		->and( $matches[1][0] )->not->toContain( '<script>alert(1)' )
+		->and( $matches[1][0] )->toContain( '\u003C\/script\u003E' )
+		->and( $matches[1][0] )->toContain( '\u003Cscript\u003E' )
+		->and( $html )->not->toContain( '<script>alert(1)' );
+} );
+
+it( 'ignores non-array artisanpack/faq item entries without emitting a container', function () {
+	$tree = [
+		makeBlock( 'artisanpack/faq', [
+			'emitSchema' => false,
+			'items'      => [ 'not-an-array', null, [ 'question' => 'Kept', 'answer' => 'A' ] ],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( '<h3 class="ap-faq__question">Kept</h3>' )
+		->and( substr_count( $html, 'class="ap-faq__item"' ) )->toBe( 1 );
+} );
+
+it( 'renders an artisanpack/howto block with ordered steps (#759)', function () {
+	$tree = [
+		makeBlock( 'artisanpack/howto', [
+			'name'         => 'Brew Pour-Over Coffee',
+			'description'  => 'A quick guide to a great cup.',
+			'headingLevel' => 3,
+			'emitSchema'   => true,
+			'steps'        => [
+				[ 'name' => 'Boil water', 'text' => 'Heat to 205F.' ],
+				[ 'name' => 'Grind beans', 'text' => 'Medium coarse.' ],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'class="ap-howto"' )
+		->and( $html )->toContain( '<h2 class="ap-howto__name">Brew Pour-Over Coffee</h2>' )
+		->and( $html )->toContain( '<p class="ap-howto__description">A quick guide to a great cup.</p>' )
+		->and( $html )->toContain( '<ol class="ap-howto__steps">' )
+		->and( $html )->toContain( '<h3 class="ap-howto__step-name">Boil water</h3>' )
+		->and( $html )->toContain( '<div class="ap-howto__step-text">Heat to 205F.</div>' )
+		->and( $html )->toContain( '<h3 class="ap-howto__step-name">Grind beans</h3>' );
+} );
+
+it( 'renders artisanpack/howto step names with the configured heading level', function () {
+	$tree = [
+		makeBlock( 'artisanpack/howto', [
+			'headingLevel' => 4,
+			'steps'        => [
+				[ 'name' => 'S', 'text' => 'T' ],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( '<h4 class="ap-howto__step-name">S</h4>' );
+} );
+
+it( 'clamps invalid artisanpack/howto heading levels to the 2-6 range', function () {
+	$tooHigh = [
+		makeBlock( 'artisanpack/howto', [
+			'headingLevel' => 99,
+			'steps'        => [ [ 'name' => 'S', 'text' => 'T' ] ],
+		] ),
+	];
+	$tooLow = [
+		makeBlock( 'artisanpack/howto', [
+			'headingLevel' => 0,
+			'steps'        => [ [ 'name' => 'S', 'text' => 'T' ] ],
+		] ),
+	];
+
+	expect( makeRenderer()->render( $tooHigh ) )->toContain( '<h6 class="ap-howto__step-name">S</h6>' );
+	expect( makeRenderer()->render( $tooLow ) )->toContain( '<h2 class="ap-howto__step-name">S</h2>' );
+} );
+
+it( 'rounds fractional artisanpack/howto heading levels to match the React/Vue renderers', function () {
+	$tree = [
+		makeBlock( 'artisanpack/howto', [
+			'headingLevel' => 2.5,
+			'steps'        => [ [ 'name' => 'S', 'text' => 'T' ] ],
+		] ),
+	];
+
+	expect( makeRenderer()->render( $tree ) )->toContain( '<h3 class="ap-howto__step-name">S</h3>' );
+} );
+
+it( 'accepts numeric-string artisanpack/howto heading levels', function () {
+	$tree = [
+		makeBlock( 'artisanpack/howto', [
+			'headingLevel' => '5',
+			'steps'        => [ [ 'name' => 'S', 'text' => 'T' ] ],
+		] ),
+	];
+
+	expect( makeRenderer()->render( $tree ) )->toContain( '<h5 class="ap-howto__step-name">S</h5>' );
+} );
+
+it( 'renders an artisanpack/howto step image when a step imageUrl is set', function () {
+	$tree = [
+		makeBlock( 'artisanpack/howto', [
+			'emitSchema' => false,
+			'steps'      => [
+				[
+					'name'     => 'S',
+					'text'     => 'T',
+					'imageUrl' => 'https://example.test/step.png',
+					'imageAlt' => 'A step',
+				],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( '<img class="ap-howto__step-image" src="https://example.test/step.png" alt="A step"/>' );
+} );
+
+it( 'omits the name and description elements from artisanpack/howto when blank', function () {
+	$tree = [
+		makeBlock( 'artisanpack/howto', [
+			'emitSchema' => false,
+			'name'       => '',
+			'steps'      => [ [ 'name' => 'S', 'text' => 'T' ] ],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->not->toContain( 'ap-howto__name' )
+		->and( $html )->not->toContain( 'ap-howto__description' );
+} );
+
+it( 'emits HowTo JSON-LD for artisanpack/howto when emitSchema is on', function () {
+	$tree = [
+		makeBlock( 'artisanpack/howto', [
+			'name'        => 'Brew Pour-Over Coffee',
+			'description' => 'A quick guide.',
+			'emitSchema'  => true,
+			'steps'       => [
+				[ 'name' => 'Boil water', 'text' => 'Heat to 205F.', 'imageUrl' => 'https://example.test/boil.png' ],
+				[ 'name' => 'Grind beans', 'text' => 'Medium coarse.' ],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( '<script type="application/ld+json">' );
+
+	preg_match( '#<script type="application/ld\+json">(.*?)</script>#s', $html, $matches );
+	$decoded = json_decode( $matches[1] ?? '', true );
+
+	expect( $decoded )->toBeArray()
+		->and( $decoded['@context'] )->toBe( 'https://schema.org' )
+		->and( $decoded['@type'] )->toBe( 'HowTo' )
+		->and( $decoded['name'] )->toBe( 'Brew Pour-Over Coffee' )
+		->and( $decoded['description'] )->toBe( 'A quick guide.' )
+		->and( $decoded['step'] )->toHaveCount( 2 )
+		->and( $decoded['step'][0]['@type'] )->toBe( 'HowToStep' )
+		->and( $decoded['step'][0]['position'] )->toBe( 1 )
+		->and( $decoded['step'][0]['name'] )->toBe( 'Boil water' )
+		->and( $decoded['step'][0]['text'] )->toBe( 'Heat to 205F.' )
+		->and( $decoded['step'][0]['image'] )->toBe( 'https://example.test/boil.png' )
+		->and( $decoded['step'][1]['position'] )->toBe( 2 )
+		->and( $decoded['step'][1]['name'] )->toBe( 'Grind beans' )
+		->and( $decoded['step'][1])->not->toHaveKey( 'image' );
+} );
+
+it( 'defaults artisanpack/howto to emitting HowTo JSON-LD when emitSchema is absent', function () {
+	$tree = [
+		makeBlock( 'artisanpack/howto', [
+			'name'  => 'Guide',
+			'steps' => [ [ 'name' => 'S', 'text' => 'T' ] ],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'application/ld+json' )
+		->and( $html )->toContain( '"HowTo"' );
+} );
+
+it( 'omits HowTo JSON-LD for artisanpack/howto when emitSchema is off', function () {
+	$tree = [
+		makeBlock( 'artisanpack/howto', [
+			'emitSchema' => false,
+			'name'       => 'Guide',
+			'steps'      => [ [ 'name' => 'S', 'text' => 'T' ] ],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( '<h3 class="ap-howto__step-name">S</h3>' )
+		->and( $html )->not->toContain( 'application/ld+json' )
+		->and( $html )->not->toContain( '"HowTo"' );
+} );
+
+it( 'falls back to the first step name when artisanpack/howto has no block name', function () {
+	$tree = [
+		makeBlock( 'artisanpack/howto', [
+			'emitSchema' => true,
+			'name'       => '',
+			'steps'      => [ [ 'name' => 'Boil water', 'text' => 'Heat to 205F.' ] ],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	preg_match( '#<script type="application/ld\+json">(.*?)</script>#s', $html, $matches );
+	$decoded = json_decode( $matches[1] ?? '', true );
+
+	expect( $decoded['name'] )->toBe( 'Boil water' );
+} );
+
+it( 'strips HTML wrappers from the artisanpack/howto schema text', function () {
+	$tree = [
+		makeBlock( 'artisanpack/howto', [
+			'emitSchema' => true,
+			'name'       => 'Guide with <strong>style</strong>',
+			'steps'      => [
+				[
+					'name' => 'Step <em>one</em>',
+					'text' => '<p class="wp-block-paragraph">Line one.</p><p>Line two.</p>',
+				],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	preg_match( '#<script type="application/ld\+json">(.*?)</script>#s', $html, $matches );
+	$decoded = json_decode( $matches[1] ?? '', true );
+
+	expect( $decoded['name'] )->toBe( 'Guide with style' )
+		->and( $decoded['step'][0]['name'] )->toBe( 'Step one' )
+		->and( $decoded['step'][0]['text'] )->toBe( 'Line one. Line two.' );
+} );
+
+it( 'falls back to the step name when the step text is blank in artisanpack/howto schema', function () {
+	// schema.org's HowToStep requires `text`; the renderer copies the
+	// step name into `text` so an author who only entered a title still
+	// produces a Google-valid payload.
+	$tree = [
+		makeBlock( 'artisanpack/howto', [
+			'emitSchema' => true,
+			'name'       => 'Guide',
+			'steps'      => [
+				[ 'name' => 'Title only step', 'text' => '' ],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	preg_match( '#<script type="application/ld\+json">(.*?)</script>#s', $html, $matches );
+	$decoded = json_decode( $matches[1] ?? '', true );
+
+	expect( $decoded['step'][0]['text'] )->toBe( 'Title only step' )
+		->and( $decoded['step'][0]['name'] )->toBe( 'Title only step' );
+} );
+
+it( 'skips artisanpack/howto schema entries whose step is empty', function () {
+	$tree = [
+		makeBlock( 'artisanpack/howto', [
+			'emitSchema' => true,
+			'name'       => 'Guide',
+			'steps'      => [
+				[ 'name' => 'Real step', 'text' => 'Real text.' ],
+				[ 'name' => '', 'text' => '' ],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	preg_match( '#<script type="application/ld\+json">(.*?)</script>#s', $html, $matches );
+	$decoded = json_decode( $matches[1] ?? '', true );
+
+	expect( $decoded['step'] )->toHaveCount( 1 )
+		->and( $decoded['step'][0]['name'] )->toBe( 'Real step' );
+} );
+
+it( 'skips fully-empty artisanpack/howto steps from the rendered markup', function () {
+	$tree = [
+		makeBlock( 'artisanpack/howto', [
+			'emitSchema' => false,
+			'steps'      => [
+				[ 'name' => 'Kept', 'text' => 'T' ],
+				[ 'name' => '', 'text' => '' ],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( '<h3 class="ap-howto__step-name">Kept</h3>' )
+		->and( substr_count( $html, 'class="ap-howto__step"' ) )->toBe( 1 );
+} );
+
+it( 'omits HowTo JSON-LD for artisanpack/howto when emitSchema is on but every step is empty', function () {
+	$tree = [
+		makeBlock( 'artisanpack/howto', [
+			'emitSchema' => true,
+			'name'       => 'Guide',
+			'steps'      => [
+				[ 'name' => '', 'text' => '' ],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'class="ap-howto"' )
+		->and( $html )->not->toContain( 'application/ld+json' )
+		->and( $html )->not->toContain( '"HowTo"' );
+} );
+
+it( 'ignores non-array artisanpack/howto step entries without emitting the item', function () {
+	$tree = [
+		makeBlock( 'artisanpack/howto', [
+			'emitSchema' => false,
+			'steps'      => [ 'not-an-array', null, [ 'name' => 'Kept', 'text' => 'T' ] ],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( '<h3 class="ap-howto__step-name">Kept</h3>' )
+		->and( substr_count( $html, 'class="ap-howto__step"' ) )->toBe( 1 );
+} );
+
+it( 'hex-encodes tag characters in the artisanpack/howto JSON-LD payload so entity-encoded </script> cannot break out', function () {
+	// Same shape as the accordions/faq JSON-LD injection tests: the
+	// author-supplied text arrives entity-encoded from the block editor,
+	// so after `strip_tags` + `html_entity_decode` the raw `<>` characters
+	// land in the payload and must be hex-escaped by JSON_HEX_TAG. If
+	// they leaked through the browser would close the ld+json script
+	// element early and execute the injected `<script>`.
+	$tree = [
+		makeBlock( 'artisanpack/howto', [
+			'emitSchema' => true,
+			'name'       => 'Guide',
+			'steps'      => [
+				[
+					'name' => 'Injected',
+					'text' => 'Payload &lt;/script&gt;&lt;script&gt;alert(1)&lt;/script&gt;',
+				],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	preg_match_all( '#<script type="application/ld\+json">(.*?)</script>#s', $html, $matches );
+
+	expect( $matches[0] )->toHaveCount( 1 )
+		->and( $matches[1][0] )->not->toContain( '</script>' )
+		->and( $matches[1][0] )->not->toContain( '<script>alert(1)' )
+		->and( $matches[1][0] )->toContain( '\\u003C\\/script\\u003E' )
+		->and( $matches[1][0] )->toContain( '\\u003Cscript\\u003E' )
+		->and( $html )->not->toContain( '<script>alert(1)' );
+} );
+
+it( 'drops unsafe schemes from artisanpack/howto step image URLs (#H-05)', function () {
+	$tree = [
+		makeBlock( 'artisanpack/howto', [
+			'emitSchema' => true,
+			'name'       => 'Guide',
+			'steps'      => [
+				[
+					'name'     => 'Injected',
+					'text'     => 'Step body.',
+					'imageUrl' => 'javascript:alert(1)',
+					'imageAlt' => 'x',
+				],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->not->toContain( 'javascript:' )
+		->and( $html )->not->toContain( '<img class="ap-howto__step-image"' );
+
+	preg_match_all( '#<script type="application/ld\+json">(.*?)</script>#s', $html, $matches );
+
+	expect( $matches[1][0] ?? '' )->not->toContain( 'javascript:' )
+		->and( $matches[1][0] ?? '' )->not->toContain( '"image"' );
+} );
+
 it( 'renders an artisanpack/tabs tree with triggers derived from tab-section children', function () {
 	$tree = [
 		makeBlock( 'artisanpack/tabs', [

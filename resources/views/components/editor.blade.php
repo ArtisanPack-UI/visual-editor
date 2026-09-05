@@ -22,8 +22,19 @@
 	@isset($initialCreatedAt) data-created-at="{{ $initialCreatedAt }}" @endisset
 	@isset($initialUpdatedAt) data-updated-at="{{ $initialUpdatedAt }}" @endisset
 	data-content-types="{{ json_encode( $contentTypes, JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS ) }}"
+	{{-- #771 — registered taxonomies drive the post-terms inserter
+	     variations + the Settings-sidebar taxonomy picker. --}}
+	data-taxonomies="{{ json_encode( $taxonomies, JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS ) }}"
 	{{-- #617 — merged breakpoint registry (config + theme.json +
 	     defaults) so the viewport switcher's registry hydrates with
 	     host-configured `label` / `previewWidthPx` overrides. --}}
 	data-breakpoints="{{ json_encode( $breakpoints ) }}"
+	{{-- #773 — host-provided palette / font-size / font-family /
+	     spacing-size presets. Merged into `editorSettings` by
+	     `preset-registry.ts` at editor boot and layered on top of the
+	     theme.json layer by `useThemedEditorSettings`, so host
+	     entries override same-slug entries from either theme.json or
+	     the package defaults. See `config/visual-editor.php` for the
+	     full precedence order. --}}
+	data-presets="{{ json_encode( $presets, JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS ) }}"
 ></div>

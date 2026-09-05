@@ -1,0 +1,64 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "artisanpack/business-hours",
+    "title": "Business Hours",
+    "category": "theme",
+    "description": "Display your business's weekly hours and any upcoming special / holiday overrides.",
+    "keywords": [
+        "business",
+        "hours",
+        "schedule",
+        "opening"
+    ],
+    "textdomain": "artisanpack-visual-editor",
+    "attributes": {
+        "showSpecialHours": {
+            "type": "boolean",
+            "default": true
+        },
+        "specialHoursWindowDays": {
+            "type": "integer",
+            "default": 30
+        }
+    },
+    "supports": {
+        "position": true,
+        "artisanpackAnimations": true,
+        "align": [
+            "wide",
+            "full"
+        ],
+        "ariaLabel": true,
+        "className": true,
+        "html": false,
+        "spacing": {
+            "margin": [ "top", "bottom" ],
+            "padding": true,
+            "blockGap": true
+        },
+        "color": {
+            "gradients": true,
+            "link": true,
+            "__experimentalDefaultControls": {
+                "background": true,
+                "text": true
+            }
+        },
+        "typography": {
+            "fontSize": true,
+            "lineHeight": true,
+            "__experimentalFontFamily": true,
+            "__experimentalFontWeight": true,
+            "__experimentalDefaultControls": {
+                "fontSize": true
+            }
+        },
+        "__experimentalBorder": {
+            "color": true,
+            "radius": true,
+            "style": true,
+            "width": true
+        }
+    }
+}
