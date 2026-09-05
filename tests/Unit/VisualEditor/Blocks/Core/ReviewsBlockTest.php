@@ -378,3 +378,22 @@ it( 'exposes reviewer + quote text for the block-tree search index', function ()
 it( 'returns an empty searchable-text string when no contributor supplies reviews', function (): void {
 	expect( test()->block->searchableText( [] ) )->toBe( '' );
 } );
+
+it( 'memoises the collectReviews filter per instance and only fires it once for repeated renders with the same attrs (M-01)', function (): void {
+	$calls = 0;
+
+	addFilter( ReviewsBlock::FILTER_COLLECT_REVIEWS, static function ( array $reviews ) use ( &$calls ): array {
+		++$calls;
+
+		return array_merge( $reviews, [
+			[ 'reviewer' => 'A', 'quote' => 'Q', 'rating' => 5 ],
+		] );
+	} );
+
+	$attrs = test()->block->validateAttrs( [] );
+
+	test()->block->render( $attrs );
+	test()->block->render( $attrs );
+
+	expect( $calls )->toBe( 1 );
+} );

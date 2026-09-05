@@ -1731,6 +1731,33 @@ it( 'hex-encodes tag characters in the artisanpack/howto JSON-LD payload so enti
 		->and( $html )->not->toContain( '<script>alert(1)' );
 } );
 
+it( 'drops unsafe schemes from artisanpack/howto step image URLs (#H-05)', function () {
+	$tree = [
+		makeBlock( 'artisanpack/howto', [
+			'emitSchema' => true,
+			'name'       => 'Guide',
+			'steps'      => [
+				[
+					'name'     => 'Injected',
+					'text'     => 'Step body.',
+					'imageUrl' => 'javascript:alert(1)',
+					'imageAlt' => 'x',
+				],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->not->toContain( 'javascript:' )
+		->and( $html )->not->toContain( '<img class="ap-howto__step-image"' );
+
+	preg_match_all( '#<script type="application/ld\+json">(.*?)</script>#s', $html, $matches );
+
+	expect( $matches[1][0] ?? '' )->not->toContain( 'javascript:' )
+		->and( $matches[1][0] ?? '' )->not->toContain( '"image"' );
+} );
+
 it( 'renders an artisanpack/tabs tree with triggers derived from tab-section children', function () {
 	$tree = [
 		makeBlock( 'artisanpack/tabs', [

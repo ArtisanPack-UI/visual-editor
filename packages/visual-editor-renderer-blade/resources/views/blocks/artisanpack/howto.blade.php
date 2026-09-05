@@ -1,5 +1,6 @@
 @php
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\UrlSanitizer;
 
 	$rawSteps = $attributes['steps'] ?? [];
 
@@ -58,7 +59,7 @@
 
 		$stepName = (string) ( $step['name'] ?? '' );
 		$stepText = (string) ( $step['text'] ?? '' );
-		$imageUrl = (string) ( $step['imageUrl'] ?? '' );
+		$imageUrl = UrlSanitizer::safe( (string) ( $step['imageUrl'] ?? '' ) );
 		$imageAlt = (string) ( $step['imageAlt'] ?? '' );
 
 		if ( '' === trim( $stepName ) && '' === trim( $stepText ) ) {

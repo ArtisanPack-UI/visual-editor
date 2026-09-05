@@ -73,6 +73,13 @@ class ReviewsBlock extends DynamicBlock
 
 	private const MAX_RATING = 5;
 
+	/**
+	 * Per-instance memo for `collectReviews()` (release review M-01).
+	 *
+	 * @var array<string, array<int, array<string, mixed>>>
+	 */
+	private array $reviewsCache = [];
+
 	public function name(): string
 	{
 		return 'artisanpack/reviews';
@@ -167,6 +174,20 @@ class ReviewsBlock extends DynamicBlock
 			return [];
 		}
 
+		// Per-instance memo (release review M-01): a page that references
+		// the Reviews block more than once (Query loops, synced patterns,
+		// the location-page pattern shipped in this release) would
+		// otherwise invoke every host resolver on every render. Key on
+		// the attributes the resolver can observe so distinct sources /
+		// limits still each get their own fetch. Instance-scoped so
+		// tests binding different fake filters between cases start with
+		// a clean cache.
+		$cacheKey = md5( serialize( [ $attrs['source'] ?? '', $attrs['limit'] ?? 0 ] ) );
+
+		if ( isset( $this->reviewsCache[ $cacheKey ] ) ) {
+			return $this->reviewsCache[ $cacheKey ];
+		}
+
 		$raw = applyFilters( self::FILTER_COLLECT_REVIEWS, [], $attrs );
 
 		if ( ! is_array( $raw ) ) {
@@ -193,7 +214,7 @@ class ReviewsBlock extends DynamicBlock
 			}
 		}
 
-		return $normalized;
+		return $this->reviewsCache[ $cacheKey ] = $normalized;
 	}
 
 	/**

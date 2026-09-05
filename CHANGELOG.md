@@ -6,6 +6,8 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-09-05
+
 ### Added
 
 - **Location-page starter pattern** (#764) — a new `page/location`
@@ -40,6 +42,108 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   it off to avoid double-emission. React and Vue renderers ship the
   same DOM and skip the JSON-LD script so downstream head managers stay
   in charge of schema in those environments.
+- **Dedicated FAQ block with FAQPage JSON-LD** (#758) — a new
+  `artisanpack/faq` block persists question / answer pairs and the
+  Blade renderer emits a `FAQPage` JSON-LD script at request time.
+  Emission is toggle-controlled via the block's `emitSchema` attribute
+  so pages that already surface FAQ schema elsewhere can turn it off.
+  React and Vue renderers ship the same DOM and skip the JSON-LD
+  script.
+- **Accordions FAQ schema toggle** (#757) — the parent
+  `artisanpack/accordions` block gains a `faqSchema` inspector toggle.
+  When on, the Blade renderer walks the child accordion panels and
+  emits `FAQPage` JSON-LD alongside the accordion markup; question /
+  answer text is stripped to plain text with `wp-block-*` wrappers
+  removed so Google Search Console does not flag it as noise.
+- **Business-info blocks** (#761) — four new dynamic blocks
+  (`artisanpack/business-hours`, `artisanpack/business-address`,
+  `artisanpack/business-phone`, `artisanpack/business-email`) that
+  render a host-supplied business envelope resolved through the
+  `ap.visualEditor.businessInfo` filter. The address block composes
+  its map embed URL (host-supplied, then Google Maps if a
+  `artisanpack.visual-editor.business.google_maps_api_key` config is
+  set, otherwise OSM around the address lat/lng) and drops the iframe
+  when no URL can be composed. A new
+  `GET /visual-editor/api/business-info` endpoint (guarded by the
+  standard `api` + `auth` middleware group) serves the envelope to the
+  editor previews.
+- **Reviews block** (#763) — `artisanpack/reviews` renders review cards
+  from payloads supplied by any host / package / plugin / theme through
+  the `ap.visualEditor.reviews.collectReviews` filter. Deliberately
+  emits no `Review` / `AggregateRating` JSON-LD (self-serving review
+  markup is ineligible for Google's rich result). URL fields are
+  scheme-allowlisted to `http`, `https`, `mailto`. The `collectReviews`
+  filter is memoised per render (keyed on the source + limit attrs) so
+  a repeated Reviews-block reference on the same page invokes each
+  host resolver only once.
+- **Dynamic Content: host-registerable token sources** (#762) —
+  `VisualEditor::registerDynamicContentSource($definition)` lets a
+  host app / another package / a cms-framework plugin or theme
+  contribute a singleton or collection token source resolved at render
+  time. Host sources merge with cms-framework's DB-authored types in
+  the editor inserter and the binding resolver; a slug collision
+  resolves to the host registration.
+- **Host-provided palette / font-size / font-family / spacing-size
+  presets** (#773) — `config('artisanpack.visual-editor.presets')` lets
+  an application that ships no `theme.json` and no cms-framework
+  contribute editor presets. Layered on top of `theme.json` in
+  `useThemedEditorSettings` so host entries override same-slug entries
+  in the theme or the package defaults. Per-list
+  `mode: 'replace' | 'append'`; an empty `replace` clears the base
+  list. Follow-up review (#773) canonicalises theme slugs, makes the
+  reject-color pattern whitespace-safe, and clarifies empty-replace
+  semantics.
+- **Post-terms taxonomy UI** (#771) — `artisanpack/post-terms` now
+  exposes a Settings-sidebar taxonomy picker and one inserter variation
+  per registered taxonomy. Registered taxonomies come from
+  `config('artisanpack.visual-editor.taxonomies')` via the new
+  `TaxonomyRegistry`; the editor mount stamps them as
+  `data-taxonomies` for both the post and site editors.
+
+### Changed
+
+- **`AiController` + `AiTools` migrate onto the shared
+  `HandlesAiFeatureResponses` trait** (#769) — the exception-ladder
+  translation for `FeatureDisabledException`,
+  `MissingCredentialsException`, and `FeatureError` now lives in
+  `artisanpack-ui/ai` 1.2.0's shared trait, so the visual-editor's AI
+  surfaces produce identical envelopes to every other AI-consumer
+  package.
+- **Consume the shared
+  `ArtisanPackUI\Ai\Testing\FakeAgentPrompter` (drop the local copy)**
+  (#770) — the local `tests/Support/FakeAgentPrompter.php` is removed
+  and `AiAgentTestSetup` now imports from the canonical namespace
+  `artisanpack-ui/ai` 1.2.0 ships. No composer bump required (the
+  constraint was already `^1.2`).
+
+### Fixed
+
+- **Every `<button>` gets a cursor, a disabled cursor, and a
+  focus-visible ring** (#765) — classless React + Blade fallthrough
+  buttons in the editor no longer render with the default I-beam and
+  no focus outline. A new package-level base rule set in
+  `resources/js/visual-editor/a11y.css` (imported by the editor
+  bootstrap) applies the treatment without touching individual block
+  styles.
+- **All three renderers emit CSS for `style.dimensions.minHeight` and
+  `style.dimensions.aspectRatio`** (#776) — the block-supports
+  compiler never read `style.dimensions.*`, so `group` / `quote` /
+  `verse` / `pullquote` / `post-content` blocks that opted into
+  `supports.dimensions.minHeight` silently dropped the editor-authored
+  value at render time. `applyDimensions()` in `BlockSupports` (Blade)
+  and mirror helpers in the React (`support/dimensions.ts`) and Vue
+  (`support/dimensions.ts`) renderers now emit both properties (with
+  preset expansion) so authored dimensions reach the wrapper across
+  Blade SSR, React SSR, and Vue SSR alike. A new
+  `group-dimensions-min-height` fixture in
+  `packages/renderer-markup-parity` locks the parity in.
+- **HowTo block: image URLs are scheme-allowlisted before rendering**
+  (release review H-05) — the HowTo Blade renderer now runs each step's
+  `imageUrl` through `UrlSanitizer::safe()` before it reaches both the
+  `<img src>` attribute and the `HowToStep.image` entry in the JSON-LD
+  payload. Values outside the `http` / `https` / `mailto` allowlist
+  are dropped, matching the Reviews block's URL handling on this same
+  release cycle.
 
 ## [1.8.0] - 2026-09-01
 

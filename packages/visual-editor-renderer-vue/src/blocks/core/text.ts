@@ -8,6 +8,7 @@
 
 import { defineComponent, h } from 'vue';
 import { attrBoolean, attrInt, attrRecord, attrString, classList } from '../../support/attributes';
+import { applyDimensions, hasDimensionStyle } from '../../support/dimensions';
 import { blockRendererProps } from '../shared';
 
 export const ParagraphBlock = defineComponent({
@@ -144,7 +145,14 @@ export const QuoteBlock = defineComponent({
                 nodes.push(h('cite', { innerHTML: citation }));
             }
 
-            return h('blockquote', { class: classes }, nodes);
+            const dimensionStyle = applyDimensions(props.attributes);
+            const nodeProps: Record<string, unknown> = { class: classes };
+
+            if (hasDimensionStyle(dimensionStyle)) {
+                nodeProps.style = dimensionStyle;
+            }
+
+            return h('blockquote', nodeProps, nodes);
         };
     },
 });
@@ -185,7 +193,14 @@ export const VerseBlock = defineComponent({
                 textAlign !== '' ? `has-text-align-${textAlign}` : null,
             ]);
 
-            return h('pre', { class: classes, innerHTML: content });
+            const dimensionStyle = applyDimensions(props.attributes);
+            const nodeProps: Record<string, unknown> = { class: classes, innerHTML: content };
+
+            if (hasDimensionStyle(dimensionStyle)) {
+                nodeProps.style = dimensionStyle;
+            }
+
+            return h('pre', nodeProps);
         };
     },
 });
@@ -209,7 +224,14 @@ export const PullquoteBlock = defineComponent({
                 quoteChildren.push(h('cite', { innerHTML: citation }));
             }
 
-            return h('figure', { class: classes }, h('blockquote', null, quoteChildren));
+            const dimensionStyle = applyDimensions(props.attributes);
+            const nodeProps: Record<string, unknown> = { class: classes };
+
+            if (hasDimensionStyle(dimensionStyle)) {
+                nodeProps.style = dimensionStyle;
+            }
+
+            return h('figure', nodeProps, h('blockquote', null, quoteChildren));
         };
     },
 });

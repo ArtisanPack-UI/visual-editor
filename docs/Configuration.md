@@ -239,6 +239,51 @@ Full shape contracts for each entity are commented inline in the config file. Se
 
 ---
 
+## `presets`
+
+**Since v1.9 (#773).** Host-provided palette / font-size / font-family / spacing-size presets, for applications that ship no `theme.json` and no cms-framework.
+
+```php
+'presets' => [
+    'color'       => [
+        'mode'  => 'append', // 'append' (default) or 'replace'
+        'items' => [
+            [ 'slug' => 'brand-blue', 'name' => 'Brand Blue', 'color' => '#1D4ED8' ],
+        ],
+    ],
+    'font-size'    => [ /* mode + items */ ],
+    'font-family'  => [ /* mode + items */ ],
+    'spacing-size' => [ /* mode + items */ ],
+],
+```
+
+Host entries are layered on top of `theme.json` in `useThemedEditorSettings` and override same-slug entries in the theme or the package defaults. `mode: 'replace'` clears the base list before applying `items`; an empty `replace` clears the base list entirely.
+
+---
+
+## `taxonomies`
+
+**Since v1.9 (#771).** Taxonomies registered here are surfaced in the `artisanpack/post-terms` Settings-sidebar picker and get one inserter variation each. Resolved through the new `TaxonomyRegistry`; the editor mount stamps them as `data-taxonomies` for both the post and site editors.
+
+```php
+'taxonomies' => [
+    [
+        'slug'  => 'category',
+        'label' => 'Categories',
+        'rest'  => 'categories', // REST base
+    ],
+    // …
+],
+```
+
+---
+
+## `business.google_maps_api_key`
+
+**Since v1.9 (#761).** Optional Google Maps embed API key used by the `artisanpack/business-address` block. When set, the block composes a Google Maps embed URL; otherwise it falls back to OpenStreetMap around the address `lat`/`lng`. A host-supplied map URL always wins.
+
+---
+
 ## Configuration filter hooks
 
 Several configuration keys can also be extended via filter hooks at runtime — useful for package contributions that shouldn't require host-app config edits.

@@ -233,6 +233,28 @@ addFilter('ap.visualEditor.patternRender', function (string $html, string $slug,
 
 Non-string returns are ignored so the underlying `rawContent` survives.
 
+### `ap.visualEditor.businessInfo`
+
+**Since v1.9.** PHP filter that supplies the business envelope consumed by the `artisanpack/business-hours`, `artisanpack/business-address`, `artisanpack/business-phone`, and `artisanpack/business-email` blocks (#761). Fires at render time and in the `GET /visual-editor/api/business-info` REST endpoint.
+
+**Signature:** `array $info, array $context -> array`
+
+See [`docs/blocks/Business-Info.md`](blocks/Business-Info.md) for the envelope shape and the map-URL fallback chain.
+
+### `ap.visualEditor.reviews.collectReviews`
+
+**Since v1.9.** PHP filter that collects review payloads for the `artisanpack/reviews` block (#763). Every host / package / plugin / theme can contribute by hooking the filter; the block itself ships zero reviews.
+
+**Signature:** `array $reviews, array $attrs -> array`
+
+Each returned entry is normalized to `{reviewer, quote, rating, source, url, date, avatar_url}`; `url` and `avatar_url` are scheme-allowlisted to `http`, `https`, and `mailto`. The block memoises the filter result per instance (keyed on `source` + `limit`) so a repeated Reviews reference on the same page invokes each host resolver only once.
+
+The block emits no `Review` / `AggregateRating` JSON-LD by design — self-serving review markup on the reviewed entity is ineligible for Google's rich result. See [`docs/blocks/Reviews.md`](blocks/Reviews.md) for the payload shape.
+
+### `TocResolver` heading-anchor pre-render pass
+
+**Since v1.9.** Not a filter, but observable: `TocResolver` walks the block tree before render and stamps a stable, unique slug into the `anchor` attribute of every `core/heading` / `artisanpack/heading` that lacks one (existing author-set anchors are preserved; duplicate slugs receive a `-1`, `-2`, … suffix), plus a `_resolvedItems` payload onto every `artisanpack/toc` block filtered by its `minLevel` / `maxLevel` range. Hosts that traverse the tree after resolution will see the stamped anchors.
+
 ---
 
 ## JavaScript filters

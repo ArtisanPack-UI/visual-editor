@@ -18,6 +18,7 @@ import {
 import { isNonEmptyWidth, normalizeBasis } from '../../support/columnWidth';
 import { flexClassNames } from '../../support/flex-serializer';
 import { safeCssValue } from '../../support/cssValue';
+import { applyDimensions, hasDimensionStyle } from '../../support/dimensions';
 import { safeUrl } from '../../support/urlSanitizer';
 import { blockRendererProps } from '../shared';
 
@@ -79,7 +80,17 @@ export const GroupBlock = defineComponent({
                 className,
             ]);
 
-            return h(tag, { class: classes }, slots.default ? slots.default() : []);
+            // #776 — surface `style.dimensions.minHeight` / `.aspectRatio`
+            // on the wrapper so a Group opted into
+            // `supports.dimensions.minHeight` matches the Blade renderer.
+            const dimensionStyle = applyDimensions(props.attributes);
+            const nodeProps: Record<string, unknown> = { class: classes };
+
+            if (hasDimensionStyle(dimensionStyle)) {
+                nodeProps.style = dimensionStyle;
+            }
+
+            return h(tag, nodeProps, slots.default ? slots.default() : []);
         };
     },
 });
