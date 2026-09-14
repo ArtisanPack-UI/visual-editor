@@ -86,6 +86,14 @@
         "width": {
             "type": "string"
         },
+        "widthUnit": {
+            "type": "string",
+            "enum": ["px", "%"]
+        },
+        "keepAspectRatio": {
+            "type": "boolean",
+            "default": true
+        },
         "height": {
             "type": "string"
         },
