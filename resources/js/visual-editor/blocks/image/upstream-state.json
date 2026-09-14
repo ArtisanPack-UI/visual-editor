@@ -16,9 +16,10 @@
         "added": "file unique to the fork (no upstream)"
     },
     "files": [
-        { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped to artisanpack namespace; attributes/supports/selectors/styles verbatim." },
+        { "fork": "block.json", "upstream": "block.json", "status": "extended", "notes": "name + textdomain swapped to artisanpack namespace; attributes/supports/selectors/styles verbatim, plus fork-specific `widthUnit` (px|%) and `keepAspectRatio` attributes powering the width control (see width-control.tsx)." },
         { "fork": "edit.tsx", "upstream": "edit.js", "status": "adapted", "notes": "TypeScript port. Omits the blob-URL upload effect (useUploadMediaFromBlobURL), the gallery-replacement code path for multi-file selection, the link-destination resolution against window.wp.media.view.settings.defaultProps.link, and the duotone/border style hook usage. Render path (figure → Image → maxWidthObserver) preserved." },
-        { "fork": "image-editor.tsx", "upstream": "image.js", "status": "adapted", "notes": "Simplified TypeScript port of upstream image.js (~1300 LOC). Toolbar uses MediaReplaceFlow only; inspector uses ToolsPanel with alt-text + title. Drops upstream's DimensionsTool, ResolutionTool, ImageURLInputUI, ImageEditor (cropper), FocalPointPicker, ResizableBox, lightbox toggle UI, MediaControl, and BlockSettingsMenuControls — all depend on block-library/private-apis internals blocked by the package exports field. The serialized markup is still produced by save.tsx so the divergence is editor-only." },
+        { "fork": "image-editor.tsx", "upstream": "image.js", "status": "extended", "notes": "Simplified TypeScript port of upstream image.js (~1300 LOC). Toolbar uses MediaReplaceFlow only; inspector uses ToolsPanel with alt-text + title + fork-specific width control (width-control.tsx). Drag-to-resize is a first-party ResizableBox that writes the same `width`/`widthUnit` attributes as the inspector so all three surfaces feed one code path. Still drops upstream's DimensionsTool, ResolutionTool, ImageURLInputUI, ImageEditor (cropper), FocalPointPicker, lightbox toggle UI, MediaControl, and BlockSettingsMenuControls — those depend on block-library/private-apis internals blocked by the package exports field." },
+        { "fork": "width-control.tsx", "upstream": "n/a", "status": "added", "notes": "Fork-specific inspector control: preset (S/M/L/Full) + numeric input + px/% unit toggle + keep-aspect-ratio checkbox. Also exports `parseWidth`, `composeWidth`, `matchPreset` helpers reused by the ResizableBox in image-editor.tsx." },
         { "fork": "save.tsx", "upstream": "save.js", "status": "adapted", "notes": "TypeScript port; behaviour byte-equivalent to upstream including border/shadow/focalPoint serialization." },
         { "fork": "deprecated.tsx", "upstream": "deprecated.js", "status": "adapted", "notes": "Full v1–v8 deprecation chain ported verbatim with their migrate/isEligible callbacks." },
         { "fork": "transforms.ts", "upstream": "transforms.js", "status": "extended", "notes": "Upstream raw (figure → img) + files + caption-shortcode transforms preserved; added bidirectional core/image ↔ artisanpack/image block transforms." },
@@ -35,18 +36,22 @@
         "use-max-width-observer.tsx",
         "image-editor.tsx"
     ],
+    "extensions": [
+        "width-control.tsx adds a fork-specific width control (S/M/L/Full presets, numeric input with px/% unit toggle, and a keep-aspect-ratio checkbox). It writes to the standard `width` attribute plus new `widthUnit` and `keepAspectRatio` attributes declared in block.json.",
+        "image-editor.tsx wraps the img in a `ResizableBox` when selected so authors can drag-to-resize. On resize-stop it writes to the same `width`/`widthUnit` attributes as width-control.tsx and snaps within a small tolerance to the preset percentages defined in constants.ts."
+    ],
     "knownDivergences": [
         "edit.tsx omits the upstream blob-URL upload mount-effect (useUploadMediaFromBlobURL). Practical impact: drag-and-dropped image files are not eagerly uploaded as soon as they hit the block; users upload via MediaPlaceholder or MediaReplaceFlow as usual.",
         "edit.tsx does not branch on `window.wp.media.view.settings.defaultProps.link` when resolving linkDestination. Newly selected images do not pre-fill `href`; users set it explicitly via the link UI.",
         "edit.tsx does not auto-convert multi-file drops into a gallery block. Multi-file selection emits a snackbar notice instead.",
         "image-editor.tsx replaces upstream's shared `Caption` component (from `@wordpress/block-library/src/utils/caption`) with an inline RichText figcaption because the package's `exports` field does not expose utils/caption.",
         "image-editor.tsx omits `useToolsPanelDropdownMenuProps` (a `utils/hooks` private helper) on its ToolsPanel — defaults are used instead.",
-        "image-editor.tsx omits the upstream toolbar/inspector tools that depend on `block-editor` private APIs (`DimensionsTool`, `ResolutionTool`, `ImageURLInputUI`, `ImageEditor`/cropper, `FocalPointPicker`, `ResizableBox`, `MediaControl`, `BlockSettingsMenuControls`, the lightbox toggle UI). Their corresponding attributes (`width`, `height`, `aspectRatio`, `scale`, `focalPoint`, `sizeSlug`, `linkDestination`, `linkClass`, `linkTarget`, `rel`, `lightbox`) still serialize via save.tsx and round-trip through transforms; consumers can populate them via the block's stored attributes.",
+        "image-editor.tsx omits the upstream toolbar/inspector tools that depend on `block-editor` private APIs (`DimensionsTool`, `ResolutionTool`, `ImageURLInputUI`, `ImageEditor`/cropper, `FocalPointPicker`, `MediaControl`, `BlockSettingsMenuControls`, the lightbox toggle UI). Their corresponding attributes (`height`, `aspectRatio`, `scale`, `focalPoint`, `sizeSlug`, `linkDestination`, `linkClass`, `linkTarget`, `rel`, `lightbox`) still serialize via save.tsx and round-trip through transforms; consumers can populate them via the block's stored attributes. Width is handled by the fork's own width-control.tsx + ResizableBox (see files list).",
         "edit.tsx omits the upstream `pickRelevantMediaFiles` size resolution for newly selected media. The fork records the raw `media.url` returned by MediaPlaceholder; consumers wanting size-variant selection should add a sizeSlug control downstream."
     ],
     "triage": {
         "label": "in-sync",
-        "lastReviewed": "2026-05-28",
-        "reviewer": "I2 media cluster"
+        "lastReviewed": "2026-09-14",
+        "reviewer": "issue #790 (image width control)"
     }
 }
