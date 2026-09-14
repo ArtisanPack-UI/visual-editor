@@ -61,6 +61,29 @@
     border-color: var(--ap-site-editor-accent, #1d4ed8);
 }
 
+/*
+ * #791 — fixed block-toolbar bar. Same rationale as the entity editor
+ * canvas: paired with `hasFixedToolbar: true` so the per-block toolbar
+ * always renders here rather than floating above the block, where it
+ * would escape the pattern canvas viewport on scroll.
+ */
+.ap-pattern-canvas__block-toolbar {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: stretch;
+    min-height: 0;
+    background: var(--ap-site-editor-surface, #ffffff);
+}
+
+.ap-pattern-canvas__block-toolbar:empty {
+    display: none;
+}
+
+.ap-pattern-canvas__block-toolbar > .block-editor-block-toolbar {
+    flex: 1 1 auto;
+    border-bottom: 1px solid var(--ap-site-editor-border, #e5e7eb);
+}
+
 .ap-pattern-canvas__body {
     flex: 1;
     min-height: 0;

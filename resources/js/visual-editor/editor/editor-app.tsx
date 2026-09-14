@@ -17,7 +17,7 @@ import {
     useState,
 } from 'react';
 import { Alert, ToastProvider } from '@artisanpack-ui/react/feedback';
-import { BlockEditorProvider } from '@wordpress/block-editor';
+import { BlockEditorProvider, BlockToolbar } from '@wordpress/block-editor';
 import { Popover, SlotFillProvider } from '@wordpress/components';
 import { useDispatch, useSelect } from '@wordpress/data';
 import { EntityProvider } from '@wordpress/core-data';
@@ -1485,6 +1485,22 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
                 className="ap-visual-editor__canvas-stack"
                 data-composed={composedChrome !== null}
             >
+                {/*
+                 * #791 — fixed block toolbar. `editorSettings.hasFixedToolbar`
+                 * is true, which tells `BlockTools` inside `EditorCanvas`
+                 * to skip its floating toolbar popover; we render the
+                 * toolbar here instead so it always sits inside the editor
+                 * viewport rather than escaping above the canvas when the
+                 * iframe is scrolled. `<BlockToolbar>` renders nothing when
+                 * no block is selected, so the bar collapses to zero height
+                 * outside of an active selection.
+                 */}
+                <div
+                    className="ap-visual-editor__block-toolbar-bar"
+                    data-testid="ap-visual-editor-block-toolbar"
+                >
+                    <BlockToolbar hideDragHandle />
+                </div>
                 {composedNotice !== null ? (
                     <div className="ap-visual-editor__composed-notice">
                         <Alert

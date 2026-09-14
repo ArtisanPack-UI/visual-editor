@@ -20,6 +20,7 @@
 
 import {
     BlockList,
+    BlockToolbar,
     BlockTools,
     ObserveTyping,
     WritingFlow,
@@ -113,6 +114,20 @@ export function EntityEditorCanvas(props: EntityEditorCanvasProps): JSX.Element 
             {header !== undefined ? (
                 <div className="ap-site-editor__entity-canvas-header">{header}</div>
             ) : null}
+            {/*
+             * #791 — fixed block toolbar bar. Paired with
+             * `editorSettings.hasFixedToolbar: true`, which suppresses the
+             * floating popover toolbar so the toolbar for the selected
+             * block never escapes the editor viewport when the canvas is
+             * scrolled. `<BlockToolbar>` renders nothing when no block is
+             * selected, so the bar collapses to zero height.
+             */}
+            <div
+                className="ap-site-editor__entity-canvas-block-toolbar"
+                data-testid="ap-site-editor-entity-canvas-block-toolbar"
+            >
+                <BlockToolbar hideDragHandle />
+            </div>
             <div className="ap-site-editor__entity-canvas-body">
                 <div className="editor-styles-wrapper ap-site-editor__entity-canvas-surface">
                     {/*

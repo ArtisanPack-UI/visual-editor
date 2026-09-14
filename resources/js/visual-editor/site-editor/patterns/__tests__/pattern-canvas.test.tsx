@@ -8,6 +8,7 @@ import { describe, expect, it, vi } from 'vitest';
 // jsdom without booting the real Gutenberg data store.
 vi.mock('@wordpress/block-editor', () => ({
     BlockList: (): JSX.Element => <div data-testid="ap-stub-block-list" />,
+    BlockToolbar: (): JSX.Element => <div data-testid="ap-stub-block-toolbar" />,
     BlockTools: ({ children }: { children?: ReactNode }): JSX.Element => (
         <div>{children}</div>
     ),

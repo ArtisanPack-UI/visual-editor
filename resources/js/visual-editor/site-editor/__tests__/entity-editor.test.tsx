@@ -32,6 +32,7 @@ vi.mock('@wordpress/block-editor', () => ({
         <div data-testid="ap-stub-block-inspector" />
     ),
     BlockList: (): JSX.Element => <div data-testid="ap-stub-block-list" />,
+    BlockToolbar: (): JSX.Element => <div data-testid="ap-stub-block-toolbar" />,
     BlockTools: ({ children }: { children?: ReactNode }): JSX.Element => (
         <div>{children}</div>
     ),

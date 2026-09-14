@@ -162,6 +162,9 @@ vi.mock('@wordpress/block-editor', async () => {
 
             return <div data-testid="ap-stub-provider">{props.children}</div>;
         },
+        BlockToolbar: (): JSX.Element => (
+            <div data-testid="ap-stub-block-toolbar" />
+        ),
     };
 });
 
