@@ -8,6 +8,7 @@ import { describe, expect, it, vi } from 'vitest';
 // jsdom without booting the real Gutenberg data store.
 vi.mock('@wordpress/block-editor', () => ({
     BlockList: (): JSX.Element => <div data-testid="ap-stub-block-list" />,
+    BlockToolbar: (): JSX.Element => <div data-testid="ap-stub-block-toolbar" />,
     BlockTools: ({ children }: { children?: ReactNode }): JSX.Element => (
         <div>{children}</div>
     ),
@@ -45,5 +46,32 @@ describe('PatternCanvas', () => {
         expect(
             document.querySelector('.ap-pattern-canvas__surface')
         ).toBeNull();
+    });
+
+    it('mounts the fixed block toolbar above the canvas body (#791)', () => {
+        // The floating popover toolbar escaped the canvas viewport on
+        // scroll (#791); the fix pairs `hasFixedToolbar: true` with a
+        // <BlockToolbar/> docked into a fixed bar above the canvas body.
+        // Removing or reordering that bar must fail this test, otherwise
+        // the regression comes back silently — the setting-only guard
+        // in use-themed-editor-settings.test.ts would still pass.
+        render(<PatternCanvas title="Test pattern" synced={false} />);
+
+        const bar = document.querySelector(
+            '[data-testid="ap-pattern-canvas-block-toolbar"]',
+        );
+        const surface = document.querySelector('.ap-pattern-canvas__surface');
+
+        expect(bar).not.toBeNull();
+        expect(bar?.querySelector('[data-testid="ap-stub-block-toolbar"]'))
+            .not.toBeNull();
+        expect(surface).not.toBeNull();
+        // Document order matters: the toolbar must precede the surface
+        // so it sits at the top of the flex column and never below or
+        // inside the scrolling canvas body.
+        expect(
+            bar!.compareDocumentPosition(surface!)
+                & Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
     });
 });

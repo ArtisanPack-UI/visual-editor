@@ -240,6 +240,26 @@ describe('editorSettings typography origins (#547)', () => {
     });
 });
 
+describe('editorSettings.hasFixedToolbar (#791)', () => {
+    /*
+     * Regression guard: the per-block toolbar must be docked into the
+     * editor chrome, not rendered as a floating popover. With
+     * `hasFixedToolbar: false`, Gutenberg's `useBlockToolbarPopoverProps`
+     * only re-evaluates flip/shift on `blockIndex` change or
+     * ResizeObserver — it never rebinds on scroll, so a block scrolled
+     * to the top of the canvas viewport ends up with its toolbar
+     * positioned *above* the editor's top edge, overlaying whatever
+     * chrome the host draws around the editor. The floating toolbar
+     * must stay off; the post + site editors render `<BlockToolbar />`
+     * inside their own chrome instead.
+     */
+    it('is true so the floating block-toolbar popover stays off', () => {
+        expect(
+            (editorSettings as { hasFixedToolbar?: unknown }).hasFixedToolbar,
+        ).toBe(true);
+    });
+});
+
 describe('extractThemeGradients', () => {
     it('returns null when settings has no color key', () => {
         expect(extractThemeGradients({})).toBeNull();

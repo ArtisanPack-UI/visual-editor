@@ -345,6 +345,26 @@ export const editorSettings = {
     mediaUpload: mediaUploadSetting,
     alignWide: true,
     /*
+     * #791 — dock the block toolbar into the editor chrome so it never
+     * escapes the editor viewport when the canvas is scrolled.
+     *
+     * With the default `hasFixedToolbar: false`, Gutenberg renders the
+     * per-block toolbar as a floating popover positioned by
+     * `useBlockToolbarPopoverProps`. That hook only re-evaluates flip /
+     * shift on `blockIndex` change + ResizeObserver — there is no scroll
+     * listener on the canvas content element (the hook even tries to
+     * subscribe with `addEventHandler`, which is not a real DOM method).
+     * So when the canvas iframe scrolls the selected block up to the top
+     * of its viewport, the popover keeps its `flip: false` default and
+     * ends up rendered *above* the editor's top edge, overlaying the
+     * admin chrome. Setting `hasFixedToolbar: true` makes Gutenberg skip
+     * the floating popover entirely; we render `<BlockToolbar />` in a
+     * fixed bar inside the shell (see `editor/editor-app.tsx` and
+     * `site-editor/entity-editor-canvas.tsx`) so the toolbar always
+     * stays inside the editor bounds.
+     */
+    hasFixedToolbar: true,
+    /*
      * Top-level `layout` mirror of `__experimentalFeatures.layout`.
      * Mirrored as a value via `ROOT_CANVAS_LAYOUT` below — the canvas
      * components pass that constant as the `layout` prop to the root

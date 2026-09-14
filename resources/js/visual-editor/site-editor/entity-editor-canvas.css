@@ -36,6 +36,31 @@
     font-size: 13px;
 }
 
+/*
+ * #791 — fixed block-toolbar bar. Sits between the entity header and the
+ * canvas body so the toolbar for the selected block always renders
+ * inside the editor viewport, never escaping over the surrounding shell.
+ * `flex: 0 0 auto` sizes the bar to its content; when no block is
+ * selected `<BlockToolbar>` renders nothing and the bar collapses to
+ * zero height (the `:empty` guard keeps the border from showing).
+ */
+.ap-site-editor__entity-canvas-block-toolbar {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: stretch;
+    min-height: 0;
+    background: var(--ap-site-editor-surface, #ffffff);
+}
+
+.ap-site-editor__entity-canvas-block-toolbar:empty {
+    display: none;
+}
+
+.ap-site-editor__entity-canvas-block-toolbar > .block-editor-block-toolbar {
+    flex: 1 1 auto;
+    border-bottom: 1px solid var(--ap-site-editor-border, #e5e7eb);
+}
+
 .ap-site-editor__entity-canvas-body {
     flex: 1;
     min-height: 0;
