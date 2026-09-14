@@ -277,6 +277,36 @@ afterEach(() => {
     vi.unstubAllGlobals();
 });
 
+describe('fixed block-toolbar bar (#791)', () => {
+    it('mounts the toolbar bar before the canvas so it can never escape the viewport', async () => {
+        // The floating popover toolbar escaped the editor's top edge on
+        // scroll (#791); the fix pairs `hasFixedToolbar: true` with a
+        // <BlockToolbar/> docked into a fixed bar above the canvas.
+        // A regression that removes or moves the bar must fail this
+        // test — the setting-only guard in
+        // `use-themed-editor-settings.test.ts` would still pass.
+        await renderEditor();
+
+        const bar = document.querySelector(
+            '[data-testid="ap-visual-editor-block-toolbar"]',
+        );
+        const canvas = document.querySelector(
+            '[data-testid="ap-stub-editor-canvas"]',
+        );
+
+        expect(bar).not.toBeNull();
+        expect(bar?.querySelector('[data-testid="ap-stub-block-toolbar"]'))
+            .not.toBeNull();
+        expect(canvas).not.toBeNull();
+        // Document order matters: the bar must precede the canvas so
+        // it sits at the top of the flex column, above the iframe.
+        expect(
+            bar!.compareDocumentPosition(canvas!)
+                & Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+    });
+});
+
 describe('composed-view toggle preserves editor state (#618)', () => {
     it('composes the canvas when toggled on, and uncomposes when toggled off', async () => {
         const user = userEvent.setup();

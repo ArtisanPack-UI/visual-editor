@@ -233,6 +233,52 @@ describe('useEntityEditorViews', () => {
         expect(style?.textContent).toContain('.editor-styles-wrapper');
     });
 
+    it('mounts the fixed block toolbar above the canvas body (#791)', async () => {
+        // The floating popover toolbar escaped the canvas viewport on
+        // scroll (#791); the fix pairs `hasFixedToolbar: true` with a
+        // <BlockToolbar/> docked into a fixed bar above the canvas body.
+        // Removing or reordering that bar must fail this test — the
+        // setting-only regression guard would still pass on its own.
+        FETCH_MOCK.mockResolvedValue({
+            id: 7,
+            slug: 'single',
+            title: { rendered: 'Single post' },
+            description: '',
+            content: { raw: '', blocks: [] },
+            status: 'publish',
+            theme: 'default',
+            type: 'wp_template',
+            source: 'custom',
+            origin: null,
+        });
+
+        render(<Harness entityId="7" onState={vi.fn()} />);
+
+        await waitFor(() =>
+            expect(
+                screen.getByTestId('ap-site-editor-entity-canvas')
+            ).toBeInTheDocument()
+        );
+
+        const bar = screen.getByTestId(
+            'ap-site-editor-entity-canvas-block-toolbar'
+        );
+        const body = document.querySelector(
+            '.ap-site-editor__entity-canvas-body'
+        );
+
+        expect(
+            bar.querySelector('[data-testid="ap-stub-block-toolbar"]')
+        ).not.toBeNull();
+        expect(body).not.toBeNull();
+        // Document order matters: the toolbar must precede the body so
+        // it sits at the top of the flex column and never below or
+        // inside the scrolling canvas body.
+        expect(
+            bar.compareDocumentPosition(body!) & Node.DOCUMENT_POSITION_FOLLOWING
+        ).toBeTruthy();
+    });
+
     it('flips the dirty flag through onStateChange when the canvas edits blocks', async () => {
         FETCH_MOCK.mockResolvedValue({
             id: 1,
