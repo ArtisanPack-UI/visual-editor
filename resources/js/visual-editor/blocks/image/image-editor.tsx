@@ -191,7 +191,20 @@ export default function Image(props: ImageEditorProps): ReactElement {
             return;
         }
 
-        const activeUnit: WidthUnit = widthUnit ?? 'px';
+        // When `widthUnit` is unset, fall back to the unit encoded in `width`
+        // so a stored responsive width like "50%" isn't silently replaced
+        // with a pixel value on the first canvas drag.
+        const activeUnit: WidthUnit =
+            widthUnit ??
+            (width?.trim().endsWith('%') ? '%' : 'px');
+
+        // When the user is dragging both axes (keepAspectRatio off), persist
+        // the resized height too — leaving it undefined lets the next render
+        // discard the height change.
+        const persistedHeight: Partial<ImageEditorAttributes> = keepAspectRatio
+            ? { height: undefined }
+            : { height: `${Math.round(elt.clientHeight)}px` };
+
         if (activeUnit === '%') {
             const parent = elt.parentElement;
             const parentWidth =
@@ -205,7 +218,7 @@ export default function Image(props: ImageEditorProps): ReactElement {
                 setAttributes({
                     width: composeWidth(snapped, '%'),
                     widthUnit: '%',
-                    ...(keepAspectRatio ? { height: undefined } : {}),
+                    ...persistedHeight,
                 });
                 return;
             }
@@ -214,22 +227,27 @@ export default function Image(props: ImageEditorProps): ReactElement {
         setAttributes({
             width: composeWidth(Math.round(pxWidth), 'px'),
             widthUnit: 'px',
-            ...(keepAspectRatio ? { height: undefined } : {}),
+            ...persistedHeight,
         });
     }
 
+    const linkedImage = <ImageWrapper href={attributes.href}>{image}</ImageWrapper>;
     const canResize = isSingleSelected && !!url;
+    // Keep the ResizableBox OUTSIDE the (inline) anchor so its parent for the
+    // percentage-width calculation in `onResizeStop` is the block wrapper,
+    // not the link — the anchor's box can be smaller than the surrounding
+    // container and would skew the ratio.
     const wrappedImage = canResize ? (
         <ResizableBox
             size={{
                 width: width ?? 'auto',
-                height: 'auto',
+                height: keepAspectRatio ? 'auto' : height ?? 'auto',
             }}
             minWidth={MIN_SIZE}
             enable={{
                 top: false,
                 right: true,
-                bottom: false,
+                bottom: !keepAspectRatio,
                 left: true,
                 topRight: false,
                 bottomRight: true,
@@ -240,10 +258,10 @@ export default function Image(props: ImageEditorProps): ReactElement {
             onResizeStop={onResizeStop}
             __experimentalShowTooltip
         >
-            {image}
+            {linkedImage}
         </ResizableBox>
     ) : (
-        image
+        linkedImage
     );
 
     return (
@@ -331,7 +349,7 @@ export default function Image(props: ImageEditorProps): ReactElement {
                     </ToolsPanelItem>
                 </ToolsPanel>
             </InspectorControls>
-            <ImageWrapper href={attributes.href}>{wrappedImage}</ImageWrapper>
+            {wrappedImage}
             {(isSingleSelected && hasNonContentControls) ||
             !RichText.isEmpty(caption ?? '') ? (
                 <RichText
