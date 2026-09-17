@@ -452,3 +452,285 @@ it( 'deletes the previous face file when a re-install changes its container form
 	Storage::disk( 'public' )->assertExists( 'visual-editor/fonts/fake/inter/400-normal.ttf' );
 	Storage::disk( 'public' )->assertMissing( 'visual-editor/fonts/fake/inter/400-normal.woff2' );
 } );
+
+it( 'persists sibling FontFace rows for each server-readable format a provider supplies (#794)', function (): void {
+	$provider = new class implements \ArtisanPackUI\VisualEditor\Fonts\Contracts\FontProvider,
+		\ArtisanPackUI\VisualEditor\Fonts\Contracts\SupportsServerReadableFormats
+	{
+		public function key(): string
+		{
+			return 'multi';
+		}
+
+		public function label(): string
+		{
+			return 'Multi-format Fonts';
+		}
+
+		public function isSelfHostable(): bool
+		{
+			return true;
+		}
+
+		public function searchCatalog( string $query, int $page = 1 ): array
+		{
+			return [ 'families' => [], 'page' => $page, 'has_more' => false ];
+		}
+
+		public function getFamily( string $slug ): ?array
+		{
+			return [
+				'slug'        => $slug,
+				'family'      => 'Inter',
+				'is_variable' => false,
+				'license'     => null,
+				'faces'       => [ [ 'weight' => 400, 'style' => 'normal' ] ],
+				'axes'        => [],
+			];
+		}
+
+		public function fetchFace( string $slug, string $weight, string $style ): string
+		{
+			// WOFF2 signature — browser-optimized primary output.
+			return 'wOF2' . str_repeat( "\x00", 32 );
+		}
+
+		public function serverReadableFormats(): array
+		{
+			return [ 'ttf' ];
+		}
+
+		public function fetchFaceInFormat( string $slug, string $weight, string $style, string $format ): string
+		{
+			// TTF signature — server-readable secondary output.
+			return "\x00\x01\x00\x00" . str_repeat( "\x00", 32 );
+		}
+	};
+
+	app( FontSourceRegistry::class )->register( $provider );
+
+	$installer = app( FontInstaller::class );
+	$font      = $installer->install( 'multi', 'inter', [ [ 'weight' => 400, 'style' => 'normal' ] ] );
+
+	// One WOFF2 for the browser, one TTF for the OG image generator.
+	expect( $font->faces )->toHaveCount( 2 )
+		->and( $font->faces->pluck( 'format' )->sort()->values()->all() )->toBe( [ 'ttf', 'woff2' ] );
+
+	Storage::disk( 'public' )->assertExists( 'visual-editor/fonts/multi/inter/400-normal.woff2' );
+	Storage::disk( 'public' )->assertExists( 'visual-editor/fonts/multi/inter/400-normal.ttf' );
+} );
+
+it( 'does not fail the install when a supplementary format fetch throws (#794)', function (): void {
+	$provider = new class implements \ArtisanPackUI\VisualEditor\Fonts\Contracts\FontProvider,
+		\ArtisanPackUI\VisualEditor\Fonts\Contracts\SupportsServerReadableFormats
+	{
+		public function key(): string
+		{
+			return 'flaky';
+		}
+
+		public function label(): string
+		{
+			return 'Flaky Fonts';
+		}
+
+		public function isSelfHostable(): bool
+		{
+			return true;
+		}
+
+		public function searchCatalog( string $query, int $page = 1 ): array
+		{
+			return [ 'families' => [], 'page' => $page, 'has_more' => false ];
+		}
+
+		public function getFamily( string $slug ): ?array
+		{
+			return [
+				'slug'        => $slug,
+				'family'      => 'Inter',
+				'is_variable' => false,
+				'license'     => null,
+				'faces'       => [ [ 'weight' => 400, 'style' => 'normal' ] ],
+				'axes'        => [],
+			];
+		}
+
+		public function fetchFace( string $slug, string $weight, string $style ): string
+		{
+			return 'wOF2' . str_repeat( "\x00", 32 );
+		}
+
+		public function serverReadableFormats(): array
+		{
+			return [ 'ttf' ];
+		}
+
+		public function fetchFaceInFormat( string $slug, string $weight, string $style, string $format ): string
+		{
+			throw new \ArtisanPackUI\VisualEditor\Fonts\Exceptions\FontProviderException( 'Simulated TTF fetch failure.' );
+		}
+	};
+
+	Log::spy();
+
+	app( FontSourceRegistry::class )->register( $provider );
+
+	$installer = app( FontInstaller::class );
+	$font      = $installer->install( 'flaky', 'inter', [ [ 'weight' => 400, 'style' => 'normal' ] ] );
+
+	// Primary WOFF2 lands; TTF is skipped, install still succeeds.
+	expect( $font->faces )->toHaveCount( 1 )
+		->and( $font->faces->first()->format )->toBe( 'woff2' );
+
+	Storage::disk( 'public' )->assertExists( 'visual-editor/fonts/flaky/inter/400-normal.woff2' );
+	Storage::disk( 'public' )->assertMissing( 'visual-editor/fonts/flaky/inter/400-normal.ttf' );
+
+	Log::shouldHaveReceived( 'warning' )->atLeast()->once();
+} );
+
+it( 'preserves a previously-installed format row when a supplementary fetch transiently fails on reinstall (#794, CodeRabbit)', function (): void {
+	// A stateful fake: first install succeeds for both WOFF2 + TTF, second
+	// install throws on the TTF fetch. The existing TTF row must survive the
+	// second install intact — the provider still advertises TTF, we just
+	// couldn't reach it right now.
+	$provider = new class implements \ArtisanPackUI\VisualEditor\Fonts\Contracts\FontProvider,
+		\ArtisanPackUI\VisualEditor\Fonts\Contracts\SupportsServerReadableFormats
+	{
+		public bool $failTtfNextTime = false;
+
+		public function key(): string
+		{
+			return 'transient';
+		}
+
+		public function label(): string
+		{
+			return 'Transient Fonts';
+		}
+
+		public function isSelfHostable(): bool
+		{
+			return true;
+		}
+
+		public function searchCatalog( string $query, int $page = 1 ): array
+		{
+			return [ 'families' => [], 'page' => $page, 'has_more' => false ];
+		}
+
+		public function getFamily( string $slug ): ?array
+		{
+			return [
+				'slug'        => $slug,
+				'family'      => 'Inter',
+				'is_variable' => false,
+				'license'     => null,
+				'faces'       => [ [ 'weight' => 400, 'style' => 'normal' ] ],
+				'axes'        => [],
+			];
+		}
+
+		public function fetchFace( string $slug, string $weight, string $style ): string
+		{
+			return 'wOF2' . str_repeat( "\x00", 32 );
+		}
+
+		public function serverReadableFormats(): array
+		{
+			return [ 'ttf' ];
+		}
+
+		public function fetchFaceInFormat( string $slug, string $weight, string $style, string $format ): string
+		{
+			if ( $this->failTtfNextTime ) {
+				throw new \ArtisanPackUI\VisualEditor\Fonts\Exceptions\FontProviderException( 'Simulated transient TTF failure.' );
+			}
+
+			return "\x00\x01\x00\x00" . str_repeat( "\x00", 32 );
+		}
+	};
+
+	app( FontSourceRegistry::class )->register( $provider );
+
+	$installer = app( FontInstaller::class );
+
+	// First install: both formats land.
+	$installer->install( 'transient', 'inter', [ [ 'weight' => 400, 'style' => 'normal' ] ] );
+	Storage::disk( 'public' )->assertExists( 'visual-editor/fonts/transient/inter/400-normal.ttf' );
+
+	// Second install with the TTF fetch flipped to throw:
+	//   - The WOFF2 primary still writes.
+	//   - The TTF fetch throws — the row + file from the previous install
+	//     must NOT be reaped just because we couldn't refetch it.
+	$provider->failTtfNextTime = true;
+	$font                      = $installer->install( 'transient', 'inter', [ [ 'weight' => 400, 'style' => 'normal' ] ] );
+
+	expect( $font->faces )->toHaveCount( 2 )
+		->and( $font->faces->pluck( 'format' )->sort()->values()->all() )->toBe( [ 'ttf', 'woff2' ] );
+
+	Storage::disk( 'public' )->assertExists( 'visual-editor/fonts/transient/inter/400-normal.woff2' );
+	Storage::disk( 'public' )->assertExists( 'visual-editor/fonts/transient/inter/400-normal.ttf' );
+} );
+
+it( 'keeps both format rows when a multi-format provider is re-installed (#794)', function (): void {
+	$provider = new class implements \ArtisanPackUI\VisualEditor\Fonts\Contracts\FontProvider,
+		\ArtisanPackUI\VisualEditor\Fonts\Contracts\SupportsServerReadableFormats
+	{
+		public function key(): string
+		{
+			return 'multi-reinstall';
+		}
+
+		public function label(): string
+		{
+			return 'Multi-format Fonts';
+		}
+
+		public function isSelfHostable(): bool
+		{
+			return true;
+		}
+
+		public function searchCatalog( string $query, int $page = 1 ): array
+		{
+			return [ 'families' => [], 'page' => $page, 'has_more' => false ];
+		}
+
+		public function getFamily( string $slug ): ?array
+		{
+			return [
+				'slug'        => $slug,
+				'family'      => 'Inter',
+				'is_variable' => false,
+				'license'     => null,
+				'faces'       => [ [ 'weight' => 400, 'style' => 'normal' ] ],
+				'axes'        => [],
+			];
+		}
+
+		public function fetchFace( string $slug, string $weight, string $style ): string
+		{
+			return 'wOF2' . str_repeat( "\x00", 32 );
+		}
+
+		public function serverReadableFormats(): array
+		{
+			return [ 'ttf' ];
+		}
+
+		public function fetchFaceInFormat( string $slug, string $weight, string $style, string $format ): string
+		{
+			return "\x00\x01\x00\x00" . str_repeat( "\x00", 32 );
+		}
+	};
+
+	app( FontSourceRegistry::class )->register( $provider );
+
+	$installer = app( FontInstaller::class );
+	$installer->install( 'multi-reinstall', 'inter', [ [ 'weight' => 400, 'style' => 'normal' ] ] );
+	$font = $installer->install( 'multi-reinstall', 'inter', [ [ 'weight' => 400, 'style' => 'normal' ] ] );
+
+	expect( $font->faces )->toHaveCount( 2 )
+		->and( $font->faces->pluck( 'format' )->sort()->values()->all() )->toBe( [ 'ttf', 'woff2' ] );
+} );

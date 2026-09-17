@@ -46,6 +46,37 @@ it( 'emits truetype format for a ttf face', function (): void {
 	expect( app( FontsCssGenerator::class )->build() )->toContain( 'format("truetype")' );
 } );
 
+it( 'dedupes multi-format faces by (weight, style) and prefers WOFF2 for the browser bundle (#794)', function (): void {
+	// A provider that implements SupportsServerReadableFormats stores
+	// two sibling face rows per weight/style — WOFF2 for the browser and
+	// TTF for server-side renderers. The CSS bundle only needs the
+	// browser-optimized format so a browser doesn't download the larger
+	// TTF file when WOFF2 is available.
+	$font = Font::factory()->create( [ 'family' => 'Inter', 'slug' => 'inter' ] );
+
+	FontFace::factory()->for( $font )->create( [
+		'weight' => 400,
+		'style'  => 'normal',
+		'format' => 'ttf',
+		'path'   => 'visual-editor/fonts/google/inter/400-normal.ttf',
+	] );
+	FontFace::factory()->for( $font )->create( [
+		'weight' => 400,
+		'style'  => 'normal',
+		'format' => 'woff2',
+		'path'   => 'visual-editor/fonts/google/inter/400-normal.woff2',
+	] );
+
+	$css = app( FontsCssGenerator::class )->build();
+
+	// One `@font-face` block emitted (not two), and it points at WOFF2.
+	expect( substr_count( $css, '@font-face' ) )->toBe( 1 )
+		->and( $css )->toContain( 'format("woff2")' )
+		->and( $css )->toContain( '400-normal.woff2' )
+		->and( $css )->not->toContain( 'format("truetype")' )
+		->and( $css )->not->toContain( '400-normal.ttf' );
+} );
+
 it( 'emits opentype format for an otf face', function (): void {
 	$font = Font::factory()->create( [ 'family' => 'Custom', 'slug' => 'custom' ] );
 	FontFace::factory()->for( $font )->create( [ 'format' => 'otf' ] );
