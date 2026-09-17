@@ -1,0 +1,36 @@
+name: Notify Packagist
+
+# Manual-dispatch companion to the main `Release` workflow.
+#
+# The release flow already pings Packagist on every successful tag,
+# but a transient asset-upload failure (v1.11.0, September 2026)
+# short-circuited the ping while leaving the tag and the built commit
+# public. This workflow exists so a maintainer can catch that up with
+# `gh workflow run notify-packagist.yml` — no arguments needed.
+#
+# Also handy any time Packagist's crawler drifts (a repo that lost
+# its webhook, a network hiccup on their side, etc.).
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    name: POST update-package to Packagist
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: POST to Packagist API
+        env:
+          PACKAGIST_USERNAME: ${{ secrets.PACKAGIST_USERNAME }}
+          PACKAGIST_API_TOKEN: ${{ secrets.PACKAGIST_API_TOKEN }}
+          REPO_URL: https://github.com/${{ github.repository }}
+        run: |
+          curl --fail-with-body -sS -X POST \
+            "https://packagist.org/api/update-package?username=${PACKAGIST_USERNAME}&apiToken=${PACKAGIST_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{\"repository\":{\"url\":\"${REPO_URL}\"}}"

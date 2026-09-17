@@ -361,7 +361,24 @@ jobs:
       - name: List release assets
         run: ls -la release-artifacts/ || true
 
-      - name: Create GitHub Release
+      - name: Wait for the tag to propagate on GitHub's API
+        # `build-and-tag` pushed the tag seconds before this job started,
+        # but softprops/action-gh-release has hit `Release … is not yet
+        # discoverable by tag` retries on the tag→release lookup and
+        # then failed the asset upload with a stale release ID (#795
+        # release attempt on v1.11.0). A short settle window here lets
+        # the tag reference propagate through GitHub's read replicas
+        # before the release action queries it.
+        run: sleep 15
+
+      - name: Create GitHub Release (no assets)
+        # Split from asset upload so a transient asset failure — which
+        # is what took down the v1.11.0 attempt — can't undo the
+        # release itself. The release object exists as soon as this
+        # step succeeds; assets can be re-attempted or manually
+        # uploaded later, and Packagist has everything it needs from
+        # the tag alone.
+        id: create-release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.build-and-tag.outputs.version }}
@@ -369,11 +386,8 @@ jobs:
           body_path: release_notes.txt
           generate_release_notes: false
           prerelease: ${{ contains(needs.build-and-tag.outputs.version, '-') }}
-          # Sourcemaps ride along as a separate archive so debugging is
-          # still possible without inflating every composer install
-          # by ~30 MB (#678).
-          files: release-artifacts/*.tar.gz
-          fail_on_unmatched_files: false
+          # Deliberately no `files:` here — asset upload lives in the
+          # next step so it can fail without taking down the release.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -383,6 +397,11 @@ jobs:
         # `continue-on-error` lets that first tag publish a GitHub release
         # without failing the workflow; once the package is registered, every
         # subsequent tag push keeps Packagist in sync automatically.
+        #
+        # Runs BEFORE the sourcemap asset upload so a transient asset
+        # failure (the v1.11.0 failure mode) doesn't skip Packagist —
+        # the tag + built commit are already public and don't depend on
+        # the sourcemap archive.
         if: success()
         continue-on-error: true
         run: |
@@ -390,3 +409,28 @@ jobs:
             "https://packagist.org/api/update-package?username=${{ secrets.PACKAGIST_USERNAME }}&apiToken=${{ secrets.PACKAGIST_API_TOKEN }}" \
             -d "{\"repository\":{\"url\":\"https://github.com/${{ github.repository }}\"}}" \
             -H "Content-Type: application/json"
+
+      - name: Attach sourcemap archive to the release
+        # Sourcemaps ride along as a separate archive so debugging is
+        # still possible without inflating every composer install by
+        # ~30 MB (#678). Uploads with retry: the underlying API
+        # occasionally returns "Error saving asset" on the first try
+        # even when the release exists (#795's v1.11.0 attempt).
+        # `continue-on-error` covers both a soft-failed upload and the
+        # no-sourcemap-file edge case (the archive step warns rather
+        # than fails when the build produced no .map files) — the
+        # release itself is already published.
+        if: always()
+        continue-on-error: true
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          retry_wait_seconds: 20
+          command: |
+            gh release upload "v${{ needs.build-and-tag.outputs.version }}" \
+              release-artifacts/*.tar.gz \
+              --repo "${{ github.repository }}" \
+              --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
