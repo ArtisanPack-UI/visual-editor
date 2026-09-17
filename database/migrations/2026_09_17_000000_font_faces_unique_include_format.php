@@ -22,7 +22,7 @@
  *
  * @author     Jacob Martella <me@jacobmartella.com>
  *
- * @since      1.12.0
+ * @since      1.11.0
  */
 
 declare( strict_types=1 );

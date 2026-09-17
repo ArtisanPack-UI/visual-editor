@@ -270,7 +270,7 @@ class FontsCssGenerator
 	 * OTF > TTF. Server-side consumers query the DB directly for their
 	 * preferred format and are unaffected.
 	 *
-	 * @since 1.12.0
+	 * @since 1.11.0
 	 *
 	 * @param  iterable<FontFace>  $faces
 	 *

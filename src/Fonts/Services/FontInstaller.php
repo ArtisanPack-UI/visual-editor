@@ -911,7 +911,7 @@ class FontInstaller
 	 * for reaping — that's how the "provider dropped a format" case
 	 * cleans up on the next install.
 	 *
-	 * @since 1.12.0
+	 * @since 1.11.0
 	 *
 	 * @param  array<string, list<string>>  $advertisedFormatsBySlot  Formats the provider offered per `weight:style` slot.
 	 * @param  array<string, list<string>>  $orphans                  Prior paths keyed by disk, appended to by reference.
@@ -940,7 +940,7 @@ class FontInstaller
 	 * where every face in the batch was actually written (no
 	 * "advertised but failed" concept applies).
 	 *
-	 * @since 1.12.0
+	 * @since 1.11.0
 	 *
 	 * @param  list<array{weight: int, style: string, format: string, path: string, file_size: int, axes: array<string, mixed>|null}>  $writtenFaces
 	 *

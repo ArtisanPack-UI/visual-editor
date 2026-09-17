@@ -31,7 +31,7 @@
  *
  * @author     Jacob Martella <me@jacobmartella.com>
  *
- * @since      1.12.0
+ * @since      1.11.0
  */
 
 declare( strict_types=1 );
@@ -50,7 +50,7 @@ interface SupportsServerReadableFormats
 	 * out at runtime (e.g. when a provider is configured against an
 	 * endpoint that only serves WOFF2).
 	 *
-	 * @since 1.12.0
+	 * @since 1.11.0
 	 *
 	 * @return list<string>
 	 */
@@ -62,7 +62,7 @@ interface SupportsServerReadableFormats
 	 * for that face — the installer catches the throw, logs it, and
 	 * continues with whatever formats did resolve.
 	 *
-	 * @since 1.12.0
+	 * @since 1.11.0
 	 *
 	 * @param  string  $slug    The provider-scoped family slug.
 	 * @param  string  $weight  The face weight (e.g. `400`, `700`).

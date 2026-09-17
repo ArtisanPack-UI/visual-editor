@@ -254,7 +254,7 @@ class GoogleFontsProvider implements FontProvider, SupportsServerReadableFormats
 	}
 
 	/**
-	 * @since 1.12.0
+	 * @since 1.11.0
 	 *
 	 * @return list<string>
 	 */
@@ -274,7 +274,7 @@ class GoogleFontsProvider implements FontProvider, SupportsServerReadableFormats
 	 * signature so an HTML error page from the CDN never lands on
 	 * disk as a font file.
 	 *
-	 * @since 1.12.0
+	 * @since 1.11.0
 	 */
 	public function fetchFaceInFormat( string $slug, string $weight, string $style, string $format ): string
 	{
