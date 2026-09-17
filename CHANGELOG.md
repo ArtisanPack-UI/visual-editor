@@ -6,8 +6,15 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-09-17
+
 ### Added
 
+- **Image block width control** (#790) — the first-party
+  `artisanpack/image` block gains a width control in the inspector
+  with S/M/L/Full preset buttons (25/50/75/100%), a custom-width
+  numeric input with px/% unit toggle, and drag-to-resize on the
+  canvas.
 - **`SupportsServerReadableFormats` optional contract** for
   `FontProvider` implementations (#794). Providers that opt in
   declare which server-readable formats (TTF/OTF) they can supply
@@ -39,6 +46,16 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   its orphan row + file via `reapObsoleteFormats()`. A supplementary
   format fetch that fails is logged and skipped rather than failing
   the install.
+
+### Fixed
+
+- **Block toolbar escapes editor bounds when the canvas scrolls**
+  (#791) — Gutenberg's `useBlockToolbarPopoverProps` never rebinds
+  on scroll (its resize hook even tries to call a non-existent
+  `addEventHandler`), so a block scrolled to the top of the canvas
+  had its floating toolbar float above the editor chrome. Docking
+  the toolbar into the editor chrome keeps it inside the canvas
+  scroll boundary.
 
 ## [1.9.0] - 2026-09-05
 
