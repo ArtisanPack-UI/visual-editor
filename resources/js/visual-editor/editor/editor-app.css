@@ -234,3 +234,28 @@
     flex-direction: column;
     min-width: 0;
 }
+
+/*
+ * #791 — fixed block-toolbar bar. Sits above the canvas iframe so the
+ * toolbar for the selected block always renders inside the editor
+ * viewport, never escaping over the surrounding admin chrome. The bar
+ * is `flex: 0 0 auto` so it takes only the height its contents need,
+ * and it collapses to zero height when no block is selected (since
+ * `<BlockToolbar>` renders nothing in that case).
+ */
+.ap-visual-editor__block-toolbar-bar {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: stretch;
+    min-height: 0;
+    background: var(--ap-visual-editor-shell-sidebar-background);
+}
+
+.ap-visual-editor__block-toolbar-bar:empty {
+    display: none;
+}
+
+.ap-visual-editor__block-toolbar-bar > .block-editor-block-toolbar {
+    flex: 1 1 auto;
+    border-bottom: 1px solid var(--ap-visual-editor-shell-border);
+}

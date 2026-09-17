@@ -195,6 +195,67 @@ it( 'sends a browser user-agent so Google serves woff2', function () {
 		&& str_contains( $request->header( 'User-Agent' )[0] ?? '', 'Chrome' ) );
 } );
 
+it( 'declares ttf as a server-readable format (#794)', function () {
+	expect( $this->provider->serverReadableFormats() )->toBe( [ 'ttf' ] );
+} );
+
+it( 'fetches ttf bytes with a legacy user-agent and downloads a .ttf URL (#794)', function () {
+	Http::fake( [
+		'fonts.google.com/metadata/*' => Http::response( googleMetadataFixture(), 200 ),
+		'fonts.googleapis.com/css2*'  => Http::response(
+			// A TTF-format CSS2 body — what Google returns when the request
+			// carries a pre-WOFF2 User-Agent.
+			<<<CSS
+			/* latin */
+			@font-face {
+			  font-family: 'Roboto';
+			  font-style: normal;
+			  font-weight: 700;
+			  src: url(https://fonts.gstatic.com/s/roboto/v51/roboto-700-latin.ttf) format('truetype');
+			}
+			CSS,
+			200
+		),
+		'fonts.gstatic.com/*' => Http::response( "\x00\x01\x00\x00" . str_repeat( "\x00", 32 ), 200 ),
+	] );
+
+	$bytes = $this->provider->fetchFaceInFormat( 'roboto', '700', 'normal', 'ttf' );
+
+	expect( $bytes )->toStartWith( "\x00\x01\x00\x00" );
+
+	// CSS2 request must use the legacy UA so Google emits TTF URLs.
+	Http::assertSent( fn ( $request ) => str_contains( $request->url(), 'css2' )
+		&& ! str_contains( $request->header( 'User-Agent' )[0] ?? '', 'Chrome' ) );
+
+	// Download URL is the .ttf file, not the .woff2.
+	Http::assertSent( fn ( $request ) => $request->url() === 'https://fonts.gstatic.com/s/roboto/v51/roboto-700-latin.ttf' );
+} );
+
+it( 'rejects a downloaded ttf whose bytes do not carry the TrueType signature (#794)', function () {
+	Http::fake( [
+		'fonts.google.com/metadata/*' => Http::response( googleMetadataFixture(), 200 ),
+		'fonts.googleapis.com/css2*'  => Http::response(
+			<<<CSS
+			@font-face {
+			  font-family: 'Roboto';
+			  src: url(https://fonts.gstatic.com/s/roboto/v51/roboto-700-latin.ttf) format('truetype');
+			}
+			CSS,
+			200
+		),
+		// HTML masquerading as TTF — should be rejected on signature.
+		'fonts.gstatic.com/*' => Http::response( '<html>error</html>', 200 ),
+	] );
+
+	expect( fn () => $this->provider->fetchFaceInFormat( 'roboto', '700', 'normal', 'ttf' ) )
+		->toThrow( FontProviderException::class, 'is not a TTF font' );
+} );
+
+it( 'refuses to fetch a format it does not know about (#794)', function () {
+	expect( fn () => $this->provider->fetchFaceInFormat( 'roboto', '400', 'normal', 'exotic' ) )
+		->toThrow( FontProviderException::class, 'cannot serve the "exotic" format' );
+} );
+
 it( 'caches the catalog so browsing hits the metadata endpoint once', function () {
 	fakeGoogleFonts();
 

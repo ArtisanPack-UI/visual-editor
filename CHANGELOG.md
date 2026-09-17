@@ -6,6 +6,57 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-09-17
+
+### Added
+
+- **Image block width control** (#790) — the first-party
+  `artisanpack/image` block gains a width control in the inspector
+  with S/M/L/Full preset buttons (25/50/75/100%), a custom-width
+  numeric input with px/% unit toggle, and drag-to-resize on the
+  canvas.
+- **`SupportsServerReadableFormats` optional contract** for
+  `FontProvider` implementations (#794). Providers that opt in
+  declare which server-readable formats (TTF/OTF) they can supply
+  alongside their default web-optimized output (usually WOFF2), and
+  the installer fetches each one and persists a sibling `FontFace`
+  row per format. Server-side renderers — the SEO package's OG image
+  generator, PDF libraries, image tools — query the DB for a
+  server-readable face and get a real path they can feed to
+  GD/FreeType or a PDF renderer.
+- **`GoogleFontsProvider` now serves TTF alongside WOFF2** (#794).
+  Google's CSS2 API returns `format('truetype')` URLs when queried
+  with a pre-WOFF2 User-Agent; the provider now sends that UA when
+  asked for a `ttf`-format face, downloads the resulting `.ttf` file
+  from `fonts.gstatic.com/s/…`, and gates the bytes with the
+  TrueType magic-byte signature.
+- Widened the `ve_font_faces` unique index to
+  `(font_id, weight, style, format)` so multi-format faces coexist.
+
+### Changed
+
+- **`FontsCssGenerator` dedupes multi-format faces per
+  `(weight, style)`** and prefers WOFF2 > WOFF > OTF > TTF for the
+  browser bundle (#794). A family with both a WOFF2 and TTF row emits
+  a single `@font-face` block pointing at WOFF2 — the TTF row exists
+  for server-side consumers, not for the browser.
+- **`FontInstaller::persistFace` now keys on
+  `(weight, style, format)`** rather than `(weight, style)` (#794);
+  a re-install that drops a previously stored format still cleans up
+  its orphan row + file via `reapObsoleteFormats()`. A supplementary
+  format fetch that fails is logged and skipped rather than failing
+  the install.
+
+### Fixed
+
+- **Block toolbar escapes editor bounds when the canvas scrolls**
+  (#791) — Gutenberg's `useBlockToolbarPopoverProps` never rebinds
+  on scroll (its resize hook even tries to call a non-existent
+  `addEventHandler`), so a block scrolled to the top of the canvas
+  had its floating toolbar float above the editor chrome. Docking
+  the toolbar into the editor chrome keeps it inside the canvas
+  scroll boundary.
+
 ## [1.9.0] - 2026-09-05
 
 ### Added

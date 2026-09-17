@@ -45,18 +45,38 @@ vi.mock('@wordpress/compose', () => ({
     useResizeObserver: () => [null, { width: 0 }],
 }));
 
-vi.mock('@wordpress/components', () => ({
-    TextareaControl: () => null,
-    TextControl: () => null,
-    __experimentalToolsPanel: ({ children }: { children: React.ReactNode }) => (
+vi.mock('@wordpress/components', () => {
+    const Passthrough = ({ children }: { children?: React.ReactNode }) => (
         <div>{children}</div>
-    ),
-    __experimentalToolsPanelItem: ({
-        children,
-    }: {
-        children: React.ReactNode;
-    }) => <div>{children}</div>,
-}));
+    );
+    const BaseControl = Object.assign(Passthrough, {
+        VisualLabel: ({ children }: { children?: React.ReactNode }) => (
+            <span>{children}</span>
+        ),
+    });
+    return {
+        BaseControl,
+        Button: ({ children, ...rest }: { children?: React.ReactNode }) => (
+            <button {...rest}>{children}</button>
+        ),
+        ButtonGroup: Passthrough,
+        CheckboxControl: () => null,
+        Flex: Passthrough,
+        FlexItem: Passthrough,
+        ResizableBox: ({ children }: { children: React.ReactNode }) => (
+            <div data-testid="resizable-box">{children}</div>
+        ),
+        TextareaControl: () => null,
+        TextControl: () => null,
+        __experimentalHStack: Passthrough,
+        __experimentalNumberControl: () => null,
+        __experimentalToggleGroupControl: Passthrough,
+        __experimentalToggleGroupControlOption: () => null,
+        __experimentalToolsPanel: Passthrough,
+        __experimentalToolsPanelItem: Passthrough,
+        __experimentalVStack: Passthrough,
+    };
+});
 
 vi.mock('@wordpress/block-editor', () => ({
     BlockControls: ({ children }: { children: React.ReactNode }) => (

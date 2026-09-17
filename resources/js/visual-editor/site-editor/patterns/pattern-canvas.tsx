@@ -16,6 +16,7 @@
 
 import {
     BlockList,
+    BlockToolbar,
     BlockTools,
     ObserveTyping,
     WritingFlow,
@@ -107,6 +108,20 @@ export function PatternCanvas(props: PatternCanvasProps): JSX.Element {
                         : __('Unsynced pattern', TEXT_DOMAIN)}
                 </span>
                 {header}
+            </div>
+            {/*
+             * #791 — fixed block toolbar bar. Paired with
+             * `editorSettings.hasFixedToolbar: true`, which suppresses
+             * `BlockTools`' floating popover toolbar so the toolbar for the
+             * selected block can never escape the pattern canvas when the
+             * body is scrolled. `<BlockToolbar>` returns null when no
+             * block is selected, so `:empty` collapses the bar.
+             */}
+            <div
+                className="ap-pattern-canvas__block-toolbar"
+                data-testid="ap-pattern-canvas-block-toolbar"
+            >
+                <BlockToolbar hideDragHandle />
             </div>
             <div className="ap-pattern-canvas__body">
                 <div className="editor-styles-wrapper ap-pattern-canvas__surface">

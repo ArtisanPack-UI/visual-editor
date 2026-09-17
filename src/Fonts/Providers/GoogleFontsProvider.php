@@ -33,6 +33,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditor\Fonts\Providers;
 
 use ArtisanPackUI\VisualEditor\Fonts\Contracts\FontProvider;
+use ArtisanPackUI\VisualEditor\Fonts\Contracts\SupportsServerReadableFormats;
 use ArtisanPackUI\VisualEditor\Fonts\Exceptions\FontProviderException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
@@ -40,8 +41,56 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Throwable;
 
-class GoogleFontsProvider implements FontProvider
+class GoogleFontsProvider implements FontProvider, SupportsServerReadableFormats
 {
+	/**
+	 * File-format tokens the provider knows how to fetch. Order matters
+	 * only for the URL-parse fallback path; all other lookups are
+	 * keyed by explicit format.
+	 */
+	protected const SUPPORTED_FORMATS = [ 'woff2', 'ttf' ];
+
+	/**
+	 * Formats served on top of the default WOFF2 output.
+	 *
+	 * WOFF2 is what modern browsers want (smallest wire size,
+	 * universal support) and is Google's own default response for
+	 * modern UAs. TTF is the format server-side renderers
+	 * (GD/FreeType, Dompdf, Mpdf, image tools) require — Google's
+	 * CSS2 API returns TTF URLs from `fonts.gstatic.com/s/…/*.ttf`
+	 * when queried with a pre-WOFF2 User-Agent (see
+	 * {@see LEGACY_TTF_USER_AGENT}). We fetch both at install time
+	 * so downstream server-side consumers never have to jump through
+	 * hoops.
+	 */
+	protected const SERVER_READABLE_FORMATS = [ 'ttf' ];
+
+	/**
+	 * User-Agent string that makes the CSS2 API respond with TTF
+	 * URLs instead of the modern WOFF2 payload. A pre-WOFF2 Safari
+	 * or old Android build hits Google's "no woff2 support" branch
+	 * and gets `format('truetype')` rules pointing at real
+	 * `fonts.gstatic.com/s/<slug>/…*.ttf` files, which we then
+	 * download through the same allowlisted host guard as the
+	 * WOFF2 fetches.
+	 *
+	 * Chosen over the true IE-era UA (`MSIE 8`) because that one
+	 * currently gets served an opaque `gstatic.com/l/font?kit=…`
+	 * URL — no `.ttf` file to download.
+	 */
+	protected const LEGACY_TTF_USER_AGENT = 'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US) AppleWebKit/533.19.4 (KHTML, like Gecko) Version/5.0.3 Safari/533.19.4';
+
+	/**
+	 * Font-file signatures used to gate downloaded bytes by format.
+	 * Keeps a 200 HTML error page from being written to disk as
+	 * `.ttf` if the CDN misbehaves.
+	 */
+	protected const FORMAT_SIGNATURES = [
+		'woff2' => 'wOF2',
+		'ttf'   => "\x00\x01\x00\x00", // TrueType outlines.
+		'otf'   => 'OTTO',             // OpenType (CFF outlines).
+	];
+
 	/**
 	 * Cache key prefix for the normalized catalog. The active
 	 * {@see $metadataUrl} is folded in by {@see catalogCacheKey()} so a
@@ -201,6 +250,43 @@ class GoogleFontsProvider implements FontProvider
 	 */
 	public function fetchFace( string $slug, string $weight, string $style ): string
 	{
+		return $this->fetchFaceInFormat( $slug, $weight, $style, 'woff2' );
+	}
+
+	/**
+	 * @since 1.11.0
+	 *
+	 * @return list<string>
+	 */
+	public function serverReadableFormats(): array
+	{
+		return self::SERVER_READABLE_FORMATS;
+	}
+
+	/**
+	 * Fetch the same face as {@see fetchFace()} but in the specified
+	 * container format (#794). WOFF2 is the default; passing `'ttf'`
+	 * makes the provider query the CSS2 API with a legacy User-Agent
+	 * so Google's `format('truetype')` branch fires and the returned
+	 * URL points at a real `.ttf` on `fonts.gstatic.com/s/…`.
+	 *
+	 * The downloaded bytes are verified against the format's magic
+	 * signature so an HTML error page from the CDN never lands on
+	 * disk as a font file.
+	 *
+	 * @since 1.11.0
+	 */
+	public function fetchFaceInFormat( string $slug, string $weight, string $style, string $format ): string
+	{
+		$format = strtolower( trim( $format ) );
+
+		if ( ! in_array( $format, self::SUPPORTED_FORMATS, true ) ) {
+			throw new FontProviderException( __(
+				'Google Fonts cannot serve the ":format" format.',
+				[ 'format' => $format ]
+			) );
+		}
+
 		$family = $this->catalog()[ trim( $slug ) ] ?? null;
 
 		if ( null === $family ) {
@@ -242,19 +328,19 @@ class GoogleFontsProvider implements FontProvider
 			) );
 		}
 
-		$css     = $this->fetchFaceCss( $family['family'], (int) $weight, $isItalic );
-		$fileUrl = $this->resolveFaceUrl( $css );
+		$css     = $this->fetchFaceCss( $family['family'], (int) $weight, $isItalic, $format );
+		$fileUrl = $this->resolveFaceUrl( $css, $format );
 
 		if ( null === $fileUrl ) {
 			throw new FontProviderException( __(
-				'Google Fonts returned no WOFF2 URL for ":family" :weight :style.',
-				[ 'family' => $family['family'], 'weight' => $weight, 'style' => $style ]
+				'Google Fonts returned no :format URL for ":family" :weight :style.',
+				[ 'format' => strtoupper( $format ), 'family' => $family['family'], 'weight' => $weight, 'style' => $style ]
 			) );
 		}
 
 		$this->assertDownloadable( $fileUrl );
 
-		return $this->download( $fileUrl );
+		return $this->download( $fileUrl, $format );
 	}
 
 	/**
@@ -471,22 +557,30 @@ class GoogleFontsProvider implements FontProvider
 	/**
 	 * Request the CSS2 `@font-face` payload for a single face.
 	 *
+	 * The User-Agent header decides which format Google's CSS2 API
+	 * returns: the default modern UA yields WOFF2, while
+	 * {@see LEGACY_TTF_USER_AGENT} yields `format('truetype')` rules
+	 * with real `.ttf` URLs.
+	 *
 	 * @since 1.7.0
 	 *
 	 * @param  string  $family    The display family name.
 	 * @param  int     $weight    The face weight.
 	 * @param  bool    $isItalic  Whether the italic style is wanted.
+	 * @param  string  $format    The format to fetch: `'woff2'` or `'ttf'` (#794).
 	 */
-	protected function fetchFaceCss( string $family, int $weight, bool $isItalic ): string
+	protected function fetchFaceCss( string $family, int $weight, bool $isItalic, string $format = 'woff2' ): string
 	{
 		$url = $this->cssUrl . '?' . http_build_query( [
 			'family'  => $family . ':ital,wght@' . ( $isItalic ? 1 : 0 ) . ',' . $weight,
 			'display' => 'swap',
 		] );
 
+		$userAgent = 'ttf' === $format ? self::LEGACY_TTF_USER_AGENT : $this->userAgent;
+
 		try {
 			$response = Http::timeout( $this->timeout )
-				->withHeaders( [ 'User-Agent' => $this->userAgent ] )
+				->withHeaders( [ 'User-Agent' => $userAgent ] )
 				->withOptions( [ 'allow_redirects' => false, 'stream' => true ] )
 				->get( $url );
 		} catch ( Throwable $e ) {
@@ -508,15 +602,19 @@ class GoogleFontsProvider implements FontProvider
 	}
 
 	/**
-	 * Pick the WOFF2 URL for the configured subset out of a CSS2 payload,
-	 * falling back to the first WOFF2 `src` when the subset is unlabeled.
+	 * Pick the face URL for the configured subset (matching the given
+	 * `$format` extension) out of a CSS2 payload, falling back to the
+	 * first matching `src` when the subset is unlabeled.
 	 *
 	 * @since 1.7.0
 	 *
-	 * @param  string  $css  The CSS2 response body.
+	 * @param  string  $css     The CSS2 response body.
+	 * @param  string  $format  The face format the CSS was requested for (#794).
 	 */
-	protected function resolveFaceUrl( string $css ): ?string
+	protected function resolveFaceUrl( string $css, string $format = 'woff2' ): ?string
 	{
+		$extension = preg_quote( $format, '#' );
+
 		// Subset labels are short slugs (`latin`, `cyrillic-ext`); bounding the
 		// capture keeps the pattern linear on a pathological comment that never
 		// closes rather than backtracking over the whole body.
@@ -530,7 +628,7 @@ class GoogleFontsProvider implements FontProvider
 		$urls = [];
 
 		foreach ( $blocks as $block ) {
-			if ( preg_match( '#url\((?<url>[^)]+?\.woff2)\)#', $block['body'], $match ) ) {
+			if ( preg_match( '#url\((?<url>[^)]+?\.' . $extension . ')\)#', $block['body'], $match ) ) {
 				$urls[ trim( $block['subset'] ) ] = $match['url'];
 			}
 		}
@@ -544,10 +642,10 @@ class GoogleFontsProvider implements FontProvider
 		}
 
 		// Last resort when no `@font-face` carried a `/* subset */` comment:
-		// take the first WOFF2 in document order. Google always comments its
-		// subsets, so this only fires on a malformed response and may not be
-		// the latin subset.
-		return preg_match( '#url\((?<url>[^)]+?\.woff2)\)#', $css, $match )
+		// take the first matching URL in document order. Google always
+		// comments its subsets, so this only fires on a malformed response
+		// and may not be the latin subset.
+		return preg_match( '#url\((?<url>[^)]+?\.' . $extension . ')\)#', $css, $match )
 			? $match['url']
 			: null;
 	}
@@ -603,14 +701,16 @@ class GoogleFontsProvider implements FontProvider
 	 *
 	 * Redirects are not followed — a 3xx from the CDN falls through to the
 	 * unsuccessful-response guard rather than chasing an off-allowlist
-	 * location — and the body is verified to carry the WOFF2 signature so a
-	 * 200 error page never masquerades as a font on disk.
+	 * location — and the body is verified to carry the requested format's
+	 * magic signature so a 200 error page never masquerades as a font on
+	 * disk.
 	 *
 	 * @since 1.7.0
 	 *
-	 * @param  string  $fileUrl  The gstatic WOFF2 URL.
+	 * @param  string  $fileUrl  The gstatic font URL.
+	 * @param  string  $format   The expected format (`woff2`, `ttf`, `otf`) — used to gate the byte signature (#794).
 	 */
-	protected function download( string $fileUrl ): string
+	protected function download( string $fileUrl, string $format = 'woff2' ): string
 	{
 		try {
 			$response = Http::timeout( $this->timeout )
@@ -631,12 +731,13 @@ class GoogleFontsProvider implements FontProvider
 			) );
 		}
 
-		$body = $this->readBounded( $response, sprintf( 'the Google Fonts face at "%s"', $fileUrl ) );
+		$body      = $this->readBounded( $response, sprintf( 'the Google Fonts face at "%s"', $fileUrl ) );
+		$signature = self::FORMAT_SIGNATURES[ $format ] ?? null;
 
-		if ( ! str_starts_with( $body, 'wOF2' ) ) {
+		if ( null !== $signature && ! str_starts_with( $body, $signature ) ) {
 			throw new FontProviderException( __(
-				'The file downloaded from ":url" is not a WOFF2 font.',
-				[ 'url' => $fileUrl ]
+				'The file downloaded from ":url" is not a :format font.',
+				[ 'url' => $fileUrl, 'format' => strtoupper( $format ) ]
 			) );
 		}
 

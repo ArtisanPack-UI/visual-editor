@@ -61,7 +61,7 @@ class FontsCssGenerator
 		$presets   = [];
 
 		foreach ( $fonts as $font ) {
-			foreach ( $font->faces as $face ) {
+			foreach ( $this->preferredFaces( $font->faces ) as $face ) {
 				$faceRules[] = $this->faceRule( $font, $face );
 			}
 
@@ -258,6 +258,46 @@ class FontsCssGenerator
 		$path = $this->cssPath ?? (string) config( 'artisanpack.visual-editor.fonts.css_path', 'visual-editor/fonts/fonts.css' );
 
 		return ltrim( $path, '/' );
+	}
+
+	/**
+	 * Pick the best face per `(weight, style)` for the browser bundle.
+	 *
+	 * Since #794 a family can carry multiple format rows for the same
+	 * weight/style (a browser-optimized WOFF2 alongside a
+	 * server-readable TTF). The browser only wants one — the smallest
+	 * it can decode — so we dedupe per-slot and prefer WOFF2 > WOFF >
+	 * OTF > TTF. Server-side consumers query the DB directly for their
+	 * preferred format and are unaffected.
+	 *
+	 * @since 1.11.0
+	 *
+	 * @param  iterable<FontFace>  $faces
+	 *
+	 * @return list<FontFace>
+	 */
+	protected function preferredFaces( iterable $faces ): array
+	{
+		$priority = [
+			'woff2' => 4,
+			'woff'  => 3,
+			'otf'   => 2,
+			'ttf'   => 1,
+		];
+
+		$picked = [];
+
+		foreach ( $faces as $face ) {
+			$slot   = $face->weight . ':' . $face->style;
+			$rank   = $priority[ strtolower( (string) $face->format ) ] ?? 0;
+			$winner = $picked[ $slot ] ?? null;
+
+			if ( null === $winner || $rank > $winner['rank'] ) {
+				$picked[ $slot ] = [ 'face' => $face, 'rank' => $rank ];
+			}
+		}
+
+		return array_map( static fn ( array $entry ): FontFace => $entry['face'], array_values( $picked ) );
 	}
 
 	/**

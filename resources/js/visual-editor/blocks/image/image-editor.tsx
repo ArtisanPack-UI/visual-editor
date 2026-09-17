@@ -25,6 +25,7 @@
 import type { ChangeEvent, ReactElement, ReactNode } from 'react';
 import clsx from 'clsx';
 import {
+    ResizableBox,
     TextareaControl,
     TextControl,
     __experimentalToolsPanel as ToolsPanel,
@@ -38,7 +39,14 @@ import {
 } from '@wordpress/block-editor';
 import { __ } from '@wordpress/i18n';
 
-import { ALLOWED_MEDIA_TYPES } from './constants';
+import {
+    ALLOWED_MEDIA_TYPES,
+    MIN_SIZE,
+    WIDTH_PRESETS,
+    WIDTH_PRESET_SNAP_PCT,
+    type WidthUnit,
+} from './constants';
+import WidthControl, { composeWidth } from './width-control';
 
 interface ImageEditorAttributes {
     readonly id?: number;
@@ -52,6 +60,8 @@ interface ImageEditorAttributes {
     readonly linkTarget?: string;
     readonly sizeSlug?: string;
     readonly width?: string;
+    readonly widthUnit?: WidthUnit;
+    readonly keepAspectRatio?: boolean;
     readonly height?: string;
     readonly aspectRatio?: string;
     readonly scale?: string;
@@ -125,6 +135,8 @@ export default function Image(props: ImageEditorProps): ReactElement {
         id,
         title,
         width,
+        widthUnit,
+        keepAspectRatio = true,
         height,
         aspectRatio,
         scale,
@@ -147,6 +159,109 @@ export default function Image(props: ImageEditorProps): ReactElement {
             }}
             title={title}
         />
+    );
+
+    /**
+     * Snaps a percentage value to the nearest preset when within tolerance.
+     * Returns the numeric value (possibly snapped) so drag-to-resize lands
+     * on a stable, exportable percentage.
+     */
+    function snapToPreset(pct: number): number {
+        for (const preset of WIDTH_PRESETS) {
+            if (Math.abs(pct - preset.percentage) <= WIDTH_PRESET_SNAP_PCT) {
+                return preset.percentage;
+            }
+        }
+        return pct;
+    }
+
+    /**
+     * Called during drag. `elt` is the resizable wrapper — its clientWidth
+     * is the on-screen width in pixels. We convert to the current unit and
+     * write the same `width`/`widthUnit` attributes the inspector controls
+     * write to, so all three surfaces feed one code path.
+     */
+    function onResizeStop(
+        _event: unknown,
+        _direction: unknown,
+        elt: HTMLElement
+    ): void {
+        const pxWidth = elt.clientWidth;
+        if (!Number.isFinite(pxWidth) || pxWidth < MIN_SIZE) {
+            return;
+        }
+
+        // When `widthUnit` is unset, fall back to the unit encoded in `width`
+        // so a stored responsive width like "50%" isn't silently replaced
+        // with a pixel value on the first canvas drag.
+        const activeUnit: WidthUnit =
+            widthUnit ??
+            (width?.trim().endsWith('%') ? '%' : 'px');
+
+        // When the user is dragging both axes (keepAspectRatio off), persist
+        // the resized height too — leaving it undefined lets the next render
+        // discard the height change.
+        const persistedHeight: Partial<ImageEditorAttributes> = keepAspectRatio
+            ? { height: undefined }
+            : { height: `${Math.round(elt.clientHeight)}px` };
+
+        if (activeUnit === '%') {
+            const parent = elt.parentElement;
+            const parentWidth =
+                parent?.getBoundingClientRect().width ?? pxWidth;
+            if (parentWidth > 0) {
+                const raw = Math.max(
+                    1,
+                    Math.round((pxWidth / parentWidth) * 100)
+                );
+                const snapped = snapToPreset(raw);
+                setAttributes({
+                    width: composeWidth(snapped, '%'),
+                    widthUnit: '%',
+                    ...persistedHeight,
+                });
+                return;
+            }
+        }
+
+        setAttributes({
+            width: composeWidth(Math.round(pxWidth), 'px'),
+            widthUnit: 'px',
+            ...persistedHeight,
+        });
+    }
+
+    const linkedImage = <ImageWrapper href={attributes.href}>{image}</ImageWrapper>;
+    const canResize = isSingleSelected && !!url;
+    // Keep the ResizableBox OUTSIDE the (inline) anchor so its parent for the
+    // percentage-width calculation in `onResizeStop` is the block wrapper,
+    // not the link — the anchor's box can be smaller than the surrounding
+    // container and would skew the ratio.
+    const wrappedImage = canResize ? (
+        <ResizableBox
+            size={{
+                width: width ?? 'auto',
+                height: keepAspectRatio ? 'auto' : height ?? 'auto',
+            }}
+            minWidth={MIN_SIZE}
+            enable={{
+                top: false,
+                right: true,
+                bottom: !keepAspectRatio,
+                left: true,
+                topRight: false,
+                bottomRight: true,
+                bottomLeft: true,
+                topLeft: false,
+            }}
+            lockAspectRatio={keepAspectRatio}
+            onResizeStop={onResizeStop}
+            __experimentalShowTooltip
+        >
+            {linkedImage}
+        </ResizableBox>
+    ) : (
+        linkedImage
     );
 
     return (
@@ -173,6 +288,10 @@ export default function Image(props: ImageEditorProps): ReactElement {
                         setAttributes({
                             alt: '',
                             title: undefined,
+                            width: undefined,
+                            widthUnit: undefined,
+                            height: undefined,
+                            keepAspectRatio: true,
                         })
                     }
                 >
@@ -195,6 +314,23 @@ export default function Image(props: ImageEditorProps): ReactElement {
                         />
                     </ToolsPanelItem>
                     <ToolsPanelItem
+                        label={__('Image dimensions')}
+                        isShownByDefault
+                        hasValue={() => !!width}
+                        onDeselect={() =>
+                            setAttributes({
+                                width: undefined,
+                                widthUnit: undefined,
+                                height: undefined,
+                            })
+                        }
+                    >
+                        <WidthControl
+                            attributes={attributes}
+                            setAttributes={setAttributes}
+                        />
+                    </ToolsPanelItem>
+                    <ToolsPanelItem
                         label={__('Title attribute')}
                         hasValue={() => !!title}
                         onDeselect={() => setAttributes({ title: undefined })}
@@ -213,7 +349,7 @@ export default function Image(props: ImageEditorProps): ReactElement {
                     </ToolsPanelItem>
                 </ToolsPanel>
             </InspectorControls>
-            <ImageWrapper href={attributes.href}>{image}</ImageWrapper>
+            {wrappedImage}
             {(isSingleSelected && hasNonContentControls) ||
             !RichText.isEmpty(caption ?? '') ? (
                 <RichText

@@ -34,6 +34,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Fonts\Services;
 
+use ArtisanPackUI\VisualEditor\Fonts\Contracts\SupportsServerReadableFormats;
 use ArtisanPackUI\VisualEditor\Fonts\Exceptions\FontFileWriteException;
 use ArtisanPackUI\VisualEditor\Fonts\Exceptions\FontInstallationException;
 use ArtisanPackUI\VisualEditor\Fonts\Exceptions\FontProviderException;
@@ -227,7 +228,17 @@ class FontInstaller
 	{
 		$rollbackPaths = [];
 		$writtenFaces  = [];
-		$isVariable    = (bool) ( $family['is_variable'] ?? false );
+		// Track every format the provider *advertised* per slot,
+		// including the ones whose fetch failed. `reapObsoleteFormats()`
+		// consults this so a transient TTF-fetch failure on reinstall
+		// doesn't nuke a valid TTF row that was written last time
+		// (CodeRabbit). A format the provider dropped between installs
+		// isn't in this map for the slot — that row is still eligible
+		// for reaping.
+		//
+		// @var array<string, list<string>>  keyed by `weight:style`.
+		$advertisedFormatsBySlot = [];
+		$isVariable              = (bool) ( $family['is_variable'] ?? false );
 
 		$start  = microtime( true );
 		$budget = $this->fetchTimeBudget();
@@ -288,6 +299,9 @@ class FontInstaller
 
 				$isVariable = $isVariable || $parsed['is_variable'];
 
+				$slotKey                             = $weight . ':' . $style;
+				$advertisedFormatsBySlot[ $slotKey ] = [ $format ];
+
 				$writtenFaces[] = [
 					'weight'    => $weight,
 					'style'     => $style,
@@ -296,11 +310,86 @@ class FontInstaller
 					'file_size' => strlen( $bytes ),
 					'axes'      => $axes,
 				];
+
+				// Extra formats for server-side renderers (#794). Providers
+				// that also serve TTF/OTF alongside their default WOFF2 opt
+				// into this via {@see SupportsServerReadableFormats}. Each
+				// extra format lands as a **sibling FontFace row** with the
+				// same weight/style; downstream consumers (OG image
+				// generators, PDF libs) pick a face by
+				// `format IN ('ttf','otf')` and get a real path they can
+				// hand to GD/FreeType or their PDF renderer.
+				//
+				// A supplementary fetch is best-effort: any failure is
+				// logged and skipped, never bubbled up, so a hiccup on the
+				// TTF branch of Google's CSS2 API doesn't take down the
+				// whole install (the WOFF2 face for the site editor is
+				// already written).
+				if ( $provider instanceof SupportsServerReadableFormats ) {
+					foreach ( $provider->serverReadableFormats() as $extraFormat ) {
+						$extraFormat = strtolower( $extraFormat );
+
+						// Don't re-fetch the primary format the provider
+						// already served — some providers may legitimately
+						// list their default format alongside the extras.
+						if ( $extraFormat === $format ) {
+							continue;
+						}
+
+						// Record intent *before* the fetch so a failure
+						// still preserves the previously-installed row
+						// via `reapObsoleteFormats()` — the provider is
+						// still saying "I support this format", we just
+						// couldn't reach it right now.
+						$advertisedFormatsBySlot[ $slotKey ][] = $extraFormat;
+
+						try {
+							$extraBytes = $provider->fetchFaceInFormat( $slug, (string) $weight, $style, $extraFormat );
+
+							if ( ! $this->isFontSignature( $extraBytes ) ) {
+								throw new FontInstallationException( __(
+									'The :format face fetched for ":slug" (:weight :style) is not a recognized font file.',
+									[ 'format' => strtoupper( $extraFormat ), 'slug' => $slug, 'weight' => $weight, 'style' => $style ]
+								) );
+							}
+
+							$extraPath  = $this->fileWriter->pathFor( $providerKey, $slug, $weight, $style, $extraFormat );
+							$extraIsNew = ! $this->fileWriter->exists( $extraPath );
+
+							$this->fileWriter->write( $providerKey, $slug, $weight, $style, $extraFormat, $extraBytes );
+
+							if ( $extraIsNew ) {
+								$rollbackPaths[] = $extraPath;
+							}
+
+							$writtenFaces[] = [
+								'weight'    => $weight,
+								'style'     => $style,
+								'format'    => $extraFormat,
+								'path'      => $extraPath,
+								'file_size' => strlen( $extraBytes ),
+								'axes'      => $axes,
+							];
+						} catch ( Throwable $e ) {
+							Log::warning(
+								'Supplementary font-face fetch failed; install continues without this format.',
+								[
+									'provider' => $providerKey,
+									'slug'     => $slug,
+									'weight'   => $weight,
+									'style'    => $style,
+									'format'   => $extraFormat,
+									'error'    => $e->getMessage(),
+								]
+							);
+						}
+					}
+				}
 			}
 
 			$orphans = [];
 
-			$font = DB::transaction( function () use ( $providerKey, $slug, $family, $writtenFaces, $isVariable, &$orphans ): Font {
+			$font = DB::transaction( function () use ( $providerKey, $slug, $family, $writtenFaces, $advertisedFormatsBySlot, $isVariable, &$orphans ): Font {
 				$font = Font::query()->firstOrNew( [
 					'provider' => $providerKey,
 					'slug'     => $slug,
@@ -316,6 +405,16 @@ class FontInstaller
 				foreach ( $writtenFaces as $face ) {
 					$this->persistFace( $font, $face, $orphans );
 				}
+
+				// Drop stale format rows for each `(weight, style)` the
+				// provider still owns — the widened unique key
+				// `(font_id, weight, style, format)` (#794) lets
+				// providers store multiple formats per slot, so we
+				// preserve every format the provider *advertised* this
+				// install (including any whose fetch transiently failed;
+				// CodeRabbit) and reap only the formats it no longer
+				// claims to serve.
+				$this->reapObsoleteFormats( $font, $advertisedFormatsBySlot, $orphans );
 
 				return $font;
 			} );
@@ -467,6 +566,20 @@ class FontInstaller
 				foreach ( $writtenFaces as $face ) {
 					$this->persistFace( $font, $face, $orphans );
 				}
+
+				// See {@see writeAndPersist()}: the same reap step is
+				// needed on the upload path so a re-upload that drops a
+				// previously uploaded format (e.g. WOFF2 → TTF) cleans
+				// its stale row + file. Uploads don't have "advertised
+				// but failed" fetches — every face in the batch either
+				// lands on disk or wasn't part of the request — so the
+				// advertised-formats map is derived directly from what
+				// was written.
+				$this->reapObsoleteFormats(
+					$font,
+					$this->deriveAdvertisedFormatsFromWritten( $writtenFaces ),
+					$orphans
+				);
 
 				return $font;
 			} );
@@ -750,13 +863,18 @@ class FontInstaller
 	 */
 	protected function persistFace( Font $font, array $face, array &$orphans ): void
 	{
+		// Uniqueness is per `(weight, style, format)` since #794 —
+		// providers can persist a WOFF2 face for the browser and a
+		// sibling TTF for server-side renderers under the same
+		// weight/style. Keying `updateOrCreate` on the trio matches the
+		// widened DB unique index so a re-install whose bytes changed
+		// updates the same row rather than duplicating it.
 		$existing = $font->faces()
 			->where( 'weight', $face['weight'] )
 			->where( 'style', $face['style'] )
+			->where( 'format', $face['format'] )
 			->first();
 
-		// updateOrCreate keys on weight+style, so a re-install whose format
-		// changed rewrites the row's `path` in place and strands the old file.
 		if ( null !== $existing && (string) $existing->path !== $face['path'] ) {
 			$orphans[ (string) $existing->disk ][] = (string) $existing->path;
 		}
@@ -765,15 +883,78 @@ class FontInstaller
 			[
 				'weight' => $face['weight'],
 				'style'  => $face['style'],
+				'format' => $face['format'],
 			],
 			[
-				'format'    => $face['format'],
 				'disk'      => $this->fileWriter->diskName(),
 				'path'      => $face['path'],
 				'file_size' => $face['file_size'],
 				'axes'      => $face['axes'],
 			]
 		);
+	}
+
+	/**
+	 * Reap `FontFace` rows for `(weight, style)` slots the provider
+	 * still owns but in formats it no longer advertises. Called at
+	 * the tail of the persist transaction so a provider that dropped
+	 * a format between installs (e.g. WOFF2 → TTF, or removed TTF
+	 * support) doesn't leave zombie rows pointing at files we're
+	 * about to delete via {@see $orphans}.
+	 *
+	 * The `$advertisedFormatsBySlot` map contains every format the
+	 * provider *claimed* to serve for the slot on this install —
+	 * including formats whose fetch transiently failed (CodeRabbit).
+	 * Preserving those keeps a valid existing row from being wiped
+	 * out by a transient network hiccup on a supplementary format.
+	 * Rows in a format not on the advertised list are still eligible
+	 * for reaping — that's how the "provider dropped a format" case
+	 * cleans up on the next install.
+	 *
+	 * @since 1.11.0
+	 *
+	 * @param  array<string, list<string>>  $advertisedFormatsBySlot  Formats the provider offered per `weight:style` slot.
+	 * @param  array<string, list<string>>  $orphans                  Prior paths keyed by disk, appended to by reference.
+	 */
+	protected function reapObsoleteFormats( Font $font, array $advertisedFormatsBySlot, array &$orphans ): void
+	{
+		foreach ( $advertisedFormatsBySlot as $slot => $formats ) {
+			[ $weight, $style ] = explode( ':', $slot, 2 );
+
+			$obsolete = $font->faces()
+				->where( 'weight', (int) $weight )
+				->where( 'style', $style )
+				->whereNotIn( 'format', $formats )
+				->get();
+
+			foreach ( $obsolete as $face ) {
+				$orphans[ (string) $face->disk ][] = (string) $face->path;
+				$face->delete();
+			}
+		}
+	}
+
+	/**
+	 * Fold a `$writtenFaces` list into the same shape
+	 * {@see reapObsoleteFormats()} consumes for the upload path,
+	 * where every face in the batch was actually written (no
+	 * "advertised but failed" concept applies).
+	 *
+	 * @since 1.11.0
+	 *
+	 * @param  list<array{weight: int, style: string, format: string, path: string, file_size: int, axes: array<string, mixed>|null}>  $writtenFaces
+	 *
+	 * @return array<string, list<string>>  keyed by `weight:style`.
+	 */
+	protected function deriveAdvertisedFormatsFromWritten( array $writtenFaces ): array
+	{
+		$map = [];
+		foreach ( $writtenFaces as $face ) {
+			$slot          = $face['weight'] . ':' . $face['style'];
+			$map[ $slot ][] = $face['format'];
+		}
+
+		return $map;
 	}
 
 	/**

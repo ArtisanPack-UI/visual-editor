@@ -626,3 +626,19 @@ figure.wp-block-image:not(.wp-block) {
 .wp-block-image {
     margin: 0 0 1em 0;
 }
+
+/* ---------- width control (fork extension) ---------- */
+
+.artisanpack-image-width-control__label-row {
+    margin-bottom: 8px;
+}
+
+.artisanpack-image-width-control .components-button-group {
+    display: flex;
+    width: 100%;
+}
+
+.artisanpack-image-width-control .components-button-group > .components-button {
+    flex: 1;
+    justify-content: center;
+}
