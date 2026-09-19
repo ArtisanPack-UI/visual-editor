@@ -42,15 +42,31 @@ class StoreMenuRequest extends FormRequest
 			// when omitted, matching the editor save flow that doesn't
 			// repeat the active theme on every payload (#438).
 			'theme'          => [ 'sometimes', 'string', 'max:191' ],
-			'slug'           => [ 'required', 'string', 'max:191' ],
+			// `slug` is optional and derived from `title`/`name` server-
+			// side when omitted (#797). Gutenberg's `core/navigation`
+			// placeholder "Create menu" affordance dispatches
+			// `saveEntityRecord('postType', 'wp_navigation', { title,
+			// content, status: 'publish' })` — no slug, so requiring
+			// it here made the create no-op silently.
+			'slug'           => [ 'sometimes', 'string', 'max:191' ],
 			// Accept either `name` (model-shape) or `title` (WP REST
-			// shape — what the editor's create-menu dialog sends).
-			// At least one must be present; the controller picks
-			// whichever it finds and maps to the model's `name` column.
+			// shape — what the editor's create-menu dialog and
+			// Gutenberg's navigation placeholder send). At least one
+			// must be present; the controller picks whichever it finds
+			// and maps to the model's `name` column.
 			'name'           => [ 'sometimes', 'string', 'max:255' ],
 			'title'          => [ 'sometimes', 'string', 'max:255' ],
 			'description'    => [ 'nullable', 'string' ],
 			'auto_add_pages' => [ 'sometimes', 'boolean' ],
+			// Gutenberg's `saveEntityRecord` on create ships the
+			// serialized block-comment markup as `content` alongside
+			// `status: 'publish'`. The controller resolves either a
+			// string (serialized markup) or `{ raw?, blocks? }` object
+			// into a block tree and rebuilds `menu_items` from it.
+			// `status` is accepted but unused — cms-framework menus
+			// don't carry a status field.
+			'content'        => [ 'sometimes', 'nullable' ],
+			'status'         => [ 'sometimes', 'string', 'max:32' ],
 		];
 	}
 }

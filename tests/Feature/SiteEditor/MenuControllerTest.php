@@ -184,10 +184,53 @@ describe( 'POST /visual-editor/api/menus', function (): void {
 		] )->assertStatus( 409 );
 	} );
 
-	it( 'returns 422 when slug is missing (theme falls back to active)', function (): void {
-		$this->postJson( '/visual-editor/api/menus', [ 'name' => 'Missing slug' ] )
-			->assertStatus( 422 )
-			->assertJsonValidationErrors( 'slug' );
+	// #797 — Gutenberg's `core/navigation` placeholder "Create menu"
+	// affordance sends `{ title, content, status: 'publish' }` with no
+	// slug. Deriving from the name keeps the create working without the
+	// caller having to invent one.
+	it( 'derives a slug from the name when the slug is omitted (#797)', function (): void {
+		$this->postJson( '/visual-editor/api/menus', [ 'name' => 'Missing Slug' ] )
+			->assertCreated()
+			->assertJsonPath( 'slug', 'missing-slug' )
+			->assertJsonPath( 'name', 'Missing Slug' );
+
+		expect( Menu::query()->where( 'slug', 'missing-slug' )->exists() )->toBeTrue();
+	} );
+
+	it( 'suffixes the derived slug on collision within the same theme (#797)', function (): void {
+		Menu::create( [ 'theme' => 'digital-shopfront', 'slug' => 'main-menu', 'name' => 'Main Menu' ] );
+
+		$this->postJson( '/visual-editor/api/menus', [ 'title' => 'Main Menu' ] )
+			->assertCreated()
+			->assertJsonPath( 'slug', 'main-menu-2' )
+			->assertJsonPath( 'name', 'Main Menu' );
+	} );
+
+	// #797 — Gutenberg's `saveEntityRecord` on create sends serialized
+	// block-comment markup as `content` alongside `status: 'publish'`.
+	// The controller rebuilds `menu_items` from `content` and ignores
+	// `status` (cms-framework menus don't carry a status field).
+	it( 'accepts the Gutenberg-shape payload with content and status (#797)', function (): void {
+		$raw = '<!-- wp:navigation-link {"label":"Home","url":"/"} /-->';
+
+		$response = $this->postJson( '/visual-editor/api/menus', [
+			'title'   => 'Primary Nav',
+			'content' => $raw,
+			'status'  => 'publish',
+		] )
+			->assertCreated()
+			->assertJsonPath( 'theme', 'digital-shopfront' )
+			->assertJsonPath( 'slug', 'primary-nav' )
+			->assertJsonPath( 'name', 'Primary Nav' );
+
+		$menuId = (int) $response->json( 'id' );
+
+		expect( MenuItem::query()->where( 'menu_id', $menuId )->where( 'label', 'Home' )->exists() )->toBeTrue();
+	} );
+
+	it( 'returns 422 when neither slug nor a name/title is provided', function (): void {
+		$this->postJson( '/visual-editor/api/menus', [] )
+			->assertStatus( 422 );
 	} );
 
 	// #438. The editor's create-menu dialog sends `title`, not `name`,

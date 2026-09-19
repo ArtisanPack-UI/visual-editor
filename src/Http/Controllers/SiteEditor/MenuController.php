@@ -41,6 +41,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class MenuController extends Controller
 {
@@ -110,9 +111,9 @@ class MenuController extends Controller
 			return $this->cmsFrameworkUnavailable();
 		}
 
-		$model = self::CMS_MENU_FQCN;
-
-		$attributes = $this->modelAttributesFromRequest( $request->validated(), forCreate: true );
+		$model      = self::CMS_MENU_FQCN;
+		$validated  = $request->validated();
+		$attributes = $this->modelAttributesFromRequest( $validated, forCreate: true );
 
 		if ( ! array_key_exists( 'theme', $attributes ) || '' === (string) $attributes['theme'] ) {
 			return response()->json( [
@@ -128,9 +129,33 @@ class MenuController extends Controller
 			], Response::HTTP_UNPROCESSABLE_ENTITY );
 		}
 
+		// #797 — Gutenberg's `core/navigation` placeholder "Create menu"
+		// affordance sends `{ title, content, status }` with no slug.
+		// Derive a unique slug from the name so the create succeeds
+		// without the caller having to invent one.
+		if ( ! array_key_exists( 'slug', $attributes ) || '' === (string) $attributes['slug'] ) {
+			$attributes['slug'] = $this->deriveUniqueSlug( $model, (string) $attributes['name'], (string) $attributes['theme'] );
+		}
+
+		// #797 — resolve `content` up front so a rejected item rebuild
+		// rolls back the menu insert too. `null` here means "content
+		// key was omitted from the request" — leave the just-created
+		// menu with zero items.
+		$blocks = array_key_exists( 'content', $validated )
+			? $this->resolveContentBlocks( $validated['content'] )
+			: null;
+
 		try {
-			/** @var object $menu */
-			$menu = $model::create( $attributes );
+			$menu = DB::transaction( function () use ( $model, $attributes, $blocks ) {
+				/** @var object $menu */
+				$menu = $model::create( $attributes );
+
+				if ( is_array( $blocks ) && [] !== $blocks ) {
+					$this->replaceMenuItems( $menu, $blocks );
+				}
+
+				return $menu;
+			} );
 		} catch ( QueryException $e ) {
 			if ( $this->isUniqueViolation( $e ) ) {
 				return response()->json( [
@@ -142,7 +167,39 @@ class MenuController extends Controller
 			throw $e;
 		}
 
-		return response()->json( $this->menuToShape( $menu ), Response::HTTP_CREATED );
+		return response()->json( $this->menuToShape( $menu->fresh() ), Response::HTTP_CREATED );
+	}
+
+	/**
+	 * Build a unique slug from a menu name, scoped to a theme.
+	 *
+	 * Gutenberg's create-menu payload carries no slug, so we derive
+	 * one from the title. cms-framework enforces `(theme, slug)`
+	 * uniqueness at the DB layer; we probe existing rows and append
+	 * `-2`, `-3`, ... on collision so the first create from the
+	 * placeholder never trips the unique-violation path.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  class-string  $model
+	 */
+	protected function deriveUniqueSlug( string $model, string $name, string $theme ): string
+	{
+		$base = Str::slug( $name );
+
+		if ( '' === $base ) {
+			$base = 'menu';
+		}
+
+		$candidate = $base;
+		$suffix    = 2;
+
+		while ( $model::query()->where( 'theme', $theme )->where( 'slug', $candidate )->exists() ) {
+			$candidate = $base . '-' . $suffix;
+			$suffix++;
+		}
+
+		return $candidate;
 	}
 
 	/**
