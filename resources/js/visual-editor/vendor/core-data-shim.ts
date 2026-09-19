@@ -53,6 +53,7 @@ import { createReduxStore, register, useDispatch, useSelect } from '@wordpress/d
 
 import { parseNavigationContent } from './parse-navigation-content';
 
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -1156,6 +1157,7 @@ const selectors = {
         const base = selectEntityRecord(state, kind, name, id);
         const edits = selectEditsForRecord(state, kind, name, id);
 
+
         // Match WP core's behavior: return an empty object — never
         // `null` — when nothing's been fetched yet. Consumers like
         // Gutenberg's `core/navigation` block (`use-navigation-menu.mjs`)
@@ -1288,9 +1290,39 @@ const selectors = {
     // the public selectors. Exposing it here lets the unlock call fall
     // through to a no-op without us depending on `@wordpress/private-apis`
     // (whose lock/unlock symbol identity is fragile across module
-    // copies in a mixed `node_modules` tree). Returning `undefined`
-    // routes the block to its uncontrolled-inner-blocks fallback path.
-    getNavigationFallbackId: (): EntityKey | undefined => undefined,
+    // copies in a mixed `node_modules` tree).
+    //
+    // For issue #808 the shim resolves the fallback to the first
+    // cached `wp_navigation` record's id — matching upstream's
+    // "auto-select the primary menu" behavior when the block is
+    // dropped without a ref. Returning `undefined` leaves the block
+    // stuck on its placeholder even after the picker has loaded a
+    // menu list from the server. Nothing is dispatched from a
+    // selector; the resolver behind `getEntityRecords` primes the
+    // cache on first read from other paths (menu-inspector-controls
+    // etc.), and this selector reflects whatever's currently there.
+    getNavigationFallbackId: (state: CoreDataState): EntityKey | undefined => {
+        const bag = state.records[entityKey('postType', 'wp_navigation')];
+
+        if (!bag) {
+            return undefined;
+        }
+
+        for (const key of Object.keys(bag.items)) {
+            const record = bag.items[key];
+            const status = (record as { status?: unknown }).status;
+
+            if (status === 'publish' || status === 'draft') {
+                const id = (record as { id?: unknown }).id;
+
+                if (typeof id === 'number' || typeof id === 'string') {
+                    return id as EntityKey;
+                }
+            }
+        }
+
+        return undefined;
+    },
 };
 
 // ---------------------------------------------------------------------------
@@ -1914,7 +1946,26 @@ export const store = createReduxStore(STORE_NAME, {
     resolvers: resolvers as unknown as Record<string, () => unknown>,
 });
 
-register(store);
+// Guard against duplicate registration. In Vite's dev server the
+// shim can be resolved twice — once via the `@wordpress/core-data`
+// alias and once via a relative `../../vendor/core-data-shim`
+// import — producing two module instances that both try to
+// `register(store)`. `@wordpress/data` throws on the second call,
+// which aborts module evaluation and leaves the second instance
+// without a fully-initialized state object (side-effects below the
+// register never run). Swallow the duplicate cleanly so both
+// instances finish evaluating; both talk to the same singleton
+// wp-data registry regardless.
+try {
+    register(store);
+} catch (error) {
+    if (
+        !(error instanceof Error) ||
+        !error.message.includes('already registered')
+    ) {
+        throw error;
+    }
+}
 
 // ---------------------------------------------------------------------------
 // React context + hooks
@@ -2284,10 +2335,13 @@ export function useEntityRecords<T = unknown>(
  * fields, and caches the result by `(kind, name, id, raw)` so render
  * loops don't reissue fresh `clientId`s on every selector read.
  *
- * Edits are still no-ops — saving a synced pattern goes through the
- * dedicated patterns canvas in the site editor (D5), not via this
- * inline path. When the post-V1 cms-framework backend lands the
- * setters can begin dispatching real `editEntityRecord` actions.
+ * Writes stage `editEntityRecord({ content: { raw, blocks } })` and
+ * schedule a debounced `saveEditedEntityRecord` — the same
+ * serialize + PUT contract `use-entity-editor` uses on the
+ * site-editor save path, but driven by the block-editor's per-edit
+ * onChange/onInput callbacks (issue #808). `onInput` and `onChange`
+ * both flow through the same path; upstream distinguishes them for
+ * undo history, which the shim does not model.
  */
 export function useEntityBlockEditor(
     kind?: EntityKind,
@@ -2322,12 +2376,42 @@ export function useEntityBlockEditor(
                           name: EntityName,
                           id: EntityKey
                       ) => EntityRecord | null;
+                      getEditedEntityRecord?: (
+                          kind: EntityKind,
+                          name: EntityName,
+                          id: EntityKey
+                      ) => EntityRecord | null;
                   }
                 | undefined;
 
-            const record = store?.getEntityRecord?.(kind, name, id);
+            // Prefer the EDITED record so staged edits (from
+            // `onInput`/`onChange` below) reflect immediately in the
+            // canvas — otherwise the user's changes disappear until
+            // the debounced PUT lands and the base record refreshes.
+            const record =
+                store?.getEditedEntityRecord?.(kind, name, id) ??
+                store?.getEntityRecord?.(kind, name, id);
 
-            if (!record) {
+            // Reference-identity contract with `use-block-sync`
+            // (issue #808): when the setter below stages `blocks`
+            // top-level on the edits bag, return that array UNTOUCHED
+            // and UN-DECORATED. Upstream's `use-block-sync` checks
+            // `pendingChangesRef.outgoing.includes(controlledBlocks)`
+            // by reference equality — any new array reference on
+            // re-read (from a fresh decoration pass) makes the sync
+            // effect wipe the internal store back to the "controlled"
+            // value, silently eating the user's insert / reorder /
+            // delete. The setter-supplied array already carries
+            // stable `clientId`s from Gutenberg itself, so no
+            // decoration is needed.
+            const editedTopLevelBlocks = (
+                record as { blocks?: unknown } | null | undefined
+            )?.blocks;
+            if (Array.isArray(editedTopLevelBlocks)) {
+                return editedTopLevelBlocks as readonly unknown[];
+            }
+
+            if (!record || Object.keys(record).length === 0) {
                 return EMPTY_RECORDS as readonly unknown[];
             }
 
@@ -2399,7 +2483,100 @@ export function useEntityBlockEditor(
         [kind, name, id]
     );
 
-    return [blocks, noopSetter, noopSetter];
+    const dispatchTuple = useDispatch(STORE_NAME) as
+        | {
+              editEntityRecord?: (
+                  kind: EntityKind,
+                  name: EntityName,
+                  id: EntityKey,
+                  edits: EntityRecord,
+              ) => void;
+              saveEditedEntityRecord?: (
+                  kind: EntityKind,
+                  name: EntityName,
+                  id: EntityKey,
+              ) => Promise<EntityRecord | null>;
+          }
+        | undefined;
+
+    const setBlocks = useMemo(() => {
+        if (kind === undefined || name === undefined || id === null) {
+            return noopSetter as (blocks: readonly unknown[]) => void;
+        }
+
+        return (nextBlocks: readonly unknown[]): void => {
+            const list = Array.isArray(nextBlocks) ? nextBlocks : [];
+
+            // Stage `blocks` TOP-LEVEL exactly like upstream WP's own
+            // `useEntityBlockEditor` (see
+            // `@wordpress/core-data/entity-provider/use-entity-block-
+            // editor.js`). The reader above returns this array as-is
+            // so `use-block-sync.mjs`' `pendingChangesRef.outgoing`
+            // reference-equality check clears and the insert survives
+            // the next React commit (issue #808). Also mirror it into
+            // `content.blocks` so the debounced PUT below sends the
+            // shape the `MenuController::resolveContentBlocks` PHP
+            // path already accepts without a client-side serialize
+            // pass (`@wordpress/blocks`'s `serialize()` can't be
+            // imported at module scope — its `i18n-block.json` needs
+            // an import attribute Vitest can't supply).
+            dispatchTuple?.editEntityRecord?.(kind, name, id, {
+                blocks: list,
+                content: { blocks: list },
+            });
+
+            scheduleEntityRecordSave(kind, name, id, () => {
+                void dispatchTuple?.saveEditedEntityRecord?.(kind, name, id);
+            });
+        };
+    }, [dispatchTuple, kind, name, id]);
+
+    return [blocks, setBlocks, setBlocks];
+}
+
+/**
+ * Per-entity debounce for `saveEditedEntityRecord`.
+ *
+ * The block-editor's `onChange` / `onInput` callbacks fire on every
+ * keystroke; PUTing on each would swamp the backend and race with
+ * itself. Coalesce writes for the same `(kind, name, id)` into a
+ * single trailing-edge save after 500ms of quiet, matching upstream
+ * `use-entity-editor`'s cadence.
+ */
+const ENTITY_SAVE_DEBOUNCE_MS = 500;
+const entitySaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+function scheduleEntityRecordSave(
+    kind: EntityKind,
+    name: EntityName,
+    id: EntityKey,
+    save: () => void,
+): void {
+    const key = `${kind}|${name}|${String(id)}`;
+    const existing = entitySaveTimers.get(key);
+
+    if (existing !== undefined) {
+        clearTimeout(existing);
+    }
+
+    const timer = setTimeout(() => {
+        entitySaveTimers.delete(key);
+        save();
+    }, ENTITY_SAVE_DEBOUNCE_MS);
+
+    entitySaveTimers.set(key, timer);
+}
+
+/**
+ * Flush every pending debounced entity save immediately. Test hook
+ * for the shim's Vitest suite; the site-editor's own save path uses
+ * its own flush.
+ */
+export function __flushPendingEntityRecordSaves(): void {
+    for (const [key, timer] of entitySaveTimers.entries()) {
+        clearTimeout(timer);
+        entitySaveTimers.delete(key);
+    }
 }
 
 /**
@@ -2495,14 +2672,26 @@ function decorateBlock(block: unknown): DecoratedBlock | null {
         return null;
     }
 
-    const server = block as ServerBlock;
+    const server = block as ServerBlock & { clientId?: unknown; isValid?: unknown };
     const innerBlocks = Array.isArray(server.innerBlocks)
         ? decorateBlockList(server.innerBlocks)
         : EMPTY_RECORDS;
 
+    // Preserve an existing `clientId` when the source array was
+    // produced by Gutenberg itself (a real edit — the block-editor
+    // hands each block a stable clientId at mount and relies on it
+    // for identity across renders). Only mint a fresh one when the
+    // source is a bare server envelope (`{name, attributes,
+    // innerBlocks}`); re-minting on every read would churn identity
+    // and re-mount the subtree.
+    const existingClientId =
+        typeof server.clientId === 'string' && server.clientId.length > 0
+            ? server.clientId
+            : null;
+
     return {
         name: server.name,
-        clientId: createClientId(),
+        clientId: existingClientId ?? createClientId(),
         isValid: true,
         attributes: server.attributes ?? {},
         innerBlocks,

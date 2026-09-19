@@ -7,6 +7,7 @@ import {
     EntityProvider,
     MISSING_RECORD_MARKER,
     RestRequestError,
+    __flushPendingEntityRecordSaves,
     __resetCoreDataShimConfig,
     configureCoreDataShim,
     store,
@@ -358,8 +359,23 @@ describe('core-data-shim record cache', () => {
         expect(coreSelect().getThemeSupports()).toEqual({});
     });
 
-    it('exposes getNavigationFallbackId as a no-op selector', () => {
+    it('exposes getNavigationFallbackId returning undefined when no menus are cached', () => {
         expect(coreSelect().getNavigationFallbackId()).toBeUndefined();
+    });
+
+    it('getNavigationFallbackId returns the first published menu id once cached (issue #808)', () => {
+        coreDispatch().receiveEntityRecords('postType', 'wp_navigation', [
+            {
+                id: 7,
+                slug: 'primary',
+                title: { raw: 'Primary', rendered: 'Primary' },
+                status: 'publish',
+                type: 'wp_navigation',
+                content: { raw: '', blocks: [] },
+            },
+        ]);
+
+        expect(coreSelect().getNavigationFallbackId()).toBe(7);
     });
 
     it('reports resolution as not-yet-started for an unread entity tuple', () => {
@@ -1833,6 +1849,156 @@ describe('core-data-shim hooks', () => {
         expect(blocks[1].innerBlocks).toHaveLength(1);
         expect(blocks[1].innerBlocks[0].name).toBe('core/navigation-link');
         expect(blocks[1].innerBlocks[0].attributes).toEqual({ label: 'Team' });
+    });
+
+    it('useEntityBlockEditor setter stages edits on the record so the next read reflects them (issue #808)', () => {
+        coreDispatch().receiveEntityRecords('postType', 'wp_navigation', [
+            {
+                id: 42,
+                slug: 'primary',
+                title: { raw: 'Primary', rendered: 'Primary' },
+                status: 'publish',
+                type: 'wp_navigation',
+                content: { raw: '', blocks: [] },
+            },
+        ]);
+
+        let currentBlocks: readonly unknown[] = [];
+        let setter: (blocks: readonly unknown[]) => void = () => undefined;
+
+        function Probe() {
+            const [blocks, onInput] = useEntityBlockEditor(
+                'postType',
+                'wp_navigation',
+                { id: 42 },
+            );
+            currentBlocks = blocks;
+            setter = onInput;
+            return null;
+        }
+        render(<Probe />);
+
+        expect(currentBlocks).toEqual([]);
+
+        const newBlocks = [
+            {
+                name: 'core/navigation-link',
+                clientId: 'nav-1',
+                isValid: true,
+                attributes: { label: 'Home', url: '/' },
+                innerBlocks: [],
+            },
+        ];
+
+        act(() => {
+            setter(newBlocks);
+        });
+
+        // Setter dispatched editEntityRecord staging the new content; the
+        // hook now reads via getEditedEntityRecord and returns the edited
+        // block tree with its stable clientId preserved.
+        expect(currentBlocks).toHaveLength(1);
+        const rendered = currentBlocks as ReadonlyArray<{
+            name: string;
+            clientId: string;
+            attributes: Record<string, unknown>;
+        }>;
+        expect(rendered[0].name).toBe('core/navigation-link');
+        expect(rendered[0].clientId).toBe('nav-1');
+        expect(rendered[0].attributes).toEqual({ label: 'Home', url: '/' });
+
+        const edited = coreSelect().getEditedEntityRecord(
+            'postType',
+            'wp_navigation',
+            42,
+        ) as { content?: { raw?: string; blocks?: readonly unknown[] } };
+        expect(edited.content?.blocks).toHaveLength(1);
+
+        // Drain the trailing-edge save so it does not fire after the test.
+        __flushPendingEntityRecordSaves();
+    });
+
+    it('useEntityBlockEditor debounces trailing-edge PUT to the entity endpoint (issue #808)', async () => {
+        vi.useFakeTimers();
+        try {
+            const { fetcher, calls } = mockFetcher(async (url) => {
+                if (url.endsWith('/menus/42') && url.includes('/menus/')) {
+                    return jsonResponse({
+                        id: 42,
+                        slug: 'primary',
+                        title: { raw: 'Primary', rendered: 'Primary' },
+                        status: 'publish',
+                        type: 'wp_navigation',
+                        content: { raw: '<!-- edited -->', blocks: [] },
+                    });
+                }
+                return jsonResponse(null, 404);
+            });
+
+            configureCoreDataShim({
+                apiBase: '/visual-editor/api',
+                fetcher,
+            });
+
+            coreDispatch().receiveEntityRecords('postType', 'wp_navigation', [
+                {
+                    id: 42,
+                    slug: 'primary',
+                    title: { raw: 'Primary', rendered: 'Primary' },
+                    status: 'publish',
+                    type: 'wp_navigation',
+                    content: { raw: '', blocks: [] },
+                },
+            ]);
+
+            let setter: (blocks: readonly unknown[]) => void = () => undefined;
+            function Probe() {
+                const [, onInput] = useEntityBlockEditor(
+                    'postType',
+                    'wp_navigation',
+                    { id: 42 },
+                );
+                setter = onInput;
+                return null;
+            }
+            render(<Probe />);
+
+            const blocks = [
+                {
+                    name: 'core/navigation-link',
+                    clientId: 'nav-1',
+                    isValid: true,
+                    attributes: { label: 'A', url: '/a' },
+                    innerBlocks: [],
+                },
+            ];
+
+            act(() => {
+                setter(blocks);
+                setter(blocks);
+                setter(blocks);
+            });
+
+            // No PUT before the debounce window elapses.
+            expect(
+                calls.filter((c) => c.init.method === 'PUT').length,
+            ).toBe(0);
+
+            await vi.advanceTimersByTimeAsync(600);
+            await vi.runOnlyPendingTimersAsync();
+
+            const puts = calls.filter((c) => c.init.method === 'PUT');
+            expect(puts.length).toBe(1);
+            expect(puts[0].url).toMatch(/\/menus\/42$/);
+
+            const body = JSON.parse(String(puts[0].init.body)) as {
+                content?: { raw?: string; blocks?: unknown[] };
+            };
+            expect(body.content?.blocks).toHaveLength(1);
+        } finally {
+            __flushPendingEntityRecordSaves();
+            vi.useRealTimers();
+        }
     });
 
     it('flattens {raw, rendered} fields on getRawEntityRecord and getEditedEntityRecord', () => {

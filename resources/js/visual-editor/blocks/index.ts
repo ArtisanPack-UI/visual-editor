@@ -14,6 +14,7 @@ import { setDefaultBlockName, setGroupingBlockName } from '@wordpress/blocks';
 
 import { discoverAndRegisterCustomBlocks } from '../editor/custom-blocks';
 import { markExternalBlocksReady } from '../editor/external-block-registration';
+import { registerForkedCoreBlocks } from '../editor/register-forked-cores';
 import { registerServerRenderedBlocks } from '../editor/server-blocks';
 
 /**
@@ -33,6 +34,14 @@ import { registerServerRenderedBlocks } from '../editor/server-blocks';
  * simple assignments, and the runtime seams dedupe by name too.
  */
 export function registerArtisanPackBlocks(): void {
+    // Register the upstream `core/*` blocks that `artisanpack/*` forks
+    // delegate to (issue #808). Without this, forks like
+    // `artisanpack/navigation` render an empty `<div>` because their
+    // `getBlockType('core/navigation')` lookup returns undefined.
+    // Installs the inserter-suppression filter internally so the core
+    // blocks land with `inserter: false`.
+    registerForkedCoreBlocks();
+
     const registered = discoverAndRegisterCustomBlocks();
 
     if (registered.includes('artisanpack/paragraph')) {
