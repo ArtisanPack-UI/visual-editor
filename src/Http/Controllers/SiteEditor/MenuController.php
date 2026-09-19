@@ -191,11 +191,19 @@ class MenuController extends Controller
 			$base = 'menu';
 		}
 
+		// cms-framework's `menus.slug` column is a default Laravel string
+		// (255 chars). Cap the base and reserve room for the collision
+		// suffix so a full-length name plus `-NN` never overflows the
+		// column.
+		$maxSlugLength = 255;
+		$base          = substr( $base, 0, $maxSlugLength );
+
 		$candidate = $base;
 		$suffix    = 2;
 
 		while ( $model::query()->where( 'theme', $theme )->where( 'slug', $candidate )->exists() ) {
-			$candidate = $base . '-' . $suffix;
+			$suffixPart = '-' . $suffix;
+			$candidate  = substr( $base, 0, $maxSlugLength - strlen( $suffixPart ) ) . $suffixPart;
 			$suffix++;
 		}
 

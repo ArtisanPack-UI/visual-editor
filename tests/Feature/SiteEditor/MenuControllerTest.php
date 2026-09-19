@@ -233,6 +233,65 @@ describe( 'POST /visual-editor/api/menus', function (): void {
 			->assertStatus( 422 );
 	} );
 
+	// CodeRabbit follow-up on #797/PR #807 — the request layer must
+	// reject content payloads that the controller would otherwise
+	// silently coerce to `[]` (booleans, numbers, arbitrary arrays
+	// without `raw`/`blocks`).
+	it( 'returns 422 when content is a boolean', function (): void {
+		$this->postJson( '/visual-editor/api/menus', [
+			'title'   => 'Primary Nav',
+			'content' => true,
+		] )
+			->assertStatus( 422 )
+			->assertJsonValidationErrors( 'content' );
+	} );
+
+	it( 'returns 422 when content is a number', function (): void {
+		$this->postJson( '/visual-editor/api/menus', [
+			'title'   => 'Primary Nav',
+			'content' => 42,
+		] )
+			->assertStatus( 422 )
+			->assertJsonValidationErrors( 'content' );
+	} );
+
+	it( 'returns 422 when content is an arbitrary array without raw or blocks', function (): void {
+		$this->postJson( '/visual-editor/api/menus', [
+			'title'   => 'Primary Nav',
+			'content' => [ 'unexpected' => 'shape' ],
+		] )
+			->assertStatus( 422 )
+			->assertJsonValidationErrors( 'content' );
+	} );
+
+	// CodeRabbit follow-up on #797/PR #807 — `deriveUniqueSlug()` must
+	// cap the derived slug at cms-framework's `menus.slug` column width
+	// (default Laravel string = 255) even when the collision suffix
+	// (`-2`, `-3`, ...) would otherwise overflow.
+	it( 'caps the derived slug at 255 characters even under collision (#797)', function (): void {
+		// `title` is capped at 255 chars at the request layer, so a
+		// full-length title deriving cleanly to a 255-char slug is the
+		// realistic worst case for the collision-suffix path.
+		$longName = str_repeat( 'a', 255 );
+
+		// Seed the base-length collision so the next create needs the
+		// suffix path.
+		Menu::create( [
+			'theme' => 'digital-shopfront',
+			'slug'  => str_repeat( 'a', 255 ),
+			'name'  => 'Existing',
+		] );
+
+		$response = $this->postJson( '/visual-editor/api/menus', [
+			'title' => $longName,
+		] )->assertCreated();
+
+		$slug = (string) $response->json( 'slug' );
+
+		expect( strlen( $slug ) )->toBeLessThanOrEqual( 255 );
+		expect( str_ends_with( $slug, '-2' ) )->toBeTrue();
+	} );
+
 	// #438. The editor's create-menu dialog sends `title`, not `name`,
 	// and never sends `theme`. The controller maps `title` → `name`
 	// and falls back to ThemeManager's active theme.

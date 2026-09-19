@@ -64,8 +64,10 @@ class StoreMenuRequest extends FormRequest
 			// string (serialized markup) or `{ raw?, blocks? }` object
 			// into a block tree and rebuilds `menu_items` from it.
 			// `status` is accepted but unused — cms-framework menus
-			// don't carry a status field.
-			'content'        => [ 'sometimes', 'nullable' ],
+			// don't carry a status field. The shared `ContentShapeRule`
+			// rejects booleans, numbers, and arbitrary arrays that the
+			// controller would otherwise silently coerce to `[]`.
+			'content'        => [ 'sometimes', new ContentShapeRule() ],
 			'status'         => [ 'sometimes', 'string', 'max:32' ],
 		];
 	}

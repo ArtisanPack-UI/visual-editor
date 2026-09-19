@@ -23,7 +23,7 @@
  */
 
 import { useMemo, useState } from 'react';
-import { Button, Placeholder, SelectControl, Spinner } from '@wordpress/components';
+import { Button, Notice, Placeholder, SelectControl, Spinner } from '@wordpress/components';
 import { useBlockProps } from '@wordpress/block-editor';
 import { useDispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
@@ -87,6 +87,7 @@ export default function NavigationInlinePlaceholder( {
 
     const [ selectedId, setSelectedId ] = useState<string>( '' );
     const [ isCreating, setIsCreating ] = useState<boolean>( false );
+    const [ createError, setCreateError ] = useState<string | null>( null );
 
     // `useDispatch( 'core' )` binds to whichever store is registered
     // under that name — the shim registers itself there so this hits
@@ -118,6 +119,7 @@ export default function NavigationInlinePlaceholder( {
         }
 
         setIsCreating( true );
+        setCreateError( null );
 
         try {
             const saved = await saveEntityRecord( 'postType', 'wp_navigation', {
@@ -128,7 +130,17 @@ export default function NavigationInlinePlaceholder( {
 
             if ( saved?.id ) {
                 setAttributes( { ref: saved.id } );
+                return;
             }
+
+            // The shim's `saveEntityRecord` catches REST errors and
+            // resolves to `null` — surface a local error notice so the
+            // failure isn't silent.
+            setCreateError(
+                __(
+                    'The menu could not be created. Check the network response and try again.',
+                ),
+            );
         } finally {
             setIsCreating( false );
         }
@@ -153,6 +165,15 @@ export default function NavigationInlinePlaceholder( {
                 ) }
             >
                 <div className="wp-block-navigation-placeholder__actions">
+                    { createError !== null && (
+                        <Notice
+                            status="error"
+                            isDismissible
+                            onRemove={ () => setCreateError( null ) }
+                        >
+                            { createError }
+                        </Notice>
+                    ) }
                     { isLoading && <Spinner /> }
                     { ! isLoading && menus.length > 0 && (
                         <SelectControl
