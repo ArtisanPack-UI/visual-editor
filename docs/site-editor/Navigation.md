@@ -180,7 +180,49 @@ import { Navigation } from '@artisanpack-ui/visual-editor-renderer-react';
 
 ---
 
-## 8. Performance
+## 8. Per-viewport visibility (mobile-overlay-only content)
+
+The `core/navigation` block stores a single `innerBlocks` tree that
+renders in both the desktop bar and the mobile overlay drawer — the
+responsive container flips between the two views via CSS. Dropping a
+`core/buttons` CTA into the nav so it appears in the mobile overlay
+also renders it inline in the desktop bar unless you gate it per
+viewport.
+
+Use the existing **screen-size visibility rule** (see
+[Block Visibility](../visibility.md)) on any nav child — `core/navigation-link`,
+`core/navigation-submenu`, or a nested `core/buttons` — to scope its
+render to specific breakpoints. Every block ships opted-in to block
+visibility, so the Screen Size subsection is already available in the
+Inspector for these blocks.
+
+To render a CTA only inside the mobile overlay:
+
+1. Select the nested `core/buttons` (or a `core/navigation-link`) inside
+   the nav.
+2. Open the **Visibility** panel in the Inspector.
+3. Under **Screen Size**, pick `Show` at these sizes and check only
+   `Small (≥640px)`.
+
+The renderer emits a scoped `@media (min-width:...)` `display:none`
+rule for every breakpoint you didn't check, so the CTA disappears from
+the desktop / tablet bar while staying visible inside the drawer on
+mobile. There's no runtime JavaScript for the gate — the CSS is scoped
+per block so two blocks hidden at different breakpoints don't share
+rules.
+
+The inverse workflow — a "Book a demo" button visible only on desktop
+— uses the same rule with `Show at → Large` + larger breakpoints, or
+`Hide at → Small` + `Medium`.
+
+> **Follow-up (v1.x):** a dedicated `overlayInnerBlocks` region on the
+> nav block (Option B in #798) is tracked separately. Until it ships,
+> per-viewport visibility on individual nav children is the supported
+> path for mobile-overlay-only content.
+
+---
+
+## 9. Performance
 
 The resolver caches resolved menus per request — a template that
 includes the same nav block twice (e.g. desktop + mobile variants) only
@@ -198,3 +240,5 @@ the bottleneck.
 - [Site editor](../site-editor.md) — the surface that edits menus
 - [Templates](Templates.md) — templates that include `core/navigation`
 - [Renderers](../renderers.md) — `<x-ve-blocks>` and `<Navigation>` components
+- [Block Visibility](../visibility.md) — the screen-size rule powering
+  per-viewport visibility on nav children
