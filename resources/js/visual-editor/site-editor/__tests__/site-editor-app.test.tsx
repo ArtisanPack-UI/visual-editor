@@ -253,6 +253,51 @@ vi.mock('../../states/with-state-styles', () => ({
     registerStateStylesFilters: (): void => undefined,
 }));
 
+// #799 — the animations, visibility, and bindings registrars also pull
+// `@wordpress/block-editor` (via their BlockEdit HOCs) into the graph,
+// tripping the same JSON-import-attribute issue under jsdom. The shell
+// test only asserts that `ensureEditorBoot()` calls the registrars; the
+// HOCs themselves have their own focused test suites.
+vi.mock('../../animations/register-attribute', () => ({
+    registerAnimationsAttribute: (): void => undefined,
+}));
+
+vi.mock('../../animations/with-animations-panel', () => ({
+    registerAnimationsPanel: (): void => undefined,
+}));
+
+vi.mock('../../visibility/register-attribute', () => ({
+    registerVisibilityAttribute: (): void => undefined,
+}));
+
+vi.mock('../../visibility/with-visibility-panel', () => ({
+    registerVisibilityPanel: (): void => undefined,
+}));
+
+vi.mock('../../bindings/register-attribute', () => ({
+    registerBindingsAttribute: (): void => undefined,
+}));
+
+vi.mock('../../bindings/with-bindings-panel', () => ({
+    registerBindingsPanel: (): void => undefined,
+}));
+
+vi.mock('../../dynamic-content', () => ({
+    registerDynamicContent: (): void => undefined,
+}));
+
+vi.mock('../../formats/dynamic-link/register', () => ({
+    registerDynamicLinkFormat: (): void => undefined,
+}));
+
+// #799 — contrast-warning + checker-suppression share a module. Stub
+// both exports; the shell test only checks that `ensureEditorBoot()`
+// runs them.
+vi.mock('../../editor/contrast-warning', () => ({
+    disableContrastCheckerOnBlocks: (): void => undefined,
+    registerContrastWarning: (): void => undefined,
+}));
+
 import { resetActiveBreakpoint } from '../../responsive/active-breakpoint';
 import { SiteEditorApp } from '../site-editor-app';
 

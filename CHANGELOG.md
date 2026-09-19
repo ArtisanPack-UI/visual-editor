@@ -6,6 +6,25 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Fixed
+
+- **Site editor inspector missing default sections** (#799) — the
+  site editor's `ensureEditorBoot()` now mirrors the post editor's
+  registrations for Motion preferences, Entrance/Hover/Continuous
+  animation, Visibility, Block bindings, Dynamic Content bindings
+  source, and the Dynamic-Content-aware `core/link` format, so a
+  block selected in a template or template part shows the same
+  inspector panels as the same block in a post. The
+  `BlockColorContrastChecker` suppression + warning fill are now
+  shared between both boots so the color-picker-drag crash sidestep
+  applies in the site editor too. `disableContrastCheckerOnBlocks()`
+  moved from `editor/editor-app.tsx` to `editor/contrast-warning.tsx`
+  as an exported companion of `registerContrastWarning()`; both
+  registrations are idempotent across boot paths. A new Vitest
+  (`site-editor-boot-parity.test.tsx`) asserts every registrar fires
+  once from `ensureEditorBoot()` so a future feature module cannot
+  be silently omitted from one boot path.
+
 ## [1.11.0] - 2026-09-17
 
 ### Added
