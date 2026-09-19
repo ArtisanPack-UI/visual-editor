@@ -52,8 +52,14 @@ import {
 import { useSiteEditorDeepLink } from './use-deep-link';
 import { usePersistedToggle } from './use-persisted-toggle';
 import { useSiteEditorRouting } from './use-site-editor-routing';
+import { registerAnimationsAttribute } from '../animations/register-attribute';
+import { registerAnimationsPanel } from '../animations/with-animations-panel';
 import { registerBackgroundControls } from '../background-controls';
+import { registerBindingsAttribute } from '../bindings/register-attribute';
+import { registerBindingsPanel } from '../bindings/with-bindings-panel';
 import { registerArtisanPackBlocks } from '../blocks';
+import { registerDynamicContent } from '../dynamic-content';
+import { registerDynamicLinkFormat } from '../formats/dynamic-link/register';
 import { registerInlineIconFormat } from '../formats/inline-icon/register';
 import { registerBoxShadows } from '../box-shadows/register';
 import { registerGradientBorders } from '../gradient-borders/register';
@@ -63,8 +69,14 @@ import { registerResponsiveAttributesFilter } from '../responsive/with-responsiv
 import { registerStateAttribute } from '../states/register-attribute';
 import { registerStateAttributesFilter } from '../states/with-state-attributes';
 import { registerStateStylesFilters } from '../states/with-state-styles';
+import { registerVisibilityAttribute } from '../visibility/register-attribute';
+import { registerVisibilityPanel } from '../visibility/with-visibility-panel';
 
 import { BlockLibrarySidebar } from '../editor/block-library-sidebar';
+import {
+    disableContrastCheckerOnBlocks,
+    registerContrastWarning,
+} from '../editor/contrast-warning';
 import { TopBar } from '../editor/top-bar';
 import { registerSyncedPatternIndicator } from '../editor/synced-pattern-indicator';
 import { registryFromSnapshot } from '../responsive/registry';
@@ -200,6 +212,14 @@ function ensureEditorBoot(): void {
 
     bootI18n();
 
+    // #799 — mirror the post editor's contrast-checker suppression +
+    // warning fill so color-picker drags in the site editor don't hit
+    // the same `BlockColorContrastChecker` render loop that crashes
+    // blocks in the post editor. Both registrations are idempotent
+    // across the two boot paths.
+    disableContrastCheckerOnBlocks();
+    registerContrastWarning();
+
     // Mount D5's synced-pattern indicator filter before block
     // registration so `artisanpack/block` reference blocks get the badge
     // from the first render. Idempotent across HMR.
@@ -226,6 +246,30 @@ function ensureEditorBoot(): void {
     registerStateAttribute();
     registerStateAttributesFilter();
     registerStateStylesFilters();
+
+    // #799 — mirror the post editor's animations, visibility, and
+    // bindings registrations so the site editor's inspector renders
+    // the same set of ArtisanPack default sections (Motion
+    // preferences, Entrance/Hover/Continuous animation, Visibility,
+    // Block bindings) for a selected block. These filter registrations
+    // must run BEFORE `registerArtisanPackBlocks()` below so the
+    // sidecar attributes are in each block's schema at registration
+    // time and the `editor.BlockEdit` HOCs wrap every edit component
+    // on first render. Each registrar carries its own page-global
+    // sentinel so re-running from a second boot path is a no-op.
+    registerAnimationsAttribute();
+    registerAnimationsPanel();
+    registerVisibilityAttribute();
+    registerVisibilityPanel();
+    registerBindingsAttribute();
+    registerBindingsPanel();
+
+    // #799 — Dynamic Content editor UX (`{{` autocomplete, token
+    // chip decoration, Token Inserter toolbar, image/button binding
+    // panels) and the Dynamic-Content-aware `core/link` edit. Both
+    // are idempotent across boot paths.
+    registerDynamicContent();
+    registerDynamicLinkFormat();
 
     // #490 — gradient border feature filters; same "before
     // registerArtisanPackBlocks" placement as the post-editor so opted-in

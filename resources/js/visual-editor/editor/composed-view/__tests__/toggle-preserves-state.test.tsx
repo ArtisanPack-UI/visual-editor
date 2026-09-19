@@ -107,6 +107,7 @@ vi.mock('../../inspector-sidebar', () => ({
     ),
 }));
 vi.mock('../../contrast-warning', () => ({
+    disableContrastCheckerOnBlocks: (): void => undefined,
     registerContrastWarning: (): void => undefined,
 }));
 vi.mock('../../synced-pattern-indicator', () => ({

@@ -37,6 +37,12 @@ import './contrast-warning.css';
 const FILTER_HOOK = 'editor.BlockEdit';
 const FILTER_NAMESPACE = 'artisanpack-ui/visual-editor/contrast-warning';
 
+// Filter namespace used by `disableContrastCheckerOnBlocks` below so
+// the registration is idempotent across HMR reloads and across the
+// post- and site-editor bootstrap paths.
+const CONTRAST_CHECKER_FILTER_NAMESPACE =
+    'artisanpack-ui/visual-editor/disable-contrast-checker';
+
 // Page-global sentinel so the filter is registered once even when the
 // module is imported by multiple bundles (post + site editor entries
 // can both call `registerContrastWarning()`). Mirrors the pattern in
@@ -44,9 +50,86 @@ const FILTER_NAMESPACE = 'artisanpack-ui/visual-editor/contrast-warning';
 const REGISTERED_KEY = Symbol.for(
     'artisanpack-ui.visual-editor.contrast-warning.registered'
 );
+const CHECKER_DISABLED_KEY = Symbol.for(
+    'artisanpack-ui.visual-editor.disable-contrast-checker.registered'
+);
 
 interface GlobalSentinelHost {
     [REGISTERED_KEY]?: boolean;
+    [CHECKER_DISABLED_KEY]?: boolean;
+}
+
+/**
+ * Turn off `BlockColorContrastChecker` for every block that opts into
+ * color support. The checker (block-editor v15.x) has a deps-less
+ * `useLayoutEffect` that schedules a double-`requestAnimationFrame`
+ * setColors chain on every render. During a color-picker drag those
+ * RAF callbacks pile up faster than React can settle, tripping its
+ * "Maximum update depth exceeded" guard and crashing the block via
+ * `BlockCrashBoundary`. Disabling the checker via block supports stops
+ * the component from mounting at all, which sidesteps the bug until
+ * Gutenberg lands the upstream fix.
+ *
+ * Idempotent across the post- and site-editor bootstrap paths.
+ */
+export function disableContrastCheckerOnBlocks(): void {
+    const host = globalThis as unknown as GlobalSentinelHost;
+
+    if (host[CHECKER_DISABLED_KEY] === true) {
+        return;
+    }
+
+    addFilter(
+        'blocks.registerBlockType',
+        CONTRAST_CHECKER_FILTER_NAMESPACE,
+        (settings: { supports?: Record<string, unknown> } | null | undefined) => {
+            if (
+                settings === null ||
+                settings === undefined ||
+                typeof settings !== 'object'
+            ) {
+                return settings;
+            }
+
+            const supports = settings.supports;
+
+            if (
+                supports === null ||
+                supports === undefined ||
+                typeof supports !== 'object' ||
+                !('color' in supports)
+            ) {
+                return settings;
+            }
+
+            const color = (supports as { color: unknown }).color;
+            const normalizedColor =
+                color === true
+                    ? {}
+                    : color === null || color === undefined
+                        ? null
+                        : typeof color === 'object'
+                            ? { ...color }
+                            : null;
+
+            if (normalizedColor === null) {
+                return settings;
+            }
+
+            return {
+                ...settings,
+                supports: {
+                    ...supports,
+                    color: {
+                        ...normalizedColor,
+                        enableContrastChecker: false,
+                    },
+                },
+            };
+        }
+    );
+
+    host[CHECKER_DISABLED_KEY] = true;
 }
 
 export interface PaletteColor {
