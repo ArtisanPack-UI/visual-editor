@@ -184,10 +184,112 @@ describe( 'POST /visual-editor/api/menus', function (): void {
 		] )->assertStatus( 409 );
 	} );
 
-	it( 'returns 422 when slug is missing (theme falls back to active)', function (): void {
-		$this->postJson( '/visual-editor/api/menus', [ 'name' => 'Missing slug' ] )
+	// #797 — Gutenberg's `core/navigation` placeholder "Create menu"
+	// affordance sends `{ title, content, status: 'publish' }` with no
+	// slug. Deriving from the name keeps the create working without the
+	// caller having to invent one.
+	it( 'derives a slug from the name when the slug is omitted (#797)', function (): void {
+		$this->postJson( '/visual-editor/api/menus', [ 'name' => 'Missing Slug' ] )
+			->assertCreated()
+			->assertJsonPath( 'slug', 'missing-slug' )
+			->assertJsonPath( 'name', 'Missing Slug' );
+
+		expect( Menu::query()->where( 'slug', 'missing-slug' )->exists() )->toBeTrue();
+	} );
+
+	it( 'suffixes the derived slug on collision within the same theme (#797)', function (): void {
+		Menu::create( [ 'theme' => 'digital-shopfront', 'slug' => 'main-menu', 'name' => 'Main Menu' ] );
+
+		$this->postJson( '/visual-editor/api/menus', [ 'title' => 'Main Menu' ] )
+			->assertCreated()
+			->assertJsonPath( 'slug', 'main-menu-2' )
+			->assertJsonPath( 'name', 'Main Menu' );
+	} );
+
+	// #797 — Gutenberg's `saveEntityRecord` on create sends serialized
+	// block-comment markup as `content` alongside `status: 'publish'`.
+	// The controller rebuilds `menu_items` from `content` and ignores
+	// `status` (cms-framework menus don't carry a status field).
+	it( 'accepts the Gutenberg-shape payload with content and status (#797)', function (): void {
+		$raw = '<!-- wp:navigation-link {"label":"Home","url":"/"} /-->';
+
+		$response = $this->postJson( '/visual-editor/api/menus', [
+			'title'   => 'Primary Nav',
+			'content' => $raw,
+			'status'  => 'publish',
+		] )
+			->assertCreated()
+			->assertJsonPath( 'theme', 'digital-shopfront' )
+			->assertJsonPath( 'slug', 'primary-nav' )
+			->assertJsonPath( 'name', 'Primary Nav' );
+
+		$menuId = (int) $response->json( 'id' );
+
+		expect( MenuItem::query()->where( 'menu_id', $menuId )->where( 'label', 'Home' )->exists() )->toBeTrue();
+	} );
+
+	it( 'returns 422 when neither slug nor a name/title is provided', function (): void {
+		$this->postJson( '/visual-editor/api/menus', [] )
+			->assertStatus( 422 );
+	} );
+
+	// CodeRabbit follow-up on #797/PR #807 — the request layer must
+	// reject content payloads that the controller would otherwise
+	// silently coerce to `[]` (booleans, numbers, arbitrary arrays
+	// without `raw`/`blocks`).
+	it( 'returns 422 when content is a boolean', function (): void {
+		$this->postJson( '/visual-editor/api/menus', [
+			'title'   => 'Primary Nav',
+			'content' => true,
+		] )
 			->assertStatus( 422 )
-			->assertJsonValidationErrors( 'slug' );
+			->assertJsonValidationErrors( 'content' );
+	} );
+
+	it( 'returns 422 when content is a number', function (): void {
+		$this->postJson( '/visual-editor/api/menus', [
+			'title'   => 'Primary Nav',
+			'content' => 42,
+		] )
+			->assertStatus( 422 )
+			->assertJsonValidationErrors( 'content' );
+	} );
+
+	it( 'returns 422 when content is an arbitrary array without raw or blocks', function (): void {
+		$this->postJson( '/visual-editor/api/menus', [
+			'title'   => 'Primary Nav',
+			'content' => [ 'unexpected' => 'shape' ],
+		] )
+			->assertStatus( 422 )
+			->assertJsonValidationErrors( 'content' );
+	} );
+
+	// CodeRabbit follow-up on #797/PR #807 — `deriveUniqueSlug()` must
+	// cap the derived slug at cms-framework's `menus.slug` column width
+	// (default Laravel string = 255) even when the collision suffix
+	// (`-2`, `-3`, ...) would otherwise overflow.
+	it( 'caps the derived slug at 255 characters even under collision (#797)', function (): void {
+		// `title` is capped at 255 chars at the request layer, so a
+		// full-length title deriving cleanly to a 255-char slug is the
+		// realistic worst case for the collision-suffix path.
+		$longName = str_repeat( 'a', 255 );
+
+		// Seed the base-length collision so the next create needs the
+		// suffix path.
+		Menu::create( [
+			'theme' => 'digital-shopfront',
+			'slug'  => str_repeat( 'a', 255 ),
+			'name'  => 'Existing',
+		] );
+
+		$response = $this->postJson( '/visual-editor/api/menus', [
+			'title' => $longName,
+		] )->assertCreated();
+
+		$slug = (string) $response->json( 'slug' );
+
+		expect( strlen( $slug ) )->toBeLessThanOrEqual( 255 );
+		expect( str_ends_with( $slug, '-2' ) )->toBeTrue();
 	} );
 
 	// #438. The editor's create-menu dialog sends `title`, not `name`,
