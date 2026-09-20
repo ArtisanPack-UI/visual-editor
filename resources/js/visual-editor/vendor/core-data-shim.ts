@@ -49,9 +49,27 @@ import {
     type PropsWithChildren,
     type ReactElement,
 } from 'react';
-import { createReduxStore, register, useDispatch, useSelect } from '@wordpress/data';
+import { createReduxStore, register, select as globalSelect, dispatch as globalDispatch, useDispatch, useSelect } from '@wordpress/data';
 
 import { parseNavigationContent } from './parse-navigation-content';
+
+// #808 H1 diagnostic — is this shim module evaluated more than once?
+export const __AP_SHIM_INSTANCE_ID__ = Math.random().toString(36).slice(2, 10);
+if (typeof window !== 'undefined') {
+    const w = window as unknown as {
+        __apShimInstances?: Array<Record<string, unknown>>;
+    };
+    w.__apShimInstances = w.__apShimInstances || [];
+    w.__apShimInstances.push({
+        id: __AP_SHIM_INSTANCE_ID__,
+        evaluatedAt: Date.now(),
+        moduleUrl: (import.meta as unknown as { url?: string }).url,
+    });
+    // eslint-disable-next-line no-console
+    console.log(
+        `[AP #808 H1] core-data-shim evaluated (instance=${__AP_SHIM_INSTANCE_ID__}, url=${(import.meta as unknown as { url?: string }).url ?? 'n/a'})`,
+    );
+}
 
 
 // ---------------------------------------------------------------------------
@@ -1956,6 +1974,7 @@ export const store = createReduxStore(STORE_NAME, {
 // register never run). Swallow the duplicate cleanly so both
 // instances finish evaluating; both talk to the same singleton
 // wp-data registry regardless.
+let __AP_REGISTER_OUTCOME__: 'fresh' | 'duplicate' = 'fresh';
 try {
     register(store);
 } catch (error) {
@@ -1965,6 +1984,22 @@ try {
     ) {
         throw error;
     }
+    __AP_REGISTER_OUTCOME__ = 'duplicate';
+}
+
+if (typeof window !== 'undefined') {
+    // eslint-disable-next-line no-console
+    console.log(
+        `[AP #808 H1] register(store) outcome (instance=${__AP_SHIM_INSTANCE_ID__}): ${__AP_REGISTER_OUTCOME__}`,
+        {
+            storeDescriptor: store,
+            reducerRef: (store as unknown as { instantiate?: unknown }).instantiate,
+            selectCore: globalSelect('core'),
+            dispatchCore: globalDispatch('core'),
+            createReduxStoreRef: createReduxStore,
+            registerRef: register,
+        },
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -2506,6 +2541,20 @@ export function useEntityBlockEditor(
 
         return (nextBlocks: readonly unknown[]): void => {
             const list = Array.isArray(nextBlocks) ? nextBlocks : [];
+
+            // #808 nav-set — DELETE ONCE RESOLVED. Log every setter call
+            // so we can see whether upstream's insert path lands here.
+            if (typeof window !== 'undefined') {
+                // eslint-disable-next-line no-console
+                console.log('[AP #808 nav-set] shim setter called', {
+                    kind,
+                    name,
+                    id,
+                    incomingLength: list.length,
+                    firstBlockName:
+                        (list[0] as { name?: string } | undefined)?.name ?? null,
+                });
+            }
 
             // Stage `blocks` TOP-LEVEL exactly like upstream WP's own
             // `useEntityBlockEditor` (see

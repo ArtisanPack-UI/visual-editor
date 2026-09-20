@@ -21,7 +21,7 @@
  */
 
 import { type ComponentType } from 'react';
-import { store as blockEditorStore } from '@wordpress/block-editor';
+import { store as blockEditorStore, useBlockEditingMode } from '@wordpress/block-editor';
 import { useSelect } from '@wordpress/data';
 
 import { createForkedEntityEdit } from '../_shared/forked-entity-edit';
@@ -51,6 +51,122 @@ const NavigationEdit: ComponentType<AnyProps> = ( props ) => {
         },
         [ clientId ],
     );
+
+    // #808 H2/H3/H6 — DELETE ONCE RESOLVED.
+    //   H2: is the parent marked as controlling its inner blocks?
+    //   H3: is block editing mode `default` (not `contentOnly` / `disabled`)?
+    //   H6: can upstream actually insert navigation-* children here?
+    const diag = useSelect(
+        ( select ) => {
+            if ( typeof clientId !== 'string' || clientId === '' ) {
+                return null;
+            }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const store = select( blockEditorStore ) as any;
+            return {
+                areInnerBlocksControlled:
+                    typeof store?.areInnerBlocksControlled === 'function'
+                        ? store.areInnerBlocksControlled( clientId )
+                        : 'selector-missing',
+                blockListSettings:
+                    typeof store?.getBlockListSettings === 'function'
+                        ? store.getBlockListSettings( clientId )
+                        : 'selector-missing',
+                innerBlockCount:
+                    typeof store?.getBlockOrder === 'function'
+                        ? ( store.getBlockOrder( clientId ) || [] ).length
+                        : 'selector-missing',
+                canInsertNavLink:
+                    typeof store?.canInsertBlockType === 'function'
+                        ? store.canInsertBlockType( 'core/navigation-link', clientId )
+                        : 'selector-missing',
+                canInsertNavSubmenu:
+                    typeof store?.canInsertBlockType === 'function'
+                        ? store.canInsertBlockType( 'core/navigation-submenu', clientId )
+                        : 'selector-missing',
+                canInsertPageList:
+                    typeof store?.canInsertBlockType === 'function'
+                        ? store.canInsertBlockType( 'core/page-list', clientId )
+                        : 'selector-missing',
+                selectedBlockClientId:
+                    typeof store?.getSelectedBlockClientId === 'function'
+                        ? store.getSelectedBlockClientId()
+                        : 'selector-missing',
+            };
+        },
+        [ clientId ],
+    );
+    const h3EditingMode = useBlockEditingMode();
+    if ( typeof window !== 'undefined' ) {
+        // eslint-disable-next-line no-console
+        console.log(
+            '[AP #808 nav-diag]',
+            JSON.stringify(
+                {
+                    clientId,
+                    ref,
+                    hasUncontrolledInnerBlocks,
+                    blockEditingMode: h3EditingMode,
+                    ...diag,
+                },
+                ( _key, value ) => {
+                    if ( typeof value === 'function' ) return '[Function]';
+                    return value;
+                },
+                2,
+            ),
+        );
+    }
+
+    // Global click probe — install once. Logs clicks on any element
+    // whose ancestry includes an element with a data-block clientId
+    // matching this fork's clientId. That tells us whether the click
+    // even reaches DOM handlers.
+    if (
+        typeof window !== 'undefined' &&
+        typeof clientId === 'string' &&
+        clientId !== '' &&
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ! ( window as any ).__apNavClickProbeInstalled
+    ) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ( window as any ).__apNavClickProbeInstalled = true;
+        const logClick = ( event: Event ) => {
+            const target = event.target as HTMLElement | null;
+            if ( ! target ) return;
+            // eslint-disable-next-line no-console
+            console.log( '[AP #808 nav-click]', {
+                inIframe: target.ownerDocument !== document,
+                tag: target.tagName,
+                ariaLabel: target.getAttribute?.( 'aria-label' ),
+                textContent: target.textContent?.slice( 0, 60 ),
+                classList: target.className,
+                closestButton: target.closest?.( 'button' )?.outerHTML?.slice( 0, 240 ),
+            } );
+        };
+        // Attach both to top document and to any block-editor iframes.
+        document.addEventListener( 'click', logClick, true );
+        // Attach to iframes as they mount.
+        const attachToIframes = () => {
+            document.querySelectorAll( 'iframe' ).forEach( ( iframe ) => {
+                try {
+                    const doc = ( iframe as HTMLIFrameElement ).contentDocument;
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    if ( doc && ! ( doc as any ).__apNavClickAttached ) {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        ( doc as any ).__apNavClickAttached = true;
+                        doc.addEventListener( 'click', logClick, true );
+                    }
+                } catch {
+                    // cross-origin iframe — skip
+                }
+            } );
+        };
+        attachToIframes();
+        // Re-scan after render frames since iframes may mount later.
+        setTimeout( attachToIframes, 500 );
+        setTimeout( attachToIframes, 2000 );
+    }
 
     if ( ! ref && ! hasUncontrolledInnerBlocks ) {
         return (

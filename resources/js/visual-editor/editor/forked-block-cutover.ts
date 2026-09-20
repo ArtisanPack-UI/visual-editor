@@ -85,6 +85,55 @@ export const FORKED_CORE_BLOCKS: readonly string[] = [
 const FORKED_BLOCK_CUTOVER_FILTER =
     'artisanpack-ui/visual-editor/forked-block-cutover';
 
+const NAV_PARENT_BROADEN_FILTER =
+    'artisanpack-ui/visual-editor/nav-parent-broaden';
+
+/**
+ * `core/navigation-*` inner-block family that carries a `parent`
+ * allowlist naming `core/navigation`. Because our fork is
+ * `artisanpack/navigation`, upstream's `canInsertBlockType` check
+ * rejects these as children of the fork, so the inline appender's
+ * direct-insert click silently no-ops (issue #808). Broaden the
+ * allowlist to also include the fork so inserts succeed.
+ */
+const NAV_CHILD_BLOCKS: readonly string[] = [
+    'core/navigation-link',
+    'core/navigation-submenu',
+    'core/page-list',
+    'core/home-link',
+    'core/loginout',
+];
+
+/**
+ * Pure `blocks.registerBlockType` transform: extend the `parent`
+ * allowlist on a `core/navigation-*` child so `artisanpack/navigation`
+ * accepts it. Exported for testing.
+ */
+export function broadenNavChildParent(
+    settings: Record<string, unknown>,
+    name: string,
+    children: ReadonlySet<string> = new Set( NAV_CHILD_BLOCKS )
+): Record<string, unknown> {
+    if ( ! children.has( name ) ) {
+        return settings;
+    }
+
+    const existingParent = settings.parent;
+
+    if ( ! Array.isArray( existingParent ) || existingParent.length === 0 ) {
+        return settings;
+    }
+
+    if ( existingParent.includes( 'artisanpack/navigation' ) ) {
+        return settings;
+    }
+
+    return {
+        ...settings,
+        parent: [ ...existingParent, 'artisanpack/navigation' ],
+    };
+}
+
 /**
  * Pure `blocks.registerBlockType` transform: stamp `supports.inserter = false`
  * on a forked core block, pass everything else through untouched. Exported
@@ -115,16 +164,25 @@ export function suppressForkedBlockInserter(
  * `inserter: false` rather than being mutated after the fact.
  */
 export function registerForkedBlockCutoverFilter(): void {
-    if ( hasFilter( 'blocks.registerBlockType', FORKED_BLOCK_CUTOVER_FILTER ) ) {
-        return;
+    if ( ! hasFilter( 'blocks.registerBlockType', FORKED_BLOCK_CUTOVER_FILTER ) ) {
+        const forked = new Set( FORKED_CORE_BLOCKS );
+
+        addFilter(
+            'blocks.registerBlockType',
+            FORKED_BLOCK_CUTOVER_FILTER,
+            ( settings: Record<string, unknown>, name: string ) =>
+                suppressForkedBlockInserter( settings, name, forked )
+        );
     }
 
-    const forked = new Set( FORKED_CORE_BLOCKS );
+    if ( ! hasFilter( 'blocks.registerBlockType', NAV_PARENT_BROADEN_FILTER ) ) {
+        const navChildren = new Set( NAV_CHILD_BLOCKS );
 
-    addFilter(
-        'blocks.registerBlockType',
-        FORKED_BLOCK_CUTOVER_FILTER,
-        ( settings: Record<string, unknown>, name: string ) =>
-            suppressForkedBlockInserter( settings, name, forked )
-    );
+        addFilter(
+            'blocks.registerBlockType',
+            NAV_PARENT_BROADEN_FILTER,
+            ( settings: Record<string, unknown>, name: string ) =>
+                broadenNavChildParent( settings, name, navChildren )
+        );
+    }
 }

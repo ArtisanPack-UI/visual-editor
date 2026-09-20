@@ -16,6 +16,7 @@ import { discoverAndRegisterCustomBlocks } from '../editor/custom-blocks';
 import { markExternalBlocksReady } from '../editor/external-block-registration';
 import { registerForkedCoreBlocks } from '../editor/register-forked-cores';
 import { registerServerRenderedBlocks } from '../editor/server-blocks';
+import { runH1ShimIdentityProbe } from '../editor/__h1-shim-identity-probe';
 
 /**
  * Register every `artisanpack/*` block and configure the editor's
@@ -41,6 +42,10 @@ export function registerArtisanPackBlocks(): void {
     // Installs the inserter-suppression filter internally so the core
     // blocks land with `inserter: false`.
     registerForkedCoreBlocks();
+
+    // #808 H1 — DELETE ONCE RESOLVED. Confirms whether the shim is
+    // loaded once or split across two module instances.
+    runH1ShimIdentityProbe();
 
     const registered = discoverAndRegisterCustomBlocks();
 

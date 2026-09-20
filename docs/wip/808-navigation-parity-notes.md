@@ -55,9 +55,32 @@ Nothing conclusive — this is where the investigation stopped.
 
 Each of these could independently be the reason "Add menu item" is a dead click. Pick the cheapest first.
 
-### H1 — Wrong store bound to onChange
-Upstream's `useEntityBlockEditor` (real `@wordpress/core-data`, loaded via Vite pre-bundle) binds `onChange` to `dispatch('core').editEntityRecord`. Because there's one `wp-data` singleton but two modules with different action creator identities, upstream might be dispatching an action shape that the registered store's reducer doesn't recognize. Confirm by:
-- Log `wp.data.select('core')` at boot from BOTH the shim's ambient scope AND from a first-party component that imports the shim directly — are they the same reference? If not, we have two `wp-data` core stores registered under different keys somehow.
+### H1 — Two shim instances at runtime (CONFIRMED 2026-09-20)
+
+Diagnostic in `vendor/core-data-shim.ts` (a random `__AP_SHIM_INSTANCE_ID__` + module-init `console.log` + `window.__apShimInstances` array) plus a first-party identity probe at `editor/__h1-shim-identity-probe.ts`, wired into `blocks/index.ts`. After clearing `node_modules/.vite` and restarting the dev app, the console showed:
+
+- Two `[AP #808 H1] core-data-shim evaluated` lines with **different** instance IDs:
+  1. `08kmfzvv` served from `@fs/…/visual-editor/resources/js/visual-editor/vendor/core-data-shim.ts` (the alias-resolved source, the one first-party code sees).
+  2. `vtf6whmt` served from `node_modules/.vite/deps/chunk-N2N46R4O.js` — a pre-bundled Vite dep chunk. Vite's esbuild pre-bundler followed the `@wordpress/core-data` alias INSIDE the pre-bundle pass, inlining the shim source verbatim into whatever `@wordpress/block-editor`/etc. pre-bundle chunk consumed it.
+- **Both `register(store)` outcomes were `fresh`.** With a shared `@wordpress/data` singleton, the second would have thrown "already registered" and hit the shim's `duplicate` guard. Both being `fresh` proves **`@wordpress/data` is ALSO duplicated** — each shim instance registers into its own private wp-data registry. Every store (`core`, `core/block-editor`, `core/blocks`, notices, …) is doubled.
+
+The first-party identity probe (`import * as ViaAlias from '@wordpress/core-data'` vs `import * as ViaRelative from '../vendor/core-data-shim'`) shows both first-party imports resolve to instance `08kmfzvv`. So upstream Gutenberg's `useEntityBlockEditor` runs against instance B's registry (`vtf6whmt`), while first-party fork code and the inspector sidebar's List View run against instance A's (`08kmfzvv`). Reads and writes never cross.
+
+Note: the original `Store "core" is already registered` console error users saw must be from a **different** store (probably one registered by `@wordpress/blocks` or similar) landing in a shared `window.wp.data` bridge — not from our shim's `core` registration, since with duplicated `@wordpress/data` each shim's core registration succeeds in its own private registry.
+
+### H1a — Fix attempts
+
+Tried `optimizeDeps.exclude: ['@wordpress/data', '@wordpress/core-data', … full WP family]` — broke the app: Vite's source pipeline flooded with hundreds of on-demand transform requests, network aborted (`is-plain-object.mjs` / `formatLong.js` failed with "network connection was lost"). Reverted.
+
+Narrowed to `optimizeDeps.exclude: ['@wordpress/data', '@wordpress/core-data']` — broke differently: pre-bundled consumers `import { create }` from `@wordpress/data` failed with `Importing binding name 'create' is not found`. Vite's source-transform interop shape for the CJS-ish wp-data build didn't match the shape esbuild's pre-bundle expected. Reverted.
+
+Both attempts documented for pattern-match value; do NOT retry either without additional shims in place.
+
+### H1-next — Path forward (see H4 for the real fix)
+
+The clean fix is to make the shim resolve as a real `node_modules` package so both the pre-bundler and source pipeline pick the same on-disk file through node module resolution, not through the Vite alias (which the pre-bundler doesn't apply consistently). See H4.
+
+Before doing that, cheaper hypotheses (H2, H3) are worth confirming — the split-brain is structurally proven but we haven't proven it's the DIRECT cause of the dead click. Log `areInnerBlocksControlled(navClientId)` and `useBlockEditingMode()` inside the fork's edit render first.
 
 ### H2 — `useInnerBlocksProps` not treating the parent as controlled
 `use-block-sync.mjs` calls `setHasControlledInnerBlocks(clientId, true)` in `setControlledBlocks()`. That only runs if the `useEffect` at line 146 fires with a non-outgoing `controlledBlocks` reference. If the initial value is empty on first render AND our reader later swaps to a decorated array, the sync might mis-fire and never mark the parent controlled. `insertBlock` on an uncontrolled parent in a locked-tree context can silently no-op.
@@ -67,8 +90,47 @@ Upstream's `useEntityBlockEditor` (real `@wordpress/core-data`, loaded via Vite 
 Upstream reads `useBlockEditingMode()` at `edit/index.mjs:291`. If the site-editor's canvas ends up in `contentOnly` or `disabled` mode for a template-part-wrapped nav block, inserts get silently blocked.
 - Log the value returned by `useBlockEditingMode()` inside the fork. If it's not `default`, that's the issue.
 
-### H4 — The dedup fix requires publishing the shim as a real `node_modules` package
-The cleanest way to guarantee one module instance in dev is to install the shim under `node_modules/@wordpress/core-data` (via a package.json `override` or a fake package). Vite would then dedupe naturally with no alias needed.
+### H4 — Install the shim as a real `node_modules/@wordpress/core-data` (DONE 2026-09-20)
+
+Implemented as a **two-layer** fix — one layer alone is insufficient:
+
+1. **Node module resolution** (`packages/visual-editor/vendor-shims/core-data/`): a real `package.json` names the shim as `@wordpress/core-data` and points `main` at the shim source. `visual-editor/package.json` now has both a `file:` `dependencies` entry AND an `overrides` entry so every direct + transitive resolution of `@wordpress/core-data` points at one on-disk location. `npm install` in the visual-editor package symlinks `node_modules/@wordpress/core-data → ../../vendor-shims/core-data`.
+2. **Vite `resolve.alias` + `optimizeDeps.exclude` combo** (dev app `vite.config.js`): the alias rewrites every runtime `@wordpress/core-data` bare specifier to the shim's source URL from both pre-bundled chunks' transform pass AND first-party imports; the exclude prevents esbuild pre-bundling from inlining a copy of the shim into a pre-bundled chunk. Neither alone works — alias without exclude still inlines a duplicate into the pre-bundle; exclude without alias leaves bare `@wordpress/core-data` specifiers in pre-bundled chunks unresolvable.
+
+Verification: after H4, the H1 probe shows one shim `core-data evaluated` log (one instance ID `9o9q75my`), one `register(store) outcome: fresh`, and the identity probe reports `sameModuleNamespace: true` (was `false` under any partial fix). No `Store "core" is already registered` error.
+
+**Follow-up investigation identified the direct cause** — H1 was necessary for correctness (writes were being staged into a phantom shim instance) but not the direct cause of the dead click. H2 (`areInnerBlocksControlled` flips false → true across renders) and H3 (`blockEditingMode = "default"`) are clean.
+
+Extended H2/H3 probe with `canInsertBlockType` checks + a global click-target logger revealed:
+- Clicks DO fire on the appender buttons (canvas `+` = `block-editor-button-block-appender` with `aria-label="Add page"`; list-view `+` = `block-editor-inserter__toggle`).
+- `blockListSettings.defaultBlock = core/navigation-link` with `directInsert: true`.
+- `canInsertNavLink: false`, `canInsertNavSubmenu: false`, `canInsertPageList: true`.
+
+**Direct cause: `core/navigation-link` and `core/navigation-submenu` have `parent: ['core/navigation-submenu', 'core/navigation']` block-metadata**, but our outer fork is `artisanpack/navigation`. `canInsertBlockType` rejects the insert → the direct-insert click no-ops silently. `core/page-list` has no parent constraint, which is why it's the only one that comes back `true`.
+
+Fix: added `broadenNavChildParent()` in `editor/forked-block-cutover.ts` — a `blocks.registerBlockType` filter that appends `'artisanpack/navigation'` to the `parent` allowlist on `core/navigation-link`, `core/navigation-submenu`, `core/page-list`, `core/home-link`, `core/loginout`. Filter is installed by `registerForkedBlockCutoverFilter()` alongside the existing inserter-suppression filter (so both apply before `initNavigation*` runs).
+
+**Verification 2026-09-20**: after the fix, `canInsertNavLink` / `canInsertNavSubmenu` both return `true`, and clicking the canvas `+` inserts a `core/navigation-link` visibly.
+
+## Remaining follow-ups (NOT #808, split into separate issues)
+
+The core `#808` insert bug is resolved. These remaining UX issues need their own investigation:
+
+1. **Sluggish inserts + focus loss + list-view blank** — on each insert, the shim's 500ms-debounced PUT round-trips the menu content; when the base record refreshes, the shim reader parses a NEW blocks array (fresh reference), which upstream `use-block-sync.mjs` treats as an external change → `resetBlocks(newBlocks)` → full tree rebuild → `selectedBlockClientId` cleared → `InspectorControlsListView` slot-fill briefly unmounts (which trips our list-view tab's auto-fallback-to-Block gate). Fix path: reader should hold onto the setter-supplied array reference across save→refresh cycles until the user makes another edit.
+2. **`GET /visual-editor/api/site` 404** — some upstream call fetches the singleton `root/__unstableBase` entity in collection form (no id). The route only accepts `/site/{id}`. Cosmetic here, doesn't block the insert. Fix: mount a `/site` route that returns the singleton, or short-circuit the collection URL in the shim's fetcher for this specific entity.
+3. **Diagnostic cleanup for the PR**: remove `[AP #808 …]` console.logs from `edit.tsx` + `core-data-shim.ts`, delete `editor/__h1-shim-identity-probe.ts`, remove the H1 probe wiring in `blocks/index.ts`, keep the H4 config + `broadenNavChildParent` filter + tests.
+4. **Add tests** for `broadenNavChildParent` (mirror the shape of `suppressForkedBlockInserter`'s tests).
+
+Files touched by H4:
+```
+added:    packages/visual-editor/vendor-shims/core-data/package.json
+added:    packages/visual-editor/vendor-shims/core-data/index.ts
+modified: packages/visual-editor/package.json       (file: dep + overrides)
+modified: packages/visual-editor/package-lock.json  (via `npm install`)
+modified: packages/visual-editor/vite.config.ts     (removed coreDataShim alias)
+modified: artisanpack-ui-dev/vite.config.js         (alias + optimizeDeps.exclude combo)
+```
+`packages/visual-editor/vitest.config.ts` left alone — the alias there is redundant with the file: install but not harmful.
 
 ### H5 — First-party rewrite that survives block validation
 My earlier first-party edit (rewritten `blocks/navigation/edit.tsx` bypassing upstream delegation) worked mechanically but produced `Block contains unexpected or invalid content` errors on the existing saved content. Root cause never diagnosed — likely because `save()` returns `undefined` when `ref` is set (server-rendered), and my `<nav>` wrapper didn't match Gutenberg's parse expectations for that block-comment shape. To make this path viable: either accept that the fork keeps upstream's chrome and only override the writes at the shim layer (H1), OR fully bypass upstream and adjust `save.tsx` accordingly.
