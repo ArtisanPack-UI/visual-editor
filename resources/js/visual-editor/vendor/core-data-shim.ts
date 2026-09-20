@@ -2443,16 +2443,31 @@ export function useEntityBlockEditor(
                 record as { blocks?: unknown } | null | undefined
             )?.blocks;
             if (Array.isArray(editedTopLevelBlocks)) {
+                if (typeof window !== 'undefined') {
+                    // eslint-disable-next-line no-console
+                    console.log('[AP #808 nav-read] path=edited.blocks', {
+                        kind, name, id,
+                        length: editedTopLevelBlocks.length,
+                    });
+                }
                 return editedTopLevelBlocks as readonly unknown[];
             }
 
             if (!record || Object.keys(record).length === 0) {
+                if (typeof window !== 'undefined') {
+                    // eslint-disable-next-line no-console
+                    console.log('[AP #808 nav-read] path=empty-record', { kind, name, id });
+                }
                 return EMPTY_RECORDS as readonly unknown[];
             }
 
             const content = (record as { content?: unknown }).content;
 
             if (content === null || content === undefined) {
+                if (typeof window !== 'undefined') {
+                    // eslint-disable-next-line no-console
+                    console.log('[AP #808 nav-read] path=no-content', { kind, name, id });
+                }
                 return EMPTY_RECORDS as readonly unknown[];
             }
 
@@ -2469,15 +2484,29 @@ export function useEntityBlockEditor(
                 const trimmed = content.trim();
 
                 if (trimmed === '') {
+                    if (typeof window !== 'undefined') {
+                        // eslint-disable-next-line no-console
+                        console.log('[AP #808 nav-read] path=raw-empty', { kind, name, id });
+                    }
                     return EMPTY_RECORDS as readonly unknown[];
                 }
 
                 const parsed = parseNavigationContentCached(trimmed);
 
                 if (parsed.length === 0) {
+                    if (typeof window !== 'undefined') {
+                        // eslint-disable-next-line no-console
+                        console.log('[AP #808 nav-read] path=raw-parsed-empty', { kind, name, id });
+                    }
                     return EMPTY_RECORDS as readonly unknown[];
                 }
 
+                if (typeof window !== 'undefined') {
+                    // eslint-disable-next-line no-console
+                    console.log('[AP #808 nav-read] path=raw-parsed', {
+                        kind, name, id, length: parsed.length,
+                    });
+                }
                 return getDecoratedBlocks(kind, name, id, parsed);
             }
 
@@ -2495,6 +2524,12 @@ export function useEntityBlockEditor(
             // serialized markup); fall through to the raw parser in
             // that case so the canvas still renders the menu items.
             if (Array.isArray(serverBlocks) && serverBlocks.length > 0) {
+                if (typeof window !== 'undefined') {
+                    // eslint-disable-next-line no-console
+                    console.log('[AP #808 nav-read] path=server-blocks', {
+                        kind, name, id, length: serverBlocks.length,
+                    });
+                }
                 return getDecoratedBlocks(
                     kind,
                     name,
@@ -2555,6 +2590,13 @@ export function useEntityBlockEditor(
                         (list[0] as { name?: string } | undefined)?.name ?? null,
                 });
             }
+
+            // Record the setter's array as the authoritative decoration so
+            // the reader's `content.blocks` fallback (after the save clears
+            // the edits) hands back this exact reference — preserving
+            // clientIds + selection + inner-block-controlled state across
+            // the save round-trip. See rememberAuthoritativeBlocks docblock.
+            rememberAuthoritativeBlocks(kind, name, id, list);
 
             // Stage `blocks` TOP-LEVEL exactly like upstream WP's own
             // `useEntityBlockEditor` (see
@@ -2671,6 +2713,104 @@ const decoratedBlocksCache = new Map<
 >();
 
 /**
+ * Records the setter-supplied blocks array per `(kind, name, id)` so
+ * `getDecoratedBlocks` can reuse it — clientIds and all — after the
+ * shim's debounced save round-trips through the backend.
+ *
+ * Without this: setter fires with 5 clientId-carrying blocks → edits
+ * are staged → save fires → server responds with the same tree but
+ * clientIds stripped → `getEditedEntityRecord` no longer has our
+ * `blocks` edit → reader falls to the `content.blocks` path →
+ * `getDecoratedBlocks` sees a new source-array reference, cache-misses,
+ * mints fresh clientIds → `use-block-sync` treats the new array as an
+ * external change → `resetBlocks(newBlocks)` → tree rebuild, selection
+ * cleared, `InspectorControlsListView` slot-fill flickers. Issue #808.
+ */
+const lastAuthoritativeBlocks = new Map<
+    string,
+    readonly DecoratedBlock[]
+>();
+
+/**
+ * Recursively compare two block trees ignoring `clientId` and
+ * `isValid`. Used to decide whether a freshly-received server-blocks
+ * envelope is structurally identical to the last setter-supplied
+ * array — in which case the setter's array (with its stable clientIds)
+ * should win.
+ */
+function blocksAreStructurallyEqual(
+    a: readonly unknown[],
+    b: readonly unknown[],
+): boolean {
+    if (a === b) return true;
+    if (a.length !== b.length) return false;
+
+    for (let i = 0; i < a.length; i++) {
+        const ba = a[i] as
+            | {
+                  name?: string;
+                  attributes?: Record<string, unknown>;
+                  innerBlocks?: readonly unknown[];
+              }
+            | null
+            | undefined;
+        const bb = b[i] as
+            | {
+                  name?: string;
+                  attributes?: Record<string, unknown>;
+                  innerBlocks?: readonly unknown[];
+              }
+            | null
+            | undefined;
+
+        if (!ba || !bb) return false;
+        if (ba.name !== bb.name) return false;
+
+        // JSON-compare attributes — cheap and correct enough for a
+        // menu-sized tree. Attributes are plain JSON.
+        if (
+            JSON.stringify(ba.attributes ?? {}) !==
+            JSON.stringify(bb.attributes ?? {})
+        ) {
+            return false;
+        }
+
+        const innerA = Array.isArray(ba.innerBlocks) ? ba.innerBlocks : [];
+        const innerB = Array.isArray(bb.innerBlocks) ? bb.innerBlocks : [];
+        if (!blocksAreStructurallyEqual(innerA, innerB)) return false;
+    }
+
+    return true;
+}
+
+/**
+ * Called by the `useEntityBlockEditor` setter with every array the
+ * block-editor commits. Records that array as the authoritative
+ * decoration for `(kind, name, id)` so `getDecoratedBlocks` can hand
+ * it back after a save round-trip even though `useSelect` has moved
+ * on to the `content.blocks` source path.
+ *
+ * Also seeds `decoratedBlocksCache` so subsequent equal-reference
+ * reads short-circuit through the existing cache.
+ */
+function rememberAuthoritativeBlocks(
+    kind: EntityKind,
+    name: EntityName,
+    id: EntityKey,
+    blocks: readonly unknown[],
+): void {
+    const cacheKey = `${kind}|${name}|${id}`;
+    lastAuthoritativeBlocks.set(
+        cacheKey,
+        blocks as readonly DecoratedBlock[],
+    );
+    decoratedBlocksCache.set(cacheKey, {
+        source: blocks,
+        decorated: blocks as readonly DecoratedBlock[],
+    });
+}
+
+/**
  * Returns the server's pre-parsed block tree decorated with the
  * `clientId` / `isValid` fields the block editor needs, memoized
  * per `(kind, name, id)` so successive selector reads return the
@@ -2685,13 +2825,65 @@ function getDecoratedBlocks(
 ): readonly DecoratedBlock[] {
     const cacheKey = `${kind}|${name}|${id}`;
     const cached = decoratedBlocksCache.get(cacheKey);
+    const authoritative = lastAuthoritativeBlocks.get(cacheKey);
+
+    if (typeof window !== 'undefined') {
+        // eslint-disable-next-line no-console
+        console.log('[AP #808 nav-decorate] getDecoratedBlocks call', {
+            cacheKey,
+            serverLen: serverBlocks.length,
+            cachedSourceMatches: cached ? cached.source === serverBlocks : false,
+            cachedDecoratedLen: cached?.decorated.length ?? null,
+            hasAuthoritative: authoritative !== undefined,
+            authoritativeLen: authoritative?.length ?? null,
+        });
+    }
 
     if (cached && cached.source === serverBlocks) {
         return cached.decorated;
     }
 
+    // Post-save reference-stability check (issue #808): if a prior
+    // setter call recorded an authoritative array and the incoming
+    // server-blocks are structurally identical, hand back the setter's
+    // array so `use-block-sync` sees reference equality and skips its
+    // `resetBlocks` path. Preserves selection + inner-block-controlled
+    // state across the save round-trip.
+    const authoritative = lastAuthoritativeBlocks.get(cacheKey);
+    if (authoritative !== undefined) {
+        const structurallyEqual = blocksAreStructurallyEqual(
+            authoritative,
+            serverBlocks,
+        );
+        if (typeof window !== 'undefined') {
+            // eslint-disable-next-line no-console
+            console.log('[AP #808 nav-authoritative]', {
+                cacheKey,
+                hasAuthoritative: true,
+                authoritativeLen: authoritative.length,
+                serverLen: serverBlocks.length,
+                structurallyEqual,
+                returning: structurallyEqual ? 'authoritative' : 'fresh-decorated',
+            });
+        }
+        if (structurallyEqual) {
+            decoratedBlocksCache.set(cacheKey, {
+                source: serverBlocks,
+                decorated: authoritative,
+            });
+            return authoritative;
+        }
+    } else if (typeof window !== 'undefined') {
+        // eslint-disable-next-line no-console
+        console.log('[AP #808 nav-authoritative]', {
+            cacheKey,
+            hasAuthoritative: false,
+        });
+    }
+
     const decorated = decorateBlockList(serverBlocks);
     decoratedBlocksCache.set(cacheKey, { source: serverBlocks, decorated });
+    lastAuthoritativeBlocks.set(cacheKey, decorated);
 
     return decorated;
 }

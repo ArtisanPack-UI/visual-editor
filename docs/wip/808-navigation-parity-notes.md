@@ -116,7 +116,7 @@ Fix: added `broadenNavChildParent()` in `editor/forked-block-cutover.ts` — a `
 
 The core `#808` insert bug is resolved. These remaining UX issues need their own investigation:
 
-1. **Sluggish inserts + focus loss + list-view blank** — on each insert, the shim's 500ms-debounced PUT round-trips the menu content; when the base record refreshes, the shim reader parses a NEW blocks array (fresh reference), which upstream `use-block-sync.mjs` treats as an external change → `resetBlocks(newBlocks)` → full tree rebuild → `selectedBlockClientId` cleared → `InspectorControlsListView` slot-fill briefly unmounts (which trips our list-view tab's auto-fallback-to-Block gate). Fix path: reader should hold onto the setter-supplied array reference across save→refresh cycles until the user makes another edit.
+1. **Sluggish inserts + focus loss + list-view blank** — investigated 2026-09-20, PARTIAL FIX ATTEMPTED, NOT YET VERIFIED. See "Save-cycle reset investigation" below.
 2. **`GET /visual-editor/api/site` 404** — some upstream call fetches the singleton `root/__unstableBase` entity in collection form (no id). The route only accepts `/site/{id}`. Cosmetic here, doesn't block the insert. Fix: mount a `/site` route that returns the singleton, or short-circuit the collection URL in the shim's fetcher for this specific entity.
 3. **Diagnostic cleanup for the PR**: remove `[AP #808 …]` console.logs from `edit.tsx` + `core-data-shim.ts`, delete `editor/__h1-shim-identity-probe.ts`, remove the H1 probe wiring in `blocks/index.ts`, keep the H4 config + `broadenNavChildParent` filter + tests.
 4. **Add tests** for `broadenNavChildParent` (mirror the shape of `suppressForkedBlockInserter`'s tests).
@@ -150,3 +150,51 @@ added:      docs/wip/808-navigation-parity-notes.md   (this file)
 ```
 
 The `blocks/navigation/edit.tsx` and `blocks/_shared/forked-entity-edit.tsx` were touched during exploration but reverted to their pre-branch state before commit. Same for the dev app's `vite.config.js`.
+
+## Save-cycle reset investigation (2026-09-20, still open)
+
+Traced the tree-reset-on-insert via a Boost `browser-logs` dump with `nav-set`, `nav-read (path=X)`, and `nav-diag` probes. Sequence around one insert:
+
+```
+22:38:30.546  nav-set incomingLength=5     ← setter fires
+22:38:30.547  nav-read path=edited.blocks length=5
+22:38:31.555  nav-read path=edited.blocks length=5
+22:38:32.438  nav-read path=edited.blocks length=5
+22:38:32.442  nav-read path=edited.blocks length=5
+22:38:32.447  nav-read path=edited.blocks length=5
+22:38:32.448  nav-read path=edited.blocks length=5
+22:38:32.448  nav-read path=edited.blocks length=5
+22:38:32.551  nav-diag innerBlockCount=0 areInnerBlocksControlled=false selectedBlockClientId=null   ← RESET
+22:38:32.866  nav-read path=server-blocks length=5
+22:38:32.873  nav-read path=server-blocks length=5
+```
+
+**Key observation**: the reset happens at ~22:38:32.551 — BEFORE the reader ever hits `path=server-blocks` (first server-blocks read at 22:38:32.866). During the 100ms window between the last `edited.blocks` read and the reset, no `nav-read` fires and no `nav-set` fires. So the reset isn't caused by the reader returning a new reference. My earlier "reader flips to `raw-parsed` and returns fresh array" theory is DEAD (reader never hits `raw-parsed` — it flips to `server-blocks`, and that happens AFTER the reset).
+
+What most likely triggers the reset in that 100ms window: the debounced `saveEditedEntityRecord` completing, `receiveEntityRecords` running to update the base record + clear edits, and something inside `use-block-sync.mjs` reacting to that transition and calling `resetBlocks` proactively — *without* re-running our reader first. Possibly because `use-block-sync` subscribes to something else (maybe `getEditedEntityRecord` transitions from `hasEdits` to `noEdits`, or the shim's `saveEditedEntityRecord` implementation dispatches a resolver-invalidation that upstream is watching).
+
+### Fix attempted (NOT VERIFIED — HMR wouldn't pick it up)
+
+Added a `lastAuthoritativeBlocks` map + `blocksAreStructurallyEqual` in the shim, and a `rememberAuthoritativeBlocks` call inside the setter. `getDecoratedBlocks` was extended to consult that map on cache-miss and return the setter's array when structural equality holds.
+
+But after multiple hard reloads with a warm dev server, **`[AP #808 nav-decorate]` and `[AP #808 nav-authoritative]` never fired** — the running bundle in the browser is still the version WITHOUT the new logs. Vite dev is not invalidating the shim source file on save. Same failure mode we saw earlier in the session (the notes' H1a mentions the pre-bundle inlining, but with `optimizeDeps.exclude: ['@wordpress/core-data']` set, the shim source itself should be served on demand — evidently it's still coming from a stale served copy somewhere).
+
+### Pickup steps for the next session
+
+1. **Force a completely fresh dev-server state before continuing** — Ctrl-C composer/vite, `rm -rf /Users/jacobmartella/Herd/artisanpack-ui-dev/node_modules/.vite` AND `rm -rf packages/visual-editor/node_modules/.vite`, restart. Then hard-reload and verify `[AP #808 nav-decorate]` fires at boot before touching anything else.
+2. **If nav-decorate still doesn't fire**, the shim source served by Vite may be cached at a higher level. Inspect the Network tab for the shim's actual URL and confirm the served bytes contain the new `nav-decorate` string.
+3. **Once nav-decorate fires**, run the insert cycle. Because the reset happens before the reader re-runs on server-blocks, the fix in `getDecoratedBlocks` may be too late in the pipeline. If tree still resets, the next probes to add are:
+   - Wrap `saveEditedEntityRecord` in the shim to log entry/exit + payload.
+   - Log every `receiveEntityRecords` call the shim makes (grep for `receiveEntityRecords` — it's called by our shim after PUT lands).
+   - Attempt to see whether upstream `use-block-sync.mjs` calls `resetBlocks` in that 100ms window. That'd require a monkey-patch of `dispatch(blockEditorStore).resetBlocks` at boot to log its callers.
+4. **Working hypothesis for tomorrow**: after `saveEditedEntityRecord` clears the edits, `getEditedEntityRecord().blocks` becomes undefined; `use-block-sync` (subscribing via its own `useSelect`) sees the value it previously held (setter's array) become undefined, then a moment later become the newly-decorated server-blocks array. The transient `undefined` step might be what triggers `resetBlocks`. If confirmed: solution is to keep the `blocks` edit alive after save (re-stage it in the save's completion handler), or return the authoritative array from the `edited.blocks` path even when the edits bag has been cleared.
+
+### Files touched during today's session (in addition to what was in the earlier WIP commit)
+
+Uncommitted at end-of-day:
+
+```
+modified:   resources/js/visual-editor/vendor/core-data-shim.ts  (rememberAuthoritativeBlocks + blocksAreStructurallyEqual + reader path logs + nav-authoritative + nav-decorate logs; the fix is NOT verified)
+```
+
+The changes are worth keeping — even if the fix ends up being wrong or misdirected, the structural-equality memoization is a legitimate improvement to the cache and the diagnostics are what next session will need.
