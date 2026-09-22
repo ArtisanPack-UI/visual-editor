@@ -26,8 +26,11 @@
  * runs the effect on mount.
  */
 
-import { BlockInspector } from '@wordpress/block-editor';
+import { BlockInspector, InspectorControls } from '@wordpress/block-editor';
 import { hasBlockSupport, getBlockType } from '@wordpress/blocks';
+import {
+    __experimentalUseSlotFills as useSlotFills,
+} from '@wordpress/components';
 import { useSelect } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 
@@ -43,6 +46,7 @@ import {
     useRef,
     useState,
     type KeyboardEvent as ReactKeyboardEvent,
+    type MutableRefObject,
     type ReactNode,
 } from 'react';
 
@@ -127,7 +131,17 @@ function readStateSupports(name: string | null): StateSupportsConfig | null {
     return raw as StateSupportsConfig;
 }
 
-export type InspectorTab = 'block' | 'document';
+export type InspectorTab = 'block' | 'list' | 'document';
+
+/**
+ * Slot fill name for the `list` InspectorControls group, matching
+ * upstream `@wordpress/block-editor/components/inspector-controls/groups`.
+ * When a selected block (typically `core/navigation` via
+ * `MenuInspectorControls`) fills this slot, the sidebar surfaces a
+ * dedicated tab so users can access the List View tree — matching
+ * the third icon upstream WP renders in its block inspector (#808).
+ */
+const LIST_INSPECTOR_SLOT_NAME = 'InspectorControlsListView';
 
 export interface InspectorSidebarProps {
     documentContent: ReactNode;
@@ -212,13 +226,24 @@ export function InspectorSidebar(props: InspectorSidebarProps): JSX.Element {
     );
 
     const blockTabId = useId();
+    const listTabId = useId();
     const documentTabId = useId();
     const blockPanelId = useId();
+    const listPanelId = useId();
     const documentPanelId = useId();
 
     const blockTabRef = useRef<HTMLButtonElement | null>(null);
+    const listTabRef = useRef<HTMLButtonElement | null>(null);
     const documentTabRef = useRef<HTMLButtonElement | null>(null);
     const initialFocusRan = useRef(false);
+
+    // Presence of fills for the `list` InspectorControls group on the
+    // currently selected block. `useSlotFills` re-renders whenever a
+    // fill mounts/unmounts, so the tab appears/disappears in lockstep
+    // with the block selection (upstream WP shows the ≡ list-view
+    // icon under the same rule — issue #808).
+    const listFills = useSlotFills(LIST_INSPECTOR_SLOT_NAME);
+    const hasListTab = hasSelectedBlock && Boolean(listFills?.length);
 
     // When a user selects a block while the sidebar is open, flip to
     // the Block tab so they see the settings for what they just clicked.
@@ -250,6 +275,16 @@ export function InspectorSidebar(props: InspectorSidebarProps): JSX.Element {
         }
     }, [showDocumentTab, activeTab]);
 
+    // If the selection changes and the previously-active `list` tab is
+    // no longer valid (block deselected, or the new block does not fill
+    // the list slot), fall back to the Block tab so users are not left
+    // staring at an empty panel with no way back.
+    useEffect(() => {
+        if (activeTab === 'list' && !hasListTab) {
+            setActiveTab('block');
+        }
+    }, [activeTab, hasListTab]);
+
     // Move focus to the active tab on first render so keyboard users who
     // just toggled the sidebar open land somewhere useful. Skip on
     // subsequent re-renders so typing inside a document control doesn't
@@ -263,7 +298,11 @@ export function InspectorSidebar(props: InspectorSidebarProps): JSX.Element {
         initialFocusRan.current = true;
 
         const target =
-            activeTab === 'block' ? blockTabRef.current : documentTabRef.current;
+            activeTab === 'block'
+                ? blockTabRef.current
+                : activeTab === 'list'
+                  ? listTabRef.current
+                  : documentTabRef.current;
 
         target?.focus({ preventScroll: true });
     }, [activeTab, showDocumentTab]);
@@ -271,6 +310,19 @@ export function InspectorSidebar(props: InspectorSidebarProps): JSX.Element {
     const handleSelectTab = useCallback((tab: InspectorTab): void => {
         setActiveTab(tab);
     }, []);
+
+    const visibleTabs = useMemo<readonly InspectorTab[]>(() => {
+        const tabs: InspectorTab[] = ['block'];
+        if (hasListTab) tabs.push('list');
+        if (showDocumentTab) tabs.push('document');
+        return tabs;
+    }, [hasListTab, showDocumentTab]);
+
+    const tabRefs: Record<InspectorTab, MutableRefObject<HTMLButtonElement | null>> = {
+        block: blockTabRef,
+        list: listTabRef,
+        document: documentTabRef,
+    };
 
     const handleTabKey = useCallback(
         (event: ReactKeyboardEvent<HTMLButtonElement>): void => {
@@ -280,28 +332,32 @@ export function InspectorSidebar(props: InspectorSidebarProps): JSX.Element {
 
             event.preventDefault();
 
-            // Flip based on which tab is currently focused so the user can
-            // arrow-navigate even if the selection/activation state is mid-
-            // transition. Falling back to `activeTab` when focus is somewhere
-            // else covers the keyboard-shortcut case where an outer handler
-            // dispatches the event without focusing a tab first.
             const focusedTab: InspectorTab =
                 event.currentTarget === blockTabRef.current
                     ? 'block'
-                    : event.currentTarget === documentTabRef.current
-                      ? 'document'
-                      : activeTab;
-            const next: InspectorTab =
-                focusedTab === 'block' ? 'document' : 'block';
+                    : event.currentTarget === listTabRef.current
+                      ? 'list'
+                      : event.currentTarget === documentTabRef.current
+                        ? 'document'
+                        : activeTab;
+
+            const currentIndex = visibleTabs.indexOf(focusedTab);
+            if (currentIndex < 0 || visibleTabs.length < 2) {
+                return;
+            }
+
+            const delta = event.key === 'ArrowRight' ? 1 : -1;
+            const nextIndex =
+                (currentIndex + delta + visibleTabs.length) % visibleTabs.length;
+            const next = visibleTabs[nextIndex];
 
             setActiveTab(next);
-
-            const target =
-                next === 'block' ? blockTabRef.current : documentTabRef.current;
-
-            target?.focus({ preventScroll: true });
+            tabRefs[next].current?.focus({ preventScroll: true });
         },
-        [activeTab]
+        // tabRefs is stable across renders — its ref-object identity does
+        // not change, so we intentionally omit it from deps.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [activeTab, visibleTabs]
     );
 
     return (
@@ -311,7 +367,7 @@ export function InspectorSidebar(props: InspectorSidebarProps): JSX.Element {
             data-testid="ap-visual-editor-inspector-sidebar"
             data-active-tab={activeTab}
         >
-            {showDocumentTab && (
+            {visibleTabs.length > 1 && (
                 <div
                     className="ap-visual-editor-inspector-sidebar__tablist"
                     role="tablist"
@@ -332,21 +388,40 @@ export function InspectorSidebar(props: InspectorSidebarProps): JSX.Element {
                     >
                         {__('Block', TEXT_DOMAIN)}
                     </button>
-                    <button
-                        ref={documentTabRef}
-                        type="button"
-                        role="tab"
-                        id={documentTabId}
-                        className="ap-visual-editor-inspector-sidebar__tab"
-                        aria-selected={activeTab === 'document'}
-                        aria-controls={documentPanelId}
-                        tabIndex={activeTab === 'document' ? 0 : -1}
-                        data-testid="ap-visual-editor-inspector-tab-document"
-                        onClick={() => handleSelectTab('document')}
-                        onKeyDown={handleTabKey}
-                    >
-                        {__('Document', TEXT_DOMAIN)}
-                    </button>
+                    {hasListTab && (
+                        <button
+                            ref={listTabRef}
+                            type="button"
+                            role="tab"
+                            id={listTabId}
+                            className="ap-visual-editor-inspector-sidebar__tab"
+                            aria-selected={activeTab === 'list'}
+                            aria-controls={listPanelId}
+                            tabIndex={activeTab === 'list' ? 0 : -1}
+                            data-testid="ap-visual-editor-inspector-tab-list"
+                            onClick={() => handleSelectTab('list')}
+                            onKeyDown={handleTabKey}
+                        >
+                            {__('List View', TEXT_DOMAIN)}
+                        </button>
+                    )}
+                    {showDocumentTab && (
+                        <button
+                            ref={documentTabRef}
+                            type="button"
+                            role="tab"
+                            id={documentTabId}
+                            className="ap-visual-editor-inspector-sidebar__tab"
+                            aria-selected={activeTab === 'document'}
+                            aria-controls={documentPanelId}
+                            tabIndex={activeTab === 'document' ? 0 : -1}
+                            data-testid="ap-visual-editor-inspector-tab-document"
+                            onClick={() => handleSelectTab('document')}
+                            onKeyDown={handleTabKey}
+                        >
+                            {__('Document', TEXT_DOMAIN)}
+                        </button>
+                    )}
                 </div>
             )}
             {/*
@@ -359,7 +434,7 @@ export function InspectorSidebar(props: InspectorSidebarProps): JSX.Element {
              * readers and sighted users still see only the active one.
              */}
             <div
-                {...(showDocumentTab
+                {...(visibleTabs.length > 1
                     ? {
                           role: 'tabpanel',
                           id: blockPanelId,
@@ -398,6 +473,18 @@ export function InspectorSidebar(props: InspectorSidebarProps): JSX.Element {
                     </p>
                 )}
             </div>
+            {hasListTab && (
+                <div
+                    role="tabpanel"
+                    id={listPanelId}
+                    aria-labelledby={listTabId}
+                    className="ap-visual-editor-inspector-sidebar__panel"
+                    data-testid="ap-visual-editor-inspector-list-panel"
+                    hidden={activeTab !== 'list'}
+                >
+                    <InspectorControls.Slot group="list" />
+                </div>
+            )}
             {showDocumentTab && (
                 <div
                     role="tabpanel"

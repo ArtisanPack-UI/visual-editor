@@ -96,7 +96,10 @@ describe( 'single-record envelope', function (): void {
 			->and( $out['content']['blocks'][0]['attributes'] )->toBe( [ 'tagName' => 'header' ] )
 			->and( $out['content']['blocks'][0]['innerBlocks'] )->toHaveCount( 2 )
 			->and( $out['content']['blocks'][0]['innerBlocks'][0]['name'] )->toBe( 'artisanpack/site-title' )
-			->and( $out['content']['blocks'][0]['innerBlocks'][1]['name'] )->toBe( 'artisanpack/navigation' )
+			// `core/navigation` stays as `core/navigation` on read — the
+			// fork was reverted in #808 and the block is registered
+			// directly in the editor. See ThemeBlockMarkup::CORE_NAMES_NOT_TO_FORK.
+			->and( $out['content']['blocks'][0]['innerBlocks'][1]['name'] )->toBe( 'core/navigation' )
 			->and( $out['content']['blocks'][0]['innerBlocks'][1]['attributes'] )->toBe( [ 'ref' => 42 ] );
 	} )->skip( fn () => ! templatePartParserAvailable(), 'requires cms-framework 2.5+ (PHP 8.3+)' );
 

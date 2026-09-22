@@ -14,10 +14,12 @@
  *     fab/<name>.svg     (brands)
  *     index.json         { version, generatedAt, sets, icons[] }
  *
- * The output directory is .gitignored — `npm run build` (which runs the
- * `prebuild` hook) keeps it in sync. The icons-registry filter in
- * VisualEditorServiceProvider is_dir-gates each set so a fresh checkout
- * boots even before the first `npm run build`.
+ * The output directory is tracked in git so the built payload ships in the
+ * Composer distribution — downstream installs never run `npm run build`.
+ * `npm run build` (via the `prebuild` hook) keeps it in sync during package
+ * development; commit the diff when the FA devDependency is bumped. The
+ * icons-registry filter in VisualEditorServiceProvider still is_dir-gates
+ * each set so a fresh checkout boots even before the first `npm run build`.
  */
 
 import { copyFileSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync, existsSync } from 'node:fs'

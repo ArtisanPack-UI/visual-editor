@@ -69,7 +69,9 @@ export const FORKED_CORE_BLOCKS: readonly string[] = [
     'core/site-title',
     'core/site-tagline',
     'core/site-logo',
-    'core/navigation',
+    // `core/navigation` was forked in I5 and reverted in #808; the block
+    // now stays inserter-visible and `artisanpack/navigation` is a
+    // parse-only deprecation stub (see `blocks/navigation/`).
     // Loop / feed cluster (I6) — dynamic feed + query blocks.
     // `core/post-template` is forked alongside `core/query` (it is a
     // parent-locked child of the query block); `core/query-loop` is the
@@ -115,16 +117,14 @@ export function suppressForkedBlockInserter(
  * `inserter: false` rather than being mutated after the fact.
  */
 export function registerForkedBlockCutoverFilter(): void {
-    if ( hasFilter( 'blocks.registerBlockType', FORKED_BLOCK_CUTOVER_FILTER ) ) {
-        return;
+    if ( ! hasFilter( 'blocks.registerBlockType', FORKED_BLOCK_CUTOVER_FILTER ) ) {
+        const forked = new Set( FORKED_CORE_BLOCKS );
+
+        addFilter(
+            'blocks.registerBlockType',
+            FORKED_BLOCK_CUTOVER_FILTER,
+            ( settings: Record<string, unknown>, name: string ) =>
+                suppressForkedBlockInserter( settings, name, forked )
+        );
     }
-
-    const forked = new Set( FORKED_CORE_BLOCKS );
-
-    addFilter(
-        'blocks.registerBlockType',
-        FORKED_BLOCK_CUTOVER_FILTER,
-        ( settings: Record<string, unknown>, name: string ) =>
-            suppressForkedBlockInserter( settings, name, forked )
-    );
 }

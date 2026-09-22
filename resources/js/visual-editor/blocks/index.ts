@@ -14,6 +14,7 @@ import { setDefaultBlockName, setGroupingBlockName } from '@wordpress/blocks';
 
 import { discoverAndRegisterCustomBlocks } from '../editor/custom-blocks';
 import { markExternalBlocksReady } from '../editor/external-block-registration';
+import { registerForkedCoreBlocks } from '../editor/register-forked-cores';
 import { registerServerRenderedBlocks } from '../editor/server-blocks';
 
 /**
@@ -33,6 +34,15 @@ import { registerServerRenderedBlocks } from '../editor/server-blocks';
  * simple assignments, and the runtime seams dedupe by name too.
  */
 export function registerArtisanPackBlocks(): void {
+    // Register the upstream `core/navigation` family. That block was
+    // forked in Phase I5 and reverted in #808; `core/navigation` is
+    // now used directly, so it (and its parent-locked inner-block
+    // family) must be registered here since we no longer call the full
+    // `registerCoreBlocks()`. Installs the inserter-suppression filter
+    // internally so any other forked block that later registers picks
+    // it up.
+    registerForkedCoreBlocks();
+
     const registered = discoverAndRegisterCustomBlocks();
 
     if (registered.includes('artisanpack/paragraph')) {

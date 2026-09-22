@@ -70,7 +70,12 @@ vi.mock('@wordpress/components', () => {
 
     const Popover = Object.assign(() => null, { Slot: PopoverSlot });
 
-    return { SlotFillProvider, Popover };
+    // InspectorSidebar consumes this hook to decide whether to
+    // surface the List View tab (issue #808). No fills are
+    // registered by these tests, so `undefined` keeps the tab hidden.
+    const __experimentalUseSlotFills = (): unknown[] | undefined => undefined;
+
+    return { SlotFillProvider, Popover, __experimentalUseSlotFills };
 });
 
 vi.mock('@wordpress/data', () => ({

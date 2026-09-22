@@ -1,11 +1,14 @@
 /**
  * Phase I5 entity-cluster (#413) — block.json + save + transforms contract.
  *
- * Covers all 11 forked entity blocks (`template-part`, the `post-*` family,
- * the `site-*` family, `navigation`) in one parametrized suite: namespace +
- * textdomain on block.json, the dynamic (`null`) save for the 10
- * server-rendered blocks, and the bidirectional `core/* ↔ artisanpack/*`
- * transforms every fork ships.
+ * Covers the 10 remaining forked entity blocks (`template-part`, the
+ * `post-*` family, the `site-*` family) in one parametrized suite:
+ * namespace + textdomain on block.json, the dynamic (`null`) save, and
+ * the bidirectional `core/* ↔ artisanpack/*` transforms every fork ships.
+ *
+ * `artisanpack/navigation` was reverted in #808 and is not part of the
+ * fork cluster — it now lives on as a deprecation stub only. Its
+ * contract is tested separately alongside the migration path.
  */
 
 import { describe, it, expect, vi } from 'vitest';
@@ -16,9 +19,6 @@ vi.mock('@wordpress/blocks', () => ({
         attributes: attributes ?? {},
         innerBlocks: [],
     }),
-    // navigation's save delegates through getBlockType; an unregistered
-    // core block makes it return null, which is the contract we assert.
-    getBlockType: () => undefined,
 }));
 
 import templatePartMeta from '../template-part/block.json';
@@ -31,7 +31,6 @@ import postFeaturedImageMeta from '../post-featured-image/block.json';
 import siteTitleMeta from '../site-title/block.json';
 import siteTaglineMeta from '../site-tagline/block.json';
 import siteLogoMeta from '../site-logo/block.json';
-import navigationMeta from '../navigation/block.json';
 
 import templatePartTransforms from '../template-part/transforms';
 import postTitleTransforms from '../post-title/transforms';
@@ -43,7 +42,6 @@ import postFeaturedImageTransforms from '../post-featured-image/transforms';
 import siteTitleTransforms from '../site-title/transforms';
 import siteTaglineTransforms from '../site-tagline/transforms';
 import siteLogoTransforms from '../site-logo/transforms';
-import navigationTransforms from '../navigation/transforms';
 
 import templatePartSave from '../template-part/save';
 import postTitleSave from '../post-title/save';
@@ -80,8 +78,6 @@ const ENTITY_BLOCKS = [
     { slug: 'site-title', meta: siteTitleMeta, transforms: siteTitleTransforms, save: siteTitleSave },
     { slug: 'site-tagline', meta: siteTaglineMeta, transforms: siteTaglineTransforms, save: siteTaglineSave },
     { slug: 'site-logo', meta: siteLogoMeta, transforms: siteLogoTransforms, save: siteLogoSave },
-    // navigation has a delegating (non-null) save — asserted separately.
-    { slug: 'navigation', meta: navigationMeta, transforms: navigationTransforms, save: null },
 ] as const;
 
 describe('I5 entity-cluster block.json', () => {

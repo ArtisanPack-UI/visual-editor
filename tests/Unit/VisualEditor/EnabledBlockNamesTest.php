@@ -49,6 +49,7 @@ it( 'returns the frozen V1 block allow-list under the default config', function 
 		'artisanpack/site-title',
 		'artisanpack/site-tagline',
 		'artisanpack/site-logo',
+		'core/navigation',
 		'artisanpack/navigation',
 		'artisanpack/categories',
 		'artisanpack/tag-cloud',

@@ -28,8 +28,12 @@ export default defineConfig({
         // visual-editor/packages/…`, a physical Composer copy of this same
         // repo. Those stale duplicates either fail on code that no longer
         // exists or keep asserting removed behaviour, so they are excluded
-        // outright. `node_modules` is restated because setting `exclude`
-        // replaces Vitest's default list rather than extending it.
-        exclude: ['**/node_modules/**', '**/vendor/**'],
+        // outright. Scoped to `packages/**/vendor/**` so the code
+        // directory `resources/js/visual-editor/vendor/` (which is not a
+        // Composer dir — it holds shim source that ships with the editor
+        // bundle) is not accidentally excluded (#808). `node_modules` is
+        // restated because setting `exclude` replaces Vitest's default
+        // list rather than extending it.
+        exclude: ['**/node_modules/**', 'packages/**/vendor/**'],
     },
 });

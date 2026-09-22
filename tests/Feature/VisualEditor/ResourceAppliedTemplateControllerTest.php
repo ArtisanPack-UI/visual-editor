@@ -554,7 +554,10 @@ it( 'discovers nested part refs inside a raw-only template-part', function () {
 	test()->getJson( "/visual-editor/api/pages/{$page->id}/applied-template" )
 		->assertOk()
 		->assertJsonPath( 'template_parts.nav.slug', 'nav' )
-		->assertJsonPath( 'template_parts.nav.blocks.0.name', 'artisanpack/navigation' );
+		// `core/navigation` is NOT rewritten to `artisanpack/navigation`
+		// on read — the fork was reverted in #808 and the block is
+		// registered directly in the editor.
+		->assertJsonPath( 'template_parts.nav.blocks.0.name', 'core/navigation' );
 } )->skip(
 	fn () => ! class_exists( \ArtisanPackUI\VisualEditor\Support\ThemeBlockMarkup::PARSER_FQCN ),
 	'requires cms-framework 2.5+ (PHP 8.3+)'

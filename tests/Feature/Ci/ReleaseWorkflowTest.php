@@ -197,11 +197,31 @@ test( 'release job downloads the sourcemap artefact and attaches it to the GitHu
 		'release job must download the sourcemap archive from build-and-tag'
 	);
 
+	// The GitHub Release itself is created by softprops/action-gh-release
+	// without a `files:` payload — asset upload was decoupled into a
+	// separate step so a transient upload failure doesn't take down the
+	// release or block the Packagist ping.
 	$ghRelease = $steps->first(
 		fn ( array $step ) => str_starts_with( (string) ( $step['uses'] ?? '' ), 'softprops/action-gh-release' )
 	);
 	expect( $ghRelease )->not->toBeNull();
-	expect( $ghRelease['with']['files'] ?? '' )->toContain( 'release-artifacts' );
+
+	// A later step must upload the sourcemap archive via `gh release
+	// upload` (referencing `release-artifacts/`) so the sourcemaps ride
+	// along with the tag on the GitHub Release page.
+	$upload = $steps->first( function ( array $step ): bool {
+		$run = (string) ( $step['run'] ?? '' );
+
+		if ( $run === '' ) {
+			$run = (string) ( $step['with']['command'] ?? '' );
+		}
+
+		return str_contains( $run, 'gh release upload' )
+			&& str_contains( $run, 'release-artifacts' );
+	} );
+	expect( $upload )->not->toBeNull(
+		'release job must upload the sourcemap archive via `gh release upload`'
+	);
 } );
 
 test( 'build-and-tag declares contents:write permission (required to push the tag)', function () {

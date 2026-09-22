@@ -13,10 +13,12 @@ const siteEditorEntry = resolve(
     __dirname,
     'resources/js/visual-editor/site-editor/main.tsx'
 );
-const coreDataShim = resolve(
-    __dirname,
-    'resources/js/visual-editor/vendor/core-data-shim.ts'
-);
+// #808 H4: `@wordpress/core-data` is now installed as a `file:`
+// dependency pointing at `vendor-shims/core-data`, so node module
+// resolution finds the shim under `node_modules/@wordpress/core-data`.
+// The old Vite `resolve.alias` produced two module instances at dev
+// runtime (see docs/wip/808-navigation-parity-notes.md), because the
+// alias did not survive esbuild's dep pre-bundle pass.
 
 // Several transitive `@wordpress/*` dependencies (e.g. `global-styles-engine`,
 // `server-side-render`) ship their own nested `node_modules/@wordpress/blocks`
@@ -67,11 +69,6 @@ export default defineConfig(({ mode }) => {
         resolve: {
             alias: {
                 ...wordpressSingletonAliases,
-                // M2 (#312): every `@wordpress/core-data` import in the
-                // editor bundle resolves to our in-repo empty-state shim.
-                // cms-framework will replace the shim with a real
-                // Laravel-backed `core` store in a later milestone.
-                '@wordpress/core-data': coreDataShim,
             },
         },
         server: {
