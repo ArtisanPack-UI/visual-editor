@@ -23,7 +23,7 @@
  */
 
 import { useEffect, useRef } from '@wordpress/element';
-import { useDispatch, useSelect, select } from '@wordpress/data';
+import { useDispatch, useRegistry, useSelect } from '@wordpress/data';
 import { store as blockEditorStore, useBlockProps } from '@wordpress/block-editor';
 import { createBlock } from '@wordpress/blocks';
 
@@ -36,6 +36,14 @@ export default function DeprecatedNavigationEdit({
     clientId,
     attributes,
 }: EditProps): JSX.Element {
+    // Bind to the active `RegistryProvider` (site editor's iframe uses a
+    // scoped `@wordpress/data` registry). Reading via the default global
+    // registry would miss the scoped store entirely and mint the fork as
+    // if it had no inner blocks — permanently dropping any inline
+    // children on migration.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const registry = useRegistry() as any;
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { replaceBlock } = useDispatch(blockEditorStore) as any;
 
@@ -54,13 +62,14 @@ export default function DeprecatedNavigationEdit({
         if (migratedRef.current) return;
         migratedRef.current = true;
 
-        // Read the current inner-block tree at effect-fire time via a
-        // direct `select()` call rather than closing over `useSelect`'s
-        // value — guarantees the freshest snapshot even if the
+        // Read the current inner-block tree at effect-fire time from the
+        // active registry — guarantees the freshest snapshot even if the
         // dependency-array trigger and effect fire were separated by an
-        // intervening render that changed the tree.
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const currentInner = (select as any)(blockEditorStore).getBlocks(clientId) as unknown[];
+        // intervening render that changed the tree, AND ensures we look
+        // in the scoped iframe registry rather than the default one.
+        const currentInner = registry
+            .select(blockEditorStore)
+            .getBlocks(clientId) as unknown[];
 
         replaceBlock(
             clientId,
@@ -70,7 +79,7 @@ export default function DeprecatedNavigationEdit({
                 (currentInner ?? []) as never[],
             ),
         );
-    }, [clientId, attributes, innerBlockCount, replaceBlock]);
+    }, [clientId, attributes, innerBlockCount, registry, replaceBlock]);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const blockProps = (useBlockProps as any)();

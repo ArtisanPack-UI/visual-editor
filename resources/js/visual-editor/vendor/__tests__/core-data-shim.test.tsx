@@ -7,6 +7,7 @@ import {
     EntityProvider,
     MISSING_RECORD_MARKER,
     RestRequestError,
+    SITE_ENTITY_ID,
     __flushPendingEntityRecordSaves,
     __resetCoreDataShimConfig,
     __treeShapesAlign,
@@ -1436,6 +1437,52 @@ describe('core-data-shim save round-trip', () => {
 
         expect(saved).toBeNull();
         expect(calls).toHaveLength(0);
+    });
+});
+
+describe('core-data-shim root/__unstableBase singleton id normalization (#808)', () => {
+    it('getEntityRecord returns the cached record when called without an id', () => {
+        // Upstream Gutenberg reads the site-meta singleton via
+        // `getEntityRecord('root', '__unstableBase')` — no id — while the
+        // fetch path stores the record under the `SITE_ENTITY_ID = 'self'`
+        // sentinel. The selector must map a missing id back to the same
+        // sentinel or the read silently returns null even though the
+        // record is cached.
+        coreDispatch().receiveEntityRecords('root', '__unstableBase', [
+            { id: SITE_ENTITY_ID, url: 'https://example.test', title: 'Site' },
+        ]);
+
+        expect(
+            coreSelect().getEntityRecord('root', '__unstableBase'),
+        ).toMatchObject({ id: SITE_ENTITY_ID, url: 'https://example.test' });
+
+        // Also succeeds when the caller explicitly passes the sentinel.
+        expect(
+            coreSelect().getEntityRecord('root', '__unstableBase', SITE_ENTITY_ID),
+        ).toMatchObject({ id: SITE_ENTITY_ID });
+
+        // And when the caller passes null / empty string.
+        expect(
+            coreSelect().getEntityRecord('root', '__unstableBase', null),
+        ).toMatchObject({ id: SITE_ENTITY_ID });
+        expect(
+            coreSelect().getEntityRecord('root', '__unstableBase', ''),
+        ).toMatchObject({ id: SITE_ENTITY_ID });
+    });
+
+    it('normalization is scoped to root/__unstableBase — other entities still miss on undefined id', () => {
+        coreDispatch().receiveEntityRecords('postType', 'wp_navigation', [
+            { id: 3, slug: 'primary' },
+        ]);
+
+        // A missing id for a non-singleton entity does NOT alias to
+        // anything — the selector returns null as before.
+        expect(
+            coreSelect().getEntityRecord('postType', 'wp_navigation'),
+        ).toBeNull();
+        expect(
+            coreSelect().getEntityRecord('postType', 'wp_navigation', 3),
+        ).toMatchObject({ id: 3, slug: 'primary' });
     });
 });
 

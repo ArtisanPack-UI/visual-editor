@@ -929,7 +929,20 @@ function selectEntityRecord(
         return null;
     }
 
-    const primary = String(id);
+    // `root/__unstableBase` is a singleton entity cached under the
+    // `SITE_ENTITY_ID = 'self'` sentinel (see the matching normalization
+    // in `fetchEntityRecord`, #808). Upstream Gutenberg's callers pass
+    // no id to the selector, so without this normalization the selector
+    // looks up `String(undefined) = 'undefined'` in `bag.items`, misses
+    // the cached record, and returns null — leaving consumers reading
+    // through `useEntityRecord('root', '__unstableBase')` stuck in the
+    // "not resolved yet" state.
+    const primary =
+        kind === 'root'
+        && name === '__unstableBase'
+        && (id === undefined || id === null || id === '')
+            ? SITE_ENTITY_ID
+            : String(id);
     const direct = bag.items[primary];
 
     if (direct !== undefined) {
