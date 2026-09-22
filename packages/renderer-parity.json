@@ -104,6 +104,7 @@
         "artisanpack/site-title",
         "artisanpack/site-tagline",
         "artisanpack/site-logo",
+        "core/navigation",
         "artisanpack/navigation",
         "artisanpack/post-navigation-link",
         "artisanpack/post-terms",

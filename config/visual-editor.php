@@ -239,6 +239,14 @@ return [
 		'artisanpack/site-title',
 		'artisanpack/site-tagline',
 		'artisanpack/site-logo',
+		// core/navigation. Originally forked to artisanpack/navigation in
+		// I5 (#413) and reverted in #808 because upstream Gutenberg
+		// hardcodes the literal `core/navigation` in too many block-lookup
+		// paths for a fork to alias reliably. `artisanpack/navigation` is
+		// kept in the allowlist as a parse-only deprecation stub so
+		// persisted markup still deserializes; the stub's edit auto-
+		// migrates to core/navigation on mount.
+		'core/navigation',
 		'artisanpack/navigation',
 		// G4b (#401) / I6 (#414) — taxonomy/feed widgets forked to
 		// artisanpack/*, backed by cms-framework's term + post APIs

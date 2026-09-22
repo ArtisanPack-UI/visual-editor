@@ -110,6 +110,25 @@ class ThemeBlockMarkup
 	}
 
 	/**
+	 * `core/*` blocks that must NOT be rewritten to `artisanpack/*` on
+	 * read. `core/navigation` was forked in I5 (#413) and reverted in
+	 * #808 — the editor now registers it directly, and its parent-
+	 * locked inner-block family (`core/navigation-link`,
+	 * `core/navigation-submenu`, `core/page-list`, `core/home-link`,
+	 * `core/loginout`) was never forked. Rewriting them would send the
+	 * editor a name it doesn't have a block-type for and render nothing.
+	 */
+	protected const CORE_NAMES_NOT_TO_FORK = [
+		'core/navigation'         => true,
+		'core/navigation-link'    => true,
+		'core/navigation-submenu' => true,
+		'core/page-list'          => true,
+		'core/page-list-item'     => true,
+		'core/home-link'          => true,
+		'core/loginout'           => true,
+	];
+
+	/**
 	 * Rewrite every `core/x` block name to its `artisanpack/x` fork,
 	 * recursing through `innerBlocks`.
 	 *
@@ -122,7 +141,9 @@ class ThemeBlockMarkup
 	 * {@see \ArtisanPackUI\VisualEditor\Registries\BlockTypeRegistry} only
 	 * knows server-rendered PHP blocks, so gating would skip nearly every
 	 * block. A core name with no fork is unregistered under either
-	 * namespace, so the blanket rewrite costs nothing there.
+	 * namespace, so the blanket rewrite costs nothing there. Names in
+	 * {@see self::CORE_NAMES_NOT_TO_FORK} are the exception — those
+	 * `core/*` blocks are registered directly and must stay as-is.
 	 *
 	 * @since 1.6.0
 	 *
@@ -142,7 +163,11 @@ class ThemeBlockMarkup
 
 			$name = $block['name'] ?? null;
 
-			if ( is_string( $name ) && str_starts_with( $name, 'core/' ) ) {
+			if (
+				is_string( $name )
+				&& str_starts_with( $name, 'core/' )
+				&& ! isset( self::CORE_NAMES_NOT_TO_FORK[ $name ] )
+			) {
 				$block['name'] = 'artisanpack/' . substr( $name, strlen( 'core/' ) );
 			}
 

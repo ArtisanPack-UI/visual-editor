@@ -49,28 +49,9 @@ import {
     type PropsWithChildren,
     type ReactElement,
 } from 'react';
-import { createReduxStore, register, select as globalSelect, dispatch as globalDispatch, useDispatch, useSelect } from '@wordpress/data';
+import { createReduxStore, register, useDispatch, useSelect } from '@wordpress/data';
 
 import { parseNavigationContent } from './parse-navigation-content';
-
-// #808 H1 diagnostic — is this shim module evaluated more than once?
-export const __AP_SHIM_INSTANCE_ID__ = Math.random().toString(36).slice(2, 10);
-if (typeof window !== 'undefined') {
-    const w = window as unknown as {
-        __apShimInstances?: Array<Record<string, unknown>>;
-    };
-    w.__apShimInstances = w.__apShimInstances || [];
-    w.__apShimInstances.push({
-        id: __AP_SHIM_INSTANCE_ID__,
-        evaluatedAt: Date.now(),
-        moduleUrl: (import.meta as unknown as { url?: string }).url,
-    });
-    // eslint-disable-next-line no-console
-    console.log(
-        `[AP #808 H1] core-data-shim evaluated (instance=${__AP_SHIM_INSTANCE_ID__}, url=${(import.meta as unknown as { url?: string }).url ?? 'n/a'})`,
-    );
-}
-
 
 // ---------------------------------------------------------------------------
 // Types
@@ -1554,6 +1535,28 @@ const actions = {
                 return null;
             }
 
+            // #808 — `root/__unstableBase` is a singleton entity; upstream
+            // Gutenberg (notably the navigation block's resolvers) calls
+            // `getEntityRecord('root', '__unstableBase')` with NO id, so
+            // `entityUrl(config, undefined)` builds the collection URL
+            // `/site` — which the PHP side doesn't expose. The 404 lands
+            // in the catch clause below, which synthesizes a "missing
+            // entity" placeholder and dispatches `receiveEntityRecords`.
+            // Every consumer subscribing to this record sees a state
+            // transition (undefined → placeholder), which unmounts and
+            // remounts the nav subtree (blank list view + focus loss +
+            // chrome flicker). Coerce the missing id to the singleton
+            // sentinel so the fetch hits `/site/self` and returns real
+            // data on first read; subsequent calls come out of the
+            // resolver cache and don't refetch.
+            if (
+                kind === 'root' &&
+                name === '__unstableBase' &&
+                (id === undefined || id === null || id === '')
+            ) {
+                id = SITE_ENTITY_ID;
+            }
+
             const compositeParts =
                 typeof id === 'string' ? splitCompositeId(id) : null;
 
@@ -1690,6 +1693,53 @@ const actions = {
                 return EMPTY_RECORDS;
             }
 
+            // #808 — `root/__unstableBase` is a singleton, but upstream
+            // Gutenberg (navigation resolvers, notably) sometimes asks
+            // for it in collection form via `getEntityRecords`. The PHP
+            // side only exposes `/site/{id}`, so a bare `/site` fetch
+            // 404s and our catch clause below flips the collection's
+            // cached records to `[]` — a state transition upstream
+            // subscribes to, which in turn unmounts the nav subtree
+            // and produces the flicker + list-view blank + focus loss.
+            // Redirect the collection request to the singleton URL and
+            // wrap the record as a list of one so the resolver's
+            // consumers see the entity, not an empty list.
+            if (kind === 'root' && name === '__unstableBase') {
+                try {
+                    const record = (await restRequest(
+                        entityUrl(config, SITE_ENTITY_ID),
+                        {
+                            method: 'GET',
+                            headers: buildHeaders(false),
+                        },
+                    )) as EntityRecord | null;
+
+                    const records = record === null ? EMPTY_RECORDS : [record];
+
+                    dispatch.receiveEntityRecords(
+                        kind,
+                        name,
+                        records,
+                        query ?? null,
+                        records.length,
+                        1,
+                    );
+
+                    return records;
+                } catch {
+                    dispatch.receiveEntityRecords(
+                        kind,
+                        name,
+                        EMPTY_RECORDS,
+                        query ?? null,
+                        0,
+                        0,
+                    );
+
+                    return EMPTY_RECORDS;
+                }
+            }
+
             try {
                 const url = `${entityUrl(config)}${queryString(query)}`;
                 const body = (await restRequest(url, {
@@ -1757,21 +1807,51 @@ const actions = {
                 })) as EntityRecord | null;
 
                 if (saved !== null) {
-                    dispatch.receiveEntityRecords(kind, name, [saved]);
-
-                    // Keystone #57. The receive wiped every cached
-                    // filter query for this entity (the conservative
-                    // post-save invalidation). Also reset the resolver
-                    // state for `getEntityRecords` so the next read
-                    // refetches and the new record appears in lists
-                    // immediately — without this, the saved data is in
-                    // `items` but `bag.queries` is empty and the
-                    // resolver thinks it's already resolved, leaving
-                    // the list rendering the wiped (empty) cache until
-                    // the page reloads.
-                    dispatch.invalidateResolutionForStoreSelector?.(
-                        'getEntityRecords',
-                    );
+                    if (existingId === null) {
+                        // CREATE. Keystone #57. The receive wipes every
+                        // cached filter query for this entity (the
+                        // conservative post-save invalidation) and we
+                        // reset the resolver state so the next read
+                        // refetches — the new record's id isn't in any
+                        // cached list yet, so consumers need a refetch
+                        // to surface it. Without this, the saved data
+                        // is in `items` but `bag.queries` is empty and
+                        // the resolver thinks it's already resolved,
+                        // leaving lists rendering the wiped (empty)
+                        // cache until the page reloads.
+                        dispatch.receiveEntityRecords(kind, name, [saved]);
+                        dispatch.invalidateResolutionForStoreSelector?.(
+                            'getEntityRecords',
+                        );
+                    } else {
+                        // UPDATE (issue #808). Skip both the query wipe
+                        // and the resolver invalidation. The record was
+                        // already in `bag.items` and every cached query
+                        // that referenced its id still does — `items` is
+                        // authoritative for record content, so consumers
+                        // reading `getEntityRecords(...).map(id =>
+                        // items[id])` see the fresh attributes without a
+                        // refetch. Wiping queries here made
+                        // `hasFinishedResolution('getEntityRecords',
+                        // <wp_navigation query>)` flip false during the
+                        // save round-trip; upstream's `useNavigationMenu`
+                        // subscribes to that flag via
+                        // `hasResolvedNavigationMenus`, and the
+                        // `false → true` transient re-rendered the nav
+                        // block into its loading state, unmounting
+                        // `NavigationInnerBlocks` and producing the
+                        // chrome flicker + list-view blank + focus loss
+                        // after every insert.
+                        dispatch.receiveEntityRecords(
+                            kind,
+                            name,
+                            [saved],
+                            undefined,
+                            undefined,
+                            undefined,
+                            false,
+                        );
+                    }
                 }
 
                 dispatch.setEntitySaving(kind, name, saveSlotId, false, null);
@@ -1974,7 +2054,6 @@ export const store = createReduxStore(STORE_NAME, {
 // register never run). Swallow the duplicate cleanly so both
 // instances finish evaluating; both talk to the same singleton
 // wp-data registry regardless.
-let __AP_REGISTER_OUTCOME__: 'fresh' | 'duplicate' = 'fresh';
 try {
     register(store);
 } catch (error) {
@@ -1984,22 +2063,9 @@ try {
     ) {
         throw error;
     }
-    __AP_REGISTER_OUTCOME__ = 'duplicate';
-}
-
-if (typeof window !== 'undefined') {
-    // eslint-disable-next-line no-console
-    console.log(
-        `[AP #808 H1] register(store) outcome (instance=${__AP_SHIM_INSTANCE_ID__}): ${__AP_REGISTER_OUTCOME__}`,
-        {
-            storeDescriptor: store,
-            reducerRef: (store as unknown as { instantiate?: unknown }).instantiate,
-            selectCore: globalSelect('core'),
-            dispatchCore: globalDispatch('core'),
-            createReduxStoreRef: createReduxStore,
-            registerRef: register,
-        },
-    );
+    // A second module-instance evaluation re-hit `register(store)` on
+    // the same wp-data singleton; swallow so the second instance
+    // finishes evaluating. Both instances then talk to the same store.
 }
 
 // ---------------------------------------------------------------------------
@@ -2443,31 +2509,16 @@ export function useEntityBlockEditor(
                 record as { blocks?: unknown } | null | undefined
             )?.blocks;
             if (Array.isArray(editedTopLevelBlocks)) {
-                if (typeof window !== 'undefined') {
-                    // eslint-disable-next-line no-console
-                    console.log('[AP #808 nav-read] path=edited.blocks', {
-                        kind, name, id,
-                        length: editedTopLevelBlocks.length,
-                    });
-                }
                 return editedTopLevelBlocks as readonly unknown[];
             }
 
             if (!record || Object.keys(record).length === 0) {
-                if (typeof window !== 'undefined') {
-                    // eslint-disable-next-line no-console
-                    console.log('[AP #808 nav-read] path=empty-record', { kind, name, id });
-                }
                 return EMPTY_RECORDS as readonly unknown[];
             }
 
             const content = (record as { content?: unknown }).content;
 
             if (content === null || content === undefined) {
-                if (typeof window !== 'undefined') {
-                    // eslint-disable-next-line no-console
-                    console.log('[AP #808 nav-read] path=no-content', { kind, name, id });
-                }
                 return EMPTY_RECORDS as readonly unknown[];
             }
 
@@ -2484,29 +2535,15 @@ export function useEntityBlockEditor(
                 const trimmed = content.trim();
 
                 if (trimmed === '') {
-                    if (typeof window !== 'undefined') {
-                        // eslint-disable-next-line no-console
-                        console.log('[AP #808 nav-read] path=raw-empty', { kind, name, id });
-                    }
                     return EMPTY_RECORDS as readonly unknown[];
                 }
 
                 const parsed = parseNavigationContentCached(trimmed);
 
                 if (parsed.length === 0) {
-                    if (typeof window !== 'undefined') {
-                        // eslint-disable-next-line no-console
-                        console.log('[AP #808 nav-read] path=raw-parsed-empty', { kind, name, id });
-                    }
                     return EMPTY_RECORDS as readonly unknown[];
                 }
 
-                if (typeof window !== 'undefined') {
-                    // eslint-disable-next-line no-console
-                    console.log('[AP #808 nav-read] path=raw-parsed', {
-                        kind, name, id, length: parsed.length,
-                    });
-                }
                 return getDecoratedBlocks(kind, name, id, parsed);
             }
 
@@ -2524,12 +2561,6 @@ export function useEntityBlockEditor(
             // serialized markup); fall through to the raw parser in
             // that case so the canvas still renders the menu items.
             if (Array.isArray(serverBlocks) && serverBlocks.length > 0) {
-                if (typeof window !== 'undefined') {
-                    // eslint-disable-next-line no-console
-                    console.log('[AP #808 nav-read] path=server-blocks', {
-                        kind, name, id, length: serverBlocks.length,
-                    });
-                }
                 return getDecoratedBlocks(
                     kind,
                     name,
@@ -2576,20 +2607,6 @@ export function useEntityBlockEditor(
 
         return (nextBlocks: readonly unknown[]): void => {
             const list = Array.isArray(nextBlocks) ? nextBlocks : [];
-
-            // #808 nav-set — DELETE ONCE RESOLVED. Log every setter call
-            // so we can see whether upstream's insert path lands here.
-            if (typeof window !== 'undefined') {
-                // eslint-disable-next-line no-console
-                console.log('[AP #808 nav-set] shim setter called', {
-                    kind,
-                    name,
-                    id,
-                    incomingLength: list.length,
-                    firstBlockName:
-                        (list[0] as { name?: string } | undefined)?.name ?? null,
-                });
-            }
 
             // Record the setter's array as the authoritative decoration so
             // the reader's `content.blocks` fallback (after the save clears
@@ -2738,7 +2755,122 @@ const lastAuthoritativeBlocks = new Map<
  * array — in which case the setter's array (with its stable clientIds)
  * should win.
  */
-function blocksAreStructurallyEqual(
+/**
+ * Decorates server-blocks while reusing clientIds AND reference identity
+ * from a prior authoritative array at matching positions (issue #808).
+ * Walks both arrays in parallel: when a block's name, attributes, and
+ * innerBlocks are all deeply equal to `prev[i]`, `prev[i]` itself is
+ * returned unchanged so the outer array can also be returned unchanged.
+ * `use-block-sync` short-circuits on reference equality; without this,
+ * every save round-trip re-allocates the tree and Gutenberg remounts the
+ * whole subtree (visible as focus loss + chrome flicker after every
+ * insert). When names diverge, or `prev` runs out (e.g. after an
+ * insert), the surplus server blocks fall back to fresh decoration and
+ * mint new clientIds.
+ */
+function decorateReusingClientIds(
+    serverBlocks: readonly unknown[],
+    prev: readonly DecoratedBlock[],
+): readonly DecoratedBlock[] {
+    const out: DecoratedBlock[] = [];
+    let allReused = serverBlocks.length === prev.length;
+
+    for (let i = 0; i < serverBlocks.length; i++) {
+        const decorated = decorateBlockReusingClientId(serverBlocks[i], prev[i]);
+
+        if (decorated === null) {
+            allReused = false;
+            continue;
+        }
+
+        if (decorated !== prev[i]) {
+            allReused = false;
+        }
+
+        out.push(decorated);
+    }
+
+    return allReused ? prev : out;
+}
+
+function decorateBlockReusingClientId(
+    block: unknown,
+    prev: DecoratedBlock | undefined,
+): DecoratedBlock | null {
+    if (
+        block === null ||
+        typeof block !== 'object' ||
+        typeof (block as ServerBlock).name !== 'string'
+    ) {
+        return null;
+    }
+
+    const server = block as ServerBlock & { clientId?: unknown };
+    const namesMatch = prev !== undefined && prev.name === server.name;
+
+    const clientId = namesMatch
+        ? prev!.clientId
+        : typeof server.clientId === 'string' && server.clientId.length > 0
+            ? server.clientId
+            : createClientId();
+
+    const prevInner = namesMatch ? prev!.innerBlocks : EMPTY_RECORDS;
+    const innerBlocks = Array.isArray(server.innerBlocks)
+        ? decorateReusingClientIds(server.innerBlocks, prevInner)
+        : EMPTY_RECORDS;
+
+    // Reference-preserve the whole block when nothing changed — see the
+    // docblock on `decorateReusingClientIds` for why this matters.
+    if (
+        namesMatch &&
+        innerBlocks === prev!.innerBlocks &&
+        attributesAreEqual(prev!.attributes, server.attributes ?? {})
+    ) {
+        return prev!;
+    }
+
+    return {
+        name: server.name,
+        clientId,
+        isValid: true,
+        attributes: server.attributes ?? {},
+        innerBlocks,
+    };
+}
+
+function attributesAreEqual(
+    a: Record<string, unknown>,
+    b: Record<string, unknown>,
+): boolean {
+    if (a === b) return true;
+    // JSON-compare is adequate for menu-scale trees; attributes are
+    // plain JSON by contract of the block API.
+    return JSON.stringify(a) === JSON.stringify(b);
+}
+
+/**
+ * Structural shape check: two trees "align" when they have the same
+ * length at every level and block names match position-by-position.
+ * Attributes are deliberately ignored — attribute drift from a server
+ * round-trip is the normal case we want to absorb without churning
+ * references. See `getDecoratedBlocks` for the rationale.
+ */
+/**
+ * Recursive shape check: two block trees "align" when they have the
+ * same length + same block names at each position + inner-blocks that
+ * also align. Attributes and clientIds are intentionally ignored —
+ * shape stability across a save round-trip is what lets the reader
+ * return the authoritative array unchanged (issue #808 shape-stable
+ * path). Exported with an `__` prefix for tests only.
+ */
+export function __treeShapesAlign(
+    a: readonly unknown[],
+    b: readonly unknown[],
+): boolean {
+    return treeShapesAlign(a, b);
+}
+
+function treeShapesAlign(
     a: readonly unknown[],
     b: readonly unknown[],
 ): boolean {
@@ -2747,37 +2879,20 @@ function blocksAreStructurallyEqual(
 
     for (let i = 0; i < a.length; i++) {
         const ba = a[i] as
-            | {
-                  name?: string;
-                  attributes?: Record<string, unknown>;
-                  innerBlocks?: readonly unknown[];
-              }
+            | { name?: string; innerBlocks?: readonly unknown[] }
             | null
             | undefined;
         const bb = b[i] as
-            | {
-                  name?: string;
-                  attributes?: Record<string, unknown>;
-                  innerBlocks?: readonly unknown[];
-              }
+            | { name?: string; innerBlocks?: readonly unknown[] }
             | null
             | undefined;
 
         if (!ba || !bb) return false;
         if (ba.name !== bb.name) return false;
 
-        // JSON-compare attributes — cheap and correct enough for a
-        // menu-sized tree. Attributes are plain JSON.
-        if (
-            JSON.stringify(ba.attributes ?? {}) !==
-            JSON.stringify(bb.attributes ?? {})
-        ) {
-            return false;
-        }
-
         const innerA = Array.isArray(ba.innerBlocks) ? ba.innerBlocks : [];
         const innerB = Array.isArray(bb.innerBlocks) ? bb.innerBlocks : [];
-        if (!blocksAreStructurallyEqual(innerA, innerB)) return false;
+        if (!treeShapesAlign(innerA, innerB)) return false;
     }
 
     return true;
@@ -2827,58 +2942,46 @@ function getDecoratedBlocks(
     const cached = decoratedBlocksCache.get(cacheKey);
     const authoritative = lastAuthoritativeBlocks.get(cacheKey);
 
-    if (typeof window !== 'undefined') {
-        // eslint-disable-next-line no-console
-        console.log('[AP #808 nav-decorate] getDecoratedBlocks call', {
-            cacheKey,
-            serverLen: serverBlocks.length,
-            cachedSourceMatches: cached ? cached.source === serverBlocks : false,
-            cachedDecoratedLen: cached?.decorated.length ?? null,
-            hasAuthoritative: authoritative !== undefined,
-            authoritativeLen: authoritative?.length ?? null,
-        });
-    }
-
     if (cached && cached.source === serverBlocks) {
         return cached.decorated;
     }
 
-    // Post-save reference-stability check (issue #808): if a prior
-    // setter call recorded an authoritative array and the incoming
-    // server-blocks are structurally identical, hand back the setter's
-    // array so `use-block-sync` sees reference equality and skips its
-    // `resetBlocks` path. Preserves selection + inner-block-controlled
-    // state across the save round-trip.
-    const authoritative = lastAuthoritativeBlocks.get(cacheKey);
+    // Post-save clientId stability (issue #808): when the setter has
+    // previously recorded an authoritative array for this entity, walk
+    // server-blocks and the prior array in parallel and reuse the
+    // authoritative clientId at each position where block names match.
+    // This lets server-side attribute normalization flow through without
+    // re-minting clientIds — Gutenberg keys its edit components on
+    // clientId, so a fresh id at the same tree position tears the block
+    // down and remounts it (visible in the site editor as lost selection
+    // + a chrome flicker after every save).
     if (authoritative !== undefined) {
-        const structurallyEqual = blocksAreStructurallyEqual(
-            authoritative,
-            serverBlocks,
-        );
-        if (typeof window !== 'undefined') {
-            // eslint-disable-next-line no-console
-            console.log('[AP #808 nav-authoritative]', {
-                cacheKey,
-                hasAuthoritative: true,
-                authoritativeLen: authoritative.length,
-                serverLen: serverBlocks.length,
-                structurallyEqual,
-                returning: structurallyEqual ? 'authoritative' : 'fresh-decorated',
-            });
-        }
-        if (structurallyEqual) {
+        // Shape-stable short-circuit (issue #808): when every position
+        // in the incoming server tree lines up with the authoritative
+        // tree by block name (and lengths agree recursively), the save
+        // round-trip just echoed back what the setter staged, possibly
+        // with server-side attribute normalization. Return authoritative
+        // unchanged so `use-block-sync` sees a stable outer reference
+        // and skips its `resetBlocks` path — resetBlocks clears the
+        // selection as a side effect, which is what showed up as focus
+        // loss + chrome flicker after every insert. Attribute-level
+        // drift from the server is intentionally ignored here; it takes
+        // effect on the next page load.
+        if (treeShapesAlign(serverBlocks, authoritative)) {
             decoratedBlocksCache.set(cacheKey, {
                 source: serverBlocks,
                 decorated: authoritative,
             });
             return authoritative;
         }
-    } else if (typeof window !== 'undefined') {
-        // eslint-disable-next-line no-console
-        console.log('[AP #808 nav-authoritative]', {
-            cacheKey,
-            hasAuthoritative: false,
+
+        const merged = decorateReusingClientIds(serverBlocks, authoritative);
+        decoratedBlocksCache.set(cacheKey, {
+            source: serverBlocks,
+            decorated: merged,
         });
+        lastAuthoritativeBlocks.set(cacheKey, merged);
+        return merged;
     }
 
     const decorated = decorateBlockList(serverBlocks);

@@ -1,185 +1,79 @@
 /**
- * Navigation — edit component.
+ * Deprecated `artisanpack/navigation` edit component.
  *
- * When the block has a `ref` (a resolved `wp_navigation` post id) delegates
- * to the registered `core/navigation` edit so the fork inherits the
- * upstream + V1 editor surface untouched (see
- * `../_shared/forked-entity-edit.tsx`). Phase I5 entity cluster (#413).
+ * The block was forked in Phase I5 (#413) and reverted to `core/navigation`
+ * in #808. This stub exists only so persisted `<!-- wp:artisanpack/navigation
+ * ... -->` markup deserializes cleanly; on mount it swaps itself for the
+ * upstream `core/navigation` block, preserving `ref` + all fork attributes
+ * and any inner blocks Gutenberg attached during parse.
  *
- * When the block has no `ref` AND no uncontrolled inner blocks (#797)
- * upstream renders nothing user-visible — its default placeholder gate at
- * `edit/index.mjs:832` requires a `customPlaceholder` AND every one of
- * `hasResolvedNavigationMenus`, `classicMenus?.length === 0`,
- * `!hasUncontrolledInnerBlocks` to clear through the shim. Short-circuit
- * into a first-party picker that lists `wp_navigation` records and
- * creates a new one on demand so the block is addressable end-to-end.
- *
- * When the block has no `ref` but DOES carry uncontrolled inner blocks
- * (an unsaved menu being authored inline, or a paste of legacy markup),
- * upstream's edit stays authoritative — bypassing it would hide those
- * children and lose the user's in-progress work.
+ * Inner-block safety: the near-universal shape is
+ * `<!-- wp:artisanpack/navigation {"ref":N} /-->` (self-closing) — menu items
+ * live on the `wp_navigation` entity via `ref`, never in the local block tree.
+ * For that shape, `getBlocks(clientId)` returns `[]` throughout the stub's
+ * lifetime and `[]` is the correct inner-blocks argument to `createBlock`;
+ * the migrated `core/navigation` re-hydrates its own inner blocks from the
+ * entity via `ref`. For the rare shape with inline children (
+ * `<!-- wp:artisanpack/navigation --> ... <!-- /wp:artisanpack/navigation -->`
+ * ), Gutenberg's parser populates the block tree synchronously before any
+ * edit renders, so `getBlocks(clientId)` reflects the parsed children on the
+ * very first render — no race. We still read inner blocks fresh via
+ * `select()` inside the effect (rather than closing over the `useSelect`
+ * value) as belt-and-suspenders against any post-mount reification path.
  */
 
-import { type ComponentType } from 'react';
-import { store as blockEditorStore, useBlockEditingMode } from '@wordpress/block-editor';
-import { useSelect } from '@wordpress/data';
+import { useEffect, useRef } from '@wordpress/element';
+import { useDispatch, useSelect, select } from '@wordpress/data';
+import { store as blockEditorStore, useBlockProps } from '@wordpress/block-editor';
+import { createBlock } from '@wordpress/blocks';
 
-import { createForkedEntityEdit } from '../_shared/forked-entity-edit';
-import NavigationInlinePlaceholder from './custom-placeholder';
+interface EditProps {
+    clientId: string;
+    attributes: Record<string, unknown>;
+}
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyProps = Record<string, any>;
+export default function DeprecatedNavigationEdit({
+    clientId,
+    attributes,
+}: EditProps): JSX.Element {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { replaceBlock } = useDispatch(blockEditorStore) as any;
 
-const ForkedNavigationEdit = createForkedEntityEdit( 'core/navigation' );
-
-const NavigationEdit: ComponentType<AnyProps> = ( props ) => {
-    const ref = props?.attributes?.ref;
-    const clientId = props?.clientId;
-
-    const hasUncontrolledInnerBlocks = useSelect(
-        ( select ) => {
-            if ( typeof clientId !== 'string' || clientId === '' ) {
-                return false;
-            }
-
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const store = select( blockEditorStore ) as any;
-            const block = store?.getBlock?.( clientId );
-            const innerBlocks = block?.innerBlocks;
-
-            return Array.isArray( innerBlocks ) && innerBlocks.length > 0;
-        },
-        [ clientId ],
+    // Subscribed read — keeps the effect's dependency array reactive to
+    // late-arriving inner-block reification (if any) so we don't fire the
+    // migration until the block tree has settled.
+    const innerBlockCount = useSelect(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (sel: any) => (sel(blockEditorStore).getBlocks(clientId) as unknown[]).length,
+        [clientId],
     );
 
-    // #808 H2/H3/H6 — DELETE ONCE RESOLVED.
-    //   H2: is the parent marked as controlling its inner blocks?
-    //   H3: is block editing mode `default` (not `contentOnly` / `disabled`)?
-    //   H6: can upstream actually insert navigation-* children here?
-    const diag = useSelect(
-        ( select ) => {
-            if ( typeof clientId !== 'string' || clientId === '' ) {
-                return null;
-            }
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const store = select( blockEditorStore ) as any;
-            return {
-                areInnerBlocksControlled:
-                    typeof store?.areInnerBlocksControlled === 'function'
-                        ? store.areInnerBlocksControlled( clientId )
-                        : 'selector-missing',
-                blockListSettings:
-                    typeof store?.getBlockListSettings === 'function'
-                        ? store.getBlockListSettings( clientId )
-                        : 'selector-missing',
-                innerBlockCount:
-                    typeof store?.getBlockOrder === 'function'
-                        ? ( store.getBlockOrder( clientId ) || [] ).length
-                        : 'selector-missing',
-                canInsertNavLink:
-                    typeof store?.canInsertBlockType === 'function'
-                        ? store.canInsertBlockType( 'core/navigation-link', clientId )
-                        : 'selector-missing',
-                canInsertNavSubmenu:
-                    typeof store?.canInsertBlockType === 'function'
-                        ? store.canInsertBlockType( 'core/navigation-submenu', clientId )
-                        : 'selector-missing',
-                canInsertPageList:
-                    typeof store?.canInsertBlockType === 'function'
-                        ? store.canInsertBlockType( 'core/page-list', clientId )
-                        : 'selector-missing',
-                selectedBlockClientId:
-                    typeof store?.getSelectedBlockClientId === 'function'
-                        ? store.getSelectedBlockClientId()
-                        : 'selector-missing',
-            };
-        },
-        [ clientId ],
-    );
-    const h3EditingMode = useBlockEditingMode();
-    if ( typeof window !== 'undefined' ) {
-        // eslint-disable-next-line no-console
-        console.log(
-            '[AP #808 nav-diag]',
-            JSON.stringify(
-                {
-                    clientId,
-                    ref,
-                    hasUncontrolledInnerBlocks,
-                    blockEditingMode: h3EditingMode,
-                    ...diag,
-                },
-                ( _key, value ) => {
-                    if ( typeof value === 'function' ) return '[Function]';
-                    return value;
-                },
-                2,
+    const migratedRef = useRef(false);
+
+    useEffect(() => {
+        if (migratedRef.current) return;
+        migratedRef.current = true;
+
+        // Read the current inner-block tree at effect-fire time via a
+        // direct `select()` call rather than closing over `useSelect`'s
+        // value — guarantees the freshest snapshot even if the
+        // dependency-array trigger and effect fire were separated by an
+        // intervening render that changed the tree.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const currentInner = (select as any)(blockEditorStore).getBlocks(clientId) as unknown[];
+
+        replaceBlock(
+            clientId,
+            createBlock(
+                'core/navigation',
+                { ...attributes },
+                (currentInner ?? []) as never[],
             ),
         );
-    }
+    }, [clientId, attributes, innerBlockCount, replaceBlock]);
 
-    // Global click probe — install once. Logs clicks on any element
-    // whose ancestry includes an element with a data-block clientId
-    // matching this fork's clientId. That tells us whether the click
-    // even reaches DOM handlers.
-    if (
-        typeof window !== 'undefined' &&
-        typeof clientId === 'string' &&
-        clientId !== '' &&
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ! ( window as any ).__apNavClickProbeInstalled
-    ) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ( window as any ).__apNavClickProbeInstalled = true;
-        const logClick = ( event: Event ) => {
-            const target = event.target as HTMLElement | null;
-            if ( ! target ) return;
-            // eslint-disable-next-line no-console
-            console.log( '[AP #808 nav-click]', {
-                inIframe: target.ownerDocument !== document,
-                tag: target.tagName,
-                ariaLabel: target.getAttribute?.( 'aria-label' ),
-                textContent: target.textContent?.slice( 0, 60 ),
-                classList: target.className,
-                closestButton: target.closest?.( 'button' )?.outerHTML?.slice( 0, 240 ),
-            } );
-        };
-        // Attach both to top document and to any block-editor iframes.
-        document.addEventListener( 'click', logClick, true );
-        // Attach to iframes as they mount.
-        const attachToIframes = () => {
-            document.querySelectorAll( 'iframe' ).forEach( ( iframe ) => {
-                try {
-                    const doc = ( iframe as HTMLIFrameElement ).contentDocument;
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    if ( doc && ! ( doc as any ).__apNavClickAttached ) {
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        ( doc as any ).__apNavClickAttached = true;
-                        doc.addEventListener( 'click', logClick, true );
-                    }
-                } catch {
-                    // cross-origin iframe — skip
-                }
-            } );
-        };
-        attachToIframes();
-        // Re-scan after render frames since iframes may mount later.
-        setTimeout( attachToIframes, 500 );
-        setTimeout( attachToIframes, 2000 );
-    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const blockProps = (useBlockProps as any)();
 
-    if ( ! ref && ! hasUncontrolledInnerBlocks ) {
-        return (
-            <NavigationInlinePlaceholder
-                attributes={ props.attributes }
-                setAttributes={ props.setAttributes }
-            />
-        );
-    }
-
-    return <ForkedNavigationEdit { ...props } />;
-};
-
-NavigationEdit.displayName = 'ForkedNavigationEdit(core/navigation)';
-
-export default NavigationEdit;
+    return <div {...blockProps} />;
+}

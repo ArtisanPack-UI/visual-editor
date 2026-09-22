@@ -9,6 +9,7 @@ import {
     RestRequestError,
     __flushPendingEntityRecordSaves,
     __resetCoreDataShimConfig,
+    __treeShapesAlign,
     configureCoreDataShim,
     store,
     useEntityBlockEditor,
@@ -615,6 +616,95 @@ describe('core-data-shim fetch → cache', () => {
                 per_page: -1,
             }),
         ).toHaveLength(2);
+    });
+
+    it('saveEntityRecord on UPDATE preserves cached list queries + resolver state (#808)', async () => {
+        // Nav-block save round-trip regression: pre-#808 the save path
+        // ALWAYS wiped `bag.queries` and invalidated the `getEntityRecords`
+        // resolver — even for updates of records already in the store.
+        // That flipped `hasFinishedResolution('getEntityRecords',
+        // <wp_navigation query>)` transiently false; upstream
+        // `useNavigationMenu` reads that via `hasResolvedNavigationMenus`
+        // and re-renders the nav block into its loading state, which
+        // unmounts `NavigationInnerBlocks` and every focused input inside.
+        // For updates the cache invalidation is unnecessary: the record
+        // is already in `items` (attributes get refreshed in-place) and
+        // every cached query that referenced its id still does.
+        configureCoreDataShim({
+            apiBase: '/api',
+            fetcher: vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
+                const url = String(input);
+
+                // PUT: return the updated record.
+                if (url.endsWith('/menus/3')) {
+                    return jsonResponse({
+                        id: 3,
+                        slug: 'primary',
+                        status: 'publish',
+                        title: { raw: 'Primary (Updated)' },
+                    });
+                }
+
+                return jsonResponse({}, 500);
+            }),
+        });
+
+        // Seed items + a cached collection query for wp_navigation.
+        coreDispatch().receiveEntityRecords(
+            'postType',
+            'wp_navigation',
+            [{ id: 3, slug: 'primary', status: 'publish', title: { raw: 'Primary' } }],
+            { per_page: -1, status: ['publish', 'draft'] },
+            1,
+            1,
+        );
+
+        // Mark the resolver as resolved so we can watch it stay resolved.
+        coreDispatch().finishResolution('getEntityRecords', [
+            'postType',
+            'wp_navigation',
+            { per_page: -1, status: ['publish', 'draft'] },
+        ]);
+
+        expect(
+            coreSelect().hasFinishedResolution('getEntityRecords', [
+                'postType',
+                'wp_navigation',
+                { per_page: -1, status: ['publish', 'draft'] },
+            ]),
+        ).toBe(true);
+
+        // Save an UPDATE (record has an existing id).
+        await coreDispatch().saveEntityRecord('postType', 'wp_navigation', {
+            id: 3,
+            slug: 'primary',
+            status: 'publish',
+            title: { raw: 'Primary (Updated)' },
+        });
+
+        // The cached query still contains the updated record — the
+        // save-path receive did NOT wipe queries.
+        expect(
+            coreSelect().getEntityRecords('postType', 'wp_navigation', {
+                per_page: -1,
+                status: ['publish', 'draft'],
+            }),
+        ).toHaveLength(1);
+
+        // Resolver state stayed resolved — no `hasFinishedResolution`
+        // false-transient for upstream `useNavigationMenu` to react to.
+        expect(
+            coreSelect().hasFinishedResolution('getEntityRecords', [
+                'postType',
+                'wp_navigation',
+                { per_page: -1, status: ['publish', 'draft'] },
+            ]),
+        ).toBe(true);
+
+        // Sanity: the record's attributes ARE fresh in `items`.
+        expect(
+            coreSelect().getEntityRecord('postType', 'wp_navigation', 3),
+        ).toMatchObject({ id: 3, title: { raw: 'Primary (Updated)' } });
     });
 
     it('fetchEntityRecord swallows network errors and returns null', async () => {
@@ -1346,6 +1436,75 @@ describe('core-data-shim save round-trip', () => {
 
         expect(saved).toBeNull();
         expect(calls).toHaveLength(0);
+    });
+});
+
+describe('core-data-shim shape-stable reader helpers (#808)', () => {
+    it('__treeShapesAlign returns true for identical arrays (reference)', () => {
+        const arr: readonly unknown[] = [];
+        expect(__treeShapesAlign(arr, arr)).toBe(true);
+    });
+
+    it('__treeShapesAlign returns true when names + lengths match at every depth', () => {
+        const a = [
+            { name: 'core/navigation-link' },
+            {
+                name: 'core/navigation-submenu',
+                innerBlocks: [{ name: 'core/navigation-link' }],
+            },
+        ];
+        const b = [
+            { name: 'core/navigation-link' },
+            {
+                name: 'core/navigation-submenu',
+                innerBlocks: [{ name: 'core/navigation-link' }],
+            },
+        ];
+
+        expect(__treeShapesAlign(a, b)).toBe(true);
+    });
+
+    it('__treeShapesAlign ignores attribute drift', () => {
+        // Server-side attribute normalization (label casing, url canonicalization)
+        // must not break the shape-stable short-circuit — the reader returns the
+        // authoritative array unchanged and Gutenberg keeps its clientIds.
+        const a = [
+            { name: 'core/navigation-link', attributes: { label: 'Home' } },
+        ];
+        const b = [
+            { name: 'core/navigation-link', attributes: { label: 'HOME' } },
+        ];
+
+        expect(__treeShapesAlign(a, b)).toBe(true);
+    });
+
+    it('__treeShapesAlign returns false when lengths differ', () => {
+        expect(
+            __treeShapesAlign(
+                [{ name: 'core/navigation-link' }],
+                [
+                    { name: 'core/navigation-link' },
+                    { name: 'core/navigation-link' },
+                ],
+            ),
+        ).toBe(false);
+    });
+
+    it('__treeShapesAlign returns false when a name diverges at any depth', () => {
+        const a = [
+            {
+                name: 'core/navigation-submenu',
+                innerBlocks: [{ name: 'core/navigation-link' }],
+            },
+        ];
+        const b = [
+            {
+                name: 'core/navigation-submenu',
+                innerBlocks: [{ name: 'core/home-link' }],
+            },
+        ];
+
+        expect(__treeShapesAlign(a, b)).toBe(false);
     });
 });
 
