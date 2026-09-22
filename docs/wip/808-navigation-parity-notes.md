@@ -60,11 +60,19 @@ Takeaway for future sessions: **when a React subtree unmounts on state change, d
 - **`root/__unstableBase` collection form (plural) also short-circuited** in `fetchEntityRecords`, in case a code path ever asks for it in list form.
 - **Shim's `treeShapesAlign` + `decorateReusingClientIds` + `rememberAuthoritativeBlocks`** kept from path A — they're a legitimate cache improvement for every entity block going through `useEntityBlockEditor`, not just navigation.
 
-## What still remains before PR
+## Renderer compatibility (verified during the review pass)
 
-- Sweep `artisanpack/navigation` refs across renderer packages + PHP tests + dev-app seeds so existing DB content stored as `wp:artisanpack/navigation` renders correctly. Editor-side migration is done via the deprecation stub; renderer-side is pending.
-- Update `docs/wip/808-navigation-parity-notes.md` (this file) → delete after PR merges.
-- Delete `#808 dispatch-probe` — done.
+Existing renderer packages already handle persisted `wp:artisanpack/navigation` markup via delegation, so a page whose DB content was never opened in the editor still renders correctly on the frontend:
+
+- **Blade** (`packages/visual-editor-renderer-blade/`): `BlockRenderer::resolvePartial('artisanpack/navigation')` resolves to `blocks/artisanpack/navigation.blade.php`, which `@include`s `blocks/core/navigation.blade.php`. Identical markup output.
+- **Vue** and **React** (`packages/visual-editor-renderer-vue/`, `-react/`): the `registerCoreBlocks` maps register `'artisanpack/navigation'` alongside `'core/navigation'` to the same `NavigationBlock` component.
+- `packages/renderer-parity.json` lists both names so parity tests exercise the delegation path.
+
+No renderer-side migration work is needed; the deprecation stub handles the editor path and the existing delegation covers the render path.
+
+## Delete after PR merges
+
+This file (`docs/wip/808-navigation-parity-notes.md`) is a WIP-notes artefact and should be removed once the PR merges.
 
 ## Files touched (final list)
 
