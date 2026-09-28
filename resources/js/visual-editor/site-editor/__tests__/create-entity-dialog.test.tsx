@@ -16,7 +16,10 @@ vi.mock('../api-client', async () => {
 });
 
 import { TemplateCreateDialog } from '../templates-section';
-import { TemplatePartCreateDialog } from '../template-parts-section';
+import {
+    TemplatePartCreateDialog,
+    getTemplatePartAreas,
+} from '../template-parts-section';
 
 const API_CONFIG = { apiBase: '/visual-editor/api' };
 
@@ -189,5 +192,67 @@ describe('TemplatePartCreateDialog', () => {
                 })
             )
         );
+    });
+
+    it('offers the navigation-overlay area (#809)', async () => {
+        CREATE_MOCK.mockResolvedValue({
+            id: 6,
+            slug: 'mobile-overlay',
+            area: 'navigation-overlay',
+            title: { rendered: '' },
+        });
+
+        const user = userEvent.setup();
+
+        render(
+            <TemplatePartCreateDialog
+                apiConfig={API_CONFIG}
+                defaultTheme="default"
+                onClose={() => undefined}
+                onCreated={() => undefined}
+            />
+        );
+
+        expect(
+            screen.getByRole('option', { name: 'Navigation Overlay' })
+        ).toBeInTheDocument();
+
+        await user.type(
+            screen.getByTestId('ap-site-editor-new-part-slug'),
+            'mobile-overlay'
+        );
+        await user.selectOptions(
+            screen.getByTestId('ap-site-editor-new-part-area'),
+            'navigation-overlay'
+        );
+        await user.click(
+            screen.getByTestId(
+                'ap-site-editor-create-dialog-submit-template-part'
+            )
+        );
+
+        await waitFor(() =>
+            expect(CREATE_MOCK).toHaveBeenCalledWith(
+                API_CONFIG,
+                'template-part',
+                expect.objectContaining({
+                    slug: 'mobile-overlay',
+                    area: 'navigation-overlay',
+                })
+            )
+        );
+    });
+});
+
+describe('getTemplatePartAreas', () => {
+    it('mirrors the backend area enum', () => {
+        // Keep in step with `ResolvedTemplatePart::AREAS` (PHP).
+        expect(getTemplatePartAreas().map((area) => area.slug)).toEqual([
+            'header',
+            'footer',
+            'sidebar',
+            'uncategorized',
+            'navigation-overlay',
+        ]);
     });
 });

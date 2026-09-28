@@ -117,73 +117,12 @@ export function BlockEditorBoundary(props: BlockEditorBoundaryProps): JSX.Elemen
     // block-library action asks us to focus a freshly-created entity.
     // The host can pass an explicit `onNavigateToEntityRecord` to
     // intercept (e.g., a router-aware push); when omitted, the boundary
-    // installs this fallback so flows like Create Overlay don't no-op
-    // (Keystone #55).
-    const navigateToEntityRecord = useMemo(() => {
-        if (onNavigateToEntityRecord !== undefined) {
-            return onNavigateToEntityRecord;
-        }
-
-        return (target: NavigateToEntityRecordTarget): void => {
-            if (typeof window === 'undefined') {
-                return;
-            }
-
-            const postType = target.postType ?? '';
-            const segment =
-                postType === 'wp_template_part'
-                    ? 'template-parts'
-                    : postType === 'wp_template'
-                      ? 'templates'
-                      : '';
-
-            if (segment === '') {
-                return;
-            }
-
-            // `postId` arrives from Gutenberg as a composite
-            // `{theme}//{slug}` string. Hosts route by the entity's
-            // numeric DB id (e.g., `/template-parts/9`), so look the
-            // record up in our entity store and prefer its `id` field
-            // when one is set (`TemplatePartAdapter` ships
-            // `id = wpId` for DB-backed rows). Falls back to the raw
-            // composite when no record is cached — keeps the call
-            // testable and gives standalone installs a deterministic
-            // URL even without the entity registry warm.
-            const navigationId = resolveNavigationId(target.postId, postType);
-
-            // Resolve the route base from the editor mount's
-            // `data-route-base` attribute. The Keystone CMS host
-            // sets `data-ap-site-editor` on its mount; standalone
-            // installs use `data-ap-visual-editor`. Match either so
-            // we don't have to know which host we're embedded in.
-            const mount = document.querySelector(
-                '[data-ap-site-editor][data-route-base], [data-ap-visual-editor][data-route-base]'
-            );
-            const routeBase =
-                mount?.getAttribute('data-route-base') ??
-                '/visual-editor/site';
-
-            const targetPath = `${routeBase}/${segment}/${navigationId}`;
-
-            // Client-side navigation: the SPA's own routing hook
-            // (`useSiteEditorRouting`) listens for `popstate` and
-            // re-parses `window.location.pathname` on every event.
-            // Push the new URL onto history and synthesize a popstate
-            // so the listener fires. A full `window.location.assign`
-            // also works but boots the SPA fresh, and the user reported
-            // hydration glitches (canvas briefly stuck on the previous
-            // section's "select a record" placeholder) when navigating
-            // across sections programmatically. PushState avoids the
-            // remount entirely (Keystone #55).
-            if (window.location.pathname === targetPath) {
-                return;
-            }
-
-            window.history.pushState({ segment, navigationId }, '', targetPath);
-            window.dispatchEvent(new PopStateEvent('popstate'));
-        };
-    }, [onNavigateToEntityRecord]);
+    // installs {@see navigateToEntityRecordRoute} so flows like Create
+    // Overlay don't no-op (Keystone #55).
+    const navigateToEntityRecord = useMemo(
+        () => onNavigateToEntityRecord ?? navigateToEntityRecordRoute,
+        [onNavigateToEntityRecord],
+    );
 
     const extraSettings = useMemo(
         () => ({ onNavigateToEntityRecord: navigateToEntityRecord }),
@@ -214,6 +153,75 @@ export function BlockEditorBoundary(props: BlockEditorBoundaryProps): JSX.Elemen
             </BlockEditorProvider>
         </SlotFillProvider>
     );
+}
+
+/**
+ * Default `onNavigateToEntityRecord`: swap the SPA URL to the target
+ * entity's route (`{routeBase}/template-parts/{id}` or
+ * `{routeBase}/templates/{id}`). Exported so hosts that intercept the
+ * callback — e.g. to save the current entity first (#809) — can still
+ * finish with the standard navigation.
+ *
+ * @since 1.12.0
+ */
+export function navigateToEntityRecordRoute(target: NavigateToEntityRecordTarget): void {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    const postType = target.postType ?? '';
+    const segment =
+        postType === 'wp_template_part'
+            ? 'template-parts'
+            : postType === 'wp_template'
+              ? 'templates'
+              : '';
+
+    if (segment === '') {
+        return;
+    }
+
+    // `postId` arrives from Gutenberg as a composite
+    // `{theme}//{slug}` string. Hosts route by the entity's
+    // numeric DB id (e.g., `/template-parts/9`), so look the
+    // record up in our entity store and prefer its `id` field
+    // when one is set (`TemplatePartAdapter` ships
+    // `id = wpId` for DB-backed rows). Falls back to the raw
+    // composite when no record is cached — keeps the call
+    // testable and gives standalone installs a deterministic
+    // URL even without the entity registry warm.
+    const navigationId = resolveNavigationId(target.postId, postType);
+
+    // Resolve the route base from the editor mount's
+    // `data-route-base` attribute. The Keystone CMS host
+    // sets `data-ap-site-editor` on its mount; standalone
+    // installs use `data-ap-visual-editor`. Match either so
+    // we don't have to know which host we're embedded in.
+    const mount = document.querySelector(
+        '[data-ap-site-editor][data-route-base], [data-ap-visual-editor][data-route-base]'
+    );
+    const routeBase =
+        mount?.getAttribute('data-route-base') ??
+        '/visual-editor/site';
+
+    const targetPath = `${routeBase}/${segment}/${navigationId}`;
+
+    // Client-side navigation: the SPA's own routing hook
+    // (`useSiteEditorRouting`) listens for `popstate` and
+    // re-parses `window.location.pathname` on every event.
+    // Push the new URL onto history and synthesize a popstate
+    // so the listener fires. A full `window.location.assign`
+    // also works but boots the SPA fresh, and the user reported
+    // hydration glitches (canvas briefly stuck on the previous
+    // section's "select a record" placeholder) when navigating
+    // across sections programmatically. PushState avoids the
+    // remount entirely (Keystone #55).
+    if (window.location.pathname === targetPath) {
+        return;
+    }
+
+    window.history.pushState({ segment, navigationId }, '', targetPath);
+    window.dispatchEvent(new PopStateEvent('popstate'));
 }
 
 /**

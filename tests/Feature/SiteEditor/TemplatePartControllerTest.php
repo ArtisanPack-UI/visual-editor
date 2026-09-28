@@ -317,6 +317,25 @@ describe( 'POST /visual-editor/api/template-parts', function (): void {
 		] )->assertStatus( 201 )->assertJsonPath( 'area', 'navigation-overlay' );
 	} );
 
+	it( 'persists serialized string content as the stored block tree (#809)', function (): void {
+		// Create Overlay seeds the part from the `core/navigation-overlay`
+		// pattern and POSTs it as a markup string. The string used to
+		// pass validation and then be dropped, so new overlays opened
+		// empty in the editor.
+		$this->postJson( '/visual-editor/api/template-parts', [
+			'slug'    => 'navigation-overlay',
+			'title'   => 'Navigation Overlay',
+			'content' => '<!-- wp:navigation {"overlayMenu":"never"} /-->',
+			'area'    => 'navigation-overlay',
+		] )->assertStatus( 201 )
+			->assertJsonPath( 'content.blocks.0.name', 'core/navigation' )
+			->assertJsonPath( 'content.blocks.0.attributes.overlayMenu', 'never' );
+
+		$row = TemplatePart::query()->where( 'slug', 'navigation-overlay' )->first();
+
+		expect( $row->block_content[0]['name'] ?? null )->toBe( 'core/navigation' );
+	} );
+
 	it( 'accepts area "uncategorized" so Gutenberg\'s Create Overlay action lands (Keystone #55)', function (): void {
 		$this->postJson( '/visual-editor/api/template-parts', [
 			'slug'  => 'navigation-overlay-test',

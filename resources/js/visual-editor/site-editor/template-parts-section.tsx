@@ -2,10 +2,11 @@
  * Template-parts section wiring.
  *
  * Mirror of `templates-section.tsx` scoped to `wp_template_part`. The
- * browser surfaces area (header / footer / sidebar / uncategorized) as
- * both a filter chip and a per-row meta badge — design brief §3.5 calls
- * out typed areas as a first-class concept so the UX needs to make them
- * visible at both the filter and the row levels.
+ * browser surfaces area (header / footer / sidebar / uncategorized /
+ * navigation overlay) as both a filter chip and a per-row meta badge —
+ * design brief §3.5 calls out typed areas as a first-class concept so
+ * the UX needs to make them visible at both the filter and the row
+ * levels.
  *
  * The create dialog requires an area selection up-front: a part with no
  * area can't be swapped into anything at render time, and the C2 request
@@ -47,6 +48,13 @@ export function getTemplatePartAreas(): readonly TemplatePartArea[] {
         { slug: 'footer', label: __('Footer', TEXT_DOMAIN) },
         { slug: 'sidebar', label: __('Sidebar', TEXT_DOMAIN) },
         { slug: 'uncategorized', label: __('Uncategorized', TEXT_DOMAIN) },
+        // Mirrors upstream `NAVIGATION_OVERLAY_TEMPLATE_PART_AREA` — the
+        // `core/navigation` overlay picker scopes its dropdown to parts
+        // in this area (#809).
+        {
+            slug: 'navigation-overlay',
+            label: __('Navigation Overlay', TEXT_DOMAIN),
+        },
     ];
 }
 

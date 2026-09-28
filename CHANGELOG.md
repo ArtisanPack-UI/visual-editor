@@ -6,7 +6,53 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- **Navigation overlay template parts in the site editor** (#809) —
+  `navigation-overlay` joins the site editor's template-part areas,
+  so overlay parts get their own "Navigation Overlay" filter chip,
+  row badge, and create/inspector area option. That's the area
+  `core/navigation`'s Overlay panel scopes its template picker to.
+
 ### Fixed
+
+- **Navigation Overlay panel showing inside overlay templates** (#809)
+  — the package now registers a minimal `core/editor` store
+  (`vendor/editor-context-store.ts`) that tracks which template or
+  template part the site editor has open. Upstream
+  `isWithinNavigationOverlay()` reads it, so a `core/navigation`
+  block placed inside a navigation-overlay template part no longer
+  offers its own Overlay panel, and a newly inserted nav there
+  defaults to an always-expanded layout. The entity editor also
+  primes the core-data shim with the loaded record before its blocks
+  reach the canvas, because upstream checks this context only once,
+  when the block mounts.
+- **Navigation Create overlay did nothing (and could hang Safari)** (#809)
+  — with no `core/navigation-overlay` pattern registered, upstream
+  seeded the new part with `createBlock('core/paragraph')`. Neither
+  that block nor its `core/missing` fallback is registered here, so
+  `createBlock` recursed until the stack overflowed and the error was
+  swallowed into a snackbar the editor doesn't render. The shared
+  editor settings now ship a `core/navigation-overlay` pattern (a
+  vertical `core/navigation`), so new overlays start with a menu.
+- **New overlay template parts saved empty** (#809) —
+  `POST /visual-editor/api/template-parts` accepted Gutenberg's
+  serialized-string `content` but only persisted `content.blocks`.
+  String content is now parsed into the stored block tree, and the
+  site editor mints `clientId`s for server-parsed blocks so they render
+  in the canvas.
+- **Create overlay dropped the nav block's new `overlay` setting** (#809)
+  — jumping to the new part discarded the current template part's
+  unsaved edits. The site editor now saves the open entity before
+  following a block-library navigation, and stays put if that save
+  fails.
+- **Empty menu selector in the navigation block's List View** (#809) —
+  the core-data shim's `useResourcePermissions()` denied everything,
+  hiding "Create new Menu" and "Import Classic Menus". It now grants
+  create / update / delete on `wp_navigation` (backed by
+  `MenuController`; server-side authorization still applies), and
+  `wp_navigation` edits made through `useEntityProp` (the "Menu name"
+  control) save on a debounce like menu-item edits already do.
 
 - **Site editor inspector missing default sections** (#799) — the
   site editor's `ensureEditorBoot()` now mirrors the post editor's

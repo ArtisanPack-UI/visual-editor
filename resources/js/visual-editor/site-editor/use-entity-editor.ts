@@ -18,6 +18,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { TEXT_DOMAIN } from '../vendor/i18n';
 
+import { clearEditorContext, syncEditorContext } from './editor-context';
 import { hydrateBlocks } from './hydrate-blocks';
 
 import {
@@ -66,6 +67,15 @@ export interface UseEntityEditorResult<K extends EntityKind> {
      * backend. Returns the updated entity on success, `null` on error.
      */
     save: (overrides?: UpdatePayload) => Promise<EntityRecord<K> | null>;
+
+    /**
+     * Saves only when there are unsaved block or field edits. Resolves
+     * `true` when nothing needed saving or the save succeeded, `false`
+     * when the save failed. Used before navigating away so in-flight
+     * edits (e.g. the `overlay` attribute Create Overlay just set) aren't
+     * discarded with the entity (#809).
+     */
+    saveIfDirty: () => Promise<boolean>;
 
     /**
      * Merges partial field updates (slug, title, area, …) into the
@@ -117,6 +127,12 @@ export function useEntityEditor<K extends EntityKind>(
     // typed then undid" from "user typed" without comparing trees.
     const committedBlocksRef = useRef<readonly unknown[]>([]);
 
+    // The newest tree handed to `setBlocks`, updated synchronously. The
+    // `blocks` state lags a render behind, but block-library flows like
+    // Create Overlay set an attribute and navigate in the same tick — a
+    // save triggered from that navigation must see the new attribute.
+    const latestBlocksRef = useRef<readonly unknown[]>([]);
+
     // Bumped on every local edit (setBlocks, patch, reset). A save
     // snapshots this at start; if the value has moved by the time the
     // response arrives, the user kept typing during the save and we
@@ -124,7 +140,9 @@ export function useEntityEditor<K extends EntityKind>(
     const editVersionRef = useRef(0);
 
     const resetEditorState = useCallback((): void => {
+        clearEditorContext();
         committedBlocksRef.current = [];
+        latestBlocksRef.current = [];
         setEntity(null);
         setBlocksState([]);
         setPendingPatch({});
@@ -140,13 +158,22 @@ export function useEntityEditor<K extends EntityKind>(
             ? hydrateBlocks(record.content)
             : [];
 
+        // Must run before `setBlocksState` — upstream blocks read the
+        // editor context once, on mount (#809).
+        syncEditorContext(kind, record);
+
         committedBlocksRef.current = nextBlocks;
+        latestBlocksRef.current = nextBlocks;
         setEntity(record);
         setBlocksState(nextBlocks);
         setPendingPatch({});
         setIsDirty(false);
         setValidationErrors(null);
-    }, []);
+    }, [kind]);
+
+    // Drop the `core/editor` context when the editor unmounts so a later
+    // surface (patterns, navigation) doesn't inherit a stale entity.
+    useEffect(() => clearEditorContext, []);
 
     useEffect(() => {
         if (entityId === null) {
@@ -207,6 +234,8 @@ export function useEntityEditor<K extends EntityKind>(
     pendingPatchRef.current = pendingPatch;
 
     const setBlocks = useCallback((next: readonly unknown[]): void => {
+        latestBlocksRef.current = next;
+
         setBlocksState((prev) => {
             // BlockEditorProvider calls `onInput` / `onChange` with the
             // same reference when nothing changed; short-circuit to avoid
@@ -240,6 +269,7 @@ export function useEntityEditor<K extends EntityKind>(
 
     const reset = useCallback((): void => {
         editVersionRef.current += 1;
+        latestBlocksRef.current = committedBlocksRef.current;
         setBlocksState(committedBlocksRef.current);
         setPendingPatch({});
         setIsDirty(false);
@@ -304,15 +334,15 @@ export function useEntityEditor<K extends EntityKind>(
             // Gutenberg string so the backend and the canonical re-hydration
             // stay aligned. `blocks` stays alongside raw for consumers that
             // want the parsed form without re-running `parse()`.
-            const blockInstances = blocks as BlockInstance[];
-            const raw = serialize(blockInstances);
+            const currentBlocks = latestBlocksRef.current;
+            const raw = serialize(currentBlocks as BlockInstance[]);
 
             const payload: UpdatePayload = {
                 ...pendingPatch,
                 ...overrides,
                 content: {
                     raw,
-                    blocks,
+                    blocks: currentBlocks,
                 },
             };
 
@@ -374,8 +404,19 @@ export function useEntityEditor<K extends EntityKind>(
                 return null;
             }
         },
-        [apiConfig, blocks, entityId, hydrateFromRecord, kind, pendingPatch]
+        [apiConfig, entityId, hydrateFromRecord, kind, pendingPatch]
     );
+
+    const saveIfDirty = useCallback(async (): Promise<boolean> => {
+        const hasBlockEdits = latestBlocksRef.current !== committedBlocksRef.current;
+        const hasFieldEdits = Object.keys(pendingPatchRef.current).length > 0;
+
+        if (!hasBlockEdits && !hasFieldEdits) {
+            return true;
+        }
+
+        return (await save()) !== null;
+    }, [save]);
 
     return {
         entity: draftEntity,
@@ -389,6 +430,7 @@ export function useEntityEditor<K extends EntityKind>(
         validationErrors,
         lastSavedAt,
         save,
+        saveIfDirty,
         patch,
         reset,
     };

@@ -83,6 +83,13 @@ vi.mock('@wordpress/data', () => ({
     useDispatch: () => ({ replaceBlocks: () => undefined }),
 }));
 
+// The `@wordpress/data` stub above has no store API, so keep the
+// `core/editor` context sync (#809) out of this canvas-focused suite.
+vi.mock('../editor-context', () => ({
+    syncEditorContext: () => undefined,
+    clearEditorContext: () => undefined,
+}));
+
 vi.mock('@wordpress/hooks', () => ({
     addFilter: () => undefined,
 }));

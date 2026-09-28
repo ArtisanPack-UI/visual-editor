@@ -2120,6 +2120,13 @@ export function useEntityId(): EntityKey | undefined {
 const noopSetter = (): void => {};
 
 /**
+ * Entities whose `useEntityProp` edits save themselves (debounced), keyed
+ * `kind|name`. Other entities keep upstream's stage-only behaviour — the
+ * host editor decides when to persist them.
+ */
+const AUTOSAVED_PROP_RESOURCES: ReadonlySet<string> = new Set(['postType|wp_navigation']);
+
+/**
  * Reads + edits a single property of an entity record. Mirrors upstream
  * `@wordpress/core-data`'s `useEntityProp` so block-library Edit
  * components (e.g. `core/post-title`) round-trip the prop through the
@@ -2131,7 +2138,8 @@ const noopSetter = (): void => {};
  *   layers any pending edits on top. Block edits (e.g. typing into a
  *   `core/post-title`'s `PlainText`) read this value.
  * - `setValue` dispatches `editEntityRecord(kind, name, id, { [prop]: value })`
- *   so subsequent reads see the new value through the edits bag.
+ *   so subsequent reads see the new value through the edits bag. Entities
+ *   in {@link AUTOSAVED_PROP_RESOURCES} also get a debounced save.
  * - `fullValue` is the prop read from the original `getEntityRecord` —
  *   the unflattened shape, used by upstream code that needs the
  *   `{rendered}` form (e.g. the post-title block's read-only fallback
@@ -2201,6 +2209,11 @@ export function useEntityProp<T = unknown>(
                   id: EntityKey,
                   edits: EntityRecord,
               ) => void;
+              saveEditedEntityRecord?: (
+                  kind: EntityKind,
+                  name: EntityName,
+                  id: EntityKey,
+              ) => Promise<unknown>;
           }
         | undefined;
 
@@ -2219,6 +2232,16 @@ export function useEntityProp<T = unknown>(
             dispatchTuple?.editEntityRecord?.(kind, name, resolvedId, {
                 [prop]: value,
             });
+
+            // Upstream persists these edits through the editor's entity
+            // save panel, which the package doesn't have. For menus,
+            // save them the same way `useEntityBlockEditor` saves item
+            // edits, so the nav block's "Menu name" control sticks (#809).
+            if (AUTOSAVED_PROP_RESOURCES.has(`${kind}|${name}`)) {
+                scheduleEntityRecordSave(kind, name, resolvedId, () => {
+                    void dispatchTuple?.saveEditedEntityRecord?.(kind, name, resolvedId);
+                });
+            }
         };
     }, [dispatchTuple, kind, name, prop, resolvedId]);
 
@@ -3070,16 +3093,47 @@ function createClientId(): string {
     return `shim-${Date.now().toString(36)}-${clientIdCounter.toString(36)}`;
 }
 
-export function useResourcePermissions(): {
+/**
+ * Entities whose create / update / delete the package's REST layer
+ * actually backs, keyed `kind|name`. Server-side authorization still
+ * gates every write — these only decide which upstream UI appears.
+ *
+ * `postType|wp_navigation` → `MenuController`. Denying it hid every
+ * group in `core/navigation`'s menu selector ("Create new Menu",
+ * "Import Classic Menus"), so the List View's ⋮ opened an empty
+ * popover whenever only one menu existed (#809).
+ *
+ * Everything else stays denied: `core/navigation-link`'s link UI reads
+ * `canCreate` for pages to offer inline page creation, which has no
+ * backing flow here.
+ */
+const WRITABLE_RESOURCES: ReadonlySet<string> = new Set(['postType|wp_navigation']);
+
+export interface ResourcePermissionsQuery {
+    kind?: string;
+    name?: string;
+    id?: EntityKey;
+}
+
+export function useResourcePermissions(resource?: ResourcePermissionsQuery): {
     canCreate: boolean;
+    canRead: boolean;
     canUpdate: boolean;
     canDelete: boolean;
     isResolving: boolean;
+    hasResolved: boolean;
 } {
+    const writable =
+        resource?.kind !== undefined
+        && resource?.name !== undefined
+        && WRITABLE_RESOURCES.has(`${resource.kind}|${resource.name}`);
+
     return {
-        canCreate: false,
-        canUpdate: false,
-        canDelete: false,
+        canCreate: writable,
+        canRead: true,
+        canUpdate: writable,
+        canDelete: writable,
         isResolving: false,
+        hasResolved: true,
     };
 }
