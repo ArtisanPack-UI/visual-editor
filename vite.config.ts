@@ -17,7 +17,7 @@ const siteEditorEntry = resolve(
 // dependency pointing at `vendor-shims/core-data`, so node module
 // resolution finds the shim under `node_modules/@wordpress/core-data`.
 // The old Vite `resolve.alias` produced two module instances at dev
-// runtime (see docs/wip/808-navigation-parity-notes.md), because the
+// runtime (see PR #810), because the
 // alias did not survive esbuild's dep pre-bundle pass.
 
 // Several transitive `@wordpress/*` dependencies (e.g. `global-styles-engine`,
