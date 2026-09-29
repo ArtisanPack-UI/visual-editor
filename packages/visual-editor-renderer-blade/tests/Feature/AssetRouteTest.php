@@ -39,6 +39,15 @@ it( 'emits a blockGap-driven gap rule for the grid so items never render flush (
 		->toContain( 'gap: var(--wp--style--block-gap, 1.5rem)' );
 } );
 
+it( 'emits a blockGap-driven gap rule for navigation so items never render flush (#814)', function () {
+	$response = $this->get( '/vendor/visual-editor-renderer-blade/style.css' );
+
+	$response->assertOk();
+
+	expect( $response->streamedContent() )
+		->toContain( ":where(.wp-block-navigation) {\n  gap: var(--wp--style--block-gap, 0.5em);" );
+} );
+
 it( 'serves the bundled theme stylesheet', function () {
 	$response = $this->get( '/vendor/visual-editor-renderer-blade/theme.css' );
 

@@ -44,6 +44,7 @@ import { canvasStyles } from './canvas-styles';
 import { ChromeBlocks } from './composed-view/chrome-blocks';
 import { ComposedViewRibbon } from './composed-view/composed-view-ribbon';
 import { PostTitle } from './post-title';
+import { useSpacingPresetCss } from './spacing-preset-styles';
 import { ROOT_CANVAS_LAYOUT } from '../editor-settings';
 import { TEXT_DOMAIN } from '../vendor/i18n';
 import { scopeGlobalStylesCss } from '../site-editor/scope-global-styles-css';
@@ -188,10 +189,17 @@ export function EditorCanvas(props: EditorCanvasProps): JSX.Element {
         [themeCss]
     );
 
+    // #814 — declare the in-effect spacing presets so `var:preset|spacing|*`
+    // picks resolve even when the theme ships no `spacingSizes`. Appended
+    // after the theme sheet so host-registered overrides of a theme slug
+    // win, matching the picker.
+    const spacingPresetCss = useSpacingPresetCss();
+
     const styles = useMemo(() => {
         if (
             colorTokens === null &&
-            (scopedThemeCss === undefined || scopedThemeCss === '')
+            (scopedThemeCss === undefined || scopedThemeCss === '') &&
+            spacingPresetCss === ''
         ) {
             return canvasStyles;
         }
@@ -202,8 +210,9 @@ export function EditorCanvas(props: EditorCanvasProps): JSX.Element {
             ...(scopedThemeCss === undefined || scopedThemeCss === ''
                 ? []
                 : [{ css: scopedThemeCss }]),
+            ...(spacingPresetCss === '' ? [] : [{ css: spacingPresetCss }]),
         ];
-    }, [scopedThemeCss, colorTokens]);
+    }, [scopedThemeCss, colorTokens, spacingPresetCss]);
 
     // Chrome sits as siblings of the block list inside the iframe. The
     // previews mount isolated block-editor stores of their own, so the

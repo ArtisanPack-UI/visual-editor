@@ -149,3 +149,26 @@ it( 'publishes block-library assets under the visual-editor-renderer-blade-asset
 
 	$artisan->assertExitCode( 0 );
 } );
+
+it( 'declares the default spacing presets even without a theme.json (#814)', function () {
+	config()->set( 'artisanpack.visual-editor.presets', [] );
+
+	$rendered = Blade::render( '<x-ve-blocks-styles />' );
+
+	expect( $rendered )
+		->toContain( '<style data-ve-spacing-presets>' )
+		->toContain( '--wp--preset--spacing--40: 1.5rem;' );
+} );
+
+it( 'declares the theme\'s spacing presets in place of the defaults (#814)', function () {
+	config()->set( 'artisanpack.visual-editor.presets', [] );
+
+	$rendered = Blade::render( '<x-ve-blocks-styles :theme-json="$themeJson" />', [
+		'themeJson' => [ 'settings' => [ 'spacing' => [ 'spacingSizes' => [ [ 'slug' => 'sm', 'size' => '4px' ] ] ] ] ],
+	] );
+
+	expect( $rendered )
+		->toContain( '--wp--preset--spacing--sm: 4px;' )
+		->not->toContain( '--wp--preset--spacing--40' );
+} );
+

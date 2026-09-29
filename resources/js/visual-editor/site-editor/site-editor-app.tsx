@@ -78,6 +78,7 @@ import {
     registerContrastWarning,
 } from '../editor/contrast-warning';
 import { TopBar } from '../editor/top-bar';
+import { registerNavigationBlockGap } from '../editor/navigation-block-gap';
 import { registerSyncedPatternIndicator } from '../editor/synced-pattern-indicator';
 import { registryFromSnapshot } from '../responsive/registry';
 import type { BreakpointRegistrySnapshot } from '../responsive/types';
@@ -224,6 +225,11 @@ function ensureEditorBoot(): void {
     // registration so `artisanpack/block` reference blocks get the badge
     // from the first render. Idempotent across HMR.
     registerSyncedPatternIndicator();
+
+    // #814 — the site editor renders its canvas inline (#418), so
+    // upstream's layout-support `gap` rule for `core/navigation` never
+    // reaches the DOM. Write it onto the wrapper instead.
+    registerNavigationBlockGap();
 
     // #649 — register the background-controls BlockEdit HOC so external
     // packages can contribute panels to any block that opts into a

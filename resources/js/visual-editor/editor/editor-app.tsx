@@ -76,6 +76,7 @@ import {
 } from './page-pattern-modal/page-pattern-modal';
 import { useFreshContentDetection } from './page-pattern-modal/use-fresh-content-detection';
 import { filterModalPatterns } from './page-pattern-modal/filter-modal-patterns';
+import { registerNavigationBlockGap } from './navigation-block-gap';
 import { registerSyncedPatternIndicator } from './synced-pattern-indicator';
 import {
     listPatterns,
@@ -139,6 +140,8 @@ function registerOnce(): void {
     disableContrastCheckerOnBlocks();
     registerContrastWarning();
     registerSyncedPatternIndicator();
+    // #814 — surface `core/navigation`'s Block spacing in the canvas.
+    registerNavigationBlockGap();
     // #649 — register the background-controls BlockEdit HOC FIRST so
     // it wraps innermost. `@wordpress/hooks` composes filters in
     // registration order, so the LAST-registered HOC wraps outermost;

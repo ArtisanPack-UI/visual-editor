@@ -27,6 +27,8 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditorRendererBlade\Services;
 
+use ArtisanPackUI\VisualEditor\Resources\PresetRegistry;
+
 class GlobalStylesEmissionResolver
 {
 	/**
@@ -52,7 +54,20 @@ class GlobalStylesEmissionResolver
 		}
 
 		$css = app( self::EMITTER_CLASS )->emit();
+		$css = is_string( $css ) ? rtrim( $css ) : '';
 
-		return is_string( $css ) ? $css : '';
+		// No active theme / global-styles record → nothing to emit (#434
+		// dropped the old bundled-defaults fallback on purpose).
+		if ( '' === $css ) {
+			return '';
+		}
+
+		// #814 — the emitter only declares the spacing presets a theme
+		// ships; append every preset the editor's pickers offer (package
+		// defaults when the theme has none, plus host presets) so saved
+		// `var:preset|spacing|*` values always resolve.
+		$spacing = PresetRegistry::spacingPresetsCss( PresetRegistry::activeThemeSpacingSizes() );
+
+		return '' === $spacing ? $css : $css . "\n\n" . $spacing;
 	}
 }

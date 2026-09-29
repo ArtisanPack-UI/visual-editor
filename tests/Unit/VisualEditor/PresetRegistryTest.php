@@ -241,3 +241,111 @@ it( 'returns the whole config record even when only one list is populated', func
 		->toBe( [ 'palette', 'fontSizes', 'fontFamilies', 'spacingSizes' ] );
 	expect( $presets['fontSizes'] )->toBe( [ 'mode' => 'append', 'entries' => [] ] );
 } );
+
+describe( 'effectiveSpacingSizes() (#814)', function () {
+	beforeEach( function () {
+		config()->set( 'artisanpack.visual-editor.presets', [] );
+	} );
+
+	it( 'falls back to the package defaults when the theme ships no spacing sizes', function ( mixed $themeSizes ) {
+		expect( PresetRegistry::effectiveSpacingSizes( $themeSizes ) )
+			->toBe( PresetRegistry::DEFAULT_SPACING_SIZES );
+	} )->with( [
+		'null'              => [ null ],
+		'empty list'        => [ [] ],
+		'non-array'         => [ 'nope' ],
+		'no usable entries' => [ [ [ 'slug' => '', 'size' => '1rem' ], [ 'slug' => 'x' ], 'junk' ] ],
+	] );
+
+	it( 'uses the theme list instead of the defaults, first slug winning', function () {
+		expect( PresetRegistry::effectiveSpacingSizes( [
+			[ 'slug' => ' SM ', 'size' => '4px', 'name' => 'Small' ],
+			[ 'slug' => 'sm', 'size' => '99px' ],
+			[ 'slug' => 'lg', 'size' => '2rem' ],
+		] ) )->toBe( [
+			[ 'slug' => 'sm', 'size' => '4px' ],
+			[ 'slug' => 'lg', 'size' => '2rem' ],
+		] );
+	} );
+
+	it( 'merges host append entries into the defaults, overriding colliding slugs in place', function () {
+		config()->set( 'artisanpack.visual-editor.presets.spacing_sizes', [
+			[ 'slug' => '40', 'size' => '2rem' ],
+			[ 'slug' => 'gutter', 'size' => '18px' ],
+		] );
+
+		$sizes = PresetRegistry::effectiveSpacingSizes( null );
+
+		expect( $sizes[2] )->toBe( [ 'slug' => '40', 'size' => '2rem' ] );
+		expect( end( $sizes ) )->toBe( [ 'slug' => 'gutter', 'size' => '18px' ] );
+		expect( $sizes )->toHaveCount( 7 );
+	} );
+
+	it( 'lets host replace mode wipe the defaults, even with no entries', function () {
+		config()->set( 'artisanpack.visual-editor.presets.spacing_sizes', [ 'mode' => 'replace', 'entries' => [] ] );
+
+		expect( PresetRegistry::effectiveSpacingSizes( null ) )->toBe( [] );
+	} );
+
+	it( 'keeps the theme list under an empty host replace, mirroring the editor', function () {
+		config()->set( 'artisanpack.visual-editor.presets.spacing_sizes', [ 'mode' => 'replace', 'entries' => [] ] );
+
+		expect( PresetRegistry::effectiveSpacingSizes( [ [ 'slug' => 'sm', 'size' => '4px' ] ] ) )
+			->toBe( [ [ 'slug' => 'sm', 'size' => '4px' ] ] );
+	} );
+
+	it( 'merges host entries on top of a theme list', function () {
+		config()->set( 'artisanpack.visual-editor.presets.spacing_sizes', [
+			[ 'slug' => 'sm', 'size' => '6px' ],
+		] );
+
+		expect( PresetRegistry::effectiveSpacingSizes( [
+			[ 'slug' => 'sm', 'size' => '4px' ],
+			[ 'slug' => 'lg', 'size' => '2rem' ],
+		] ) )->toBe( [
+			[ 'slug' => 'sm', 'size' => '6px' ],
+			[ 'slug' => 'lg', 'size' => '2rem' ],
+		] );
+	} );
+} );
+
+describe( 'spacingPresetsCss() (#814)', function () {
+	beforeEach( function () {
+		config()->set( 'artisanpack.visual-editor.presets', [] );
+	} );
+
+	it( 'declares every default spacing preset on :root when the theme has none', function () {
+		expect( PresetRegistry::spacingPresetsCss( null ) )->toBe(
+			":root {\n"
+			. "\t--wp--preset--spacing--20: 0.5rem;\n"
+			. "\t--wp--preset--spacing--30: 1rem;\n"
+			. "\t--wp--preset--spacing--40: 1.5rem;\n"
+			. "\t--wp--preset--spacing--50: 3rem;\n"
+			. "\t--wp--preset--spacing--60: 5rem;\n"
+			. "\t--wp--preset--spacing--70: 7rem;\n"
+			. '}'
+		);
+	} );
+
+	it( 'kebabs slugs and skips values that could break out of the style block', function () {
+		$css = PresetRegistry::spacingPresetsCss( [
+			[ 'slug' => 'Big Gap', 'size' => '2rem' ],
+			[ 'slug' => 'evil', 'size' => '1px; } body { display: none' ],
+			[ 'slug' => 'tag', 'size' => '1px</style>' ],
+			[ 'slug' => 'comment', 'size' => '1px /* swallow' ],
+			[ 'slug' => 'escape', 'size' => '1px\\3b' ],
+		] );
+
+		expect( $css )->toContain( '--wp--preset--spacing--big-gap: 2rem;' )
+			->not->toContain( 'evil' )
+			->not->toContain( '</style>' )
+			->not->toContain( 'comment' )
+			->not->toContain( 'escape' );
+	} );
+
+	it( 'returns an empty string when no preset survives', function () {
+		config()->set( 'artisanpack.visual-editor.presets.spacing_sizes', [ 'mode' => 'replace', 'entries' => [] ] );
+
+		expect( PresetRegistry::spacingPresetsCss( null ) )->toBe( '' );
+	} );
+} );

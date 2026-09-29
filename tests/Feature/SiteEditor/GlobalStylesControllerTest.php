@@ -227,6 +227,43 @@ describe( 'GET /visual-editor/api/global-styles/css', function (): void {
 			->toContain( 'color: #111827;' );
 	} );
 
+	it( 'declares the default spacing presets when the theme ships no spacingSizes (#814)', function (): void {
+		$this->mock( ThemeManager::class, function ( $mock ): void {
+			$mock->shouldReceive( 'getActiveTheme' )->andReturn( [
+				'name'     => 'Digital Shopfront',
+				'slug'     => 'digital-shopfront',
+				'settings' => [ 'color' => [ 'palette' => [ [ 'slug' => 'primary', 'color' => '#0f172a' ] ] ] ],
+				'styles'   => [],
+			] );
+			stubThemeManagerHelpersForGlobalStylesTest( $mock );
+		} );
+
+		rebuildSiteEditorResolversForGlobalStylesTest();
+
+		expect( $this->get( '/visual-editor/api/global-styles/css' )->assertOk()->getContent() )
+			->toContain( '--wp--preset--spacing--20: 0.5rem;' )
+			->toContain( '--wp--preset--spacing--40: 1.5rem;' )
+			->toContain( '--wp--preset--spacing--70: 7rem;' );
+	} );
+
+	it( 'declares the theme\'s own spacing presets instead of the defaults when it ships some (#814)', function (): void {
+		$this->mock( ThemeManager::class, function ( $mock ): void {
+			$mock->shouldReceive( 'getActiveTheme' )->andReturn( [
+				'name'     => 'Digital Shopfront',
+				'slug'     => 'digital-shopfront',
+				'settings' => [ 'spacing' => [ 'spacingSizes' => [ [ 'slug' => 'sm', 'size' => '4px' ] ] ] ],
+				'styles'   => [],
+			] );
+			stubThemeManagerHelpersForGlobalStylesTest( $mock );
+		} );
+
+		rebuildSiteEditorResolversForGlobalStylesTest();
+
+		expect( $this->get( '/visual-editor/api/global-styles/css' )->assertOk()->getContent() )
+			->toContain( '--wp--preset--spacing--sm: 4px;' )
+			->not->toContain( '--wp--preset--spacing--40' );
+	} );
+
 	it( 'returns an empty body when no active theme is configured', function (): void {
 		$this->mock( ThemeManager::class, function ( $mock ): void {
 			$mock->shouldReceive( 'getActiveTheme' )->andReturn( null );

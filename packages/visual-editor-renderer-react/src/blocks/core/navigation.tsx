@@ -6,6 +6,7 @@
  */
 
 import { attrBoolean, attrString, classList } from '../../support/attributes';
+import { applyBlockGap, hasBlockGapStyle } from '../../support/blockGap';
 import { safeUrl } from '../../support/urlSanitizer';
 import type { BlockRendererProps } from '../../types';
 
@@ -25,10 +26,18 @@ export function NavigationBlock({ attributes, children }: BlockRendererProps): J
         className,
     ]);
 
-    const navProps: Record<string, string> = { className: classes };
+    const navProps: Record<string, unknown> = { className: classes };
 
     if (ariaLabel !== '') {
         navProps['aria-label'] = ariaLabel;
+    }
+
+    // #814 — Block spacing. The stylesheet turns the custom property
+    // into the items' `gap`; mirrors `BlockSupports::applySpacing()`.
+    const blockGapStyle = applyBlockGap(attributes);
+
+    if (hasBlockGapStyle(blockGapStyle)) {
+        navProps.style = blockGapStyle;
     }
 
     return (

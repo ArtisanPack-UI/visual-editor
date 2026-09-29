@@ -61,6 +61,53 @@ class PresetRegistry
 	protected const VALID_MODES = [ 'append', 'replace' ];
 
 	/**
+	 * Package default spacing sizes. Mirrors `DEFAULT_SPACING_SIZES` in
+	 * `resources/js/visual-editor/editor-settings.ts` (slug + size only;
+	 * the labels are editor-only) so the front end declares the same
+	 * `--wp--preset--spacing--*` properties the editor's spacing pickers
+	 * offer when a theme ships no `spacingSizes` (#814). Keep the two
+	 * lists in sync — `editor/__tests__/spacing-preset-styles.test.ts` guards it.
+	 *
+	 * @since 1.12.0
+	 */
+	public const DEFAULT_SPACING_SIZES = [
+		[ 'slug' => '20', 'size' => '0.5rem' ],
+		[ 'slug' => '30', 'size' => '1rem' ],
+		[ 'slug' => '40', 'size' => '1.5rem' ],
+		[ 'slug' => '50', 'size' => '3rem' ],
+		[ 'slug' => '60', 'size' => '5rem' ],
+		[ 'slug' => '70', 'size' => '7rem' ],
+	];
+
+	/**
+	 * Resolve the spacing sizes the editor's pickers offer, so the front
+	 * end can declare a custom property for every one of them (#814).
+	 *
+	 * Mirrors the editor's precedence exactly:
+	 *   - theme ships `spacingSizes` → the theme list, with host entries
+	 *     merged on top only when the host registers any;
+	 *   - otherwise → the package defaults merged with the host list
+	 *     (where `replace` mode, even with no entries, clears them).
+	 *
+	 * @since 1.12.0
+	 *
+	 * @param  mixed  $themeSpacingSizes  The theme's `settings.spacing.spacingSizes`, if any.
+	 *
+	 * @return array<int, array{slug: string, size: string}>
+	 */
+	public static function effectiveSpacingSizes( mixed $themeSpacingSizes ): array
+	{
+		$host  = self::fromConfig()['spacingSizes'];
+		$theme = self::normaliseThemeSpacingSizes( $themeSpacingSizes );
+
+		if ( null !== $theme ) {
+			return [] === $host['entries'] ? $theme : self::mergeSizedList( $theme, $host );
+		}
+
+		return self::mergeSizedList( self::DEFAULT_SPACING_SIZES, $host );
+	}
+
+	/**
 	 * Resolve the configured presets into normalised descriptor lists.
 	 *
 	 * Returns a stable-shape record — every list key is always present,
@@ -290,5 +337,145 @@ class PresetRegistry
 		}
 
 		return ucwords( str_replace( [ '-', '_' ], ' ', $slug ) );
+	}
+
+	/**
+	 * Build the `:root { --wp--preset--spacing--*: …; }` block for every
+	 * spacing size the editor's pickers offer (#814). `var:preset|spacing|*`
+	 * picks reference these properties, which previously existed only when
+	 * the theme shipped `spacingSizes` — on any other theme padding, margin
+	 * and Block spacing presets resolved to nothing. Slugs follow the same
+	 * rule as `ThemeJsonTokensCompiler::slug()`. Returns `''` when the list
+	 * is empty (e.g. host `replace` mode with no entries).
+	 *
+	 * @since 1.12.0
+	 *
+	 * @param  mixed  $themeSpacingSizes  The theme's `settings.spacing.spacingSizes`, if any.
+	 */
+	public static function spacingPresetsCss( mixed $themeSpacingSizes ): string
+	{
+		$declarations = [];
+
+		foreach ( self::effectiveSpacingSizes( $themeSpacingSizes ) as $entry ) {
+			$slug = (string) preg_replace( '/[^a-z0-9\-]/', '-', strtolower( $entry['slug'] ) );
+			$size = trim( $entry['size'] );
+
+			// Values land inside a `<style>` element; skip anything that
+			// could close the declaration, rule, or tag, open a comment
+			// that swallows the following rules, or smuggle a CSS escape.
+			if ( '' === $slug || '' === $size || 1 === preg_match( '#[;{}<>\\\\]|/\*|\*/#', $size ) ) {
+				continue;
+			}
+
+			$declarations[] = sprintf( '--wp--preset--spacing--%s: %s;', $slug, $size );
+		}
+
+		return [] === $declarations ? '' : ":root {\n\t" . implode( "\n\t", $declarations ) . "\n}";
+	}
+
+	/**
+	 * The active cms-framework theme's `settings.spacing.spacingSizes`, or
+	 * `null` when cms-framework isn't installed / no theme is active.
+	 *
+	 * @since 1.12.0
+	 */
+	public static function activeThemeSpacingSizes(): mixed
+	{
+		$themeManager = 'ArtisanPackUI\\CMSFramework\\Modules\\Themes\\Managers\\ThemeManager';
+
+		if ( ! class_exists( $themeManager ) || ! app()->bound( $themeManager ) ) {
+			return null;
+		}
+
+		$theme = app( $themeManager )->getActiveTheme();
+
+		return is_array( $theme ) ? ( $theme['settings']['spacing']['spacingSizes'] ?? null ) : null;
+	}
+
+	/**
+	 * Normalise a theme's `spacingSizes` list the way the editor's
+	 * `extractThemeSpacingSizes()` does: trimmed lowercase slugs, string
+	 * sizes, first slug wins. Returns `null` when the theme declares no
+	 * usable entry, so callers fall back to the package defaults.
+	 *
+	 * @since 1.12.0
+	 *
+	 * @return array<int, array{slug: string, size: string}>|null
+	 */
+	protected static function normaliseThemeSpacingSizes( mixed $sizes ): ?array
+	{
+		if ( ! is_array( $sizes ) || [] === $sizes ) {
+			return null;
+		}
+
+		$out  = [];
+		$seen = [];
+
+		foreach ( $sizes as $entry ) {
+			if ( ! is_array( $entry ) || ! is_string( $entry['slug'] ?? null ) || ! is_string( $entry['size'] ?? null ) ) {
+				continue;
+			}
+
+			$slug = strtolower( trim( $entry['slug'] ) );
+
+			if ( '' === $slug || isset( $seen[ $slug ] ) ) {
+				continue;
+			}
+
+			$seen[ $slug ] = true;
+			$out[]         = [ 'slug' => $slug, 'size' => $entry['size'] ];
+		}
+
+		return [] === $out ? null : $out;
+	}
+
+	/**
+	 * Merge a host list into a base list per its mode. Mirrors the JS
+	 * `mergePresetList()`: `replace` returns the host entries outright;
+	 * `append` overrides colliding slugs in place and appends the rest.
+	 *
+	 * @since 1.12.0
+	 *
+	 * @param  array<int, array{slug: string, size: string}>  $base
+	 * @param  array{mode: string, entries: array<int, array<string, string>>}  $host
+	 *
+	 * @return array<int, array{slug: string, size: string}>
+	 */
+	protected static function mergeSizedList( array $base, array $host ): array
+	{
+		$hostEntries = array_map(
+			static fn ( array $entry ): array => [ 'slug' => $entry['slug'], 'size' => $entry['size'] ],
+			$host['entries'],
+		);
+
+		if ( 'replace' === $host['mode'] ) {
+			return $hostEntries;
+		}
+
+		$hostBySlug = [];
+
+		foreach ( $hostEntries as $entry ) {
+			$hostBySlug[ $entry['slug'] ] = $entry;
+		}
+
+		$merged     = [];
+		$overridden = [];
+
+		foreach ( $base as $entry ) {
+			if ( isset( $hostBySlug[ $entry['slug'] ] ) ) {
+				$merged[]                     = $hostBySlug[ $entry['slug'] ];
+				$overridden[ $entry['slug'] ] = true;
+			} else {
+				$merged[] = $entry;
+			}
+		}
+
+		foreach ( $hostEntries as $entry ) {
+			if ( ! isset( $overridden[ $entry['slug'] ] ) ) {
+				$merged[] = $entry;
+			}
+		}
+
+		return $merged;
 	}
 }
