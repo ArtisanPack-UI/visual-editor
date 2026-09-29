@@ -259,8 +259,9 @@ export function useEntityEditorViews<K extends EntityKind>(
     // Block-library flows that jump to another entity (Create Overlay /
     // Edit on `core/navigation`) set an attribute on the current entity
     // and navigate in the same tick. Navigating swaps the loaded entity
-    // and would discard that edit, so save first; stay put if the save
-    // fails so the error shows and nothing is lost (#809).
+    // and would discard that edit, so save first. Stay put if the save
+    // fails, or edits keep arriving mid-save, so the error or the
+    // unsaved-changes indicator shows and nothing is lost (#809).
     const handleNavigateToEntityRecord = useCallback(
         (target: NavigateToEntityRecordTarget): void => {
             void (async () => {

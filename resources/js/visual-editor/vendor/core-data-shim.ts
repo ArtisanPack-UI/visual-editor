@@ -151,6 +151,7 @@ type CoreDataAction =
           kind: EntityKind;
           name: EntityName;
           id: EntityKey;
+          acknowledged?: EntityRecord;
       }
     | {
           type: 'SET_SAVING';
@@ -839,7 +840,28 @@ function reducer(
             }
 
             const nextBag = { ...bag };
-            delete nextBag[String(action.id)];
+
+            // `acknowledged` = the edits a completed save actually sent.
+            // Drop only those whose value hasn't moved since, so edits
+            // staged while the request was in flight survive for the
+            // next save (#809). Without it, clear everything.
+            if (action.acknowledged !== undefined) {
+                const remaining: EntityRecord = { ...bag[String(action.id)] };
+
+                for (const [prop, sentValue] of Object.entries(action.acknowledged)) {
+                    if (remaining[prop] === sentValue) {
+                        delete remaining[prop];
+                    }
+                }
+
+                if (Object.keys(remaining).length > 0) {
+                    nextBag[String(action.id)] = remaining;
+                } else {
+                    delete nextBag[String(action.id)];
+                }
+            } else {
+                delete nextBag[String(action.id)];
+            }
 
             return {
                 ...state,
@@ -1382,6 +1404,7 @@ interface ThunkArgs {
             kind: EntityKind,
             name: EntityName,
             id: EntityKey,
+            acknowledged?: EntityRecord,
         ) => CoreDataAction;
         // Auto-exposed by `@wordpress/data` for any registered store —
         // resets the resolver state for a single selector so the next
@@ -1469,11 +1492,13 @@ const actions = {
         kind: EntityKind,
         name: EntityName,
         id: EntityKey,
+        acknowledged?: EntityRecord,
     ): CoreDataAction => ({
         type: 'CLEAR_ENTITY_RECORD_EDITS',
         kind,
         name,
         id,
+        acknowledged,
     }),
 
     setEntitySaving: (
@@ -1879,8 +1904,14 @@ const actions = {
 
     /**
      * PUTs the edited record (base + edits) back to the server, then
-     * clears the edits bag on success. Leaves the edits intact on failure
-     * so the UI can retry.
+     * clears the edits that request carried. Leaves the edits intact on
+     * failure so the UI can retry.
+     *
+     * Saves for the same record run one at a time (#809): a debounced
+     * save can fire while the previous PUT is still in flight, and two
+     * overlapping PUTs could land out of order and receive the older
+     * record last. Edits staged during a request aren't cleared by it —
+     * the next queued save sends them.
      *
      * The key field is pinned onto the payload explicitly: edits staged
      * before the base record was ever cached would otherwise produce a
@@ -1889,46 +1920,23 @@ const actions = {
      */
     saveEditedEntityRecord:
         (kind: EntityKind, name: EntityName, id: EntityKey) =>
-        async ({ dispatch, select }: ThunkArgs): Promise<EntityRecord | null> => {
-            // `getEditedEntityRecord` returns `{}` for an unresolved
-            // record so synchronous reads on the nav block (and other
-            // entity-backed Edit components) don't crash on
-            // `record.status` (Keystone #48). That makes a bare
-            // `=== null` check insufficient here — `{}` would slip
-            // through and trigger a spurious PUT `{ id }` payload
-            // for a record nothing has loaded or edited. Probe the
-            // underlying base + edits explicitly instead, so we only
-            // serialize a save when there's something to save.
-            const base = select.getEntityRecord(kind, name, id);
-            const edits = select.getEntityRecordEdits(kind, name, id);
+        async (thunkArgs: ThunkArgs): Promise<EntityRecord | null> => {
+            const queueKey = `${kind}|${name}|${String(id)}`;
+            const previous = entitySaveQueue.get(queueKey) ?? Promise.resolve();
+            const run = previous
+                .catch(() => undefined)
+                .then(() => performEditedEntityRecordSave(kind, name, id, thunkArgs));
 
-            if (base === null && (edits === null || Object.keys(edits).length === 0)) {
-                return null;
+            entitySaveQueue.set(queueKey, run);
+
+            try {
+                return await run;
+            } finally {
+                if (entitySaveQueue.get(queueKey) === run) {
+                    entitySaveQueue.delete(queueKey);
+                }
             }
-
-            const edited = select.getEditedEntityRecord(kind, name, id);
-
-            if (edited === null) {
-                return null;
-            }
-
-            const config = select.getEntityConfig(kind, name);
-            const payload: EntityRecord = config
-                ? { ...edited, [config.key]: id }
-                : edited;
-
-            const saved = await actions.saveEntityRecord(kind, name, payload)({
-                dispatch,
-                select,
-            });
-
-            if (saved !== null) {
-                dispatch.clearEntityRecordEdits(kind, name, id);
-            }
-
-            return saved;
         },
-
     /**
      * DELETEs an entity record and evicts it from the store on success.
      */
@@ -1968,6 +1976,65 @@ const actions = {
             }
         },
 };
+
+/**
+ * Per-record save queue for `saveEditedEntityRecord`, keyed
+ * `kind|name|id`. Holds the tail of each record's chain.
+ */
+const entitySaveQueue = new Map<string, Promise<EntityRecord | null>>();
+
+/**
+ * Body of `saveEditedEntityRecord`, run once the record's previous save
+ * has settled.
+ */
+async function performEditedEntityRecordSave(
+    kind: EntityKind,
+    name: EntityName,
+    id: EntityKey,
+    thunkArgs: ThunkArgs,
+): Promise<EntityRecord | null> {
+    // `getEditedEntityRecord` returns `{}` for an unresolved
+    // record so synchronous reads on the nav block (and other
+    // entity-backed Edit components) don't crash on
+    // `record.status` (Keystone #48). That makes a bare
+    // `=== null` check insufficient here — `{}` would slip
+    // through and trigger a spurious PUT `{ id }` payload
+    // for a record nothing has loaded or edited. Probe the
+    // underlying base + edits explicitly instead, so we only
+    // serialize a save when there's something to save.
+    const { dispatch, select } = thunkArgs;
+    const base = select.getEntityRecord(kind, name, id);
+    const edits = select.getEntityRecordEdits(kind, name, id);
+    // Snapshot of what this request carries — only these are
+    // cleared once it lands.
+    const sentEdits: EntityRecord = { ...(edits ?? {}) };
+
+    if (base === null && (edits === null || Object.keys(edits).length === 0)) {
+        return null;
+    }
+
+    const edited = select.getEditedEntityRecord(kind, name, id);
+
+    if (edited === null) {
+        return null;
+    }
+
+    const config = select.getEntityConfig(kind, name);
+    const payload: EntityRecord = config
+        ? { ...edited, [config.key]: id }
+        : edited;
+
+    const saved = await actions.saveEntityRecord(kind, name, payload)({
+        dispatch,
+        select,
+    });
+
+    if (saved !== null) {
+        dispatch.clearEntityRecordEdits(kind, name, id, sentEdits);
+    }
+
+    return saved;
+}
 
 interface NormalizedList {
     records: readonly EntityRecord[];

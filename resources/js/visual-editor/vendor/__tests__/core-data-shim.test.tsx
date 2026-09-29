@@ -2266,6 +2266,66 @@ describe('core-data-shim hooks', () => {
         }
     });
 
+    it('saveEditedEntityRecord queues per record and keeps edits staged mid-request (#809)', async () => {
+        const menu = (title: string): EntityRecord => ({
+            id: 45,
+            slug: 'primary',
+            title: { raw: title, rendered: title },
+            status: 'publish',
+            type: 'wp_navigation',
+            content: { raw: '', blocks: [] },
+        });
+
+        let releaseFirst: () => void = () => undefined;
+        const putBodies: Array<{ title?: unknown }> = [];
+
+        const { fetcher } = mockFetcher(async (url, init) => {
+            if (!url.endsWith('/menus/45') || init.method !== 'PUT') {
+                return jsonResponse(null, 404);
+            }
+
+            const body = JSON.parse(String(init.body)) as { title?: string };
+            putBodies.push(body);
+
+            if (putBodies.length === 1) {
+                // Hold the first PUT open until the test releases it.
+                await new Promise<void>((resolve) => {
+                    releaseFirst = resolve;
+                });
+            }
+
+            return jsonResponse(menu(String(body.title)));
+        });
+
+        configureCoreDataShim({ apiBase: '/visual-editor/api', fetcher });
+        coreDispatch().receiveEntityRecords('postType', 'wp_navigation', [menu('Primary')]);
+
+        coreDispatch().editEntityRecord('postType', 'wp_navigation', 45, { title: 'First' });
+        const firstSave = coreDispatch().saveEditedEntityRecord('postType', 'wp_navigation', 45) as Promise<unknown>;
+
+        // Let the first PUT go out, then stage a newer title while it's open.
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        coreDispatch().editEntityRecord('postType', 'wp_navigation', 45, { title: 'Second' });
+        const secondSave = coreDispatch().saveEditedEntityRecord('postType', 'wp_navigation', 45) as Promise<unknown>;
+
+        // Queued: the second PUT must not start while the first is open.
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(putBodies).toHaveLength(1);
+
+        releaseFirst();
+        await firstSave;
+
+        // The first save must not wipe the edit staged during its request.
+        expect(
+            (coreSelect().getEntityRecordEdits('postType', 'wp_navigation', 45) as { title?: string } | null)?.title,
+        ).toBe('Second');
+
+        await secondSave;
+
+        expect(putBodies.map((body) => body.title)).toEqual(['First', 'Second']);
+        expect(coreSelect().getEntityRecordEdits('postType', 'wp_navigation', 45) ?? {}).toEqual({});
+    });
+
     it('useEntityProp only stages edits on other entities', async () => {
         vi.useFakeTimers();
         try {

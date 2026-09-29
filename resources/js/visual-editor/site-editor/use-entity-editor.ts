@@ -103,6 +103,9 @@ function isEntityContent(value: unknown): value is LoadedContent {
 }
 
 
+/** Upper bound on save rounds `saveIfDirty` runs to catch in-flight edits. */
+const SAVE_IF_DIRTY_MAX_ROUNDS = 3;
+
 export function useEntityEditor<K extends EntityKind>(
     options: UseEntityEditorOptions<K>
 ): UseEntityEditorResult<K> {
@@ -133,6 +136,14 @@ export function useEntityEditor<K extends EntityKind>(
     // save triggered from that navigation must see the new attribute.
     const latestBlocksRef = useRef<readonly unknown[]>([]);
 
+    // Latest pending field overrides. Read by `setBlocks` without
+    // re-creating the callback on every keystroke, and by `save` so a
+    // `patch()` in the same tick as `saveIfDirty()` is included. `patch`
+    // and the resets write it synchronously; the render sync below keeps
+    // it aligned with state.
+    const pendingPatchRef = useRef<UpdatePayload>({});
+    pendingPatchRef.current = pendingPatch;
+
     // Bumped on every local edit (setBlocks, patch, reset). A save
     // snapshots this at start; if the value has moved by the time the
     // response arrives, the user kept typing during the save and we
@@ -145,6 +156,7 @@ export function useEntityEditor<K extends EntityKind>(
         latestBlocksRef.current = [];
         setEntity(null);
         setBlocksState([]);
+        pendingPatchRef.current = {};
         setPendingPatch({});
         setIsDirty(false);
         setSaveStatus('idle');
@@ -166,6 +178,7 @@ export function useEntityEditor<K extends EntityKind>(
         latestBlocksRef.current = nextBlocks;
         setEntity(record);
         setBlocksState(nextBlocks);
+        pendingPatchRef.current = {};
         setPendingPatch({});
         setIsDirty(false);
         setValidationErrors(null);
@@ -226,14 +239,15 @@ export function useEntityEditor<K extends EntityKind>(
         })();
     }, [apiConfig, kind, entityId, hydrateFromRecord, resetEditorState]);
 
-    // Read the latest `pendingPatch` from inside `setBlocks` without
-    // re-creating the callback on every keystroke — reading from state
-    // directly would force a new `setBlocks` identity each render and
-    // thrash BlockEditorProvider's memoized handlers.
-    const pendingPatchRef = useRef<UpdatePayload>({});
-    pendingPatchRef.current = pendingPatch;
-
     const setBlocks = useCallback((next: readonly unknown[]): void => {
+        // Bump the edit version here, not inside the state updater:
+        // React runs updaters during the next render, so an edit made
+        // while a save is in flight would otherwise go unnoticed by
+        // `save`'s stale-response guard and by `saveIfDirty`.
+        if (next !== latestBlocksRef.current) {
+            editVersionRef.current += 1;
+        }
+
         latestBlocksRef.current = next;
 
         setBlocksState((prev) => {
@@ -243,8 +257,6 @@ export function useEntityEditor<K extends EntityKind>(
             if (prev === next) {
                 return prev;
             }
-
-            editVersionRef.current += 1;
 
             if (next === committedBlocksRef.current) {
                 // User undid every block edit back to the saved tree —
@@ -263,6 +275,7 @@ export function useEntityEditor<K extends EntityKind>(
 
     const patch = useCallback((overrides: UpdatePayload): void => {
         editVersionRef.current += 1;
+        pendingPatchRef.current = { ...pendingPatchRef.current, ...overrides };
         setPendingPatch((prev) => ({ ...prev, ...overrides }));
         setIsDirty(true);
     }, []);
@@ -271,6 +284,7 @@ export function useEntityEditor<K extends EntityKind>(
         editVersionRef.current += 1;
         latestBlocksRef.current = committedBlocksRef.current;
         setBlocksState(committedBlocksRef.current);
+        pendingPatchRef.current = {};
         setPendingPatch({});
         setIsDirty(false);
         setValidationErrors(null);
@@ -338,7 +352,7 @@ export function useEntityEditor<K extends EntityKind>(
             const raw = serialize(currentBlocks as BlockInstance[]);
 
             const payload: UpdatePayload = {
-                ...pendingPatch,
+                ...pendingPatchRef.current,
                 ...overrides,
                 content: {
                     raw,
@@ -404,18 +418,34 @@ export function useEntityEditor<K extends EntityKind>(
                 return null;
             }
         },
-        [apiConfig, entityId, hydrateFromRecord, kind, pendingPatch]
+        [apiConfig, entityId, hydrateFromRecord, kind]
     );
 
     const saveIfDirty = useCallback(async (): Promise<boolean> => {
-        const hasBlockEdits = latestBlocksRef.current !== committedBlocksRef.current;
-        const hasFieldEdits = Object.keys(pendingPatchRef.current).length > 0;
+        // Edits can land while a save is in flight; those aren't in the
+        // payload, so save again until a round completes with nothing
+        // new. Capped so continuous typing can't loop forever — callers
+        // treat `false` as "still dirty, don't navigate away".
+        for (let attempt = 0; attempt < SAVE_IF_DIRTY_MAX_ROUNDS; attempt += 1) {
+            const hasBlockEdits = latestBlocksRef.current !== committedBlocksRef.current;
+            const hasFieldEdits = Object.keys(pendingPatchRef.current).length > 0;
 
-        if (!hasBlockEdits && !hasFieldEdits) {
-            return true;
+            if (!hasBlockEdits && !hasFieldEdits) {
+                return true;
+            }
+
+            const versionAtSave = editVersionRef.current;
+
+            if ((await save()) === null) {
+                return false;
+            }
+
+            if (editVersionRef.current === versionAtSave) {
+                return true;
+            }
         }
 
-        return (await save()) !== null;
+        return false;
     }, [save]);
 
     return {
