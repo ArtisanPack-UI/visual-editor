@@ -6,6 +6,23 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Upgrade notes
+
+- **Requires `artisanpack-ui/cms-framework` 2.11 or later, and a
+  migration.** cms-framework 2.11 adds the `menu_items.block_attributes`
+  column that stores navigation-item settings such as block visibility.
+  Run `php artisan migrate` after updating.
+- **`artisanpack/navigation` is retired in favor of `core/navigation`**
+  (#808). Existing `artisanpack/navigation` blocks keep rendering and
+  are converted to `core/navigation` the first time they're edited.
+- **Site-editor API writes now require the site-editor access gate.**
+  Creating, updating, or deleting templates, template parts, global
+  styles, patterns, menus, and menu items goes through the bound
+  `SiteEditorAccessGate` and returns `403` when it denies. Before, any
+  logged-in user could make these changes. This includes the post
+  editor's **Convert to pattern** action. Read routes are unchanged. See
+  `docs/site-editor/Access-Gate.md`.
+
 ### Added
 
 - **Navigation overlay template parts in the site editor** (#809) —
@@ -13,9 +30,110 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   so overlay parts get their own "Navigation Overlay" filter chip,
   row badge, and create/inspector area option. That's the area
   `core/navigation`'s Overlay panel scopes its template picker to.
+- **Per-viewport visibility on navigation items** (#798, #806) — the
+  Visibility panel now appears on navigation links and submenus, and
+  their settings (along with other block settings that have no
+  dedicated menu column, such as animations and bindings) are saved
+  with the menu item. `docs/site-editor/Navigation.md` documents the
+  mobile-overlay-only CTA recipe.
+
+### Changed
+
+- **The navigation block is upstream `core/navigation` again** (#808)
+  — the `artisanpack/navigation` fork is retired. Upstream looks up
+  its parent block by the literal name `core/navigation`, so the fork
+  lost the selection after every menu-item insert, which caused the
+  editor chrome to flicker, focus to drop, and a blank List View.
+  `core/navigation` and its inner-block family are registered
+  directly, and `artisanpack/navigation` remains as a hidden stub that
+  converts itself on first edit.
 
 ### Fixed
 
+- **Navigation menu picker didn't list or create menus** (#797) —
+  "Create menu" in the `core/navigation` placeholder sends no slug, so
+  `POST /visual-editor/api/menus` now derives one from the title
+  (adding `-2`, `-3`, … on a collision), accepts the block's
+  `content`, and ignores `status`. The block canvas shows a menu
+  picker and Create button while no menu is selected.
+- **Icon picker showed no Font Awesome icons in Composer installs**
+  (#800) — the Font Awesome Free payload (2,860 icons) was generated at
+  build time into a git-ignored directory, so it never reached the
+  Composer distribution. It's now committed and shipped.
+- **Navigation editing flickered and lost focus** (#808) — every
+  menu save, including plain updates, wiped the navigation-menu query
+  results, so the block briefly unmounted its editor. Only creating a
+  menu invalidates those queries now, and the core-data shim keeps
+  block references stable across a save so focus and List View
+  survive.
+- **Spacing presets overrode Global Styles and mismatched some slugs**
+  (#814) — the always-on spacing preset declarations came from the raw
+  theme.json and were emitted after the resolved global styles, so they
+  overrode style-variation and user spacing sizes. They're now built
+  from the resolved settings and emitted first, so resolved values win.
+  All renderers and the editor now share one preset slug rule
+  (`big_gap` → `big-gap`); Blade previously kept the underscore and
+  referenced an undeclared property. The editor canvas also declares
+  the `@wordpress/style-engine` form of slugs like `2xl` (`2-xl`), and
+  preset values with unbalanced parentheses, quotes, or control
+  characters are rejected so they can't break the surrounding CSS.
+- **React and Vue hosts lacked default spacing presets and the
+  navigation gap rule** — `<LayoutBaseline />` now includes both, at
+  zero specificity so `<GlobalStyles>` still overrides them.
+- **Vue server rendering escaped the layout baseline CSS** —
+  `<LayoutBaseline />` rendered its CSS as text, so SSR turned every
+  `>` into `&gt;` and broke child-combinator rules. It now renders the
+  CSS as raw markup, like `<GlobalStyles>`.
+- **Converting legacy `artisanpack/navigation` blocks lost content**
+  (#808) — the retired block's stub declared none of the 1.11 block
+  supports, so alignment, anchor, typography, spacing, layout, and
+  animation settings were stripped on load and lost on the next save.
+  If the one-time conversion couldn't run (for example inside a locked
+  pattern), saving also dropped the block's inline menu links. The stub
+  now keeps every 1.11 setting and its inner blocks, `core/navigation`
+  supports animations, and a block that can't convert shows a notice
+  with an **Update block** action when the block is nested and
+  editable. Registering the navigation block family twice no longer
+  logs errors.
+- **Template parts showed stale content, and inline template-part
+  edits were lost** — the core-data shim reused its previous block
+  tree whenever the block names and counts matched, hiding text-only
+  changes, so a template kept showing an inline template part's old
+  content after the part was saved. It also autosaved every inline
+  entity, sending template parts to a URL the API can't route, and
+  the silent 404 left the edits stranded. Changed attributes now
+  always surface (with stable block IDs), only navigation menus
+  autosave, and staged edits give way when the owning editor saves a
+  newer version.
+- **Menu and template-part requests could return 500 or bypass limits**
+  — menu `content.blocks` is now validated (tree depth and node count,
+  types of the column-mapped attributes, and size and nesting of other
+  block settings), so malformed input returns `422`. Template-part
+  string `content` now gets the same tree limits as block-array
+  content. Menu saves skip `block_attributes` when that column's
+  migration hasn't run yet, and two menus created at the same moment
+  no longer collide on a derived slug.
+- **Every build dirtied the Font Awesome index** — `sync-fa-icons`
+  no longer writes a `generatedAt` timestamp into the committed
+  `resources/icons/font-awesome/index.json`.
+- **Renderer parity manifest was out of date** — `artisanpack/howto`,
+  `artisanpack/toc`, and `artisanpack/toc-list` are now listed in
+  `packages/renderer-parity.json`, and CI runs `npm run verify:parity`.
+- **Failed navigation autosaves were silent** — a failed menu autosave
+  now shows an error notice with a Retry action, and pending autosaves
+  are sent when the page is closed instead of being dropped.
+- **Invalid `<div>` inside `<ul>` for per-viewport visibility on list
+  items** (#806) — a screen-size visibility rule wrapped list-item
+  blocks (`core/navigation-link`, `core/navigation-submenu`,
+  `core/list-item`, `artisanpack/list-item`) in a `<div>`. The scope
+  class now goes on the `<li>` itself in the Blade, React, and Vue
+  renderers.
+- **Navigation ignored the Block spacing setting** (#814) — the
+  navigation block's `style.spacing.blockGap` now sets the gap between
+  items in the editor canvas and in the Blade, React, and Vue
+  renderers. Spacing preset custom properties
+  (`--wp--preset--spacing--*`) are now always declared, so preset
+  picks resolve on themes that don't define `spacingSizes`.
 - **Navigation Overlay panel showing inside overlay templates** (#809)
   — the package now registers a minimal `core/editor` store
   (`vendor/editor-context-store.ts`) that tracks which template or
