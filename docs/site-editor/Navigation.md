@@ -88,13 +88,51 @@ Attributes:
 | `location` | string | Menu-location slug. |
 | `ref` | number | Pattern reference id for synced nav patterns. |
 | `overlayMenu` | string | `'always'` \| `'mobile'` \| `'never'`. |
-| `openSubmenusOnClick` | boolean | Click vs hover for submenus. |
+| `overlay` | string | Slug of a `navigation-overlay` template part rendered inside the open overlay. Empty = default overlay. |
+| `submenuVisibility` | string | `'hover'` \| `'click'` \| `'always'` (vertical only). |
 | `showSubmenuIcon` | boolean | Render the chevron icon. |
+| `hasIcon` / `icon` | boolean / string | Hamburger icon vs. "Menu" text, and which icon (`'handle'` \| `'menu'`). |
 | `textColor` / `backgroundColor` | string | Color presets. |
 
 The block stores no inner blocks — the items come from the resolved
 menu at render time. Editing the menu in the site editor updates every
 page using this block.
+
+### Overlay controls
+
+The block's Settings tab carries Gutenberg's own **Overlay** panel:
+
+- **Overlay Visibility** — Off / Mobile / Always (`overlayMenu`).
+- **Menu / Close preview** — expands the "Show icon button" toggle and
+  the icon choice (`hasIcon`, `icon`).
+- **Overlay template** — picks a template part in the
+  `navigation-overlay` area (`overlay`). **Edit** opens that part in the
+  site editor's template-part editor; the **+** button (or **Create
+  overlay** when none exist) creates a new "Navigation Overlay" part
+  through `POST /visual-editor/api/template-parts` and opens it. New
+  overlays start from the `core/navigation-overlay` pattern, a vertical
+  navigation block. Before jumping to the overlay, the site editor saves
+  the template part you're in so the nav block keeps its new `overlay`
+  setting.
+
+When a menu has submenus, the **Display** panel adds **Submenu
+Visibility** (Hover / Click) and **Show arrow**.
+
+The **⋮** menu in the block's List View switches between menus and
+offers **Create new Menu**. The Menus list only appears when there is
+another menu to switch to.
+
+Overlay parts also appear under the **Navigation Overlay** filter in the
+site editor's Template Parts section, and can be created there directly
+by choosing that area. While you edit one, the site editor tells
+Gutenberg (through a minimal `core/editor` store) that the canvas is an
+overlay, so a nav block inside it hides its own Overlay panel.
+
+On the front end, the Blade renderer renders the chosen part's blocks
+inside the open overlay in place of the menu copy. If the part is
+missing or in another area, it falls back to the default overlay. The
+Blade toggle button always uses the default two-line icon — `hasIcon`
+and `icon` only affect the editor for now.
 
 ---
 

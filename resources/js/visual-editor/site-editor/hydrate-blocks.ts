@@ -70,12 +70,85 @@ export function applySchemaDefaults(blocks: BlockInstance[]): BlockInstance[] {
     });
 }
 
+let clientIdFallbackCounter = 0;
+
+function mintClientId(): string {
+    if (
+        typeof globalThis.crypto !== 'undefined'
+        && typeof globalThis.crypto.randomUUID === 'function'
+    ) {
+        return globalThis.crypto.randomUUID();
+    }
+
+    clientIdFallbackCounter += 1;
+
+    return `ap-hydrated-${Date.now().toString(36)}-${clientIdFallbackCounter.toString(36)}`;
+}
+
+/**
+ * Give server-parsed blocks the editor-instance fields they lack.
+ *
+ * Trees the site editor saved are full `BlockInstance`s and pass through
+ * untouched. Trees the server parsed from markup — e.g. a template part
+ * created from Gutenberg's serialized-string payload (#809) — arrive as
+ * bare `{name, attributes, innerBlocks}` with no `clientId`, and
+ * `BlockEditorProvider` renders nothing for them. Those get a fresh
+ * `clientId`, `isValid: true`, and object-shaped attributes (PHP encodes
+ * an empty array as `[]`).
+ *
+ * Deliberately not `createBlock()`: it swaps unregistered names for
+ * `core/missing`, which this package doesn't register either, so it
+ * recurses until the stack overflows.
+ */
+export function ensureEditorInstances(blocks: readonly unknown[]): BlockInstance[] {
+    const out: BlockInstance[] = [];
+
+    for (const candidate of blocks) {
+        if (candidate === null || typeof candidate !== 'object') {
+            continue;
+        }
+
+        const block = candidate as Partial<BlockInstance> & Record<string, unknown>;
+
+        if (typeof block.name !== 'string') {
+            continue;
+        }
+
+        const innerBlocks = Array.isArray(block.innerBlocks)
+            ? ensureEditorInstances(block.innerBlocks)
+            : [];
+
+        if (typeof block.clientId === 'string' && block.clientId !== '') {
+            out.push({ ...block, innerBlocks } as BlockInstance);
+            continue;
+        }
+
+        const attributes =
+            block.attributes !== null
+            && typeof block.attributes === 'object'
+            && !Array.isArray(block.attributes)
+                ? block.attributes
+                : {};
+
+        out.push({
+            ...block,
+            clientId: mintClientId(),
+            isValid: true,
+            attributes,
+            innerBlocks,
+        } as BlockInstance);
+    }
+
+    return out;
+}
+
 /**
  * Hydrate a content envelope into `BlockInstance[]`. Prefers
  * `content.raw` (canonical Gutenberg HTML form — `parse()` guarantees
  * fresh `clientId`s and fills schema defaults); falls back to
- * `content.blocks` when `raw` is empty, applying schema defaults
- * manually so the parsed-JSON path matches `parse()`'s output shape.
+ * `content.blocks` when `raw` is empty, minting any missing editor
+ * fields and applying schema defaults manually so the parsed-JSON path
+ * matches `parse()`'s output shape.
  */
 export function hydrateBlocks(content: LoadedContent): BlockInstance[] {
     const raw = typeof content.raw === 'string' ? content.raw.trim() : '';
@@ -84,5 +157,5 @@ export function hydrateBlocks(content: LoadedContent): BlockInstance[] {
         return parse(raw);
     }
 
-    return applySchemaDefaults(content.blocks as BlockInstance[]);
+    return applySchemaDefaults(ensureEditorInstances(content.blocks));
 }

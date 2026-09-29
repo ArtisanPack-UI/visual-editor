@@ -21,6 +21,10 @@ import {
     type SiteEditorApiConfig,
     type UpdatePayload,
 } from './api-client';
+import {
+    navigateToEntityRecordRoute,
+    type NavigateToEntityRecordTarget,
+} from './block-editor-boundary';
 import { EntityEditorCanvas } from './entity-editor-canvas';
 import { fallbackChainForSlug } from './fallback-chain';
 import { useEntityEditor, type SaveStatus } from './use-entity-editor';
@@ -64,6 +68,7 @@ export interface EntityEditorBoundaryProps {
     onChange: (blocks: readonly unknown[]) => void;
     onInput: (blocks: readonly unknown[]) => void;
     apiBase?: string;
+    onNavigateToEntityRecord?: (target: NavigateToEntityRecordTarget) => void;
 }
 
 export interface EntityEditorViews {
@@ -107,6 +112,7 @@ export function useEntityEditorViews<K extends EntityKind>(
         saveErrorMessage,
         lastSavedAt,
         save,
+        saveIfDirty,
         patch,
     } = editor;
 
@@ -250,6 +256,23 @@ export function useEntityEditorViews<K extends EntityKind>(
     // both the canvas and the inspector. Hand the shell the wiring it
     // needs to mount that boundary. `null` while no entity is open so
     // the shell skips the boundary entirely.
+    // Block-library flows that jump to another entity (Create Overlay /
+    // Edit on `core/navigation`) set an attribute on the current entity
+    // and navigate in the same tick. Navigating swaps the loaded entity
+    // and would discard that edit, so save first. Stay put if the save
+    // fails, or edits keep arriving mid-save, so the error or the
+    // unsaved-changes indicator shows and nothing is lost (#809).
+    const handleNavigateToEntityRecord = useCallback(
+        (target: NavigateToEntityRecordTarget): void => {
+            void (async () => {
+                if (await saveIfDirty()) {
+                    navigateToEntityRecordRoute(target);
+                }
+            })();
+        },
+        [saveIfDirty]
+    );
+
     const editorBoundary = useMemo(
         (): EntityEditorBoundaryProps | null =>
             entityId === null
@@ -259,8 +282,9 @@ export function useEntityEditorViews<K extends EntityKind>(
                       onChange: setBlocks,
                       onInput: setBlocks,
                       apiBase: apiConfig.apiBase,
+                      onNavigateToEntityRecord: handleNavigateToEntityRecord,
                   },
-        [apiConfig.apiBase, blocks, entityId, setBlocks]
+        [apiConfig.apiBase, blocks, entityId, handleNavigateToEntityRecord, setBlocks]
     );
 
     const documentPanel = useMemo((): ReactNode => {

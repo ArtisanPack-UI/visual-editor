@@ -2207,6 +2207,157 @@ describe('core-data-shim hooks', () => {
         }
     });
 
+    it('useEntityProp saves wp_navigation edits on a trailing debounce (#809)', async () => {
+        vi.useFakeTimers();
+        try {
+            const { fetcher, calls } = mockFetcher(async (url) =>
+                url.endsWith('/menus/43')
+                    ? jsonResponse({
+                          id: 43,
+                          slug: 'primary',
+                          title: { raw: 'Renamed', rendered: 'Renamed' },
+                          status: 'publish',
+                          type: 'wp_navigation',
+                          content: { raw: '', blocks: [] },
+                      })
+                    : jsonResponse(null, 404),
+            );
+
+            configureCoreDataShim({ apiBase: '/visual-editor/api', fetcher });
+
+            coreDispatch().receiveEntityRecords('postType', 'wp_navigation', [
+                {
+                    id: 43,
+                    slug: 'primary',
+                    title: { raw: 'Primary', rendered: 'Primary' },
+                    status: 'publish',
+                    type: 'wp_navigation',
+                    content: { raw: '', blocks: [] },
+                },
+            ]);
+
+            let setTitle: (value: string) => void = () => undefined;
+            function Probe() {
+                const [, setter] = useEntityProp<string>('postType', 'wp_navigation', 'title', 43);
+                setTitle = setter;
+                return null;
+            }
+            render(<Probe />);
+
+            act(() => {
+                setTitle('Rena');
+                setTitle('Renamed');
+            });
+
+            expect(calls.filter((c) => c.init.method === 'PUT')).toHaveLength(0);
+
+            await vi.advanceTimersByTimeAsync(600);
+            await vi.runOnlyPendingTimersAsync();
+
+            const puts = calls.filter((c) => c.init.method === 'PUT');
+            expect(puts).toHaveLength(1);
+            expect(puts[0].url).toMatch(/\/menus\/43$/);
+            expect(
+                (JSON.parse(String(puts[0].init.body)) as { title?: unknown }).title,
+            ).toBe('Renamed');
+        } finally {
+            __flushPendingEntityRecordSaves();
+            vi.useRealTimers();
+        }
+    });
+
+    it('saveEditedEntityRecord queues per record and keeps edits staged mid-request (#809)', async () => {
+        const menu = (title: string): EntityRecord => ({
+            id: 45,
+            slug: 'primary',
+            title: { raw: title, rendered: title },
+            status: 'publish',
+            type: 'wp_navigation',
+            content: { raw: '', blocks: [] },
+        });
+
+        let releaseFirst: () => void = () => undefined;
+        const putBodies: Array<{ title?: unknown }> = [];
+
+        const { fetcher } = mockFetcher(async (url, init) => {
+            if (!url.endsWith('/menus/45') || init.method !== 'PUT') {
+                return jsonResponse(null, 404);
+            }
+
+            const body = JSON.parse(String(init.body)) as { title?: string };
+            putBodies.push(body);
+
+            if (putBodies.length === 1) {
+                // Hold the first PUT open until the test releases it.
+                await new Promise<void>((resolve) => {
+                    releaseFirst = resolve;
+                });
+            }
+
+            return jsonResponse(menu(String(body.title)));
+        });
+
+        configureCoreDataShim({ apiBase: '/visual-editor/api', fetcher });
+        coreDispatch().receiveEntityRecords('postType', 'wp_navigation', [menu('Primary')]);
+
+        coreDispatch().editEntityRecord('postType', 'wp_navigation', 45, { title: 'First' });
+        const firstSave = coreDispatch().saveEditedEntityRecord('postType', 'wp_navigation', 45) as Promise<unknown>;
+
+        // Let the first PUT go out, then stage a newer title while it's open.
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        coreDispatch().editEntityRecord('postType', 'wp_navigation', 45, { title: 'Second' });
+        const secondSave = coreDispatch().saveEditedEntityRecord('postType', 'wp_navigation', 45) as Promise<unknown>;
+
+        // Queued: the second PUT must not start while the first is open.
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(putBodies).toHaveLength(1);
+
+        releaseFirst();
+        await firstSave;
+
+        // The first save must not wipe the edit staged during its request.
+        expect(
+            (coreSelect().getEntityRecordEdits('postType', 'wp_navigation', 45) as { title?: string } | null)?.title,
+        ).toBe('Second');
+
+        await secondSave;
+
+        expect(putBodies.map((body) => body.title)).toEqual(['First', 'Second']);
+        expect(coreSelect().getEntityRecordEdits('postType', 'wp_navigation', 45) ?? {}).toEqual({});
+    });
+
+    it('useEntityProp only stages edits on other entities', async () => {
+        vi.useFakeTimers();
+        try {
+            const { fetcher, calls } = mockFetcher(async () => jsonResponse(null, 404));
+
+            configureCoreDataShim({ apiBase: '/visual-editor/api', fetcher });
+
+            coreDispatch().receiveEntityRecords('postType', 'page', [
+                { id: 44, title: { raw: 'Page', rendered: 'Page' } },
+            ]);
+
+            let setTitle: (value: string) => void = () => undefined;
+            function Probe() {
+                const [, setter] = useEntityProp<string>('postType', 'page', 'title', 44);
+                setTitle = setter;
+                return null;
+            }
+            render(<Probe />);
+
+            act(() => {
+                setTitle('Edited');
+            });
+
+            await vi.advanceTimersByTimeAsync(600);
+
+            expect(calls.filter((c) => c.init.method === 'PUT')).toHaveLength(0);
+        } finally {
+            __flushPendingEntityRecordSaves();
+            vi.useRealTimers();
+        }
+    });
+
     it('flattens {raw, rendered} fields on getRawEntityRecord and getEditedEntityRecord', () => {
         coreDispatch().receiveEntityRecords('postType', 'wp_block', [
             {
@@ -2353,13 +2504,36 @@ describe('core-data-shim hooks', () => {
         expect(result.record).toBeNull();
     });
 
-    it('useResourcePermissions denies everything and reports resolved', () => {
-        const perms = renderHook(() => useResourcePermissions());
-        expect(perms).toEqual({
+    it('useResourcePermissions denies writes by default and reports resolved', () => {
+        expect(renderHook(() => useResourcePermissions())).toEqual({
             canCreate: false,
+            canRead: true,
             canUpdate: false,
             canDelete: false,
             isResolving: false,
+            hasResolved: true,
+        });
+
+        // `core/navigation-link`'s link UI asks about pages to offer
+        // inline page creation — no backing flow, so keep it off.
+        expect(
+            renderHook(() => useResourcePermissions({ kind: 'postType', name: 'page' }))
+                .canCreate,
+        ).toBe(false);
+    });
+
+    it('useResourcePermissions grants writes on wp_navigation (#809)', () => {
+        // Backs the nav block's menu selector: "Create new Menu" and
+        // "Import Classic Menus" are gated on these.
+        expect(
+            renderHook(() =>
+                useResourcePermissions({ kind: 'postType', name: 'wp_navigation', id: 3 }),
+            ),
+        ).toMatchObject({
+            canCreate: true,
+            canUpdate: true,
+            canDelete: true,
+            hasResolved: true,
         });
     });
 
