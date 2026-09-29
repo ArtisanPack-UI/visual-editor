@@ -209,7 +209,7 @@ class MenuController extends Controller
 	 * `-2`, `-3`, ... on collision so the first create from the
 	 * placeholder never trips the unique-violation path.
 	 *
-	 * @since 1.0.0
+	 * @since 1.12.0
 	 *
 	 * @param  class-string  $model
 	 */

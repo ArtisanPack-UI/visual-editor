@@ -138,14 +138,15 @@ All endpoints use the `/visual-editor/api/` prefix and run through the middlewar
 
 ## Version Compatibility
 
-The visual editor and `artisanpack-ui/cms-framework` ship as a version pair — both packages need to be present and on a compatible major version for the site-editor integration to work.
+The site-editor integration needs `artisanpack-ui/cms-framework` installed at a compatible version.
 
-| visual-editor | cms-framework | Notes                                          |
-| ------------- | ------------- | ---------------------------------------------- |
-| v1.x          | v1.x          | Site-editor integration (this release)         |
-| v0.x          | v0.x          | Pre-v1 — no site-editor integration            |
+| visual-editor   | cms-framework | Notes                                                              |
+| --------------- | ------------- | ------------------------------------------------------------------ |
+| v1.12 and later | v2.11 or later | Navigation items store extra block settings in `menu_items.block_attributes`; run `php artisan migrate` after updating |
+| v1.0 – v1.11    | v2.x          | Site-editor integration                                            |
+| v0.x            | v0.x          | Pre-v1 — no site-editor integration                                |
 
-Bumping the major on either package without bumping the partner is unsupported.
+visual-editor 1.12 declares a Composer conflict with cms-framework older than 2.11, so Composer refuses the unsupported pairing.
 
 ---
 

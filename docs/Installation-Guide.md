@@ -38,7 +38,7 @@ composer require artisanpack-ui/cms-framework
 php artisan migrate
 ```
 
-The two packages ship as a version pair (v1.x ↔ v1.x). See [[home#version-compatibility]] for the support matrix.
+visual-editor 1.12 and later need cms-framework 2.11 or later. See [[home#version-compatibility]] for the support matrix.
 
 You can skip this step — the editor works standalone for the post-editor surface — but you'll have to wire entity blocks (`core/post-*`, `core/site-*`, etc.) and the site-editor entities yourself.
 
