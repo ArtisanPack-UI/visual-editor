@@ -13,6 +13,7 @@
  */
 
 import { InspectorControls } from '@wordpress/block-editor';
+import { getBlockType } from '@wordpress/blocks';
 import { createHigherOrderComponent } from '@wordpress/compose';
 import { addFilter } from '@wordpress/hooks';
 import type { ComponentType } from 'react';
@@ -68,8 +69,22 @@ interface BlockEditProps {
     [key: string]: unknown;
 }
 
-function blockSupports(_name: string, attributes: BlockEditProps['attributes']): boolean {
-    return 'artisanpackVisibility' in attributes;
+/**
+ * Whether the block opted into visibility. Checks the registered
+ * attribute schema, not just the instance: blocks hydrated from an
+ * entity (e.g. `core/navigation-link` items loaded from a
+ * `wp_navigation` menu by the core-data shim) carry their saved
+ * attributes verbatim, so the `default: null` key is absent even
+ * though the block type supports it.
+ */
+function blockSupports(name: string, attributes: BlockEditProps['attributes']): boolean {
+    if ('artisanpackVisibility' in attributes) {
+        return true;
+    }
+
+    const schema = getBlockType(name)?.attributes;
+
+    return schema !== undefined && schema !== null && 'artisanpackVisibility' in schema;
 }
 
 function readRoles(): Array<{ slug: string; label: string }> {

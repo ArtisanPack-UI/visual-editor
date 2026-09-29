@@ -618,3 +618,69 @@ describe( 'navigation tree round-trip — content.blocks ↔ menu_items (#440)',
 		expect( MenuItem::query()->where( 'menu_id', $menu->id )->count() )->toBe( 0 );
 	} );
 } );
+
+describe( 'extension attributes round-trip through block_attributes (#806)', function (): void {
+	it( 'persists artisanpackVisibility from a content.blocks PUT and returns it on GET', function (): void {
+		$menu       = Menu::create( [ 'theme' => 'digital-shopfront', 'slug' => 'primary', 'name' => 'Primary' ] );
+		$visibility = [ 'screenSize' => [ 'direction' => 'hide', 'breakpoints' => [ 'md' ] ] ];
+
+		$putResponse = $this->putJson( "/visual-editor/api/menus/{$menu->id}", [
+			'content' => [
+				'raw'    => '',
+				'blocks' => [
+					navLink( [ 'label' => 'Home', 'url' => '/' ] ),
+					navSubmenu(
+						[ 'label' => 'Products', 'url' => '/products', 'artisanpackVisibility' => $visibility ],
+						[ navLink( [ 'label' => 'Plans', 'url' => '/plans', 'artisanpackVisibility' => $visibility ] ) ],
+					),
+				],
+			],
+		] )->assertOk();
+
+		$rows = MenuItem::query()->where( 'menu_id', $menu->id )->orderBy( 'id' )->get();
+
+		expect( $rows[0]->block_attributes )->toBeNull()
+			->and( $rows[1]->block_attributes )->toBe( [ 'artisanpackVisibility' => $visibility ] )
+			->and( $rows[2]->block_attributes )->toBe( [ 'artisanpackVisibility' => $visibility ] );
+
+		foreach ( [ $putResponse->json( 'content' ), $this->getJson( "/visual-editor/api/menus/{$menu->id}" )->json( 'content' ) ] as $content ) {
+			expect( $content['blocks'][0]['attributes'] )->not->toHaveKey( 'artisanpackVisibility' )
+				->and( $content['blocks'][1]['attributes']['artisanpackVisibility'] )->toBe( $visibility )
+				->and( $content['blocks'][1]['innerBlocks'][0]['attributes']['artisanpackVisibility'] )->toBe( $visibility )
+				->and( $content['raw'] )->toContain( '"artisanpackVisibility"' );
+		}
+	} );
+
+	it( 'persists artisanpackVisibility from a content.raw PUT', function (): void {
+		$menu = Menu::create( [ 'theme' => 'digital-shopfront', 'slug' => 'primary', 'name' => 'Primary' ] );
+
+		$raw = '<!-- wp:navigation-link {"label":"Contact","url":"/contact","artisanpackVisibility":{"screenSize":{"direction":"hide","breakpoints":["md"]}}} /-->';
+
+		$this->putJson( "/visual-editor/api/menus/{$menu->id}", [ 'content' => $raw ] )->assertOk();
+
+		$row = MenuItem::query()->where( 'menu_id', $menu->id )->sole();
+
+		expect( $row->label )->toBe( 'Contact' )
+			->and( $row->block_attributes )->toBe( [
+				'artisanpackVisibility' => [ 'screenSize' => [ 'direction' => 'hide', 'breakpoints' => [ 'md' ] ] ],
+			] );
+	} );
+
+	it( 'clears block_attributes when a later save drops the attribute', function (): void {
+		$menu = Menu::create( [ 'theme' => 'digital-shopfront', 'slug' => 'primary', 'name' => 'Primary' ] );
+
+		$this->putJson( "/visual-editor/api/menus/{$menu->id}", [
+			'content' => [ 'raw' => '', 'blocks' => [
+				navLink( [ 'label' => 'Home', 'artisanpackVisibility' => [ 'screenSize' => [ 'direction' => 'hide', 'breakpoints' => [ 'md' ] ] ] ] ),
+			] ],
+		] )->assertOk();
+
+		$this->putJson( "/visual-editor/api/menus/{$menu->id}", [
+			'content' => [ 'raw' => '', 'blocks' => [
+				navLink( [ 'label' => 'Home', 'artisanpackVisibility' => null ] ),
+			] ],
+		] )->assertOk();
+
+		expect( MenuItem::query()->where( 'menu_id', $menu->id )->sole()->block_attributes )->toBeNull();
+	} );
+} );

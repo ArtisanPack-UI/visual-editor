@@ -253,6 +253,13 @@ The inverse workflow — a "Book a demo" button visible only on desktop
 — uses the same rule with `Show at → Large` + larger breakpoints, or
 `Hide at → Small` + `Medium`.
 
+Links and submenus live in the menu, not in the page's block tree, so
+their visibility settings are saved with the menu item. Menu items
+store every block attribute that has no dedicated column (visibility,
+animations, bindings, and similar) in `menu_items.block_attributes`,
+which requires cms-framework 2.11 or later. Editing the menu from the
+site editor's **Navigation** section keeps those settings intact.
+
 > **Follow-up (v1.x):** a dedicated `overlayInnerBlocks` region on the
 > nav block (Option B in #798) is tracked separately. Until it ships,
 > per-viewport visibility on individual nav children is the supported

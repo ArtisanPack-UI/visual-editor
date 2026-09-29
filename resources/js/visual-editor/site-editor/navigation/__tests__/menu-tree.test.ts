@@ -532,3 +532,81 @@ describe('effectiveLabel', () => {
         expect(effectiveLabel(item)).toBe('/contact');
     });
 });
+
+describe('extension attributes (#806)', () => {
+    const visibility = { screenSize: { direction: 'hide', breakpoints: ['md'] } };
+
+    it('carries attributes without a tree-editor field through read → write', () => {
+        const tree = blocksToMenuTree([
+            {
+                name: 'core/navigation-link',
+                attributes: {
+                    label: 'Contact',
+                    url: '/contact',
+                    kind: 'custom',
+                    artisanpackVisibility: visibility,
+                    metadata: { name: 'CTA' },
+                },
+                innerBlocks: [],
+            },
+        ]);
+
+        expect(tree[0].extraAttributes).toEqual({ artisanpackVisibility: visibility, metadata: { name: 'CTA' } });
+
+        const [block] = menuTreeToBlocks(tree) as Array<{ attributes: Record<string, unknown> }>;
+
+        expect(block.attributes.artisanpackVisibility).toEqual(visibility);
+        expect(block.attributes.metadata).toEqual({ name: 'CTA' });
+        expect(block.attributes.label).toBe('Contact');
+        expect(block.attributes.url).toBe('/contact');
+    });
+
+    it('keeps extension attributes on submenus and their children', () => {
+        const tree = blocksToMenuTree([
+            {
+                name: 'core/navigation-submenu',
+                attributes: { label: 'Products', artisanpackVisibility: visibility },
+                innerBlocks: [
+                    { name: 'core/navigation-link', attributes: { label: 'Plans', artisanpackVisibility: visibility }, innerBlocks: [] },
+                ],
+            },
+        ]);
+
+        const [submenu] = menuTreeToBlocks(tree) as Array<{
+            attributes: Record<string, unknown>;
+            innerBlocks: Array<{ attributes: Record<string, unknown> }>;
+        }>;
+
+        expect(submenu.attributes.artisanpackVisibility).toEqual(visibility);
+        expect(submenu.innerBlocks[0].attributes.artisanpackVisibility).toEqual(visibility);
+    });
+
+    it('keeps extension attributes when the item is edited in the tree editor', () => {
+        const tree = blocksToMenuTree([
+            { name: 'core/navigation-link', attributes: { label: 'Old', url: '/old', artisanpackVisibility: visibility }, innerBlocks: [] },
+        ]);
+
+        const edited = replaceMenuItem(tree, tree[0].localId, (item) => ({ ...item, labelOverride: 'New', url: '/new' }));
+        const [block] = menuTreeToBlocks(edited) as Array<{ attributes: Record<string, unknown> }>;
+
+        expect(block.attributes.label).toBe('New');
+        expect(block.attributes.url).toBe('/new');
+        expect(block.attributes.artisanpackVisibility).toEqual(visibility);
+    });
+
+    it('lets tree-editor fields win over a same-named extra attribute', () => {
+        const item = makeMenuItem({ autoLabel: 'Real', url: '/real', extraAttributes: { label: 'Stale', url: '/stale' } });
+        const [block] = menuTreeToBlocks([item]) as Array<{ attributes: Record<string, unknown> }>;
+
+        expect(block.attributes.label).toBe('Real');
+        expect(block.attributes.url).toBe('/real');
+    });
+
+    it('does not add extraAttributes for mapped attributes, null defaults, or side-channel keys', () => {
+        const tree = blocksToMenuTree([
+            { name: 'core/navigation-link', attributes: { label: 'Home', url: '/', artisanpackVisibility: null, _veVisScope: 've-vis-1' }, innerBlocks: [] },
+        ]);
+
+        expect(tree[0]).not.toHaveProperty('extraAttributes');
+    });
+});

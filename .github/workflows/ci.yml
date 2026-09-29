@@ -36,7 +36,7 @@ jobs:
         # composer.json declares a `path` repository pointing at
         # ../cms-framework for the symlinked dev-app workflow. CI has no
         # sibling checkout, so strip it before `composer install` and let
-        # Composer resolve cms-framework from Packagist via the ^2.0
+        # Composer resolve cms-framework from Packagist via the ^2.11
         # constraint. Tracked in #434.
         run: |
           jq 'del(.repositories)' composer.json > composer.json.tmp

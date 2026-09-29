@@ -156,6 +156,19 @@ export function stampVisibilityScopes(tree: Block[]): { tree: Block[]; css: stri
     return { tree: walk(tree), css: css.join('') };
 }
 
+/**
+ * Blocks whose renderer emits a single `<li>` root. They render directly
+ * inside a `<ul>` / `<ol>`, where the `<div>` scope wrapper is
+ * non-conforming HTML (#806), so `BlockTree` merges the `_veVisScope`
+ * class into the block's own `className` instead of wrapping it.
+ */
+export const LIST_ITEM_BLOCKS: ReadonlySet<string> = new Set([
+    'core/navigation-link',
+    'core/navigation-submenu',
+    'core/list-item',
+    'artisanpack/list-item',
+]);
+
 function attributesOf(block: Block): Record<string, unknown> | null {
     if (block === null || typeof block !== 'object') {
         return null;

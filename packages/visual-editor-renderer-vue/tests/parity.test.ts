@@ -119,6 +119,31 @@ const FIXTURES: Array<{ name: string; tree: Block[] }> = [
         ],
     },
     {
+        name: 'list and navigation items with a screen-size visibility scope',
+        tree: [
+            makeBlock(
+                'core/list',
+                { ordered: false },
+                [
+                    makeBlock('core/list-item', { content: 'One' }, [], 'li-1'),
+                    makeBlock('core/list-item', { content: 'Two', className: 'is-featured', _veHiddenBreakpoints: ['md'] }, [], 'li-2'),
+                ],
+                'list-1'
+            ),
+            makeBlock(
+                'core/navigation',
+                {},
+                [
+                    makeBlock('core/navigation-link', { label: 'Contact', url: '/contact', _veHiddenBreakpoints: ['md'] }, [], 'nav-link-1'),
+                    makeBlock('core/navigation-submenu', { label: 'Products', url: '/products', _veHiddenBreakpoints: ['lg'] }, [
+                        makeBlock('core/navigation-link', { label: 'Plans', url: '/plans' }, [], 'nav-link-2'),
+                    ], 'nav-submenu-1'),
+                ],
+                'nav-1'
+            ),
+        ],
+    },
+    {
         name: 'ordered list with start + reversed',
         tree: [
             makeBlock(

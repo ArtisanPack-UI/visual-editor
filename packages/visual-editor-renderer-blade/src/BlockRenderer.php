@@ -858,12 +858,169 @@ class BlockRenderer
 			return $html;
 		}
 
+		$mergedListItem = $this->mergeScopeIntoListItem( $html, $scopeClass, $css );
+
+		if ( null !== $mergedListItem ) {
+			return $mergedListItem;
+		}
+
 		return sprintf(
 			'<div class="%s" data-ve-vis-scope>%s<style>%s</style></div>',
 			$scopeClass,
 			$html,
 			$css
 		);
+	}
+
+	/**
+	 * Stamp the visibility scope onto a block whose markup is a single
+	 * `<li>` root instead of wrapping it in a `<div>`.
+	 *
+	 * List-item blocks (`core/navigation-link`, `core/navigation-submenu`,
+	 * `core/list-item`, …) render inside a `<ul>` / `<ol>`, where a
+	 * `<div>` wrapper is non-conforming and breaks list semantics for
+	 * assistive tech. The scope class and `data-ve-vis-scope` marker are
+	 * merged onto the `<li>`'s opening tag, and the `<style>` rules are
+	 * placed inside it as its last child.
+	 *
+	 * @since 1.12.0
+	 *
+	 * @param  string  $html        The rendered block markup.
+	 * @param  string  $scopeClass  The per-block `ve-vis-N` scope class.
+	 * @param  string  $css         The `@media` rules targeting the scope class.
+	 *
+	 * @return string|null The merged markup, or null when the markup is not a single `<li>` root.
+	 */
+	protected function mergeScopeIntoListItem( string $html, string $scopeClass, string $css ): ?string
+	{
+		$trimmed = trim( $html );
+
+		if ( 1 !== preg_match( '/^<li(?=[\s>\/])/i', $trimmed ) ) {
+			return null;
+		}
+
+		if ( 1 !== preg_match( '/<\/li\s*>$/i', $trimmed, $closeTag ) ) {
+			return null;
+		}
+
+		// Walk every `<li` / `</li` token so a run of sibling `<li>`s
+		// (`<li>a</li><li>b</li>`) is rejected: the depth may only
+		// return to zero on the final closing tag.
+		preg_match_all( '/<(\/?)li(?=[\s>\/])/i', $trimmed, $tokens, PREG_SET_ORDER );
+
+		$depth     = 0;
+		$lastIndex = count( $tokens ) - 1;
+
+		foreach ( $tokens as $index => $token ) {
+			$depth += '/' === $token[1] ? -1 : 1;
+
+			if ( 0 === $depth && $index !== $lastIndex ) {
+				return null;
+			}
+		}
+
+		if ( 0 !== $depth ) {
+			return null;
+		}
+
+		$openTag = $this->parseOpeningTagAttributes( $trimmed, 3 );
+
+		if ( null === $openTag ) {
+			return null;
+		}
+
+		$attributes = '';
+		$classFound = false;
+
+		foreach ( $openTag['attributes'] as $attribute ) {
+			// Browsers keep only the first `class` attribute, so the scope
+			// is merged into that one and any duplicates pass through.
+			if ( ! $classFound && 'class' === strtolower( $attribute['name'] ) ) {
+				$classFound  = true;
+				$attributes .= sprintf(
+					' class="%s"',
+					str_replace( '"', '&quot;', trim( $attribute['value'] . ' ' . $scopeClass ) )
+				);
+
+				continue;
+			}
+
+			$attributes .= ' ' . $attribute['raw'];
+		}
+
+		if ( ! $classFound ) {
+			$attributes .= sprintf( ' class="%s"', $scopeClass );
+		}
+
+		$inner = substr( $trimmed, $openTag['end'] + 1, -strlen( $closeTag[0] ) );
+
+		return sprintf(
+			'<li%s data-ve-vis-scope>%s<style>%s</style>%s',
+			$attributes,
+			$inner,
+			$css,
+			$closeTag[0]
+		);
+	}
+
+	/**
+	 * Tokenize the attributes of an opening tag, starting just after
+	 * its tag name. Quoted values may contain `>` and whitespace, and
+	 * unquoted values are supported, per the HTML attribute syntax.
+	 *
+	 * @since 1.12.0
+	 *
+	 * @param  string  $html    Markup that starts with the opening tag.
+	 * @param  int     $offset  Offset of the first byte after the tag name.
+	 *
+	 * @return array{attributes: array<int, array{name: string, value: string, raw: string}>, end: int}|null
+	 *         The attributes in source order and the offset of the tag's closing `>`, or null when the tag is malformed.
+	 */
+	protected function parseOpeningTagAttributes( string $html, int $offset ): ?array
+	{
+		$attributes = [];
+		$length     = strlen( $html );
+		$position   = $offset;
+
+		while ( $position < $length ) {
+			$position += strspn( $html, " \t\n\r\f/", $position );
+
+			if ( $position >= $length ) {
+				return null;
+			}
+
+			if ( '>' === $html[ $position ] ) {
+				return [
+					'attributes' => $attributes,
+					'end'        => $position,
+				];
+			}
+
+			$matched = preg_match(
+				'/\G([^\s"\'>\/=]+)(?:\s*=\s*("[^"]*"|\'[^\']*\'|[^\s"\'=<>`]+))?/',
+				$html,
+				$match,
+				0,
+				$position
+			);
+
+			if ( 1 !== $matched ) {
+				return null;
+			}
+
+			$rawValue = $match[2] ?? '';
+			$quote    = '' === $rawValue ? '' : $rawValue[0];
+
+			$attributes[] = [
+				'name'  => $match[1],
+				'value' => '"' === $quote || "'" === $quote ? substr( $rawValue, 1, -1 ) : $rawValue,
+				'raw'   => $match[0],
+			];
+
+			$position += strlen( $match[0] );
+		}
+
+		return null;
 	}
 
 	/**

@@ -38,10 +38,17 @@
  *   | `attributes.kind`                      | `kind`                        |
  *   | `attributes.type`                      | `object_type`                 |
  *   | `attributes.id`                        | `object_id`                   |
+ *   | every other non-null attribute         | `block_attributes` (JSON)     |
  *   | `innerBlocks` (recursive)              | `parent_id` + sibling index   |
  *
- * `description` has no representation in the block wire shape, so it is
- * neither read into nor written from blocks.
+ * `block_attributes` (cms-framework 2.11+) keeps attributes without a
+ * dedicated column — `artisanpackVisibility`, `artisanpackAnimations`,
+ * `metadata.bindings`, … — so they survive a save. Renderer side-channel
+ * keys (leading `_`, e.g. `_veHidden`) are never stored. On read the
+ * mapped columns win over a same-named key in `block_attributes`.
+ *
+ * The `description` column has no representation in the block wire
+ * shape, so it is neither read into nor written from blocks.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor
@@ -66,6 +73,25 @@ class MenuItemBlockBridge
 	 * @since 1.0.0
 	 */
 	public const NAV_SUBMENU = 'core/navigation-submenu';
+
+	/**
+	 * Block attributes that map onto a dedicated `menu_items` column and
+	 * therefore never go into `block_attributes`.
+	 *
+	 * @since 1.12.0
+	 *
+	 * @var array<int, string>
+	 */
+	protected const COLUMN_ATTRIBUTES = [
+		'label',
+		'url',
+		'opensInNewTab',
+		'rel',
+		'className',
+		'kind',
+		'type',
+		'id',
+	];
 
 	/**
 	 * Read path — project a flat list of `MenuItem` rows into a nested
@@ -561,7 +587,59 @@ class MenuItemBlockBridge
 			$attributes['rel'] = (string) $item->rel;
 		}
 
-		return $attributes;
+		return [
+			...$this->storableExtraAttributes( $this->decodeBlockAttributes( $item->block_attributes ?? null ) ),
+			...$attributes,
+		];
+	}
+
+	/**
+	 * Normalize a row's `block_attributes` value into an array. The
+	 * cms-framework model casts the column to an array; a raw query
+	 * result or a hand-built row may still carry the JSON string.
+	 *
+	 * @since 1.12.0
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function decodeBlockAttributes( mixed $value ): array
+	{
+		if ( is_string( $value ) && '' !== $value ) {
+			$value = json_decode( $value, true );
+		}
+
+		return is_array( $value ) ? $value : [];
+	}
+
+	/**
+	 * Filter a block's attributes down to the ones that belong in the
+	 * `block_attributes` column: anything without a dedicated column,
+	 * minus `null` values (unset attribute defaults) and renderer
+	 * side-channel keys (leading `_`).
+	 *
+	 * @since 1.12.0
+	 *
+	 * @param  array<array-key, mixed>  $attributes
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function storableExtraAttributes( array $attributes ): array
+	{
+		$extra = [];
+
+		foreach ( $attributes as $key => $value ) {
+			if ( ! is_string( $key ) || '' === $key || str_starts_with( $key, '_' ) ) {
+				continue;
+			}
+
+			if ( null === $value || in_array( $key, self::COLUMN_ATTRIBUTES, true ) ) {
+				continue;
+			}
+
+			$extra[ $key ] = $value;
+		}
+
+		return $extra;
 	}
 
 	/**
@@ -577,7 +655,7 @@ class MenuItemBlockBridge
 	 */
 	protected function blockAttributesToRow( array $attributes, bool $hasChildren ): array
 	{
-		return [
+		$row = [
 			'type'        => $hasChildren ? 'submenu' : 'link',
 			'label'       => (string) ( $attributes['label'] ?? '' ),
 			'url'         => $this->nullableString( $attributes['url'] ?? null ),
@@ -588,6 +666,17 @@ class MenuItemBlockBridge
 			'object_type' => $this->nullableString( $attributes['type'] ?? null ),
 			'object_id'   => $this->nullableId( $attributes['id'] ?? null ),
 		];
+
+		// Only emitted when there is something to keep, so menus without
+		// extension attributes still save against a cms-framework install
+		// that predates the `block_attributes` column.
+		$extra = $this->storableExtraAttributes( $attributes );
+
+		if ( [] !== $extra ) {
+			$row['block_attributes'] = $extra;
+		}
+
+		return $row;
 	}
 
 	/**

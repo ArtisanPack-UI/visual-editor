@@ -38,6 +38,7 @@ import type { PatternRecord } from './patterns';
 import { inlineQueries } from './queries';
 import type { ResolvedQuery } from './queries';
 import { getBlockRenderer } from './registry';
+import { attrString, classList } from './support/attributes';
 import { inlineSiteMeta } from './siteMeta';
 import type { SiteMeta } from './siteMeta';
 import {
@@ -45,7 +46,7 @@ import {
     inlineTemplateParts,
 } from './templateParts';
 import type { TemplatePartRecord } from './templateParts';
-import { filterVisibleBlocks, stampVisibilityScopes } from './visibility';
+import { LIST_ITEM_BLOCKS, filterVisibleBlocks, stampVisibilityScopes } from './visibility';
 import type { Block } from './types';
 
 const DEFAULT_ENDPOINT = '/visual-editor/api/blocks/preview';
@@ -342,13 +343,23 @@ function renderBlock(
 
     const renderer = getBlockRenderer(name);
 
+    // Visibility screen-size scope class stamped by
+    // `stampVisibilityScopes()`. List-item blocks take it on their own
+    // `<li>` (a `<div>` wrapper inside a `<ul>` is invalid HTML, #806);
+    // everything else gets the display-contents wrapper below.
+    const scope = typeof attributes._veVisScope === 'string' ? attributes._veVisScope : '';
+    const mergeScopeIntoRoot = scope !== '' && renderer !== undefined && LIST_ITEM_BLOCKS.has(name);
+    const rendererAttributes = mergeScopeIntoRoot
+        ? { ...attributes, className: classList([attrString(attributes.className), scope]) }
+        : attributes;
+
     const element = renderer !== undefined
         ? h(
             renderer,
             {
                 key,
                 name,
-                attributes,
+                attributes: rendererAttributes,
                 innerBlocks,
             },
             renderedChildren.length === 0
@@ -363,13 +374,10 @@ function renderBlock(
             fetchOptions,
         });
 
-    // Visibility screen-size scope class stamped by
-    // `stampVisibilityScopes()`. `display:contents` keeps the wrapper
-    // out of the layout in the common case; the `@media` rule
-    // overrides with `display:none !important` when the viewport
-    // matches.
-    const scope = attributes._veVisScope;
-    if (typeof scope === 'string' && scope !== '') {
+    // `display:contents` keeps the wrapper out of the layout in the
+    // common case; the `@media` rule overrides with
+    // `display:none !important` when the viewport matches.
+    if (scope !== '' && !mergeScopeIntoRoot) {
         return h(
             'div',
             { key, class: scope, 'data-ve-vis-scope': '', style: { display: 'contents' } },

@@ -38,6 +38,7 @@ import type { PatternRecord } from './patterns';
 import { inlineQueries } from './queries';
 import type { ResolvedQuery } from './queries';
 import { getBlockRenderer } from './registry';
+import { attrString, classList } from './support/attributes';
 import { inlineSiteMeta } from './siteMeta';
 import type { SiteMeta } from './siteMeta';
 import {
@@ -45,7 +46,7 @@ import {
     inlineTemplateParts,
 } from './templateParts';
 import type { TemplatePartRecord } from './templateParts';
-import { filterVisibleBlocks, stampVisibilityScopes } from './visibility';
+import { LIST_ITEM_BLOCKS, filterVisibleBlocks, stampVisibilityScopes } from './visibility';
 import type { Block } from './types';
 
 const DEFAULT_ENDPOINT = '/visual-editor/api/blocks/preview';
@@ -197,7 +198,7 @@ export function BlockTree({
                 <style data-ve-flex-arbitrary>{flexArbitraryCss}</style>
             )}
             {visibilityCss !== '' && (
-                <style data-ve-visibility>{visibilityCss}</style>
+                <style data-ve-visibility="">{visibilityCss}</style>
             )}
             {columnWidthCss !== '' && (
                 // Explicit empty-string value so React's SSR serialization
@@ -287,12 +288,22 @@ function renderBlock(
 
     const Renderer = getBlockRenderer(name);
 
+    // Visibility screen-size scope class stamped by
+    // `stampVisibilityScopes()`. List-item blocks take it on their own
+    // `<li>` (a `<div>` wrapper inside a `<ul>` is invalid HTML, #806);
+    // everything else gets the display-contents wrapper below.
+    const scope = typeof attributes._veVisScope === 'string' ? attributes._veVisScope : '';
+    const mergeScopeIntoRoot = scope !== '' && Renderer !== undefined && LIST_ITEM_BLOCKS.has(name);
+    const rendererAttributes = mergeScopeIntoRoot
+        ? { ...attributes, className: classList([attrString(attributes.className), scope]) }
+        : attributes;
+
     const element = Renderer !== undefined
         ? (
             <Renderer
                 key={key}
                 name={name}
-                attributes={attributes}
+                attributes={rendererAttributes}
                 innerBlocks={innerBlocks}
             >
                 {renderedChildren === null ? null : <Fragment>{renderedChildren}</Fragment>}
@@ -308,16 +319,14 @@ function renderBlock(
             />
         );
 
-    // Visibility screen-size scope class stamped by
-    // `stampVisibilityScopes()`. Wrap in a display-contents div so
-    // the emitted `@media (min-width:X) and (max-width:Y-1)` rules
-    // can hide the whole block without perturbing flex / grid parent
-    // layout in the common case (display:none still overrides
-    // display:contents when the rule fires).
-    const scope = attributes._veVisScope;
-    if (typeof scope === 'string' && scope !== '') {
+    // Wrap in a display-contents div so the emitted
+    // `@media (min-width:X) and (max-width:Y-1)` rules can hide the
+    // whole block without perturbing flex / grid parent layout in the
+    // common case (display:none still overrides display:contents when
+    // the rule fires).
+    if (scope !== '' && !mergeScopeIntoRoot) {
         return (
-            <div key={key} className={scope} data-ve-vis-scope style={{ display: 'contents' }}>
+            <div key={key} className={scope} data-ve-vis-scope="" style={{ display: 'contents' }}>
                 {element}
             </div>
         );

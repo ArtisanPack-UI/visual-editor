@@ -99,13 +99,14 @@ export function ListBlock({ attributes, children }: BlockRendererProps): JSX.Ele
 
 export function ListItemBlock({ attributes, children }: BlockRendererProps): JSX.Element {
     const content = attrString(attributes.content);
+    const className = classList([attrString(attributes.className)]) || undefined;
 
     if (children === null || children === undefined) {
-        return <li dangerouslySetInnerHTML={{ __html: content }} />;
+        return <li className={className} dangerouslySetInnerHTML={{ __html: content }} />;
     }
 
     return (
-        <li>
+        <li className={className}>
             <span dangerouslySetInnerHTML={{ __html: content }} />
             {children}
         </li>
