@@ -8,7 +8,7 @@ import {
     MISSING_RECORD_MARKER,
     RestRequestError,
     SITE_ENTITY_ID,
-    __flushPendingEntityRecordSaves,
+    __cancelPendingEntityRecordSaves,
     __resetCoreDataShimConfig,
     __treeShapesAlign,
     configureCoreDataShim,
@@ -2121,7 +2121,7 @@ describe('core-data-shim hooks', () => {
         expect(edited.content?.blocks).toHaveLength(1);
 
         // Drain the trailing-edge save so it does not fire after the test.
-        __flushPendingEntityRecordSaves();
+        __cancelPendingEntityRecordSaves();
     });
 
     it('useEntityBlockEditor debounces trailing-edge PUT to the entity endpoint (issue #808)', async () => {
@@ -2202,7 +2202,7 @@ describe('core-data-shim hooks', () => {
             };
             expect(body.content?.blocks).toHaveLength(1);
         } finally {
-            __flushPendingEntityRecordSaves();
+            __cancelPendingEntityRecordSaves();
             vi.useRealTimers();
         }
     });
@@ -2261,7 +2261,7 @@ describe('core-data-shim hooks', () => {
                 (JSON.parse(String(puts[0].init.body)) as { title?: unknown }).title,
             ).toBe('Renamed');
         } finally {
-            __flushPendingEntityRecordSaves();
+            __cancelPendingEntityRecordSaves();
             vi.useRealTimers();
         }
     });
@@ -2353,7 +2353,7 @@ describe('core-data-shim hooks', () => {
 
             expect(calls.filter((c) => c.init.method === 'PUT')).toHaveLength(0);
         } finally {
-            __flushPendingEntityRecordSaves();
+            __cancelPendingEntityRecordSaves();
             vi.useRealTimers();
         }
     });
