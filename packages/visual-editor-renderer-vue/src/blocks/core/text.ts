@@ -119,13 +119,15 @@ export const ListItemBlock = defineComponent({
     setup(props, { slots }) {
         return () => {
             const content = attrString(props.attributes.content);
+            const className = classList([attrString(props.attributes.className)]);
+            const liProps = className === '' ? {} : { class: className };
             const children = slots.default ? slots.default() : [];
 
             if (children.length === 0) {
-                return h('li', { innerHTML: content });
+                return h('li', { ...liProps, innerHTML: content });
             }
 
-            return h('li', null, [h('span', { innerHTML: content }), ...children]);
+            return h('li', liProps, [h('span', { innerHTML: content }), ...children]);
         };
     },
 });

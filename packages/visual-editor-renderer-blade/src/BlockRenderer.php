@@ -858,11 +858,97 @@ class BlockRenderer
 			return $html;
 		}
 
+		$mergedListItem = $this->mergeScopeIntoListItem( $html, $scopeClass, $css );
+
+		if ( null !== $mergedListItem ) {
+			return $mergedListItem;
+		}
+
 		return sprintf(
 			'<div class="%s" data-ve-vis-scope>%s<style>%s</style></div>',
 			$scopeClass,
 			$html,
 			$css
+		);
+	}
+
+	/**
+	 * Stamp the visibility scope onto a block whose markup is a single
+	 * `<li>` root instead of wrapping it in a `<div>`.
+	 *
+	 * List-item blocks (`core/navigation-link`, `core/navigation-submenu`,
+	 * `core/list-item`, …) render inside a `<ul>` / `<ol>`, where a
+	 * `<div>` wrapper is non-conforming and breaks list semantics for
+	 * assistive tech. The scope class and `data-ve-vis-scope` marker are
+	 * merged onto the `<li>`'s opening tag, and the `<style>` rules are
+	 * placed inside it as its last child.
+	 *
+	 * @since 1.12.0
+	 *
+	 * @param  string  $html        The rendered block markup.
+	 * @param  string  $scopeClass  The per-block `ve-vis-N` scope class.
+	 * @param  string  $css         The `@media` rules targeting the scope class.
+	 *
+	 * @return string|null The merged markup, or null when the markup is not a single `<li>` root.
+	 */
+	protected function mergeScopeIntoListItem( string $html, string $scopeClass, string $css ): ?string
+	{
+		$trimmed = trim( $html );
+
+		if ( 1 !== preg_match( '/^<li(?=[\s>])([^>]*)>/i', $trimmed, $openTag ) ) {
+			return null;
+		}
+
+		if ( 1 !== preg_match( '/<\/li\s*>$/i', $trimmed, $closeTag ) ) {
+			return null;
+		}
+
+		// Walk every `<li>` / `</li>` token so a run of sibling `<li>`s
+		// (`<li>a</li><li>b</li>`) is rejected: the depth may only
+		// return to zero on the final closing tag.
+		preg_match_all( '/<(\/?)li(?=[\s>])[^>]*>/i', $trimmed, $tokens, PREG_SET_ORDER );
+
+		$depth     = 0;
+		$lastIndex = count( $tokens ) - 1;
+
+		foreach ( $tokens as $index => $token ) {
+			$depth += '/' === $token[1] ? -1 : 1;
+
+			if ( 0 === $depth && $index !== $lastIndex ) {
+				return null;
+			}
+		}
+
+		if ( 0 !== $depth ) {
+			return null;
+		}
+
+		$attributes = preg_replace_callback(
+			'/(\sclass\s*=\s*)(["\'])(.*?)\2/is',
+			static fn ( array $match ): string => sprintf(
+				'%s%s%s%s',
+				$match[1],
+				$match[2],
+				trim( $match[3] . ' ' . $scopeClass ),
+				$match[2]
+			),
+			$openTag[1],
+			1,
+			$classCount
+		);
+
+		if ( 0 === $classCount ) {
+			$attributes .= sprintf( ' class="%s"', $scopeClass );
+		}
+
+		$inner = substr( $trimmed, strlen( $openTag[0] ), -strlen( $closeTag[0] ) );
+
+		return sprintf(
+			'<li%s data-ve-vis-scope>%s<style>%s</style>%s',
+			$attributes,
+			$inner,
+			$css,
+			$closeTag[0]
 		);
 	}
 

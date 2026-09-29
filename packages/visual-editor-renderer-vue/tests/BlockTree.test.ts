@@ -10,6 +10,7 @@ import {
     unregisterBlockRenderer,
 } from '../src/registry';
 import { registerCoreBlocks } from '../src/blocks/registerCoreBlocks';
+import { setBreakpoints } from '../src/visibility';
 import { makeBlock, normalizeHtml } from './helpers';
 import type { Block } from '../src/types';
 
@@ -1446,5 +1447,71 @@ describe('Registry + dynamic fallback', () => {
         } finally {
             vi.unstubAllGlobals();
         }
+    });
+});
+describe('Visibility scope on list-item blocks (#806)', () => {
+    beforeEach(() => {
+        setBreakpoints([
+            { key: 'sm', minWidthPx: 640 },
+            { key: 'md', minWidthPx: 768 },
+            { key: 'lg', minWidthPx: 1024 },
+        ]);
+    });
+
+    function listChildTagNames(html: string): string[] {
+        const doc = new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html');
+
+        return Array.from(doc.querySelectorAll('ul, ol')).flatMap((list) =>
+            Array.from(list.children).map((child) => child.tagName.toLowerCase())
+        );
+    }
+
+    it('merges the scope class onto a navigation-link <li> instead of wrapping it in a <div>', () => {
+        const html = renderTree([
+            makeBlock('core/navigation', {}, [
+                makeBlock('core/navigation-link', { label: 'Home', url: '/' }),
+                makeBlock('core/navigation-link', { label: 'Contact', url: '/contact', _veHiddenBreakpoints: ['md'] }),
+            ]),
+        ]);
+
+        expect(html).not.toContain('data-ve-vis-scope');
+        expect(html).toMatch(/<li class="[^"]*wp-block-navigation-link[^"]*\bve-vis-\d+"/);
+        expect(new Set(listChildTagNames(html))).toEqual(new Set(['li']));
+    });
+
+    it('merges the scope class onto a navigation-submenu <li>', () => {
+        const html = renderTree([
+            makeBlock('core/navigation', {}, [
+                makeBlock('core/navigation-submenu', { label: 'Products', url: '/products', _veHiddenBreakpoints: ['md'] }, [
+                    makeBlock('core/navigation-link', { label: 'Plans', url: '/plans' }),
+                ]),
+            ]),
+        ]);
+
+        expect(html).not.toContain('data-ve-vis-scope');
+        expect(html).toMatch(/<li class="[^"]*wp-block-navigation-submenu[^"]*\bve-vis-\d+"/);
+        expect(new Set(listChildTagNames(html))).toEqual(new Set(['li']));
+    });
+
+    it('merges the scope class onto a list-item <li>, keeping any custom className', () => {
+        const html = renderTree([
+            makeBlock('core/list', {}, [
+                makeBlock('core/list-item', { content: 'First' }),
+                makeBlock('core/list-item', { content: 'Second', className: 'is-featured', _veHiddenBreakpoints: ['md'] }),
+            ]),
+        ]);
+
+        expect(html).not.toContain('data-ve-vis-scope');
+        expect(html).toContain('<li>First</li>');
+        expect(html).toMatch(/<li class="is-featured ve-vis-\d+">Second<\/li>/);
+        expect(new Set(listChildTagNames(html))).toEqual(new Set(['li']));
+    });
+
+    it('keeps the display-contents <div> wrapper for non-list-item blocks', () => {
+        const html = renderTree([
+            makeBlock('core/paragraph', { content: 'Hello', _veHiddenBreakpoints: ['md'] }),
+        ]);
+
+        expect(html).toMatch(/<div class="ve-vis-\d+" data-ve-vis-scope="[^"]*" style="display: contents;"><p class="wp-block-paragraph">Hello<\/p><\/div>/);
     });
 });
