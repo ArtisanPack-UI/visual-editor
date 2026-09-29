@@ -14,6 +14,11 @@ import metadata from './block.json';
 import edit from './edit';
 import save from './save';
 
+// #814 — the block-gap default applies to the live `core/navigation`
+// block this stub migrates to; it rides along here so the auto-discovered
+// block stylesheets carry it into both canvas surfaces.
+import './navigation.css';
+
 export { edit, save, metadata };
 
 export default {

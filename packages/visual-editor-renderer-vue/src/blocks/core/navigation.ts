@@ -8,6 +8,7 @@
 import { defineComponent, h } from 'vue';
 import type { VNode } from 'vue';
 import { attrBoolean, attrString, classList } from '../../support/attributes';
+import { applyBlockGap, hasBlockGapStyle } from '../../support/blockGap';
 import { safeUrl } from '../../support/urlSanitizer';
 import { blockRendererProps } from '../shared';
 
@@ -31,10 +32,19 @@ export const NavigationBlock = defineComponent({
                 className,
             ]);
 
-            const navProps: Record<string, string> = { class: classes };
+            const navProps: Record<string, unknown> = { class: classes };
 
             if (ariaLabel !== '') {
                 navProps['aria-label'] = ariaLabel;
+            }
+
+            // #814 — Block spacing. The stylesheet turns the custom
+            // property into the items' `gap`; mirrors
+            // `BlockSupports::applySpacing()`.
+            const blockGapStyle = applyBlockGap(props.attributes);
+
+            if (hasBlockGapStyle(blockGapStyle)) {
+                navProps.style = blockGapStyle;
             }
 
             const children: VNode[] = slots.default ? (slots.default() as VNode[]) : [];

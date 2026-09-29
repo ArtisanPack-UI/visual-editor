@@ -38,6 +38,7 @@ namespace ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor;
 use ArtisanPackUI\VisualEditor\Fonts\Services\FontsCssGenerator;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\UpdateGlobalStylesRequest;
 use ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\SiteEditor\GlobalStylesAdapter;
+use ArtisanPackUI\VisualEditor\Resources\PresetRegistry;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\GlobalStylesResolver;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedGlobalStyles;
 use Illuminate\Database\QueryException;
@@ -304,6 +305,15 @@ class GlobalStylesController extends Controller
 
 		$readerFqcn = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Support\\ThemeStylesheetReader';
 		$parts      = [ rtrim( $emitted ) ];
+
+		// #814 — declare every spacing preset the editor's pickers offer
+		// (package defaults when the theme ships no `spacingSizes`, plus
+		// host presets) alongside the emitter's tokens, before the theme
+		// stylesheets so they can consume or override them. Skipped when
+		// the emitter produced nothing (no active theme).
+		if ( '' !== $parts[0] ) {
+			$parts[] = PresetRegistry::spacingPresetsCss( PresetRegistry::activeThemeSpacingSizes() );
+		}
 
 		// #632 — enqueue the Font Library's generated bundle into the canvas
 		// iframe. Placed after the emitter's `--wp--preset--*` root block but

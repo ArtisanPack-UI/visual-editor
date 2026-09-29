@@ -80,6 +80,10 @@ vi.mock('../navigation/navigation-section', () => ({
     default: (): JSX.Element => <div />,
 }));
 
+vi.mock('../../editor/navigation-block-gap', () => ({
+    registerNavigationBlockGap: vi.fn(),
+}));
+
 vi.mock('../../editor/synced-pattern-indicator', () => ({
     registerSyncedPatternIndicator: vi.fn(),
 }));
@@ -185,6 +189,7 @@ describe('site-editor boot parity (#799)', () => {
         const dynamicContent = await import('../../dynamic-content');
         const dynamicLink = await import('../../formats/dynamic-link/register');
         const contrastWarning = await import('../../editor/contrast-warning');
+        const navigationBlockGap = await import('../../editor/navigation-block-gap');
 
         render(<SiteEditorApp routeBase={ROUTE_BASE} apiBase="/visual-editor/api" />);
 
@@ -200,5 +205,7 @@ describe('site-editor boot parity (#799)', () => {
             contrastWarning.disableContrastCheckerOnBlocks
         ).toHaveBeenCalledTimes(1);
         expect(contrastWarning.registerContrastWarning).toHaveBeenCalledTimes(1);
+        // #814 — the inline canvas needs the nav block-gap filter too.
+        expect(navigationBlockGap.registerNavigationBlockGap).toHaveBeenCalledTimes(1);
     });
 });

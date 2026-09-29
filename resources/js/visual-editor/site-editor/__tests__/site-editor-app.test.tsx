@@ -207,6 +207,10 @@ vi.mock('../navigation/navigation-section', () => {
     };
 });
 
+vi.mock('../../editor/navigation-block-gap', () => ({
+    registerNavigationBlockGap: () => undefined,
+}));
+
 vi.mock('../../editor/synced-pattern-indicator', () => ({
     registerSyncedPatternIndicator: () => undefined,
 }));

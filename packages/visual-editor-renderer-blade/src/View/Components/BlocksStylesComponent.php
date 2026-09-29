@@ -97,6 +97,8 @@ class BlocksStylesComponent extends Component
 
 	public string $themeTokensCss;
 
+	public string $spacingPresetsCss;
+
 	/**
 	 * @param  ThemeJsonTokensCompiler  $compiler  Injected — see provider binding.
 	 * @param  array<string, mixed>|null  $themeJson  Optional theme.json payload to compile.
@@ -137,6 +139,7 @@ class BlocksStylesComponent extends Component
 		$this->emitBlockLibrary       = $bundle;
 		$this->emitInteractive        = $interactive;
 		$this->themeTokensCss         = null === $themeJson ? '' : $this->compiler->compile( $themeJson );
+		$this->spacingPresetsCss      = $this->compiler->compileSpacingPresets( $themeJson );
 	}
 
 	public function render(): View

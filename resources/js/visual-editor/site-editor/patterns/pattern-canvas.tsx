@@ -31,6 +31,7 @@ import {
 } from '../../editor-settings';
 import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { CanvasThemeStyles } from '../canvas-theme-styles';
+import { SpacingPresetStyles } from '../../editor/spacing-preset-styles';
 
 import './pattern-canvas.css';
 
@@ -138,6 +139,8 @@ export function PatternCanvas(props: PatternCanvasProps): JSX.Element {
                     <style>{ALIGNMENT_OVERRIDE_STYLES}</style>
                     {/* Keystone #47: theme CSS inlined after defaults so it wins on cascade. */}
                     <CanvasThemeStyles apiBase={apiBase} />
+                    {/* #814: spacing presets in effect, after the theme sheet. */}
+                    <SpacingPresetStyles />
                     <BlockTools>
                         <WritingFlow>
                             <ObserveTyping>

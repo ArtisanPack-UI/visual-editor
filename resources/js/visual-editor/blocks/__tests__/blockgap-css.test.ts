@@ -28,4 +28,10 @@ describe('blockGap gap rules', () => {
         expect(css).toContain('.ap-grid');
         expect(css).toContain('gap: var(--wp--style--block-gap, 1.5rem)');
     });
+
+    it('navigation.css materializes blockGap as a zero-specificity gap with the 0.5em default (#814)', () => {
+        const css = readCss('../navigation/navigation.css');
+        expect(css).toContain(':where(.wp-block-navigation)');
+        expect(css).toContain('gap: var(--wp--style--block-gap, 0.5em)');
+    });
 });
