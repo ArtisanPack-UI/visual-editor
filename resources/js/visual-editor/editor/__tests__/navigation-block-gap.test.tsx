@@ -114,6 +114,24 @@ describe('registerNavigationBlockGap', () => {
         expect(received.wrapperProps?.style?.gap).toBe('var(--wp--preset--spacing--40)');
     });
 
+    it('kebab-cases underscored preset slugs to match the declared properties', async () => {
+        const single = await renderFiltered({
+            name: 'core/navigation',
+            attributes: { style: { spacing: { blockGap: 'var:preset|spacing|big_gap' } } },
+        });
+
+        expect(single.wrapperProps?.style?.gap).toBe('var(--wp--preset--spacing--big-gap)');
+
+        const axes = await renderFiltered({
+            name: 'core/navigation',
+            attributes: {
+                style: { spacing: { blockGap: { top: 'var:preset|spacing|big_gap', left: '2rem' } } },
+            },
+        });
+
+        expect(axes.wrapperProps?.style?.gap).toBe('var(--wp--preset--spacing--big-gap) 2rem');
+    });
+
     it('combines a per-axis value into a row / column gap, defaulting the missing axis', async () => {
         const both = await renderFiltered({
             name: 'core/navigation',

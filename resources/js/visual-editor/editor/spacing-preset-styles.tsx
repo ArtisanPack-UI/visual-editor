@@ -41,10 +41,13 @@ const ORIGINS = ['default', 'theme', 'custom'] as const;
 const UNSAFE_VALUE = /[;{}<>\\]|\/\*|\*\//;
 
 /**
- * Mirrors `ThemeJsonTokensCompiler::slug()` on the Blade side so both
- * surfaces produce the same custom-property names.
+ * Normalise a spacing preset slug into its custom-property segment.
+ * Mirrors `ThemeJsonTokensCompiler::slug()` on the Blade side and the
+ * kebab-casing Gutenberg's style engine applies to padding / margin
+ * presets (`big_gap` → `big-gap`), so every surface names the property
+ * the same way.
  */
-function slugify(value: string): string {
+export function spacingPresetSlug(value: string): string {
     return value.toLowerCase().replace(/[^a-z0-9-]/g, '-');
 }
 
@@ -60,7 +63,7 @@ export function buildSpacingPresetCss(sizes: ReadonlyArray<SpacingSizeLike>): st
             continue;
         }
 
-        const slug = slugify(entry.slug);
+        const slug = spacingPresetSlug(entry.slug);
         const size = entry.size.trim();
 
         if (slug === '' || size === '' || UNSAFE_VALUE.test(size)) {

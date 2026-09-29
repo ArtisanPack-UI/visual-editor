@@ -35,6 +35,9 @@ describe('buildSpacingPresetCss (#814)', () => {
         expect(buildSpacingPresetCss([{ slug: 'Big Gap', size: '2rem' }])).toContain(
             '--wp--preset--spacing--big-gap: 2rem;'
         );
+        expect(buildSpacingPresetCss([{ slug: 'big_gap', size: '2rem' }])).toContain(
+            '--wp--preset--spacing--big-gap: 2rem;'
+        );
     });
 
     it('skips unusable or unsafe entries and returns an empty string when none survive', () => {

@@ -24,6 +24,8 @@ import { __experimentalGetGapCSSValue as getGapCSSValue } from '@wordpress/block
 import { addFilter } from '@wordpress/hooks';
 import { createElement, useMemo, type ComponentType } from 'react';
 
+import { spacingPresetSlug } from './spacing-preset-styles';
+
 const FILTER_HOOK = 'editor.BlockListBlock';
 const FILTER_NAMESPACE = 'artisanpack-ui/visual-editor/navigation-block-gap';
 
@@ -49,6 +51,21 @@ interface BlockListBlockProps {
     [key: string]: unknown;
 }
 
+const SPACING_PRESET = /^var:preset\|spacing\|(.+)$/;
+
+/**
+ * Expand a `var:preset|spacing|{slug}` reference with the same slug
+ * normalisation as the declared custom properties. Upstream
+ * `getGapCSSValue` keeps the raw slug (`big_gap`) while the style engine,
+ * the Blade renderer and the canvas presets kebab-case it (`big-gap`), so
+ * passing presets through unexpanded would miss for underscored slugs.
+ */
+function expandSpacingPreset(value: string): string {
+    const match = value.match(SPACING_PRESET);
+
+    return match === null ? value : `var(--wp--preset--spacing--${spacingPresetSlug(match[1])})`;
+}
+
 /**
  * Resolve a navigation block's `style.spacing.blockGap` to a CSS `gap`
  * value, expanding `var:preset|spacing|*` references. Returns `null`
@@ -61,7 +78,9 @@ export function resolveNavigationGap(
     const blockGap = style?.spacing?.blockGap;
 
     if (typeof blockGap === 'string') {
-        return blockGap.trim() === '' ? null : getGapCSSValue(blockGap, NAVIGATION_GAP_FALLBACK);
+        return blockGap.trim() === ''
+            ? null
+            : getGapCSSValue(expandSpacingPreset(blockGap), NAVIGATION_GAP_FALLBACK);
     }
 
     if (blockGap === null || typeof blockGap !== 'object') {
@@ -77,7 +96,10 @@ export function resolveNavigationGap(
     }
 
     return getGapCSSValue(
-        { top: hasTop ? top : undefined, left: hasLeft ? left : undefined },
+        {
+            top: hasTop ? expandSpacingPreset(top as string) : undefined,
+            left: hasLeft ? expandSpacingPreset(left as string) : undefined,
+        },
         NAVIGATION_GAP_FALLBACK
     );
 }
