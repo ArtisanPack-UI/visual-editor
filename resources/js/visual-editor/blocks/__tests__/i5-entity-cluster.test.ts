@@ -8,7 +8,11 @@
  *
  * `artisanpack/navigation` was reverted in #808 and is not part of the
  * fork cluster — it now lives on as a deprecation stub only. Its
- * contract is tested separately alongside the migration path.
+ * parse / validate / migrate contract is covered in
+ * `blocks/navigation/__tests__/legacy-navigation-stub.test.ts` and
+ * `blocks/navigation/__tests__/edit.test.tsx`; the upstream
+ * `core/navigation` family registration in
+ * `blocks/navigation/__tests__/register-forked-cores.test.ts`.
  */
 
 import { describe, it, expect, vi } from 'vitest';
