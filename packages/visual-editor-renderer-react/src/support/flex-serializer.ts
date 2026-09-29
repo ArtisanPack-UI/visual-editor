@@ -288,7 +288,7 @@ export function serializeFlex( flex: unknown ): SerializeResult {
 function emitNumeric(
 	property: string,
 	prefixToken: string,
-	value: number,
+	value: number | null,
 	bp: string,
 	canonical: Set<number>,
 	classes: string[],

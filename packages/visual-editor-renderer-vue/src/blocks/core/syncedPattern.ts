@@ -18,6 +18,14 @@ import { defineComponent, h } from 'vue';
 import { attrString, classList } from '../../support/attributes';
 import { blockRendererProps } from '../shared';
 
+/**
+ * Minimal, module-scoped typing for the Node-style `process` global a
+ * bundler or SSR runtime may provide — the package ships without
+ * `@types/node`. `declare` emits no code, so the lookup below still hits
+ * the real global, guarded by `typeof process`.
+ */
+declare const process: { env?: { NODE_ENV?: string } | null } | undefined;
+
 function isDevelopment(): boolean {
     if (typeof process === 'undefined') {
         return false;

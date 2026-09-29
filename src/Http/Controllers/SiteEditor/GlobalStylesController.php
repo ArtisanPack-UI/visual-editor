@@ -304,16 +304,20 @@ class GlobalStylesController extends Controller
 		}
 
 		$readerFqcn = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Support\\ThemeStylesheetReader';
-		$parts      = [ rtrim( $emitted ) ];
+		$emitted    = rtrim( $emitted );
+		$parts      = [];
 
 		// #814 — declare every spacing preset the editor's pickers offer
-		// (package defaults when the theme ships no `spacingSizes`, plus
-		// host presets) alongside the emitter's tokens, before the theme
-		// stylesheets so they can consume or override them. Skipped when
-		// the emitter produced nothing (no active theme).
-		if ( '' !== $parts[0] ) {
+		// (package defaults when the resolved global styles ship no
+		// `spacingSizes`, plus host presets). Built from the resolved
+		// settings and placed *before* the emitter's tokens so theme /
+		// style-variation / user values always win the `:root` cascade.
+		// Skipped when the emitter produced nothing (no active theme).
+		if ( '' !== $emitted ) {
 			$parts[] = PresetRegistry::spacingPresetsCss( PresetRegistry::activeThemeSpacingSizes() );
 		}
+
+		$parts[] = $emitted;
 
 		// #632 — enqueue the Font Library's generated bundle into the canvas
 		// iframe. Placed after the emitter's `--wp--preset--*` root block but

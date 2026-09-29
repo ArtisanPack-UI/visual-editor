@@ -62,12 +62,15 @@ class GlobalStylesEmissionResolver
 			return '';
 		}
 
-		// #814 — the emitter only declares the spacing presets a theme
-		// ships; append every preset the editor's pickers offer (package
-		// defaults when the theme has none, plus host presets) so saved
-		// `var:preset|spacing|*` values always resolve.
+		// #814 — the emitter only declares the spacing presets the resolved
+		// global styles ship; declare every preset the editor's pickers
+		// offer (package defaults when none resolve, plus host presets) so
+		// saved `var:preset|spacing|*` values always resolve. The block is
+		// built from the resolved settings and placed *before* the emitter
+		// output, so theme / style-variation / user values always win the
+		// `:root` cascade over the fallback.
 		$spacing = PresetRegistry::spacingPresetsCss( PresetRegistry::activeThemeSpacingSizes() );
 
-		return '' === $spacing ? $css : $css . "\n\n" . $spacing;
+		return '' === $spacing ? $css : $spacing . "\n\n" . $css;
 	}
 }

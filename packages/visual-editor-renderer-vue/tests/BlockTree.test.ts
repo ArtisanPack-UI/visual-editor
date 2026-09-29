@@ -10,6 +10,7 @@ import {
     unregisterBlockRenderer,
 } from '../src/registry';
 import { registerCoreBlocks } from '../src/blocks/registerCoreBlocks';
+import { blockRendererProps } from '../src/blocks/shared';
 import { setBreakpoints } from '../src/visibility';
 import { makeBlock, normalizeHtml } from './helpers';
 import type { Block } from '../src/types';
@@ -1407,11 +1408,7 @@ describe('Core design blocks', () => {
 describe('Registry + dynamic fallback', () => {
     it('invokes a custom registered renderer instead of the default', () => {
         const stickerRenderer = defineComponent({
-            props: {
-                name: { type: String, required: true },
-                attributes: { type: Object, required: true },
-                innerBlocks: { type: Array, required: true },
-            },
+            props: blockRendererProps,
             setup(props) {
                 return () =>
                     h(

@@ -25,10 +25,13 @@ export const LayoutBaseline = defineComponent({
     name: 'LayoutBaseline',
     setup() {
         return (): VNode =>
-            h(
-                'style',
-                { 'data-ve-layout-baseline': '' },
-                LAYOUT_BASELINE_CSS
-            );
+            // `innerHTML` rather than a text child: Vue's server renderer
+            // HTML-escapes text children, which turned every `>` child
+            // combinator into a literal `&gt;` inside the `<style>`
+            // element and diverged from React's output (#814 parity).
+            h('style', {
+                'data-ve-layout-baseline': '',
+                innerHTML: LAYOUT_BASELINE_CSS,
+            });
     },
 });

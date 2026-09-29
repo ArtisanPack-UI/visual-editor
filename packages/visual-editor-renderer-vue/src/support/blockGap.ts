@@ -16,6 +16,7 @@
  */
 
 import { attrRecord } from './attributes';
+import { expandPresetReference } from './presetReference';
 
 export interface BlockGapStyle {
     '--wp--style--block-gap'?: string;
@@ -33,31 +34,6 @@ function stringAttr(value: unknown): string {
     }
 
     return '';
-}
-
-/**
- * Expand Gutenberg's `var:preset|{taxonomy}|{slug}` shorthand into a
- * real CSS `var(--wp--preset--{taxonomy}--{slug})` reference. Mirrors
- * `BlockSupports::expandPresetReference()`.
- */
-function expandPresetReference(value: string): string {
-    const prefix = 'var:preset|';
-
-    if (!value.startsWith(prefix)) {
-        return value;
-    }
-
-    const parts = value
-        .slice(prefix.length)
-        .split('|')
-        .map((segment) =>
-            segment
-                .toLowerCase()
-                .replace(/[^a-z0-9]+/g, '-')
-                .replace(/^-+|-+$/g, '')
-        );
-
-    return `var(--wp--preset--${parts.join('--')})`;
 }
 
 /**

@@ -349,3 +349,80 @@ describe( 'spacingPresetsCss() (#814)', function () {
 		expect( PresetRegistry::spacingPresetsCss( null ) )->toBe( '' );
 	} );
 } );
+
+describe( 'presetSlug() (#814)', function () {
+	it( 'lowercases and maps every character outside [a-z0-9-] to a dash, without collapsing', function ( string $in, string $out ) {
+		expect( PresetRegistry::presetSlug( $in ) )->toBe( $out );
+	} )->with( [
+		'plain'        => [ '40', '40' ],
+		'underscore'   => [ 'big_gap', 'big-gap' ],
+		'double dash'  => [ 'a--b', 'a--b' ],
+		'double under' => [ 'a__b', 'a--b' ],
+		'space + case' => [ 'Big Gap', 'big-gap' ],
+		'edge dashes'  => [ '-x-', '-x-' ],
+		'digits'       => [ '2xl', '2xl' ],
+		'camel case'   => [ 'bigGap', 'big-gap' ],
+	] );
+
+	it( 'declares underscore and double-dash slugs exactly as the references expand them', function () {
+		$css = PresetRegistry::spacingPresetsCss( [
+			[ 'slug' => 'big_gap', 'size' => '2rem' ],
+			[ 'slug' => 'x--y', 'size' => '3rem' ],
+		] );
+
+		expect( $css )
+			->toContain( '--wp--preset--spacing--big-gap: 2rem;' )
+			->toContain( '--wp--preset--spacing--x--y: 3rem;' );
+	} );
+} );
+
+describe( 'isSafeCssValue() (#814)', function () {
+	it( 'accepts ordinary lengths and balanced functions', function ( string $value ) {
+		expect( PresetRegistry::isSafeCssValue( $value ) )->toBeTrue();
+	} )->with( [
+		'rem'         => [ '1.5rem' ],
+		'calc'        => [ 'calc(1rem + 2px)' ],
+		'nested'      => [ 'clamp(1rem, calc(2vw + 1rem), 3rem)' ],
+		'custom prop' => [ 'var(--wp--custom--gap)' ],
+	] );
+
+	it( 'rejects values that could unbalance or break out of the style block', function ( string $value ) {
+		expect( PresetRegistry::isSafeCssValue( $value ) )->toBeFalse();
+	} )->with( [
+		'empty'          => [ '' ],
+		'semicolon'      => [ '1px; color: red' ],
+		'brace'          => [ '1px }' ],
+		'tag'            => [ '1px</style>' ],
+		'comment open'   => [ '1px /* x' ],
+		'comment close'  => [ '1px */' ],
+		'backslash'      => [ '1px\\3b' ],
+		'unclosed paren' => [ 'calc(1rem' ],
+		'stray close'    => [ '1rem)' ],
+		'misordered'     => [ ')1rem(' ],
+		'double quote'   => [ '"1rem"' ],
+		'single quote'   => [ "'1rem'" ],
+		'newline'        => [ "1rem\n2rem" ],
+		'tab'            => [ "1rem\t" ],
+		'nul'            => [ "1rem\0" ],
+		'del'            => [ "1rem\x7F" ],
+	] );
+
+	it( 'drops an unbalanced value from the declared block', function () {
+		$css = PresetRegistry::spacingPresetsCss( [
+			[ 'slug' => 'broken', 'size' => 'calc(1rem' ],
+			[ 'slug' => 'ok', 'size' => '1rem' ],
+		] );
+
+		expect( $css )->not->toContain( 'broken' )->toContain( '--wp--preset--spacing--ok: 1rem;' );
+	} );
+} );
+
+it( 'keeps the React / Vue renderers\' DEFAULT_SPACING_SIZES in sync with the package defaults (#814)', function ( string $renderer ) {
+	$source = (string) file_get_contents( dirname( __DIR__, 3 ) . '/packages/visual-editor-renderer-' . $renderer . '/src/support/layoutBaselineCss.ts' );
+
+	preg_match_all( "/\\{ slug: '([^']+)', size: '([^']+)' \\}/", $source, $matches, PREG_SET_ORDER );
+
+	$fromTs = array_map( static fn ( array $match ): array => [ 'slug' => $match[1], 'size' => $match[2] ], $matches );
+
+	expect( $fromTs )->toBe( PresetRegistry::DEFAULT_SPACING_SIZES );
+} )->with( [ 'react', 'vue' ] );

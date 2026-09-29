@@ -8,7 +8,15 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('@wordpress/block-editor', () => ({ store: {} }));
 
 import { DEFAULT_SPACING_SIZES } from '../../editor-settings';
-import { buildSpacingPresetCss, flattenSpacingSizes } from '../spacing-preset-styles';
+import { getCSSValueFromRawStyle } from '@wordpress/style-engine';
+
+import {
+    buildSpacingPresetCss,
+    flattenSpacingSizes,
+    isSafeSpacingValue,
+    spacingPresetSlug,
+    styleEngineSpacingSlug,
+} from '../spacing-preset-styles';
 
 describe('buildSpacingPresetCss (#814)', () => {
     it('declares every spacing preset on the canvas wrapper', () => {
@@ -50,9 +58,76 @@ describe('buildSpacingPresetCss (#814)', () => {
                 { slug: 'd', size: '1px</style>' },
                 { slug: 'e', size: '1px /* swallow' },
                 { slug: 'f', size: '1px\\3b' },
+                { slug: 'g', size: 'calc(1rem' },
+                { slug: 'h', size: '1rem)' },
+                { slug: 'i', size: '"1rem"' },
+                { slug: 'j', size: "'1rem'" },
+                { slug: 'k', size: '1rem\n2rem' },
+                { slug: 'l', size: '1rem\u0000' },
             ])
         ).toBe('');
     });
+
+    it('declares the style-engine form too when it differs, so canvas padding / margin resolve', () => {
+        const css = buildSpacingPresetCss([
+            { slug: '2xl', size: '4rem' },
+            { slug: 'spacing10', size: '5rem' },
+            { slug: '40', size: '1.5rem' },
+        ]);
+
+        expect(css).toContain('--wp--preset--spacing--2xl: 4rem;');
+        expect(css).toContain('--wp--preset--spacing--2-xl: 4rem;');
+        expect(css).toContain('--wp--preset--spacing--spacing10: 5rem;');
+        expect(css).toContain('--wp--preset--spacing--spacing-10: 5rem;');
+        // Identical forms are declared once.
+        expect(css.match(/--wp--preset--spacing--40:/g)).toHaveLength(1);
+
+        // The name the real style engine references is the one declared.
+        const engineRef = getCSSValueFromRawStyle('var:preset|spacing|2xl');
+        expect(engineRef).toBe('var(--wp--preset--spacing--2-xl)');
+    });
+});
+
+describe('spacingPresetSlug (#814)', () => {
+    it.each([
+        ['40', '40'],
+        ['big_gap', 'big-gap'],
+        ['a--b', 'a--b'],
+        ['a__b', 'a--b'],
+        ['Big Gap', 'big-gap'],
+        ['-x-', '-x-'],
+        ['bigGap', 'big-gap'],
+        ['2xl', '2xl'],
+    ])('%s → %s', (input, expected) => {
+        expect(spacingPresetSlug(input)).toBe(expected);
+    });
+});
+
+describe('styleEngineSpacingSlug (#814)', () => {
+    it.each(['2xl', 'spacing10', 'big_gap', 'a--b', 'x-2XL', 'Big Gap', '-x-', 'bigGap', '3XL', 'ab12cd', '40', 'FOOBar'])(
+        'matches @wordpress/style-engine for %s',
+        (slug) => {
+            expect(`var(--wp--preset--spacing--${styleEngineSpacingSlug(slug)})`).toBe(
+                getCSSValueFromRawStyle(`var:preset|spacing|${slug}`)
+            );
+        }
+    );
+});
+
+describe('isSafeSpacingValue (#814)', () => {
+    it.each(['1.5rem', 'calc(1rem + 2px)', 'clamp(1rem, calc(2vw + 1rem), 3rem)', 'var(--x)'])(
+        'accepts %s',
+        (value) => {
+            expect(isSafeSpacingValue(value)).toBe(true);
+        }
+    );
+
+    it.each(['', 'calc(1rem', '1rem)', ')1rem(', '"a"', "'a'", '1rem\n', '1rem\t', '1px;', '1px /*', '1px */', '1px\\3b'])(
+        'rejects %j',
+        (value) => {
+            expect(isSafeSpacingValue(value)).toBe(false);
+        }
+    );
 });
 
 describe('flattenSpacingSizes (#814)', () => {

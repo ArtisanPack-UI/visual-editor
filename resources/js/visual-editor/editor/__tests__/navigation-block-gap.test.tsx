@@ -132,6 +132,15 @@ describe('registerNavigationBlockGap', () => {
         expect(axes.wrapperProps?.style?.gap).toBe('var(--wp--preset--spacing--big-gap) 2rem');
     });
 
+    it('keeps double-dash preset slugs verbatim, matching the declarations', async () => {
+        const received = await renderFiltered({
+            name: 'core/navigation',
+            attributes: { style: { spacing: { blockGap: 'var:preset|spacing|x--y' } } },
+        });
+
+        expect(received.wrapperProps?.style?.gap).toBe('var(--wp--preset--spacing--x--y)');
+    });
+
     it('combines a per-axis value into a row / column gap, defaulting the missing axis', async () => {
         const both = await renderFiltered({
             name: 'core/navigation',

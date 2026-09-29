@@ -16,6 +16,7 @@
  */
 
 import { attrRecord } from './attributes';
+import { expandPresetReference } from './presetReference';
 
 function stringAttr(value: unknown): string {
     if (typeof value === 'string') {
@@ -27,38 +28,6 @@ function stringAttr(value: unknown): string {
     }
 
     return '';
-}
-
-/**
- * Expand Gutenberg's `var:preset|{taxonomy}|{slug}` shorthand into a
- * real CSS `var(--wp--preset--{taxonomy}--{slug})` reference. A
- * non-preset value passes through untouched. Mirrors
- * `BlockSupports::expandPresetReference()`.
- */
-function expandPresetReference(value: string): string {
-    const prefix = 'var:preset|';
-
-    if (!value.startsWith(prefix)) {
-        return value;
-    }
-
-    const parts = value
-        .slice(prefix.length)
-        .split('|')
-        .map(kebabCase);
-
-    return `var(--wp--preset--${parts.join('--')})`;
-}
-
-/**
- * Mirrors `BlockSupports::kebabCase()`: lowercases, replaces
- * non-alphanumeric runs with `-`, and trims leading/trailing dashes.
- */
-function kebabCase(segment: string): string {
-    return segment
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
 }
 
 export interface DimensionStyle {

@@ -17,6 +17,8 @@ import { describe, expect, it } from 'vitest';
 import '../src/index';
 import { BlockTree as VueBlockTree } from '../src/BlockTree';
 import { BlockTree as ReactBlockTree } from '../../visual-editor-renderer-react/src/BlockTree';
+import { LayoutBaseline as ReactLayoutBaseline } from '../../visual-editor-renderer-react/src/LayoutBaseline';
+import { LayoutBaseline as VueLayoutBaseline } from '../src/LayoutBaseline';
 import '../../visual-editor-renderer-react/src/index';
 import type { Block } from '../src/types';
 import { makeBlock, normalizeHtml } from './helpers';
@@ -140,6 +142,23 @@ const FIXTURES: Array<{ name: string; tree: Block[] }> = [
                     ], 'nav-submenu-1'),
                 ],
                 'nav-1'
+            ),
+        ],
+    },
+    {
+        name: 'navigation Block spacing with underscore / double-dash / camelCase preset slugs (#814)',
+        tree: [
+            makeBlock(
+                'core/navigation',
+                { style: { spacing: { blockGap: 'var:preset|spacing|big_gap' } } },
+                [makeBlock('core/navigation-link', { label: 'About', url: '/about' }, [], 'nav-gap-link-1')],
+                'nav-gap-1'
+            ),
+            makeBlock(
+                'core/navigation',
+                { style: { spacing: { blockGap: { top: 'var:preset|spacing|x--y', left: 'var:preset|spacing|bigGap' } } } },
+                [makeBlock('core/navigation-link', { label: 'Contact', url: '/contact' }, [], 'nav-gap-link-2')],
+                'nav-gap-2'
             ),
         ],
     },
@@ -751,5 +770,28 @@ describe('React/Vue renderer parity', () => {
         expect(vueHtml).toBe(reactHtml);
         expect(reactHtml).toContain('<style data-ve-global-styles="">');
         expect(reactHtml).toContain('--wp--preset--color--brand');
+    });
+
+    it('expands underscore / double-dash preset slugs to the same declared names (#814)', async () => {
+        const tree: Block[] = [
+            makeBlock('core/navigation', { style: { spacing: { blockGap: 'var:preset|spacing|big_gap' } } }, [], 'n1'),
+            makeBlock('core/navigation', { style: { spacing: { blockGap: 'var:preset|spacing|a--b' } } }, [], 'n2'),
+        ];
+
+        const reactHtml = renderReact(tree);
+
+        expect(await renderVue(tree)).toBe(reactHtml);
+        expect(reactHtml).toContain('var(--wp--preset--spacing--big-gap)');
+        expect(reactHtml).toContain('var(--wp--preset--spacing--a--b)');
+    });
+
+    it('emits the same layout baseline (spacing preset defaults + navigation gap) on both renderers (#814)', async () => {
+        const reactHtml = domNormalize(renderToStaticMarkup(createElement(ReactLayoutBaseline)));
+        const vueApp = createSSRApp({ render: () => vueH(VueLayoutBaseline) });
+        const vueHtml = domNormalize(stripVueServerMarkers(await vueRenderToString(vueApp)));
+
+        expect(vueHtml).toBe(reactHtml);
+        expect(reactHtml).toContain('--wp--preset--spacing--40: 1.5rem;');
+        expect(reactHtml).toContain(':where(.wp-block-navigation)');
     });
 });

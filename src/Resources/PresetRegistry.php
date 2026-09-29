@@ -34,6 +34,8 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Resources;
 
+use Throwable;
+
 class PresetRegistry
 {
 	/**
@@ -344,9 +346,14 @@ class PresetRegistry
 	 * spacing size the editor's pickers offer (#814). `var:preset|spacing|*`
 	 * picks reference these properties, which previously existed only when
 	 * the theme shipped `spacingSizes` — on any other theme padding, margin
-	 * and Block spacing presets resolved to nothing. Slugs follow the same
-	 * rule as `ThemeJsonTokensCompiler::slug()`. Returns `''` when the list
-	 * is empty (e.g. host `replace` mode with no entries).
+	 * and Block spacing presets resolved to nothing. Slugs go through
+	 * {@see self::presetSlug()}, the one rule every preset declaration and
+	 * reference site shares. Returns `''` when the list is empty (e.g. host
+	 * `replace` mode with no entries).
+	 *
+	 * The block is a *fallback*: callers that also emit the resolved
+	 * global-styles tree (theme.json + style variation + user row) must
+	 * place it before that output so the resolved values win the cascade.
 	 *
 	 * @since 1.12.0
 	 *
@@ -357,13 +364,10 @@ class PresetRegistry
 		$declarations = [];
 
 		foreach ( self::effectiveSpacingSizes( $themeSpacingSizes ) as $entry ) {
-			$slug = (string) preg_replace( '/[^a-z0-9\-]/', '-', strtolower( $entry['slug'] ) );
+			$slug = self::presetSlug( $entry['slug'] );
 			$size = trim( $entry['size'] );
 
-			// Values land inside a `<style>` element; skip anything that
-			// could close the declaration, rule, or tag, open a comment
-			// that swallows the following rules, or smuggle a CSS escape.
-			if ( '' === $slug || '' === $size || 1 === preg_match( '#[;{}<>\\\\]|/\*|\*/#', $size ) ) {
+			if ( '' === $slug || ! self::isSafeCssValue( $size ) ) {
 				continue;
 			}
 
@@ -374,13 +378,93 @@ class PresetRegistry
 	}
 
 	/**
-	 * The active cms-framework theme's `settings.spacing.spacingSizes`, or
-	 * `null` when cms-framework isn't installed / no theme is active.
+	 * Normalise a preset slug (or any `var:preset|…` segment) into its
+	 * custom-property form — the one rule every preset declaration and
+	 * reference site shares: split lower→upper camelCase boundaries with
+	 * `-` (`brandPrimary` → `brand-primary`, as cms-framework's emitter
+	 * and Gutenberg do), lowercase, then every character outside
+	 * `[a-z0-9-]` becomes `-` (`big_gap` → `big-gap`). Runs of `-` are
+	 * kept and nothing is trimmed (`a--b` stays `a--b`, `a__b` becomes
+	 * `a--b`), matching how the declarations have always been written.
+	 * Mirrored by the Blade `BlockSupports` / `ElementsSupport` reference
+	 * expanders, the editor's `spacingPresetSlug()` and the React / Vue
+	 * renderers' `presetSlug()`.
+	 *
+	 * @since 1.12.0
+	 */
+	public static function presetSlug( string $value ): string
+	{
+		$value = (string) preg_replace( '/([a-z])([A-Z])/', '$1-$2', $value );
+
+		return (string) preg_replace( '/[^a-z0-9\-]/', '-', strtolower( $value ) );
+	}
+
+	/**
+	 * Whether a preset value is safe to write inside a `<style>` element.
+	 * Rejects anything that could close the declaration, rule, or tag
+	 * (`; { } < >`), open or close a comment that swallows the following
+	 * rules, smuggle a CSS escape (`\`), open a string (`"` / `'`), break
+	 * the line (newlines / control characters), or leave a parenthesis
+	 * unbalanced (`calc(1rem` would swallow every later rule). Mirrors
+	 * `isSafeSpacingValue()` in the editor's `spacing-preset-styles.tsx`.
+	 *
+	 * @since 1.12.0
+	 */
+	public static function isSafeCssValue( string $value ): bool
+	{
+		if ( '' === $value || 1 === preg_match( '#[;{}<>\\\\"\'\x00-\x1F\x7F]|/\*|\*/#', $value ) ) {
+			return false;
+		}
+
+		$depth = 0;
+
+		foreach ( str_split( $value ) as $char ) {
+			if ( '(' === $char ) {
+				++$depth;
+			} elseif ( ')' === $char ) {
+				--$depth;
+
+				if ( $depth < 0 ) {
+					return false;
+				}
+			}
+		}
+
+		return 0 === $depth;
+	}
+
+	/**
+	 * The active theme's *resolved* `settings.spacing.spacingSizes` —
+	 * theme.json merged with the active style variation and the user's
+	 * Global Styles row via cms-framework's `GlobalStylesResolver` — so
+	 * the fallback block is built from the same values the emitter
+	 * declares. Falls back to the raw theme manifest when the resolver
+	 * isn't bound, and to `null` when cms-framework isn't installed / no
+	 * theme is active.
 	 *
 	 * @since 1.12.0
 	 */
 	public static function activeThemeSpacingSizes(): mixed
 	{
+		$resolver = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Resolution\\GlobalStylesResolver';
+
+		if ( class_exists( $resolver ) && app()->bound( $resolver ) ) {
+			try {
+				$resolved = app( $resolver )->resolve();
+
+				if ( null === $resolved ) {
+					return null;
+				}
+
+				$settings = is_array( $resolved->settings ?? null ) ? $resolved->settings : [];
+
+				return $settings['spacing']['spacingSizes'] ?? null;
+			} catch ( Throwable ) {
+				// Resolver unusable (e.g. Global Styles table not migrated
+				// yet) — fall through to the raw theme manifest.
+			}
+		}
+
 		$themeManager = 'ArtisanPackUI\\CMSFramework\\Modules\\Themes\\Managers\\ThemeManager';
 
 		if ( ! class_exists( $themeManager ) || ! app()->bound( $themeManager ) ) {

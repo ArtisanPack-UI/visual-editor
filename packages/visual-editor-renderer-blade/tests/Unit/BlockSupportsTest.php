@@ -173,6 +173,20 @@ describe( 'BlockSupports::compile (spacing)', function (): void {
 
 		expect( $result['style'] )->toContain( 'padding: var(--wp--preset--spacing--40);' );
 	} );
+
+	it( 'normalises preset slugs with the shared declaration rule (#814)', function ( string $slug, string $expected ): void {
+		$result = BlockSupports::compile( [
+			'style' => [ 'spacing' => [ 'padding' => 'var:preset|spacing|' . $slug, 'blockGap' => 'var:preset|spacing|' . $slug ] ],
+		] );
+
+		expect( $result['style'] )
+			->toContain( 'padding: var(--wp--preset--spacing--' . $expected . ');' )
+			->toContain( '--wp--style--block-gap: var(--wp--preset--spacing--' . $expected . ');' );
+	} )->with( [
+		'underscore'  => [ 'big_gap', 'big-gap' ],
+		'double dash' => [ 'x--y', 'x--y' ],
+		'digits'      => [ '2xl', '2xl' ],
+	] );
 } );
 
 describe( 'BlockSupports::compile (border)', function (): void {

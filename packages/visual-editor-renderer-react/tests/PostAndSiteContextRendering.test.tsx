@@ -310,6 +310,34 @@ describe('Core navigation blocks', () => {
         );
     });
 
+    it.each([
+        ['big_gap', 'big-gap'],
+        ['x--y', 'x--y'],
+        ['bigGap', 'big-gap'],
+    ])('normalises the %s preset slug on the navigation wrapper like the declarations (#814)', (slug, expected) => {
+        const tree = [
+            makeBlock('core/navigation', { style: { spacing: { blockGap: `var:preset|spacing|${slug}` } } }, [
+                makeBlock('core/navigation-link', { label: 'About', url: '/about' }, [], 'nl-1'),
+            ]),
+        ];
+
+        expect(renderTree(tree)).toContain(
+            `style="--wp--style--block-gap: var(--wp--preset--spacing--${expected});"`
+        );
+    });
+
+    it('normalises underscored preset slugs in the per-axis Block spacing form (#814)', () => {
+        const tree = [
+            makeBlock('core/navigation', { style: { spacing: { blockGap: { top: 'var:preset|spacing|big_gap', left: 'var:preset|spacing|a--b' } } } }, [
+                makeBlock('core/navigation-link', { label: 'About', url: '/about' }, [], 'nl-1'),
+            ]),
+        ];
+
+        expect(renderTree(tree)).toContain(
+            'style="row-gap: var(--wp--preset--spacing--big-gap); column-gap: var(--wp--preset--spacing--a--b);"'
+        );
+    });
+
     it('maps a per-axis Block spacing value to row-gap and column-gap (#814)', () => {
         const tree = [
             makeBlock('core/navigation', { style: { spacing: { blockGap: { top: '1rem', left: '2rem' } } } }, [

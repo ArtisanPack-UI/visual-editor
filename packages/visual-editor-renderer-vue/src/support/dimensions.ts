@@ -16,6 +16,7 @@
  */
 
 import { attrRecord } from './attributes';
+import { expandPresetReference } from './presetReference';
 
 function stringAttr(value: unknown): string {
     if (typeof value === 'string') {
@@ -27,28 +28,6 @@ function stringAttr(value: unknown): string {
     }
 
     return '';
-}
-
-function expandPresetReference(value: string): string {
-    const prefix = 'var:preset|';
-
-    if (!value.startsWith(prefix)) {
-        return value;
-    }
-
-    const parts = value
-        .slice(prefix.length)
-        .split('|')
-        .map(kebabCase);
-
-    return `var(--wp--preset--${parts.join('--')})`;
-}
-
-function kebabCase(segment: string): string {
-    return segment
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
 }
 
 export interface DimensionStyle {

@@ -263,7 +263,7 @@ class ElementsSupport
 		}
 
 		$parts = explode( '|', substr( $value, strlen( 'var:preset|' ) ) );
-		$parts = array_map( static fn ( string $segment ): string => self::kebabCase( $segment ), $parts );
+		$parts = array_map( static fn ( string $segment ): string => self::presetSlug( $segment ), $parts );
 
 		return 'var(--wp--preset--' . implode( '--', $parts ) . ')';
 	}
@@ -288,15 +288,17 @@ class ElementsSupport
 	}
 
 	/**
-	 * Convert `camelCase` → `kebab-case` for preset taxonomy / slug
-	 * segments. Mirrors {@see BlockSupports::kebabCase}.
+	 * Normalise one `var:preset|…` segment into its custom-property form.
+	 * Mirrors {@see BlockSupports::presetSlug}: split camelCase
+	 * boundaries, lowercase, then every character outside `[a-z0-9-]`
+	 * becomes `-` — the same rule every preset declaration site uses.
 	 *
-	 * @since 1.0.0
+	 * @since 1.12.0
 	 */
-	protected static function kebabCase( string $value ): string
+	protected static function presetSlug( string $value ): string
 	{
-		$converted = preg_replace( '/([a-z])([A-Z])/', '$1-$2', $value );
+		$value = (string) preg_replace( '/([a-z])([A-Z])/', '$1-$2', $value );
 
-		return strtolower( (string) $converted );
+		return (string) preg_replace( '/[^a-z0-9\-]/', '-', strtolower( $value ) );
 	}
 }

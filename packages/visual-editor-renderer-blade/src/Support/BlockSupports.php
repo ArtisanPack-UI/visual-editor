@@ -1356,7 +1356,7 @@ class BlockSupports
 
 		$segments = explode( '|', substr( $value, strlen( 'var:preset|' ) ) );
 		$slug     = implode( '--', array_map(
-			static fn ( string $segment ): string => str_replace( '_', '-', $segment ),
+			static fn ( string $segment ): string => self::presetSlug( $segment ),
 			$segments
 		) );
 
@@ -2124,7 +2124,7 @@ class BlockSupports
 		}
 
 		$parts = explode( '|', substr( $value, strlen( 'var:preset|' ) ) );
-		$parts = array_map( static fn ( string $segment ): string => self::kebabCase( $segment ), $parts );
+		$parts = array_map( static fn ( string $segment ): string => self::presetSlug( $segment ), $parts );
 
 		return 'var(--wp--preset--' . implode( '--', $parts ) . ')';
 	}
@@ -2163,6 +2163,23 @@ class BlockSupports
 		$value = trim( (string) $value, '-' );
 
 		return $value;
+	}
+
+	/**
+	 * Normalise one `var:preset|…` segment into its custom-property form.
+	 * Mirrors {@see \ArtisanPackUI\VisualEditor\Resources\PresetRegistry::presetSlug()}:
+	 * split camelCase boundaries, lowercase, then every character outside
+	 * `[a-z0-9-]` becomes `-` (`big_gap` → `big-gap`). Runs of `-` are kept
+	 * and nothing is trimmed, so the result matches the declaration sites
+	 * byte for byte.
+	 *
+	 * @since 1.12.0
+	 */
+	protected static function presetSlug( string $value ): string
+	{
+		$value = (string) preg_replace( '/([a-z])([A-Z])/', '$1-$2', $value );
+
+		return (string) preg_replace( '/[^a-z0-9\-]/', '-', strtolower( $value ) );
 	}
 
 	/**

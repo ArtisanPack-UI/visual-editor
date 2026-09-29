@@ -53,12 +53,10 @@ function formatDayEntry(entry: unknown): string {
         return '';
     }
 
-    const record = entry as DayEntry | ReadonlyArray<DayEntry>;
-
-    if (Array.isArray(record)) {
+    if (Array.isArray(entry)) {
         // Split shifts — array of ranges.
         const parts: string[] = [];
-        for (const range of record) {
+        for (const range of entry as ReadonlyArray<DayEntry>) {
             if (
                 range !== null &&
                 typeof range === 'object' &&
@@ -70,6 +68,8 @@ function formatDayEntry(entry: unknown): string {
         }
         return parts.join(', ');
     }
+
+    const record = entry as DayEntry;
 
     if (record.closed === true) {
         return 'Closed';

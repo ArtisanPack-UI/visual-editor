@@ -12,11 +12,12 @@ declare( strict_types=1 );
 use ArtisanPackUI\CMSFramework\Modules\SiteEditor\Models\GlobalStyles;
 use ArtisanPackUI\CMSFramework\Modules\Themes\Managers\ThemeManager;
 use ArtisanPackUI\VisualEditor\VisualEditorServiceProvider;
+use Tests\Concerns\GrantsSiteEditorAccess;
 use Tests\Concerns\WithCmsFramework;
 use Tests\TestCase;
 use Tests\TestUser;
 
-uses( TestCase::class, WithCmsFramework::class );
+uses( TestCase::class, WithCmsFramework::class, GrantsSiteEditorAccess::class );
 
 beforeEach( function (): void {
 	$user = TestUser::create( [
@@ -262,6 +263,104 @@ describe( 'GET /visual-editor/api/global-styles/css', function (): void {
 		expect( $this->get( '/visual-editor/api/global-styles/css' )->assertOk()->getContent() )
 			->toContain( '--wp--preset--spacing--sm: 4px;' )
 			->not->toContain( '--wp--preset--spacing--40' );
+	} );
+
+	it( 'lets a style variation override a theme spacing size over the fallback block (#814)', function (): void {
+		$stylesDir = base_path( 'themes/digital-shopfront/styles' );
+		@mkdir( $stylesDir, 0755, true );
+		file_put_contents( $stylesDir . '/roomy.json', json_encode( [
+			'settings' => [ 'spacing' => [ 'spacingSizes' => [ [ 'slug' => 'sm', 'size' => '12px' ] ] ] ],
+		] ) );
+
+		try {
+			$this->mock( ThemeManager::class, function ( $mock ): void {
+				$mock->shouldReceive( 'getActiveTheme' )->andReturn( [
+					'name'     => 'Digital Shopfront',
+					'slug'     => 'digital-shopfront',
+					'settings' => [ 'spacing' => [ 'spacingSizes' => [ [ 'slug' => 'sm', 'size' => '4px' ] ] ] ],
+					'styles'   => [],
+				] );
+				stubThemeManagerHelpersForGlobalStylesTest( $mock );
+			} );
+
+			GlobalStyles::create( [ 'theme' => 'digital-shopfront', 'title' => 'Roomy', 'variation' => 'roomy', 'settings' => [], 'styles' => [] ] );
+
+			rebuildSiteEditorResolversForGlobalStylesTest();
+
+			$css = $this->get( '/visual-editor/api/global-styles/css' )->assertOk()->getContent();
+
+			expect( $css )
+				->toContain( '--wp--preset--spacing--sm: 12px;' )
+				->not->toContain( '--wp--preset--spacing--sm: 4px;' );
+		} finally {
+			@unlink( $stylesDir . '/roomy.json' );
+		}
+	} );
+
+	it( 'lets the user Global Styles row override a theme spacing size (#814)', function (): void {
+		$this->mock( ThemeManager::class, function ( $mock ): void {
+			$mock->shouldReceive( 'getActiveTheme' )->andReturn( [
+				'name'     => 'Digital Shopfront',
+				'slug'     => 'digital-shopfront',
+				'settings' => [ 'spacing' => [ 'spacingSizes' => [ [ 'slug' => 'sm', 'size' => '4px' ] ] ] ],
+				'styles'   => [],
+			] );
+			stubThemeManagerHelpersForGlobalStylesTest( $mock );
+		} );
+
+		GlobalStyles::create( [
+			'theme'    => 'digital-shopfront',
+			'title'    => 'Custom',
+			'settings' => [ 'spacing' => [ 'spacingSizes' => [ [ 'slug' => 'sm', 'size' => '9px' ] ] ] ],
+			'styles'   => [],
+		] );
+
+		rebuildSiteEditorResolversForGlobalStylesTest();
+
+		$css = $this->get( '/visual-editor/api/global-styles/css' )->assertOk()->getContent();
+
+		expect( $css )
+			->toContain( '--wp--preset--spacing--sm: 9px;' )
+			->not->toContain( '--wp--preset--spacing--sm: 4px;' );
+	} );
+
+	it( 'lets user spacing sizes win over the package defaults when the theme ships none (#814)', function (): void {
+		GlobalStyles::create( [
+			'theme'    => 'digital-shopfront',
+			'title'    => 'Custom',
+			'settings' => [ 'spacing' => [ 'spacingSizes' => [ [ 'slug' => '40', 'size' => '2.25rem' ] ] ] ],
+			'styles'   => [],
+		] );
+
+		rebuildSiteEditorResolversForGlobalStylesTest();
+
+		$css = $this->get( '/visual-editor/api/global-styles/css' )->assertOk()->getContent();
+
+		expect( $css )
+			->toContain( '--wp--preset--spacing--40: 2.25rem;' )
+			->not->toContain( '--wp--preset--spacing--40: 1.5rem;' )
+			->not->toContain( '--wp--preset--spacing--20: 0.5rem;' );
+	} );
+
+	it( 'places the spacing fallback block before the emitter output (#814)', function (): void {
+		config()->set( 'artisanpack.visual-editor.presets.spacing_sizes', [ [ 'slug' => 'gutter', 'size' => '18px' ] ] );
+
+		$this->mock( ThemeManager::class, function ( $mock ): void {
+			$mock->shouldReceive( 'getActiveTheme' )->andReturn( [
+				'name'     => 'Digital Shopfront',
+				'slug'     => 'digital-shopfront',
+				'settings' => [ 'color' => [ 'palette' => [ [ 'slug' => 'primary', 'color' => '#0f172a' ] ] ] ],
+				'styles'   => [],
+			] );
+			stubThemeManagerHelpersForGlobalStylesTest( $mock );
+		} );
+
+		rebuildSiteEditorResolversForGlobalStylesTest();
+
+		$css = $this->get( '/visual-editor/api/global-styles/css' )->assertOk()->getContent();
+
+		expect( strpos( $css, '--wp--preset--spacing--gutter: 18px;' ) )
+			->toBeLessThan( strpos( $css, '--wp--preset--color--primary: #0f172a;' ) );
 	} );
 
 	it( 'returns an empty body when no active theme is configured', function (): void {
