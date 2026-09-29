@@ -230,3 +230,51 @@ it( 'keeps the <div> scope wrapper for blocks that do not render a single <li> r
 	expect( $html )
 		->toMatch( '/<div class="ve-vis-\d+" data-ve-vis-scope><p[^>]*>Hello<\/p>\s*<style>/' );
 } );
+
+/**
+ * Invoke the protected `mergeScopeIntoListItem()` on the container's renderer.
+ */
+function listItemScopeMerge( string $html ): ?string
+{
+	return ( fn ( string $markup ): ?string => $this->mergeScopeIntoListItem(
+		$markup,
+		've-vis-7',
+		'@media (min-width:768px){.ve-vis-7{display:none !important;}}'
+	) )->call( app( BlockRenderer::class ), $html );
+}
+
+it( 'keeps a quoted attribute value that contains ">" intact', function () {
+	expect( listItemScopeMerge( '<li title="a > b" class="item">Text</li>' ) )
+		->toBe( '<li title="a > b" class="item ve-vis-7" data-ve-vis-scope>Text<style>@media (min-width:768px){.ve-vis-7{display:none !important;}}</style></li>' );
+} );
+
+it( 'merges into an unquoted class value instead of adding a duplicate class attribute', function () {
+	$html = listItemScopeMerge( '<li class=featured>Text</li>' );
+
+	expect( $html )->toStartWith( '<li class="featured ve-vis-7" data-ve-vis-scope>' )
+		->and( substr_count( (string) $html, 'class=' ) )->toBe( 1 );
+} );
+
+it( 'merges into a single-quoted class value and escapes embedded double quotes', function () {
+	expect( listItemScopeMerge( "<li class='a' data-x='say \"hi\"'>Text</li>" ) )
+		->toStartWith( '<li class="a ve-vis-7" data-x=\'say "hi"\' data-ve-vis-scope>' );
+} );
+
+it( 'does not mistake a class= inside another attribute value for the class attribute', function () {
+	expect( listItemScopeMerge( '<li title="class=x">Text</li>' ) )
+		->toStartWith( '<li title="class=x" class="ve-vis-7" data-ve-vis-scope>' );
+} );
+
+it( 'preserves boolean attributes', function () {
+	expect( listItemScopeMerge( '<li hidden class="a">Text</li>' ) )
+		->toStartWith( '<li hidden class="a ve-vis-7" data-ve-vis-scope>' );
+} );
+
+it( 'falls back to the wrapper for sibling <li>s, non-<li> roots, and unterminated tags', function ( string $html ) {
+	expect( listItemScopeMerge( $html ) )->toBeNull();
+} )->with( [
+	'siblings'         => '<li>a</li><li>b</li>',
+	'non-li root'      => '<div>a</div>',
+	'link element'     => '<link rel="x"></li>',
+	'unterminated tag' => '<li title="a>b</li>',
+] );

@@ -1507,6 +1507,18 @@ describe('Visibility scope on list-item blocks (#806)', () => {
         expect(new Set(listChildTagNames(html))).toEqual(new Set(['li']));
     });
 
+    it('merges the scope class onto an artisanpack/list-item <li>', () => {
+        const html = renderTree([
+            makeBlock('artisanpack/list', {}, [
+                makeBlock('artisanpack/list-item', { content: 'Only', _veHiddenBreakpoints: ['md'] }),
+            ]),
+        ]);
+
+        expect(html).not.toContain('data-ve-vis-scope');
+        expect(html).toMatch(/<li class="ve-vis-\d+">Only<\/li>/);
+        expect(new Set(listChildTagNames(html))).toEqual(new Set(['li']));
+    });
+
     it('keeps the display-contents <div> wrapper for non-list-item blocks', () => {
         const html = renderTree([
             makeBlock('core/paragraph', { content: 'Hello', _veHiddenBreakpoints: ['md'] }),
