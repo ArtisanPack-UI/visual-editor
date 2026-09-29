@@ -65,6 +65,9 @@
       }
     }
   ],
+  "conflict": {
+    "artisanpack-ui/cms-framework": "<2.11"
+  },
   "suggest": {
     "artisanpack-ui/ai": "Recommended ^1.2 — enables the visual-editor's AI-assisted authoring features (next-block suggestion, layout suggestion, heading-hierarchy check, plus alt-text + content-rewrite integrations that consume the cross-cutting agents shipped by the ai package). Without it the `aiFeatures()` service-provider hook is a no-op and the editor's AI trigger surfaces stay hidden.",
     "artisanpack-ui/media-library": "Recommended ^1.2 — default media library integration. Wire MediaModal + uploadMedia through registerArtisanpackMediaBridge() in the editor bootstrap to power Gutenberg's media picker and upload flows. Not enforced by Composer; host apps are free to install a different library and register a custom bridge instead.",

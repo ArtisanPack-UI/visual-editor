@@ -657,7 +657,7 @@ class MenuItemBlockBridge
 	{
 		$row = [
 			'type'        => $hasChildren ? 'submenu' : 'link',
-			'label'       => (string) ( $attributes['label'] ?? '' ),
+			'label'       => $this->labelString( $attributes['label'] ?? null ),
 			'url'         => $this->nullableString( $attributes['url'] ?? null ),
 			'target'      => ( true === ( $attributes['opensInNewTab'] ?? false ) ) ? '_blank' : '_self',
 			'rel'         => $this->nullableString( $attributes['rel'] ?? null ),
@@ -677,6 +677,27 @@ class MenuItemBlockBridge
 		}
 
 		return $row;
+	}
+
+	/**
+	 * Coerce a wire `label` to a string. Scalars are cast; anything else
+	 * (an array, an object) becomes an empty label instead of tripping
+	 * an "Array to string conversion" error. Request validation rejects
+	 * those shapes up front; this keeps the bridge safe for any caller.
+	 *
+	 * @since 1.12.0
+	 */
+	protected function labelString( mixed $value ): string
+	{
+		if ( is_string( $value ) ) {
+			return $value;
+		}
+
+		if ( is_int( $value ) || is_float( $value ) ) {
+			return (string) $value;
+		}
+
+		return '';
 	}
 
 	/**

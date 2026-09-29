@@ -598,3 +598,34 @@ describe( 'block_attributes round trip (#806)', function (): void {
 		] );
 	} );
 } );
+
+describe( 'blocksToItemSpecs() — defensive coercion (1.12.0)', function (): void {
+	it( 'never fails on wrongly-typed column-mapped attributes', function (): void {
+		$specs = ( new MenuItemBlockBridge() )->blocksToItemSpecs( [
+			[ 'name' => 'core/navigation-link', 'attributes' => [
+				'label'         => [ 'x' ],
+				'url'           => [ '/' ],
+				'rel'           => 42,
+				'className'     => (object) [],
+				'kind'          => true,
+				'type'          => [ 'post' ],
+				'opensInNewTab' => 'yes',
+				'id'            => [ 1 ],
+			] ],
+			[ 'name' => 'core/navigation-link', 'attributes' => [ 'label' => 7 ] ],
+		] );
+
+		expect( $specs[0]['attributes'] )->toMatchArray( [
+			'label'       => '',
+			'url'         => null,
+			'rel'         => null,
+			'classes'     => null,
+			'kind'        => null,
+			'object_type' => null,
+			'target'      => '_self',
+			'object_id'   => null,
+		] )
+			->and( $specs[0]['attributes'] )->not->toHaveKey( 'block_attributes' )
+			->and( $specs[1]['attributes']['label'] )->toBe( '7' );
+	} );
+} );

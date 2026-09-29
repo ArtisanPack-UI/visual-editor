@@ -11,6 +11,7 @@ declare( strict_types=1 );
 use ArtisanPackUI\CMSFramework\Modules\SiteEditor\Models\Menu;
 use ArtisanPackUI\CMSFramework\Modules\SiteEditor\Models\MenuItem;
 use ArtisanPackUI\CMSFramework\Modules\Themes\Managers\ThemeManager;
+use Tests\Concerns\GrantsSiteEditorAccess;
 use Tests\Concerns\WithCmsFramework;
 use Tests\TestCase;
 use Tests\TestUser;
@@ -45,7 +46,7 @@ function navSubmenu( array $attributes, array $innerBlocks ): array
 	];
 }
 
-uses( TestCase::class, WithCmsFramework::class );
+uses( TestCase::class, WithCmsFramework::class, GrantsSiteEditorAccess::class );
 
 beforeEach( function (): void {
 	$user = TestUser::create( [

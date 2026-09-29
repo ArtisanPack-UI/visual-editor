@@ -83,6 +83,11 @@ jobs:
       - name: Run Vitest
         run: npm test
 
+      - name: Verify renderer parity
+        # Fails when a renderer (blade/react/vue) registers a block that
+        # packages/renderer-parity.json doesn't list, or misses one it does.
+        run: npm run verify:parity
+
       - name: Build library bundle
         run: npm run build:lib
 

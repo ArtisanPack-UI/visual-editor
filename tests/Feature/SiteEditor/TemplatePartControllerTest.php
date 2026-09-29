@@ -13,11 +13,12 @@ declare( strict_types=1 );
 use ArtisanPackUI\CMSFramework\Modules\SiteEditor\Models\TemplatePart;
 use ArtisanPackUI\CMSFramework\Modules\Themes\Managers\ThemeManager;
 use ArtisanPackUI\VisualEditor\VisualEditorServiceProvider;
+use Tests\Concerns\GrantsSiteEditorAccess;
 use Tests\Concerns\WithCmsFramework;
 use Tests\TestCase;
 use Tests\TestUser;
 
-uses( TestCase::class, WithCmsFramework::class );
+uses( TestCase::class, WithCmsFramework::class, GrantsSiteEditorAccess::class );
 
 beforeEach( function (): void {
 	$user = TestUser::create( [
@@ -334,6 +335,34 @@ describe( 'POST /visual-editor/api/template-parts', function (): void {
 		$row = TemplatePart::query()->where( 'slug', 'navigation-overlay' )->first();
 
 		expect( $row->block_content[0]['name'] ?? null )->toBe( 'core/navigation' );
+	} );
+
+	it( 'rejects serialized string content that parses into a tree deeper than the block-tree limit', function (): void {
+		$markup = str_repeat( '<!-- wp:group --><div class="wp-block-group">', 15 )
+			. str_repeat( '</div><!-- /wp:group -->', 15 );
+
+		$this->postJson( '/visual-editor/api/template-parts', [
+			'slug'    => 'too-deep',
+			'title'   => 'Too deep',
+			'content' => $markup,
+			'area'    => 'uncategorized',
+		] )->assertUnprocessable()
+			->assertJsonValidationErrors( 'content' );
+
+		expect( TemplatePart::query()->where( 'slug', 'too-deep' )->exists() )->toBeFalse();
+	} );
+
+	it( 'accepts serialized string content nested within the block-tree limit', function (): void {
+		$markup = str_repeat( '<!-- wp:group --><div class="wp-block-group">', 5 )
+			. str_repeat( '</div><!-- /wp:group -->', 5 );
+
+		$this->postJson( '/visual-editor/api/template-parts', [
+			'slug'    => 'shallow',
+			'title'   => 'Shallow',
+			'content' => $markup,
+			'area'    => 'uncategorized',
+		] )->assertCreated()
+			->assertJsonCount( 1, 'content.blocks' );
 	} );
 
 	it( 'accepts area "uncategorized" so Gutenberg\'s Create Overlay action lands (Keystone #55)', function (): void {

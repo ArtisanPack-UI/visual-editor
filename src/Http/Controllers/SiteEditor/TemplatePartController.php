@@ -32,6 +32,7 @@ namespace ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\StoreTemplatePartRequest;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\UpdateTemplatePartRequest;
 use ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\SiteEditor\TemplatePartAdapter;
+use ArtisanPackUI\VisualEditor\Rules\TemplateBlockTreeRule;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedTemplatePart;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\TemplatePartResolver;
 use ArtisanPackUI\VisualEditor\Support\ThemeBlockMarkup;
@@ -40,6 +41,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Validator;
 
 class TemplatePartController extends Controller
 {
@@ -591,7 +593,18 @@ class TemplatePartController extends Controller
 			// since Keystone #55, but it was never persisted — new
 			// overlays landed empty (#809). A string is a full
 			// replacement, so parse it into the stored tree.
-			$attributes['block_content'] = ThemeBlockMarkup::parseToEditorBlocks( $validated['content'] );
+			$blocks = ThemeBlockMarkup::parseToEditorBlocks( $validated['content'] );
+
+			// The object path's `content.blocks` is bounded by
+			// `TemplateBlockTreeRule` in the form request; the request
+			// only sees this shape as an opaque string, so bound the
+			// parsed tree here (depth / node count) — 422 on failure.
+			Validator::make(
+				[ 'content' => $blocks ],
+				[ 'content' => [ new TemplateBlockTreeRule() ] ],
+			)->validate();
+
+			$attributes['block_content'] = $blocks;
 		}
 
 		return $attributes;

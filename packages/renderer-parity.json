@@ -3,7 +3,8 @@
     "bladeDynamic": [],
     "bladeOnly": [
         "core/html",
-        "artisanpack/html"
+        "artisanpack/html",
+        "artisanpack/toc-list"
     ],
     "blocks": [
         "core/paragraph",
@@ -164,6 +165,9 @@
         "artisanpack/business-address",
         "artisanpack/business-phone",
         "artisanpack/business-email",
+        "artisanpack/howto",
+        "artisanpack/toc",
+        "artisanpack/toc-list",
         "core/html",
         "artisanpack/html"
     ]

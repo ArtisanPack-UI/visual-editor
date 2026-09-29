@@ -12,7 +12,7 @@
  *     fas/<name>.svg     (solid)
  *     far/<name>.svg     (regular)
  *     fab/<name>.svg     (brands)
- *     index.json         { version, generatedAt, sets, icons[] }
+ *     index.json         { version, sets, icons[] }
  *
  * The output directory is tracked in git so the built payload ships in the
  * Composer distribution — downstream installs never run `npm run build`.
@@ -120,9 +120,11 @@ function buildIndex( setResults, metadata, version ) {
 		}
 	}
 
+	// No timestamp: `index.json` is committed, and a per-run value would
+	// dirty the working tree on every build. `version` already pins the
+	// source the index was generated from.
 	return {
 		version,
-		generatedAt: new Date().toISOString(),
 		sets: SETS.map( s => ( { prefix: s.prefix, label: s.label, source: s.source } ) ),
 		icons,
 	}

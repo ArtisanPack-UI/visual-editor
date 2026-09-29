@@ -68,6 +68,12 @@ class StoreMenuRequest extends FormRequest
 			// rejects booleans, numbers, and arbitrary arrays that the
 			// controller would otherwise silently coerce to `[]`.
 			'content'        => [ 'sometimes', new ContentShapeRule() ],
+			'content.raw'    => [ 'sometimes', 'nullable', 'string' ],
+			// 1.12.0 — bound the tree (depth / node count), type-check
+			// the column-mapped attributes, and cap each item's extra
+			// `block_attributes` so a malformed tree answers 422 instead
+			// of a 500 from the item rebuild.
+			'content.blocks' => [ 'sometimes', 'array', new MenuContentBlocksRule() ],
 			'status'         => [ 'sometimes', 'string', 'max:32' ],
 		];
 	}

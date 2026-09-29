@@ -13,11 +13,12 @@ declare( strict_types=1 );
 use ArtisanPackUI\CMSFramework\Modules\SiteEditor\Models\BlockPattern;
 use ArtisanPackUI\CMSFramework\Modules\Themes\Managers\ThemeManager;
 use ArtisanPackUI\VisualEditor\VisualEditorServiceProvider;
+use Tests\Concerns\GrantsSiteEditorAccess;
 use Tests\Concerns\WithCmsFramework;
 use Tests\TestCase;
 use Tests\TestUser;
 
-uses( TestCase::class, WithCmsFramework::class );
+uses( TestCase::class, WithCmsFramework::class, GrantsSiteEditorAccess::class );
 
 beforeEach( function (): void {
 	$user = TestUser::create( [
