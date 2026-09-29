@@ -262,3 +262,46 @@ describe( 'NavigationBlockRefResolver — DB-backed resolution', function (): vo
 		expect( $resolved[0]['innerBlocks'][0]['attributes']['label'] )->toBe( 'Already authored' );
 	} );
 } );
+
+describe( 'NavigationBlockRefResolver — menu item extension attributes (#806)', function (): void {
+	it( 'hydrates block_attributes onto the nav items and the Blade renderer hides them per viewport', function (): void {
+		$menu = Menu::create( [ 'theme' => 'jmwd-default', 'slug' => 'primary', 'name' => 'Primary' ] );
+
+		MenuItem::create( [
+			'menu_id'  => $menu->id,
+			'position' => 0,
+			'type'     => 'link',
+			'label'    => 'Home',
+			'url'      => '/',
+		] );
+
+		MenuItem::create( [
+			'menu_id'          => $menu->id,
+			'position'         => 1,
+			'type'             => 'link',
+			'label'            => 'Contact',
+			'url'              => '/contact',
+			'block_attributes' => [
+				'artisanpackVisibility' => [ 'screenSize' => [ 'direction' => 'hide', 'breakpoints' => [ 'md' ] ] ],
+			],
+		] );
+
+		$resolved = ( new NavigationBlockRefResolver() )->resolve( [
+			[ 'name' => 'core/navigation', 'attributes' => [ 'ref' => $menu->id ], 'innerBlocks' => [] ],
+		], 'jmwd-default' );
+
+		$items = $resolved[0]['innerBlocks'];
+
+		expect( $items[0]['attributes'] )->not->toHaveKey( 'artisanpackVisibility' )
+			->and( $items[1]['attributes']['artisanpackVisibility']['screenSize']['breakpoints'] )->toBe( [ 'md' ] );
+
+		$this->app->register( \ArtisanPackUI\VisualEditorRendererBlade\VisualEditorRendererBladeServiceProvider::class );
+
+		$html = app( \ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer::class )->render( $resolved );
+
+		expect( $html )
+			->toMatch( '/<li class="[^"]*wp-block-navigation-link[^"]*\bve-vis-\d+"[^>]*data-ve-vis-scope>.*Contact/s' )
+			->and( $html )->toContain( '@media (min-width:768px) and (max-width:1023px)' )
+			->and( $html )->not->toMatch( '/<div[^>]*data-ve-vis-scope/' );
+	} );
+} );
