@@ -371,13 +371,18 @@ jobs:
         # before the release action queries it.
         run: sleep 15
 
-      - name: Create GitHub Release (no assets)
+      - name: Create GitHub Release as a draft (no assets)
         # Split from asset upload so a transient asset failure — which
         # is what took down the v1.11.0 attempt — can't undo the
-        # release itself. The release object exists as soon as this
-        # step succeeds; assets can be re-attempted or manually
-        # uploaded later, and Packagist has everything it needs from
-        # the tag alone.
+        # release itself; Packagist has everything it needs from the
+        # tag alone.
+        #
+        # Created as a DRAFT because the repository has GitHub's
+        # immutable releases enabled: once a release is published, its
+        # assets can't be added or changed, so the v1.12.0 sourcemap
+        # upload failed with "Cannot upload assets to an immutable
+        # release". Drafts stay editable; the "Publish the GitHub
+        # Release" step below publishes it after the upload.
         id: create-release
         uses: softprops/action-gh-release@v2
         with:
@@ -385,9 +390,10 @@ jobs:
           name: v${{ needs.build-and-tag.outputs.version }}
           body_path: release_notes.txt
           generate_release_notes: false
+          draft: true
           prerelease: ${{ contains(needs.build-and-tag.outputs.version, '-') }}
-          # Deliberately no `files:` here — asset upload lives in the
-          # next step so it can fail without taking down the release.
+          # Deliberately no `files:` here — asset upload lives in a
+          # later step so it can fail without taking down the release.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -419,8 +425,8 @@ jobs:
         # `continue-on-error` covers both a soft-failed upload and the
         # no-sourcemap-file edge case (the archive step warns rather
         # than fails when the build produced no .map files) — the
-        # release itself is already published.
-        if: always()
+        # publish step below still runs either way.
+        if: always() && steps.create-release.outcome == 'success'
         continue-on-error: true
         uses: nick-fields/retry@v3
         with:
@@ -434,3 +440,18 @@ jobs:
               --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish the GitHub Release
+        # Flips the draft created above to published — this is the
+        # moment it becomes immutable, so it runs after the sourcemap
+        # upload. `always()` keeps a failed upload from leaving the
+        # release stuck as a draft; only a failed create skips it.
+        if: always() && steps.create-release.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION_INPUT: ${{ needs.build-and-tag.outputs.version }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          gh release edit "v${VERSION_INPUT}" \
+            --repo "$REPOSITORY" \
+            --draft=false

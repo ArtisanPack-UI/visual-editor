@@ -224,6 +224,32 @@ test( 'release job downloads the sourcemap artefact and attaches it to the GitHu
 	);
 } );
 
+test( 'release job attaches assets to a draft and publishes it afterwards (immutable releases)', function () {
+	$steps = collect( loadReleaseWorkflow()['release']['steps'] ?? [] )->values();
+
+	$runOf = static fn ( array $step ): string => (string) ( $step['run'] ?? $step['with']['command'] ?? '' );
+
+	$createIndex = $steps->search(
+		fn ( array $step ) => str_starts_with( (string) ( $step['uses'] ?? '' ), 'softprops/action-gh-release' )
+	);
+	$uploadIndex = $steps->search( fn ( array $step ) => str_contains( $runOf( $step ), 'gh release upload' ) );
+	$publishIndex = $steps->search( fn ( array $step ) => str_contains( $runOf( $step ), 'gh release edit' ) );
+
+	// GitHub rejects asset uploads once a release is published when
+	// immutable releases are enabled, so the release must start as a
+	// draft and only be published after the upload.
+	expect( $steps[ $createIndex ]['with']['draft'] ?? null )->toBeTrue()
+		->and( $publishIndex )->not->toBeFalse( 'release job must publish the draft via `gh release edit`' )
+		->and( $runOf( $steps[ $publishIndex ] ) )->toContain( '--draft=false' )
+		->and( $uploadIndex )->toBeLessThan( $publishIndex )
+		->and( $createIndex )->toBeLessThan( $uploadIndex );
+
+	// A failed upload must not leave the release stuck as a draft.
+	expect( (string) ( $steps[ $publishIndex ]['if'] ?? '' ) )
+		->toContain( 'always()' )
+		->toContain( "steps.create-release.outcome == 'success'" );
+} );
+
 test( 'build-and-tag declares contents:write permission (required to push the tag)', function () {
 	$job = loadReleaseWorkflow()['buildAndTag'];
 

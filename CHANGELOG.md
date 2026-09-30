@@ -6,6 +6,15 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Fixed
+
+- **Release sourcemap archive failed to attach** — the repository uses
+  GitHub's immutable releases, which block adding assets once a release
+  is published, so the v1.12.0 `dist-sourcemaps-*.tar.gz` upload was
+  rejected. The release workflow now creates the release as a draft,
+  attaches the archive, then publishes it (and still publishes if the
+  upload fails).
+
 ## [1.12.0] - 2026-09-29
 
 ### Upgrade notes
