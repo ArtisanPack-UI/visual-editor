@@ -30,8 +30,6 @@ import '@wordpress/format-library';
 import { __, sprintf } from '@wordpress/i18n';
 import type { BlockInstance } from '@wordpress/blocks';
 
-import { addFilter } from '@wordpress/hooks';
-
 import { bootI18n, TEXT_DOMAIN } from '../vendor/i18n';
 import { ensureMediaBridgeFilter } from '../media-bridge';
 import { useThemedEditorSettings } from '../use-themed-editor-settings';
@@ -39,7 +37,10 @@ import { useThemedEditorSettings } from '../use-themed-editor-settings';
 import { registerArtisanPackBlocks } from '../blocks';
 
 import { BlockLibrarySidebar } from './block-library-sidebar';
-import { registerContrastWarning } from './contrast-warning';
+import {
+    disableContrastCheckerOnBlocks,
+    registerContrastWarning,
+} from './contrast-warning';
 import { registerResponsiveAttribute } from '../responsive/register-attribute';
 import { registerResponsiveAttributesFilter } from '../responsive/with-responsive-attributes';
 import { registerStateAttribute } from '../states/register-attribute';
@@ -75,6 +76,7 @@ import {
 } from './page-pattern-modal/page-pattern-modal';
 import { useFreshContentDetection } from './page-pattern-modal/use-fresh-content-detection';
 import { filterModalPatterns } from './page-pattern-modal/filter-modal-patterns';
+import { registerNavigationBlockGap } from './navigation-block-gap';
 import { registerSyncedPatternIndicator } from './synced-pattern-indicator';
 import {
     listPatterns,
@@ -126,72 +128,6 @@ export type { PostStatus, FeaturedImageValue, AuthorOption, DocumentSupports };
 
 let blocksRegistered = false;
 
-/**
- * Filter namespace used by `disableContrastCheckerOnBlocks` below so the
- * registration is idempotent across HMR reloads.
- */
-const CONTRAST_CHECKER_FILTER_NAMESPACE =
-    'artisanpack-ui/visual-editor/disable-contrast-checker';
-
-/**
- * Turn off `BlockColorContrastChecker` for every block that opts into
- * color support. The checker (block-editor v15.x) has a deps-less
- * `useLayoutEffect` that schedules a double-`requestAnimationFrame`
- * setColors chain on every render. During a color-picker drag those
- * RAF callbacks pile up faster than React can settle, tripping its
- * "Maximum update depth exceeded" guard and crashing the block via
- * `BlockCrashBoundary`. Disabling the checker via block supports stops
- * the component from mounting at all, which sidesteps the bug until
- * Gutenberg lands the upstream fix.
- */
-function disableContrastCheckerOnBlocks(): void {
-    addFilter(
-        'blocks.registerBlockType',
-        CONTRAST_CHECKER_FILTER_NAMESPACE,
-        (settings: { supports?: Record<string, unknown> } | null | undefined) => {
-            if (
-                settings === null ||
-                settings === undefined ||
-                typeof settings !== 'object'
-            ) {
-                return settings;
-            }
-
-            const supports = settings.supports;
-
-            if (
-                supports === null ||
-                supports === undefined ||
-                typeof supports !== 'object' ||
-                !('color' in supports)
-            ) {
-                return settings;
-            }
-
-            const color = (supports as { color: unknown }).color;
-            const normalizedColor =
-                color === true ? {} : color === null || color === undefined
-                    ? null
-                    : typeof color === 'object' ? { ...color } : null;
-
-            if (normalizedColor === null) {
-                return settings;
-            }
-
-            return {
-                ...settings,
-                supports: {
-                    ...supports,
-                    color: {
-                        ...normalizedColor,
-                        enableContrastChecker: false,
-                    },
-                },
-            };
-        }
-    );
-}
-
 function registerOnce(): void {
     if (blocksRegistered) {
         return;
@@ -204,6 +140,8 @@ function registerOnce(): void {
     disableContrastCheckerOnBlocks();
     registerContrastWarning();
     registerSyncedPatternIndicator();
+    // #814 — surface `core/navigation`'s Block spacing in the canvas.
+    registerNavigationBlockGap();
     // #649 — register the background-controls BlockEdit HOC FIRST so
     // it wraps innermost. `@wordpress/hooks` composes filters in
     // registration order, so the LAST-registered HOC wraps outermost;

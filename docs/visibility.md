@@ -69,6 +69,16 @@ outright; blocks that return `cssHidden()` (only the screen-size rule
 today) are wrapped in a per-block `<style>` block emitting
 breakpoint-scoped `display:none !important` rules.
 
+Most CSS-hidden blocks are wrapped in a
+`<div class="ve-vis-N" data-ve-vis-scope>` that carries the scope
+class. Blocks that render a single `<li>` root (`core/navigation-link`,
+`core/navigation-submenu`, `core/list-item`, and similar) sit directly
+inside a `<ul>` / `<ol>`, where a `<div>` is invalid HTML. For those,
+the scope class is added to the `<li>` itself and the `<style>` block
+is placed inside it, so list semantics stay intact for assistive
+technology. The React and Vue renderers do the same for
+`core/navigation-link`, `core/navigation-submenu`, and `core/list-item`.
+
 For the React and Vue renderers, pipe your tree through
 `\ArtisanPackUI\VisualEditor\Visibility\TreePruner::prune()` before
 serialising it into the page payload. Hidden blocks are removed and

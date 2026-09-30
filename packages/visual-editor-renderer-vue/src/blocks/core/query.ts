@@ -59,6 +59,14 @@ function resolveLayoutName(value: unknown): string {
     return attrString(attrRecord(value).type);
 }
 
+/**
+ * Minimal, module-scoped typing for the Node-style `process` global a
+ * bundler or SSR runtime may provide — the package ships without
+ * `@types/node`. `declare` emits no code, so the lookup below still hits
+ * the real global, guarded by `typeof process`.
+ */
+declare const process: { env?: { NODE_ENV?: string } | null } | undefined;
+
 function isDevelopment(): boolean {
     if (typeof process === 'undefined') {
         return false;
@@ -90,7 +98,7 @@ export const QueryBlock = defineComponent({
                 attrs['data-ve-resolution-error'] = resolutionError;
             }
 
-            return h('div', attrs, hasError ? null : slots.default?.());
+            return h('div', attrs, hasError ? undefined : slots.default?.());
         };
     },
 });

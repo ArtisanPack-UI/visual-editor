@@ -62,6 +62,11 @@
 @if( '' !== $themeTokensCss )
 <style data-ve-theme-tokens>{!! $themeTokensCss !!}</style>
 @endif
+{{-- #814: every spacing preset the editor's pickers offer, including the
+     package defaults when the theme ships no `spacingSizes`. --}}
+@if( '' !== $spacingPresetsCss )
+<style data-ve-spacing-presets>{!! $spacingPresetsCss !!}</style>
+@endif
 {{--
 	Layout baseline rules — flow + constrained + flex + grid.
 

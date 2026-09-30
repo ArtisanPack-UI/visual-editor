@@ -34,6 +34,8 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Resources;
 
+use Throwable;
+
 class PresetRegistry
 {
 	/**
@@ -59,6 +61,53 @@ class PresetRegistry
 	 * Preset mode values accepted on the per-list `mode` key.
 	 */
 	protected const VALID_MODES = [ 'append', 'replace' ];
+
+	/**
+	 * Package default spacing sizes. Mirrors `DEFAULT_SPACING_SIZES` in
+	 * `resources/js/visual-editor/editor-settings.ts` (slug + size only;
+	 * the labels are editor-only) so the front end declares the same
+	 * `--wp--preset--spacing--*` properties the editor's spacing pickers
+	 * offer when a theme ships no `spacingSizes` (#814). Keep the two
+	 * lists in sync — `editor/__tests__/spacing-preset-styles.test.ts` guards it.
+	 *
+	 * @since 1.12.0
+	 */
+	public const DEFAULT_SPACING_SIZES = [
+		[ 'slug' => '20', 'size' => '0.5rem' ],
+		[ 'slug' => '30', 'size' => '1rem' ],
+		[ 'slug' => '40', 'size' => '1.5rem' ],
+		[ 'slug' => '50', 'size' => '3rem' ],
+		[ 'slug' => '60', 'size' => '5rem' ],
+		[ 'slug' => '70', 'size' => '7rem' ],
+	];
+
+	/**
+	 * Resolve the spacing sizes the editor's pickers offer, so the front
+	 * end can declare a custom property for every one of them (#814).
+	 *
+	 * Mirrors the editor's precedence exactly:
+	 *   - theme ships `spacingSizes` → the theme list, with host entries
+	 *     merged on top only when the host registers any;
+	 *   - otherwise → the package defaults merged with the host list
+	 *     (where `replace` mode, even with no entries, clears them).
+	 *
+	 * @since 1.12.0
+	 *
+	 * @param  mixed  $themeSpacingSizes  The theme's `settings.spacing.spacingSizes`, if any.
+	 *
+	 * @return array<int, array{slug: string, size: string}>
+	 */
+	public static function effectiveSpacingSizes( mixed $themeSpacingSizes ): array
+	{
+		$host  = self::fromConfig()['spacingSizes'];
+		$theme = self::normaliseThemeSpacingSizes( $themeSpacingSizes );
+
+		if ( null !== $theme ) {
+			return [] === $host['entries'] ? $theme : self::mergeSizedList( $theme, $host );
+		}
+
+		return self::mergeSizedList( self::DEFAULT_SPACING_SIZES, $host );
+	}
 
 	/**
 	 * Resolve the configured presets into normalised descriptor lists.
@@ -290,5 +339,227 @@ class PresetRegistry
 		}
 
 		return ucwords( str_replace( [ '-', '_' ], ' ', $slug ) );
+	}
+
+	/**
+	 * Build the `:root { --wp--preset--spacing--*: …; }` block for every
+	 * spacing size the editor's pickers offer (#814). `var:preset|spacing|*`
+	 * picks reference these properties, which previously existed only when
+	 * the theme shipped `spacingSizes` — on any other theme padding, margin
+	 * and Block spacing presets resolved to nothing. Slugs go through
+	 * {@see self::presetSlug()}, the one rule every preset declaration and
+	 * reference site shares. Returns `''` when the list is empty (e.g. host
+	 * `replace` mode with no entries).
+	 *
+	 * The block is a *fallback*: callers that also emit the resolved
+	 * global-styles tree (theme.json + style variation + user row) must
+	 * place it before that output so the resolved values win the cascade.
+	 *
+	 * @since 1.12.0
+	 *
+	 * @param  mixed  $themeSpacingSizes  The theme's `settings.spacing.spacingSizes`, if any.
+	 */
+	public static function spacingPresetsCss( mixed $themeSpacingSizes ): string
+	{
+		$declarations = [];
+
+		foreach ( self::effectiveSpacingSizes( $themeSpacingSizes ) as $entry ) {
+			$slug = self::presetSlug( $entry['slug'] );
+			$size = trim( $entry['size'] );
+
+			if ( '' === $slug || ! self::isSafeCssValue( $size ) ) {
+				continue;
+			}
+
+			$declarations[] = sprintf( '--wp--preset--spacing--%s: %s;', $slug, $size );
+		}
+
+		return [] === $declarations ? '' : ":root {\n\t" . implode( "\n\t", $declarations ) . "\n}";
+	}
+
+	/**
+	 * Normalise a preset slug (or any `var:preset|…` segment) into its
+	 * custom-property form — the one rule every preset declaration and
+	 * reference site shares: split lower→upper camelCase boundaries with
+	 * `-` (`brandPrimary` → `brand-primary`, as cms-framework's emitter
+	 * and Gutenberg do), lowercase, then every character outside
+	 * `[a-z0-9-]` becomes `-` (`big_gap` → `big-gap`). Runs of `-` are
+	 * kept and nothing is trimmed (`a--b` stays `a--b`, `a__b` becomes
+	 * `a--b`), matching how the declarations have always been written.
+	 * Mirrored by the Blade `BlockSupports` / `ElementsSupport` reference
+	 * expanders, the editor's `spacingPresetSlug()` and the React / Vue
+	 * renderers' `presetSlug()`.
+	 *
+	 * @since 1.12.0
+	 */
+	public static function presetSlug( string $value ): string
+	{
+		$value = (string) preg_replace( '/([a-z])([A-Z])/', '$1-$2', $value );
+
+		return (string) preg_replace( '/[^a-z0-9\-]/', '-', strtolower( $value ) );
+	}
+
+	/**
+	 * Whether a preset value is safe to write inside a `<style>` element.
+	 * Rejects anything that could close the declaration, rule, or tag
+	 * (`; { } < >`), open or close a comment that swallows the following
+	 * rules, smuggle a CSS escape (`\`), open a string (`"` / `'`), break
+	 * the line (newlines / control characters), or leave a parenthesis
+	 * unbalanced (`calc(1rem` would swallow every later rule). Mirrors
+	 * `isSafeSpacingValue()` in the editor's `spacing-preset-styles.tsx`.
+	 *
+	 * @since 1.12.0
+	 */
+	public static function isSafeCssValue( string $value ): bool
+	{
+		if ( '' === $value || 1 === preg_match( '#[;{}<>\\\\"\'\x00-\x1F\x7F]|/\*|\*/#', $value ) ) {
+			return false;
+		}
+
+		$depth = 0;
+
+		foreach ( str_split( $value ) as $char ) {
+			if ( '(' === $char ) {
+				++$depth;
+			} elseif ( ')' === $char ) {
+				--$depth;
+
+				if ( $depth < 0 ) {
+					return false;
+				}
+			}
+		}
+
+		return 0 === $depth;
+	}
+
+	/**
+	 * The active theme's *resolved* `settings.spacing.spacingSizes` —
+	 * theme.json merged with the active style variation and the user's
+	 * Global Styles row via cms-framework's `GlobalStylesResolver` — so
+	 * the fallback block is built from the same values the emitter
+	 * declares. Falls back to the raw theme manifest when the resolver
+	 * isn't bound, and to `null` when cms-framework isn't installed / no
+	 * theme is active.
+	 *
+	 * @since 1.12.0
+	 */
+	public static function activeThemeSpacingSizes(): mixed
+	{
+		$resolver = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Resolution\\GlobalStylesResolver';
+
+		if ( class_exists( $resolver ) && app()->bound( $resolver ) ) {
+			try {
+				$resolved = app( $resolver )->resolve();
+
+				if ( null === $resolved ) {
+					return null;
+				}
+
+				$settings = is_array( $resolved->settings ?? null ) ? $resolved->settings : [];
+
+				return $settings['spacing']['spacingSizes'] ?? null;
+			} catch ( Throwable ) {
+				// Resolver unusable (e.g. Global Styles table not migrated
+				// yet) — fall through to the raw theme manifest.
+			}
+		}
+
+		$themeManager = 'ArtisanPackUI\\CMSFramework\\Modules\\Themes\\Managers\\ThemeManager';
+
+		if ( ! class_exists( $themeManager ) || ! app()->bound( $themeManager ) ) {
+			return null;
+		}
+
+		$theme = app( $themeManager )->getActiveTheme();
+
+		return is_array( $theme ) ? ( $theme['settings']['spacing']['spacingSizes'] ?? null ) : null;
+	}
+
+	/**
+	 * Normalise a theme's `spacingSizes` list the way the editor's
+	 * `extractThemeSpacingSizes()` does: trimmed lowercase slugs, string
+	 * sizes, first slug wins. Returns `null` when the theme declares no
+	 * usable entry, so callers fall back to the package defaults.
+	 *
+	 * @since 1.12.0
+	 *
+	 * @return array<int, array{slug: string, size: string}>|null
+	 */
+	protected static function normaliseThemeSpacingSizes( mixed $sizes ): ?array
+	{
+		if ( ! is_array( $sizes ) || [] === $sizes ) {
+			return null;
+		}
+
+		$out  = [];
+		$seen = [];
+
+		foreach ( $sizes as $entry ) {
+			if ( ! is_array( $entry ) || ! is_string( $entry['slug'] ?? null ) || ! is_string( $entry['size'] ?? null ) ) {
+				continue;
+			}
+
+			$slug = strtolower( trim( $entry['slug'] ) );
+
+			if ( '' === $slug || isset( $seen[ $slug ] ) ) {
+				continue;
+			}
+
+			$seen[ $slug ] = true;
+			$out[]         = [ 'slug' => $slug, 'size' => $entry['size'] ];
+		}
+
+		return [] === $out ? null : $out;
+	}
+
+	/**
+	 * Merge a host list into a base list per its mode. Mirrors the JS
+	 * `mergePresetList()`: `replace` returns the host entries outright;
+	 * `append` overrides colliding slugs in place and appends the rest.
+	 *
+	 * @since 1.12.0
+	 *
+	 * @param  array<int, array{slug: string, size: string}>  $base
+	 * @param  array{mode: string, entries: array<int, array<string, string>>}  $host
+	 *
+	 * @return array<int, array{slug: string, size: string}>
+	 */
+	protected static function mergeSizedList( array $base, array $host ): array
+	{
+		$hostEntries = array_map(
+			static fn ( array $entry ): array => [ 'slug' => $entry['slug'], 'size' => $entry['size'] ],
+			$host['entries'],
+		);
+
+		if ( 'replace' === $host['mode'] ) {
+			return $hostEntries;
+		}
+
+		$hostBySlug = [];
+
+		foreach ( $hostEntries as $entry ) {
+			$hostBySlug[ $entry['slug'] ] = $entry;
+		}
+
+		$merged     = [];
+		$overridden = [];
+
+		foreach ( $base as $entry ) {
+			if ( isset( $hostBySlug[ $entry['slug'] ] ) ) {
+				$merged[]                     = $hostBySlug[ $entry['slug'] ];
+				$overridden[ $entry['slug'] ] = true;
+			} else {
+				$merged[] = $entry;
+			}
+		}
+
+		foreach ( $hostEntries as $entry ) {
+			if ( ! isset( $overridden[ $entry['slug'] ] ) ) {
+				$merged[] = $entry;
+			}
+		}
+
+		return $merged;
 	}
 }

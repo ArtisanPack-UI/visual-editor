@@ -481,3 +481,151 @@ describe( 'MenuItemBlockBridge::blocksToRaw — WP-compatible attribute escaping
 		expect( $reparsed[0]['attributes']['quote'] )->toBe( 'has "quote" inside' );
 	} );
 } );
+
+describe( 'block_attributes round trip (#806)', function (): void {
+	it( 'stores attributes without a dedicated column in block_attributes', function (): void {
+		$visibility = [ 'screenSize' => [ 'direction' => 'hide', 'breakpoints' => [ 'md' ] ] ];
+
+		$specs = ( new MenuItemBlockBridge() )->blocksToItemSpecs( [
+			[
+				'name'       => 'core/navigation-link',
+				'attributes' => [
+					'label'                 => 'Contact',
+					'url'                   => '/contact',
+					'className'             => 'is-cta',
+					'artisanpackVisibility' => $visibility,
+					'metadata'              => [ 'name' => 'CTA' ],
+				],
+			],
+		] );
+
+		expect( $specs[0]['attributes']['block_attributes'] )->toBe( [
+			'artisanpackVisibility' => $visibility,
+			'metadata'              => [ 'name' => 'CTA' ],
+		] )
+			->and( $specs[0]['attributes']['classes'] )->toBe( 'is-cta' );
+	} );
+
+	it( 'drops null defaults and renderer side-channel keys', function (): void {
+		$specs = ( new MenuItemBlockBridge() )->blocksToItemSpecs( [
+			[
+				'name'       => 'core/navigation-link',
+				'attributes' => [
+					'label'                 => 'Home',
+					'artisanpackVisibility' => null,
+					'_veHiddenBreakpoints'  => [ 'md' ],
+					'_veVisScope'           => 've-vis-1',
+				],
+			],
+		] );
+
+		expect( $specs[0]['attributes'] )->not->toHaveKey( 'block_attributes' );
+	} );
+
+	it( 'omits block_attributes when a block only carries mapped attributes', function (): void {
+		$specs = ( new MenuItemBlockBridge() )->blocksToItemSpecs( [
+			[ 'name' => 'core/navigation-link', 'attributes' => [ 'label' => 'Home', 'url' => '/' ] ],
+		] );
+
+		expect( $specs[0]['attributes'] )->not->toHaveKey( 'block_attributes' );
+	} );
+
+	it( 'stores block_attributes on submenus as well as links', function (): void {
+		$specs = ( new MenuItemBlockBridge() )->blocksToItemSpecs( [
+			[
+				'name'        => 'core/navigation-submenu',
+				'attributes'  => [ 'label' => 'Products', 'artisanpackAnimations' => [ 'entrance' => 'fade' ] ],
+				'innerBlocks' => [
+					[ 'name' => 'core/navigation-link', 'attributes' => [ 'label' => 'Plans' ] ],
+				],
+			],
+		] );
+
+		expect( $specs[0]['attributes']['block_attributes'] )->toBe( [ 'artisanpackAnimations' => [ 'entrance' => 'fade' ] ] )
+			->and( $specs[0]['children'][0]['attributes'] )->not->toHaveKey( 'block_attributes' );
+	} );
+
+	it( 'restores block_attributes onto the block on read', function (): void {
+		$visibility = [ 'screenSize' => [ 'direction' => 'hide', 'breakpoints' => [ 'md' ] ] ];
+
+		$blocks = ( new MenuItemBlockBridge() )->itemsToBlocks( [
+			menuItemRow( [ 'label' => 'Contact', 'block_attributes' => [ 'artisanpackVisibility' => $visibility ] ] ),
+		] );
+
+		expect( $blocks[0]['attributes']['artisanpackVisibility'] )->toBe( $visibility )
+			->and( $blocks[0]['attributes']['label'] )->toBe( 'Contact' );
+	} );
+
+	it( 'decodes a JSON-string block_attributes value on read', function (): void {
+		$blocks = ( new MenuItemBlockBridge() )->itemsToBlocks( [
+			menuItemRow( [ 'block_attributes' => '{"artisanpackVisibility":{"screenSize":{"direction":"hide","breakpoints":["md"]}}}' ] ),
+		] );
+
+		expect( $blocks[0]['attributes']['artisanpackVisibility']['screenSize']['breakpoints'] )->toBe( [ 'md' ] );
+	} );
+
+	it( 'lets mapped columns win over a same-named key in block_attributes', function (): void {
+		$blocks = ( new MenuItemBlockBridge() )->itemsToBlocks( [
+			menuItemRow( [ 'label' => 'Real', 'url' => '/real', 'block_attributes' => [ 'label' => 'Stale', 'url' => '/stale' ] ] ),
+		] );
+
+		expect( $blocks[0]['attributes']['label'] )->toBe( 'Real' )
+			->and( $blocks[0]['attributes']['url'] )->toBe( '/real' );
+	} );
+
+	it( 'ignores a row without a block_attributes property (pre-2.11 cms-framework)', function (): void {
+		$blocks = ( new MenuItemBlockBridge() )->itemsToBlocks( [
+			menuItemRow( [ 'label' => 'Home' ] ),
+		] );
+
+		expect( $blocks[0]['attributes'] )->toBe( [ 'label' => 'Home' ] );
+	} );
+
+	it( 'round-trips extension attributes through specs → rows → blocks', function (): void {
+		$bridge     = new MenuItemBlockBridge();
+		$visibility = [ 'screenSize' => [ 'direction' => 'show', 'breakpoints' => [ 'sm' ] ] ];
+
+		$specs = $bridge->blocksToItemSpecs( [
+			[ 'name' => 'core/navigation-link', 'attributes' => [ 'label' => 'CTA', 'url' => '/go', 'artisanpackVisibility' => $visibility ] ],
+		] );
+
+		$blocks = $bridge->itemsToBlocks( [ menuItemRow( [ 'id' => 1, ...$specs[0]['attributes'] ] ) ] );
+
+		expect( $blocks[0]['attributes'] )->toBe( [
+			'artisanpackVisibility' => $visibility,
+			'label'                 => 'CTA',
+			'url'                   => '/go',
+		] );
+	} );
+} );
+
+describe( 'blocksToItemSpecs() — defensive coercion (1.12.0)', function (): void {
+	it( 'never fails on wrongly-typed column-mapped attributes', function (): void {
+		$specs = ( new MenuItemBlockBridge() )->blocksToItemSpecs( [
+			[ 'name' => 'core/navigation-link', 'attributes' => [
+				'label'         => [ 'x' ],
+				'url'           => [ '/' ],
+				'rel'           => 42,
+				'className'     => (object) [],
+				'kind'          => true,
+				'type'          => [ 'post' ],
+				'opensInNewTab' => 'yes',
+				'id'            => [ 1 ],
+			] ],
+			[ 'name' => 'core/navigation-link', 'attributes' => [ 'label' => 7 ] ],
+		] );
+
+		expect( $specs[0]['attributes'] )->toMatchArray( [
+			'label'       => '',
+			'url'         => null,
+			'rel'         => null,
+			'classes'     => null,
+			'kind'        => null,
+			'object_type' => null,
+			'target'      => '_self',
+			'object_id'   => null,
+		] )
+			->and( $specs[0]['attributes'] )->not->toHaveKey( 'block_attributes' )
+			->and( $specs[1]['attributes']['label'] )->toBe( '7' );
+	} );
+} );

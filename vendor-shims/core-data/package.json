@@ -1,0 +1,14 @@
+{
+    "name": "@wordpress/core-data",
+    "version": "7.43.0-artisanpack-shim",
+    "description": "ArtisanPack UI visual-editor shim for @wordpress/core-data (issue #808 H4). Redirects every resolution of @wordpress/core-data to the in-repo empty-state shim so Vite's dep pre-bundler and its source pipeline resolve to the same absolute file, producing one module instance instead of a split-brain across the wp-data registry.",
+    "type": "module",
+    "main": "./index.ts",
+    "module": "./index.ts",
+    "types": "./index.ts",
+    "exports": {
+        ".": "./index.ts"
+    },
+    "private": true,
+    "license": "GPL-2.0-or-later"
+}

@@ -46,6 +46,8 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditorRendererBlade\Services;
 
+use ArtisanPackUI\VisualEditor\Resources\PresetRegistry;
+
 class ThemeJsonTokensCompiler
 {
 	/**
@@ -80,6 +82,29 @@ class ThemeJsonTokensCompiler
 		$parts = array_values( array_filter( [ $root, $layout, $utilities, $stylesCss ], static fn ( string $section ): bool => '' !== $section ) );
 
 		return implode( "\n\n", $parts );
+	}
+
+	/**
+	 * Declare a `--wp--preset--spacing--{slug}` custom property for every
+	 * spacing size the editor's pickers offer (#814).
+	 *
+	 * {@see compile()} only declares the sizes a theme ships, but when a
+	 * theme has none the pickers fall back to the package defaults (plus
+	 * host presets), and a `var:preset|spacing|40` pick then referenced an
+	 * undefined property — so padding, margin, and Block spacing silently
+	 * collapsed to nothing. Emitted after the theme tokens so the host
+	 * overrides it layers on top win, matching the editor.
+	 *
+	 * @since 1.12.0
+	 *
+	 * @param  array<string, mixed>|null  $themeJson  Decoded theme.json payload, if any.
+	 */
+	public function compileSpacingPresets( ?array $themeJson ): string
+	{
+		$settings = is_array( $themeJson['settings'] ?? null ) ? $themeJson['settings'] : [];
+		$spacing  = is_array( $settings['spacing'] ?? null ) ? $settings['spacing'] : [];
+
+		return PresetRegistry::spacingPresetsCss( $spacing['spacingSizes'] ?? null );
 	}
 
 	/**

@@ -265,6 +265,45 @@ it( 'renders a navigation block with menu items', function () {
 	expect( $rendered )->toContain( 'href="https://example.test/sub"' );
 } );
 
+it( 'maps a string Block spacing value onto the navigation wrapper (#814)', function () {
+	$tree = [
+		blockNode( 'core/navigation', [ 'style' => [ 'spacing' => [ 'blockGap' => 'var:preset|spacing|40' ] ] ], [
+			blockNode( 'core/navigation-link', [ 'label' => 'About', 'url' => '/about' ], [], 'nl-1' ),
+		] ),
+	];
+
+	$rendered = $this->stripGlobalStyles( renderTree( $tree ) );
+
+	expect( $rendered )->toMatch( '/<nav class="wp-block-navigation[^"]*" style="--wp--style--block-gap: var\(--wp--preset--spacing--40\);?"/' );
+} );
+
+it( 'normalises underscore and double-dash preset slugs on the navigation wrapper (#814)', function ( string $slug, string $expected ) {
+	$tree = [
+		blockNode( 'core/navigation', [ 'style' => [ 'spacing' => [ 'blockGap' => 'var:preset|spacing|' . $slug ] ] ], [
+			blockNode( 'core/navigation-link', [ 'label' => 'About', 'url' => '/about' ], [], 'nl-1' ),
+		] ),
+	];
+
+	$rendered = $this->stripGlobalStyles( renderTree( $tree ) );
+
+	expect( $rendered )->toContain( '--wp--style--block-gap: var(--wp--preset--spacing--' . $expected . ')' );
+} )->with( [
+	'underscore'  => [ 'big_gap', 'big-gap' ],
+	'double dash' => [ 'x--y', 'x--y' ],
+] );
+
+it( 'maps a per-axis Block spacing value to row-gap and column-gap on the navigation wrapper (#814)', function () {
+	$tree = [
+		blockNode( 'core/navigation', [ 'style' => [ 'spacing' => [ 'blockGap' => [ 'top' => '1rem', 'left' => '2rem' ] ] ] ], [
+			blockNode( 'core/navigation-link', [ 'label' => 'About', 'url' => '/about' ], [], 'nl-1' ),
+		] ),
+	];
+
+	$rendered = $this->stripGlobalStyles( renderTree( $tree ) );
+
+	expect( $rendered )->toMatch( '/<nav class="wp-block-navigation[^"]*" style="row-gap: 1rem; column-gap: 2rem;?"/' );
+} );
+
 it( 'forces noopener when a navigation link opens in a new tab', function () {
 	$tree = [
 		blockNode( 'core/navigation', [], [

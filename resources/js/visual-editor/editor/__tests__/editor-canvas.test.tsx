@@ -67,6 +67,12 @@ vi.mock('../../site-editor/use-theme-global-styles-css', () => ({
     useThemeGlobalStylesCss: (): string | undefined => mockThemeGlobalStylesCss,
 }));
 
+// #814 — the spacing-preset hook reads the block-editor store, which the
+// `@wordpress/block-editor` mock above doesn't provide.
+vi.mock('../spacing-preset-styles', () => ({
+    useSpacingPresetCss: (): string => '',
+}));
+
 vi.mock('../post-title', () => ({
     PostTitle: ({
         value,

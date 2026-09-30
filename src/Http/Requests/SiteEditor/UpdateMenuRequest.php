@@ -55,7 +55,8 @@ class UpdateMenuRequest extends FormRequest
 			//    here; the backend re-derives it from `menu_items`.
 			'content'        => [ 'sometimes', new ContentShapeRule() ],
 			'content.raw'    => [ 'sometimes', 'nullable', 'string' ],
-			'content.blocks' => [ 'sometimes', 'array' ],
+			// 1.12.0 — see {@see MenuContentBlocksRule}.
+			'content.blocks' => [ 'sometimes', 'array', new MenuContentBlocksRule() ],
 		];
 	}
 }

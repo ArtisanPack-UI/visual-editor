@@ -6,6 +6,12 @@ import { describe, expect, it, vi } from 'vitest';
 // `BlockEditorProvider` lives in `BlockEditorBoundary`, above the
 // canvas. Stub the block-editor primitives so the canvas renders under
 // jsdom without booting the real Gutenberg data store.
+// #814 — the spacing-preset styles read the block-editor store, which the
+// `@wordpress/block-editor` mock below doesn't provide.
+vi.mock('../../../editor/spacing-preset-styles', () => ({
+    SpacingPresetStyles: (): null => null,
+}));
+
 vi.mock('@wordpress/block-editor', () => ({
     BlockList: (): JSX.Element => <div data-testid="ap-stub-block-list" />,
     BlockToolbar: (): JSX.Element => <div data-testid="ap-stub-block-toolbar" />,

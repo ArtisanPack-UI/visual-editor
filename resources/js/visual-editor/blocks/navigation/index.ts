@@ -1,29 +1,29 @@
 /**
- * Navigation block entrypoint.
+ * Deprecated `artisanpack/navigation` entrypoint.
  *
  * Auto-discovered by `editor/custom-blocks.ts` and registered against
- * `@wordpress/blocks.registerBlockType`. Phase I5 — entity cluster
- * (issue #413).
+ * `@wordpress/blocks.registerBlockType`.
  *
- * Server-rendered entity block: `edit` delegates to the registered
- * `core/navigation` edit (see `../_shared/forked-entity-edit.tsx`) so the
- * fork inherits the upstream + V1 editor surface and reads entity data
- * through the same `@wordpress/core-data` shim selectors.
+ * The block was forked in Phase I5 (#413) and reverted to `core/navigation`
+ * in #808. What remains is a stub whose only job is to keep persisted
+ * `<!-- wp:artisanpack/navigation ... -->` markup valid on parse and swap
+ * itself for the upstream `core/navigation` block on mount. See `edit.tsx`.
  */
 
 import metadata from './block.json';
 import edit from './edit';
 import save from './save';
-import transforms from './transforms';
-import icon from './inserter-icon';
 
-export { edit, save, metadata, icon, transforms };
+// #814 — the block-gap default applies to the live `core/navigation`
+// block this stub migrates to; it rides along here so the auto-discovered
+// block stylesheets carry it into both canvas surfaces.
+import './navigation.css';
+
+export { edit, save, metadata };
 
 export default {
     name: metadata.name,
     metadata,
     edit,
     save,
-    icon,
-    transforms,
 };

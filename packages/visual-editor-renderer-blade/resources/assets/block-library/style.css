@@ -2495,6 +2495,18 @@ ul {
 .wp-block-navigation {
   position: relative;
 }
+/* #814 — materialize `spacing.blockGap` as a real gap between navigation
+   items. Upstream WordPress emits it per-container via the flex layout
+   support, which this package has no equivalent of, so items rendered
+   flush. `--wp--style--block-gap` is set on the wrapper by the renderer
+   (author value) or inherited from theme.json; the fallback matches
+   upstream's flex-layout default. The per-axis object form emits inline
+   `row-gap` / `column-gap`, which override this. The `<ul>` and
+   responsive containers pick it up through their `gap: inherit` rules.
+   Mirrors resources/js/visual-editor/blocks/navigation/navigation.css. */
+:where(.wp-block-navigation) {
+  gap: var(--wp--style--block-gap, 0.5em);
+}
 .wp-block-navigation ul {
   margin-top: 0;
   margin-bottom: 0;

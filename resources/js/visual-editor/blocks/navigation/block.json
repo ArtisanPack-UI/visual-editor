@@ -2,28 +2,9 @@
     "$schema": "https://schemas.wp.org/trunk/block.json",
     "apiVersion": 3,
     "name": "artisanpack/navigation",
-    "title": "Navigation",
+    "title": "Navigation (deprecated)",
     "category": "theme",
-    "allowedBlocks": [
-        "core/navigation-link",
-        "core/search",
-        "core/social-links",
-        "core/page-list",
-        "core/spacer",
-        "core/home-link",
-        "core/icon",
-        "core/site-title",
-        "core/site-logo",
-        "core/navigation-submenu",
-        "core/loginout",
-        "core/buttons"
-    ],
-    "description": "A collection of blocks that allow visitors to get around your site.",
-    "keywords": [
-        "menu",
-        "navigation",
-        "links"
-    ],
+    "description": "Legacy artisanpack/navigation stub. Persisted markup deserializes here and migrates to core/navigation on mount (issue #808).",
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "ref": {
@@ -107,23 +88,6 @@
             ]
         }
     },
-    "providesContext": {
-        "textColor": "textColor",
-        "customTextColor": "customTextColor",
-        "backgroundColor": "backgroundColor",
-        "customBackgroundColor": "customBackgroundColor",
-        "overlayTextColor": "overlayTextColor",
-        "customOverlayTextColor": "customOverlayTextColor",
-        "overlayBackgroundColor": "overlayBackgroundColor",
-        "customOverlayBackgroundColor": "customOverlayBackgroundColor",
-        "fontSize": "fontSize",
-        "customFontSize": "customFontSize",
-        "showSubmenuIcon": "showSubmenuIcon",
-        "submenuVisibility": "submenuVisibility",
-        "openSubmenusOnClick": "openSubmenusOnClick",
-        "style": "style",
-        "maxNestingLevel": "maxNestingLevel"
-    },
     "supports": {
         "position": true,
         "artisanpackAnimations": true,
@@ -135,7 +99,7 @@
         "ariaLabel": true,
         "contentRole": true,
         "html": false,
-        "inserter": true,
+        "inserter": false,
         "typography": {
             "fontSize": true,
             "lineHeight": true,
@@ -176,7 +140,5 @@
         },
         "interactivity": true,
         "renaming": false
-    },
-    "editorStyle": "wp-block-navigation-editor",
-    "style": "wp-block-navigation"
+    }
 }

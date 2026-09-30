@@ -45,12 +45,21 @@ import {
     createContext,
     createElement,
     useContext,
+    useEffect,
     useMemo,
     type PropsWithChildren,
     type ReactElement,
 } from 'react';
-import { createReduxStore, register, useDispatch, useSelect } from '@wordpress/data';
+import {
+    createReduxStore,
+    register,
+    useDispatch,
+    useRegistry,
+    useSelect,
+} from '@wordpress/data';
+import { __ } from '@wordpress/i18n';
 
+import { TEXT_DOMAIN } from './i18n';
 import { parseNavigationContent } from './parse-navigation-content';
 
 // ---------------------------------------------------------------------------
@@ -151,6 +160,7 @@ type CoreDataAction =
           kind: EntityKind;
           name: EntityName;
           id: EntityKey;
+          acknowledged?: EntityRecord;
       }
     | {
           type: 'SET_SAVING';
@@ -592,8 +602,13 @@ async function restRequest(
     url: string,
     init: RequestInit,
 ): Promise<unknown> {
+    const keepalive =
+        pageIsUnloading &&
+        (typeof init.body !== 'string' || init.body.length <= KEEPALIVE_BODY_LIMIT);
+
     const response = await shimConfig.fetcher(url, {
         credentials: 'same-origin',
+        ...(keepalive ? { keepalive: true } : {}),
         ...init,
     });
 
@@ -839,7 +854,28 @@ function reducer(
             }
 
             const nextBag = { ...bag };
-            delete nextBag[String(action.id)];
+
+            // `acknowledged` = the edits a completed save actually sent.
+            // Drop only those whose value hasn't moved since, so edits
+            // staged while the request was in flight survive for the
+            // next save (#809). Without it, clear everything.
+            if (action.acknowledged !== undefined) {
+                const remaining: EntityRecord = { ...bag[String(action.id)] };
+
+                for (const [prop, sentValue] of Object.entries(action.acknowledged)) {
+                    if (remaining[prop] === sentValue) {
+                        delete remaining[prop];
+                    }
+                }
+
+                if (Object.keys(remaining).length > 0) {
+                    nextBag[String(action.id)] = remaining;
+                } else {
+                    delete nextBag[String(action.id)];
+                }
+            } else {
+                delete nextBag[String(action.id)];
+            }
 
             return {
                 ...state,
@@ -929,7 +965,20 @@ function selectEntityRecord(
         return null;
     }
 
-    const primary = String(id);
+    // `root/__unstableBase` is a singleton entity cached under the
+    // `SITE_ENTITY_ID = 'self'` sentinel (see the matching normalization
+    // in `fetchEntityRecord`, #808). Upstream Gutenberg's callers pass
+    // no id to the selector, so without this normalization the selector
+    // looks up `String(undefined) = 'undefined'` in `bag.items`, misses
+    // the cached record, and returns null — leaving consumers reading
+    // through `useEntityRecord('root', '__unstableBase')` stuck in the
+    // "not resolved yet" state.
+    const primary =
+        kind === 'root'
+        && name === '__unstableBase'
+        && (id === undefined || id === null || id === '')
+            ? SITE_ENTITY_ID
+            : String(id);
     const direct = bag.items[primary];
 
     if (direct !== undefined) {
@@ -1156,6 +1205,7 @@ const selectors = {
         const base = selectEntityRecord(state, kind, name, id);
         const edits = selectEditsForRecord(state, kind, name, id);
 
+
         // Match WP core's behavior: return an empty object — never
         // `null` — when nothing's been fetched yet. Consumers like
         // Gutenberg's `core/navigation` block (`use-navigation-menu.mjs`)
@@ -1288,9 +1338,39 @@ const selectors = {
     // the public selectors. Exposing it here lets the unlock call fall
     // through to a no-op without us depending on `@wordpress/private-apis`
     // (whose lock/unlock symbol identity is fragile across module
-    // copies in a mixed `node_modules` tree). Returning `undefined`
-    // routes the block to its uncontrolled-inner-blocks fallback path.
-    getNavigationFallbackId: (): EntityKey | undefined => undefined,
+    // copies in a mixed `node_modules` tree).
+    //
+    // For issue #808 the shim resolves the fallback to the first
+    // cached `wp_navigation` record's id — matching upstream's
+    // "auto-select the primary menu" behavior when the block is
+    // dropped without a ref. Returning `undefined` leaves the block
+    // stuck on its placeholder even after the picker has loaded a
+    // menu list from the server. Nothing is dispatched from a
+    // selector; the resolver behind `getEntityRecords` primes the
+    // cache on first read from other paths (menu-inspector-controls
+    // etc.), and this selector reflects whatever's currently there.
+    getNavigationFallbackId: (state: CoreDataState): EntityKey | undefined => {
+        const bag = state.records[entityKey('postType', 'wp_navigation')];
+
+        if (!bag) {
+            return undefined;
+        }
+
+        for (const key of Object.keys(bag.items)) {
+            const record = bag.items[key];
+            const status = (record as { status?: unknown }).status;
+
+            if (status === 'publish' || status === 'draft') {
+                const id = (record as { id?: unknown }).id;
+
+                if (typeof id === 'number' || typeof id === 'string') {
+                    return id as EntityKey;
+                }
+            }
+        }
+
+        return undefined;
+    },
 };
 
 // ---------------------------------------------------------------------------
@@ -1338,6 +1418,7 @@ interface ThunkArgs {
             kind: EntityKind,
             name: EntityName,
             id: EntityKey,
+            acknowledged?: EntityRecord,
         ) => CoreDataAction;
         // Auto-exposed by `@wordpress/data` for any registered store —
         // resets the resolver state for a single selector so the next
@@ -1425,11 +1506,13 @@ const actions = {
         kind: EntityKind,
         name: EntityName,
         id: EntityKey,
+        acknowledged?: EntityRecord,
     ): CoreDataAction => ({
         type: 'CLEAR_ENTITY_RECORD_EDITS',
         kind,
         name,
         id,
+        acknowledged,
     }),
 
     setEntitySaving: (
@@ -1502,6 +1585,28 @@ const actions = {
 
             if (!config) {
                 return null;
+            }
+
+            // #808 — `root/__unstableBase` is a singleton entity; upstream
+            // Gutenberg (notably the navigation block's resolvers) calls
+            // `getEntityRecord('root', '__unstableBase')` with NO id, so
+            // `entityUrl(config, undefined)` builds the collection URL
+            // `/site` — which the PHP side doesn't expose. The 404 lands
+            // in the catch clause below, which synthesizes a "missing
+            // entity" placeholder and dispatches `receiveEntityRecords`.
+            // Every consumer subscribing to this record sees a state
+            // transition (undefined → placeholder), which unmounts and
+            // remounts the nav subtree (blank list view + focus loss +
+            // chrome flicker). Coerce the missing id to the singleton
+            // sentinel so the fetch hits `/site/self` and returns real
+            // data on first read; subsequent calls come out of the
+            // resolver cache and don't refetch.
+            if (
+                kind === 'root' &&
+                name === '__unstableBase' &&
+                (id === undefined || id === null || id === '')
+            ) {
+                id = SITE_ENTITY_ID;
             }
 
             const compositeParts =
@@ -1640,6 +1745,53 @@ const actions = {
                 return EMPTY_RECORDS;
             }
 
+            // #808 — `root/__unstableBase` is a singleton, but upstream
+            // Gutenberg (navigation resolvers, notably) sometimes asks
+            // for it in collection form via `getEntityRecords`. The PHP
+            // side only exposes `/site/{id}`, so a bare `/site` fetch
+            // 404s and our catch clause below flips the collection's
+            // cached records to `[]` — a state transition upstream
+            // subscribes to, which in turn unmounts the nav subtree
+            // and produces the flicker + list-view blank + focus loss.
+            // Redirect the collection request to the singleton URL and
+            // wrap the record as a list of one so the resolver's
+            // consumers see the entity, not an empty list.
+            if (kind === 'root' && name === '__unstableBase') {
+                try {
+                    const record = (await restRequest(
+                        entityUrl(config, SITE_ENTITY_ID),
+                        {
+                            method: 'GET',
+                            headers: buildHeaders(false),
+                        },
+                    )) as EntityRecord | null;
+
+                    const records = record === null ? EMPTY_RECORDS : [record];
+
+                    dispatch.receiveEntityRecords(
+                        kind,
+                        name,
+                        records,
+                        query ?? null,
+                        records.length,
+                        1,
+                    );
+
+                    return records;
+                } catch {
+                    dispatch.receiveEntityRecords(
+                        kind,
+                        name,
+                        EMPTY_RECORDS,
+                        query ?? null,
+                        0,
+                        0,
+                    );
+
+                    return EMPTY_RECORDS;
+                }
+            }
+
             try {
                 const url = `${entityUrl(config)}${queryString(query)}`;
                 const body = (await restRequest(url, {
@@ -1707,21 +1859,51 @@ const actions = {
                 })) as EntityRecord | null;
 
                 if (saved !== null) {
-                    dispatch.receiveEntityRecords(kind, name, [saved]);
-
-                    // Keystone #57. The receive wiped every cached
-                    // filter query for this entity (the conservative
-                    // post-save invalidation). Also reset the resolver
-                    // state for `getEntityRecords` so the next read
-                    // refetches and the new record appears in lists
-                    // immediately — without this, the saved data is in
-                    // `items` but `bag.queries` is empty and the
-                    // resolver thinks it's already resolved, leaving
-                    // the list rendering the wiped (empty) cache until
-                    // the page reloads.
-                    dispatch.invalidateResolutionForStoreSelector?.(
-                        'getEntityRecords',
-                    );
+                    if (existingId === null) {
+                        // CREATE. Keystone #57. The receive wipes every
+                        // cached filter query for this entity (the
+                        // conservative post-save invalidation) and we
+                        // reset the resolver state so the next read
+                        // refetches — the new record's id isn't in any
+                        // cached list yet, so consumers need a refetch
+                        // to surface it. Without this, the saved data
+                        // is in `items` but `bag.queries` is empty and
+                        // the resolver thinks it's already resolved,
+                        // leaving lists rendering the wiped (empty)
+                        // cache until the page reloads.
+                        dispatch.receiveEntityRecords(kind, name, [saved]);
+                        dispatch.invalidateResolutionForStoreSelector?.(
+                            'getEntityRecords',
+                        );
+                    } else {
+                        // UPDATE (issue #808). Skip both the query wipe
+                        // and the resolver invalidation. The record was
+                        // already in `bag.items` and every cached query
+                        // that referenced its id still does — `items` is
+                        // authoritative for record content, so consumers
+                        // reading `getEntityRecords(...).map(id =>
+                        // items[id])` see the fresh attributes without a
+                        // refetch. Wiping queries here made
+                        // `hasFinishedResolution('getEntityRecords',
+                        // <wp_navigation query>)` flip false during the
+                        // save round-trip; upstream's `useNavigationMenu`
+                        // subscribes to that flag via
+                        // `hasResolvedNavigationMenus`, and the
+                        // `false → true` transient re-rendered the nav
+                        // block into its loading state, unmounting
+                        // `NavigationInnerBlocks` and producing the
+                        // chrome flicker + list-view blank + focus loss
+                        // after every insert.
+                        dispatch.receiveEntityRecords(
+                            kind,
+                            name,
+                            [saved],
+                            undefined,
+                            undefined,
+                            undefined,
+                            false,
+                        );
+                    }
                 }
 
                 dispatch.setEntitySaving(kind, name, saveSlotId, false, null);
@@ -1736,8 +1918,14 @@ const actions = {
 
     /**
      * PUTs the edited record (base + edits) back to the server, then
-     * clears the edits bag on success. Leaves the edits intact on failure
-     * so the UI can retry.
+     * clears the edits that request carried. Leaves the edits intact on
+     * failure so the UI can retry.
+     *
+     * Saves for the same record run one at a time (#809): a debounced
+     * save can fire while the previous PUT is still in flight, and two
+     * overlapping PUTs could land out of order and receive the older
+     * record last. Edits staged during a request aren't cleared by it —
+     * the next queued save sends them.
      *
      * The key field is pinned onto the payload explicitly: edits staged
      * before the base record was ever cached would otherwise produce a
@@ -1746,46 +1934,23 @@ const actions = {
      */
     saveEditedEntityRecord:
         (kind: EntityKind, name: EntityName, id: EntityKey) =>
-        async ({ dispatch, select }: ThunkArgs): Promise<EntityRecord | null> => {
-            // `getEditedEntityRecord` returns `{}` for an unresolved
-            // record so synchronous reads on the nav block (and other
-            // entity-backed Edit components) don't crash on
-            // `record.status` (Keystone #48). That makes a bare
-            // `=== null` check insufficient here — `{}` would slip
-            // through and trigger a spurious PUT `{ id }` payload
-            // for a record nothing has loaded or edited. Probe the
-            // underlying base + edits explicitly instead, so we only
-            // serialize a save when there's something to save.
-            const base = select.getEntityRecord(kind, name, id);
-            const edits = select.getEntityRecordEdits(kind, name, id);
+        async (thunkArgs: ThunkArgs): Promise<EntityRecord | null> => {
+            const queueKey = `${kind}|${name}|${String(id)}`;
+            const previous = entitySaveQueue.get(queueKey) ?? Promise.resolve();
+            const run = previous
+                .catch(() => undefined)
+                .then(() => performEditedEntityRecordSave(kind, name, id, thunkArgs));
 
-            if (base === null && (edits === null || Object.keys(edits).length === 0)) {
-                return null;
+            entitySaveQueue.set(queueKey, run);
+
+            try {
+                return await run;
+            } finally {
+                if (entitySaveQueue.get(queueKey) === run) {
+                    entitySaveQueue.delete(queueKey);
+                }
             }
-
-            const edited = select.getEditedEntityRecord(kind, name, id);
-
-            if (edited === null) {
-                return null;
-            }
-
-            const config = select.getEntityConfig(kind, name);
-            const payload: EntityRecord = config
-                ? { ...edited, [config.key]: id }
-                : edited;
-
-            const saved = await actions.saveEntityRecord(kind, name, payload)({
-                dispatch,
-                select,
-            });
-
-            if (saved !== null) {
-                dispatch.clearEntityRecordEdits(kind, name, id);
-            }
-
-            return saved;
         },
-
     /**
      * DELETEs an entity record and evicts it from the store on success.
      */
@@ -1825,6 +1990,65 @@ const actions = {
             }
         },
 };
+
+/**
+ * Per-record save queue for `saveEditedEntityRecord`, keyed
+ * `kind|name|id`. Holds the tail of each record's chain.
+ */
+const entitySaveQueue = new Map<string, Promise<EntityRecord | null>>();
+
+/**
+ * Body of `saveEditedEntityRecord`, run once the record's previous save
+ * has settled.
+ */
+async function performEditedEntityRecordSave(
+    kind: EntityKind,
+    name: EntityName,
+    id: EntityKey,
+    thunkArgs: ThunkArgs,
+): Promise<EntityRecord | null> {
+    // `getEditedEntityRecord` returns `{}` for an unresolved
+    // record so synchronous reads on the nav block (and other
+    // entity-backed Edit components) don't crash on
+    // `record.status` (Keystone #48). That makes a bare
+    // `=== null` check insufficient here — `{}` would slip
+    // through and trigger a spurious PUT `{ id }` payload
+    // for a record nothing has loaded or edited. Probe the
+    // underlying base + edits explicitly instead, so we only
+    // serialize a save when there's something to save.
+    const { dispatch, select } = thunkArgs;
+    const base = select.getEntityRecord(kind, name, id);
+    const edits = select.getEntityRecordEdits(kind, name, id);
+    // Snapshot of what this request carries — only these are
+    // cleared once it lands.
+    const sentEdits: EntityRecord = { ...(edits ?? {}) };
+
+    if (base === null && (edits === null || Object.keys(edits).length === 0)) {
+        return null;
+    }
+
+    const edited = select.getEditedEntityRecord(kind, name, id);
+
+    if (edited === null) {
+        return null;
+    }
+
+    const config = select.getEntityConfig(kind, name);
+    const payload: EntityRecord = config
+        ? { ...edited, [config.key]: id }
+        : edited;
+
+    const saved = await actions.saveEntityRecord(kind, name, payload)({
+        dispatch,
+        select,
+    });
+
+    if (saved !== null) {
+        dispatch.clearEntityRecordEdits(kind, name, id, sentEdits);
+    }
+
+    return saved;
+}
 
 interface NormalizedList {
     records: readonly EntityRecord[];
@@ -1914,7 +2138,29 @@ export const store = createReduxStore(STORE_NAME, {
     resolvers: resolvers as unknown as Record<string, () => unknown>,
 });
 
-register(store);
+// Guard against duplicate registration. In Vite's dev server the
+// shim can be resolved twice — once via the `@wordpress/core-data`
+// alias and once via a relative `../../vendor/core-data-shim`
+// import — producing two module instances that both try to
+// `register(store)`. `@wordpress/data` throws on the second call,
+// which aborts module evaluation and leaves the second instance
+// without a fully-initialized state object (side-effects below the
+// register never run). Swallow the duplicate cleanly so both
+// instances finish evaluating; both talk to the same singleton
+// wp-data registry regardless.
+try {
+    register(store);
+} catch (error) {
+    if (
+        !(error instanceof Error) ||
+        !error.message.includes('already registered')
+    ) {
+        throw error;
+    }
+    // A second module-instance evaluation re-hit `register(store)` on
+    // the same wp-data singleton; swallow so the second instance
+    // finishes evaluating. Both instances then talk to the same store.
+}
 
 // ---------------------------------------------------------------------------
 // React context + hooks
@@ -1955,6 +2201,24 @@ export function useEntityId(): EntityKey | undefined {
 const noopSetter = (): void => {};
 
 /**
+ * Entities whose `useEntityProp` edits save themselves (debounced), keyed
+ * `kind|name`. Other entities keep upstream's stage-only behaviour — the
+ * host editor decides when to persist them.
+ */
+const AUTOSAVED_PROP_RESOURCES: ReadonlySet<string> = new Set(['postType|wp_navigation']);
+
+/**
+ * Whether edits to `(kind, name)` made through `useEntityProp` /
+ * `useEntityBlockEditor` save themselves on a debounce. Everything
+ * outside {@link AUTOSAVED_PROP_RESOURCES} is stage-only.
+ *
+ * @since 1.12.0
+ */
+function isAutosavedEntity(kind: EntityKind, name: EntityName): boolean {
+    return AUTOSAVED_PROP_RESOURCES.has(`${kind}|${name}`);
+}
+
+/**
  * Reads + edits a single property of an entity record. Mirrors upstream
  * `@wordpress/core-data`'s `useEntityProp` so block-library Edit
  * components (e.g. `core/post-title`) round-trip the prop through the
@@ -1966,7 +2230,8 @@ const noopSetter = (): void => {};
  *   layers any pending edits on top. Block edits (e.g. typing into a
  *   `core/post-title`'s `PlainText`) read this value.
  * - `setValue` dispatches `editEntityRecord(kind, name, id, { [prop]: value })`
- *   so subsequent reads see the new value through the edits bag.
+ *   so subsequent reads see the new value through the edits bag. Entities
+ *   in {@link AUTOSAVED_PROP_RESOURCES} also get a debounced save.
  * - `fullValue` is the prop read from the original `getEntityRecord` —
  *   the unflattened shape, used by upstream code that needs the
  *   `{rendered}` form (e.g. the post-title block's read-only fallback
@@ -2036,8 +2301,15 @@ export function useEntityProp<T = unknown>(
                   id: EntityKey,
                   edits: EntityRecord,
               ) => void;
+              saveEditedEntityRecord?: (
+                  kind: EntityKind,
+                  name: EntityName,
+                  id: EntityKey,
+              ) => Promise<unknown>;
           }
         | undefined;
+
+    const registry = useRegistry() as ShimRegistry;
 
     const setter = useMemo(() => {
         if (
@@ -2054,8 +2326,18 @@ export function useEntityProp<T = unknown>(
             dispatchTuple?.editEntityRecord?.(kind, name, resolvedId, {
                 [prop]: value,
             });
+
+            // Upstream persists these edits through the editor's entity
+            // save panel, which the package doesn't have. For menus,
+            // save them the same way `useEntityBlockEditor` saves item
+            // edits, so the nav block's "Menu name" control sticks (#809).
+            if (isAutosavedEntity(kind, name)) {
+                scheduleEntityRecordSave(kind, name, resolvedId, () => {
+                    void autosaveEntityRecord(registry, kind, name, resolvedId);
+                });
+            }
         };
-    }, [dispatchTuple, kind, name, prop, resolvedId]);
+    }, [dispatchTuple, registry, kind, name, prop, resolvedId]);
 
     return [editedValue, setter, fullValue];
 }
@@ -2284,10 +2566,13 @@ export function useEntityRecords<T = unknown>(
  * fields, and caches the result by `(kind, name, id, raw)` so render
  * loops don't reissue fresh `clientId`s on every selector read.
  *
- * Edits are still no-ops — saving a synced pattern goes through the
- * dedicated patterns canvas in the site editor (D5), not via this
- * inline path. When the post-V1 cms-framework backend lands the
- * setters can begin dispatching real `editEntityRecord` actions.
+ * Writes stage `editEntityRecord({ content: { raw, blocks } })` and
+ * schedule a debounced `saveEditedEntityRecord` — the same
+ * serialize + PUT contract `use-entity-editor` uses on the
+ * site-editor save path, but driven by the block-editor's per-edit
+ * onChange/onInput callbacks (issue #808). `onInput` and `onChange`
+ * both flow through the same path; upstream distinguishes them for
+ * undo history, which the shim does not model.
  */
 export function useEntityBlockEditor(
     kind?: EntityKind,
@@ -2322,12 +2607,42 @@ export function useEntityBlockEditor(
                           name: EntityName,
                           id: EntityKey
                       ) => EntityRecord | null;
+                      getEditedEntityRecord?: (
+                          kind: EntityKind,
+                          name: EntityName,
+                          id: EntityKey
+                      ) => EntityRecord | null;
                   }
                 | undefined;
 
-            const record = store?.getEntityRecord?.(kind, name, id);
+            // Prefer the EDITED record so staged edits (from
+            // `onInput`/`onChange` below) reflect immediately in the
+            // canvas — otherwise the user's changes disappear until
+            // the debounced PUT lands and the base record refreshes.
+            const record =
+                store?.getEditedEntityRecord?.(kind, name, id) ??
+                store?.getEntityRecord?.(kind, name, id);
 
-            if (!record) {
+            // Reference-identity contract with `use-block-sync`
+            // (issue #808): when the setter below stages `blocks`
+            // top-level on the edits bag, return that array UNTOUCHED
+            // and UN-DECORATED. Upstream's `use-block-sync` checks
+            // `pendingChangesRef.outgoing.includes(controlledBlocks)`
+            // by reference equality — any new array reference on
+            // re-read (from a fresh decoration pass) makes the sync
+            // effect wipe the internal store back to the "controlled"
+            // value, silently eating the user's insert / reorder /
+            // delete. The setter-supplied array already carries
+            // stable `clientId`s from Gutenberg itself, so no
+            // decoration is needed.
+            const editedTopLevelBlocks = (
+                record as { blocks?: unknown } | null | undefined
+            )?.blocks;
+            if (Array.isArray(editedTopLevelBlocks)) {
+                return editedTopLevelBlocks as readonly unknown[];
+            }
+
+            if (!record || Object.keys(record).length === 0) {
                 return EMPTY_RECORDS as readonly unknown[];
             }
 
@@ -2399,7 +2714,407 @@ export function useEntityBlockEditor(
         [kind, name, id]
     );
 
-    return [blocks, noopSetter, noopSetter];
+    const dispatchTuple = useDispatch(STORE_NAME) as
+        | {
+              editEntityRecord?: (
+                  kind: EntityKind,
+                  name: EntityName,
+                  id: EntityKey,
+                  edits: EntityRecord,
+              ) => void;
+              saveEditedEntityRecord?: (
+                  kind: EntityKind,
+                  name: EntityName,
+                  id: EntityKey,
+              ) => Promise<EntityRecord | null>;
+          }
+        | undefined;
+
+    const registry = useRegistry() as ShimRegistry;
+
+    // Base (un-edited) record, tracked so stage-only block edits can be
+    // dropped once a fresher copy of the record lands — see
+    // `stagedBlockEdits`.
+    const baseRecord = useSelect(
+        (select) => {
+            if (kind === undefined || name === undefined || id === null) {
+                return null;
+            }
+
+            const store = select(STORE_NAME) as
+                | {
+                      getEntityRecord?: (
+                          kind: EntityKind,
+                          name: EntityName,
+                          id: EntityKey
+                      ) => EntityRecord | null;
+                  }
+                | undefined;
+
+            return store?.getEntityRecord?.(kind, name, id) ?? null;
+        },
+        [kind, name, id]
+    );
+
+    useEffect(() => {
+        if (kind === undefined || name === undefined || id === null) {
+            return;
+        }
+
+        releaseStaleStagedBlockEdits(registry, kind, name, id, baseRecord);
+    }, [registry, kind, name, id, baseRecord]);
+
+    const setBlocks = useMemo(() => {
+        if (kind === undefined || name === undefined || id === null) {
+            return noopSetter as (blocks: readonly unknown[]) => void;
+        }
+
+        return (nextBlocks: readonly unknown[]): void => {
+            const list = Array.isArray(nextBlocks) ? nextBlocks : [];
+
+            // Record the setter's array as the authoritative decoration so
+            // the reader's `content.blocks` fallback (after the save clears
+            // the edits) hands back this exact reference — preserving
+            // clientIds + selection + inner-block-controlled state across
+            // the save round-trip. See rememberAuthoritativeBlocks docblock.
+            rememberAuthoritativeBlocks(kind, name, id, list);
+
+            // Stage `blocks` TOP-LEVEL exactly like upstream WP's own
+            // `useEntityBlockEditor` (see
+            // `@wordpress/core-data/entity-provider/use-entity-block-
+            // editor.js`). The reader above returns this array as-is
+            // so `use-block-sync.mjs`' `pendingChangesRef.outgoing`
+            // reference-equality check clears and the insert survives
+            // the next React commit (issue #808). Also mirror it into
+            // `content.blocks` so the debounced PUT below sends the
+            // shape the `MenuController::resolveContentBlocks` PHP
+            // path already accepts without a client-side serialize
+            // pass (`@wordpress/blocks`'s `serialize()` can't be
+            // imported at module scope — its `i18n-block.json` needs
+            // an import attribute Vitest can't supply).
+            const staged: EntityRecord = {
+                blocks: list,
+                content: { blocks: list },
+            };
+
+            dispatchTuple?.editEntityRecord?.(kind, name, id, staged);
+
+            // Only allowlisted entities save themselves. Everything else
+            // (template parts, patterns, …) stays stage-only as in
+            // upstream: the shim has no save route that accepts every
+            // entity's id shape (e.g. a template part's composite
+            // `theme//slug` 404s on the numeric `template-parts/{id}`
+            // route), and the owning editor persists those records
+            // through its own API client.
+            if (isAutosavedEntity(kind, name)) {
+                scheduleEntityRecordSave(kind, name, id, () => {
+                    void autosaveEntityRecord(registry, kind, name, id);
+                });
+
+                return;
+            }
+
+            stagedBlockEdits.set(`${kind}|${name}|${String(id)}`, {
+                base: readBaseRecord(registry, kind, name, id),
+                edits: staged,
+            });
+        };
+    }, [dispatchTuple, registry, kind, name, id]);
+
+    return [blocks, setBlocks, setBlocks];
+}
+
+/**
+ * Minimal view of the `@wordpress/data` registry the shim's hooks reach
+ * through `useRegistry()`.
+ */
+interface ShimRegistry {
+    select: (storeName: string) => unknown;
+    dispatch: (storeName: string) => unknown;
+}
+
+interface CoreShimRegistrySelectors {
+    getEntityRecord?: (
+        kind: EntityKind,
+        name: EntityName,
+        id: EntityKey,
+    ) => EntityRecord | null;
+    getLastEntitySaveError?: (
+        kind: EntityKind,
+        name: EntityName,
+        id: EntityKey,
+    ) => unknown;
+}
+
+interface CoreShimRegistryActions {
+    saveEditedEntityRecord?: (
+        kind: EntityKind,
+        name: EntityName,
+        id: EntityKey,
+    ) => Promise<EntityRecord | null>;
+    clearEntityRecordEdits?: (
+        kind: EntityKind,
+        name: EntityName,
+        id: EntityKey,
+        acknowledged?: EntityRecord,
+    ) => unknown;
+}
+
+interface NoticesActions {
+    createErrorNotice?: (
+        message: string,
+        options?: {
+            id?: string;
+            isDismissible?: boolean;
+            actions?: ReadonlyArray<{ label: string; onClick: () => void }>;
+        },
+    ) => unknown;
+    removeNotice?: (id: string) => unknown;
+}
+
+/**
+ * Reads a store off the registry, tolerating stores that aren't
+ * registered in the current context (`core/notices` in a bare test
+ * harness, for instance).
+ */
+function registryStore<T>(
+    registry: ShimRegistry,
+    kind: 'select' | 'dispatch',
+    storeName: string,
+): T | undefined {
+    try {
+        return (registry[kind](storeName) ?? undefined) as T | undefined;
+    } catch {
+        return undefined;
+    }
+}
+
+function readBaseRecord(
+    registry: ShimRegistry,
+    kind: EntityKind,
+    name: EntityName,
+    id: EntityKey,
+): EntityRecord | null {
+    return (
+        registryStore<CoreShimRegistrySelectors>(registry, 'select', STORE_NAME)
+            ?.getEntityRecord?.(kind, name, id) ?? null
+    );
+}
+
+/**
+ * Block-editor edits staged on stage-only entities, keyed
+ * `kind|name|id`, with the base record they were staged against.
+ *
+ * Nothing in the shim persists these (see `useEntityBlockEditor`'s
+ * setter), and the reader prefers staged `blocks` over the base record.
+ * Left alone they'd mask every later copy of the record — e.g. a
+ * template part inlined in a template keeps showing its old text after
+ * the Template Parts editor saves the part and primes the shim with the
+ * fresh record. {@link releaseStaleStagedBlockEdits} drops them once
+ * the base record moves on.
+ *
+ * @since 1.12.0
+ */
+const stagedBlockEdits = new Map<
+    string,
+    { base: EntityRecord | null; edits: EntityRecord }
+>();
+
+/**
+ * Clears the block edits `useEntityBlockEditor` staged on a stage-only
+ * entity once a base record with different `content` has been received
+ * for it. Only
+ * the exact values the setter staged are cleared (via the
+ * `acknowledged` form of `clearEntityRecordEdits`), so unrelated edits
+ * on the same record survive.
+ *
+ * @since 1.12.0
+ */
+function releaseStaleStagedBlockEdits(
+    registry: ShimRegistry,
+    kind: EntityKind,
+    name: EntityName,
+    id: EntityKey,
+    currentBase: EntityRecord | null,
+): void {
+    const key = `${kind}|${name}|${String(id)}`;
+    const entry = stagedBlockEdits.get(key);
+
+    if (entry === undefined || currentBase === null || entry.base === currentBase) {
+        return;
+    }
+
+    // Staged before the record ever loaded, or the record was merely
+    // re-received with the same content (e.g. the resolver's first
+    // fetch): the staged edits are still ahead of the server, so adopt
+    // the new copy as the base instead of dropping them.
+    if (
+        entry.base === null ||
+        stableStringify(entry.base.content) === stableStringify(currentBase.content)
+    ) {
+        entry.base = currentBase;
+        return;
+    }
+
+    stagedBlockEdits.delete(key);
+    registryStore<CoreShimRegistryActions>(registry, 'dispatch', STORE_NAME)
+        ?.clearEntityRecordEdits?.(kind, name, id, entry.edits);
+}
+
+/**
+ * Runs a debounced autosave and reports failures.
+ *
+ * `saveEditedEntityRecord` swallows request errors into `saveErrors`
+ * and keeps the edits staged. Without a notice the user can't tell the
+ * autosave failed (validation 422, expired session 419, 5xx) until the
+ * next reload loses the change. On failure this raises a `core/notices`
+ * error notice with a Retry action; on success it removes any notice a
+ * previous failure left behind. One notice id per record, so repeated
+ * failures replace rather than stack.
+ *
+ * @since 1.12.0
+ */
+async function autosaveEntityRecord(
+    registry: ShimRegistry,
+    kind: EntityKind,
+    name: EntityName,
+    id: EntityKey,
+): Promise<void> {
+    const core = registryStore<CoreShimRegistryActions>(registry, 'dispatch', STORE_NAME);
+    let saved: EntityRecord | null = null;
+    let thrown: unknown = null;
+
+    try {
+        saved = (await core?.saveEditedEntityRecord?.(kind, name, id)) ?? null;
+    } catch (error) {
+        thrown = error;
+    }
+
+    const saveError =
+        thrown ??
+        (saved === null
+            ? registryStore<CoreShimRegistrySelectors>(registry, 'select', STORE_NAME)
+                  ?.getLastEntitySaveError?.(kind, name, id) ?? null
+            : null);
+
+    const notices = registryStore<NoticesActions>(registry, 'dispatch', 'core/notices');
+    const noticeId = `core-data-shim/autosave/${kind}/${name}/${String(id)}`;
+
+    if (saveError === null || saveError === undefined) {
+        notices?.removeNotice?.(noticeId);
+        return;
+    }
+
+    notices?.createErrorNotice?.(
+        __('Your latest changes could not be saved.', TEXT_DOMAIN),
+        {
+            id: noticeId,
+            isDismissible: true,
+            actions: [
+                {
+                    label: __('Retry', TEXT_DOMAIN),
+                    onClick: () => {
+                        void autosaveEntityRecord(registry, kind, name, id);
+                    },
+                },
+            ],
+        },
+    );
+}
+
+/**
+ * Per-entity debounce for `saveEditedEntityRecord`.
+ *
+ * The block-editor's `onChange` / `onInput` callbacks fire on every
+ * keystroke; PUTing on each would swamp the backend and race with
+ * itself. Coalesce writes for the same `(kind, name, id)` into a
+ * single trailing-edge save after 500ms of quiet, matching upstream
+ * `use-entity-editor`'s cadence.
+ */
+const ENTITY_SAVE_DEBOUNCE_MS = 500;
+const entitySaveTimers = new Map<
+    string,
+    { timer: ReturnType<typeof setTimeout>; save: () => void }
+>();
+
+function scheduleEntityRecordSave(
+    kind: EntityKind,
+    name: EntityName,
+    id: EntityKey,
+    save: () => void,
+): void {
+    const key = `${kind}|${name}|${String(id)}`;
+    const existing = entitySaveTimers.get(key);
+
+    if (existing !== undefined) {
+        clearTimeout(existing.timer);
+    }
+
+    const timer = setTimeout(() => {
+        entitySaveTimers.delete(key);
+        save();
+    }, ENTITY_SAVE_DEBOUNCE_MS);
+
+    entitySaveTimers.set(key, { timer, save });
+}
+
+/**
+ * Fires every pending debounced entity save now instead of waiting out
+ * the debounce window. Runs on `pagehide` / `beforeunload` so edits
+ * made in the last 500ms before the tab closes or navigates still get
+ * sent.
+ *
+ * @since 1.12.0
+ */
+export function flushPendingEntityRecordSaves(): void {
+    const pending = [...entitySaveTimers.values()];
+
+    entitySaveTimers.clear();
+
+    for (const { timer, save } of pending) {
+        clearTimeout(timer);
+        save();
+    }
+}
+
+/**
+ * Drops every pending debounced entity save without running it. Test
+ * hook so a trailing save can't fire after its test has finished.
+ *
+ * @since 1.12.0
+ */
+export function __cancelPendingEntityRecordSaves(): void {
+    for (const { timer } of entitySaveTimers.values()) {
+        clearTimeout(timer);
+    }
+
+    entitySaveTimers.clear();
+}
+
+/**
+ * Set between `pagehide` and `pageshow` so requests issued while the
+ * page is going away carry `keepalive` and aren't cancelled with it.
+ */
+let pageIsUnloading = false;
+
+/**
+ * Browsers cap the combined body size of in-flight keepalive requests
+ * at 64KiB; a larger body sent with `keepalive` is rejected outright,
+ * so those go out as normal requests and take their chances.
+ */
+const KEEPALIVE_BODY_LIMIT = 60 * 1024;
+
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+    window.addEventListener('beforeunload', () => {
+        flushPendingEntityRecordSaves();
+    });
+    window.addEventListener('pagehide', () => {
+        pageIsUnloading = true;
+        flushPendingEntityRecordSaves();
+    });
+    window.addEventListener('pageshow', () => {
+        pageIsUnloading = false;
+    });
 }
 
 /**
@@ -2445,6 +3160,206 @@ const decoratedBlocksCache = new Map<
 >();
 
 /**
+ * Records the setter-supplied blocks array per `(kind, name, id)` so
+ * `getDecoratedBlocks` can reuse it — clientIds and all — after the
+ * shim's debounced save round-trips through the backend.
+ *
+ * Without this: setter fires with 5 clientId-carrying blocks → edits
+ * are staged → save fires → server responds with the same tree but
+ * clientIds stripped → `getEditedEntityRecord` no longer has our
+ * `blocks` edit → reader falls to the `content.blocks` path →
+ * `getDecoratedBlocks` sees a new source-array reference, cache-misses,
+ * mints fresh clientIds → `use-block-sync` treats the new array as an
+ * external change → `resetBlocks(newBlocks)` → tree rebuild, selection
+ * cleared, `InspectorControlsListView` slot-fill flickers. Issue #808.
+ */
+const lastAuthoritativeBlocks = new Map<
+    string,
+    readonly DecoratedBlock[]
+>();
+
+/**
+ * Decorates server-blocks while reusing clientIds AND reference identity
+ * from a prior authoritative array at matching positions (issue #808).
+ * Walks both arrays in parallel: when a block's name, attributes, and
+ * innerBlocks are all deeply equal to `prev[i]`, `prev[i]` itself is
+ * returned unchanged so the outer array can also be returned unchanged.
+ * `use-block-sync` short-circuits on reference equality; without this,
+ * every save round-trip re-allocates the tree and Gutenberg remounts the
+ * whole subtree (visible as focus loss + chrome flicker after every
+ * insert). When names diverge, or `prev` runs out (e.g. after an
+ * insert), the surplus server blocks fall back to fresh decoration and
+ * mint new clientIds.
+ */
+function decorateReusingClientIds(
+    serverBlocks: readonly unknown[],
+    prev: readonly DecoratedBlock[],
+): readonly DecoratedBlock[] {
+    const out: DecoratedBlock[] = [];
+    let allReused = serverBlocks.length === prev.length;
+
+    for (let i = 0; i < serverBlocks.length; i++) {
+        const decorated = decorateBlockReusingClientId(serverBlocks[i], prev[i]);
+
+        if (decorated === null) {
+            allReused = false;
+            continue;
+        }
+
+        if (decorated !== prev[i]) {
+            allReused = false;
+        }
+
+        out.push(decorated);
+    }
+
+    return allReused ? prev : out;
+}
+
+function decorateBlockReusingClientId(
+    block: unknown,
+    prev: DecoratedBlock | undefined,
+): DecoratedBlock | null {
+    if (
+        block === null ||
+        typeof block !== 'object' ||
+        typeof (block as ServerBlock).name !== 'string'
+    ) {
+        return null;
+    }
+
+    const server = block as ServerBlock & { clientId?: unknown };
+    const namesMatch = prev !== undefined && prev.name === server.name;
+
+    const clientId = namesMatch
+        ? prev!.clientId
+        : typeof server.clientId === 'string' && server.clientId.length > 0
+            ? server.clientId
+            : createClientId();
+
+    const prevInner = namesMatch ? prev!.innerBlocks : EMPTY_RECORDS;
+    const innerBlocks = Array.isArray(server.innerBlocks)
+        ? decorateReusingClientIds(server.innerBlocks, prevInner)
+        : EMPTY_RECORDS;
+
+    // Reference-preserve the whole block when nothing changed — see the
+    // docblock on `decorateReusingClientIds` for why this matters.
+    if (
+        namesMatch &&
+        innerBlocks === prev!.innerBlocks &&
+        attributesAreEqual(prev!.attributes, server.attributes ?? {})
+    ) {
+        return prev!;
+    }
+
+    return {
+        name: server.name,
+        clientId,
+        isValid: true,
+        attributes: server.attributes ?? {},
+        innerBlocks,
+    };
+}
+
+function attributesAreEqual(
+    a: Record<string, unknown>,
+    b: Record<string, unknown>,
+): boolean {
+    if (a === b) return true;
+    // Attributes are plain JSON by contract of the block API. Compare a
+    // key-sorted serialization so a server echo that reorders keys (or
+    // drops `undefined` values) still counts as unchanged and keeps the
+    // block's reference (#808).
+    return stableStringify(a) === stableStringify(b);
+}
+
+function stableStringify(value: unknown): string {
+    return JSON.stringify(value, (_key, inner: unknown) => {
+        if (inner === null || typeof inner !== 'object' || Array.isArray(inner)) {
+            return inner;
+        }
+
+        const sorted: Record<string, unknown> = {};
+
+        for (const key of Object.keys(inner as Record<string, unknown>).sort()) {
+            sorted[key] = (inner as Record<string, unknown>)[key];
+        }
+
+        return sorted;
+    });
+}
+
+/**
+ * Recursive shape check: two block trees "align" when they have the
+ * same length + same block names at each position + inner-blocks that
+ * also align. Attributes and clientIds are ignored. The reader no
+ * longer uses this (a shape-only match hid attribute changes; see
+ * `getDecoratedBlocks`) — kept as a diagnostic helper, exported with
+ * an `__` prefix for tests only.
+ */
+export function __treeShapesAlign(
+    a: readonly unknown[],
+    b: readonly unknown[],
+): boolean {
+    return treeShapesAlign(a, b);
+}
+
+function treeShapesAlign(
+    a: readonly unknown[],
+    b: readonly unknown[],
+): boolean {
+    if (a === b) return true;
+    if (a.length !== b.length) return false;
+
+    for (let i = 0; i < a.length; i++) {
+        const ba = a[i] as
+            | { name?: string; innerBlocks?: readonly unknown[] }
+            | null
+            | undefined;
+        const bb = b[i] as
+            | { name?: string; innerBlocks?: readonly unknown[] }
+            | null
+            | undefined;
+
+        if (!ba || !bb) return false;
+        if (ba.name !== bb.name) return false;
+
+        const innerA = Array.isArray(ba.innerBlocks) ? ba.innerBlocks : [];
+        const innerB = Array.isArray(bb.innerBlocks) ? bb.innerBlocks : [];
+        if (!treeShapesAlign(innerA, innerB)) return false;
+    }
+
+    return true;
+}
+
+/**
+ * Called by the `useEntityBlockEditor` setter with every array the
+ * block-editor commits. Records that array as the authoritative
+ * decoration for `(kind, name, id)` so `getDecoratedBlocks` can hand
+ * it back after a save round-trip even though `useSelect` has moved
+ * on to the `content.blocks` source path.
+ *
+ * Also seeds `decoratedBlocksCache` so subsequent equal-reference
+ * reads short-circuit through the existing cache.
+ */
+function rememberAuthoritativeBlocks(
+    kind: EntityKind,
+    name: EntityName,
+    id: EntityKey,
+    blocks: readonly unknown[],
+): void {
+    const cacheKey = `${kind}|${name}|${id}`;
+    lastAuthoritativeBlocks.set(
+        cacheKey,
+        blocks as readonly DecoratedBlock[],
+    );
+    decoratedBlocksCache.set(cacheKey, {
+        source: blocks,
+        decorated: blocks as readonly DecoratedBlock[],
+    });
+}
+
+/**
  * Returns the server's pre-parsed block tree decorated with the
  * `clientId` / `isValid` fields the block editor needs, memoized
  * per `(kind, name, id)` so successive selector reads return the
@@ -2459,13 +3374,45 @@ function getDecoratedBlocks(
 ): readonly DecoratedBlock[] {
     const cacheKey = `${kind}|${name}|${id}`;
     const cached = decoratedBlocksCache.get(cacheKey);
+    const authoritative = lastAuthoritativeBlocks.get(cacheKey);
 
     if (cached && cached.source === serverBlocks) {
         return cached.decorated;
     }
 
+    // Post-save clientId stability (issue #808): when the setter has
+    // previously recorded an authoritative array for this entity, walk
+    // server-blocks and the prior array in parallel and reuse the
+    // authoritative clientId at each position where block names match.
+    // This lets server-side attribute normalization flow through without
+    // re-minting clientIds — Gutenberg keys its edit components on
+    // clientId, so a fresh id at the same tree position tears the block
+    // down and remounts it (visible in the site editor as lost selection
+    // + a chrome flicker after every save).
+    if (authoritative !== undefined) {
+        // Always walk the incoming tree against the authoritative one
+        // (1.12 review). `decorateReusingClientIds` hands back
+        // `authoritative` itself — same outer reference, same
+        // clientIds — when every block's name, attributes, and inner
+        // blocks match, which is the save round-trip echo case #808
+        // depends on. When the server content actually differs (a text
+        // edit saved from another editor, or server-side attribute
+        // normalization), only the changed blocks get new objects and
+        // they keep their clientIds, so the change surfaces without a
+        // remount. A shape-only comparison here used to return the
+        // stale authoritative tree for attribute-only changes.
+        const merged = decorateReusingClientIds(serverBlocks, authoritative);
+        decoratedBlocksCache.set(cacheKey, {
+            source: serverBlocks,
+            decorated: merged,
+        });
+        lastAuthoritativeBlocks.set(cacheKey, merged);
+        return merged;
+    }
+
     const decorated = decorateBlockList(serverBlocks);
     decoratedBlocksCache.set(cacheKey, { source: serverBlocks, decorated });
+    lastAuthoritativeBlocks.set(cacheKey, decorated);
 
     return decorated;
 }
@@ -2495,14 +3442,26 @@ function decorateBlock(block: unknown): DecoratedBlock | null {
         return null;
     }
 
-    const server = block as ServerBlock;
+    const server = block as ServerBlock & { clientId?: unknown; isValid?: unknown };
     const innerBlocks = Array.isArray(server.innerBlocks)
         ? decorateBlockList(server.innerBlocks)
         : EMPTY_RECORDS;
 
+    // Preserve an existing `clientId` when the source array was
+    // produced by Gutenberg itself (a real edit — the block-editor
+    // hands each block a stable clientId at mount and relies on it
+    // for identity across renders). Only mint a fresh one when the
+    // source is a bare server envelope (`{name, attributes,
+    // innerBlocks}`); re-minting on every read would churn identity
+    // and re-mount the subtree.
+    const existingClientId =
+        typeof server.clientId === 'string' && server.clientId.length > 0
+            ? server.clientId
+            : null;
+
     return {
         name: server.name,
-        clientId: createClientId(),
+        clientId: existingClientId ?? createClientId(),
         isValid: true,
         attributes: server.attributes ?? {},
         innerBlocks,
@@ -2524,16 +3483,47 @@ function createClientId(): string {
     return `shim-${Date.now().toString(36)}-${clientIdCounter.toString(36)}`;
 }
 
-export function useResourcePermissions(): {
+/**
+ * Entities whose create / update / delete the package's REST layer
+ * actually backs, keyed `kind|name`. Server-side authorization still
+ * gates every write — these only decide which upstream UI appears.
+ *
+ * `postType|wp_navigation` → `MenuController`. Denying it hid every
+ * group in `core/navigation`'s menu selector ("Create new Menu",
+ * "Import Classic Menus"), so the List View's ⋮ opened an empty
+ * popover whenever only one menu existed (#809).
+ *
+ * Everything else stays denied: `core/navigation-link`'s link UI reads
+ * `canCreate` for pages to offer inline page creation, which has no
+ * backing flow here.
+ */
+const WRITABLE_RESOURCES: ReadonlySet<string> = new Set(['postType|wp_navigation']);
+
+export interface ResourcePermissionsQuery {
+    kind?: string;
+    name?: string;
+    id?: EntityKey;
+}
+
+export function useResourcePermissions(resource?: ResourcePermissionsQuery): {
     canCreate: boolean;
+    canRead: boolean;
     canUpdate: boolean;
     canDelete: boolean;
     isResolving: boolean;
+    hasResolved: boolean;
 } {
+    const writable =
+        resource?.kind !== undefined
+        && resource?.name !== undefined
+        && WRITABLE_RESOURCES.has(`${resource.kind}|${resource.name}`);
+
     return {
-        canCreate: false,
-        canUpdate: false,
-        canDelete: false,
+        canCreate: writable,
+        canRead: true,
+        canUpdate: writable,
+        canDelete: writable,
         isResolving: false,
+        hasResolved: true,
     };
 }

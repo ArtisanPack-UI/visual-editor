@@ -32,13 +32,16 @@ namespace ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\StoreTemplatePartRequest;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\UpdateTemplatePartRequest;
 use ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\SiteEditor\TemplatePartAdapter;
+use ArtisanPackUI\VisualEditor\Rules\TemplateBlockTreeRule;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedTemplatePart;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\TemplatePartResolver;
+use ArtisanPackUI\VisualEditor\Support\ThemeBlockMarkup;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Validator;
 
 class TemplatePartController extends Controller
 {
@@ -583,6 +586,25 @@ class TemplatePartController extends Controller
 		// clears, since the key is present.
 		if ( isset( $validated['content']['blocks'] ) && is_array( $validated['content']['blocks'] ) ) {
 			$attributes['block_content'] = array_values( $validated['content']['blocks'] );
+		} elseif ( isset( $validated['content'] ) && is_string( $validated['content'] ) ) {
+			// Gutenberg's own create path (e.g. `core/navigation`'s
+			// Create Overlay) sends `content` as a serialized markup
+			// string. `StoreTemplatePartRequest` has accepted that shape
+			// since Keystone #55, but it was never persisted — new
+			// overlays landed empty (#809). A string is a full
+			// replacement, so parse it into the stored tree.
+			$blocks = ThemeBlockMarkup::parseToEditorBlocks( $validated['content'] );
+
+			// The object path's `content.blocks` is bounded by
+			// `TemplateBlockTreeRule` in the form request; the request
+			// only sees this shape as an opaque string, so bound the
+			// parsed tree here (depth / node count) — 422 on failure.
+			Validator::make(
+				[ 'content' => $blocks ],
+				[ 'content' => [ new TemplateBlockTreeRule() ] ],
+			)->validate();
+
+			$attributes['block_content'] = $blocks;
 		}
 
 		return $attributes;

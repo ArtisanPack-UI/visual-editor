@@ -63,7 +63,43 @@ export interface MenuItem {
     className: string | null;
     /** Free-form rel attribute. */
     rel: string | null;
+    /**
+     * Source-block attributes the tree editor has no field for (e.g.
+     * `artisanpackVisibility`, `artisanpackAnimations`, `metadata`).
+     * Carried verbatim so editing a menu here doesn't strip settings
+     * made in the block canvas (#806).
+     */
+    extraAttributes?: Record<string, unknown>;
     children: MenuItem[];
+}
+
+/**
+ * Block attributes the tree editor owns through dedicated `MenuItem`
+ * fields. Everything else — minus `null` values and renderer
+ * side-channel keys (leading `_`), matching `MenuItemBlockBridge` — is
+ * carried in `extraAttributes`.
+ */
+const MAPPED_ATTRIBUTES: ReadonlySet<string> = new Set([
+    'label',
+    'url',
+    'opensInNewTab',
+    'rel',
+    'className',
+    'kind',
+    'type',
+    'id',
+]);
+
+function readExtraAttributes(attributes: Record<string, unknown>): Record<string, unknown> {
+    const extra: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries(attributes)) {
+        if (!MAPPED_ATTRIBUTES.has(key) && !key.startsWith('_') && value !== undefined && value !== null) {
+            extra[key] = value;
+        }
+    }
+
+    return extra;
 }
 
 interface UnknownBlock {
@@ -251,6 +287,12 @@ export function blocksToMenuTree(blocks: readonly unknown[]): MenuItem[] {
                 name === NAV_SUBMENU ? blocksToMenuTree(innerBlocks) : [],
         };
 
+        const extraAttributes = readExtraAttributes(attributes);
+
+        if (Object.keys(extraAttributes).length > 0) {
+            item.extraAttributes = extraAttributes;
+        }
+
         items.push(item);
     }
 
@@ -269,6 +311,7 @@ export function menuTreeToBlocks(items: readonly MenuItem[]): unknown[] {
 
 function menuItemToBlock(item: MenuItem): Record<string, unknown> {
     const attributes: Record<string, unknown> = {
+        ...readExtraAttributes(item.extraAttributes ?? {}),
         ...sourceAwareTypeAttributes(item),
         label:
             item.labelOverride !== null && item.labelOverride !== ''
@@ -324,6 +367,7 @@ export function makeMenuItem(overrides: Partial<MenuItem> = {}): MenuItem {
         opensInNewTab: overrides.opensInNewTab ?? false,
         className: overrides.className ?? null,
         rel: overrides.rel ?? null,
+        ...(overrides.extraAttributes !== undefined ? { extraAttributes: overrides.extraAttributes } : {}),
         children: overrides.children ?? [],
     };
 }

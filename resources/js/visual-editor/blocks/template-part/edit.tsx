@@ -21,12 +21,17 @@
  * tree back through `[blocks]`. `useInnerBlocksProps` mounts it under
  * the tagName the block author picked.
  *
- * Saves through the shim are still no-ops (`useEntityBlockEditor` returns
- * `noopSetter` for both `onInput` and `onChange`), so the InnerBlocks
- * surface is locked (`templateLock: 'all'`, `renderAppender: false`).
- * Users edit template parts through the Template Parts navigator, not
- * inline — surfacing an editable UI here would silently discard the
- * edits on reload.
+ * Inline edits are never persisted from here. The shim's
+ * `useEntityBlockEditor` setter only stages `wp_template_part` edits in
+ * the core store — it doesn't autosave them (only allowlisted entities
+ * such as `wp_navigation` do), and the template editor's save sends the
+ * template's own markup, not its parts. The InnerBlocks surface is
+ * therefore locked (`templateLock: 'all'`, `renderAppender: false`) and
+ * users edit template parts through the Template Parts navigator.
+ * `templateLock` doesn't stop attribute edits (typing into a locked
+ * paragraph), so those can still be staged; the shim drops them once
+ * the Template Parts editor loads or saves the part and primes the store
+ * with the fresh record, so the canvas then shows the saved content.
  *
  * The composite-id call is split into a child component so React can
  * skip the hook entirely when `slug` or `theme` is missing. The shim's
@@ -169,12 +174,12 @@ function TemplatePartResolved({
     const blockProps = useBlockProps();
     // `useInnerBlocksProps` in controlled mode (`value:`) needs valid
     // `onInput` / `onChange` callbacks or it can't hydrate the tree
-    // into the editor's block store. The shim returns `noopSetter` for
-    // both — that's fine here because `templateLock: 'all'` locks the
-    // surface against structural edits, so the setters never see a
-    // real mutation to persist. Save-side plumbing for inline
-    // template-part edits is a separate follow-up; today the Template
-    // Parts navigator is the editing entrypoint.
+    // into the editor's block store. The shim's setters stage the
+    // tree in the core store without saving it (template parts aren't
+    // autosaved), and `templateLock: 'all'` blocks structural edits.
+    // Save-side plumbing for inline template-part edits is a separate
+    // follow-up; today the Template Parts navigator is the editing
+    // entrypoint.
     const innerBlocksProps = useInnerBlocksProps(blockProps, {
         value: blocks,
         onInput,

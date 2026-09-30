@@ -26,6 +26,7 @@
 
 import { __ } from '@wordpress/i18n';
 
+import { getNavigationOverlayPattern } from './editor/navigation-overlay-pattern';
 import { mediaUploadSetting } from './media-bridge';
 import { getHostPresets, mergePresetList } from './preset-registry';
 import { TEXT_DOMAIN } from './vendor/i18n';
@@ -400,6 +401,13 @@ export const editorSettings = {
      * and never actually exposes wide/full on `core/group`.
      */
     supportsLayout: true,
+    /*
+     * #809 — seed pattern for `core/navigation`'s Create Overlay action.
+     * Without it upstream falls back to `createBlock('core/paragraph')`,
+     * which recurses forever here because neither `core/paragraph` nor
+     * `core/missing` is registered. See `editor/navigation-overlay-pattern.ts`.
+     */
+    __experimentalBlockPatterns: [getNavigationOverlayPattern()],
     /*
      * Default canvas stylesheet (`{ css }`) gives blocks a typographic
      * baseline so headings/paragraphs/links visually differentiate

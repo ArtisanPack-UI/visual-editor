@@ -5,13 +5,21 @@ import { describe, expect, it, vi } from 'vitest';
 // Stub `BlockInspector` — it pulls in the full block-editor store, which
 // isn't what we're testing. The shell behaviour (tab switching, empty
 // state, focus) is what this test owns.
-vi.mock('@wordpress/block-editor', () => ({
-    BlockInspector: () => (
-        <div data-testid="ap-visual-editor-block-inspector-stub">
-            Block inspector stub
-        </div>
-    ),
-}));
+vi.mock('@wordpress/block-editor', () => {
+    const Slot = ({ group }: { group?: string }): JSX.Element => (
+        <div
+            data-testid={`ap-visual-editor-inspector-slot-${group ?? 'default'}-stub`}
+        />
+    );
+    return {
+        BlockInspector: () => (
+            <div data-testid="ap-visual-editor-block-inspector-stub">
+                Block inspector stub
+            </div>
+        ),
+        InspectorControls: { Slot },
+    };
+});
 
 // Stub `@wordpress/blocks` so we don't transitively pull in its JSON
 // modules (which require import attributes vitest can't supply). The
@@ -21,6 +29,18 @@ vi.mock('@wordpress/block-editor', () => ({
 vi.mock('@wordpress/blocks', () => ({
     hasBlockSupport: () => false,
     getBlockType: () => null,
+}));
+
+// Stub `@wordpress/components` `useSlotFills` — the real one needs a
+// SlotFillProvider higher in the tree which these tests don't set up.
+// `mockUseSlotFills` is settable per-test so a case can pretend the
+// `list` group has fills and force the List View tab to render.
+const mockUseSlotFills = vi.fn(
+    (): unknown[] | undefined => undefined,
+);
+vi.mock('@wordpress/components', () => ({
+    __experimentalUseSlotFills: (name: string) =>
+        name === 'InspectorControlsListView' ? mockUseSlotFills() : undefined,
 }));
 
 import { InspectorSidebar } from '../inspector-sidebar';
@@ -233,5 +253,35 @@ describe('<InspectorSidebar />', () => {
         expect(
             screen.getByTestId('ap-visual-editor-document-custom')
         ).toBeInTheDocument();
+    });
+
+    it('surfaces a List View tab when the selected block has `list` group fills (issue #808)', async () => {
+        mockUseSlotFills.mockReturnValue([{}]);
+        renderSidebar({ hasSelectedBlockOverride: true });
+
+        expect(
+            screen.getByTestId('ap-visual-editor-inspector-tab-list'),
+        ).toBeInTheDocument();
+
+        const user = userEvent.setup();
+        await user.click(
+            screen.getByTestId('ap-visual-editor-inspector-tab-list'),
+        );
+
+        expect(
+            screen.getByTestId('ap-visual-editor-inspector-list-panel'),
+        ).not.toHaveAttribute('hidden');
+        expect(
+            screen.getByTestId('ap-visual-editor-inspector-slot-list-stub'),
+        ).toBeInTheDocument();
+    });
+
+    it('hides the List View tab when no block is selected or the block has no list fills', () => {
+        mockUseSlotFills.mockReturnValue([]);
+        renderSidebar({ hasSelectedBlockOverride: true });
+
+        expect(
+            screen.queryByTestId('ap-visual-editor-inspector-tab-list'),
+        ).toBeNull();
     });
 });

@@ -7,6 +7,7 @@
  */
 
 import { defineComponent, h } from 'vue';
+import type { VNode } from 'vue';
 
 import { attrString, classList } from '../../support/attributes';
 import { blockRendererProps } from '../shared';
@@ -81,7 +82,7 @@ export const HowtoBlock = defineComponent({
 
             const stepNameTag = `h${level}`;
 
-            const children: unknown[] = [];
+            const children: VNode[] = [];
 
             if (name !== '') {
                 children.push(
@@ -106,7 +107,7 @@ export const HowtoBlock = defineComponent({
                     'ol',
                     { class: 'ap-howto__steps' },
                     steps.map((step, index) => {
-                        const stepChildren: unknown[] = [
+                        const stepChildren: VNode[] = [
                             h(stepNameTag, {
                                 class: 'ap-howto__step-name',
                                 innerHTML: step.name,

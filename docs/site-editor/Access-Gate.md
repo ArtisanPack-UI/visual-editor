@@ -37,6 +37,28 @@ The package resolves whatever is bound to `SiteEditorAccessGate::class`
 from the container on each request to the site-editor route. To change
 the behaviour, bind your own implementation in a service provider.
 
+## API writes use the same gate
+
+Since 1.12.0, the same gate also guards every site-editor API route that
+changes site-wide data: creating, updating, or deleting templates,
+template parts, global styles, patterns, menus, and menu items. The
+`EnsureSiteEditorAccess` middleware runs the gate on those routes. When
+the gate returns a response, the request stops with a JSON `403`; a JSON
+response from your gate is passed through unchanged.
+
+Read routes are not gated. The post editor loads menus, template parts,
+patterns, and global styles through them (for example, to render a
+`core/navigation` or template-part block), so they keep the post
+editor's `auth` requirement.
+
+Two consequences to plan for:
+
+- Users who can't reach the site editor also can't use the post
+  editor's **Convert to pattern** action, because saving a pattern is a
+  site-wide write.
+- Under the package default (`DenyByDefaultGate`), every one of these
+  writes is refused until you bind a gate.
+
 ## Package default — fail closed
 
 If a consuming app does not bind a gate, the package binds

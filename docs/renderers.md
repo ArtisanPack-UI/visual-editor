@@ -197,6 +197,15 @@ import { Template, GlobalStyles } from '@artisanpack-ui/visual-editor-renderer-r
 `<GlobalStyles>` fetches and emits the CSS from
 `/visual-editor/api/global-styles/css`. Mount it once at the root.
 
+Also mount `<LayoutBaseline />` once (React and Vue). Besides the
+flow / constrained / flex / grid layout rules, it declares the package
+default spacing presets (`--wp--preset--spacing--20` … `--70`) at zero
+specificity (`:where(:root)`) and the navigation block's default item gap
+(`:where(.wp-block-navigation)`), so `var:preset|spacing|*` picks and
+Block spacing resolve even when the theme ships no `spacingSizes`. Any
+`:root` declaration from `<GlobalStyles>` — theme, style variation, user
+Global Styles or host presets — overrides those defaults.
+
 ---
 
 ## 3. Vue renderer

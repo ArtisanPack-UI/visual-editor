@@ -3,7 +3,8 @@
     "bladeDynamic": [],
     "bladeOnly": [
         "core/html",
-        "artisanpack/html"
+        "artisanpack/html",
+        "artisanpack/toc-list"
     ],
     "blocks": [
         "core/paragraph",
@@ -104,6 +105,7 @@
         "artisanpack/site-title",
         "artisanpack/site-tagline",
         "artisanpack/site-logo",
+        "core/navigation",
         "artisanpack/navigation",
         "artisanpack/post-navigation-link",
         "artisanpack/post-terms",
@@ -163,6 +165,9 @@
         "artisanpack/business-address",
         "artisanpack/business-phone",
         "artisanpack/business-email",
+        "artisanpack/howto",
+        "artisanpack/toc",
+        "artisanpack/toc-list",
         "core/html",
         "artisanpack/html"
     ]

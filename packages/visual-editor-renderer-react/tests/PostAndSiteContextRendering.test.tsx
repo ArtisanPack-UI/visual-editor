@@ -298,6 +298,66 @@ describe('Core navigation blocks', () => {
         expect(html).toContain('rel="noopener noreferrer"');
     });
 
+    it('maps a string Block spacing value onto the navigation wrapper (#814)', () => {
+        const tree = [
+            makeBlock('core/navigation', { style: { spacing: { blockGap: 'var:preset|spacing|40' } } }, [
+                makeBlock('core/navigation-link', { label: 'About', url: '/about' }, [], 'nl-1'),
+            ]),
+        ];
+
+        expect(renderTree(tree)).toContain(
+            'style="--wp--style--block-gap: var(--wp--preset--spacing--40);"'
+        );
+    });
+
+    it.each([
+        ['big_gap', 'big-gap'],
+        ['x--y', 'x--y'],
+        ['bigGap', 'big-gap'],
+    ])('normalises the %s preset slug on the navigation wrapper like the declarations (#814)', (slug, expected) => {
+        const tree = [
+            makeBlock('core/navigation', { style: { spacing: { blockGap: `var:preset|spacing|${slug}` } } }, [
+                makeBlock('core/navigation-link', { label: 'About', url: '/about' }, [], 'nl-1'),
+            ]),
+        ];
+
+        expect(renderTree(tree)).toContain(
+            `style="--wp--style--block-gap: var(--wp--preset--spacing--${expected});"`
+        );
+    });
+
+    it('normalises underscored preset slugs in the per-axis Block spacing form (#814)', () => {
+        const tree = [
+            makeBlock('core/navigation', { style: { spacing: { blockGap: { top: 'var:preset|spacing|big_gap', left: 'var:preset|spacing|a--b' } } } }, [
+                makeBlock('core/navigation-link', { label: 'About', url: '/about' }, [], 'nl-1'),
+            ]),
+        ];
+
+        expect(renderTree(tree)).toContain(
+            'style="row-gap: var(--wp--preset--spacing--big-gap); column-gap: var(--wp--preset--spacing--a--b);"'
+        );
+    });
+
+    it('maps a per-axis Block spacing value to row-gap and column-gap (#814)', () => {
+        const tree = [
+            makeBlock('core/navigation', { style: { spacing: { blockGap: { top: '1rem', left: '2rem' } } } }, [
+                makeBlock('core/navigation-link', { label: 'About', url: '/about' }, [], 'nl-1'),
+            ]),
+        ];
+
+        expect(renderTree(tree)).toContain('style="row-gap: 1rem; column-gap: 2rem;"');
+    });
+
+    it('leaves the navigation wrapper unstyled when no Block spacing is set (#814)', () => {
+        const tree = [
+            makeBlock('core/navigation', { style: { spacing: { blockGap: '' } } }, [
+                makeBlock('core/navigation-link', { label: 'About', url: '/about' }, [], 'nl-1'),
+            ]),
+        ];
+
+        expect(renderTree(tree)).toContain('<nav class="wp-block-navigation is-horizontal is-responsive">');
+    });
+
     it('drops javascript: navigation link URLs', () => {
         const tree = [
             makeBlock(

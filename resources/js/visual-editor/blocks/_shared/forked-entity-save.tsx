@@ -1,12 +1,13 @@
 /**
  * Forked entity-block save delegation.
  *
- * Most Phase I5 entity forks are fully dynamic (save returns `null`).
- * `artisanpack/navigation` is the exception: `core/navigation` persists its
- * inner blocks in the saved markup, so the fork must serialize identically.
- * Rather than re-port the upstream save markup (and risk drift), the fork
- * delegates serialization to the registered `core/navigation` save — kept
- * registered by the forked-block cutover. Phase I5 entity cluster (#413).
+ * Every remaining Phase I5 entity fork is fully dynamic (save returns
+ * `null`), so this helper's `getBlockType`/`CoreSave` lookup is currently
+ * a no-op safety net. It stays wired because it preserves the shape the
+ * fork cluster is built against, and because `core/navigation` was
+ * previously the one exception — should any future fork need identical
+ * serialized markup, the delegation pattern is already in place. Phase
+ * I5 entity cluster (#413); nav exception reverted in #808.
  */
 
 import type { ComponentType } from 'react';

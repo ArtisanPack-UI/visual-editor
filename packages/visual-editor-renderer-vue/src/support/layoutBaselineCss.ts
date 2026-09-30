@@ -24,6 +24,32 @@
  * @since 1.0.0
  */
 
+/**
+ * Package default spacing sizes. Mirrors
+ * `PresetRegistry::DEFAULT_SPACING_SIZES` (and the editor's
+ * `DEFAULT_SPACING_SIZES`) — the renderer tests guard the sync.
+ *
+ * @since 1.12.0
+ */
+export const DEFAULT_SPACING_SIZES: ReadonlyArray<{ slug: string; size: string }> = [
+    { slug: '20', size: '0.5rem' },
+    { slug: '30', size: '1rem' },
+    { slug: '40', size: '1.5rem' },
+    { slug: '50', size: '3rem' },
+    { slug: '60', size: '5rem' },
+    { slug: '70', size: '7rem' },
+];
+
+/**
+ * Zero-specificity fallback declarations for {@link DEFAULT_SPACING_SIZES}.
+ *
+ * @since 1.12.0
+ */
+export const SPACING_PRESET_DEFAULTS_CSS =
+    ':where(:root) { ' +
+    DEFAULT_SPACING_SIZES.map(({ slug, size }) => `--wp--preset--spacing--${slug}: ${size};`).join(' ') +
+    ' }';
+
 export const LAYOUT_BASELINE_CSS =
     ':where(.is-layout-flow) > :first-child { margin-block-start: 0; }\n' +
     ':where(.is-layout-flow) > :last-child { margin-block-end: 0; }\n' +
@@ -58,4 +84,18 @@ export const LAYOUT_BASELINE_CSS =
     // than the Blade renderer's gated output.
     '.wp-block-group.wp-block-group-is-layout-constrained > :where(:not(.alignwide):not(.alignfull):not(.alignleft):not(.alignright)) { max-width: var(--wp--style--global--content-size); margin-left: auto; margin-right: auto; }\n' +
     '.wp-block-group.wp-block-group-is-layout-constrained > .alignwide { max-width: var(--wp--style--global--wide-size); margin-left: auto; margin-right: auto; }\n' +
-    '.wp-block-group.wp-block-group-is-layout-constrained > .alignfull { max-width: none; }';
+    '.wp-block-group.wp-block-group-is-layout-constrained > .alignfull { max-width: none; }\n' +
+    // #814 — the package-default spacing presets the editor's pickers
+    // offer when a theme ships no `spacingSizes`, so a saved
+    // `var:preset|spacing|40` resolves on React / Vue hosts too (Blade
+    // declares them through `<x-ve-blocks-styles>` / `<x-ve-blocks>`).
+    // `:where(:root)` keeps specificity at (0,0,0): any `:root`
+    // declaration from `<GlobalStyles>` (theme, style variation, user
+    // Global Styles, host presets) wins regardless of source order.
+    SPACING_PRESET_DEFAULTS_CSS +
+    '\n' +
+    // #814 — navigation items' default gap. Mirrors the
+    // `:where(.wp-block-navigation)` rule in the Blade renderer's
+    // block-library `style.css`; the author value set inline as
+    // `--wp--style--block-gap` / `row-gap` / `column-gap` wins over it.
+    ':where(.wp-block-navigation) { gap: var(--wp--style--block-gap, 0.5em); }';

@@ -1,0 +1,19 @@
+/*
+ * Navigation — editor canvas block-gap default (#814).
+ *
+ * `core/navigation` lays its items out with the flex layout, whose gap
+ * upstream WordPress emits per-container from `style.spacing.blockGap`
+ * or, when unset, from the global `.is-layout-flex` rule (theme.json's
+ * root `blockGap`, else `0.5em`). Neither global rule ships in this
+ * package's canvas, so the items rendered flush. `--wp--style--block-gap`
+ * carries the theme's root value when one is set; the fallback matches
+ * upstream's flex default. The inner `<ul>` and responsive containers
+ * already declare `gap: inherit` in the block-library stylesheet.
+ *
+ * `:where()` keeps specificity at (0,0,0) so an author value (the inline
+ * `gap` from `editor/navigation-block-gap.ts`, or upstream's per-instance
+ * `wp-container-*` rule inside the iframe) always wins.
+ */
+:where(.wp-block-navigation) {
+    gap: var(--wp--style--block-gap, 0.5em);
+}

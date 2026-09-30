@@ -13,11 +13,12 @@ declare( strict_types=1 );
 use ArtisanPackUI\CMSFramework\Modules\SiteEditor\Models\TemplatePart;
 use ArtisanPackUI\CMSFramework\Modules\Themes\Managers\ThemeManager;
 use ArtisanPackUI\VisualEditor\VisualEditorServiceProvider;
+use Tests\Concerns\GrantsSiteEditorAccess;
 use Tests\Concerns\WithCmsFramework;
 use Tests\TestCase;
 use Tests\TestUser;
 
-uses( TestCase::class, WithCmsFramework::class );
+uses( TestCase::class, WithCmsFramework::class, GrantsSiteEditorAccess::class );
 
 beforeEach( function (): void {
 	$user = TestUser::create( [
@@ -212,8 +213,10 @@ describe( 'POST /visual-editor/api/template-parts', function (): void {
 			->assertCreated()
 			->assertJsonPath( 'slug', 'sidebar' )
 			->assertJsonPath( 'area', 'sidebar' )
-			// Forked on read — the editor registers only `artisanpack/*`.
-			->assertJsonPath( 'content.blocks.0.name', 'artisanpack/navigation' );
+			// `core/navigation` stays as `core/navigation` on read (fork
+			// reverted in #808); other `core/*` names still get forked
+			// per the editor's `artisanpack/*` registration.
+			->assertJsonPath( 'content.blocks.0.name', 'core/navigation' );
 
 		// The editor dereferences `entity.id` straight after create to
 		// navigate to the new part. A missing / zero id sends it to
@@ -313,6 +316,53 @@ describe( 'POST /visual-editor/api/template-parts', function (): void {
 			'content' => '<!-- wp:paragraph --><p></p><!-- /wp:paragraph -->',
 			'area'    => 'navigation-overlay',
 		] )->assertStatus( 201 )->assertJsonPath( 'area', 'navigation-overlay' );
+	} );
+
+	it( 'persists serialized string content as the stored block tree (#809)', function (): void {
+		// Create Overlay seeds the part from the `core/navigation-overlay`
+		// pattern and POSTs it as a markup string. The string used to
+		// pass validation and then be dropped, so new overlays opened
+		// empty in the editor.
+		$this->postJson( '/visual-editor/api/template-parts', [
+			'slug'    => 'navigation-overlay',
+			'title'   => 'Navigation Overlay',
+			'content' => '<!-- wp:navigation {"overlayMenu":"never"} /-->',
+			'area'    => 'navigation-overlay',
+		] )->assertStatus( 201 )
+			->assertJsonPath( 'content.blocks.0.name', 'core/navigation' )
+			->assertJsonPath( 'content.blocks.0.attributes.overlayMenu', 'never' );
+
+		$row = TemplatePart::query()->where( 'slug', 'navigation-overlay' )->first();
+
+		expect( $row->block_content[0]['name'] ?? null )->toBe( 'core/navigation' );
+	} );
+
+	it( 'rejects serialized string content that parses into a tree deeper than the block-tree limit', function (): void {
+		$markup = str_repeat( '<!-- wp:group --><div class="wp-block-group">', 15 )
+			. str_repeat( '</div><!-- /wp:group -->', 15 );
+
+		$this->postJson( '/visual-editor/api/template-parts', [
+			'slug'    => 'too-deep',
+			'title'   => 'Too deep',
+			'content' => $markup,
+			'area'    => 'uncategorized',
+		] )->assertUnprocessable()
+			->assertJsonValidationErrors( 'content' );
+
+		expect( TemplatePart::query()->where( 'slug', 'too-deep' )->exists() )->toBeFalse();
+	} );
+
+	it( 'accepts serialized string content nested within the block-tree limit', function (): void {
+		$markup = str_repeat( '<!-- wp:group --><div class="wp-block-group">', 5 )
+			. str_repeat( '</div><!-- /wp:group -->', 5 );
+
+		$this->postJson( '/visual-editor/api/template-parts', [
+			'slug'    => 'shallow',
+			'title'   => 'Shallow',
+			'content' => $markup,
+			'area'    => 'uncategorized',
+		] )->assertCreated()
+			->assertJsonCount( 1, 'content.blocks' );
 	} );
 
 	it( 'accepts area "uncategorized" so Gutenberg\'s Create Overlay action lands (Keystone #55)', function (): void {

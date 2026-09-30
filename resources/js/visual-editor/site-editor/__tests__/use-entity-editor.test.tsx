@@ -31,6 +31,11 @@ vi.mock('@wordpress/blocks', () => ({
     },
 }));
 
+import { select } from '@wordpress/data';
+
+// Registers the `core` shim store `syncEditorContext` primes.
+import '../../vendor/core-data-shim';
+import { getEditorCurrentPost } from '../../vendor/editor-context-store';
 import { useEntityEditor } from '../use-entity-editor';
 
 const FETCH_MOCK = vi.fn();
@@ -566,5 +571,258 @@ describe('useEntityEditor', () => {
             innerBlocks: Array<{ attributes: { tagName?: string } }>;
         };
         expect(group.innerBlocks[0]?.attributes.tagName).toBe('hr');
+    });
+
+    describe('core/editor context (#809)', () => {
+        function makeOverlayPart(): Record<string, unknown> {
+            return {
+                id: 77,
+                slug: 'navigation-overlay',
+                title: { rendered: 'Navigation Overlay' },
+                content: { raw: '', blocks: [] },
+                area: 'navigation-overlay',
+                theme: 'artisanpack-base',
+                type: 'wp_template_part',
+            };
+        }
+
+        it('points core/editor at the loaded template part and primes the core store', async () => {
+            FETCH_MOCK.mockResolvedValue(makeOverlayPart());
+
+            const { result } = renderHook(() =>
+                useEntityEditor({
+                    apiConfig: API_CONFIG,
+                    kind: 'template-part',
+                    entityId: '77',
+                })
+            );
+
+            await waitFor(() => expect(result.current.loadStatus).toBe('ready'));
+
+            expect(getEditorCurrentPost()).toEqual({
+                postType: 'wp_template_part',
+                postId: 77,
+            });
+
+            const record = (
+                select('core') as unknown as {
+                    getEditedEntityRecord: (
+                        kind: string,
+                        name: string,
+                        id: number
+                    ) => { area?: string } | null;
+                }
+            ).getEditedEntityRecord('postType', 'wp_template_part', 77);
+
+            expect(record?.area).toBe('navigation-overlay');
+        });
+
+        it('maps templates to wp_template', async () => {
+            FETCH_MOCK.mockResolvedValue(makeTemplate({ id: 5 }));
+
+            const { result } = renderHook(() =>
+                useEntityEditor({
+                    apiConfig: API_CONFIG,
+                    kind: 'template',
+                    entityId: '5',
+                })
+            );
+
+            await waitFor(() => expect(result.current.loadStatus).toBe('ready'));
+
+            expect(getEditorCurrentPost()).toEqual({
+                postType: 'wp_template',
+                postId: 5,
+            });
+        });
+
+        it('clears the context when the entity closes', async () => {
+            FETCH_MOCK.mockResolvedValue(makeOverlayPart());
+
+            const { result, rerender } = renderHook(
+                ({ entityId }: { entityId: string | null }) =>
+                    useEntityEditor({
+                        apiConfig: API_CONFIG,
+                        kind: 'template-part',
+                        entityId,
+                    }),
+                { initialProps: { entityId: '77' as string | null } }
+            );
+
+            await waitFor(() => expect(result.current.loadStatus).toBe('ready'));
+
+            rerender({ entityId: null });
+
+            expect(getEditorCurrentPost()).toEqual({ postType: null, postId: null });
+        });
+
+        it('clears the context when the load fails', async () => {
+            FETCH_MOCK.mockResolvedValueOnce(makeOverlayPart());
+
+            const { result, rerender } = renderHook(
+                ({ entityId }: { entityId: string }) =>
+                    useEntityEditor({
+                        apiConfig: API_CONFIG,
+                        kind: 'template-part',
+                        entityId,
+                    }),
+                { initialProps: { entityId: '77' } }
+            );
+
+            await waitFor(() => expect(result.current.loadStatus).toBe('ready'));
+
+            FETCH_MOCK.mockRejectedValueOnce(new Error('boom'));
+            rerender({ entityId: '78' });
+
+            await waitFor(() => expect(result.current.loadStatus).toBe('error'));
+
+            expect(getEditorCurrentPost()).toEqual({ postType: null, postId: null });
+        });
+
+        it('clears the context on unmount', async () => {
+            FETCH_MOCK.mockResolvedValue(makeOverlayPart());
+
+            const { result, unmount } = renderHook(() =>
+                useEntityEditor({
+                    apiConfig: API_CONFIG,
+                    kind: 'template-part',
+                    entityId: '77',
+                })
+            );
+
+            await waitFor(() => expect(result.current.loadStatus).toBe('ready'));
+
+            unmount();
+
+            expect(getEditorCurrentPost()).toEqual({ postType: null, postId: null });
+        });
+    });
+
+    describe('saveIfDirty (#809)', () => {
+        it('resolves true without a request when nothing changed', async () => {
+            FETCH_MOCK.mockResolvedValue(makeTemplate());
+
+            const { result } = renderHook(() =>
+                useEntityEditor({ apiConfig: API_CONFIG, kind: 'template', entityId: '1' })
+            );
+
+            await waitFor(() => expect(result.current.loadStatus).toBe('ready'));
+
+            let saved: boolean | undefined;
+            await act(async () => {
+                saved = await result.current.saveIfDirty();
+            });
+
+            expect(saved).toBe(true);
+            expect(UPDATE_MOCK).not.toHaveBeenCalled();
+        });
+
+        it('saves blocks handed to setBlocks in the same tick', async () => {
+            FETCH_MOCK.mockResolvedValue(makeTemplate());
+            UPDATE_MOCK.mockImplementation(async () => makeTemplate());
+
+            const { result } = renderHook(() =>
+                useEntityEditor({ apiConfig: API_CONFIG, kind: 'template', entityId: '1' })
+            );
+
+            await waitFor(() => expect(result.current.loadStatus).toBe('ready'));
+
+            const next = [
+                { name: 'core/navigation', clientId: 'nav', attributes: { overlay: 'navigation-overlay' } },
+            ];
+
+            // Create Overlay sets the attribute and navigates without a
+            // render in between — the save must not read stale state.
+            let saved: boolean | undefined;
+            await act(async () => {
+                const { setBlocks, saveIfDirty } = result.current;
+                setBlocks(next);
+                saved = await saveIfDirty();
+            });
+
+            expect(saved).toBe(true);
+            expect(UPDATE_MOCK).toHaveBeenCalledTimes(1);
+            expect(UPDATE_MOCK.mock.calls[0][3]).toEqual(
+                expect.objectContaining({ content: expect.objectContaining({ blocks: next }) })
+            );
+        });
+
+        it('includes a field patch made in the same tick', async () => {
+            FETCH_MOCK.mockResolvedValue(makeTemplate());
+            UPDATE_MOCK.mockImplementation(async () => makeTemplate());
+
+            const { result } = renderHook(() =>
+                useEntityEditor({ apiConfig: API_CONFIG, kind: 'template', entityId: '1' })
+            );
+
+            await waitFor(() => expect(result.current.loadStatus).toBe('ready'));
+
+            await act(async () => {
+                const { patch, saveIfDirty } = result.current;
+                patch({ title: 'Renamed' });
+                await saveIfDirty();
+            });
+
+            expect(UPDATE_MOCK).toHaveBeenCalledTimes(1);
+            expect(UPDATE_MOCK.mock.calls[0][3]).toEqual(
+                expect.objectContaining({ title: 'Renamed' })
+            );
+        });
+
+        it('saves again when an edit lands while the save is in flight', async () => {
+            FETCH_MOCK.mockResolvedValue(makeTemplate());
+
+            const first = [{ name: 'core/paragraph', clientId: 'a', attributes: { content: 'one' } }];
+            const second = [{ name: 'core/paragraph', clientId: 'a', attributes: { content: 'two' } }];
+
+            let setBlocksDuringSave: ((blocks: readonly unknown[]) => void) | null = null;
+
+            UPDATE_MOCK.mockImplementation(async () => {
+                if (UPDATE_MOCK.mock.calls.length === 1) {
+                    // User keeps editing while the first PUT is out.
+                    setBlocksDuringSave?.(second);
+                }
+
+                return makeTemplate();
+            });
+
+            const { result } = renderHook(() =>
+                useEntityEditor({ apiConfig: API_CONFIG, kind: 'template', entityId: '1' })
+            );
+
+            await waitFor(() => expect(result.current.loadStatus).toBe('ready'));
+
+            let saved: boolean | undefined;
+            await act(async () => {
+                setBlocksDuringSave = result.current.setBlocks;
+                result.current.setBlocks(first);
+                saved = await result.current.saveIfDirty();
+            });
+
+            expect(saved).toBe(true);
+            expect(UPDATE_MOCK).toHaveBeenCalledTimes(2);
+            expect(UPDATE_MOCK.mock.calls[1][3]).toEqual(
+                expect.objectContaining({ content: expect.objectContaining({ blocks: second }) })
+            );
+        });
+
+        it('resolves false when the save fails', async () => {
+            FETCH_MOCK.mockResolvedValue(makeTemplate());
+            UPDATE_MOCK.mockRejectedValue(new Error('boom'));
+
+            const { result } = renderHook(() =>
+                useEntityEditor({ apiConfig: API_CONFIG, kind: 'template', entityId: '1' })
+            );
+
+            await waitFor(() => expect(result.current.loadStatus).toBe('ready'));
+
+            let saved: boolean | undefined;
+            await act(async () => {
+                result.current.setBlocks([{ name: 'core/paragraph', attributes: {} }]);
+                saved = await result.current.saveIfDirty();
+            });
+
+            expect(saved).toBe(false);
+        });
     });
 });

@@ -41,10 +41,29 @@ final class ContentShapeRule implements ValidationRule
 {
 	public function validate( string $attribute, mixed $value, Closure $fail ): void
 	{
-		if ( null === $value || is_string( $value ) || is_array( $value ) ) {
+		if ( null === $value || is_string( $value ) ) {
 			return;
 		}
 
-		$fail( 'The :attribute field must be a string or an object.' );
+		// Object shape — must carry a serialized `raw` string, a parsed
+		// `blocks` array, or both. Reject booleans, numbers, and arbitrary
+		// arrays that the controller would silently coerce to `[]` (#797).
+		if ( is_array( $value ) ) {
+			$hasRaw    = array_key_exists( 'raw', $value ) && is_string( $value['raw'] );
+			$hasBlocks = array_key_exists( 'blocks', $value ) && is_array( $value['blocks'] );
+
+			if ( $hasRaw || $hasBlocks ) {
+				return;
+			}
+
+			// An empty object `{}` is treated as "no items" by the
+			// controller — a valid explicit "wipe" payload, distinct
+			// from omitting the key.
+			if ( [] === $value ) {
+				return;
+			}
+		}
+
+		$fail( 'The :attribute field must be a string, null, or an object with a `raw` string or `blocks` array.' );
 	}
 }

@@ -32,6 +32,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor;
 
+use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\MenuContentBlocksRule;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\StoreMenuRequest;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\UpdateMenuRequest;
 use ArtisanPackUI\VisualEditor\SiteEditor\MenuItemBlockBridge;
@@ -41,12 +42,30 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 class MenuController extends Controller
 {
 	protected const CMS_MENU_FQCN = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Models\\Menu';
 
 	protected const CMS_RESOLVER_BINDING = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Resolution\\MenuResolver';
+
+	/**
+	 * How many times a create with a server-derived slug re-derives and
+	 * retries after losing a `(theme, slug)` unique-index race.
+	 *
+	 * @since 1.12.0
+	 */
+	protected const DERIVED_SLUG_ATTEMPTS = 5;
+
+	/**
+	 * The `menu_items` column that stores extension block attributes
+	 * (cms-framework 2.11+).
+	 *
+	 * @since 1.12.0
+	 */
+	protected const BLOCK_ATTRIBUTES_COLUMN = 'block_attributes';
 
 	/**
 	 * GET `/visual-editor/api/menus` — list all menus, optionally filtered
@@ -110,9 +129,9 @@ class MenuController extends Controller
 			return $this->cmsFrameworkUnavailable();
 		}
 
-		$model = self::CMS_MENU_FQCN;
-
-		$attributes = $this->modelAttributesFromRequest( $request->validated(), forCreate: true );
+		$model      = self::CMS_MENU_FQCN;
+		$validated  = $request->validated();
+		$attributes = $this->modelAttributesFromRequest( $validated, forCreate: true );
 
 		if ( ! array_key_exists( 'theme', $attributes ) || '' === (string) $attributes['theme'] ) {
 			return response()->json( [
@@ -128,21 +147,97 @@ class MenuController extends Controller
 			], Response::HTTP_UNPROCESSABLE_ENTITY );
 		}
 
-		try {
-			/** @var object $menu */
-			$menu = $model::create( $attributes );
-		} catch ( QueryException $e ) {
-			if ( $this->isUniqueViolation( $e ) ) {
-				return response()->json( [
-					'message' => 'A menu with this slug already exists for the theme.',
-					'errors'  => [ 'slug' => [ 'Slug must be unique within the theme.' ] ],
-				], Response::HTTP_CONFLICT );
+		// #797 — Gutenberg's `core/navigation` placeholder "Create menu"
+		// affordance sends `{ title, content, status }` with no slug.
+		// Derive a unique slug from the name so the create succeeds
+		// without the caller having to invent one.
+		$slugIsDerived = ! array_key_exists( 'slug', $attributes ) || '' === (string) $attributes['slug'];
+
+		// #797 — resolve `content` up front so a rejected item rebuild
+		// rolls back the menu insert too. `null` here means "content
+		// key was omitted from the request" — leave the just-created
+		// menu with zero items.
+		$blocks = array_key_exists( 'content', $validated )
+			? $this->resolveContentBlocks( $validated['content'] )
+			: null;
+
+		// A derived slug is probed before the insert, so two concurrent
+		// creates for the same name can both pick the same candidate and
+		// the loser trips the `(theme, slug)` unique index. The client
+		// sent no slug, so a 409 would be meaningless to it — re-derive
+		// and retry a bounded number of times instead. A client-supplied
+		// slug still answers 409 on the first collision.
+		$attempts = $slugIsDerived ? self::DERIVED_SLUG_ATTEMPTS : 1;
+
+		for ( $attempt = 1; $attempt <= $attempts; $attempt++ ) {
+			if ( $slugIsDerived ) {
+				$attributes['slug'] = $this->deriveUniqueSlug( $model, (string) $attributes['name'], (string) $attributes['theme'] );
 			}
 
-			throw $e;
+			try {
+				$menu = DB::transaction( function () use ( $model, $attributes, $blocks ) {
+					/** @var object $menu */
+					$menu = $model::create( $attributes );
+
+					if ( is_array( $blocks ) && [] !== $blocks ) {
+						$this->replaceMenuItems( $menu, $blocks );
+					}
+
+					return $menu;
+				} );
+
+				return response()->json( $this->menuToShape( $menu->fresh() ), Response::HTTP_CREATED );
+			} catch ( QueryException $e ) {
+				if ( ! $this->isUniqueViolation( $e ) ) {
+					throw $e;
+				}
+			}
 		}
 
-		return response()->json( $this->menuToShape( $menu ), Response::HTTP_CREATED );
+		return response()->json( [
+			'message' => __( 'A menu with this slug already exists for the theme.' ),
+			'errors'  => [ 'slug' => [ __( 'Slug must be unique within the theme.' ) ] ],
+		], Response::HTTP_CONFLICT );
+	}
+
+	/**
+	 * Build a unique slug from a menu name, scoped to a theme.
+	 *
+	 * Gutenberg's create-menu payload carries no slug, so we derive
+	 * one from the title. cms-framework enforces `(theme, slug)`
+	 * uniqueness at the DB layer; we probe existing rows and append
+	 * `-2`, `-3`, ... on collision so the first create from the
+	 * placeholder never trips the unique-violation path.
+	 *
+	 * @since 1.12.0
+	 *
+	 * @param  class-string  $model
+	 */
+	protected function deriveUniqueSlug( string $model, string $name, string $theme ): string
+	{
+		$base = Str::slug( $name );
+
+		if ( '' === $base ) {
+			$base = 'menu';
+		}
+
+		// cms-framework's `menus.slug` column is a default Laravel string
+		// (255 chars). Cap the base and reserve room for the collision
+		// suffix so a full-length name plus `-NN` never overflows the
+		// column.
+		$maxSlugLength = 255;
+		$base          = substr( $base, 0, $maxSlugLength );
+
+		$candidate = $base;
+		$suffix    = 2;
+
+		while ( $model::query()->where( 'theme', $theme )->where( 'slug', $candidate )->exists() ) {
+			$suffixPart = '-' . $suffix;
+			$candidate  = substr( $base, 0, $maxSlugLength - strlen( $suffixPart ) ) . $suffixPart;
+			$suffix++;
+		}
+
+		return $candidate;
 	}
 
 	/**
@@ -193,8 +288,8 @@ class MenuController extends Controller
 		} catch ( QueryException $e ) {
 			if ( $this->isUniqueViolation( $e ) ) {
 				return response()->json( [
-					'message' => 'A menu with this slug already exists for the theme.',
-					'errors'  => [ 'slug' => [ 'Slug must be unique within the theme.' ] ],
+					'message' => __( 'A menu with this slug already exists for the theme.' ),
+					'errors'  => [ 'slug' => [ __( 'Slug must be unique within the theme.' ) ] ],
 				], Response::HTTP_CONFLICT );
 			}
 
@@ -224,6 +319,29 @@ class MenuController extends Controller
 	 * @return array<int, array<string, mixed>>
 	 */
 	protected function resolveContentBlocks( mixed $content ): array
+	{
+		$blocks = $this->contentToBlocks( $content );
+
+		// `content.blocks` is already checked by the form request; this
+		// also bounds the trees parsed out of a `content` / `content.raw`
+		// string, which the request can only see as opaque markup.
+		Validator::make(
+			[ 'content' => [ 'blocks' => $blocks ] ],
+			[ 'content.blocks' => [ new MenuContentBlocksRule() ] ],
+		)->validate();
+
+		return $blocks;
+	}
+
+	/**
+	 * Shape-normalize an authored `content` value into a block tree
+	 * without validating it. See {@see resolveContentBlocks()}.
+	 *
+	 * @since 1.12.0
+	 *
+	 * @return array<int, mixed>
+	 */
+	protected function contentToBlocks( mixed $content ): array
 	{
 		if ( null === $content ) {
 			// `content: null` (from `ConvertEmptyStringsToNull` on
@@ -279,7 +397,33 @@ class MenuController extends Controller
 
 		$specs = ( new MenuItemBlockBridge() )->blocksToItemSpecs( $blocks );
 
-		$this->insertItemSpecs( $menu, $specs, null );
+		$this->insertItemSpecs( $menu, $specs, null, $this->menuItemsStoreBlockAttributes( $menu ) );
+	}
+
+	/**
+	 * Whether the host's `menu_items` table can take `block_attributes`.
+	 *
+	 * The composer `conflict` keeps cms-framework < 2.11 out, but a host
+	 * can still be on 2.11 without having run its migration yet. Writing
+	 * the attribute then would 500 the save (unknown column), so the
+	 * extension attributes are dropped instead — the navigation items
+	 * themselves still save. Checked once per save (one schema query),
+	 * never cached across requests, so a migration run on a long-lived
+	 * worker is picked up on the next save.
+	 *
+	 * @since 1.12.0
+	 */
+	protected function menuItemsStoreBlockAttributes( object $menu ): bool
+	{
+		$item = $menu->items()->getRelated();
+
+		if ( ! $item->isFillable( self::BLOCK_ATTRIBUTES_COLUMN ) ) {
+			return false;
+		}
+
+		return $item->getConnection()
+			->getSchemaBuilder()
+			->hasColumn( $item->getTable(), self::BLOCK_ATTRIBUTES_COLUMN );
 	}
 
 	/**
@@ -291,14 +435,21 @@ class MenuController extends Controller
 	 * @since 1.0.0
 	 *
 	 * @param  array<int, array{attributes: array<string, mixed>, children: array<int, mixed>}>  $specs
+	 * @param  bool  $storeBlockAttributes  Whether `block_attributes` can be written (1.12.0).
 	 */
-	protected function insertItemSpecs( object $menu, array $specs, ?int $parentId ): void
+	protected function insertItemSpecs( object $menu, array $specs, ?int $parentId, bool $storeBlockAttributes = true ): void
 	{
 		$position = 0;
 
 		foreach ( $specs as $spec ) {
+			$attributes = $spec['attributes'];
+
+			if ( ! $storeBlockAttributes ) {
+				unset( $attributes[ self::BLOCK_ATTRIBUTES_COLUMN ] );
+			}
+
 			/** @var object $row */
-			$row = $menu->items()->create( array_merge( $spec['attributes'], [
+			$row = $menu->items()->create( array_merge( $attributes, [
 				'parent_id' => $parentId,
 				'position'  => $position,
 			] ) );
@@ -306,7 +457,7 @@ class MenuController extends Controller
 			$position++;
 
 			if ( [] !== $spec['children'] ) {
-				$this->insertItemSpecs( $menu, $spec['children'], (int) $row->id );
+				$this->insertItemSpecs( $menu, $spec['children'], (int) $row->id, $storeBlockAttributes );
 			}
 		}
 	}

@@ -8,10 +8,11 @@
 
 declare( strict_types=1 );
 
+use Tests\Concerns\GrantsSiteEditorAccess;
 use Tests\TestCase;
 use Tests\TestUser;
 
-uses( TestCase::class );
+uses( TestCase::class, GrantsSiteEditorAccess::class );
 
 beforeEach( function (): void {
 	$user = TestUser::create( [

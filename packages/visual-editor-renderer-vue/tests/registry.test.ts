@@ -9,9 +9,11 @@ import {
     unregisterBlockRenderer,
 } from '../src/registry';
 import { registerCoreBlocks } from '../src/blocks/registerCoreBlocks';
+import { blockRendererProps } from '../src/blocks/shared';
 
 const noopRenderer = defineComponent({
     name: 'NoopRenderer',
+    props: blockRendererProps,
     setup() {
         return () => h('div');
     },
@@ -36,11 +38,13 @@ describe('registerBlockRenderer', () => {
 
     it('overrides an existing renderer registration', () => {
         const first = defineComponent({
+            props: blockRendererProps,
             setup() {
                 return () => h('div');
             },
         });
         const second = defineComponent({
+            props: blockRendererProps,
             setup() {
                 return () => h('div');
             },

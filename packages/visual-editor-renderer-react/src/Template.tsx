@@ -27,6 +27,14 @@ import type { TemplatePartRecord, TemplateRecord } from './templateParts';
 
 const SLUG_CLASS_PATTERN = /[^a-zA-Z0-9_-]/g;
 
+/**
+ * Minimal, module-scoped typing for the Node-style `process` global a
+ * bundler or SSR runtime may provide — the package ships without
+ * `@types/node`. `declare` emits no code, so the lookup below still hits
+ * the real global, guarded by `typeof process`.
+ */
+declare const process: { env?: { NODE_ENV?: string } | null } | undefined;
+
 function isDevelopment(): boolean {
     if (typeof process === 'undefined') {
         return false;

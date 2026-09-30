@@ -48,6 +48,7 @@ use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\TemplateController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\TemplatePartController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Visibility\UsersSearchController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\VisualEditorBlocksController;
+use ArtisanPackUI\VisualEditor\Http\Middleware\EnsureSiteEditorAccess;
 use Illuminate\Support\Facades\Route;
 
 // Generic resource content endpoints (M3). Any model registered in
@@ -131,6 +132,15 @@ Route::post( 'query/resolve', [ QueryResolveController::class, 'resolve' ] )
 Route::get( 'blocks', [ VisualEditorBlocksController::class, 'index' ] )
 	->name( 'visual-editor.api.blocks.index' );
 
+// Site-editor data API access model (1.12.0). Every write to site-wide
+// data below — templates, template parts, global styles, patterns, menus,
+// menu items — runs through `EnsureSiteEditorAccess`, i.e. the same bound
+// `SiteEditorAccessGate` that protects the `/visual-editor/site` shell, and
+// answers a JSON 403 when denied. Reads stay on the group's `api` + `auth`
+// stack: the post editor (not only the site editor) fetches them through
+// the core-data shim — `core/navigation` / `core/template-part` blocks,
+// the pattern inserter, the composed view, and the canvas global styles.
+//
 // H6 `wp_template` REST surface — see docs/plans/14-cms-framework-site-editor-integration.md §4.5.
 // Slug-keyed (visual-editor's resolver is scoped to the active theme); reads
 // come through H5's resolver, writes pass through to cms-framework's
@@ -139,6 +149,7 @@ Route::get( 'templates', [ TemplateController::class, 'index' ] )
 	->name( 'visual-editor.api.templates.index' );
 
 Route::post( 'templates', [ TemplateController::class, 'store' ] )
+	->middleware( EnsureSiteEditorAccess::class )
 	->name( 'visual-editor.api.templates.store' );
 
 Route::get( 'templates/{slug}', [ TemplateController::class, 'show' ] )
@@ -147,10 +158,12 @@ Route::get( 'templates/{slug}', [ TemplateController::class, 'show' ] )
 
 Route::put( 'templates/{slug}', [ TemplateController::class, 'update' ] )
 	->where( 'slug', '[A-Za-z0-9_-]+' )
+	->middleware( EnsureSiteEditorAccess::class )
 	->name( 'visual-editor.api.templates.update' );
 
 Route::delete( 'templates/{slug}', [ TemplateController::class, 'destroy' ] )
 	->where( 'slug', '[A-Za-z0-9_-]+' )
+	->middleware( EnsureSiteEditorAccess::class )
 	->name( 'visual-editor.api.templates.destroy' );
 
 // H6 `wp_template_part` REST surface.
@@ -158,6 +171,7 @@ Route::get( 'template-parts', [ TemplatePartController::class, 'index' ] )
 	->name( 'visual-editor.api.template-parts.index' );
 
 Route::post( 'template-parts', [ TemplatePartController::class, 'store' ] )
+	->middleware( EnsureSiteEditorAccess::class )
 	->name( 'visual-editor.api.template-parts.store' );
 
 Route::get( 'template-parts/{slug}', [ TemplatePartController::class, 'show' ] )
@@ -166,10 +180,12 @@ Route::get( 'template-parts/{slug}', [ TemplatePartController::class, 'show' ] )
 
 Route::put( 'template-parts/{slug}', [ TemplatePartController::class, 'update' ] )
 	->where( 'slug', '[A-Za-z0-9_-]+' )
+	->middleware( EnsureSiteEditorAccess::class )
 	->name( 'visual-editor.api.template-parts.update' );
 
 Route::delete( 'template-parts/{slug}', [ TemplatePartController::class, 'destroy' ] )
 	->where( 'slug', '[A-Za-z0-9_-]+' )
+	->middleware( EnsureSiteEditorAccess::class )
 	->name( 'visual-editor.api.template-parts.destroy' );
 
 // H6 `__unstableBase` REST surface — see docs/plans/14-cms-framework-site-editor-integration.md §4.5.
@@ -190,6 +206,7 @@ Route::get( 'global-styles/{id}', [ GlobalStylesController::class, 'show' ] )
 
 Route::put( 'global-styles/{id}', [ GlobalStylesController::class, 'update' ] )
 	->where( 'id', '[A-Za-z0-9_]+' )
+	->middleware( EnsureSiteEditorAccess::class )
 	->name( 'visual-editor.api.global-styles.update' );
 
 // H6 `wp_block` REST surface. Slug regex allows `user/<slug>` so
@@ -198,6 +215,7 @@ Route::get( 'patterns', [ PatternController::class, 'index' ] )
 	->name( 'visual-editor.api.patterns.index' );
 
 Route::post( 'patterns', [ PatternController::class, 'store' ] )
+	->middleware( EnsureSiteEditorAccess::class )
 	->name( 'visual-editor.api.patterns.store' );
 
 Route::get( 'patterns/{slug}', [ PatternController::class, 'show' ] )
@@ -206,10 +224,12 @@ Route::get( 'patterns/{slug}', [ PatternController::class, 'show' ] )
 
 Route::put( 'patterns/{slug}', [ PatternController::class, 'update' ] )
 	->where( 'slug', '.+' )
+	->middleware( EnsureSiteEditorAccess::class )
 	->name( 'visual-editor.api.patterns.update' );
 
 Route::delete( 'patterns/{slug}', [ PatternController::class, 'destroy' ] )
 	->where( 'slug', '.+' )
+	->middleware( EnsureSiteEditorAccess::class )
 	->name( 'visual-editor.api.patterns.destroy' );
 
 // H6 `wp_navigation` REST surface — see docs/plans/14-cms-framework-site-editor-integration.md §4.5.
@@ -221,6 +241,7 @@ Route::get( 'menus', [ MenuController::class, 'index' ] )
 	->name( 'visual-editor.api.menus.index' );
 
 Route::post( 'menus', [ MenuController::class, 'store' ] )
+	->middleware( EnsureSiteEditorAccess::class )
 	->name( 'visual-editor.api.menus.store' );
 
 Route::get( 'menus/{id}', [ MenuController::class, 'show' ] )
@@ -229,10 +250,12 @@ Route::get( 'menus/{id}', [ MenuController::class, 'show' ] )
 
 Route::put( 'menus/{id}', [ MenuController::class, 'update' ] )
 	->whereNumber( 'id' )
+	->middleware( EnsureSiteEditorAccess::class )
 	->name( 'visual-editor.api.menus.update' );
 
 Route::delete( 'menus/{id}', [ MenuController::class, 'destroy' ] )
 	->whereNumber( 'id' )
+	->middleware( EnsureSiteEditorAccess::class )
 	->name( 'visual-editor.api.menus.destroy' );
 
 // H6 `wp_navigation_link` REST surface. Items belong to a menu; index
@@ -242,6 +265,7 @@ Route::get( 'menu-items', [ MenuItemController::class, 'index' ] )
 	->name( 'visual-editor.api.menu-items.index' );
 
 Route::post( 'menu-items', [ MenuItemController::class, 'store' ] )
+	->middleware( EnsureSiteEditorAccess::class )
 	->name( 'visual-editor.api.menu-items.store' );
 
 Route::get( 'menu-items/{id}', [ MenuItemController::class, 'show' ] )
@@ -250,10 +274,12 @@ Route::get( 'menu-items/{id}', [ MenuItemController::class, 'show' ] )
 
 Route::put( 'menu-items/{id}', [ MenuItemController::class, 'update' ] )
 	->whereNumber( 'id' )
+	->middleware( EnsureSiteEditorAccess::class )
 	->name( 'visual-editor.api.menu-items.update' );
 
 Route::delete( 'menu-items/{id}', [ MenuItemController::class, 'destroy' ] )
 	->whereNumber( 'id' )
+	->middleware( EnsureSiteEditorAccess::class )
 	->name( 'visual-editor.api.menu-items.destroy' );
 
 // D4 menu-location read surface — locations are config-driven (V1 plan §8) so

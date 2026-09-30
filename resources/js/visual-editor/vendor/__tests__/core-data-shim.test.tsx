@@ -7,7 +7,10 @@ import {
     EntityProvider,
     MISSING_RECORD_MARKER,
     RestRequestError,
+    SITE_ENTITY_ID,
+    __cancelPendingEntityRecordSaves,
     __resetCoreDataShimConfig,
+    __treeShapesAlign,
     configureCoreDataShim,
     store,
     useEntityBlockEditor,
@@ -358,8 +361,23 @@ describe('core-data-shim record cache', () => {
         expect(coreSelect().getThemeSupports()).toEqual({});
     });
 
-    it('exposes getNavigationFallbackId as a no-op selector', () => {
+    it('exposes getNavigationFallbackId returning undefined when no menus are cached', () => {
         expect(coreSelect().getNavigationFallbackId()).toBeUndefined();
+    });
+
+    it('getNavigationFallbackId returns the first published menu id once cached (issue #808)', () => {
+        coreDispatch().receiveEntityRecords('postType', 'wp_navigation', [
+            {
+                id: 7,
+                slug: 'primary',
+                title: { raw: 'Primary', rendered: 'Primary' },
+                status: 'publish',
+                type: 'wp_navigation',
+                content: { raw: '', blocks: [] },
+            },
+        ]);
+
+        expect(coreSelect().getNavigationFallbackId()).toBe(7);
     });
 
     it('reports resolution as not-yet-started for an unread entity tuple', () => {
@@ -599,6 +617,95 @@ describe('core-data-shim fetch → cache', () => {
                 per_page: -1,
             }),
         ).toHaveLength(2);
+    });
+
+    it('saveEntityRecord on UPDATE preserves cached list queries + resolver state (#808)', async () => {
+        // Nav-block save round-trip regression: pre-#808 the save path
+        // ALWAYS wiped `bag.queries` and invalidated the `getEntityRecords`
+        // resolver — even for updates of records already in the store.
+        // That flipped `hasFinishedResolution('getEntityRecords',
+        // <wp_navigation query>)` transiently false; upstream
+        // `useNavigationMenu` reads that via `hasResolvedNavigationMenus`
+        // and re-renders the nav block into its loading state, which
+        // unmounts `NavigationInnerBlocks` and every focused input inside.
+        // For updates the cache invalidation is unnecessary: the record
+        // is already in `items` (attributes get refreshed in-place) and
+        // every cached query that referenced its id still does.
+        configureCoreDataShim({
+            apiBase: '/api',
+            fetcher: vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
+                const url = String(input);
+
+                // PUT: return the updated record.
+                if (url.endsWith('/menus/3')) {
+                    return jsonResponse({
+                        id: 3,
+                        slug: 'primary',
+                        status: 'publish',
+                        title: { raw: 'Primary (Updated)' },
+                    });
+                }
+
+                return jsonResponse({}, 500);
+            }),
+        });
+
+        // Seed items + a cached collection query for wp_navigation.
+        coreDispatch().receiveEntityRecords(
+            'postType',
+            'wp_navigation',
+            [{ id: 3, slug: 'primary', status: 'publish', title: { raw: 'Primary' } }],
+            { per_page: -1, status: ['publish', 'draft'] },
+            1,
+            1,
+        );
+
+        // Mark the resolver as resolved so we can watch it stay resolved.
+        coreDispatch().finishResolution('getEntityRecords', [
+            'postType',
+            'wp_navigation',
+            { per_page: -1, status: ['publish', 'draft'] },
+        ]);
+
+        expect(
+            coreSelect().hasFinishedResolution('getEntityRecords', [
+                'postType',
+                'wp_navigation',
+                { per_page: -1, status: ['publish', 'draft'] },
+            ]),
+        ).toBe(true);
+
+        // Save an UPDATE (record has an existing id).
+        await coreDispatch().saveEntityRecord('postType', 'wp_navigation', {
+            id: 3,
+            slug: 'primary',
+            status: 'publish',
+            title: { raw: 'Primary (Updated)' },
+        });
+
+        // The cached query still contains the updated record — the
+        // save-path receive did NOT wipe queries.
+        expect(
+            coreSelect().getEntityRecords('postType', 'wp_navigation', {
+                per_page: -1,
+                status: ['publish', 'draft'],
+            }),
+        ).toHaveLength(1);
+
+        // Resolver state stayed resolved — no `hasFinishedResolution`
+        // false-transient for upstream `useNavigationMenu` to react to.
+        expect(
+            coreSelect().hasFinishedResolution('getEntityRecords', [
+                'postType',
+                'wp_navigation',
+                { per_page: -1, status: ['publish', 'draft'] },
+            ]),
+        ).toBe(true);
+
+        // Sanity: the record's attributes ARE fresh in `items`.
+        expect(
+            coreSelect().getEntityRecord('postType', 'wp_navigation', 3),
+        ).toMatchObject({ id: 3, title: { raw: 'Primary (Updated)' } });
     });
 
     it('fetchEntityRecord swallows network errors and returns null', async () => {
@@ -1333,6 +1440,121 @@ describe('core-data-shim save round-trip', () => {
     });
 });
 
+describe('core-data-shim root/__unstableBase singleton id normalization (#808)', () => {
+    it('getEntityRecord returns the cached record when called without an id', () => {
+        // Upstream Gutenberg reads the site-meta singleton via
+        // `getEntityRecord('root', '__unstableBase')` — no id — while the
+        // fetch path stores the record under the `SITE_ENTITY_ID = 'self'`
+        // sentinel. The selector must map a missing id back to the same
+        // sentinel or the read silently returns null even though the
+        // record is cached.
+        coreDispatch().receiveEntityRecords('root', '__unstableBase', [
+            { id: SITE_ENTITY_ID, url: 'https://example.test', title: 'Site' },
+        ]);
+
+        expect(
+            coreSelect().getEntityRecord('root', '__unstableBase'),
+        ).toMatchObject({ id: SITE_ENTITY_ID, url: 'https://example.test' });
+
+        // Also succeeds when the caller explicitly passes the sentinel.
+        expect(
+            coreSelect().getEntityRecord('root', '__unstableBase', SITE_ENTITY_ID),
+        ).toMatchObject({ id: SITE_ENTITY_ID });
+
+        // And when the caller passes null / empty string.
+        expect(
+            coreSelect().getEntityRecord('root', '__unstableBase', null),
+        ).toMatchObject({ id: SITE_ENTITY_ID });
+        expect(
+            coreSelect().getEntityRecord('root', '__unstableBase', ''),
+        ).toMatchObject({ id: SITE_ENTITY_ID });
+    });
+
+    it('normalization is scoped to root/__unstableBase — other entities still miss on undefined id', () => {
+        coreDispatch().receiveEntityRecords('postType', 'wp_navigation', [
+            { id: 3, slug: 'primary' },
+        ]);
+
+        // A missing id for a non-singleton entity does NOT alias to
+        // anything — the selector returns null as before.
+        expect(
+            coreSelect().getEntityRecord('postType', 'wp_navigation'),
+        ).toBeNull();
+        expect(
+            coreSelect().getEntityRecord('postType', 'wp_navigation', 3),
+        ).toMatchObject({ id: 3, slug: 'primary' });
+    });
+});
+
+describe('core-data-shim shape-stable reader helpers (#808)', () => {
+    it('__treeShapesAlign returns true for identical arrays (reference)', () => {
+        const arr: readonly unknown[] = [];
+        expect(__treeShapesAlign(arr, arr)).toBe(true);
+    });
+
+    it('__treeShapesAlign returns true when names + lengths match at every depth', () => {
+        const a = [
+            { name: 'core/navigation-link' },
+            {
+                name: 'core/navigation-submenu',
+                innerBlocks: [{ name: 'core/navigation-link' }],
+            },
+        ];
+        const b = [
+            { name: 'core/navigation-link' },
+            {
+                name: 'core/navigation-submenu',
+                innerBlocks: [{ name: 'core/navigation-link' }],
+            },
+        ];
+
+        expect(__treeShapesAlign(a, b)).toBe(true);
+    });
+
+    it('__treeShapesAlign ignores attribute drift', () => {
+        // Server-side attribute normalization (label casing, url canonicalization)
+        // must not break the shape-stable short-circuit — the reader returns the
+        // authoritative array unchanged and Gutenberg keeps its clientIds.
+        const a = [
+            { name: 'core/navigation-link', attributes: { label: 'Home' } },
+        ];
+        const b = [
+            { name: 'core/navigation-link', attributes: { label: 'HOME' } },
+        ];
+
+        expect(__treeShapesAlign(a, b)).toBe(true);
+    });
+
+    it('__treeShapesAlign returns false when lengths differ', () => {
+        expect(
+            __treeShapesAlign(
+                [{ name: 'core/navigation-link' }],
+                [
+                    { name: 'core/navigation-link' },
+                    { name: 'core/navigation-link' },
+                ],
+            ),
+        ).toBe(false);
+    });
+
+    it('__treeShapesAlign returns false when a name diverges at any depth', () => {
+        const a = [
+            {
+                name: 'core/navigation-submenu',
+                innerBlocks: [{ name: 'core/navigation-link' }],
+            },
+        ];
+        const b = [
+            {
+                name: 'core/navigation-submenu',
+                innerBlocks: [{ name: 'core/home-link' }],
+            },
+        ];
+
+        expect(__treeShapesAlign(a, b)).toBe(false);
+    });
+});
+
 describe('core-data-shim delete + evict', () => {
     it('DELETEs and evicts the cached record on success', async () => {
         coreDispatch().receiveEntityRecords('postType', 'wp_block', [
@@ -1835,6 +2057,307 @@ describe('core-data-shim hooks', () => {
         expect(blocks[1].innerBlocks[0].attributes).toEqual({ label: 'Team' });
     });
 
+    it('useEntityBlockEditor setter stages edits on the record so the next read reflects them (issue #808)', () => {
+        coreDispatch().receiveEntityRecords('postType', 'wp_navigation', [
+            {
+                id: 42,
+                slug: 'primary',
+                title: { raw: 'Primary', rendered: 'Primary' },
+                status: 'publish',
+                type: 'wp_navigation',
+                content: { raw: '', blocks: [] },
+            },
+        ]);
+
+        let currentBlocks: readonly unknown[] = [];
+        let setter: (blocks: readonly unknown[]) => void = () => undefined;
+
+        function Probe() {
+            const [blocks, onInput] = useEntityBlockEditor(
+                'postType',
+                'wp_navigation',
+                { id: 42 },
+            );
+            currentBlocks = blocks;
+            setter = onInput;
+            return null;
+        }
+        render(<Probe />);
+
+        expect(currentBlocks).toEqual([]);
+
+        const newBlocks = [
+            {
+                name: 'core/navigation-link',
+                clientId: 'nav-1',
+                isValid: true,
+                attributes: { label: 'Home', url: '/' },
+                innerBlocks: [],
+            },
+        ];
+
+        act(() => {
+            setter(newBlocks);
+        });
+
+        // Setter dispatched editEntityRecord staging the new content; the
+        // hook now reads via getEditedEntityRecord and returns the edited
+        // block tree with its stable clientId preserved.
+        expect(currentBlocks).toHaveLength(1);
+        const rendered = currentBlocks as ReadonlyArray<{
+            name: string;
+            clientId: string;
+            attributes: Record<string, unknown>;
+        }>;
+        expect(rendered[0].name).toBe('core/navigation-link');
+        expect(rendered[0].clientId).toBe('nav-1');
+        expect(rendered[0].attributes).toEqual({ label: 'Home', url: '/' });
+
+        const edited = coreSelect().getEditedEntityRecord(
+            'postType',
+            'wp_navigation',
+            42,
+        ) as { content?: { raw?: string; blocks?: readonly unknown[] } };
+        expect(edited.content?.blocks).toHaveLength(1);
+
+        // Drain the trailing-edge save so it does not fire after the test.
+        __cancelPendingEntityRecordSaves();
+    });
+
+    it('useEntityBlockEditor debounces trailing-edge PUT to the entity endpoint (issue #808)', async () => {
+        vi.useFakeTimers();
+        try {
+            const { fetcher, calls } = mockFetcher(async (url) => {
+                if (url.endsWith('/menus/42') && url.includes('/menus/')) {
+                    return jsonResponse({
+                        id: 42,
+                        slug: 'primary',
+                        title: { raw: 'Primary', rendered: 'Primary' },
+                        status: 'publish',
+                        type: 'wp_navigation',
+                        content: { raw: '<!-- edited -->', blocks: [] },
+                    });
+                }
+                return jsonResponse(null, 404);
+            });
+
+            configureCoreDataShim({
+                apiBase: '/visual-editor/api',
+                fetcher,
+            });
+
+            coreDispatch().receiveEntityRecords('postType', 'wp_navigation', [
+                {
+                    id: 42,
+                    slug: 'primary',
+                    title: { raw: 'Primary', rendered: 'Primary' },
+                    status: 'publish',
+                    type: 'wp_navigation',
+                    content: { raw: '', blocks: [] },
+                },
+            ]);
+
+            let setter: (blocks: readonly unknown[]) => void = () => undefined;
+            function Probe() {
+                const [, onInput] = useEntityBlockEditor(
+                    'postType',
+                    'wp_navigation',
+                    { id: 42 },
+                );
+                setter = onInput;
+                return null;
+            }
+            render(<Probe />);
+
+            const blocks = [
+                {
+                    name: 'core/navigation-link',
+                    clientId: 'nav-1',
+                    isValid: true,
+                    attributes: { label: 'A', url: '/a' },
+                    innerBlocks: [],
+                },
+            ];
+
+            act(() => {
+                setter(blocks);
+                setter(blocks);
+                setter(blocks);
+            });
+
+            // No PUT before the debounce window elapses.
+            expect(
+                calls.filter((c) => c.init.method === 'PUT').length,
+            ).toBe(0);
+
+            await vi.advanceTimersByTimeAsync(600);
+            await vi.runOnlyPendingTimersAsync();
+
+            const puts = calls.filter((c) => c.init.method === 'PUT');
+            expect(puts.length).toBe(1);
+            expect(puts[0].url).toMatch(/\/menus\/42$/);
+
+            const body = JSON.parse(String(puts[0].init.body)) as {
+                content?: { raw?: string; blocks?: unknown[] };
+            };
+            expect(body.content?.blocks).toHaveLength(1);
+        } finally {
+            __cancelPendingEntityRecordSaves();
+            vi.useRealTimers();
+        }
+    });
+
+    it('useEntityProp saves wp_navigation edits on a trailing debounce (#809)', async () => {
+        vi.useFakeTimers();
+        try {
+            const { fetcher, calls } = mockFetcher(async (url) =>
+                url.endsWith('/menus/43')
+                    ? jsonResponse({
+                          id: 43,
+                          slug: 'primary',
+                          title: { raw: 'Renamed', rendered: 'Renamed' },
+                          status: 'publish',
+                          type: 'wp_navigation',
+                          content: { raw: '', blocks: [] },
+                      })
+                    : jsonResponse(null, 404),
+            );
+
+            configureCoreDataShim({ apiBase: '/visual-editor/api', fetcher });
+
+            coreDispatch().receiveEntityRecords('postType', 'wp_navigation', [
+                {
+                    id: 43,
+                    slug: 'primary',
+                    title: { raw: 'Primary', rendered: 'Primary' },
+                    status: 'publish',
+                    type: 'wp_navigation',
+                    content: { raw: '', blocks: [] },
+                },
+            ]);
+
+            let setTitle: (value: string) => void = () => undefined;
+            function Probe() {
+                const [, setter] = useEntityProp<string>('postType', 'wp_navigation', 'title', 43);
+                setTitle = setter;
+                return null;
+            }
+            render(<Probe />);
+
+            act(() => {
+                setTitle('Rena');
+                setTitle('Renamed');
+            });
+
+            expect(calls.filter((c) => c.init.method === 'PUT')).toHaveLength(0);
+
+            await vi.advanceTimersByTimeAsync(600);
+            await vi.runOnlyPendingTimersAsync();
+
+            const puts = calls.filter((c) => c.init.method === 'PUT');
+            expect(puts).toHaveLength(1);
+            expect(puts[0].url).toMatch(/\/menus\/43$/);
+            expect(
+                (JSON.parse(String(puts[0].init.body)) as { title?: unknown }).title,
+            ).toBe('Renamed');
+        } finally {
+            __cancelPendingEntityRecordSaves();
+            vi.useRealTimers();
+        }
+    });
+
+    it('saveEditedEntityRecord queues per record and keeps edits staged mid-request (#809)', async () => {
+        const menu = (title: string): EntityRecord => ({
+            id: 45,
+            slug: 'primary',
+            title: { raw: title, rendered: title },
+            status: 'publish',
+            type: 'wp_navigation',
+            content: { raw: '', blocks: [] },
+        });
+
+        let releaseFirst: () => void = () => undefined;
+        const putBodies: Array<{ title?: unknown }> = [];
+
+        const { fetcher } = mockFetcher(async (url, init) => {
+            if (!url.endsWith('/menus/45') || init.method !== 'PUT') {
+                return jsonResponse(null, 404);
+            }
+
+            const body = JSON.parse(String(init.body)) as { title?: string };
+            putBodies.push(body);
+
+            if (putBodies.length === 1) {
+                // Hold the first PUT open until the test releases it.
+                await new Promise<void>((resolve) => {
+                    releaseFirst = resolve;
+                });
+            }
+
+            return jsonResponse(menu(String(body.title)));
+        });
+
+        configureCoreDataShim({ apiBase: '/visual-editor/api', fetcher });
+        coreDispatch().receiveEntityRecords('postType', 'wp_navigation', [menu('Primary')]);
+
+        coreDispatch().editEntityRecord('postType', 'wp_navigation', 45, { title: 'First' });
+        const firstSave = coreDispatch().saveEditedEntityRecord('postType', 'wp_navigation', 45) as Promise<unknown>;
+
+        // Let the first PUT go out, then stage a newer title while it's open.
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        coreDispatch().editEntityRecord('postType', 'wp_navigation', 45, { title: 'Second' });
+        const secondSave = coreDispatch().saveEditedEntityRecord('postType', 'wp_navigation', 45) as Promise<unknown>;
+
+        // Queued: the second PUT must not start while the first is open.
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(putBodies).toHaveLength(1);
+
+        releaseFirst();
+        await firstSave;
+
+        // The first save must not wipe the edit staged during its request.
+        expect(
+            (coreSelect().getEntityRecordEdits('postType', 'wp_navigation', 45) as { title?: string } | null)?.title,
+        ).toBe('Second');
+
+        await secondSave;
+
+        expect(putBodies.map((body) => body.title)).toEqual(['First', 'Second']);
+        expect(coreSelect().getEntityRecordEdits('postType', 'wp_navigation', 45) ?? {}).toEqual({});
+    });
+
+    it('useEntityProp only stages edits on other entities', async () => {
+        vi.useFakeTimers();
+        try {
+            const { fetcher, calls } = mockFetcher(async () => jsonResponse(null, 404));
+
+            configureCoreDataShim({ apiBase: '/visual-editor/api', fetcher });
+
+            coreDispatch().receiveEntityRecords('postType', 'page', [
+                { id: 44, title: { raw: 'Page', rendered: 'Page' } },
+            ]);
+
+            let setTitle: (value: string) => void = () => undefined;
+            function Probe() {
+                const [, setter] = useEntityProp<string>('postType', 'page', 'title', 44);
+                setTitle = setter;
+                return null;
+            }
+            render(<Probe />);
+
+            act(() => {
+                setTitle('Edited');
+            });
+
+            await vi.advanceTimersByTimeAsync(600);
+
+            expect(calls.filter((c) => c.init.method === 'PUT')).toHaveLength(0);
+        } finally {
+            __cancelPendingEntityRecordSaves();
+            vi.useRealTimers();
+        }
+    });
+
     it('flattens {raw, rendered} fields on getRawEntityRecord and getEditedEntityRecord', () => {
         coreDispatch().receiveEntityRecords('postType', 'wp_block', [
             {
@@ -1981,13 +2504,36 @@ describe('core-data-shim hooks', () => {
         expect(result.record).toBeNull();
     });
 
-    it('useResourcePermissions denies everything and reports resolved', () => {
-        const perms = renderHook(() => useResourcePermissions());
-        expect(perms).toEqual({
+    it('useResourcePermissions denies writes by default and reports resolved', () => {
+        expect(renderHook(() => useResourcePermissions())).toEqual({
             canCreate: false,
+            canRead: true,
             canUpdate: false,
             canDelete: false,
             isResolving: false,
+            hasResolved: true,
+        });
+
+        // `core/navigation-link`'s link UI asks about pages to offer
+        // inline page creation — no backing flow, so keep it off.
+        expect(
+            renderHook(() => useResourcePermissions({ kind: 'postType', name: 'page' }))
+                .canCreate,
+        ).toBe(false);
+    });
+
+    it('useResourcePermissions grants writes on wp_navigation (#809)', () => {
+        // Backs the nav block's menu selector: "Create new Menu" and
+        // "Import Classic Menus" are gated on these.
+        expect(
+            renderHook(() =>
+                useResourcePermissions({ kind: 'postType', name: 'wp_navigation', id: 3 }),
+            ),
+        ).toMatchObject({
+            canCreate: true,
+            canUpdate: true,
+            canDelete: true,
+            hasResolved: true,
         });
     });
 
