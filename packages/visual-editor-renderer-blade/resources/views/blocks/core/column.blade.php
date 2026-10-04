@@ -155,7 +155,11 @@
 		// our rule wins the cascade.
 		$widthSelector = sprintf( '.%1$s.%1$s.%1$s', $widthScope );
 
-		foreach ( $responsiveWidths as $bp => $value ) {
+		// Registry emission order so the narrower desktop-first override
+		// is emitted last and wins (#820).
+		foreach ( $widthRegistry->keysWithBase() as $bp ) {
+			$value = $responsiveWidths[ $bp ] ?? null;
+
 			if ( null === $value || '' === $value ) {
 				continue;
 			}
@@ -186,14 +190,14 @@
 				continue;
 			}
 
-			$minWidth = $widthRegistry->get( (string) $bp );
-			if ( null === $minWidth ) {
+			$widthQuery = $widthRegistry->mediaQuery( (string) $bp );
+			if ( null === $widthQuery ) {
 				continue;
 			}
 
 			$widthRules[] = sprintf(
-				'@media (min-width:%dpx){%s{%s}}',
-				$minWidth,
+				'@media %s{%s{%s}}',
+				$widthQuery,
 				$widthSelector,
 				$declaration
 			);

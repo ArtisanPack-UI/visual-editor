@@ -276,7 +276,7 @@ class PositionResolver
 	 * @since 1.4.0
 	 *
 	 * @param  array{base: array<string, mixed>|null, breakpoints: array<string, array<string, mixed>>}  $payload
-	 * @param  array<int, string>  $orderedBreakpointKeys  Registry keys, ascending, no `base`.
+	 * @param  array<int, string>  $orderedBreakpointKeys  Registry keys of one family in emission order, no `base`.
 	 *
 	 * @return array<string, array<string, mixed>>
 	 */

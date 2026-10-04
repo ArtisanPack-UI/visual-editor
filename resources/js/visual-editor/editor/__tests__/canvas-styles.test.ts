@@ -142,3 +142,26 @@ describe('blockStylesheetPaths (#566 glob)', () => {
         );
     });
 });
+
+describe('floated alignments in the canvas (#819)', () => {
+    it('floats alignleft / alignright children of constrained and flow layouts', () => {
+        expect(ALIGNMENT_OVERRIDE_STYLES).toMatch(/\.is-layout-constrained > \.alignleft \{\s*float: left;/);
+        expect(ALIGNMENT_OVERRIDE_STYLES).toMatch(/\.is-layout-constrained > \.alignright \{\s*float: right;/);
+        expect(ALIGNMENT_OVERRIDE_STYLES).toMatch(/\.is-layout-flow > \.alignleft \{\s*float: left;/);
+        expect(ALIGNMENT_OVERRIDE_STYLES).toMatch(/is-root-container > \.wp-block\.alignleft \{\s*float: left;/);
+    });
+
+    it('excludes floated blocks from the root content framing', () => {
+        for (const css of [POST_EDITOR_FRAMING_STYLES, COMPOSED_CHROME_STYLES]) {
+            expect(css).toContain(
+                'is-root-container > .wp-block:not(.alignwide):not(.alignfull):not(.alignleft):not(.alignright)'
+            );
+        }
+    });
+});
+
+describe('floats stack at Mobile in the canvas (#820)', () => {
+    it('unfloats aligned blocks at the mobile breakpoint', () => {
+        expect(ALIGNMENT_OVERRIDE_STYLES).toMatch(/@media \(max-width: 767px\) \{[\s\S]*float: none;/);
+    });
+});

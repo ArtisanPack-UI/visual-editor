@@ -1,3 +1,4 @@
+import { RichTextData } from '@wordpress/rich-text'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -5,6 +6,7 @@ import {
 	deepClone,
 	deepMerge,
 	diffPaths,
+	isPlainObject,
 	pathMatchesAnyRoot,
 	readPath,
 	setPath,
@@ -237,5 +239,38 @@ describe( 'deepMerge', () => {
 		deepMerge( base, { a: { c: 2 } } )
 
 		expect( base ).toEqual( { a: { b: 1 } } )
+	} )
+} )
+
+describe( 'rich-text values are leaves, not objects', () => {
+	// `RichTextData` has no enumerable keys. Treating it as a plain object
+	// made every edit at a non-base breakpoint vanish: diffPaths saw no
+	// change and pruneEmpty dropped the value as an empty `{}`.
+	const typed = RichTextData.fromHTMLString( 'Column 1' )
+
+	it( 'diffs one RichTextData against another as a changed leaf', () => {
+		const previous = RichTextData.fromHTMLString( 'C' )
+
+		expect( diffPaths( { content: typed }, { content: previous } ) ).toEqual( [ { path: 'content', value: typed } ] )
+	} )
+
+	it( 'keeps a RichTextData value when setting a path', () => {
+		expect( setPath<Record<string, unknown>>( {}, 'content', typed ).content ).toBe( typed )
+	} )
+
+	it( 'passes RichTextData through deepClone and deepMerge untouched', () => {
+		expect( deepClone( { content: typed } ).content ).toBe( typed )
+		expect( deepMerge( { content: RichTextData.fromHTMLString( 'x' ) }, { content: typed } ).content ).toBe( typed )
+	} )
+
+	it( 'serialises the kept value as its HTML', () => {
+		expect( JSON.stringify( setPath( {}, 'content', typed ) ) ).toBe( '{"content":"Column 1"}' )
+	} )
+
+	it( 'still walks plain objects', () => {
+		expect( isPlainObject( {} ) ).toBe( true )
+		expect( isPlainObject( Object.create( null ) ) ).toBe( true )
+		expect( isPlainObject( typed ) ).toBe( false )
+		expect( isPlainObject( [] ) ).toBe( false )
 	} )
 } )

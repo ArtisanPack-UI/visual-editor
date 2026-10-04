@@ -47,9 +47,27 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditorRendererBlade\Services;
 
 use ArtisanPackUI\VisualEditor\Resources\PresetRegistry;
+use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
+use ArtisanPackUI\VisualEditorRendererBlade\Support\StackingStyles;
 
 class ThemeJsonTokensCompiler
 {
+	/**
+	 * Fallback content size for layout rules when no
+	 * `--wp--style--global--content-size` is declared (#821). Matches
+	 * `PresetRegistry::DEFAULT_LAYOUT` and the editor's layout settings.
+	 *
+	 * @since 1.12.1
+	 */
+	public const DEFAULT_CONTENT_SIZE = PresetRegistry::DEFAULT_LAYOUT['contentSize'];
+
+	/**
+	 * Fallback wide size for layout rules (#821).
+	 *
+	 * @since 1.12.1
+	 */
+	public const DEFAULT_WIDE_SIZE = PresetRegistry::DEFAULT_LAYOUT['wideSize'];
+
 	/**
 	 * Compile a theme.json array into a `:root` CSS block, or '' when the
 	 * input carries no recognised tokens.
@@ -105,6 +123,46 @@ class ThemeJsonTokensCompiler
 		$spacing  = is_array( $settings['spacing'] ?? null ) ? $settings['spacing'] : [];
 
 		return PresetRegistry::spacingPresetsCss( $spacing['spacingSizes'] ?? null );
+	}
+
+	/**
+	 * Package defaults layered under the active theme (#821): the layout
+	 * custom properties (content / wide size, block gap, root padding)
+	 * at zero specificity, every font-size and palette preset the
+	 * editor's pickers offer with their `.has-{slug}-*` classes, and the
+	 * constrained-layout rules when the theme declares no layout sizes.
+	 *
+	 * Emitted after {@see compile()} so it fills gaps without taking
+	 * over: the layout tokens sit in `:where(:root)`, and the preset
+	 * lists are the theme's own lists whenever it ships them.
+	 *
+	 * @since 1.12.1
+	 *
+	 * @param  array<string, mixed>|null  $themeJson  Decoded theme.json payload, if any.
+	 */
+	public function compileDefaults( ?array $themeJson ): string
+	{
+		$settings = is_array( $themeJson['settings'] ?? null ) ? $themeJson['settings'] : [];
+		$layout   = is_array( $settings['layout'] ?? null ) ? $settings['layout'] : [];
+
+		$parts = [
+			PresetRegistry::layoutDefaultsCss(),
+			PresetRegistry::presetDefaultsCss( $settings ),
+		];
+
+		$hasContentSize = is_string( $layout['contentSize'] ?? null ) && '' !== trim( $layout['contentSize'] );
+		$hasWideSize    = is_string( $layout['wideSize'] ?? null ) && '' !== trim( $layout['wideSize'] );
+
+		if ( ! $hasContentSize || ! $hasWideSize ) {
+			$parts[] = $this->compileLayoutRules( [
+				'layout' => [
+					'contentSize' => self::DEFAULT_CONTENT_SIZE,
+					'wideSize'    => self::DEFAULT_WIDE_SIZE,
+				],
+			] );
+		}
+
+		return implode( "\n\n", array_filter( $parts, static fn ( string $part ): bool => '' !== $part ) );
 	}
 
 	/**
@@ -625,7 +683,7 @@ class ThemeJsonTokensCompiler
 		// alignment override" case authors hit in the editor.
 		if ( $hasWideSize ) {
 			$rules[] = ".wp-block-group.is-layout-constrained.alignwide {\n"
-				. "\tmax-width: var(--wp--style--global--wide-size);\n"
+				. "\tmax-width: var(--wp--style--global--wide-size, " . self::DEFAULT_WIDE_SIZE . ");\n"
 				. "\tmargin-left: auto;\n"
 				. "\tmargin-right: auto;\n"
 				. '}';
@@ -650,7 +708,7 @@ class ThemeJsonTokensCompiler
 		// wrappers that are intentionally full-width.
 		if ( $hasContentSize ) {
 			$rules[] = ".wp-block-post-content.is-layout-constrained > :where(:not(.alignwide):not(.alignfull):not(.alignleft):not(.alignright)) {\n"
-				. "\tmax-width: var(--wp--style--global--content-size);\n"
+				. "\tmax-width: var(--wp--style--global--content-size, " . self::DEFAULT_CONTENT_SIZE . ");\n"
 				. "\tmargin-left: auto;\n"
 				. "\tmargin-right: auto;\n"
 				. '}';
@@ -658,7 +716,7 @@ class ThemeJsonTokensCompiler
 
 		if ( $hasWideSize ) {
 			$rules[] = ".wp-block-post-content.is-layout-constrained > .alignwide {\n"
-				. "\tmax-width: var(--wp--style--global--wide-size);\n"
+				. "\tmax-width: var(--wp--style--global--wide-size, " . self::DEFAULT_WIDE_SIZE . ");\n"
 				. "\tmargin-left: auto;\n"
 				. "\tmargin-right: auto;\n"
 				. '}';
@@ -667,6 +725,18 @@ class ThemeJsonTokensCompiler
 		$rules[] = ".wp-block-post-content.is-layout-constrained > .alignfull {\n"
 			. "\tmax-width: none;\n"
 			. '}';
+
+		// #819 — floated alignments. The child cap above skips
+		// `.alignleft` / `.alignright`, so they need their own rules or
+		// they render full-width against the container edge. The
+		// container becomes a block formatting context so floats at the
+		// end of the content don't hang out of it. `:where()` keeps it at
+		// zero specificity so a host that sets its own `display` wins.
+		$rules[] = ":where(.wp-block-post-content.is-layout-constrained) {\n"
+			. "\tdisplay: flow-root;\n"
+			. '}';
+
+		$rules = array_merge( $rules, $this->floatRules( '.wp-block-post-content.is-layout-constrained' ) );
 
 		// Rule set C — children of a constrained GROUP (#700). This is
 		// what "constrained" means upstream: WordPress emits a
@@ -684,7 +754,7 @@ class ThemeJsonTokensCompiler
 		// keeps its existing full-bleed-unless-aligned behavior.
 		if ( $hasContentSize ) {
 			$rules[] = ".wp-block-group.wp-block-group-is-layout-constrained > :where(:not(.alignwide):not(.alignfull):not(.alignleft):not(.alignright)) {\n"
-				. "\tmax-width: var(--wp--style--global--content-size);\n"
+				. "\tmax-width: var(--wp--style--global--content-size, " . self::DEFAULT_CONTENT_SIZE . ");\n"
 				. "\tmargin-left: auto;\n"
 				. "\tmargin-right: auto;\n"
 				. '}';
@@ -692,7 +762,7 @@ class ThemeJsonTokensCompiler
 
 		if ( $hasWideSize ) {
 			$rules[] = ".wp-block-group.wp-block-group-is-layout-constrained > .alignwide {\n"
-				. "\tmax-width: var(--wp--style--global--wide-size);\n"
+				. "\tmax-width: var(--wp--style--global--wide-size, " . self::DEFAULT_WIDE_SIZE . ");\n"
 				. "\tmargin-left: auto;\n"
 				. "\tmargin-right: auto;\n"
 				. '}';
@@ -702,7 +772,67 @@ class ThemeJsonTokensCompiler
 			. "\tmax-width: none;\n"
 			. '}';
 
+		// #819 — no `flow-root` here: groups with a flex layout carry the
+		// same compound class, and changing their `display` would break
+		// them.
+		$rules = array_merge( $rules, $this->floatRules( '.wp-block-group.wp-block-group-is-layout-constrained' ) );
+
 		return implode( "\n\n", $rules );
+	}
+
+	/**
+	 * `.alignleft` / `.alignright` float rules for the children of a
+	 * constrained container (#819). The inline-start margin offsets the
+	 * float by the gutter the content-size cap leaves on each side, so
+	 * the float lines up with the text column instead of the container
+	 * edge. Below the mobile breakpoint the float is dropped and the
+	 * block is centered, since there is no room for text to wrap.
+	 *
+	 * @since 1.12.1
+	 *
+	 * @param  string  $parent  Constrained container selector.
+	 *
+	 * @return list<string>
+	 */
+	protected function floatRules( string $parent ): array
+	{
+		$gutter = 'max(0px, calc((100% - var(--wp--style--global--content-size, ' . self::DEFAULT_CONTENT_SIZE . ')) / 2))';
+
+		return [
+			"{$parent} > .alignleft {\n"
+				. "\tfloat: left;\n"
+				. "\tmargin-inline-start: {$gutter};\n"
+				. "\tmargin-inline-end: 2em;\n"
+				. '}',
+			"{$parent} > .alignright {\n"
+				. "\tfloat: right;\n"
+				. "\tmargin-inline-start: 2em;\n"
+				. "\tmargin-inline-end: {$gutter};\n"
+				. '}',
+			sprintf( '@media (max-width: %dpx) {', $this->floatStackMaxWidth() ) . "\n"
+				. "\t{$parent} > .alignleft,\n"
+				. "\t{$parent} > .alignright {\n"
+				. "\t\tfloat: none;\n"
+				. "\t\tmargin-inline: auto;\n"
+				. "\t}\n"
+				. '}',
+		];
+	}
+
+	/**
+	 * Viewport width at and below which floated alignments stack: the
+	 * registry's Mobile breakpoint (#820), so it matches the editor's
+	 * Mobile preview.
+	 *
+	 * @since 1.12.1
+	 */
+	protected function floatStackMaxWidth(): int
+	{
+		$registry = function_exists( 'app' ) && app()->bound( BreakpointRegistry::class )
+			? app( BreakpointRegistry::class )
+			: BreakpointRegistry::fromLayers( [], [] );
+
+		return $registry->maxWidth( 'mobile' ) ?? StackingStyles::DEFAULT_MOBILE_MAX_WIDTH;
 	}
 
 	/**

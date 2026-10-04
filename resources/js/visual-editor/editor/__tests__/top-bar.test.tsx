@@ -407,7 +407,7 @@ describe('TopBar', () => {
      * in the top-bar shell.
      */
     describe('viewport switcher wiring (#617)', () => {
-        it('renders Mobile/Tablet/Desktop labels from the default registry', () => {
+        it('renders Tablet/Mobile device labels from the default registry (#820)', () => {
             render(<TopBar {...defaultProps()} />);
 
             expect(
@@ -417,8 +417,8 @@ describe('TopBar', () => {
                 screen.getByRole('button', { name: 'Tablet' })
             ).toBeInTheDocument();
             expect(
-                screen.getByRole('button', { name: 'Desktop' })
-            ).toBeInTheDocument();
+                screen.queryByRole('button', { name: 'Desktop' })
+            ).not.toBeInTheDocument();
         });
 
         it('forwards a preset selection to onViewportChange with previewWidthPx', () => {
@@ -435,12 +435,12 @@ describe('TopBar', () => {
             act(() => {
                 fireEvent.click(screen.getByRole('button', { name: 'Mobile' }));
             });
-            expect(onViewportChange).toHaveBeenLastCalledWith('sm', 375);
+            expect(onViewportChange).toHaveBeenLastCalledWith('mobile', 375);
 
             act(() => {
-                fireEvent.click(screen.getByRole('button', { name: 'Desktop' }));
+                fireEvent.click(screen.getByRole('button', { name: 'Tablet' }));
             });
-            expect(onViewportChange).toHaveBeenLastCalledWith('lg', 1440);
+            expect(onViewportChange).toHaveBeenLastCalledWith('tablet', 768);
 
             act(() => {
                 fireEvent.click(
@@ -453,8 +453,8 @@ describe('TopBar', () => {
         it('uses a host-supplied viewportRegistry when provided', () => {
             const onViewportChange = vi.fn();
             const registry = new BreakpointRegistry([
-                { key: 'sm', minWidthPx: 640, previewWidthPx: 390, label: 'iPhone' },
-                { key: 'md', minWidthPx: 900, previewWidthPx: 900, label: 'Slate' },
+                { key: 'phone', maxWidthPx: 600, previewWidthPx: 390, label: 'iPhone' },
+                { key: 'slate', maxWidthPx: 1100, previewWidthPx: 900, label: 'Slate' },
             ]);
 
             render(
@@ -476,7 +476,7 @@ describe('TopBar', () => {
             act(() => {
                 fireEvent.click(screen.getByRole('button', { name: 'iPhone' }));
             });
-            expect(onViewportChange).toHaveBeenLastCalledWith('sm', 390);
+            expect(onViewportChange).toHaveBeenLastCalledWith('phone', 390);
         });
     });
 

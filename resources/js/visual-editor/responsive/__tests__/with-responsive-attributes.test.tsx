@@ -40,6 +40,7 @@ vi.mock( '@wordpress/blocks', () => {
 } )
 
 import { __setBlockType, __clearBlockTypes } from '@wordpress/blocks'
+import { RichTextData } from '@wordpress/rich-text'
 import { withResponsiveAttributes } from '../with-responsive-attributes'
 
 interface CapturedProps {
@@ -289,5 +290,35 @@ describe( 'withResponsiveAttributes — non-base breakpoint behavior', () => {
 		captured?.setAttributes( { columnCount: 3 } )
 
 		expect( setAttributes ).not.toHaveBeenCalled()
+	} )
+} )
+
+describe( 'withResponsiveAttributes — rich text at a device breakpoint (#820)', () => {
+	it( 'forwards typed RichTextData content to setAttributes at Mobile', () => {
+		__setBlockType( 'artisanpack/paragraph', {
+			artisanpackResponsive: { attributes: [ 'style.position' ] },
+		} )
+
+		const setAttributes = vi.fn()
+		const previous      = RichTextData.fromHTMLString( 'C' )
+		const typed         = RichTextData.fromHTMLString( 'Column 1' )
+
+		act( () => {
+			setActiveBreakpoint( 'mobile' )
+		} )
+
+		render(
+			<Wrapped
+				name="artisanpack/paragraph"
+				attributes={ { content: previous } }
+				setAttributes={ setAttributes }
+			/> as never,
+		)
+
+		act( () => {
+			captured?.setAttributes( { content: typed } )
+		} )
+
+		expect( setAttributes ).toHaveBeenCalledWith( { content: typed } )
 	} )
 } )

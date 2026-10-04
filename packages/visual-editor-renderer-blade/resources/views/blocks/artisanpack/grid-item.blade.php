@@ -47,7 +47,7 @@
 			if ( ! is_numeric( $value ) ) {
 				continue;
 			}
-			if ( null === $registry->get( (string) $bp ) ) {
+			if ( ! $registry->has( (string) $bp ) ) {
 				continue;
 			}
 

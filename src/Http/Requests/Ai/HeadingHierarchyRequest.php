@@ -13,6 +13,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Http\Requests\Ai;
 
+use ArtisanPackUI\VisualEditor\Ai\Support\BlockPayloadLimiter;
 use Illuminate\Foundation\Http\FormRequest;
 
 class HeadingHierarchyRequest extends FormRequest
@@ -28,7 +29,7 @@ class HeadingHierarchyRequest extends FormRequest
 	public function rules(): array
 	{
 		return [
-			'blocks' => [ 'required', 'array' ],
+			'blocks' => [ 'required', 'array', BlockPayloadLimiter::rule() ],
 		];
 	}
 }

@@ -1,14 +1,16 @@
 /**
- * Mobile-first responsive value resolver (#487).
+ * Responsive value resolver (#487, #820).
  *
  * Mirrors the PHP `ResponsiveValueResolver`. Given a discriminated
- * `{base, sm, md, …}` attribute and the active breakpoint, returns
- * the value the editor / renderer should show.
+ * `{base, tablet, mobile, …}` attribute and the active breakpoint,
+ * returns the value the editor / renderer should show.
  *
- *  - `base` is the unprefixed value; it applies everywhere unless a
- *    larger breakpoint overrides it.
- *  - `null` (or missing) means "inherit from the next smaller
- *    defined slot."
+ *  - `base` is the desktop value; it applies everywhere unless a device
+ *    override matches.
+ *  - Device keys cascade downward: Mobile inherits from Tablet, then
+ *    `base`. Legacy mobile-first keys (`sm`, `md`, …) keep their
+ *    min-width cascade.
+ *  - `null` (or missing) means "inherit".
  *  - Scalars round-trip unchanged.
  *
  * @package @artisanpack-ui/visual-editor
@@ -45,20 +47,16 @@ export function resolveResponsiveValue<T>(
 		return attribute as T
 	}
 
-	const cascade = cascadeKeys( activeBreakpoint, registry )
-	const obj     = attribute as Record<string, T | null | undefined>
+	return firstDefined( attribute as Record<string, T | null | undefined>, registry.cascade( activeBreakpoint ) )
+}
 
+function firstDefined<T>( obj: Record<string, T | null | undefined>, cascade: string[] ): T | null {
 	for ( const key of cascade ) {
-		if ( ! ( key in obj ) ) {
-			continue
-		}
-
 		const value = obj[ key ]
-		if ( null === value || undefined === value ) {
-			continue
-		}
 
-		return value
+		if ( key in obj && null !== value && undefined !== value ) {
+			return value
+		}
 	}
 
 	return null
@@ -80,7 +78,9 @@ export function distinctOverrides<T>(
 	let previous: T | null       = null
 	let first                    = true
 
-	for ( const key of registry.keysWithBase() ) {
+	// Legacy mobile-first keys compare up the min-width chain, exactly as
+	// before #820, so saved markup built from them is unchanged.
+	for ( const key of [ BASE_KEY, ...registry.legacyPrefixes() ] ) {
 		const value = resolveResponsiveValue<T>( normalized, key, registry )
 
 		if ( null === value ) {
@@ -94,20 +94,29 @@ export function distinctOverrides<T>(
 		}
 	}
 
+	// Desktop-first device keys compare down the max-width chain from base.
+	// With legacy keys also set, a device value equal to base may still be
+	// needed to override a legacy min-width rule, so keep device values.
+	const hasLegacy = registry.legacyPrefixes().some(
+		( key ) => null !== normalized[ key ] && undefined !== normalized[ key ],
+	)
+	previous = resolveResponsiveValue<T>( normalized, BASE_KEY, registry )
+
+	for ( const key of registry.devicePrefixes() ) {
+		const value = hasLegacy
+			? ( normalized[ key ] ?? null )
+			: firstDefined( normalized, registry.cascade( key, false ) )
+
+		if ( null === value ) {
+			continue
+		}
+
+		if ( hasLegacy || value !== previous ) {
+			out[ key ] = value
+		}
+
+		previous = value
+	}
+
 	return out
-}
-
-function cascadeKeys( activeBreakpoint: string, registry: BreakpointRegistry ): string[] {
-	const ordered = registry.keysWithBase()
-
-	if ( BASE_KEY === activeBreakpoint || ! registry.has( activeBreakpoint ) ) {
-		return [ BASE_KEY ]
-	}
-
-	const activeIndex = ordered.indexOf( activeBreakpoint )
-	if ( -1 === activeIndex ) {
-		return [ BASE_KEY ]
-	}
-
-	return ordered.slice( 0, activeIndex + 1 ).reverse()
 }

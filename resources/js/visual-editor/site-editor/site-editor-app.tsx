@@ -80,7 +80,7 @@ import {
 import { TopBar } from '../editor/top-bar';
 import { registerNavigationBlockGap } from '../editor/navigation-block-gap';
 import { registerSyncedPatternIndicator } from '../editor/synced-pattern-indicator';
-import { registryFromSnapshot } from '../responsive/registry';
+import { registryFromSnapshot, setResponsiveRegistry } from '../responsive/registry';
 import type { BreakpointRegistrySnapshot } from '../responsive/types';
 import {
     siteEditorCanvasPreviewProps,
@@ -396,10 +396,14 @@ function SiteEditorAppShell(props: SiteEditorAppProps): JSX.Element {
     // `label` / `previewWidthPx` overrides reach the UI. When the
     // host omits the snapshot, `registryFromSnapshot` falls back to
     // the ship defaults.
-    const viewportRegistry = useMemo(
-        () => registryFromSnapshot(props.breakpoints ?? undefined),
-        [props.breakpoints]
-    );
+    // Published synchronously (#820) so the responsive-attributes HOC and
+    // the style hooks cascade against the host's breakpoints on the very
+    // first block render.
+    const viewportRegistry = useMemo(() => {
+        const registry = registryFromSnapshot(props.breakpoints ?? undefined);
+        setResponsiveRegistry(registry);
+        return registry;
+    }, [props.breakpoints]);
 
     const handleEntityStateChange = useCallback(
         (state: EntityEditorState): void => {

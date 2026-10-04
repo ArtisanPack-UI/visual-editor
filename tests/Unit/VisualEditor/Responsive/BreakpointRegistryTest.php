@@ -49,7 +49,7 @@ it( 'returns 0 for the implicit base slot and exposes it in keysWithBase()', fun
 	$registry = BreakpointRegistry::fromLayers( [], [] );
 
 	expect( $registry->get( 'base' ) )->toBe( 0 );
-	expect( $registry->keysWithBase() )->toBe( [ 'base', 'sm', 'md', 'lg', 'xl', '2xl' ] );
+	expect( $registry->keysWithBase() )->toBe( [ 'base', 'sm', 'md', 'lg', 'xl', '2xl', 'tablet', 'mobile' ] );
 	expect( $registry->has( 'base' ) )->toBeTrue();
 } );
 
@@ -219,6 +219,7 @@ it( 'exposes an entries() view of the extended shape', function () {
 
 	expect( $registry->entries()['sm'] )->toBe( [
 		'minWidthPx'     => 640,
+		'maxWidthPx'     => null,
 		'previewWidthPx' => 375,
 		'label'          => 'Mobile',
 	] );
@@ -229,19 +230,125 @@ it( 'serialises to the JS wire shape via toArray()', function () {
 
 	$array = $registry->toArray();
 
-	expect( $array )->toHaveCount( 5 );
+	expect( $array )->toHaveCount( 7 );
 	expect( $array[0] )->toBe( [
 		'key'            => 'sm',
 		'minWidthPx'     => 640,
 		'previewWidthPx' => 375,
 		'label'          => 'Mobile',
 	] );
-	expect( array_column( $array, 'key' ) )->toBe( [ 'sm', 'md', 'lg', 'xl', '2xl' ] );
+	expect( array_column( $array, 'key' ) )->toBe( [ 'sm', 'md', 'lg', 'xl', '2xl', 'tablet', 'mobile' ] );
+	expect( $array[6] )->toBe( [
+		'key'            => 'mobile',
+		'maxWidthPx'     => 767,
+		'previewWidthPx' => 375,
+		'label'          => 'Mobile',
+	] );
 } );
 
 it( 'lets an explicit null in a higher layer remove a default breakpoint', function () {
 	$registry = BreakpointRegistry::fromLayers( [ 'xl' => null ], [] );
 
 	expect( $registry->has( 'xl' ) )->toBeFalse();
-	expect( $registry->prefixes() )->toBe( [ 'sm', 'md', 'lg', '2xl' ] );
+	expect( $registry->prefixes() )->toBe( [ 'sm', 'md', 'lg', '2xl', 'tablet', 'mobile' ] );
+} );
+
+describe( 'desktop-first device breakpoints (#820)', function (): void {
+	it( 'registers tablet and mobile as max-width overrides with in-range previews', function (): void {
+		$registry = BreakpointRegistry::fromLayers( [], [] );
+
+		expect( $registry->devicePrefixes() )->toBe( [ 'tablet', 'mobile' ] );
+		expect( $registry->legacyPrefixes() )->toBe( [ 'sm', 'md', 'lg', 'xl', '2xl' ] );
+		expect( $registry->maxWidth( 'mobile' ) )->toBe( 767 );
+		expect( $registry->maxWidth( 'tablet' ) )->toBe( 1023 );
+		expect( $registry->previewWidth( 'mobile' ) )->toBeLessThanOrEqual( 767 );
+		expect( $registry->previewWidth( 'tablet' ) )->toBeGreaterThan( 767 )->toBeLessThanOrEqual( 1023 );
+		expect( $registry->get( 'mobile' ) )->toBeNull();
+		expect( $registry->isLegacy( 'sm' ) )->toBeTrue();
+		expect( $registry->isLegacy( 'mobile' ) )->toBeFalse();
+	} );
+
+	it( 'keeps all() to the legacy min-width entries', function (): void {
+		expect( array_keys( BreakpointRegistry::fromLayers( [], [] )->all() ) )->toBe( [ 'sm', 'md', 'lg', 'xl', '2xl' ] );
+	} );
+
+	it( 'builds max-width queries for device keys and min-width queries for legacy keys', function (): void {
+		$registry = BreakpointRegistry::fromLayers( [], [] );
+
+		expect( $registry->mediaQuery( 'mobile' ) )->toBe( '(max-width:767px)' );
+		expect( $registry->mediaQuery( 'md' ) )->toBe( '(min-width:768px)' );
+		expect( $registry->mediaQuery( 'tablet', true ) )->toBe( '(max-width: 1023px)' );
+		expect( $registry->mediaQuery( 'base' ) )->toBeNull();
+		expect( $registry->mediaQuery( 'nope' ) )->toBeNull();
+	} );
+
+	it( 'cascades downward: mobile inherits from tablet then base', function (): void {
+		$registry = BreakpointRegistry::fromLayers( [], [] );
+
+		expect( $registry->cascade( 'mobile', false ) )->toBe( [ 'mobile', 'tablet', 'base' ] );
+		expect( $registry->cascade( 'tablet', false ) )->toBe( [ 'tablet', 'base' ] );
+		expect( $registry->cascade( 'base' ) )->toBe( [ 'base' ] );
+	} );
+
+	it( 'includes the legacy keys that match at a device preview width', function (): void {
+		$registry = BreakpointRegistry::fromLayers( [], [] );
+
+		// Tablet previews at 768px, where legacy sm (640+) and md (768+) also apply.
+		expect( $registry->cascade( 'tablet' ) )->toBe( [ 'tablet', 'md', 'sm', 'base' ] );
+		// Mobile previews at 375px — no legacy rule matches.
+		expect( $registry->cascade( 'mobile' ) )->toBe( [ 'mobile', 'tablet', 'base' ] );
+	} );
+
+	it( 'keeps the legacy mobile-first cascade for legacy keys', function (): void {
+		expect( BreakpointRegistry::fromLayers( [], [] )->cascade( 'lg' ) )->toBe( [ 'lg', 'md', 'sm', 'base' ] );
+	} );
+
+	it( 'accepts custom device breakpoints from config, sorted descending', function (): void {
+		$registry = BreakpointRegistry::fromLayers( [
+			'phablet' => [ 'maxWidthPx' => 900, 'previewWidthPx' => 820, 'label' => 'Phablet' ],
+			'mobile'  => '600px',
+		], [] );
+
+		expect( $registry->devicePrefixes() )->toBe( [ 'tablet', 'phablet', 'mobile' ] );
+		expect( $registry->maxWidth( 'mobile' ) )->toBe( 600 );
+		expect( $registry->cascade( 'mobile', false ) )->toBe( [ 'mobile', 'phablet', 'tablet', 'base' ] );
+	} );
+
+	it( 'lets a layer switch an entry between families', function (): void {
+		$registry = BreakpointRegistry::fromLayers( [ 'md' => [ 'maxWidthPx' => 900 ] ], [] );
+
+		expect( $registry->isLegacy( 'md' ) )->toBeFalse();
+		expect( $registry->maxWidth( 'md' ) )->toBe( 900 );
+	} );
+
+	it( 'rejects an entry with both widths', function (): void {
+		new BreakpointRegistry( [ 'x' => [ 'minWidthPx' => 100, 'maxWidthPx' => 200 ] ] );
+	} )->throws( InvalidArgumentException::class, 'both' );
+
+	it( 'rejects a device preview wider than its max-width', function (): void {
+		new BreakpointRegistry( [ 'x' => [ 'maxWidthPx' => 500, 'previewWidthPx' => 600 ] ] );
+	} )->throws( InvalidArgumentException::class, 'must not exceed' );
+
+	it( 'rejects duplicate max-widths', function (): void {
+		new BreakpointRegistry( [ 'a' => [ 'maxWidthPx' => 500 ], 'b' => [ 'maxWidthPx' => 500 ] ] );
+	} )->throws( InvalidArgumentException::class, 'same max-width' );
+} );
+
+describe( 'scalar device width overrides (#820)', function (): void {
+	it( 'clamps an inherited preview width that no longer fits', function (): void {
+		$registry = BreakpointRegistry::fromLayers( [ 'tablet' => 760, 'mobile' => '360px' ], [] );
+
+		expect( $registry->maxWidth( 'tablet' ) )->toBe( 760 );
+		expect( $registry->previewWidth( 'tablet' ) )->toBe( 760 );
+		expect( $registry->maxWidth( 'mobile' ) )->toBe( 360 );
+		expect( $registry->previewWidth( 'mobile' ) )->toBe( 360 );
+	} );
+
+	it( 'keeps an inherited preview width that still fits', function (): void {
+		expect( BreakpointRegistry::fromLayers( [ 'mobile' => '600px' ], [] )->previewWidth( 'mobile' ) )->toBe( 375 );
+	} );
+
+	it( 'still rejects an explicit preview wider than the max-width', function (): void {
+		BreakpointRegistry::fromLayers( [ 'mobile' => [ 'maxWidthPx' => 600, 'previewWidthPx' => 700 ] ], [] );
+	} )->throws( InvalidArgumentException::class, 'must not exceed' );
 } );

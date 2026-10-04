@@ -14,7 +14,16 @@ export type BreakpointKey = typeof BASE_KEY | string;
 
 export interface Breakpoint {
 	key: string;
-	minWidthPx: number;
+	/**
+	 * Legacy mobile-first entries apply at this width and up. Exactly
+	 * one of `minWidthPx` / `maxWidthPx` is set (#820).
+	 */
+	minWidthPx?: number;
+	/**
+	 * Desktop-first device entries (`tablet`, `mobile`) apply at this
+	 * width and below (#820).
+	 */
+	maxWidthPx?: number;
 	/**
 	 * Human-readable label rendered in the viewport switcher (#617).
 	 * When omitted, the UI falls back to the breakpoint key.
@@ -38,7 +47,8 @@ export interface Breakpoint {
  * @since 1.0.0
  */
 export interface BreakpointWireEntry {
-	minWidthPx: number;
+	minWidthPx?: number;
+	maxWidthPx?: number;
 	label?: string;
 	previewWidthPx?: number;
 }
@@ -47,7 +57,8 @@ export interface BreakpointWireEntry {
  * Discriminated per-breakpoint storage. Mirrors the PHP shape:
  * { base: x, sm: null, md: y, ... }
  *
- * `null` means "inherit from the next smaller defined slot."
+ * `null` means "inherit" along the registry cascade (desktop-first
+ * device keys inherit from the next larger device, then `base`).
  * Missing keys are treated identically to `null` by the resolver.
  */
 export type ResponsiveAttribute<T> =
@@ -55,6 +66,6 @@ export type ResponsiveAttribute<T> =
 	| ({ [BASE_KEY]?: T | null } & { [key: string]: T | null | undefined });
 
 export interface BreakpointRegistrySnapshot {
-	/** Ascending-sorted named breakpoints (no `base`). */
+	/** Named breakpoints in emission order (no `base`). */
 	breakpoints: Breakpoint[];
 }

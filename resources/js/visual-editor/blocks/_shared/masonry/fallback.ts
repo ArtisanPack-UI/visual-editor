@@ -44,6 +44,16 @@ const BREAKPOINT_MIN_WIDTHS: ReadonlyArray<readonly [string, number]> = [
     ['2xl', 1536],
 ];
 
+/**
+ * Desktop-first device breakpoints (#820), largest max-width first.
+ * Applied after the legacy min-width table so a smaller device's
+ * override wins, mirroring the CSS cascade.
+ */
+const BREAKPOINT_MAX_WIDTHS: ReadonlyArray<readonly [string, number]> = [
+    ['tablet', 1023],
+    ['mobile', 767],
+];
+
 interface SupportsCacheHost {
     [SUPPORTS_CACHE_KEY]?: boolean;
 }
@@ -125,10 +135,11 @@ function readColumnsFromAttr(container: HTMLElement, fallback: number): number {
 }
 
 /**
- * Walk the breakpoint table in ascending min-width order and pick the
- * column count from the widest breakpoint whose min-width the current
- * viewport meets. Falls back to the base `data-ap-cols` (or the given
- * fallback) when no breakpoint matches.
+ * Walk the legacy breakpoint table in ascending min-width order and pick
+ * the column count from the widest breakpoint whose min-width the current
+ * viewport meets, then apply any desktop-first device override whose
+ * max-width the viewport is within (#820). Falls back to the base
+ * `data-ap-cols` (or the given fallback) when no breakpoint matches.
  */
 function readActiveColumnsFromAttrs(container: HTMLElement, fallback: number): number {
     const base = readColumnsFromAttr(container, fallback);
@@ -140,6 +151,20 @@ function readActiveColumnsFromAttrs(container: HTMLElement, fallback: number): n
     for (const [bp, minWidth] of BREAKPOINT_MIN_WIDTHS) {
         if (viewportWidth < minWidth) {
             break;
+        }
+        const attr = container.getAttribute(`data-ap-cols-${bp}`);
+        if (attr === null || attr === '') {
+            continue;
+        }
+        const parsed = Number(attr);
+        if (!Number.isFinite(parsed)) {
+            continue;
+        }
+        active = clampColumns(parsed, active);
+    }
+    for (const [bp, maxWidth] of BREAKPOINT_MAX_WIDTHS) {
+        if (viewportWidth > maxWidth) {
+            continue;
         }
         const attr = container.getAttribute(`data-ap-cols-${bp}`);
         if (attr === null || attr === '') {

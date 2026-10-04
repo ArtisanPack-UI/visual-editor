@@ -35,6 +35,15 @@ export interface ColumnWidthScope {
 	css: string;
 }
 
+/**
+ * Desktop-first device breakpoints (#820), largest first. Mirrors the
+ * editor registry's `DEVICE_DEFAULTS`.
+ */
+const DEVICE_BREAKPOINTS: ReadonlyArray<{ key: string; maxWidthPx: number }> = [
+	{ key: 'tablet', maxWidthPx: 1023 },
+	{ key: 'mobile', maxWidthPx: 767 },
+];
+
 interface NormalizedBasis {
 	basis: string;
 	percent: number | null;
@@ -69,10 +78,19 @@ export function columnWidthScope( attributes: Record<string, unknown> ): ColumnW
 	// cascade. See the matching comment in column.blade.php.
 	const selector = `.${ className }.${ className }.${ className }`;
 
-	const breakpoints = new Map( getBreakpoints().map( ( bp ) => [ bp.key, bp.minWidthPx ] ) );
+	const legacy = [ ...getBreakpoints() ].sort( ( a, b ) => a.minWidthPx - b.minWidthPx );
+	const queries = new Map<string, string>( [
+		...legacy.map( ( bp ): [ string, string ] => [ bp.key, `(min-width:${ bp.minWidthPx }px)` ] ),
+		...DEVICE_BREAKPOINTS.map( ( bp ): [ string, string ] => [ bp.key, `(max-width:${ bp.maxWidthPx }px)` ] ),
+	] );
 	const rules: string[] = [];
 
-	for ( const key of keys ) {
+	// Registry emission order — base, legacy min-width ascending, then
+	// desktop-first max-width largest to smallest — so the narrower
+	// override wins, matching the Blade partial (#820).
+	const ordered = [ BASE_KEY, ...queries.keys() ].filter( ( key ) => keys.includes( key ) );
+
+	for ( const key of ordered ) {
 		const value = merged[ key ];
 
 		if ( value === null || value === undefined || value === '' ) {
@@ -95,12 +113,12 @@ export function columnWidthScope( attributes: Record<string, unknown> ): ColumnW
 			continue;
 		}
 
-		const minWidth = breakpoints.get( key );
-		if ( minWidth === undefined ) {
+		const query = queries.get( key );
+		if ( query === undefined ) {
 			continue;
 		}
 
-		rules.push( `@media (min-width:${ minWidth }px){${ selector }{${ declaration }}}` );
+		rules.push( `@media ${ query }{${ selector }{${ declaration }}}` );
 	}
 
 	if ( rules.length === 0 ) {

@@ -62,8 +62,14 @@ class PositionEmitter
 			$rules[] = $trimmedScope . '{' . $baseDecls . '}';
 		}
 
-		$orderedKeys = $this->orderedBreakpointKeys();
-		$merged      = PositionResolver::mergedBreakpointLayers( $payload, $orderedKeys );
+		// Legacy min-width keys layer upward from base; desktop-first
+		// device keys (#820) layer downward from base. Both run in
+		// emission order so the later, narrower rule wins.
+		$legacyKeys  = $this->breakpoints->legacyPrefixes();
+		$deviceKeys  = $this->breakpoints->devicePrefixes();
+		$orderedKeys = array_merge( $legacyKeys, $deviceKeys );
+		$merged      = PositionResolver::mergedBreakpointLayers( $payload, $legacyKeys )
+			+ PositionResolver::mergedBreakpointLayers( $payload, $deviceKeys );
 
 		foreach ( $orderedKeys as $key ) {
 			$layer = $merged[ $key ] ?? null;
@@ -77,12 +83,12 @@ class PositionEmitter
 				continue;
 			}
 
-			$minWidth = $this->breakpoints->get( $key );
-			if ( null === $minWidth || $minWidth <= 0 ) {
+			$query = $this->breakpoints->mediaQuery( $key );
+			if ( null === $query ) {
 				continue;
 			}
 
-			$rules[] = '@media (min-width:' . $minWidth . 'px){' . $trimmedScope . '{' . $decls . '}}';
+			$rules[] = '@media ' . $query . '{' . $trimmedScope . '{' . $decls . '}}';
 		}
 
 		return implode( '', $rules );
@@ -138,24 +144,5 @@ class PositionEmitter
 		// Cast integers back to no-decimal form; keep floats as PHP
 		// formats them (which drops trailing zeros already).
 		return ( is_int( $value ) ? (string) $value : (string) $value ) . $offset['unit'];
-	}
-
-	/**
-	 * Registry keys ordered by ascending min-width. Excludes `base`.
-	 *
-	 * @return array<int, string>
-	 */
-	protected function orderedBreakpointKeys(): array
-	{
-		$keys = [];
-
-		foreach ( $this->breakpoints->all() as $key => $_minWidth ) {
-			if ( ! is_string( $key ) || '' === $key || 'base' === $key ) {
-				continue;
-			}
-			$keys[] = $key;
-		}
-
-		return $keys;
 	}
 }

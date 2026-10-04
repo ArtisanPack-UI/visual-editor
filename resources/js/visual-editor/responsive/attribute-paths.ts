@@ -56,6 +56,24 @@ export function readPath<T = unknown>( source: unknown, path: string ): T | unde
 const FORBIDDEN_KEYS = new Set( [ '__proto__', 'constructor', 'prototype' ] )
 
 /**
+ * Whether a value is a plain `{}` object the path helpers may walk
+ * into. Class instances — notably the `RichTextData` Gutenberg stores
+ * rich-text attributes as — are leaf values: they carry no enumerable
+ * keys, so walking them reads as "empty", which made `diffPaths` miss
+ * every keystroke and `pruneEmpty` drop the value whenever text was
+ * edited at a non-base breakpoint.
+ */
+export function isPlainObject( value: unknown ): value is Record<string, unknown> {
+    if ( null === value || 'object' !== typeof value || Array.isArray( value ) ) {
+        return false
+    }
+
+    const proto = Object.getPrototypeOf( value )
+
+    return null === proto || Object.prototype === proto
+}
+
+/**
  * Returns a new tree with `path` set to `value`. Intermediate objects
  * are created as plain `{}`; arrays are NOT created. Used both for
  * applying responsive overrides back into the merged read view and
@@ -85,10 +103,7 @@ export function setPath<T extends Record<string, unknown>>(
 
         const existing = cursor[ segment ]
 
-        const next: Record<string, unknown> =
-            existing && 'object' === typeof existing && ! Array.isArray( existing )
-                ? { ...( existing as Record<string, unknown> ) }
-                : {}
+        const next: Record<string, unknown> = isPlainObject( existing ) ? { ...existing } : {}
 
         cursor[ segment ] = next
         cursor            = next
@@ -122,7 +137,7 @@ function pruneEmpty<T>( node: T ): T {
     const result: Record<string, unknown> = {}
 
     for ( const [ key, value ] of Object.entries( node as Record<string, unknown> ) ) {
-        if ( value && 'object' === typeof value && ! Array.isArray( value ) ) {
+        if ( isPlainObject( value ) ) {
             const cleaned = pruneEmpty( value )
 
             if ( 0 !== Object.keys( cleaned as Record<string, unknown> ).length ) {
@@ -151,12 +166,9 @@ export function diffPaths(
     for ( const [ key, value ] of Object.entries( updates ) ) {
         const path = '' === prefix ? key : prefix + '.' + key
 
-        const isObjectValue =
-            null !== value && 'object' === typeof value && ! Array.isArray( value )
-
         const prev = previous[ key ]
 
-        if ( isObjectValue && prev && 'object' === typeof prev && ! Array.isArray( prev ) ) {
+        if ( isPlainObject( value ) && isPlainObject( prev ) ) {
             out.push(
                 ...diffPaths(
                     value as Record<string, unknown>,
@@ -214,12 +226,13 @@ export function pathMatchesAnyRoot( path: string, roots: string[] ): boolean {
  * unchanged.
  */
 export function deepClone<T>( value: T ): T {
-    if ( null === value || undefined === value || 'object' !== typeof value ) {
-        return value
-    }
-
     if ( Array.isArray( value ) ) {
         return value.map( ( item ) => deepClone( item ) ) as unknown as T
+    }
+
+    // Scalars and class instances (e.g. `RichTextData`) pass through.
+    if ( ! isPlainObject( value ) ) {
+        return value
     }
 
     const result: Record<string, unknown> = {}
@@ -245,10 +258,7 @@ export function buildTopLevelPatch(
 
     for ( const [ topKey, entries ] of entriesByTopKey ) {
         const current = attributes[ topKey ]
-        let topValue: unknown =
-            current && 'object' === typeof current && ! Array.isArray( current )
-                ? deepClone( current )
-                : current
+        let topValue: unknown = isPlainObject( current ) ? deepClone( current ) : current
 
         for ( const { path, value } of entries ) {
             const segments = path.split( '.' )
@@ -258,7 +268,7 @@ export function buildTopLevelPatch(
                 continue
             }
 
-            if ( ! topValue || 'object' !== typeof topValue || Array.isArray( topValue ) ) {
+            if ( ! isPlainObject( topValue ) ) {
                 topValue = {}
             }
 
@@ -266,7 +276,7 @@ export function buildTopLevelPatch(
             for ( let i = 1; i < segments.length - 1; i++ ) {
                 const segment  = segments[ i ]
                 const existing = cursor[ segment ]
-                if ( ! existing || 'object' !== typeof existing || Array.isArray( existing ) ) {
+                if ( ! isPlainObject( existing ) ) {
                     cursor[ segment ] = {}
                 }
                 cursor = cursor[ segment ] as Record<string, unknown>
@@ -304,14 +314,7 @@ export function deepMerge<T extends Record<string, unknown>>(
 
         const baseValue = result[ key ]
 
-        if (
-            value &&
-            'object' === typeof value &&
-            ! Array.isArray( value ) &&
-            baseValue &&
-            'object' === typeof baseValue &&
-            ! Array.isArray( baseValue )
-        ) {
+        if ( isPlainObject( value ) && isPlainObject( baseValue ) ) {
             result[ key ] = deepMerge(
                 baseValue as Record<string, unknown>,
                 value as Record<string, unknown>,

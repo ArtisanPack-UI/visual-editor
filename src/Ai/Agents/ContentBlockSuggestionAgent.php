@@ -17,6 +17,7 @@ use ArtisanPackUI\Ai\Agents\ArtisanPackAgent;
 use ArtisanPackUI\Ai\Contracts\AgentPrompter;
 use ArtisanPackUI\Ai\Credentials\Credentials;
 use ArtisanPackUI\Ai\Exceptions\FeatureError;
+use ArtisanPackUI\VisualEditor\Ai\Support\BlockPayloadLimiter;
 use JsonException;
 
 /**
@@ -168,6 +169,8 @@ PROMPT;
 			throw FeatureError::forFeature( $this->featureKey, '`existing_blocks` must be an array.' );
 		}
 
+		BlockPayloadLimiter::assertTreeWithinLimits( $input['existing_blocks'], $this->featureKey );
+
 		if ( ! array_key_exists( 'cursor_position', $input ) ) {
 			throw FeatureError::forFeature( $this->featureKey, '`cursor_position` is required.' );
 		}
@@ -208,6 +211,8 @@ PROMPT;
 				sprintf( 'existing_blocks are not JSON-encodable: %s', $e->getMessage() ),
 			);
 		}
+
+		BlockPayloadLimiter::assertSerializedWithinLimit( $serialized, $this->featureKey );
 
 		$parts = [
 			[ 'type' => 'text', 'text' => sprintf( 'Insertion position (0-indexed): %d', $input['cursor_position'] ) ],

@@ -284,18 +284,15 @@ export function resolveAtBreakpoint(
 		return payload.base
 	}
 
-	const ordered = registry.keysWithBase()
-	const target  = ordered.indexOf( breakpointKey )
-
-	if ( -1 === target ) {
-		return payload.base
-	}
-
+	// Fold the cascade from base up to the requested key (#820): the
+	// registry lists it highest precedence first, so walk it reversed.
+	// Device keys fold without legacy layers: the emitter writes each
+	// device rule as a full base + device layer after the legacy rules,
+	// so on the front end it replaces them wherever both match.
 	let merged: ResolvedPositionLayer | null = payload.base
 
-	for ( let i = 1; i <= target; i++ ) {
-		const key = ordered[ i ]
-		if ( key in payload.breakpoints ) {
+	for ( const key of registry.cascade( breakpointKey, false ).reverse() ) {
+		if ( BASE_KEY !== key && key in payload.breakpoints ) {
 			merged = mergeLayers( merged, payload.breakpoints[ key ] )
 		}
 	}

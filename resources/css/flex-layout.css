@@ -329,3 +329,95 @@
 	.\32xl\:ap-order-0 { order: 0; }
 	.\32xl\:ap-order-1 { order: 1; }
 }
+
+/*
+ * Desktop-first device overrides (#820). These come after the legacy
+ * mobile-first blocks above so a Tablet / Mobile value wins at its
+ * width; Mobile comes last so it beats Tablet on phones.
+ */
+
+/* tablet: desktop-first override, 1023px and below (#820). */
+@media (max-width: 1023px) {
+	:where(.tablet\:ap-flex) > * + * { margin-block-start: 0; }
+	.tablet\:ap-flex { display: flex; }
+	.tablet\:ap-flex-none { display: block; }
+	.tablet\:ap-flex-row { flex-direction: row; }
+	.tablet\:ap-flex-row-reverse { flex-direction: row-reverse; }
+	.tablet\:ap-flex-col { flex-direction: column; }
+	.tablet\:ap-flex-col-reverse { flex-direction: column-reverse; }
+	.tablet\:ap-flex-nowrap { flex-wrap: nowrap; }
+	.tablet\:ap-flex-wrap { flex-wrap: wrap; }
+	.tablet\:ap-flex-wrap-reverse { flex-wrap: wrap-reverse; }
+	.tablet\:ap-justify-start { justify-content: flex-start; }
+	.tablet\:ap-justify-center { justify-content: center; }
+	.tablet\:ap-justify-end { justify-content: flex-end; }
+	.tablet\:ap-justify-between { justify-content: space-between; }
+	.tablet\:ap-justify-around { justify-content: space-around; }
+	.tablet\:ap-justify-evenly { justify-content: space-evenly; }
+	.tablet\:ap-items-stretch { align-items: stretch; }
+	.tablet\:ap-items-start { align-items: flex-start; }
+	.tablet\:ap-items-end { align-items: flex-end; }
+	.tablet\:ap-items-center { align-items: center; }
+	.tablet\:ap-items-baseline { align-items: baseline; }
+	.tablet\:ap-content-stretch { align-content: stretch; }
+	.tablet\:ap-content-start { align-content: flex-start; }
+	.tablet\:ap-content-end { align-content: flex-end; }
+	.tablet\:ap-content-center { align-content: center; }
+	.tablet\:ap-content-between { align-content: space-between; }
+	.tablet\:ap-self-auto { align-self: auto; }
+	.tablet\:ap-self-start { align-self: flex-start; }
+	.tablet\:ap-self-end { align-self: flex-end; }
+	.tablet\:ap-self-center { align-self: center; }
+	.tablet\:ap-self-stretch { align-self: stretch; }
+	.tablet\:ap-grow-0 { flex-grow: 0; }
+	.tablet\:ap-grow-1 { flex-grow: 1; }
+	.tablet\:ap-shrink-0 { flex-shrink: 0; }
+	.tablet\:ap-shrink-1 { flex-shrink: 1; }
+	.tablet\:ap-basis-auto { flex-basis: auto; }
+	.tablet\:ap-basis-full { flex-basis: 100%; }
+	.tablet\:ap-order-0 { order: 0; }
+	.tablet\:ap-order-1 { order: 1; }
+}
+
+/* mobile: desktop-first override, 767px and below (#820). */
+@media (max-width: 767px) {
+	:where(.mobile\:ap-flex) > * + * { margin-block-start: 0; }
+	.mobile\:ap-flex { display: flex; }
+	.mobile\:ap-flex-none { display: block; }
+	.mobile\:ap-flex-row { flex-direction: row; }
+	.mobile\:ap-flex-row-reverse { flex-direction: row-reverse; }
+	.mobile\:ap-flex-col { flex-direction: column; }
+	.mobile\:ap-flex-col-reverse { flex-direction: column-reverse; }
+	.mobile\:ap-flex-nowrap { flex-wrap: nowrap; }
+	.mobile\:ap-flex-wrap { flex-wrap: wrap; }
+	.mobile\:ap-flex-wrap-reverse { flex-wrap: wrap-reverse; }
+	.mobile\:ap-justify-start { justify-content: flex-start; }
+	.mobile\:ap-justify-center { justify-content: center; }
+	.mobile\:ap-justify-end { justify-content: flex-end; }
+	.mobile\:ap-justify-between { justify-content: space-between; }
+	.mobile\:ap-justify-around { justify-content: space-around; }
+	.mobile\:ap-justify-evenly { justify-content: space-evenly; }
+	.mobile\:ap-items-stretch { align-items: stretch; }
+	.mobile\:ap-items-start { align-items: flex-start; }
+	.mobile\:ap-items-end { align-items: flex-end; }
+	.mobile\:ap-items-center { align-items: center; }
+	.mobile\:ap-items-baseline { align-items: baseline; }
+	.mobile\:ap-content-stretch { align-content: stretch; }
+	.mobile\:ap-content-start { align-content: flex-start; }
+	.mobile\:ap-content-end { align-content: flex-end; }
+	.mobile\:ap-content-center { align-content: center; }
+	.mobile\:ap-content-between { align-content: space-between; }
+	.mobile\:ap-self-auto { align-self: auto; }
+	.mobile\:ap-self-start { align-self: flex-start; }
+	.mobile\:ap-self-end { align-self: flex-end; }
+	.mobile\:ap-self-center { align-self: center; }
+	.mobile\:ap-self-stretch { align-self: stretch; }
+	.mobile\:ap-grow-0 { flex-grow: 0; }
+	.mobile\:ap-grow-1 { flex-grow: 1; }
+	.mobile\:ap-shrink-0 { flex-shrink: 0; }
+	.mobile\:ap-shrink-1 { flex-shrink: 1; }
+	.mobile\:ap-basis-auto { flex-basis: auto; }
+	.mobile\:ap-basis-full { flex-basis: 100%; }
+	.mobile\:ap-order-0 { order: 0; }
+	.mobile\:ap-order-1 { order: 1; }
+}

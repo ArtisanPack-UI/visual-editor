@@ -150,3 +150,14 @@ describe('stampColumnWidthScopes', () => {
         }
     });
 });
+
+describe('desktop-first column widths (#820)', () => {
+    it('emits mobile and tablet overrides as max-width rules, tablet first', () => {
+        const scope = columnWidthScope({ width: '50%', responsive: { width: { mobile: '100%', tablet: '75%' } } });
+
+        expect(scope).not.toBeNull();
+        expect(scope!.css).toContain('@media (max-width:767px)');
+        expect(scope!.css.indexOf('@media (max-width:1023px)')).toBeLessThan(scope!.css.indexOf('@media (max-width:767px)'));
+        expect(scope!.css).not.toContain('min-width');
+    });
+});

@@ -245,6 +245,63 @@ export const ALIGNMENT_OVERRIDE_STYLES = `
     margin-left: 0;
     margin-right: 0;
 }
+
+/*
+ * #819 — floated alignments. With \`supportsLayout\` on, Gutenberg puts
+ * \`alignleft\` / \`alignright\` straight on the block and relies on the
+ * core layout definitions to float it, which the canvas never receives.
+ * The inline-start offset lines the float up with the content column,
+ * matching the Blade renderer's \`floatRules()\`.
+ */
+.editor-styles-wrapper .is-layout-constrained > .alignleft {
+    float: left;
+    margin-inline-start: max(0px, calc((100% - var(--wp--style--global--content-size, 720px)) / 2));
+    margin-inline-end: 2em;
+}
+
+.editor-styles-wrapper .is-layout-constrained > .alignright {
+    float: right;
+    margin-inline-start: 2em;
+    margin-inline-end: max(0px, calc((100% - var(--wp--style--global--content-size, 720px)) / 2));
+}
+
+.editor-styles-wrapper .is-layout-flow > .alignleft {
+    float: left;
+    margin-inline-start: 0;
+    margin-inline-end: 2em;
+}
+
+.editor-styles-wrapper .is-layout-flow > .alignright {
+    float: right;
+    margin-inline-start: 2em;
+    margin-inline-end: 0;
+}
+
+.editor-styles-wrapper .block-editor-block-list__layout.is-root-container > .wp-block.alignleft {
+    float: left;
+    margin-inline-start: max(0px, calc((100% - 720px) / 2));
+    margin-inline-end: 2em;
+}
+
+.editor-styles-wrapper .block-editor-block-list__layout.is-root-container > .wp-block.alignright {
+    float: right;
+    margin-inline-start: 2em;
+    margin-inline-end: max(0px, calc((100% - 720px) / 2));
+}
+
+/*
+ * Floats stack at the Mobile breakpoint, as on the front end. The canvas
+ * is an iframe sized to the preview width, so this matches the Mobile
+ * preview (#820).
+ */
+@media (max-width: 767px) {
+    .editor-styles-wrapper .is-layout-constrained > :is(.alignleft, .alignright),
+    .editor-styles-wrapper .is-layout-flow > :is(.alignleft, .alignright),
+    .editor-styles-wrapper .block-editor-block-list__layout.is-root-container > .wp-block:is(.alignleft, .alignright) {
+        float: none;
+        margin-inline: auto;
+    }
+}
 `;
 
 /**
@@ -270,7 +327,7 @@ export const POST_EDITOR_FRAMING_STYLES = `
     padding: 48px 24px 96px;
 }
 
-.editor-styles-wrapper .block-editor-block-list__layout.is-root-container > .wp-block:not(.alignwide):not(.alignfull) {
+.editor-styles-wrapper .block-editor-block-list__layout.is-root-container > .wp-block:not(.alignwide):not(.alignfull):not(.alignleft):not(.alignright) {
     max-width: 720px;
     margin-left: auto;
     margin-right: auto;
@@ -297,7 +354,7 @@ export const COMPOSED_CHROME_STYLES = `
     padding: 0;
 }
 
-.ap-visual-editor__chrome .block-editor-block-list__layout.is-root-container > .wp-block:not(.alignwide):not(.alignfull) {
+.ap-visual-editor__chrome .block-editor-block-list__layout.is-root-container > .wp-block:not(.alignwide):not(.alignfull):not(.alignleft):not(.alignright) {
     max-width: none;
     margin-left: 0;
     margin-right: 0;
