@@ -63,6 +63,27 @@ class BlockShape
 	];
 
 	/**
+	 * Read the block's type name across the shapes callers send: the
+	 * editor's `getBlocks()` tree (`name`), `parse_blocks()` output
+	 * (`blockName`), and simplified payloads (`type`). Returns `''` when
+	 * none is a non-empty string.
+	 *
+	 * @param  array<string, mixed>  $block
+	 *
+	 * @since 1.12.1
+	 */
+	public static function readName( array $block ): string
+	{
+		foreach ( [ 'name', 'blockName', 'type' ] as $key ) {
+			if ( is_string( $block[ $key ] ?? null ) && '' !== $block[ $key ] ) {
+				return $block[ $key ];
+			}
+		}
+
+		return '';
+	}
+
+	/**
 	 * Return which key the block uses for its attributes bag, and the
 	 * bag itself, in a tuple.
 	 *

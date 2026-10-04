@@ -12,7 +12,7 @@
             "status": "adapted",
             "notes": "name + textdomain swapped to artisanpack namespace; supports/attributes verbatim.",
             "result": "skipped-status",
-            "forkDigest": "00e94bf238de"
+            "forkDigest": "7e0b20188277"
         },
         {
             "fork": "edit.tsx",
@@ -47,6 +47,14 @@
             "forkDigest": "2519507b7789"
         },
         {
+            "fork": "variations.ts",
+            "upstream": "variations.js",
+            "status": "adapted",
+            "notes": "TypeScript port; the h1–h6 variations are the toolbar's level picker (#825).",
+            "result": "skipped-status",
+            "forkDigest": "673ec9ab1147"
+        },
+        {
             "fork": "autogenerate-anchors.ts",
             "upstream": "autogenerate-anchors.js",
             "status": "adapted",
@@ -76,7 +84,7 @@
             "status": "rewritten",
             "notes": "Adapted to the visual-editor auto-discovery contract (custom-blocks.ts glob). Upstream index.js wires `init` and PHP server-side init; we don't need either.",
             "result": "skipped-status",
-            "forkDigest": "5a52c3c95b4e"
+            "forkDigest": "7fba9f5dfc20"
         }
     ]
 }

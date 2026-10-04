@@ -17,6 +17,7 @@ use ArtisanPackUI\Ai\Agents\ArtisanPackAgent;
 use ArtisanPackUI\Ai\Contracts\AgentPrompter;
 use ArtisanPackUI\Ai\Credentials\Credentials;
 use ArtisanPackUI\Ai\Exceptions\FeatureError;
+use ArtisanPackUI\VisualEditor\Support\BlockShape;
 use JsonException;
 
 /**
@@ -57,6 +58,21 @@ use JsonException;
  */
 class HeadingHierarchyAgent extends ArtisanPackAgent
 {
+	/**
+	 * Block names treated as headings. `artisanpack/heading` is what the
+	 * editor registers since the I7 cutover (#415); the core and bare
+	 * names cover theme markup and simplified payloads (#825).
+	 *
+	 * @since 1.12.1
+	 *
+	 * @var array<int, string>
+	 */
+	protected const HEADING_NAMES = [
+		'heading',
+		'core/heading',
+		'artisanpack/heading',
+	];
+
 	/**
 	 * {@inheritDoc}
 	 */
@@ -193,9 +209,10 @@ PROMPT;
 	 * documents whose only headings live under a container block, which
 	 * is the exact case the feature is meant to catch.
 	 *
-	 * Uses a permissive check so callers passing normalized Gutenberg
-	 * payloads (`core/heading`) or simplified shapes (`{ type: 'heading' }`)
-	 * both work.
+	 * Uses a permissive check so the editor's `getBlocks()` tree
+	 * (`{ name: 'artisanpack/heading' }`), `parse_blocks()` output
+	 * (`{ blockName: 'core/heading' }`) and simplified shapes
+	 * (`{ type: 'heading' }`) all work (#825).
 	 *
 	 * @since 1.3.0
 	 *
@@ -209,8 +226,7 @@ PROMPT;
 			if ( ! is_array( $block ) ) {
 				continue;
 			}
-			$type = isset( $block['type'] ) ? (string) $block['type'] : ( isset( $block['blockName'] ) ? (string) $block['blockName'] : '' );
-			if ( 'heading' === $type || 'core/heading' === $type ) {
+			if ( in_array( BlockShape::readName( $block ), self::HEADING_NAMES, true ) ) {
 				return true;
 			}
 			if ( isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) && $this->containsHeading( $block['innerBlocks'] ) ) {
