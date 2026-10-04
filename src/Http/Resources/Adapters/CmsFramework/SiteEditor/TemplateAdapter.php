@@ -81,7 +81,9 @@ class TemplateAdapter
 		// reserialization, and rewriting every core name there would
 		// write fork namespaces back into theme files on save. The
 		// parsed tree gets the blanket rewrite further down.
-		$rawContent = self::rewriteRawTemplatePartToFork( $template->rawContent );
+		$rawContent = self::rewriteRawLegacyBlockRefToCore(
+			self::rewriteRawTemplatePartToFork( $template->rawContent ),
+		);
 
 		// Stamp `ref` on any nested `core/navigation` block whose
 		// `__unstableLocation` matches an assigned menu location
@@ -200,6 +202,28 @@ class TemplateAdapter
 		return (string) preg_replace(
 			'/<!--(\s+\/?)wp:template-part(?=[\s\/}])/',
 			'<!--$1wp:artisanpack/template-part',
+			$raw,
+		);
+	}
+
+	/**
+	 * Rewrite serialized `wp:artisanpack/block` delimiters back to the
+	 * core `wp:block` synced-pattern reference the editor registers.
+	 *
+	 * Before #824 the parsed-tree rewrite forked theme `wp:block` refs
+	 * into `artisanpack/block`, and saving wrote that name into stored
+	 * template markup. The parsed tree is healed by
+	 * {@see ThemeBlockMarkup::rewriteCoreToFork()}; this keeps `content.raw`
+	 * in step. Same delimiter anchoring as the template-part rewrite, so
+	 * `wp:artisanpack/block-foo` is left alone.
+	 *
+	 * @since 1.12.1
+	 */
+	protected static function rewriteRawLegacyBlockRefToCore( string $raw ): string
+	{
+		return (string) preg_replace(
+			'/<!--(\s+\/?)wp:artisanpack\/block(?=[\s\/}])/',
+			'<!--$1wp:block',
 			$raw,
 		);
 	}

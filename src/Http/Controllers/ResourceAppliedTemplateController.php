@@ -31,6 +31,7 @@ use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedTemplate;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedTemplatePart;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\TemplatePartResolver;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\TemplateResolver;
+use ArtisanPackUI\VisualEditor\Support\BlockShape;
 use ArtisanPackUI\VisualEditor\Support\ThemeBlockMarkup;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
@@ -297,7 +298,7 @@ class ResourceAppliedTemplateController extends Controller
 				continue;
 			}
 
-			if ( in_array( $block['name'] ?? null, [ 'core/template-part', 'artisanpack/template-part' ], true ) ) {
+			if ( in_array( $block['name'] ?? null, BlockShape::TEMPLATE_PART_NAMES, true ) ) {
 				$slug = $block['attributes']['slug'] ?? null;
 
 				if ( is_string( $slug ) && '' !== trim( $slug ) ) {

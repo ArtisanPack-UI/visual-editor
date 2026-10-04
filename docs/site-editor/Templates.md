@@ -1,3 +1,7 @@
+---
+title: Templates
+---
+
 # Templates
 
 Templates are full-page block trees that drive front-end rendering. The
@@ -103,13 +107,27 @@ The block stores no inner blocks — its content is whatever the linked
 template part stores at render time. Editing the linked template part
 updates every template that includes it.
 
+**Block name in saved templates.** Theme template files reference parts
+as `core/template-part`. When the site editor loads a template it forks
+core block names to their `artisanpack/*` equivalents, so a template
+saved from the site editor stores the reference as
+`artisanpack/template-part`. Both names are treated as template-part
+references everywhere (`BlockShape::TEMPLATE_PART_NAMES`).
+
 ### Server-side rendering
 
 `TemplatePartResolver::bySlug($slug, $theme = null)` returns a
 `ResolvedTemplatePart` value object with the same shape as
 `ResolvedTemplate`. The Blade renderer's `<x-ve-blocks>` component
-recognizes `core/template-part` nodes and inlines the resolved part's
-content.
+(through `TemplatePartInliner`) recognizes both `core/template-part` and
+`artisanpack/template-part` nodes and inlines the resolved part's
+content. The React and Vue inliners do the same. The resolved block keeps
+the name it was saved with, and any `innerBlocks` snapshot saved with the
+reference is replaced by the live part, so edits to the part always show.
+
+*Since v1.12.1 (#822).* Earlier versions only expanded
+`core/template-part`, so parts in a template saved from the site editor
+rendered as empty wrappers on the front end.
 
 If the linked part is missing, the renderer emits an empty wrapper rather
 than an error — the canvas already warns the author during editing.

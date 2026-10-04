@@ -1,3 +1,7 @@
+---
+title: Patterns
+---
+
 # Patterns
 
 Patterns are reusable block snippets that authors drop into post or
@@ -98,6 +102,23 @@ Attributes:
 On render, the resolver looks up the pattern record by id and inlines
 its content. Missing references emit an empty placeholder.
 
+### `core/block` in the site editor
+
+*Since v1.12.1 (#824).* Synced-pattern references stay `core/block` in
+the site editor. The editor registers the upstream `core/block` block
+type (alongside the `core/navigation` family) — it is one of the core
+blocks that is not forked to `artisanpack/*` — and the site editor's
+template loader no longer rewrites theme `wp:block` references to
+`artisanpack/block`.
+
+Templates saved by earlier versions can still contain `artisanpack/block`
+references. Those are translated back to `core/block` when the template
+is read, in both the parsed block tree and `content.raw`, so the stored
+rows heal on the next save without a data migration. The front-end
+renderers treat `artisanpack/block` as a pattern reference too
+(`BlockShape::PATTERN_REF_NAMES`, #822), so such a template renders
+correctly even before it is re-saved.
+
 Unsynced patterns produce no `core/block` block — they paste raw blocks
 into the host tree at insert time. From the renderer's perspective an
 unsynced pattern is invisible after insertion.
@@ -160,10 +181,14 @@ category first.
 
 ## 8. Rendering on the public site
 
-The Blade renderer's `<x-ve-blocks>` resolves `core/block` references by
-calling the pattern resolver and inlining the content. The React and Vue
-renderers fetch via `GET /visual-editor/api/patterns/{slug}` and inline
-client-side.
+The Blade renderer's `<x-ve-blocks>` resolves `core/block` (and legacy
+`artisanpack/block`) references through `PatternInliner` and inlines the
+content. The React and Vue renderers export `inlinePatterns(tree, { patterns })`,
+which splices pre-fetched pattern records (for example from
+`GET /visual-editor/api/patterns`) into the tree client-side. In all three
+renderers the resolved reference is output as `core/block`. Cycles and
+chains deeper than 10 levels render as an empty block in production and a
+visible warning in development.
 
 Performance: synced patterns are cached per request — a page that
 references the same pattern five times only fetches once. For long-term

@@ -120,7 +120,7 @@ describe( 'Keystone #50 — layout-size custom properties + alignment rules', fu
 		] );
 
 		expect( $css )->toContain( '.wp-block-group.is-layout-constrained.alignwide' );
-		expect( $css )->toContain( 'max-width: var(--wp--style--global--wide-size);' );
+		expect( $css )->toContain( 'max-width: var(--wp--style--global--wide-size, 1080px);' );
 		expect( $css )->toContain( 'margin-left: auto;' );
 		expect( $css )->toContain( 'margin-right: auto;' );
 	} );
@@ -461,5 +461,94 @@ describe( 'styles.* CSS rule emission', function (): void {
 
 		expect( $css )->toContain( '.has-real-background-color' );
 		expect( $css )->not->toContain( 'has--background-color' );
+	} );
+} );
+
+describe( 'floated alignments (#819)', function (): void {
+	it( 'floats alignleft / alignright children of constrained post content and groups', function (): void {
+		$css = ( new ThemeJsonTokensCompiler() )->compile( [
+			'settings' => [ 'layout' => [ 'contentSize' => '640px' ] ],
+		] );
+
+		foreach ( [ '.wp-block-post-content.is-layout-constrained', '.wp-block-group.wp-block-group-is-layout-constrained' ] as $parent ) {
+			expect( $css )
+				->toContain( "{$parent} > .alignleft {\n\tfloat: left;" )
+				->toContain( "{$parent} > .alignright {\n\tfloat: right;" );
+		}
+
+		expect( $css )
+			->toContain( 'margin-inline-start: max(0px, calc((100% - var(--wp--style--global--content-size, 720px)) / 2));' )
+			->toContain( 'margin-inline-end: max(0px, calc((100% - var(--wp--style--global--content-size, 720px)) / 2));' );
+	} );
+
+	it( 'contains floats in post content without touching group display', function (): void {
+		$css = ( new ThemeJsonTokensCompiler() )->compile( [
+			'settings' => [ 'layout' => [ 'contentSize' => '640px' ] ],
+		] );
+
+		expect( $css )
+			->toContain( ":where(.wp-block-post-content.is-layout-constrained) {\n\tdisplay: flow-root;" )
+			->not->toMatch( '/\.wp-block-group-is-layout-constrained \{[^}]*flow-root/' );
+	} );
+
+	it( 'stops floating on narrow viewports', function (): void {
+		$css = ( new ThemeJsonTokensCompiler() )->compile( [
+			'settings' => [ 'layout' => [ 'contentSize' => '640px' ] ],
+		] );
+
+		expect( $css )->toMatch( '/@media \(max-width: \d+px\) \{\n\t\.wp-block-post-content\.is-layout-constrained > \.alignleft,[^}]*float: none;/' );
+	} );
+} );
+
+describe( 'compileDefaults (#821)', function (): void {
+	beforeEach( function (): void {
+		config()->set( 'artisanpack.visual-editor.presets', [] );
+	} );
+
+	it( 'emits font-size vars, utility classes, layout tokens and layout rules for an empty theme', function (): void {
+		$css = ( new ThemeJsonTokensCompiler() )->compileDefaults( [] );
+
+		expect( $css )
+			->toContain( '--wp--preset--font-size--huge: 36px;' )
+			->toContain( '.has-huge-font-size' )
+			->toContain( '--wp--style--block-gap: 24px;' )
+			->toContain( '--wp--style--global--content-size: 720px;' )
+			->toContain( '.wp-block-group.wp-block-group-is-layout-constrained > .alignleft' );
+	} );
+
+	it( 'skips the default layout rules when the theme sets both layout sizes', function (): void {
+		$css = ( new ThemeJsonTokensCompiler() )->compileDefaults( [
+			'settings' => [ 'layout' => [ 'contentSize' => '640px', 'wideSize' => '1200px' ] ],
+		] );
+
+		expect( $css )->not->toContain( '.alignwide' );
+	} );
+
+	it( 'merges host font sizes over the defaults', function (): void {
+		config()->set( 'artisanpack.visual-editor.presets.font_sizes', [ [ 'slug' => 'large', 'size' => '30px' ], [ 'slug' => 'jumbo', 'size' => '64px' ] ] );
+
+		$css = ( new ThemeJsonTokensCompiler() )->compileDefaults( null );
+
+		expect( $css )
+			->toContain( '--wp--preset--font-size--large: 30px;' )
+			->toContain( '--wp--preset--font-size--jumbo: 64px;' )
+			->toContain( '--wp--preset--font-size--small: 13px;' );
+	} );
+
+	it( 'drops unsafe preset values', function (): void {
+		config()->set( 'artisanpack.visual-editor.presets.font_sizes', [ [ 'slug' => 'bad', 'size' => '1px;}body{x:y' ] ] );
+
+		expect( ( new ThemeJsonTokensCompiler() )->compileDefaults( null ) )->not->toContain( 'font-size--bad' );
+	} );
+
+	it( 'leaves no var() without a fallback or a declaration in the output', function (): void {
+		$compiler = new ThemeJsonTokensCompiler();
+		$css      = $compiler->compile( [ 'settings' => [ 'layout' => [ 'contentSize' => '640px' ] ] ] )
+			. "\n" . $compiler->compileDefaults( [] );
+
+		preg_match_all( '/(--[\w-]+)\s*:/', $css, $declared );
+		preg_match_all( '/var\(\s*(--(?:wp|ap)-[\w-]+)\s*\)/', $css, $unguarded );
+
+		expect( array_values( array_diff( $unguarded[1], $declared[1] ) ) )->toBe( [] );
 	} );
 } );

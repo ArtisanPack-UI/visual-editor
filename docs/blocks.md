@@ -27,7 +27,7 @@ The forked allow-list covers the following clusters:
 
 | Cluster | Blocks |
 |---------|--------|
-| **Content** | paragraph, heading, list, quote, code, preformatted, pullquote, verse, table |
+| **Content** | paragraph, heading (with h1–h6 level variations, v1.12.1), list, quote, code, preformatted, pullquote, verse, table |
 | **Media** | image, gallery, video, audio, file, embed, cover, media-text |
 | **Layout** | group (with row/stack variations), columns, column, buttons, button, separator, spacer, details |
 | **Widgets** | search, latest-posts |
@@ -76,7 +76,7 @@ Full authoring pattern: [[blocks/Custom Blocks]].
 
 Block authors can wire **per-breakpoint** and **per-state** values into any control they expose. The editor's viewport switcher and state switcher pivot the inspector controls to whichever breakpoint or state the author selects; the resolved CSS is emitted with the right `@media` / `:hover` / `[aria-current]` selectors at render time.
 
-- **Breakpoints** are a named registry resolved from theme.json → config → defaults. Add a key to ship a new breakpoint, override a key to resize an existing one. Full contract: [[blocks/Responsive Design Tools]].
+- **Breakpoints** are a named registry resolved from theme.json → config → defaults. Since 1.12.1 the model is desktop-first: the base value is the desktop design, and the `tablet` (1023px and below) and `mobile` (767px and below) overrides cascade downward. The pre-1.12.1 mobile-first keys (`sm` … `2xl`) stay registered so older content renders unchanged. Add a key to ship a new breakpoint, override a key to resize an existing one. Full contract: [[blocks/Responsive Design Tools]].
 - **States** are a named registry resolved the same way. Each state has a selector (the token `&` is replaced with the block's unique class scope) and an inheritance chain. Full contract: [[blocks/State Design Tools]].
 
 Both registries are configured in `config/artisanpack/visual-editor.php` — see [[Configuration#breakpoints]] and [[Configuration#states]].

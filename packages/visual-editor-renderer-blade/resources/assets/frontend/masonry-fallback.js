@@ -30,6 +30,12 @@
         ['xl', 1280],
         ['2xl', 1536]
     ];
+    // Desktop-first device breakpoints (#820), largest max-width first,
+    // applied after the legacy table so the smaller device wins.
+    var BREAKPOINT_MAX_WIDTHS = [
+        ['tablet', 1023],
+        ['mobile', 767]
+    ];
 
     function supportsNative() {
         if (typeof window === 'undefined' || typeof window.CSS === 'undefined') {
@@ -93,6 +99,21 @@
                 continue;
             }
             active = clampColumns(parsed, active);
+        }
+        for (var k = 0; k < BREAKPOINT_MAX_WIDTHS.length; k += 1) {
+            var deviceBp = BREAKPOINT_MAX_WIDTHS[k][0];
+            if (viewportWidth > BREAKPOINT_MAX_WIDTHS[k][1]) {
+                continue;
+            }
+            var deviceAttr = container.getAttribute('data-ap-cols-' + deviceBp);
+            if (deviceAttr === null || deviceAttr === '') {
+                continue;
+            }
+            var deviceParsed = Number(deviceAttr);
+            if (!isFinite(deviceParsed)) {
+                continue;
+            }
+            active = clampColumns(deviceParsed, active);
         }
         return active;
     }

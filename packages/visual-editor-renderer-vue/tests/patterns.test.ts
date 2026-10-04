@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
     DEFAULT_MAX_PATTERN_DEPTH,
     inlinePatterns,
+    PATTERN_REF_BLOCK_NAMES,
 } from '../src/patterns';
 import type { PatternRecord } from '../src/patterns';
 import type { Block } from '../src/types';
@@ -146,5 +147,48 @@ describe('inlinePatterns', () => {
         const tree = [paragraph('Inlined at insert time')];
 
         expect(inlinePatterns(tree, { patterns: [] })).toEqual(tree);
+    });
+
+    describe('artisanpack/block fork (#822)', () => {
+        function forkRef(ref: number, clientId = 'pat-fork'): Block {
+            return {
+                clientId,
+                name: 'artisanpack/block',
+                attributes: { ref },
+                innerBlocks: [],
+            };
+        }
+
+        it('treats both core and fork names as pattern references', () => {
+            expect(PATTERN_REF_BLOCK_NAMES.has('core/block')).toBe(true);
+            expect(PATTERN_REF_BLOCK_NAMES.has('artisanpack/block')).toBe(true);
+        });
+
+        it('inlines a fork-named reference as core/block', () => {
+            const patterns: PatternRecord[] = [{ id: 1, blocks: [paragraph('Hero')] }];
+
+            const inlined = inlinePatterns([forkRef(1)], { patterns });
+
+            expect(inlined[0].name).toBe('core/block');
+            expect(inlined[0].innerBlocks?.[0].attributes?.content).toBe('Hero');
+        });
+
+        it('marks an unknown fork-named ref as not-found', () => {
+            const inlined = inlinePatterns([forkRef(9999)], { patterns: [] });
+
+            expect(inlined[0].name).toBe('core/block');
+            expect(inlined[0].attributes?._resolutionError).toBe('not-found');
+        });
+
+        it('detects cycles across mixed core and fork references', () => {
+            const patterns: PatternRecord[] = [
+                { id: 1, blocks: [patternRef(2)] },
+                { id: 2, blocks: [forkRef(1)] },
+            ];
+
+            const inlined = inlinePatterns([forkRef(1)], { patterns });
+
+            expect(inlined[0].innerBlocks?.[0].innerBlocks?.[0].attributes?._resolutionError).toBe('cycle');
+        });
     });
 });

@@ -16,10 +16,16 @@ namespace ArtisanPackUI\VisualEditor\Livewire\Ai;
 use ArtisanPackUI\Ai\Agents\AltTextGenerationAgent;
 use ArtisanPackUI\Ai\Agents\ContentRewriteAgent;
 use ArtisanPackUI\Ai\Concerns\HandlesAiFeatureResponses;
+use ArtisanPackUI\Ai\Exceptions\FeatureError;
 use ArtisanPackUI\VisualEditor\Ai\Agents\ContentBlockSuggestionAgent;
 use ArtisanPackUI\VisualEditor\Ai\Agents\HeadingHierarchyAgent;
 use ArtisanPackUI\VisualEditor\Ai\Agents\LayoutSuggestionAgent;
+use ArtisanPackUI\VisualEditor\Ai\Support\AiAccess;
+use ArtisanPackUI\VisualEditor\Ai\Support\AltTextImageGuard;
+use ArtisanPackUI\VisualEditor\Ai\Support\BlockPayloadLimiter;
 use ArtisanPackUI\VisualEditor\VisualEditorServiceProvider;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
@@ -106,7 +112,7 @@ class AiTools extends Component
 	{
 		$this->run(
 			'ai.alt_text',
-			fn () => AltTextGenerationAgent::for( $image )->run(),
+			fn () => AltTextGenerationAgent::for( AltTextImageGuard::assertAllowed( $image, 'ai.alt_text' ) )->run(),
 		);
 	}
 
@@ -125,10 +131,19 @@ class AiTools extends Component
 	{
 		$this->run(
 			'ai.content_rewrite',
-			fn () => ContentRewriteAgent::for( [
-				'content' => $content,
-				'intent'  => $intent,
-			] )->run(),
+			function () use ( $content, $intent ) {
+				BlockPayloadLimiter::assertTextWithinLimit( $content, 'ai.content_rewrite' );
+
+				// Same cap as the HTTP request's `intent` rule.
+				if ( mb_strlen( $intent ) > 256 ) {
+					throw FeatureError::forFeature( 'ai.content_rewrite', __( 'The rewrite intent is too long.' ) );
+				}
+
+				return ContentRewriteAgent::for( [
+					'content' => $content,
+					'intent'  => $intent,
+				] )->run();
+			},
 		);
 	}
 
@@ -208,6 +223,29 @@ class AiTools extends Component
 	 */
 	private function run( string $featureKey, callable $callback ): void
 	{
+		// #828 hardening: same ability the `/ai/*` routes require.
+		if ( Gate::denies( AiAccess::ABILITY ) ) {
+			$this->dispatch(
+				sprintf( 'ap-ve-ai:%s:forbidden', $featureKey ),
+				feature: $featureKey,
+				message: __( 'You are not allowed to use the AI features.' ),
+			);
+
+			return;
+		}
+
+		// Route `throttle` middleware doesn't reach Livewire's update
+		// endpoint, so apply the same per-user limit here.
+		if ( ! $this->withinRateLimit() ) {
+			$this->dispatch(
+				sprintf( 'ap-ve-ai:%s:throttled', $featureKey ),
+				feature: $featureKey,
+				message: __( 'Too many AI requests. Please try again shortly.' ),
+			);
+
+			return;
+		}
+
 		$outcome = $this->handleAiFeature( $featureKey, $callback );
 
 		if ( $outcome->succeeded ) {
@@ -225,5 +263,22 @@ class AiTools extends Component
 			feature: $outcome->feature,
 			message: $outcome->message,
 		);
+	}
+
+	/**
+	 * Record an attempt against the `ai.throttle` limit ("max,minutes"),
+	 * shared per user across the Livewire listeners.
+	 *
+	 * @since 1.12.1
+	 *
+	 * @return bool Whether the call may proceed.
+	 */
+	private function withinRateLimit(): bool
+	{
+		[ $max, $minutes ] = array_pad( explode( ',', (string) config( 'artisanpack.visual-editor.ai.throttle', '20,1' ) ), 2, '1' );
+
+		$key = 've-ai-livewire:' . ( auth()->id() ?? request()->ip() );
+
+		return RateLimiter::attempt( $key, max( 1, (int) $max ), static fn (): bool => true, max( 1, (int) $minutes ) * 60 );
 	}
 }

@@ -1,19 +1,21 @@
 <?php
 
 /**
- * Responsive value resolver — mobile-first cascade (#487).
+ * Responsive value resolver (#487, #820).
  *
- * Given an attribute stored as a discriminated `{base, sm, md, lg, …}`
+ * Given an attribute stored as a discriminated `{base, tablet, mobile, …}`
  * object and an active breakpoint, returns the value the editor or
  * renderer should show.
  *
- * Cascade semantics (mirrors Tailwind's `sm:` / `md:` modifiers):
- *  - `base` is the unprefixed value; it applies everywhere unless a
- *    larger breakpoint overrides it.
- *  - A named breakpoint applies at its min-width and up, until another
- *    explicit override at a larger breakpoint replaces it.
- *  - `null` (or a missing key) means "inherit from the next-smaller
- *    defined slot." `base` is the final fallback.
+ * Cascade semantics (desktop-first since #820):
+ *  - `base` is the desktop value; it applies everywhere unless a device
+ *    override matches.
+ *  - A device key (`tablet`, `mobile`) applies at its max-width and
+ *    down, and inherits from the next larger device, then `base`.
+ *  - Legacy mobile-first keys (`sm`, `md`, …) keep their min-width
+ *    cascade so content saved before #820 resolves as it always did.
+ *  - `null` (or a missing key) means "inherit"; `base` is the final
+ *    fallback.
  *
  * Scalars (plain ints, strings, booleans, etc.) round-trip through
  * `resolve()` unchanged — the editor only promotes scalars into the
@@ -62,20 +64,25 @@ class ResponsiveValueResolver
 			return $attribute;
 		}
 
-		$cascade = $this->cascadeKeys( $activeBreakpoint );
+		return $this->resolveIn( $attribute, $this->cascadeKeys( $activeBreakpoint ) );
+	}
 
+	/**
+	 * First non-null value along the given cascade.
+	 *
+	 * @since 1.12.1
+	 *
+	 * @param  array<string, mixed>  $attribute
+	 * @param  array<int, string>    $cascade
+	 *
+	 * @return mixed
+	 */
+	protected function resolveIn( array $attribute, array $cascade )
+	{
 		foreach ( $cascade as $key ) {
-			if ( ! array_key_exists( $key, $attribute ) ) {
-				continue;
+			if ( array_key_exists( $key, $attribute ) && null !== $attribute[ $key ] ) {
+				return $attribute[ $key ];
 			}
-
-			$value = $attribute[ $key ];
-
-			if ( null === $value ) {
-				continue;
-			}
-
-			return $value;
 		}
 
 		return null;
@@ -126,7 +133,9 @@ class ResponsiveValueResolver
 		$previous = null;
 		$first    = true;
 
-		foreach ( $this->registry->keysWithBase() as $key ) {
+		// Legacy mobile-first keys compare up the min-width chain, as
+		// they always have, so legacy content compresses unchanged.
+		foreach ( array_merge( [ BreakpointRegistry::BASE_KEY ], $this->registry->legacyPrefixes() ) as $key ) {
 			$value = $this->resolve( $attribute, $key );
 
 			if ( null === $value ) {
@@ -140,7 +149,49 @@ class ResponsiveValueResolver
 			}
 		}
 
+		// Desktop-first device keys (#820) compare down the max-width
+		// chain from base: a Mobile value equal to Tablet adds nothing.
+		// When legacy keys are also set, a device value equal to base may
+		// still be needed to override a legacy min-width rule (e.g. Tablet
+		// resetting an old `md` value), so device values are kept as-is.
+		$hasLegacy = $this->hasLegacyValue( $attribute );
+		$previous  = $this->resolve( $attribute, BreakpointRegistry::BASE_KEY );
+
+		foreach ( $this->registry->devicePrefixes() as $key ) {
+			$value = $hasLegacy
+				? ( $attribute[ $key ] ?? null )
+				: $this->resolveIn( $attribute, $this->registry->cascade( $key, false ) );
+
+			if ( null === $value ) {
+				continue;
+			}
+
+			if ( $hasLegacy || $value !== $previous ) {
+				$result[ $key ] = $value;
+			}
+
+			$previous = $value;
+		}
+
 		return $result;
+	}
+
+	/**
+	 * Whether any legacy mobile-first key carries a value.
+	 *
+	 * @since 1.12.1
+	 *
+	 * @param  array<string, mixed>  $attribute
+	 */
+	protected function hasLegacyValue( array $attribute ): bool
+	{
+		foreach ( $this->registry->legacyPrefixes() as $key ) {
+			if ( null !== ( $attribute[ $key ] ?? null ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -213,29 +264,15 @@ class ResponsiveValueResolver
 	}
 
 	/**
-	 * Returns the breakpoint keys to walk for a given active key, in
-	 * cascade order (largest defined ≤ active, then walking down to
-	 * `base`).
+	 * Returns the breakpoint keys to walk for a given active key, highest
+	 * precedence first, ending at `base`. Desktop-first keys cascade
+	 * downward (Mobile → Tablet → base); see
+	 * {@see BreakpointRegistry::cascade()} (#820).
 	 *
 	 * @return array<int, string>
 	 */
 	protected function cascadeKeys( string $activeBreakpoint ): array
 	{
-		$ordered = $this->registry->keysWithBase();
-
-		if ( BreakpointRegistry::BASE_KEY === $activeBreakpoint || ! $this->registry->has( $activeBreakpoint ) ) {
-			return [ BreakpointRegistry::BASE_KEY ];
-		}
-
-		$activeIndex = array_search( $activeBreakpoint, $ordered, true );
-
-		if ( false === $activeIndex ) {
-			return [ BreakpointRegistry::BASE_KEY ];
-		}
-
-		// Walk from active down to base.
-		$slice = array_slice( $ordered, 0, $activeIndex + 1 );
-
-		return array_reverse( $slice );
+		return $this->registry->cascade( $activeBreakpoint );
 	}
 }

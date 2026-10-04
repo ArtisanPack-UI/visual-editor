@@ -12,11 +12,12 @@
  *
  * #617 — labels now come from the same `BreakpointRegistry` the
  * viewport switcher renders, so the chip and switcher can't disagree
- * on what to call the active breakpoint. Consumers that don't have a
- * hydrated registry (dev/test paths, hosts still on the boot-time
- * defaults) fall through to a module-level fallback registry built
- * from `TAILWIND_V4_DEFAULTS`, so the chip still reads `Mobile` /
- * `Tablet` / `Desktop` for the ship keys instead of the raw slug.
+ * on what to call the active breakpoint. Without a `registry` prop the
+ * chip reads the registry the editor published via
+ * `setResponsiveRegistry()` (the package defaults before hydration).
+ *
+ * #820 — device overrides read "Editing at Mobile and down", matching
+ * the desktop-first `max-width` cascade.
  *
  * @package @artisanpack-ui/visual-editor
  * @since 1.0.0
@@ -25,17 +26,11 @@
 import { useSyncExternalStore } from 'react'
 
 import { getActiveBreakpoint, setActiveBreakpoint, subscribeActiveBreakpoint } from './active-breakpoint'
-import { BreakpointRegistry, TAILWIND_V4_DEFAULTS } from './registry'
+import { type BreakpointRegistry, getResponsiveRegistry } from './registry'
 import { BASE_KEY } from './types'
 
 import './inspector-scope-chip.css'
 
-// Fallback registry used when the caller doesn't hydrate one from the
-// PHP-side bootstrap payload. Ensures the chip reads a device-friendly
-// label (`Mobile`, `Tablet`, `Desktop`) rather than the raw slug for
-// the shipped keys, and stays consistent with the switcher's ship
-// defaults.
-const FALLBACK_REGISTRY = new BreakpointRegistry( TAILWIND_V4_DEFAULTS )
 
 export interface InspectorScopeChipProps {
 	/**
@@ -58,8 +53,11 @@ export function InspectorScopeChip( { registry }: InspectorScopeChipProps = {} )
 		return null
 	}
 
-	const activeRegistry = registry ?? FALLBACK_REGISTRY
+	const activeRegistry = registry ?? getResponsiveRegistry()
 	const label          = activeRegistry.label( active )
+	// Device overrides apply at that size and below (#820); a legacy
+	// mobile-first key, if one is ever active, still reads "and up".
+	const direction      = activeRegistry.isLegacy( active ) ? 'and up' : 'and down'
 
 	return (
 		<div
@@ -68,7 +66,7 @@ export function InspectorScopeChip( { registry }: InspectorScopeChipProps = {} )
 			aria-live="polite"
 		>
 			<span className="ap-visual-editor-inspector-scope-chip__label">
-				Editing at <strong>{ label }</strong> and up
+				Editing at <strong>{ label }</strong> { direction }
 				<span className="ap-visual-editor-inspector-scope-chip__key">
 					({ active })
 				</span>

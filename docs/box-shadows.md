@@ -33,7 +33,7 @@ Picking a preset short-circuits the custom fields — the shadow
 renders as `var(--wp--preset--shadow--{slug})`. Clicking the active
 chip clears it and reveals the custom controls again.
 
-To set a different shadow for hover (or focus, md+, etc.), switch
+To set a different shadow for hover (or focus, Tablet and below, etc.), switch
 the state or breakpoint chip in the inspector and re-pick. Writes
 land in `attributes.states['style.shadow']` /
 `attributes.responsive['style.shadow']` automatically — no per-
@@ -123,6 +123,13 @@ A state or breakpoint override is the same structured subtree under
 `attributes.responsive['style.shadow'][breakpointKey]`. Writes of
 `null` (rather than a subtree) clear the override and let the layer
 fall back to idle.
+
+Breakpoint overrides follow the desktop-first cascade (since 1.12.1):
+`breakpointKey` is `tablet` or `mobile`, each emitted as an
+`@media (max-width:…)` rule after the base rule, in registry order so
+the narrower override wins. Overrides saved before 1.12.1 under the
+legacy keys (`sm`, `md`, `lg`, `xl`, `2xl`) keep their original
+`@media (min-width:…)` rules.
 
 ## CSS emission
 

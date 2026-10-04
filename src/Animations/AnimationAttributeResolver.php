@@ -52,17 +52,13 @@ class AnimationAttributeResolver
 			return $value;
 		}
 
-		$order = $this->breakpoints->keysWithBase();
-
-		// Build the cascade from the requested breakpoint down to base.
-		$index = array_search( $breakpoint, $order, true );
-		if ( false === $index ) {
+		if ( ! $this->breakpoints->has( $breakpoint ) ) {
 			return $value[ BreakpointRegistry::BASE_KEY ] ?? null;
 		}
 
-		// Walk from $index → 0 inclusive.
-		for ( $i = $index; $i >= 0; $i-- ) {
-			$key = $order[ $i ];
+		// Walk the registry cascade from the requested breakpoint to
+		// base — downward for desktop-first device keys (#820).
+		foreach ( $this->breakpoints->cascade( $breakpoint ) as $position => $key ) {
 			if ( ! array_key_exists( $key, $value ) ) {
 				continue;
 			}
@@ -71,7 +67,7 @@ class AnimationAttributeResolver
 			// the animation. A null further down the cascade is treated
 			// as "not set at this breakpoint" and skipped.
 			if ( null === $value[ $key ] ) {
-				if ( $i === $index ) {
+				if ( 0 === $position ) {
 					return null;
 				}
 				continue;

@@ -17,6 +17,8 @@ use ArtisanPackUI\Ai\Agents\ArtisanPackAgent;
 use ArtisanPackUI\Ai\Contracts\AgentPrompter;
 use ArtisanPackUI\Ai\Credentials\Credentials;
 use ArtisanPackUI\Ai\Exceptions\FeatureError;
+use ArtisanPackUI\VisualEditor\Ai\Support\BlockPayloadLimiter;
+use ArtisanPackUI\VisualEditor\Support\BlockShape;
 use JsonException;
 
 /**
@@ -36,6 +38,11 @@ use JsonException;
  * Non-heading blocks are still forwarded — the model uses surrounding
  * paragraphs and lists to judge whether a heading is "ambiguous" — but
  * only heading blocks are ever cited in the issues array.
+ *
+ * Payloads are bounded by {@see BlockPayloadLimiter} (#828): the tree
+ * must stay under the configured block-count and depth limits, and
+ * only ids, names, heading levels and plain text reach the model.
+ * Oversized documents raise a `FeatureError` instead of being cut.
  *
  * ## Output schema
  *
@@ -57,6 +64,51 @@ use JsonException;
  */
 class HeadingHierarchyAgent extends ArtisanPackAgent
 {
+	/**
+	 * Block names treated as headings. `artisanpack/heading` is what the
+	 * editor registers since the I7 cutover (#415); the core and bare
+	 * names cover theme markup and simplified payloads (#825).
+	 *
+	 * @since 1.12.1
+	 *
+	 * @var array<int, string>
+	 */
+	protected const HEADING_NAMES = [
+		'heading',
+		'core/heading',
+		'artisanpack/heading',
+	];
+
+	/**
+	 * Attributes that carry the text the audit reads. Everything else
+	 * on a block (styles, media, editor state) is stripped before the
+	 * tree is serialized (#828).
+	 *
+	 * @since 1.12.1
+	 *
+	 * @var array<int, string>
+	 */
+	protected const TEXT_ATTRIBUTES = [
+		'content',
+		'text',
+		'value',
+		'citation',
+		'caption',
+		'title',
+		'label',
+	];
+
+	/**
+	 * Characters of text kept for each non-heading block. Headings keep
+	 * their full text; surrounding blocks only need enough to judge
+	 * whether a heading describes what follows it.
+	 *
+	 * @since 1.12.1
+	 *
+	 * @var int
+	 */
+	protected const CONTEXT_TEXT_LENGTH = 280;
+
 	/**
 	 * {@inheritDoc}
 	 */
@@ -182,6 +234,8 @@ PROMPT;
 			throw FeatureError::forFeature( $this->featureKey, '`blocks` must be an array.' );
 		}
 
+		BlockPayloadLimiter::assertTreeWithinLimits( $input['blocks'], $this->featureKey );
+
 		return [ 'blocks' => array_values( $input['blocks'] ) ];
 	}
 
@@ -193,9 +247,10 @@ PROMPT;
 	 * documents whose only headings live under a container block, which
 	 * is the exact case the feature is meant to catch.
 	 *
-	 * Uses a permissive check so callers passing normalized Gutenberg
-	 * payloads (`core/heading`) or simplified shapes (`{ type: 'heading' }`)
-	 * both work.
+	 * Uses a permissive check so the editor's `getBlocks()` tree
+	 * (`{ name: 'artisanpack/heading' }`), `parse_blocks()` output
+	 * (`{ blockName: 'core/heading' }`) and simplified shapes
+	 * (`{ type: 'heading' }`) all work (#825).
 	 *
 	 * @since 1.3.0
 	 *
@@ -209,8 +264,7 @@ PROMPT;
 			if ( ! is_array( $block ) ) {
 				continue;
 			}
-			$type = isset( $block['type'] ) ? (string) $block['type'] : ( isset( $block['blockName'] ) ? (string) $block['blockName'] : '' );
-			if ( 'heading' === $type || 'core/heading' === $type ) {
+			if ( in_array( BlockShape::readName( $block ), self::HEADING_NAMES, true ) ) {
 				return true;
 			}
 			if ( isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) && $this->containsHeading( $block['innerBlocks'] ) ) {
@@ -264,7 +318,7 @@ PROMPT;
 	protected function buildMessage( array $input ): array
 	{
 		try {
-			$serialized = json_encode( $input['blocks'], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+			$serialized = json_encode( $this->stripBlocks( $input['blocks'] ), JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
 		} catch ( JsonException $e ) {
 			throw FeatureError::forFeature(
 				$this->featureKey,
@@ -272,9 +326,121 @@ PROMPT;
 			);
 		}
 
+		BlockPayloadLimiter::assertSerializedWithinLimit( $serialized, $this->featureKey );
+
 		return [
 			[ 'type' => 'text', 'text' => sprintf( 'Document blocks: %s', $serialized ) ],
 		];
+	}
+
+	/**
+	 * Reduce the tree to what the audit needs: the block id, name,
+	 * heading level, plain text and nested blocks. Drops editor-only
+	 * keys (`originalContent`, `validationIssues`, `isValid`), styling
+	 * and media attributes, and parse_blocks markup (#828).
+	 *
+	 * @since 1.12.1
+	 *
+	 * @param  array<int, mixed>  $blocks  Normalized block list.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	protected function stripBlocks( array $blocks ): array
+	{
+		$stripped = [];
+
+		foreach ( $blocks as $block ) {
+			if ( is_array( $block ) ) {
+				$stripped[] = $this->stripBlock( $block );
+			}
+		}
+
+		return $stripped;
+	}
+
+	/**
+	 * Strip a single block. See {@see self::stripBlocks()}.
+	 *
+	 * @since 1.12.1
+	 *
+	 * @param  array<string, mixed>  $block  Block payload.
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function stripBlock( array $block ): array
+	{
+		$name      = BlockShape::readName( $block );
+		$isHeading = in_array( $name, self::HEADING_NAMES, true );
+		$stripped  = [];
+
+		foreach ( [ 'id', 'clientId' ] as $idKey ) {
+			if ( is_string( $block[ $idKey ] ?? null ) && '' !== $block[ $idKey ] ) {
+				$stripped[ $idKey ] = $block[ $idKey ];
+			}
+		}
+
+		if ( '' !== $name ) {
+			$stripped['name'] = $name;
+		}
+
+		[ , $attrs ] = BlockShape::readAttrs( $block );
+		$kept        = [];
+
+		if ( is_int( $attrs['level'] ?? null ) || ( is_string( $attrs['level'] ?? null ) && ctype_digit( $attrs['level'] ) ) ) {
+			$kept['level'] = (int) $attrs['level'];
+		}
+
+		foreach ( self::TEXT_ATTRIBUTES as $key ) {
+			if ( ! is_string( $attrs[ $key ] ?? null ) ) {
+				continue;
+			}
+			$text = $this->plainText( $attrs[ $key ], $isHeading );
+			if ( '' !== $text ) {
+				$kept[ $key ] = $text;
+			}
+		}
+
+		// parse_blocks() output keeps a heading's text in its markup,
+		// not its attributes.
+		if ( ! isset( $kept['content'] ) && is_string( $block['innerHTML'] ?? null ) ) {
+			$text = $this->plainText( $block['innerHTML'], $isHeading );
+			if ( '' !== $text ) {
+				$kept['content'] = $text;
+			}
+		}
+
+		if ( [] !== $kept ) {
+			$stripped['attributes'] = $kept;
+		}
+
+		if ( is_array( $block['innerBlocks'] ?? null ) && [] !== $block['innerBlocks'] ) {
+			$stripped['innerBlocks'] = $this->stripBlocks( $block['innerBlocks'] );
+		}
+
+		return $stripped;
+	}
+
+	/**
+	 * Convert rich-text markup to collapsed plain text. Non-heading
+	 * text is cut to {@see self::CONTEXT_TEXT_LENGTH} characters.
+	 *
+	 * @since 1.12.1
+	 *
+	 * @param  string  $html       Rich-text or block markup.
+	 * @param  bool    $fullLength Whether to keep the whole text.
+	 *
+	 * @return string
+	 */
+	protected function plainText( string $html, bool $fullLength ): string
+	{
+		$text = html_entity_decode( strip_tags( $html ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+		$text = trim( (string) preg_replace( '/\s+/u', ' ', $text ) );
+
+		if ( ! $fullLength && mb_strlen( $text ) > self::CONTEXT_TEXT_LENGTH ) {
+			$text = rtrim( mb_substr( $text, 0, self::CONTEXT_TEXT_LENGTH ) ) . '…';
+		}
+
+		return $text;
 	}
 
 	/**

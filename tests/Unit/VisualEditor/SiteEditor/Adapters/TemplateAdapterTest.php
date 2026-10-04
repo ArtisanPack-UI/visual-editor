@@ -184,6 +184,58 @@ describe( 'single-record envelope', function (): void {
 			->and( $out['content']['blocks'][0]['name'] )->toBe( 'artisanpack/template-parts-listing' );
 	} );
 
+	it( 'keeps synced-pattern references as `core/block` in both `raw` and `blocks` (#824)', function (): void {
+		$template = makeResolvedTemplate( [
+			'rawContent' => '<!-- wp:block {"ref":1} /-->',
+			'blocks'     => [
+				[
+					'name'        => 'core/group',
+					'attributes'  => [],
+					'innerBlocks' => [
+						[ 'name' => 'core/block', 'attributes' => [ 'ref' => 1 ], 'innerBlocks' => [] ],
+					],
+				],
+			],
+		] );
+
+		$out = ( new TemplateAdapter() )->toArray( $template );
+
+		expect( $out['content']['raw'] )->toBe( '<!-- wp:block {"ref":1} /-->' )
+			->and( $out['content']['blocks'][0]['name'] )->toBe( 'artisanpack/group' )
+			->and( $out['content']['blocks'][0]['innerBlocks'][0]['name'] )->toBe( 'core/block' )
+			->and( $out['content']['blocks'][0]['innerBlocks'][0]['attributes'] )->toBe( [ 'ref' => 1 ] );
+	} );
+
+	it( 'heals saved `artisanpack/block` references back to `core/block` (#824)', function (): void {
+		$template = makeResolvedTemplate( [
+			'rawContent' => '<!-- wp:artisanpack/block {"ref":2} /-->' . "\n"
+				. '<!-- wp:artisanpack/block-quote /-->',
+			'blocks'     => [
+				[ 'name' => 'artisanpack/block', 'attributes' => [ 'ref' => 2 ], 'innerBlocks' => [] ],
+				[ 'name' => 'artisanpack/block-quote', 'attributes' => [], 'innerBlocks' => [] ],
+			],
+		] );
+
+		$out = ( new TemplateAdapter() )->toArray( $template );
+
+		expect( $out['content']['raw'] )->toBe( '<!-- wp:block {"ref":2} /-->' . "\n" . '<!-- wp:artisanpack/block-quote /-->' )
+			->and( $out['content']['blocks'][0]['name'] )->toBe( 'core/block' )
+			->and( $out['content']['blocks'][1]['name'] )->toBe( 'artisanpack/block-quote' );
+	} );
+
+	it( 'parses a theme `wp:block` reference to `core/block` (#824)', function (): void {
+		$template = makeResolvedTemplate( [
+			'rawContent' => '<!-- wp:group --><div class="wp-block-group"><!-- wp:block {"ref":1} /--></div><!-- /wp:group -->',
+			'blocks'     => [],
+		] );
+
+		$out = ( new TemplateAdapter() )->toArray( $template );
+
+		expect( $out['content']['blocks'][0]['name'] )->toBe( 'artisanpack/group' )
+			->and( $out['content']['blocks'][0]['innerBlocks'][0]['name'] )->toBe( 'core/block' )
+			->and( $out['content']['blocks'][0]['innerBlocks'][0]['attributes'] )->toBe( [ 'ref' => 1 ] );
+	} )->skip( fn () => ! templatePartParserAvailable(), 'requires cms-framework 2.5+ (PHP 8.3+)' );
+
 	it( 'prefers the pre-parsed `blocks` array over re-parsing `raw` when both are populated', function (): void {
 		$template = makeResolvedTemplate( [
 			'rawContent' => '<!-- wp:paragraph -->Raw<!-- /wp:paragraph -->',

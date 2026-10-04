@@ -140,10 +140,10 @@ describe('layout-supporting wrappers emit the compound class', () => {
 describe('LAYOUT_BASELINE_CSS', () => {
     it('constrains unaligned children of a constrained group', () => {
         expect(LAYOUT_BASELINE_CSS).toContain(
-            '.wp-block-group.wp-block-group-is-layout-constrained > :where(:not(.alignwide):not(.alignfull):not(.alignleft):not(.alignright)) { max-width: var(--wp--style--global--content-size);'
+            '.wp-block-group.wp-block-group-is-layout-constrained > :where(:not(.alignwide):not(.alignfull):not(.alignleft):not(.alignright)) { max-width: var(--wp--style--global--content-size, 720px);'
         );
         expect(LAYOUT_BASELINE_CSS).toContain(
-            '.wp-block-group.wp-block-group-is-layout-constrained > .alignwide { max-width: var(--wp--style--global--wide-size);'
+            '.wp-block-group.wp-block-group-is-layout-constrained > .alignwide { max-width: var(--wp--style--global--wide-size, 1080px);'
         );
         expect(LAYOUT_BASELINE_CSS).toContain(
             '.wp-block-group.wp-block-group-is-layout-constrained > .alignfull { max-width: none; }'

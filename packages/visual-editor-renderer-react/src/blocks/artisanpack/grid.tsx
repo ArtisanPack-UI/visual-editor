@@ -16,7 +16,9 @@ import { attrInt, attrRecord, attrString, classList } from '../../support/attrib
 import { flexClassNames } from '../../support/flex-serializer';
 import type { BlockRendererProps } from '../../types';
 
-const BREAKPOINTS: ReadonlyArray<string> = ['sm', 'md', 'lg', 'xl', '2xl'];
+// Legacy mobile-first keys, then the desktop-first device keys (#820) in
+// emission order, matching grid.css.
+const BREAKPOINTS: ReadonlyArray<string> = ['sm', 'md', 'lg', 'xl', '2xl', 'tablet', 'mobile'];
 
 type GridItemInnerLayout = 'normal' | 'equal' | 'center' | 'bottom' | 'last-bottom';
 

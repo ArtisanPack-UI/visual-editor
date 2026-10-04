@@ -323,3 +323,93 @@
     .ap-grid-item.ap-grid-item-span-11-2xl-row { grid-row: span 11; }
     .ap-grid-item.ap-grid-item-span-12-2xl-row { grid-row: span 12; }
 }
+
+/*
+ * Desktop-first device overrides (#820). These come after the legacy
+ * mobile-first blocks above so a Tablet / Mobile value wins at its
+ * width; Mobile comes last so it beats Tablet on phones.
+ */
+
+/* === tablet: 1023px and below — desktop-first override (#820) === */
+@media (max-width: 1023px) {
+    .ap-grid.ap-grid-has-1-tablet-columns { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-2-tablet-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-3-tablet-columns { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-4-tablet-columns { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-5-tablet-columns { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-6-tablet-columns { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-7-tablet-columns { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-8-tablet-columns { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-9-tablet-columns { grid-template-columns: repeat(9, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-10-tablet-columns { grid-template-columns: repeat(10, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-11-tablet-columns { grid-template-columns: repeat(11, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-12-tablet-columns { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+
+    .ap-grid-item.ap-grid-item-span-1-tablet-columns { grid-column: span 1; }
+    .ap-grid-item.ap-grid-item-span-2-tablet-columns { grid-column: span 2; }
+    .ap-grid-item.ap-grid-item-span-3-tablet-columns { grid-column: span 3; }
+    .ap-grid-item.ap-grid-item-span-4-tablet-columns { grid-column: span 4; }
+    .ap-grid-item.ap-grid-item-span-5-tablet-columns { grid-column: span 5; }
+    .ap-grid-item.ap-grid-item-span-6-tablet-columns { grid-column: span 6; }
+    .ap-grid-item.ap-grid-item-span-7-tablet-columns { grid-column: span 7; }
+    .ap-grid-item.ap-grid-item-span-8-tablet-columns { grid-column: span 8; }
+    .ap-grid-item.ap-grid-item-span-9-tablet-columns { grid-column: span 9; }
+    .ap-grid-item.ap-grid-item-span-10-tablet-columns { grid-column: span 10; }
+    .ap-grid-item.ap-grid-item-span-11-tablet-columns { grid-column: span 11; }
+    .ap-grid-item.ap-grid-item-span-12-tablet-columns { grid-column: span 12; }
+
+    .ap-grid-item.ap-grid-item-span-1-tablet-row { grid-row: span 1; }
+    .ap-grid-item.ap-grid-item-span-2-tablet-row { grid-row: span 2; }
+    .ap-grid-item.ap-grid-item-span-3-tablet-row { grid-row: span 3; }
+    .ap-grid-item.ap-grid-item-span-4-tablet-row { grid-row: span 4; }
+    .ap-grid-item.ap-grid-item-span-5-tablet-row { grid-row: span 5; }
+    .ap-grid-item.ap-grid-item-span-6-tablet-row { grid-row: span 6; }
+    .ap-grid-item.ap-grid-item-span-7-tablet-row { grid-row: span 7; }
+    .ap-grid-item.ap-grid-item-span-8-tablet-row { grid-row: span 8; }
+    .ap-grid-item.ap-grid-item-span-9-tablet-row { grid-row: span 9; }
+    .ap-grid-item.ap-grid-item-span-10-tablet-row { grid-row: span 10; }
+    .ap-grid-item.ap-grid-item-span-11-tablet-row { grid-row: span 11; }
+    .ap-grid-item.ap-grid-item-span-12-tablet-row { grid-row: span 12; }
+}
+
+/* === mobile: 767px and below — desktop-first override (#820) === */
+@media (max-width: 767px) {
+    .ap-grid.ap-grid-has-1-mobile-columns { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-2-mobile-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-3-mobile-columns { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-4-mobile-columns { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-5-mobile-columns { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-6-mobile-columns { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-7-mobile-columns { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-8-mobile-columns { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-9-mobile-columns { grid-template-columns: repeat(9, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-10-mobile-columns { grid-template-columns: repeat(10, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-11-mobile-columns { grid-template-columns: repeat(11, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-12-mobile-columns { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+
+    .ap-grid-item.ap-grid-item-span-1-mobile-columns { grid-column: span 1; }
+    .ap-grid-item.ap-grid-item-span-2-mobile-columns { grid-column: span 2; }
+    .ap-grid-item.ap-grid-item-span-3-mobile-columns { grid-column: span 3; }
+    .ap-grid-item.ap-grid-item-span-4-mobile-columns { grid-column: span 4; }
+    .ap-grid-item.ap-grid-item-span-5-mobile-columns { grid-column: span 5; }
+    .ap-grid-item.ap-grid-item-span-6-mobile-columns { grid-column: span 6; }
+    .ap-grid-item.ap-grid-item-span-7-mobile-columns { grid-column: span 7; }
+    .ap-grid-item.ap-grid-item-span-8-mobile-columns { grid-column: span 8; }
+    .ap-grid-item.ap-grid-item-span-9-mobile-columns { grid-column: span 9; }
+    .ap-grid-item.ap-grid-item-span-10-mobile-columns { grid-column: span 10; }
+    .ap-grid-item.ap-grid-item-span-11-mobile-columns { grid-column: span 11; }
+    .ap-grid-item.ap-grid-item-span-12-mobile-columns { grid-column: span 12; }
+
+    .ap-grid-item.ap-grid-item-span-1-mobile-row { grid-row: span 1; }
+    .ap-grid-item.ap-grid-item-span-2-mobile-row { grid-row: span 2; }
+    .ap-grid-item.ap-grid-item-span-3-mobile-row { grid-row: span 3; }
+    .ap-grid-item.ap-grid-item-span-4-mobile-row { grid-row: span 4; }
+    .ap-grid-item.ap-grid-item-span-5-mobile-row { grid-row: span 5; }
+    .ap-grid-item.ap-grid-item-span-6-mobile-row { grid-row: span 6; }
+    .ap-grid-item.ap-grid-item-span-7-mobile-row { grid-row: span 7; }
+    .ap-grid-item.ap-grid-item-span-8-mobile-row { grid-row: span 8; }
+    .ap-grid-item.ap-grid-item-span-9-mobile-row { grid-row: span 9; }
+    .ap-grid-item.ap-grid-item-span-10-mobile-row { grid-row: span 10; }
+    .ap-grid-item.ap-grid-item-span-11-mobile-row { grid-row: span 11; }
+    .ap-grid-item.ap-grid-item-span-12-mobile-row { grid-row: span 12; }
+}

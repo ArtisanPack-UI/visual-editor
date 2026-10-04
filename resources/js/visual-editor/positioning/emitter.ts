@@ -24,7 +24,6 @@
  */
 
 import type { BreakpointRegistry } from '../responsive/registry'
-import { BASE_KEY } from '../responsive/types'
 import { mergeLayers } from './resolver'
 import type {
 	OffsetValue,
@@ -114,22 +113,13 @@ export function emitPositionCss(
 		rules.push( `${ trimmedScope }{${ baseDecls }}` )
 	}
 
-	// Emit breakpoints in ascending min-width order so the cascade is
-	// natural — a later, larger breakpoint wins over an earlier one at
-	// the same specificity when both match.
-	const ordered = breakpoints
-		.all()
-		.slice()
-		.sort( ( a, b ) => a.minWidthPx - b.minWidthPx )
-
-	for ( const bp of ordered ) {
-		const key = bp.key
-		if ( BASE_KEY === key ) {
-			continue
-		}
-
+	// Registry emission order: legacy min-width rules ascending, then
+	// desktop-first max-width rules largest to smallest, so the narrower
+	// override wins at the same specificity (#820).
+	for ( const key of breakpoints.prefixes() ) {
 		const layer = mergedBreakpointLayers[ key ]
-		if ( ! layer ) {
+		const query = breakpoints.mediaQuery( key )
+		if ( ! layer || null === query ) {
 			continue
 		}
 
@@ -138,9 +128,7 @@ export function emitPositionCss(
 			continue
 		}
 
-		rules.push(
-			`@media (min-width:${ bp.minWidthPx }px){${ trimmedScope }{${ decls }}}`,
-		)
+		rules.push( `@media ${ query }{${ trimmedScope }{${ decls }}}` )
 	}
 
 	return rules.join( '' )
@@ -148,8 +136,9 @@ export function emitPositionCss(
 
 /**
  * Convenience: given a resolved payload, produce the merged
- * per-breakpoint layer map the emitter consumes. Walks each defined
- * breakpoint override and folds it on top of every smaller layer.
+ * per-breakpoint layer map the emitter consumes. Folds each defined
+ * override on top of the layers it inherits from: smaller legacy keys
+ * for a legacy key, larger devices for a device key (#820).
  * Kept separate from the emitter so the inspector can reuse it when
  * previewing a specific breakpoint.
  */
@@ -159,17 +148,19 @@ export function mergedBreakpointLayers(
 ): Record<string, ResolvedPositionLayer> {
 	const out: Record<string, ResolvedPositionLayer> = {}
 
-	const ordered = breakpoints.keysWithBase()
-	let running: ResolvedPositionLayer | null = payload.base
+	// Legacy keys layer upward from base; desktop-first device keys
+	// layer downward from base (#820).
+	for ( const family of [ breakpoints.legacyPrefixes(), breakpoints.devicePrefixes() ] ) {
+		let running: ResolvedPositionLayer | null = payload.base
 
-	for ( let i = 1; i < ordered.length; i++ ) {
-		const key     = ordered[ i ]
-		const overlay = payload.breakpoints[ key ]
+		for ( const key of family ) {
+			const overlay = payload.breakpoints[ key ]
 
-		if ( overlay ) {
-			running = mergeLayers( running, overlay )
-			if ( null !== running ) {
-				out[ key ] = running
+			if ( overlay ) {
+				running = mergeLayers( running, overlay )
+				if ( null !== running ) {
+					out[ key ] = running
+				}
 			}
 		}
 	}

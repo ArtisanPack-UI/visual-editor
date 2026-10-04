@@ -298,10 +298,12 @@ export function emitBoxShadowCss(
 	}
 
 	// --- Per-breakpoint layers ---
-	for ( const breakpointKey of Object.keys( bpMap ) ) {
-		const minWidth = breakpoints.get( breakpointKey )
+	// Registry emission order, not storage order, so the narrower
+	// desktop-first override is emitted last and wins (#820).
+	for ( const breakpointKey of breakpoints.prefixes() ) {
+		const query = breakpoints.mediaQuery( breakpointKey )
 
-		if ( null === minWidth ) {
+		if ( ! ( breakpointKey in bpMap ) || null === query ) {
 			continue
 		}
 
@@ -312,7 +314,7 @@ export function emitBoxShadowCss(
 			continue
 		}
 
-		rules.push( `@media (min-width:${ minWidth }px){${ rule }}` )
+		rules.push( `@media ${ query }{${ rule }}` )
 	}
 
 	return rules.join( '' )

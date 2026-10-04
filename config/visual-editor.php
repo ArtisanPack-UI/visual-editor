@@ -522,61 +522,49 @@ return [
 
 	/*
 	|--------------------------------------------------------------------------
-	| Breakpoints (#487 · #617)
+	| Breakpoints (#487 · #617 · #820)
 	|--------------------------------------------------------------------------
 	|
-	| Named breakpoints the editor's viewport switcher and the responsive
-	| value resolver use. Resolved in priority order:
+	| Responsive controls are desktop-first. "All sizes" (`base`) is the
+	| desktop design; each device breakpoint is an override that applies
+	| at its `maxWidthPx` and below, and inherits from the next larger
+	| device. The defaults are:
 	|
-	|   1. Active theme's `theme.json` → `settings.custom.artisanpack.breakpoints`
-	|   2. This config array (host-app overrides)
-	|   3. `BreakpointRegistry::DEFAULTS` (Tailwind v4 mins + Mobile/Tablet/Desktop labels)
+	|   'tablet' => [ 'maxWidthPx' => 1023, 'previewWidthPx' => 768, 'label' => 'Tablet' ]
+	|   'mobile' => [ 'maxWidthPx' => 767,  'previewWidthPx' => 375, 'label' => 'Mobile' ]
 	|
-	| Merging is by key. Two forms are accepted:
+	| `previewWidthPx` is the canvas width the viewport switcher previews
+	| at. It must not exceed `maxWidthPx`, so the editor preview always
+	| matches the front end. A scalar value (`'mobile' => '600px'`)
+	| changes the existing entry's width; an inherited preview width that
+	| no longer fits is clamped to it.
 	|
-	|   * Scalar (pre-#617) — a single pixel value or `Npx` string
-	|     that sets `minWidthPx`. `previewWidthPx` defaults to the same
-	|     value; `label` defaults to the key. Existing configs work
-	|     unchanged.
+	| Per-block CSS (spacing, widths, column counts, position, shadows,
+	| gradients, animations) and the Columns / Media & Text / float
+	| stacking follow these values. The static class-based layout CSS
+	| (flex utilities, grid and post-template spans, masonry) and the
+	| React / Vue renderers ship rules for the default Tablet (1023px)
+	| and Mobile (767px) widths only, so changing those widths or adding
+	| devices leaves those layouts on the defaults.
 	|
-	|         'sm' => '640px'
-	|         'md' => 768
-	|
-	|   * Object (#617) — `[ 'minWidthPx' => ..., 'previewWidthPx' => ...,
-	|     'label' => ... ]`. `minWidthPx` is required; `previewWidthPx`
-	|     falls back to `minWidthPx`; `label` falls back to the key.
-	|     Partial objects merge into the default at the same key, so
-	|     `'lg' => [ 'previewWidthPx' => 1440 ]` keeps the default
-	|     `minWidthPx` and `label`.
-	|
-	|         'sm' => [
-	|             'minWidthPx'     => 640,
-	|             'previewWidthPx' => 390,  // canvas iframe width (iPhone-sized preview)
-	|             'label'          => 'iPhone',
-	|         ],
-	|
-	| The `minWidthPx` field feeds Tailwind media-query prefixes and
-	| the mobile-first cascade — no change from #487. The
-	| `previewWidthPx` field is the canvas iframe width the switcher
-	| previews the layout at; it is intentionally decoupled so the
-	| `sm` cascade (activated at 640px) previews on a phone-sized
-	| 375px viewport rather than a physically impossible 640px phone.
+	| Legacy mobile-first keys (`sm` 640, `md` 768, `lg` 1024, `xl` 1280,
+	| `2xl` 1536) are still registered with `minWidthPx`, so content saved
+	| before 1.12.1 renders exactly as before. They are no longer offered
+	| in the viewport switcher, and screen-size visibility still uses them.
+	| An entry declares either `maxWidthPx` or `minWidthPx`, never both.
 	|
 	| Validation runs at registry-build time and throws on bad input
-	| (unknown fields, non-positive widths, empty labels, duplicate
-	| min-widths) — see `BreakpointRegistry::validate()`.
+	| (non-positive widths, empty labels, duplicate widths, a preview
+	| wider than its max-width) — see `BreakpointRegistry::validate()`.
 	|
-	| The implicit `base` slot (no min-width, applies everywhere) is
-	| reserved and cannot be redefined here.
+	| The implicit `base` slot is reserved and cannot be redefined here.
+	| Set a key to `null` to remove it.
 	|
 	*/
 
 	'breakpoints' => [
-		// 'sm'  => [ 'minWidthPx' => 640,  'previewWidthPx' => 375,  'label' => 'Mobile' ],
-		// 'md'  => [ 'minWidthPx' => 768,  'previewWidthPx' => 768,  'label' => 'Tablet' ],
-		// 'lg'  => [ 'minWidthPx' => 1024, 'previewWidthPx' => 1440, 'label' => 'Desktop' ],
-		// 'xl'  => '1280px',
-		// '2xl' => '1536px',
+		// 'tablet' => [ 'label' => 'iPad' ],
+		// 'mobile' => [ 'maxWidthPx' => 767, 'previewWidthPx' => 390, 'label' => 'Phone' ],
 	],
 
 	/*
@@ -721,6 +709,79 @@ return [
 		// array<string, array> keyed by theme-declared menu location.
 		// Each entry: { location, name, items: [...] }
 		'navigation' => [],
+	],
+
+	/*
+	|--------------------------------------------------------------------------
+	| Default front-end styles (#821)
+	|--------------------------------------------------------------------------
+	|
+	| `<x-ve-blocks-styles>` can emit a small baseline stylesheet (body
+	| typography, heading scale, root padding for constrained post
+	| content) so a site with no theme renders close to the editor
+	| canvas. Every rule has zero specificity, so host CSS always wins.
+	|
+	|   'auto'  Emit only when no theme is active (default).
+	|   true    Always emit.
+	|   false   Never emit.
+	|
+	| The preset and layout token defaults (font sizes, palette, content
+	| and wide size, block gap) are always declared; a theme overrides
+	| them. This flag only controls the baseline stylesheet.
+	|
+	*/
+
+	'default_styles' => 'auto',
+
+	/*
+	|--------------------------------------------------------------------------
+	| AI features: access and payload limits (#828)
+	|--------------------------------------------------------------------------
+	|
+	| Access and bounds for the AI features. Every call spends the site's
+	| AI credentials, so the `/ai/*` endpoints and the `AiTools` Livewire
+	| listeners require the `visual-editor.use-ai` ability (denied by
+	| default) and the endpoints are throttled.
+	|
+	| `payload_limits` bound what is sent to the model. A request over any
+	| limit is rejected instead of being truncated.
+	|
+	|   - max_blocks      Total blocks in a tree, nested ones included
+	|                     (heading check, next-block and layout suggestions).
+	|   - max_depth       Deepest `innerBlocks` nesting (top level is 1).
+	|   - max_bytes       Size of the block JSON sent to the model. The
+	|                     heading check strips editor-only keys and
+	|                     non-text attributes first.
+	|   - max_text_chars  Length of the text sent for a content rewrite.
+	|
+	*/
+
+	'ai' => [
+		'payload_limits' => [
+			'max_blocks'     => 1000,
+			'max_depth'      => 12,
+			'max_bytes'      => 131072,
+			'max_text_chars' => 20000,
+		],
+
+		// Capability the default `visual-editor.use-ai` gate requires
+		// (checked through the user's hasCapability() / hasPermissionTo()
+		// / hasPermission()). Users without it are denied. Redefine the
+		// gate to use your own rule; set to '' to deny everyone.
+		'capability' => 'use_ai_features',
+
+		// Per-user rate limit for the `/ai/*` endpoints, as Laravel's
+		// `throttle` middleware arguments ("max attempts,minutes").
+		'throttle' => '20,1',
+
+		'alt_text' => [
+			// Extra hosts image URLs may point at (e.g. a CDN or the
+			// media disk's domain). The `app.url` host is always allowed.
+			// Server file paths are never accepted. Some AI gateways fetch
+			// the URL from this server and follow redirects, so don't list
+			// a host that has an open redirect.
+			'allowed_hosts' => [],
+		],
 	],
 
 	/*

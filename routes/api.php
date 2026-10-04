@@ -480,18 +480,29 @@ Route::get( 'business-info', [ BusinessInfoController::class, 'show' ] )
 // being present because it is a `suggest` (not `require`) dependency —
 // without this guard, `composer install --no-dev` in production would
 // 500 on every /ai/* endpoint the moment the controller tries to
-// resolve `FeatureRegistry` from the container.
-if ( class_exists( \ArtisanPackUI\Ai\Contracts\FeatureRegistry::class ) ) {
-	Route::get( 'ai/features', [ AiController::class, 'features' ] )
-		->name( 'visual-editor.api.ai.features' );
-	Route::post( 'ai/suggest-next-block', [ AiController::class, 'suggestNextBlock' ] )
-		->name( 'visual-editor.api.ai.suggest-next-block' );
-	Route::post( 'ai/suggest-layout', [ AiController::class, 'suggestLayout' ] )
-		->name( 'visual-editor.api.ai.suggest-layout' );
-	Route::post( 'ai/alt-text', [ AiController::class, 'altText' ] )
-		->name( 'visual-editor.api.ai.alt-text' );
-	Route::post( 'ai/rewrite', [ AiController::class, 'rewrite' ] )
-		->name( 'visual-editor.api.ai.rewrite' );
-	Route::post( 'ai/heading-hierarchy', [ AiController::class, 'headingHierarchy' ] )
-		->name( 'visual-editor.api.ai.heading-hierarchy' );
+// resolve `FeatureRegistry` from the container. `FeatureRegistry` is an
+// interface, so this must be `interface_exists()` — `class_exists()`
+// returns false for interfaces and left every `/ai/*` route
+// unregistered.
+if ( interface_exists( \ArtisanPackUI\Ai\Contracts\FeatureRegistry::class ) ) {
+	// Every call spends the site's AI credentials, so the group is gated
+	// on the `visual-editor.use-ai` ability (deny by default) and
+	// throttled per user (#828 hardening).
+	Route::middleware( [
+		'can:' . \ArtisanPackUI\VisualEditor\Ai\Support\AiAccess::ABILITY,
+		'throttle:' . (string) config( 'artisanpack.visual-editor.ai.throttle', '20,1' ),
+	] )->group( function (): void {
+		Route::get( 'ai/features', [ AiController::class, 'features' ] )
+			->name( 'visual-editor.api.ai.features' );
+		Route::post( 'ai/suggest-next-block', [ AiController::class, 'suggestNextBlock' ] )
+			->name( 'visual-editor.api.ai.suggest-next-block' );
+		Route::post( 'ai/suggest-layout', [ AiController::class, 'suggestLayout' ] )
+			->name( 'visual-editor.api.ai.suggest-layout' );
+		Route::post( 'ai/alt-text', [ AiController::class, 'altText' ] )
+			->name( 'visual-editor.api.ai.alt-text' );
+		Route::post( 'ai/rewrite', [ AiController::class, 'rewrite' ] )
+			->name( 'visual-editor.api.ai.rewrite' );
+		Route::post( 'ai/heading-hierarchy', [ AiController::class, 'headingHierarchy' ] )
+			->name( 'visual-editor.api.ai.heading-hierarchy' );
+	} );
 }

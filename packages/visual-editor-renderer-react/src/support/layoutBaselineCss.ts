@@ -50,6 +50,56 @@ export const SPACING_PRESET_DEFAULTS_CSS =
     DEFAULT_SPACING_SIZES.map(({ slug, size }) => `--wp--preset--spacing--${slug}: ${size};`).join(' ') +
     ' }';
 
+/**
+ * Package default font sizes and palette. Mirror
+ * `PresetRegistry::DEFAULT_FONT_SIZES` / `DEFAULT_PALETTE` (#821).
+ *
+ * @since 1.12.1
+ */
+export const DEFAULT_FONT_SIZES: ReadonlyArray<{ slug: string; size: string }> = [
+    { slug: 'small', size: '13px' },
+    { slug: 'regular', size: '16px' },
+    { slug: 'medium', size: '20px' },
+    { slug: 'large', size: '28px' },
+    { slug: 'huge', size: '36px' },
+];
+
+export const DEFAULT_PALETTE: ReadonlyArray<{ slug: string; color: string }> = [
+    { slug: 'base-content', color: '#1f2937' },
+    { slug: 'base-muted', color: '#6b7280' },
+    { slug: 'primary', color: '#2563eb' },
+    { slug: 'secondary', color: '#64748b' },
+    { slug: 'accent', color: '#9333ea' },
+    { slug: 'success', color: '#16a34a' },
+    { slug: 'warning', color: '#d97706' },
+    { slug: 'error', color: '#dc2626' },
+];
+
+/**
+ * Zero-specificity layout tokens plus default font-size / palette presets
+ * and their `.has-{slug}-*` utility classes (#821). Mirrors
+ * `PresetRegistry::layoutDefaultsCss()` / `presetDefaultsCss()`.
+ *
+ * @since 1.12.1
+ */
+export const DEFAULT_TOKENS_CSS =
+    ':where(:root) { --wp--style--global--content-size: 720px; --wp--style--global--wide-size: 1080px; --wp--style--block-gap: 24px; ' +
+    '--wp--style--root--padding-top: 1.5rem; --wp--style--root--padding-right: 1.5rem; --wp--style--root--padding-bottom: 1.5rem; --wp--style--root--padding-left: 1.5rem; ' +
+    DEFAULT_FONT_SIZES.map(({ slug, size }) => `--wp--preset--font-size--${slug}: ${size};`).join(' ') +
+    ' ' +
+    DEFAULT_PALETTE.map(({ slug, color }) => `--wp--preset--color--${slug}: ${color};`).join(' ') +
+    ' }\n' +
+    DEFAULT_FONT_SIZES.map(
+        ({ slug }) => `.has-${slug}-font-size { font-size: var(--wp--preset--font-size--${slug}) !important; }`
+    ).join('\n') +
+    '\n' +
+    DEFAULT_PALETTE.map(
+        ({ slug }) =>
+            `.has-${slug}-color { color: var(--wp--preset--color--${slug}) !important; }\n` +
+            `.has-${slug}-background-color { background-color: var(--wp--preset--color--${slug}) !important; }\n` +
+            `.has-${slug}-border-color { border-color: var(--wp--preset--color--${slug}) !important; }`
+    ).join('\n');
+
 export const LAYOUT_BASELINE_CSS =
     ':where(.is-layout-flow) > :first-child { margin-block-start: 0; }\n' +
     ':where(.is-layout-flow) > :last-child { margin-block-end: 0; }\n' +
@@ -69,22 +119,40 @@ export const LAYOUT_BASELINE_CSS =
     // only wrappers this renderer emits are constrained; host markup that
     // hand-writes `is-layout-constrained` keeps its own behavior.
     //
-    // The Blade side gates these on `theme.json` declaring `contentSize`
-    // / `wideSize`; this string is static, so the gating falls out of
-    // `var()` semantics instead — an undefined custom property makes the
-    // declaration invalid at computed-value time, which resolves
-    // `max-width` to its initial `none`.
-    //
-    // The auto margins are NOT gated the same way: with no `contentSize`
-    // configured they still apply, which centers any child that sets its
-    // own width instead of leaving it start-aligned. That matches what
-    // WordPress core emits for a constrained layout, and a constrained
-    // group on a host that declares no content size is a misconfiguration
-    // either way — but it is the one place this baseline goes further
-    // than the Blade renderer's gated output.
-    '.wp-block-group.wp-block-group-is-layout-constrained > :where(:not(.alignwide):not(.alignfull):not(.alignleft):not(.alignright)) { max-width: var(--wp--style--global--content-size); margin-left: auto; margin-right: auto; }\n' +
-    '.wp-block-group.wp-block-group-is-layout-constrained > .alignwide { max-width: var(--wp--style--global--wide-size); margin-left: auto; margin-right: auto; }\n' +
+    // #821 — the sizes fall back to the package defaults (720px / 1080px,
+    // the editor's layout sizes) when no theme declares them, matching
+    // the Blade renderer's `compileDefaults()` output.
+    '.wp-block-group.wp-block-group-is-layout-constrained > :where(:not(.alignwide):not(.alignfull):not(.alignleft):not(.alignright)) { max-width: var(--wp--style--global--content-size, 720px); margin-left: auto; margin-right: auto; }\n' +
+    '.wp-block-group.wp-block-group-is-layout-constrained > .alignwide { max-width: var(--wp--style--global--wide-size, 1080px); margin-left: auto; margin-right: auto; }\n' +
     '.wp-block-group.wp-block-group-is-layout-constrained > .alignfull { max-width: none; }\n' +
+    // #819 — floated alignments line up with the content column and
+    // stack at the Mobile breakpoint (767px, #820). Mirrors `floatRules()` in the Blade
+    // renderer's `ThemeJsonTokensCompiler`.
+    '.wp-block-group.wp-block-group-is-layout-constrained > .alignleft { float: left; margin-inline-start: max(0px, calc((100% - var(--wp--style--global--content-size, 720px)) / 2)); margin-inline-end: 2em; }\n' +
+    '.wp-block-group.wp-block-group-is-layout-constrained > .alignright { float: right; margin-inline-start: 2em; margin-inline-end: max(0px, calc((100% - var(--wp--style--global--content-size, 720px)) / 2)); }\n' +
+    '@media (max-width: 767px) { .wp-block-group.wp-block-group-is-layout-constrained > .alignleft, .wp-block-group.wp-block-group-is-layout-constrained > .alignright { float: none; margin-inline: auto; } }\n' +
+    // #821 — gallery gap default, matching the Blade layout baseline.
+    ':where(.wp-block-gallery.has-nested-images) { gap: var(--wp--style--unstable-gallery-gap, 16px); }\n' +
+    // #819 — floats under any flow / constrained layout, matching
+    // WordPress's layout definitions and the Blade layout baseline. The
+    // `size-full` reset undoes Tailwind's `size-full` utility (width /
+    // height 100%), which collides with the image block's size class and
+    // kept aligned images from floating; unlayered CSS beats Tailwind's
+    // `@layer utilities` even at zero specificity.
+    ':where(.wp-block-image.size-full) { width: auto; height: auto; }\n' +
+    ':where(.is-layout-constrained, .is-layout-flow) > .alignleft { float: left; margin-inline-start: 0; margin-inline-end: 2em; }\n' +
+    ':where(.is-layout-constrained, .is-layout-flow) > .alignright { float: right; margin-inline-start: 2em; margin-inline-end: 0; }\n' +
+    // A float takes the same top gap as the sibling beside it so the
+    // two start on the same line; an opening float drops it on both.
+    ':where(.is-layout-constrained, .is-layout-flow) > :is(.alignleft, .alignright) { margin-block-start: var(--wp--style--block-gap, 24px); }\n' +
+    ':where(.is-layout-constrained, .is-layout-flow) > :is(.alignleft, .alignright):first-child { margin-block-start: 0; }\n' +
+    '@media (min-width: 768px) { :where(.is-layout-constrained, .is-layout-flow) > :is(.alignleft, .alignright):first-child + * { margin-block-start: 0; } }\n' +
+    '@media (max-width: 767px) { :where(.is-layout-constrained, .is-layout-flow) > :is(.alignleft, .alignright) { float: none; margin-inline: auto; } }\n' +
+    // #821 — layout tokens and the font-size / palette presets the
+    // editor's pickers offer, at zero specificity so `<GlobalStyles>`
+    // theme values win.
+    DEFAULT_TOKENS_CSS +
+    '\n' +
     // #814 — the package-default spacing presets the editor's pickers
     // offer when a theme ships no `spacingSizes`, so a saved
     // `var:preset|spacing|40` resolves on React / Vue hosts too (Blade

@@ -1,35 +1,34 @@
 <?php
 
 /**
- * Breakpoint registry — responsive design tools (#487).
+ * Breakpoint registry — responsive design tools (#487, #820).
  *
- * Resolves the editor's active set of breakpoints by merging the host
- * theme's declarations into the application's `config()` overrides and
- * finally the package's Tailwind v4 defaults. Highest layer wins on key
- * collision:
+ * Resolves the editor's active set of breakpoints by merging the
+ * application's `config()` overrides (and an optional theme layer)
+ * over the package defaults. Highest layer wins on key collision:
  *
- *   1. theme.json → `settings.custom.artisanpack.breakpoints`
+ *   1. theme overrides   → `settings.custom.artisanpack.breakpoints`
  *   2. application config → `artisanpack.visual-editor.breakpoints`
- *   3. package defaults  → Tailwind v4 min-width tokens
+ *   3. package defaults
  *
- * Breakpoints are merged by key via `array_replace()` —  a theme that
- * ships a new `3xl` key adds it; omitting a key keeps the lower
- * layer's value (defaults win unless explicitly overridden). To
- * REMOVE a key, set it to `null` or `''` — `fromLayers()` filters
- * those out after the merge. The resulting registry is sorted
- * ascending by the resolved pixel value so callers can iterate it
- * mobile-first without re-sorting.
+ * Since #820 the model is desktop-first. `base` is the desktop design
+ * ("All sizes"); `tablet` and `mobile` are overrides that apply at that
+ * size and below, emitted as `@media (max-width:Npx)`. A smaller device
+ * inherits from the next larger one, so a Tablet value also applies on
+ * phones unless Mobile overrides it.
  *
- * The `base` slot is implicit (always present, no min-width) and is
- * NEVER stored in the registry itself — the registry only describes
- * the named, prefixed breakpoints.
+ * The pre-#820 mobile-first keys (`sm`, `md`, `lg`, `xl`, `2xl`) stay
+ * registered as *legacy* `min-width` entries so content saved with them
+ * renders exactly as before. They are no longer offered in the viewport
+ * switcher. An entry is legacy when it declares `minWidthPx`, and
+ * desktop-first when it declares `maxWidthPx`; it can't declare both.
  *
- * #617 extends each entry with an optional `label` (viewport switcher
- * display string) and `previewWidthPx` (canvas iframe width the
- * switcher previews at). Both are accepted alongside the historical
- * scalar form (`'sm' => '640px'`) — a scalar entry hydrates to
- * `{ minWidthPx, previewWidthPx: minWidthPx, label: key }` on load,
- * so no migration is required.
+ * Emission order (see {@see prefixes()}) is legacy entries ascending by
+ * min-width, then desktop-first entries descending by max-width, so the
+ * smaller-device overrides come last and win the cascade.
+ *
+ * Breakpoints are merged by key. To REMOVE a key, set it to `null` or
+ * `''`. The `base` slot is implicit and never stored in the registry.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor
@@ -48,67 +47,61 @@ use InvalidArgumentException;
 class BreakpointRegistry
 {
 	/**
-	 * Tailwind v4 defaults, extended with #617 preview widths and
-	 * device-friendly labels. Preview widths for `sm`/`md`/`lg` map
-	 * to real device viewports (iPhone / iPad portrait / desktop) —
-	 * they intentionally diverge from `minWidthPx` for `sm` because
-	 * Tailwind's mobile breakpoint kicks in at 640px but the actual
-	 * device is a 375-wide phone.
+	 * Package defaults. `tablet` / `mobile` are the desktop-first device
+	 * overrides (#820); each preview width sits inside its range so the
+	 * editor preview matches the front end. The legacy mobile-first
+	 * entries keep their pre-#820 values and labels.
 	 *
-	 * @var array<string, array{minWidthPx: int, previewWidthPx: int, label: string}>
+	 * @var array<string, array{minWidthPx?: int, maxWidthPx?: int, previewWidthPx: int, label: string}>
 	 */
 	public const DEFAULTS = [
-		'sm'  => [ 'minWidthPx' => 640,  'previewWidthPx' => 375,  'label' => 'Mobile' ],
-		'md'  => [ 'minWidthPx' => 768,  'previewWidthPx' => 768,  'label' => 'Tablet' ],
-		'lg'  => [ 'minWidthPx' => 1024, 'previewWidthPx' => 1440, 'label' => 'Desktop' ],
-		// `xl+` / `2xl+` preserve the pre-#617 cascade signal
-		// (`this size and up`) for the two breakpoints without a
-		// device-friendly name. `sm` / `md` / `lg` get real device
-		// labels above; `xl` / `2xl` fall back to a decorated key so
-		// hosts don't lose the mobile-first affordance on upgrade.
-		'xl'  => [ 'minWidthPx' => 1280, 'previewWidthPx' => 1280, 'label' => 'xl+' ],
-		'2xl' => [ 'minWidthPx' => 1536, 'previewWidthPx' => 1536, 'label' => '2xl+' ],
+		'tablet' => [ 'maxWidthPx' => 1023, 'previewWidthPx' => 768,  'label' => 'Tablet' ],
+		'mobile' => [ 'maxWidthPx' => 767,  'previewWidthPx' => 375,  'label' => 'Mobile' ],
+		'sm'     => [ 'minWidthPx' => 640,  'previewWidthPx' => 375,  'label' => 'Mobile' ],
+		'md'     => [ 'minWidthPx' => 768,  'previewWidthPx' => 768,  'label' => 'Tablet' ],
+		'lg'     => [ 'minWidthPx' => 1024, 'previewWidthPx' => 1440, 'label' => 'Desktop' ],
+		'xl'     => [ 'minWidthPx' => 1280, 'previewWidthPx' => 1280, 'label' => 'xl+' ],
+		'2xl'    => [ 'minWidthPx' => 1536, 'previewWidthPx' => 1536, 'label' => '2xl+' ],
 	];
 
 	/**
-	 * Implicit base slot — always present alongside the registered
-	 * breakpoints. Stored separately because it has no min-width and
-	 * cannot be overridden.
+	 * Implicit base slot — the desktop design, applied at every width
+	 * unless an override matches.
 	 */
 	public const BASE_KEY = 'base';
 
 	/**
-	 * Resolved, validated, ascending-sorted registry.
+	 * Resolved, validated registry in emission order.
 	 *
-	 * @var array<string, array{minWidthPx: int, previewWidthPx: int, label: string}>
+	 * @var array<string, array{minWidthPx: int|null, maxWidthPx: int|null, previewWidthPx: int, label: string}>
 	 */
 	protected array $breakpoints;
 
 	/**
 	 * @param  array<string, int|string|array<string, mixed>>  $raw  Pre-resolved breakpoints.
-	 *                                                               Pass the output of
-	 *                                                               {@see fromLayers()}
-	 *                                                               unless you're constructing
-	 *                                                               a one-off registry in a test.
 	 */
 	public function __construct( array $raw = [] )
 	{
 		$resolved = $this->validate( $raw );
-		uasort( $resolved, static fn ( array $a, array $b ) => $a['minWidthPx'] <=> $b['minWidthPx'] );
-		$this->breakpoints = $resolved;
+
+		$legacy  = array_filter( $resolved, static fn ( array $spec ): bool => null !== $spec['minWidthPx'] );
+		$devices = array_filter( $resolved, static fn ( array $spec ): bool => null !== $spec['maxWidthPx'] );
+
+		uasort( $legacy, static fn ( array $a, array $b ): int => $a['minWidthPx'] <=> $b['minWidthPx'] );
+		uasort( $devices, static fn ( array $a, array $b ): int => $b['maxWidthPx'] <=> $a['maxWidthPx'] );
+
+		$this->breakpoints = $legacy + $devices;
 	}
 
 	/**
 	 * Builds a registry from the application's merged config + an
-	 * optional `theme.json`-derived overrides array. Use this from the
-	 * service provider; tests can also construct directly.
+	 * optional theme-derived overrides array.
 	 *
 	 * @since 1.0.0
 	 *
 	 * @param  array<string, int|string|array<string, mixed>>|null  $configOverrides  Defaults to
 	 *                                                                                `config('artisanpack.visual-editor.breakpoints')`.
-	 * @param  array<string, int|string|array<string, mixed>>       $themeOverrides   `settings.custom.artisanpack.breakpoints`
-	 *                                                                                from the active `theme.json`.
+	 * @param  array<string, int|string|array<string, mixed>>       $themeOverrides   Theme-level overrides.
 	 */
 	public static function fromLayers( ?array $configOverrides = null, array $themeOverrides = [] ): self
 	{
@@ -124,13 +117,10 @@ class BreakpointRegistry
 	}
 
 	/**
-	 * Returns every registered breakpoint as `[key => min-width-px]`,
-	 * ascending by pixel value. The implicit `base` slot is NOT
-	 * included — callers that need it can prepend `'base' => 0` to the
-	 * result. Preserved as `array<string, int>` for callers built
-	 * before #617 (Tailwind class emission, media query building);
-	 * use {@see entries()} for the extended `{ minWidthPx,
-	 * previewWidthPx, label }` shape.
+	 * Returns the legacy mobile-first breakpoints as
+	 * `[key => min-width-px]`, ascending. Desktop-first entries are not
+	 * included: they have no min-width. Screen-size visibility still
+	 * builds its ranges from this list.
 	 *
 	 * @since 1.0.0
 	 *
@@ -141,21 +131,22 @@ class BreakpointRegistry
 		$out = [];
 
 		foreach ( $this->breakpoints as $key => $spec ) {
-			$out[ $key ] = $spec['minWidthPx'];
+			if ( null !== $spec['minWidthPx'] ) {
+				$out[ $key ] = $spec['minWidthPx'];
+			}
 		}
 
 		return $out;
 	}
 
 	/**
-	 * Returns every registered breakpoint as `[key => spec]`, ascending
-	 * by pixel value. Each spec is a `{ minWidthPx, previewWidthPx,
-	 * label }` array (#617). The implicit `base` slot is NOT included —
-	 * callers that need it can prepend their own.
+	 * Returns every registered breakpoint as `[key => spec]` in emission
+	 * order. Each spec carries `minWidthPx` (legacy) or `maxWidthPx`
+	 * (desktop-first), the other being `null`.
 	 *
 	 * @since 1.0.0
 	 *
-	 * @return array<string, array{minWidthPx: int, previewWidthPx: int, label: string}>
+	 * @return array<string, array{minWidthPx: int|null, maxWidthPx: int|null, previewWidthPx: int, label: string}>
 	 */
 	public function entries(): array
 	{
@@ -163,10 +154,10 @@ class BreakpointRegistry
 	}
 
 	/**
-	 * Returns the min-width (in px) for a single breakpoint, or `null`
-	 * if the key isn't registered. The implicit `base` slot returns
-	 * `0`. Preserved on the read-side for callers still on the pre-#617
-	 * signature (Tailwind class emission, media query building).
+	 * Returns the min-width (in px) of a legacy breakpoint, `0` for
+	 * `base`, and `null` for a desktop-first or unknown key. Use
+	 * {@see has()} to test membership and {@see mediaQuery()} to build
+	 * a query.
 	 *
 	 * @since 1.0.0
 	 */
@@ -180,9 +171,53 @@ class BreakpointRegistry
 	}
 
 	/**
+	 * Returns the max-width (in px) of a desktop-first breakpoint, or
+	 * `null` for `base`, a legacy key, or an unknown key (#820).
+	 *
+	 * @since 1.12.1
+	 */
+	public function maxWidth( string $key ): ?int
+	{
+		return $this->breakpoints[ $key ]['maxWidthPx'] ?? null;
+	}
+
+	/**
+	 * Whether the key is a legacy mobile-first (`min-width`) entry.
+	 *
+	 * @since 1.12.1
+	 */
+	public function isLegacy( string $key ): bool
+	{
+		return null !== ( $this->breakpoints[ $key ]['minWidthPx'] ?? null );
+	}
+
+	/**
+	 * The media feature for a breakpoint: `(min-width:640px)` for a
+	 * legacy key, `(max-width:767px)` for a desktop-first one, `null`
+	 * for `base` or an unknown key. Pass `$spaced` for the
+	 * `(min-width: 640px)` form some emitters use. Every emitter builds
+	 * its query through this so the two families stay consistent (#820).
+	 *
+	 * @since 1.12.1
+	 */
+	public function mediaQuery( string $key, bool $spaced = false ): ?string
+	{
+		$spec = $this->breakpoints[ $key ] ?? null;
+
+		if ( null === $spec ) {
+			return null;
+		}
+
+		$separator = $spaced ? ': ' : ':';
+
+		return null !== $spec['minWidthPx']
+			? '(min-width' . $separator . $spec['minWidthPx'] . 'px)'
+			: '(max-width' . $separator . $spec['maxWidthPx'] . 'px)';
+	}
+
+	/**
 	 * Returns the canvas preview width (in px) for a single breakpoint,
-	 * or `null` if the key isn't registered (#617). The implicit `base`
-	 * slot returns `0` (no width constraint applied).
+	 * or `null` if the key isn't registered (#617). `base` returns `0`.
 	 *
 	 * @since 1.0.0
 	 */
@@ -207,9 +242,9 @@ class BreakpointRegistry
 	}
 
 	/**
-	 * Returns just the breakpoint slugs (no widths) in ascending order
-	 * — convenient for emitting Tailwind class prefixes (`sm:`, `md:`,
-	 * `lg:`).
+	 * Every breakpoint key in emission order: legacy entries ascending
+	 * by min-width, then desktop-first entries descending by max-width.
+	 * Emitting rules in this order lets later (smaller) overrides win.
 	 *
 	 * @since 1.0.0
 	 *
@@ -221,8 +256,32 @@ class BreakpointRegistry
 	}
 
 	/**
-	 * Returns the slugs with `base` prepended — the full ordered list
-	 * the value resolver walks when cascading.
+	 * Desktop-first device keys, largest first — what the viewport
+	 * switcher offers after `base` (#820).
+	 *
+	 * @since 1.12.1
+	 *
+	 * @return array<int, string>
+	 */
+	public function devicePrefixes(): array
+	{
+		return array_values( array_filter( $this->prefixes(), fn ( string $key ): bool => ! $this->isLegacy( $key ) ) );
+	}
+
+	/**
+	 * Legacy mobile-first keys, ascending (#820).
+	 *
+	 * @since 1.12.1
+	 *
+	 * @return array<int, string>
+	 */
+	public function legacyPrefixes(): array
+	{
+		return array_values( array_filter( $this->prefixes(), fn ( string $key ): bool => $this->isLegacy( $key ) ) );
+	}
+
+	/**
+	 * Returns the slugs with `base` prepended, in emission order.
 	 *
 	 * @since 1.0.0
 	 *
@@ -234,8 +293,59 @@ class BreakpointRegistry
 	}
 
 	/**
-	 * Checks membership without the `null`-vs-`0` ambiguity of
-	 * `get()`.
+	 * The keys whose values apply at the active breakpoint, highest
+	 * precedence first, ending with `base` (#820).
+	 *
+	 * - `base` or an unknown key → `['base']`.
+	 * - A legacy key → itself and the smaller legacy keys, as before.
+	 * - A desktop-first key → itself, then the larger device keys
+	 *   (Mobile inherits from Tablet), then — unless `$includeLegacy`
+	 *   is false — the legacy keys whose min-width rule also matches at
+	 *   this key's preview width, so the editor preview matches what the
+	 *   front end shows for content that still carries legacy keys.
+	 *
+	 * @since 1.12.1
+	 *
+	 * @return array<int, string>
+	 */
+	public function cascade( string $active, bool $includeLegacy = true ): array
+	{
+		if ( self::BASE_KEY === $active || ! isset( $this->breakpoints[ $active ] ) ) {
+			return [ self::BASE_KEY ];
+		}
+
+		$spec = $this->breakpoints[ $active ];
+
+		if ( null !== $spec['minWidthPx'] ) {
+			$keys = array_filter(
+				$this->legacyPrefixes(),
+				fn ( string $key ): bool => $this->breakpoints[ $key ]['minWidthPx'] <= $spec['minWidthPx'],
+			);
+
+			return array_merge( array_reverse( array_values( $keys ) ), [ self::BASE_KEY ] );
+		}
+
+		$devices = array_filter(
+			$this->devicePrefixes(),
+			fn ( string $key ): bool => $this->breakpoints[ $key ]['maxWidthPx'] >= $spec['maxWidthPx'],
+		);
+
+		$legacy = $includeLegacy
+			? array_filter(
+				$this->legacyPrefixes(),
+				fn ( string $key ): bool => $this->breakpoints[ $key ]['minWidthPx'] <= $spec['previewWidthPx'],
+			)
+			: [];
+
+		return array_merge(
+			array_reverse( array_values( $devices ) ),
+			array_reverse( array_values( $legacy ) ),
+			[ self::BASE_KEY ],
+		);
+	}
+
+	/**
+	 * Checks membership without the `null`-vs-`0` ambiguity of `get()`.
 	 *
 	 * @since 1.0.0
 	 */
@@ -245,26 +355,31 @@ class BreakpointRegistry
 	}
 
 	/**
-	 * Serializes the registry for the client bootstrap — mirrors the
-	 * TypeScript `Breakpoint[]` shape the JS registry expects. Returns
-	 * an ascending-sorted list of `{ key, minWidthPx, previewWidthPx,
-	 * label }` objects (#617).
+	 * Serializes the registry for the client bootstrap in emission
+	 * order. Each entry carries either `minWidthPx` (legacy) or
+	 * `maxWidthPx` (desktop-first).
 	 *
 	 * @since 1.0.0
 	 *
-	 * @return array<int, array{key: string, minWidthPx: int, previewWidthPx: int, label: string}>
+	 * @return array<int, array<string, int|string>>
 	 */
 	public function toArray(): array
 	{
 		$out = [];
 
 		foreach ( $this->breakpoints as $key => $spec ) {
-			$out[] = [
-				'key'            => $key,
-				'minWidthPx'     => $spec['minWidthPx'],
-				'previewWidthPx' => $spec['previewWidthPx'],
-				'label'          => $spec['label'],
-			];
+			$entry = [ 'key' => $key ];
+
+			if ( null !== $spec['minWidthPx'] ) {
+				$entry['minWidthPx'] = $spec['minWidthPx'];
+			} else {
+				$entry['maxWidthPx'] = $spec['maxWidthPx'];
+			}
+
+			$entry['previewWidthPx'] = $spec['previewWidthPx'];
+			$entry['label']          = $spec['label'];
+
+			$out[] = $entry;
 		}
 
 		return $out;
@@ -272,27 +387,26 @@ class BreakpointRegistry
 
 	/**
 	 * Validates a raw breakpoint map. Accepts:
-	 *   - integer pixel values (`640`)
-	 *   - CSS-length strings ending in `px` (`'640px'`)
-	 *   - object form `[ 'minWidthPx' => 640, 'previewWidthPx' => 375, 'label' => 'Mobile' ]`
+	 *   - integer pixel values (`640`) and `Npx` strings — legacy min-width
+	 *   - `[ 'minWidthPx' => 640, … ]` — legacy min-width
+	 *   - `[ 'maxWidthPx' => 767, 'previewWidthPx' => 375, 'label' => 'Mobile' ]` — desktop-first
 	 *
 	 * Rejects empty keys, the reserved `base` key, non-positive widths,
-	 * duplicate min-widths, invalid label types, and anything that
-	 * doesn't parse to a positive integer pixel value.
-	 *
-	 * Throws on the first failure with a descriptive message so theme
-	 * authors get actionable feedback when their `theme.json` is bad.
+	 * entries with both or neither width, duplicate widths within a
+	 * family, a desktop-first preview width above its max-width, and
+	 * invalid labels.
 	 *
 	 * @since 1.0.0
 	 *
 	 * @param  array<string, int|string|array<string, mixed>>  $raw
 	 *
-	 * @return array<string, array{minWidthPx: int, previewWidthPx: int, label: string}>
+	 * @return array<string, array{minWidthPx: int|null, maxWidthPx: int|null, previewWidthPx: int, label: string}>
 	 */
 	public function validate( array $raw ): array
 	{
 		$cleaned = [];
-		$seen    = [];
+		$seenMin = [];
+		$seenMax = [];
 
 		foreach ( $raw as $key => $value ) {
 			if ( ! is_string( $key ) || '' === trim( $key ) ) {
@@ -315,48 +429,43 @@ class BreakpointRegistry
 
 			$spec = $this->normalizeEntry( $value, $key );
 
-			if ( in_array( $spec['minWidthPx'], $seen, true ) ) {
-				throw new InvalidArgumentException( sprintf(
-					'Breakpoint key "%s" has the same min-width (%dpx) as another breakpoint.',
-					$key,
-					$spec['minWidthPx']
-				) );
+			if ( null !== $spec['minWidthPx'] ) {
+				if ( in_array( $spec['minWidthPx'], $seenMin, true ) ) {
+					throw new InvalidArgumentException( sprintf(
+						'Breakpoint key "%s" has the same min-width (%dpx) as another breakpoint.',
+						$key,
+						$spec['minWidthPx']
+					) );
+				}
+
+				$seenMin[] = $spec['minWidthPx'];
+			} else {
+				if ( in_array( $spec['maxWidthPx'], $seenMax, true ) ) {
+					throw new InvalidArgumentException( sprintf(
+						'Breakpoint key "%s" has the same max-width (%dpx) as another breakpoint.',
+						$key,
+						$spec['maxWidthPx']
+					) );
+				}
+
+				$seenMax[] = $spec['maxWidthPx'];
 			}
 
 			$cleaned[ $key ] = $spec;
-			$seen[]          = $spec['minWidthPx'];
 		}
 
 		return $cleaned;
 	}
 
 	/**
-	 * Merges layered breakpoint arrays by key.
+	 * Merges breakpoint layers by key. A scalar keeps the width family
+	 * of the entry it overrides (so `'mobile' => '600px'` sets the
+	 * mobile max-width); an array fragment that names one width drops
+	 * the other, so a layer can switch an entry's family.
 	 *
-	 * Each layer's entry is normalised to an object-shape fragment
-	 * BEFORE merging, so partial overrides survive intact through the
-	 * layer stack:
+	 * @param  array<string, mixed>  ...$layers
 	 *
-	 *   - Scalar entry (`'lg' => 1100`)              → `[ 'minWidthPx' => 1100 ]`
-	 *   - Full object                                 → same array, unchanged
-	 *   - Partial object (`[ 'label' => 'iPhone' ]`) → same array, unchanged
-	 *
-	 * Once every layer's entry is a fragment, `array_replace` merges
-	 * fields shallowly: a higher layer's `minWidthPx` wins, but any
-	 * field it omits keeps whatever the lower layer set. This is what
-	 * lets `'lg' => 1100` (scalar) sit on top of the DEFAULTS' `lg`
-	 * object without wiping the `Desktop` label or the `1440px` preview
-	 * width — the scalar contributes only `minWidthPx`. It also fixes
-	 * the reverse: a partial object `[ 'label' => 'Big' ]` layered on
-	 * top of a scalar `1024` no longer throws `missing minWidthPx`,
-	 * because the scalar already normalised to `[ 'minWidthPx' => 1024 ]`
-	 * and its field carries through.
-	 *
-	 * `null` and `''` values still remove any prior entry at that key.
-	 *
-	 * @param  array<string, int|string|array<string, mixed>>  ...$layers  Lowest priority first.
-	 *
-	 * @return array<string, array<string, mixed>>
+	 * @return array<string, mixed>
 	 */
 	protected static function mergeByKey( array ...$layers ): array
 	{
@@ -365,18 +474,49 @@ class BreakpointRegistry
 		foreach ( $layers as $layer ) {
 			foreach ( $layer as $key => $value ) {
 				if ( null === $value || '' === $value ) {
-					// Explicit removal — drop any prior value.
 					unset( $merged[ $key ] );
 					continue;
 				}
 
-				$fragment = is_array( $value )
-					? $value
-					: [ 'minWidthPx' => $value ];
+				$prior = isset( $merged[ $key ] ) && is_array( $merged[ $key ] ) ? $merged[ $key ] : null;
 
-				$merged[ $key ] = isset( $merged[ $key ] ) && is_array( $merged[ $key ] )
-					? array_replace( $merged[ $key ], $fragment )
-					: $fragment;
+				if ( ! is_array( $value ) ) {
+					$value = null !== $prior && array_key_exists( 'maxWidthPx', $prior )
+						? [ 'maxWidthPx' => $value ]
+						: [ 'minWidthPx' => $value ];
+				}
+
+				if ( null !== $prior ) {
+					if ( array_key_exists( 'minWidthPx', $value ) ) {
+						unset( $prior['maxWidthPx'] );
+					}
+
+					if ( array_key_exists( 'maxWidthPx', $value ) ) {
+						unset( $prior['minWidthPx'] );
+					}
+				}
+
+				$entry = null !== $prior ? array_replace( $prior, $value ) : $value;
+
+				// A layer that narrows a device without naming a preview
+				// width (`'mobile' => '600px'`) inherits the old preview
+				// (375 / 768). Clamp it into the new range instead of
+				// failing validation on every request.
+				if (
+					null !== $prior
+					&& array_key_exists( 'maxWidthPx', $value )
+					&& ! array_key_exists( 'previewWidthPx', $value )
+					&& isset( $entry['previewWidthPx'] )
+				) {
+					$max     = self::pixelValue( $entry['maxWidthPx'] );
+					$preview = self::pixelValue( $entry['previewWidthPx'] );
+
+					if ( null !== $max && null !== $preview && $preview > $max ) {
+						$entry['previewWidthPx'] = $max;
+					}
+				}
+
+				$merged[ $key ] = $entry;
 			}
 		}
 
@@ -384,16 +524,30 @@ class BreakpointRegistry
 	}
 
 	/**
-	 * Normalizes a single raw entry (scalar or object form) into the
-	 * canonical `{ minWidthPx, previewWidthPx, label }` shape. Scalar
-	 * entries fall back to `previewWidthPx = minWidthPx` and
-	 * `label = key`; object entries fill missing fields from those
-	 * same defaults.
+	 * Loose pixel parse for merge-time clamping; validation reports bad
+	 * values later.
 	 *
-	 * @param  int|string|array<string, mixed>  $value
-	 * @param  string                           $key    Used for error messages only.
+	 * @since 1.12.1
 	 *
-	 * @return array{minWidthPx: int, previewWidthPx: int, label: string}
+	 * @param  mixed  $value
+	 */
+	protected static function pixelValue( $value ): ?int
+	{
+		if ( is_int( $value ) ) {
+			return $value;
+		}
+
+		if ( is_string( $value ) && 1 === preg_match( '/^\s*(\d+)(px)?\s*$/i', $value, $matches ) ) {
+			return (int) $matches[1];
+		}
+
+		return null;
+	}
+
+	/**
+	 * @param  mixed   $value
+	 *
+	 * @return array{minWidthPx: int|null, maxWidthPx: int|null, previewWidthPx: int, label: string}
 	 */
 	protected function normalizeEntry( $value, string $key ): array
 	{
@@ -405,34 +559,51 @@ class BreakpointRegistry
 
 		return [
 			'minWidthPx'     => $pixels,
+			'maxWidthPx'     => null,
 			'previewWidthPx' => $pixels,
 			'label'          => $key,
 		];
 	}
 
 	/**
-	 * Normalizes an object-form entry. Requires `minWidthPx`; fills
-	 * `previewWidthPx` from `minWidthPx` and `label` from the key when
-	 * omitted so authors can supply partial objects.
-	 *
 	 * @param  array<string, mixed>  $entry
 	 *
-	 * @return array{minWidthPx: int, previewWidthPx: int, label: string}
+	 * @return array{minWidthPx: int|null, maxWidthPx: int|null, previewWidthPx: int, label: string}
 	 */
 	protected function normalizeObjectEntry( array $entry, string $key ): array
 	{
-		if ( ! array_key_exists( 'minWidthPx', $entry ) ) {
+		$hasMin = array_key_exists( 'minWidthPx', $entry ) && null !== $entry['minWidthPx'];
+		$hasMax = array_key_exists( 'maxWidthPx', $entry ) && null !== $entry['maxWidthPx'];
+
+		if ( $hasMin && $hasMax ) {
 			throw new InvalidArgumentException( sprintf(
-				'Breakpoint "%s" is missing the required `minWidthPx` field.',
+				'Breakpoint "%s" declares both `minWidthPx` and `maxWidthPx`; use one.',
 				$key
 			) );
 		}
 
-		$minWidthPx = $this->parsePixels( $entry['minWidthPx'], $key );
+		if ( ! $hasMin && ! $hasMax ) {
+			throw new InvalidArgumentException( sprintf(
+				'Breakpoint "%s" is missing the required `maxWidthPx` (or legacy `minWidthPx`) field.',
+				$key
+			) );
+		}
 
-		$previewWidthPx = $minWidthPx;
+		$minWidthPx = $hasMin ? $this->parsePixels( $entry['minWidthPx'], $key ) : null;
+		$maxWidthPx = $hasMax ? $this->parsePixels( $entry['maxWidthPx'], $key ) : null;
+
+		$previewWidthPx = $minWidthPx ?? $maxWidthPx;
 		if ( array_key_exists( 'previewWidthPx', $entry ) && null !== $entry['previewWidthPx'] ) {
 			$previewWidthPx = $this->parsePreviewPixels( $entry['previewWidthPx'], $key );
+		}
+
+		if ( null !== $maxWidthPx && $previewWidthPx > $maxWidthPx ) {
+			throw new InvalidArgumentException( sprintf(
+				'Breakpoint "%s" `previewWidthPx` (%dpx) must not exceed its `maxWidthPx` (%dpx), or the editor preview would not match the front end.',
+				$key,
+				$previewWidthPx,
+				$maxWidthPx
+			) );
 		}
 
 		$label = $key;
@@ -457,6 +628,7 @@ class BreakpointRegistry
 
 		return [
 			'minWidthPx'     => $minWidthPx,
+			'maxWidthPx'     => $maxWidthPx,
 			'previewWidthPx' => $previewWidthPx,
 			'label'          => $label,
 		];

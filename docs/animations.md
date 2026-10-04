@@ -51,13 +51,21 @@ Stored on the block as `attributes.artisanpackAnimations`:
 ```
 
 The `entrance.name` and `continuous.name` fields are
-responsive-aware — pass a `{ base, sm, md, lg, xl, 2xl }` map to enable
+responsive-aware — pass a `{ base, tablet, mobile }` map to enable
 different motions per breakpoint, or `null` at a specific breakpoint to
 disable the animation there:
 
 ```json
-{ "entrance": { "name": { "base": "fade-in", "md": null } } }
+{ "entrance": { "name": { "base": "fade-in", "mobile": null } } }
 ```
+
+Since 1.12.1 the cascade is desktop-first: `base` is the desktop
+motion, a `tablet` value applies at 1023px and below, and `mobile`
+(767px and below) inherits from `tablet`, then `base`. Per-breakpoint
+rules are emitted as `@media (max-width: …)` queries. Maps saved
+before 1.12.1 with the legacy mobile-first keys (`sm`, `md`, `lg`,
+`xl`, `2xl`) still render as before, with `@media (min-width: …)`
+queries.
 
 ## Registry layers
 

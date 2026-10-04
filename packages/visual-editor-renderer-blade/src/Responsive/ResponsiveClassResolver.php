@@ -108,8 +108,8 @@ class ResponsiveClassResolver
 	}
 
 	/**
-	 * Returns a Tailwind class string ordered by ascending breakpoint
-	 * width, using the registered prefixes (e.g. `sm:`, `md:`).
+	 * Returns a Tailwind class string in registry emission order, using
+	 * the registered prefixes (e.g. `md:`, `tablet:`).
 	 *
 	 * @param  array<string, string>  $tokens  `[breakpoint => utility]`.
 	 */
@@ -117,7 +117,7 @@ class ResponsiveClassResolver
 	{
 		$pieces = [];
 
-		// Ensure stable, ascending order regardless of the input order.
+		// Ensure stable, registry order regardless of the input order.
 		// `distinctOverrides()` already walks the registry, but custom
 		// callers may pass a hand-rolled token map.
 		foreach ( $this->registry->keysWithBase() as $key ) {
@@ -163,15 +163,15 @@ class ResponsiveClassResolver
 				continue;
 			}
 
-			$minWidth = $this->registry->get( $key );
+			$query = $this->registry->mediaQuery( (string) $key );
 
-			if ( null === $minWidth ) {
+			if ( null === $query ) {
 				continue;
 			}
 
 			$rules[] = sprintf(
-				'@media (min-width:%dpx){.%s{%s}}',
-				$minWidth,
+				'@media %s{.%s{%s}}',
+				$query,
 				$scope,
 				$declaration
 			);

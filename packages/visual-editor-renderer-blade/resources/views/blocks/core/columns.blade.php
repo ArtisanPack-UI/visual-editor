@@ -50,8 +50,14 @@
 		// full-width at small viewports.
 		$columnsSelector = sprintf( '.%1$s.%1$s.%1$s', $columnsScope );
 
-		foreach ( $columnCountOverrides as $bp => $count ) {
-			$intCount = (int) $count;
+		// Registry emission order so the narrower desktop-first override
+		// is emitted last and wins (#820).
+		foreach ( $columnsRegistry->keysWithBase() as $bp ) {
+			if ( ! array_key_exists( $bp, $columnCountOverrides ) ) {
+				continue;
+			}
+
+			$intCount = (int) $columnCountOverrides[ $bp ];
 
 			if ( $intCount < 1 ) {
 				continue;
@@ -67,14 +73,14 @@
 				continue;
 			}
 
-			$minWidth = $columnsRegistry->get( (string) $bp );
-			if ( null === $minWidth ) {
+			$columnsQuery = $columnsRegistry->mediaQuery( (string) $bp );
+			if ( null === $columnsQuery ) {
 				continue;
 			}
 
 			$columnsRules[] = sprintf(
-				'@media (min-width:%dpx){%s{%s}}',
-				$minWidth,
+				'@media %s{%s{%s}}',
+				$columnsQuery,
 				$columnsSelector,
 				$declarations
 			);

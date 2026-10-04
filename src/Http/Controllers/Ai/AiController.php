@@ -19,6 +19,7 @@ use ArtisanPackUI\Ai\Concerns\HandlesAiFeatureResponses;
 use ArtisanPackUI\VisualEditor\Ai\Agents\ContentBlockSuggestionAgent;
 use ArtisanPackUI\VisualEditor\Ai\Agents\HeadingHierarchyAgent;
 use ArtisanPackUI\VisualEditor\Ai\Agents\LayoutSuggestionAgent;
+use ArtisanPackUI\VisualEditor\Ai\Support\AltTextImageGuard;
 use ArtisanPackUI\VisualEditor\Http\Requests\Ai\AltTextRequest;
 use ArtisanPackUI\VisualEditor\Http\Requests\Ai\HeadingHierarchyRequest;
 use ArtisanPackUI\VisualEditor\Http\Requests\Ai\RewriteContentRequest;
@@ -102,7 +103,7 @@ class AiController
 	{
 		return $this->runAgent(
 			'ai.alt_text',
-			fn () => AltTextGenerationAgent::for( $request->validated()['image'] )->run(),
+			fn () => AltTextGenerationAgent::for( AltTextImageGuard::assertAllowed( $request->validated()['image'], 'ai.alt_text' ) )->run(),
 		);
 	}
 

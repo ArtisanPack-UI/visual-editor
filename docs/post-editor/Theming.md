@@ -159,14 +159,28 @@ a single registry resolved in this order — highest layer wins:
 2. **Application config** —
    `config('artisanpack.visual-editor.breakpoints')`
 3. **Package defaults** — `BreakpointRegistry::DEFAULTS`
-   (Tailwind v4: `sm 640`, `md 768`, `lg 1024`, `xl 1280`, `2xl 1536`)
+   (desktop-first devices: `tablet` max 1023px, `mobile` max 767px;
+   legacy mobile-first: `sm 640`, `md 768`, `lg 1024`, `xl 1280`,
+   `2xl 1536`)
+
+Since 1.12.1 the model is desktop-first: `base` is the desktop design,
+and `tablet` / `mobile` overrides apply at that width and below
+(`@media (max-width:…)`), with Mobile inheriting from Tablet. Only
+those device breakpoints appear in the viewport switcher. The legacy
+mobile-first keys stay registered as `min-width` entries so content
+saved before 1.12.1 keeps rendering unchanged.
 
 Merging is by key, so a theme can resize an existing breakpoint
-(`"lg": "1100px"`), add a new one (`"3xl": 1920`), or replace defaults
-wholesale. Values are integer pixels or CSS `Npx` strings; anything
-else throws a descriptive error at load time.
+(`"mobile": "640px"` or `"tablet": { "maxWidthPx": 1100 }`), add a new
+one (`"small-mobile": { "maxWidthPx": 479, "previewWidthPx": 360 }`),
+relabel one (`"tablet": { "label": "iPad" }`), or remove one (set it to
+`null`). Values are integer pixels or CSS `Npx` strings; anything
+else throws a descriptive error at load time. Static class-based
+layout CSS (flex utilities, grid columns, post-template spans) only
+ships rules for the default 1023px / 767px widths — see
+[Responsive Design Tools](../blocks/Responsive-Design-Tools.md#static-css-and-custom-widths).
 
-The implicit `base` slot (no min-width, applies everywhere) is
+The implicit `base` slot (the desktop design, applies everywhere) is
 reserved and cannot be redefined.
 
 See [Responsive Design Tools](../blocks/Responsive-Design-Tools.md) for the

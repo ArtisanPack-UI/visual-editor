@@ -935,6 +935,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->registerApiRoutes();
 		$this->registerBladeComponents();
 		$this->registerAiLivewireComponents();
+		$this->registerAiGate();
 
 		Gate::policy( VisualEditorPost::class, VisualEditorPostPolicy::class );
 
@@ -1533,6 +1534,25 @@ class VisualEditorServiceProvider extends ServiceProvider
 		\Livewire\Livewire::component(
 			'artisanpack-visual-editor.ai.tools',
 			\ArtisanPackUI\VisualEditor\Livewire\Ai\AiTools::class,
+		);
+	}
+
+	/**
+	 * Define the default `visual-editor.use-ai` gate unless the host
+	 * already has (#828 hardening). Denies by default; see
+	 * {@see \ArtisanPackUI\VisualEditor\Ai\Support\AiAccess}.
+	 *
+	 * @since 1.12.1
+	 */
+	protected function registerAiGate(): void
+	{
+		if ( Gate::has( \ArtisanPackUI\VisualEditor\Ai\Support\AiAccess::ABILITY ) ) {
+			return;
+		}
+
+		Gate::define(
+			\ArtisanPackUI\VisualEditor\Ai\Support\AiAccess::ABILITY,
+			static fn ( ?\Illuminate\Contracts\Auth\Authenticatable $user ): bool => \ArtisanPackUI\VisualEditor\Ai\Support\AiAccess::allows( $user ),
 		);
 	}
 

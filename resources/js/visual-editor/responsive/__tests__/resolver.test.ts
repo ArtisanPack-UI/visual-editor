@@ -64,3 +64,31 @@ describe( 'distinctOverrides', () => {
 		} )
 	} )
 } )
+
+describe( 'desktop-first device cascade (#820)', () => {
+	const registry = new BreakpointRegistry()
+
+	it( 'never changes the desktop value when Mobile is edited', () => {
+		const attr = { base: '50%', mobile: '100%' }
+
+		expect( resolveResponsiveValue( attr, 'base', registry ) ).toBe( '50%' )
+		expect( resolveResponsiveValue( attr, 'tablet', registry ) ).toBe( '50%' )
+		expect( resolveResponsiveValue( attr, 'mobile', registry ) ).toBe( '100%' )
+	} )
+
+	it( 'lets Tablet cascade to Mobile', () => {
+		expect( resolveResponsiveValue( { base: 'a', tablet: 'b' }, 'mobile', registry ) ).toBe( 'b' )
+	} )
+
+	it( 'compresses device overrides and leaves legacy compression unchanged', () => {
+		expect( distinctOverrides( { base: 'a', tablet: 'b', mobile: 'b' }, registry ) ).toEqual( { base: 'a', tablet: 'b' } )
+		expect( distinctOverrides( { base: 'a', sm: 'a', md: 'b', lg: 'b' }, registry ) ).toEqual( { base: 'a', md: 'b' } )
+	} )
+} )
+
+describe( 'mixed legacy and device keys (#820)', () => {
+	it( 'keeps a device value equal to base so it can override a legacy rule', () => {
+		expect( distinctOverrides( { base: 'a', md: 'b', tablet: 'a' }, new BreakpointRegistry() ) )
+			.toEqual( { base: 'a', md: 'b', tablet: 'a' } )
+	} )
+} )

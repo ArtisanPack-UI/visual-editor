@@ -66,8 +66,21 @@ ap-basis-{auto|0|full|...}   ap-basis-[value]
 ap-order-{n}    ap-order-[n]
 ```
 
-Responsive prefixes: `sm:`, `md:`, `lg:`, `xl:`, `2xl:` — matching the
-keys registered in `BreakpointRegistry`.
+Responsive prefixes: `tablet:` and `mobile:` — the desktop-first
+device keys registered in `BreakpointRegistry` (since 1.12.1). A
+`tablet:` class applies at 1023px and below and a `mobile:` class at
+767px and below; `mobile:` rules come last in the stylesheet so they
+beat `tablet:` on phones. The legacy mobile-first prefixes (`sm:`,
+`md:`, `lg:`, `xl:`, `2xl:`) are still shipped so content saved before
+1.12.1 renders unchanged.
+
+The static `flex-layout.css` stylesheet only ships `tablet:` /
+`mobile:` rules for the default 1023px / 767px widths, and the React
+and Vue renderers' flex serializers use those same default widths. If
+you move those breakpoints in config or `theme.json`, the Blade
+renderer's arbitrary-value rules follow the new widths (they're built
+from the registry), but the static utility classes and the React / Vue
+output don't — ship matching rules yourself.
 
 Arbitrary values (e.g. `ap-gap-x-[3.5rem]`, `ap-basis-[200px]`) come
 with a per-page `<style>` snippet emitted by the renderer — they don't

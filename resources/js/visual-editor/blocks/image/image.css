@@ -310,8 +310,8 @@
     left: 50%;
     transform-origin: top left;
     transform: translate(-50%, -50%);
-    width: var(--wp--lightbox-container-width);
-    height: var(--wp--lightbox-container-height);
+    width: var(--wp--lightbox-container-width, 100%);
+    height: var(--wp--lightbox-container-height, 100%);
     z-index: 2000001;
 }
 
@@ -329,10 +329,10 @@
 }
 
 .wp-lightbox-overlay .wp-block-image img {
-    min-width: var(--wp--lightbox-image-width);
-    min-height: var(--wp--lightbox-image-height);
-    width: var(--wp--lightbox-image-width);
-    height: var(--wp--lightbox-image-height);
+    min-width: var(--wp--lightbox-image-width, auto);
+    min-height: var(--wp--lightbox-image-height, auto);
+    width: var(--wp--lightbox-image-width, auto);
+    height: var(--wp--lightbox-image-height, auto);
 }
 
 .wp-lightbox-overlay .wp-block-image figcaption {
@@ -447,7 +447,7 @@
 
 @keyframes lightbox-zoom-in {
     0% {
-        transform: translate(calc((-100vw + var(--wp--lightbox-scrollbar-width)) / 2 + var(--wp--lightbox-initial-left-position)), calc(-50vh + var(--wp--lightbox-initial-top-position))) scale(var(--wp--lightbox-scale));
+        transform: translate(calc((-100vw + var(--wp--lightbox-scrollbar-width, 0px)) / 2 + var(--wp--lightbox-initial-left-position, 0px)), calc(-50vh + var(--wp--lightbox-initial-top-position, 0px))) scale(var(--wp--lightbox-scale, 1));
     }
     100% {
         transform: translate(-50%, -50%) scale(1, 1);
@@ -464,7 +464,7 @@
     }
     100% {
         visibility: hidden;
-        transform: translate(calc((-100vw + var(--wp--lightbox-scrollbar-width)) / 2 + var(--wp--lightbox-initial-left-position)), calc(-50vh + var(--wp--lightbox-initial-top-position))) scale(var(--wp--lightbox-scale));
+        transform: translate(calc((-100vw + var(--wp--lightbox-scrollbar-width, 0px)) / 2 + var(--wp--lightbox-initial-left-position, 0px)), calc(-50vh + var(--wp--lightbox-initial-top-position, 0px))) scale(var(--wp--lightbox-scale, 1));
     }
 }
 

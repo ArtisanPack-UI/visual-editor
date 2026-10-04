@@ -6,8 +6,93 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.12.1] - 2026-10-04
+
+### Upgrade notes
+
+- **AI features now require the `visual-editor.use-ai` ability.** The
+  `/ai/*` endpoints and the `AiTools` Livewire listeners are denied by
+  default. The default gate allows users with the `use_ai_features`
+  capability (`ai.capability` in the config). Grant it, or define your
+  own `visual-editor.use-ai` gate. The endpoints are also throttled per
+  user (`ai.throttle`, default `20,1`). See `docs/ai-features.md`.
+- **Responsive controls are now desktop-first.** The viewport switcher
+  offers All sizes / Tablet (1023px and below) / Mobile (767px and
+  below). Content saved with the old `sm`–`2xl` overrides renders
+  exactly as before, because those keys stay registered as legacy
+  min-width breakpoints. Columns and Media & Text now stack at 767px
+  instead of 781px / 600px.
+- **Sites with no theme get default styles.** When no theme is active,
+  `<x-ve-blocks-styles>` now declares the editor's font-size and
+  palette presets and a zero-specificity baseline stylesheet. Set
+  `default_styles` to `false` to turn the baseline off.
+
+### Added
+
+- **Desktop-first `tablet` and `mobile` breakpoints** (#820).
+  Device overrides apply at their `maxWidthPx` and below and inherit
+  from the next larger device. Every emitter (position, box shadow,
+  gradient border, animation, responsive spacing, column widths and
+  counts, flex values) and the React and Vue renderers build their
+  media queries through `BreakpointRegistry::mediaQuery()`. The
+  switcher tooltip and the inspector chip now say "and below".
+- **Theme-less front-end defaults** (#821). The font-size and palette
+  presets the editor's pickers offer, with their `.has-*` classes,
+  plus content / wide size, block gap, and root padding defaults. A
+  theme overrides all of them. Package CSS gives every
+  `var(--wp--*)` / `var(--ap-*)` a fallback. The new `default_styles`
+  option (`auto` | `true` | `false`) controls an optional baseline
+  stylesheet, scoped to block output so it can't restyle a Tailwind
+  host's chrome.
+- **Heading-level picker** (#825). The upstream h1–h6 heading
+  variations are ported to `artisanpack/heading`, so the editor offers
+  a heading-level picker again.
+- **AI payload limits** (#828). `ai.payload_limits` (`max_blocks`,
+  `max_depth`, `max_bytes`, `max_text_chars`) bound the heading check,
+  next-block and layout suggestions, and content rewrites. A request
+  over a limit is rejected, not truncated. The heading check sends only
+  block ids, names, levels, and plain text.
+
 ### Fixed
 
+- **AI endpoints were never registered.** The route guard called
+  `class_exists()` on the `FeatureRegistry` interface, which always
+  returns false, so every `/ai/*` route was missing. It now uses
+  `interface_exists()`.
+- **AI alt text could read server files.** Alt text now accepts only
+  base64 / data URIs and image URLs on the site's own host (plus
+  `ai.alt_text.allowed_hosts`) on the default port, so a server file
+  path can no longer be read and sent to the AI provider.
+- **Heading-hierarchy check never ran on editor content** (#825). The
+  agent only read the block type from `type` / `blockName` and missed
+  `artisanpack/heading`, so the editor's block tree always came back
+  "no issues". `BlockShape::readName()` now reads `name`,
+  `blockName`, or `type`.
+- **Synced patterns in theme templates were saved as
+  `artisanpack/block`** (#824), a block name the editor never
+  registers. Theme `wp:block` references now stay `core/block`, refs
+  already saved as `artisanpack/block` are translated back on read, and
+  the editor registers upstream `core/block` again.
+- **Aligned images and blocks didn't float** (#819). `alignleft` /
+  `alignright` blocks now float under any flow or constrained layout
+  in all three renderers and the editor canvas, line up with the
+  content column inside constrained post content and groups, sit level
+  with the text beside them, and stack at the mobile breakpoint.
+  Tailwind's `size-full` utility no longer stretches image figures.
+- **Rich-text edits at a breakpoint or state were dropped.** The
+  responsive attribute-path helpers treated `RichTextData` as an empty
+  object. They now only walk plain objects.
+- **Template parts rendered empty after saving a template in the site
+  editor** (#822). Saved templates store template-part references as
+  `artisanpack/template-part`, but the front-end inliners only expanded
+  `core/template-part`, so every header, footer, and other part in a
+  saved template rendered as an empty wrapper. The Blade, React, and Vue
+  inliners now expand both names, keep the original name on the output,
+  and always replace any `innerBlocks` snapshot saved on the reference
+  with the live part. Synced-pattern references saved as
+  `artisanpack/block` had the same gap and now resolve too. The shared
+  name lists live on `BlockShape::TEMPLATE_PART_NAMES` and
+  `BlockShape::PATTERN_REF_NAMES`.
 - **Release sourcemap archive failed to attach** — the repository uses
   GitHub's immutable releases, which block adding assets once a release
   is published, so the v1.12.0 `dist-sourcemaps-*.tar.gz` upload was

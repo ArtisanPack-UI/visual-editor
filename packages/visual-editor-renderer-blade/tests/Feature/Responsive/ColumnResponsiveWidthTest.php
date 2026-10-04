@@ -284,3 +284,47 @@ it( 'keeps a safe base width while dropping a hostile per-breakpoint override', 
 	expect( $responsive )->not->toContain( '@media' );
 	expect( $responsive )->not->toContain( 'html{opacity:0' );
 } );
+
+describe( 'desktop-first Mobile override (#820)', function (): void {
+	it( 'stacks 50/50 columns set to 100% under Mobile only at the mobile width', function () {
+		$column = static fn ( string $id ): array => [
+			'clientId'    => $id,
+			'name'        => 'artisanpack/column',
+			'attributes'  => [ 'width' => '50%', 'responsive' => [ 'width' => [ 'mobile' => '100%' ] ] ],
+			'innerBlocks' => [],
+		];
+
+		$tree = [
+			[
+				'clientId'    => 'cols',
+				'name'        => 'artisanpack/columns',
+				'attributes'  => [],
+				'innerBlocks' => [ $column( 'a' ), $column( 'b' ) ],
+			],
+		];
+
+		$rendered = $this->stripGlobalStyles( Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] ) );
+
+		// Desktop keeps 50%; the 100% rule only applies at 767px and below.
+		expect( $rendered )
+			->toMatch( '/\.ve-w-[a-f0-9]+\.ve-w-[a-f0-9]+\.ve-w-[a-f0-9]+\{flex-basis:calc\(50%/' )
+			->toMatch( '/@media \(max-width:767px\)\{[^}]*\{flex-basis:(calc\()?100%/' )
+			->not->toContain( '@media (min-width:640px)' );
+	} );
+
+	it( 'emits tablet before mobile regardless of stored order', function () {
+		$tree = [
+			[
+				'clientId'    => 'col',
+				'name'        => 'artisanpack/column',
+				'attributes'  => [ 'responsive' => [ 'width' => [ 'mobile' => '100%', 'tablet' => '75%' ] ] ],
+				'innerBlocks' => [],
+			],
+		];
+
+		$rendered = $this->stripGlobalStyles( Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] ) );
+
+		expect( strpos( $rendered, '@media (max-width:1023px)' ) )
+			->toBeLessThan( strpos( $rendered, '@media (max-width:767px)' ) );
+	} );
+} );

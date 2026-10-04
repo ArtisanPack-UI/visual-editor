@@ -195,6 +195,9 @@ const POST_TEMPLATE_ITEM_SPAN_BREAKPOINTS = new Set<string>([
     'lg',
     'xl',
     '2xl',
+    // Desktop-first device keys (#820).
+    'tablet',
+    'mobile',
 ]);
 
 const POST_TEMPLATE_ITEM_SPAN_MIN = 1;
