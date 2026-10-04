@@ -26,6 +26,18 @@ import type { Block } from './types';
 
 export const DEFAULT_MAX_PATTERN_DEPTH = 10;
 
+/**
+ * Block names that reference a synced pattern: `core/block`, plus the
+ * `artisanpack/block` fork a template saved from the site editor can
+ * carry (#822). Mirrors the server-side `BlockShape::PATTERN_REF_NAMES`.
+ * Resolved and unresolved output is always named `core/block`, the only
+ * pattern-reference name the renderer registers.
+ */
+export const PATTERN_REF_BLOCK_NAMES: ReadonlySet<string> = new Set([
+    'core/block',
+    'artisanpack/block',
+]);
+
 export type PatternResolutionError =
     | 'missing-ref'
     | 'not-found'
@@ -70,7 +82,7 @@ function walk(tree: Block[], context: WalkContext): Block[] {
 
         const name = typeof block.name === 'string' ? block.name : '';
 
-        if (name === 'core/block') {
+        if (PATTERN_REF_BLOCK_NAMES.has(name)) {
             out.push(resolvePattern(block, context));
 
             continue;

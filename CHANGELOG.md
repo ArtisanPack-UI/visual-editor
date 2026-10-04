@@ -8,6 +8,17 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
+- **Template parts rendered empty after saving a template in the site
+  editor** (#822). Saved templates store template-part references as
+  `artisanpack/template-part`, but the front-end inliners only expanded
+  `core/template-part`, so every header, footer, and other part in a
+  saved template rendered as an empty wrapper. The Blade, React, and Vue
+  inliners now expand both names, keep the original name on the output,
+  and always replace any `innerBlocks` snapshot saved on the reference
+  with the live part. Synced-pattern references saved as
+  `artisanpack/block` had the same gap and now resolve too. The shared
+  name lists live on `BlockShape::TEMPLATE_PART_NAMES` and
+  `BlockShape::PATTERN_REF_NAMES`.
 - **Release sourcemap archive failed to attach** — the repository uses
   GitHub's immutable releases, which block adding assets once a release
   is published, so the v1.12.0 `dist-sourcemaps-*.tar.gz` upload was

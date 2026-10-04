@@ -3,11 +3,14 @@
 /**
  * TemplatePartInliner service.
  *
- * Walks a saved Gutenberg block tree and replaces every `core/template-part`
- * block with the same block carrying its resolved part's blocks as
- * `innerBlocks`. Front-end renderers (Blade, React, Vue) consume the
- * post-inlining tree so a single recursive renderer pass produces the
- * final HTML — there is no per-renderer template-part lookup.
+ * Walks a saved Gutenberg block tree and replaces every template-part
+ * reference — `core/template-part` from theme files, or the
+ * `artisanpack/template-part` fork from templates saved in the site
+ * editor (see {@see BlockShape::TEMPLATE_PART_NAMES}) — with the same
+ * block carrying its resolved part's blocks as `innerBlocks`. Front-end
+ * renderers (Blade, React, Vue) consume the post-inlining tree so a
+ * single recursive renderer pass produces the final HTML — there is no
+ * per-renderer template-part lookup.
  *
  * Recursion guard: an in-flight stack of `theme/slug` keys catches cycles
  * (header → nav → header) and a depth counter caps how deep the resolution
@@ -29,6 +32,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditor\Resources;
 
 use ArtisanPackUI\VisualEditor\Support\BlockMarkupHydrator;
+use ArtisanPackUI\VisualEditor\Support\BlockShape;
 
 class TemplatePartInliner
 {
@@ -52,20 +56,25 @@ class TemplatePartInliner
 	}
 
 	/**
-	 * Walks `$tree` and returns a copy with every `core/template-part`
-	 * block carrying its resolved part's blocks under `innerBlocks`.
+	 * Walks `$tree` and returns a copy with every template-part block
+	 * carrying its resolved part's blocks under `innerBlocks`.
 	 *
 	 * The returned shape matches the input — the same `clientId`, `name`,
 	 * and `attributes` keys are preserved so existing renderers can render
 	 * the inlined tree without special-casing template parts. Blocks the
 	 * inliner cannot resolve (missing slug, missing part, cycle, depth
-	 * overflow) keep the `core/template-part` name and gain a synthetic
+	 * overflow) keep their original name and gain a synthetic
 	 * `_resolutionError` attribute the renderers detect.
+	 *
+	 * Any `innerBlocks` already on a template-part block are discarded:
+	 * the site editor can persist a snapshot of the part's contents into
+	 * the saved template, and trusting it would freeze a stale copy of
+	 * the part into every template that references it (#822).
 	 *
 	 * @since 1.0.0
 	 *
 	 * @param  array<int, array<string, mixed>>  $tree            Parsed block tree.
-	 * @param  ?string                           $defaultTheme    Theme to assume when a `core/template-part` block omits the `theme` attribute.
+	 * @param  ?string                           $defaultTheme    Theme to assume when a template-part block omits the `theme` attribute.
 	 *
 	 * @return array<int, array<string, mixed>>
 	 */
@@ -98,7 +107,7 @@ class TemplatePartInliner
 
 			$name = isset( $block['name'] ) && is_string( $block['name'] ) ? $block['name'] : '';
 
-			if ( 'core/template-part' === $name ) {
+			if ( in_array( $name, BlockShape::TEMPLATE_PART_NAMES, true ) ) {
 				$out[] = $this->resolvePart( $block, $defaultTheme, $stack, $depth );
 
 				continue;
@@ -164,7 +173,7 @@ class TemplatePartInliner
 
 		return [
 			'clientId'    => $block['clientId'] ?? null,
-			'name'        => 'core/template-part',
+			'name'        => $block['name'],
 			'attributes'  => array_merge( $attributes, [
 				'slug'  => $slug,
 				'theme' => $theme,
@@ -258,7 +267,7 @@ class TemplatePartInliner
 
 		return [
 			'clientId'    => $block['clientId'] ?? null,
-			'name'        => 'core/template-part',
+			'name'        => $block['name'],
 			'attributes'  => array_merge( $attributes, [
 				'slug'              => $slug,
 				'theme'             => $theme,
