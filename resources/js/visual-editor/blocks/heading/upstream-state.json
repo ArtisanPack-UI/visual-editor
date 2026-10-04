@@ -21,6 +21,7 @@
         { "fork": "save.tsx", "upstream": "save.js", "status": "adapted", "notes": "TypeScript port; verbatim semantics." },
         { "fork": "deprecated.tsx", "upstream": "deprecated.js", "status": "adapted", "notes": "Full 6-entry chain ported verbatim (v6 → v1). Imports the shared migrate-text-align primitive from blocks/_shared/." },
         { "fork": "transforms.ts", "upstream": "transforms.js", "status": "extended", "notes": "Upstream raw/prefix/enter transforms preserved (namespaced to artisanpack/heading); added bidirectional block transforms for core/heading ↔ artisanpack/heading and accepts artisanpack/paragraph as a from-source." },
+        { "fork": "variations.ts", "upstream": "variations.js", "status": "adapted", "notes": "TypeScript port; the h1–h6 variations are the toolbar's level picker (#825)." },
         { "fork": "autogenerate-anchors.ts", "upstream": "autogenerate-anchors.js", "status": "adapted", "notes": "TypeScript port; behavior unchanged." },
         { "fork": "heading.css", "upstream": "style.scss", "status": "adapted", "notes": "Sass variables resolved inline ($block-bg-padding--v → 1.25em, --h → 2.375em)." },
         { "fork": "inserter-icon.tsx", "upstream": "n/a", "status": "added", "notes": "Inline SVG for the inserter (editor doesn't bundle dashicons)." },

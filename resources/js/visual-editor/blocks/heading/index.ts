@@ -1,10 +1,10 @@
 /**
  * Heading block entrypoint.
  *
- * Re-exports `edit`, `save`, `metadata`, `deprecated`, `transforms`, and
- * `icon` so the host JS bundle (via the custom-block auto-discovery glob —
- * see `../../editor/custom-blocks.ts`) can register the block with
- * `@wordpress/blocks.registerBlockType`.
+ * Re-exports `edit`, `save`, `metadata`, `deprecated`, `transforms`,
+ * `variations`, and `icon` so the host JS bundle (via the custom-block
+ * auto-discovery glob — see `../../editor/custom-blocks.ts`) can register
+ * the block with `@wordpress/blocks.registerBlockType`.
  *
  * Fork target: V2 block-fork phase I1 (content cluster, issue #409).
  */
@@ -14,11 +14,12 @@ import edit from './edit';
 import save from './save';
 import deprecated from './deprecated';
 import transforms from './transforms';
+import variations from './variations';
 import icon from './inserter-icon';
 
 import './heading.css';
 
-export { edit, save, metadata, icon, deprecated, transforms };
+export { edit, save, metadata, icon, deprecated, transforms, variations };
 
 export default {
     name: metadata.name,
@@ -28,4 +29,5 @@ export default {
     icon,
     deprecated,
     transforms,
+    variations,
 };
