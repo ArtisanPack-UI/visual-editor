@@ -5,6 +5,7 @@ import {
     findTemplate,
     inlineTemplateParts,
     resolveTemplate,
+    TEMPLATE_PART_BLOCK_NAMES,
     templateFallbackChain,
 } from '../src/templateParts';
 import type { Block } from '../src/types';
@@ -202,5 +203,61 @@ describe('inlineTemplateParts', () => {
         const inlined = inlineTemplateParts(tree, { parts });
 
         expect(inlined[0].innerBlocks?.[0].attributes?.content).toBe('Themed');
+    });
+
+    describe('artisanpack/template-part fork (#822)', () => {
+        function forkRef(slug: string, clientId = 'tp-fork'): Block {
+            return {
+                clientId,
+                name: 'artisanpack/template-part',
+                attributes: { slug, theme: 'artisanpack-base' },
+                innerBlocks: [],
+            };
+        }
+
+        it('treats both core and fork names as template-part references', () => {
+            expect(TEMPLATE_PART_BLOCK_NAMES.has('core/template-part')).toBe(true);
+            expect(TEMPLATE_PART_BLOCK_NAMES.has('artisanpack/template-part')).toBe(true);
+        });
+
+        it('inlines a fork-named part and keeps the fork name', () => {
+            const parts = [{ slug: 'header', theme: 'artisanpack-base', blocks: [paragraph('H')] }];
+
+            const inlined = inlineTemplateParts([forkRef('header')], { parts });
+
+            expect(inlined[0].name).toBe('artisanpack/template-part');
+            expect(inlined[0].innerBlocks?.[0].attributes?.content).toBe('H');
+        });
+
+        it('replaces a stale innerBlocks snapshot saved on the fork block', () => {
+            const parts = [{ slug: 'header', theme: 'artisanpack-base', blocks: [paragraph('Live')] }];
+            const stale = { ...forkRef('header'), innerBlocks: [paragraph('Stale snapshot')] };
+
+            const inlined = inlineTemplateParts([stale], { parts });
+
+            expect(inlined[0].innerBlocks).toHaveLength(1);
+            expect(inlined[0].innerBlocks?.[0].attributes?.content).toBe('Live');
+        });
+
+        it('marks an unknown fork-named slug as not-found and keeps the fork name', () => {
+            const inlined = inlineTemplateParts([forkRef('never-created')], { parts: [] });
+
+            expect(inlined[0].name).toBe('artisanpack/template-part');
+            expect(inlined[0].attributes?._resolutionError).toBe('not-found');
+            expect(inlined[0].innerBlocks).toEqual([]);
+        });
+
+        it('detects cycles across mixed core and fork references', () => {
+            const parts = [
+                { slug: 'a', theme: 'artisanpack-base', blocks: [partRef('b')] },
+                { slug: 'b', theme: 'artisanpack-base', blocks: [forkRef('a')] },
+            ];
+
+            const inlined = inlineTemplateParts([forkRef('a')], { parts });
+            const cycleNode = inlined[0].innerBlocks?.[0].innerBlocks?.[0];
+
+            expect(cycleNode?.name).toBe('artisanpack/template-part');
+            expect(cycleNode?.attributes?._resolutionError).toBe('cycle');
+        });
     });
 });

@@ -7,7 +7,7 @@
  * inlined block tree without round-tripping to the server. Hosts pass a
  * pre-fetched list of `templates` and `templateParts`; this module walks
  * the WordPress-style fallback chain and recursively splices each
- * `core/template-part` reference's blocks into the output tree.
+ * template-part reference's blocks into the output tree.
  *
  * Recursion guard: an in-flight stack of `theme/slug` keys catches
  * cycles (header → nav → header) and a depth counter caps how deep the
@@ -21,6 +21,17 @@
 import type { Block } from './types';
 
 export const DEFAULT_MAX_TEMPLATE_PART_DEPTH = 10;
+
+/**
+ * Block names that reference a template part. Theme files ship
+ * `core/template-part`; templates saved from the site editor store the
+ * `artisanpack/template-part` fork (#822). Mirrors the server-side
+ * `BlockShape::TEMPLATE_PART_NAMES`.
+ */
+export const TEMPLATE_PART_BLOCK_NAMES: ReadonlySet<string> = new Set([
+    'core/template-part',
+    'artisanpack/template-part',
+]);
 
 export type TemplatePartResolutionError =
     | 'missing-slug'
@@ -140,7 +151,7 @@ function walk(tree: Block[], context: WalkContext): Block[] {
 
         const name = typeof block.name === 'string' ? block.name : '';
 
-        if (name === 'core/template-part') {
+        if (TEMPLATE_PART_BLOCK_NAMES.has(name)) {
             out.push(resolvePart(block, context));
 
             continue;
@@ -195,7 +206,7 @@ function resolvePart(block: Block, context: WalkContext): Block {
 
     return {
         clientId: block.clientId,
-        name: 'core/template-part',
+        name: block.name,
         attributes: {
             ...attrs,
             slug,
@@ -236,7 +247,7 @@ function markUnresolved(
 ): Block {
     return {
         clientId: block.clientId,
-        name: 'core/template-part',
+        name: block.name,
         attributes: {
             ...(block.attributes ?? {}),
             slug,

@@ -32,6 +32,37 @@ namespace ArtisanPackUI\VisualEditor\Support;
 class BlockShape
 {
 	/**
+	 * Block names that reference a template part. Theme files ship
+	 * `core/template-part`; templates saved from the site editor store
+	 * the `artisanpack/template-part` fork because `TemplateAdapter`
+	 * rewrites core names on read (#415, #674). Every walker that
+	 * expands or collects part references must accept both (#822).
+	 *
+	 * @since 1.12.1
+	 *
+	 * @var array<int, string>
+	 */
+	public const TEMPLATE_PART_NAMES = [
+		'core/template-part',
+		'artisanpack/template-part',
+	];
+
+	/**
+	 * Block names that reference a synced pattern. Same fork split as
+	 * {@see self::TEMPLATE_PART_NAMES}: `core/block` from the editor and
+	 * theme files, `artisanpack/block` from a saved template whose theme
+	 * source carried a `wp:block` reference (#822).
+	 *
+	 * @since 1.12.1
+	 *
+	 * @var array<int, string>
+	 */
+	public const PATTERN_REF_NAMES = [
+		'core/block',
+		'artisanpack/block',
+	];
+
+	/**
 	 * Return which key the block uses for its attributes bag, and the
 	 * bag itself, in a tuple.
 	 *

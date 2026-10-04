@@ -3,12 +3,15 @@
 /**
  * PatternInliner service.
  *
- * Walks a saved Gutenberg block tree and replaces every `core/block`
- * (synced-pattern reference) with the same block carrying its resolved
- * pattern's blocks as `innerBlocks`. Front-end renderers (Blade, React,
- * Vue) consume the post-inlining tree so a single recursive renderer
- * pass produces the final HTML — there is no per-renderer pattern
- * lookup.
+ * Walks a saved Gutenberg block tree and replaces every synced-pattern
+ * reference (`core/block`, or the `artisanpack/block` fork a saved
+ * template can carry — see {@see BlockShape::PATTERN_REF_NAMES}) with a
+ * `core/block` carrying its resolved pattern's blocks as `innerBlocks`.
+ * The output is always named `core/block` because that is the only
+ * pattern-reference name the renderers register. Front-end renderers
+ * (Blade, React, Vue) consume the post-inlining tree so a single
+ * recursive renderer pass produces the final HTML — there is no
+ * per-renderer pattern lookup.
  *
  * Only synced patterns reach this resolver. Unsynced patterns
  * (`synced: false`) are inlined into the target block tree at insert
@@ -36,6 +39,8 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Resources;
 
+use ArtisanPackUI\VisualEditor\Support\BlockShape;
+
 class PatternInliner
 {
 	/**
@@ -58,7 +63,7 @@ class PatternInliner
 	}
 
 	/**
-	 * Walks `$tree` and returns a copy with every `core/block` reference
+	 * Walks `$tree` and returns a copy with every synced-pattern reference
 	 * carrying its resolved pattern's blocks under `innerBlocks`.
 	 *
 	 * The returned shape matches the input — the same `clientId`, `name`,
@@ -103,7 +108,7 @@ class PatternInliner
 
 			$name = isset( $block['name'] ) && is_string( $block['name'] ) ? $block['name'] : '';
 
-			if ( 'core/block' === $name ) {
+			if ( in_array( $name, BlockShape::PATTERN_REF_NAMES, true ) ) {
 				$out[] = $this->resolvePattern( $block, $stack, $depth );
 
 				continue;
