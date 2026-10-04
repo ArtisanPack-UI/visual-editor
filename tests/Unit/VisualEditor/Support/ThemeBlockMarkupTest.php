@@ -155,6 +155,50 @@ describe( 'rewriteCoreToFork', function (): void {
 	it( 'returns an empty list unchanged', function (): void {
 		expect( ThemeBlockMarkup::rewriteCoreToFork( [] ) )->toBe( [] );
 	} );
+
+	it( 'keeps synced-pattern references as `core/block` (#824)', function (): void {
+		$out = ThemeBlockMarkup::rewriteCoreToFork( [
+			[
+				'name'        => 'core/group',
+				'attributes'  => [],
+				'innerBlocks' => [
+					[ 'name' => 'core/block', 'attributes' => [ 'ref' => 7 ], 'innerBlocks' => [] ],
+				],
+			],
+			[ 'name' => 'core/block', 'attributes' => [ 'ref' => 1 ], 'innerBlocks' => [] ],
+		] );
+
+		expect( $out[0]['name'] )->toBe( 'artisanpack/group' )
+			->and( $out[0]['innerBlocks'][0]['name'] )->toBe( 'core/block' )
+			->and( $out[0]['innerBlocks'][0]['attributes'] )->toBe( [ 'ref' => 7 ] )
+			->and( $out[1]['name'] )->toBe( 'core/block' );
+	} );
+
+	it( 'heals legacy `artisanpack/block` references back to `core/block` (#824)', function (): void {
+		$out = ThemeBlockMarkup::rewriteCoreToFork( [
+			[ 'name' => 'artisanpack/block', 'attributes' => [ 'ref' => 3 ], 'innerBlocks' => [] ],
+			[
+				'name'        => 'artisanpack/group',
+				'attributes'  => [],
+				'innerBlocks' => [
+					[ 'name' => 'artisanpack/block', 'attributes' => [ 'ref' => 4 ], 'innerBlocks' => [] ],
+				],
+			],
+		] );
+
+		expect( $out[0]['name'] )->toBe( 'core/block' )
+			->and( $out[0]['attributes'] )->toBe( [ 'ref' => 3 ] )
+			->and( $out[1]['name'] )->toBe( 'artisanpack/group' )
+			->and( $out[1]['innerBlocks'][0]['name'] )->toBe( 'core/block' );
+	} );
+
+	it( 'does not heal fork names that only start with `artisanpack/block`', function (): void {
+		$out = ThemeBlockMarkup::rewriteCoreToFork( [
+			[ 'name' => 'artisanpack/block-quote', 'attributes' => [], 'innerBlocks' => [] ],
+		] );
+
+		expect( $out[0]['name'] )->toBe( 'artisanpack/block-quote' );
+	} );
 } );
 
 it( 'returns an empty tree for blank raw markup without needing the parser', function (): void {

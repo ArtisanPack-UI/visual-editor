@@ -115,10 +115,14 @@ class ThemeBlockMarkup
 	 * #808 — the editor now registers it directly, and its parent-
 	 * locked inner-block family (`core/navigation-link`,
 	 * `core/navigation-submenu`, `core/page-list`, `core/home-link`,
-	 * `core/loginout`) was never forked. Rewriting them would send the
-	 * editor a name it doesn't have a block-type for and render nothing.
+	 * `core/loginout`) was never forked. `core/block` (synced-pattern
+	 * references, #824) was never forked either — the editor's pattern
+	 * code creates and checks `core/block` by name. Rewriting any of them
+	 * would send the editor a name it doesn't have a block-type for and
+	 * render nothing.
 	 */
 	protected const CORE_NAMES_NOT_TO_FORK = [
+		'core/block'              => true,
 		'core/navigation'         => true,
 		'core/navigation-link'    => true,
 		'core/navigation-submenu' => true,
@@ -126,6 +130,19 @@ class ThemeBlockMarkup
 		'core/page-list-item'     => true,
 		'core/home-link'          => true,
 		'core/loginout'           => true,
+	];
+
+	/**
+	 * Fork names the editor has no block-type for, mapped back to the
+	 * `core/*` name it does register. Before #824 the blanket rewrite
+	 * turned theme `wp:block` refs into `artisanpack/block`, and a save
+	 * wrote that into `templates.block_content`; translating it back on
+	 * read heals the stored rows without a data migration.
+	 *
+	 * @since 1.12.1
+	 */
+	protected const LEGACY_FORK_NAMES_TO_CORE = [
+		'artisanpack/block' => 'core/block',
 	];
 
 	/**
@@ -143,7 +160,9 @@ class ThemeBlockMarkup
 	 * block. A core name with no fork is unregistered under either
 	 * namespace, so the blanket rewrite costs nothing there. Names in
 	 * {@see self::CORE_NAMES_NOT_TO_FORK} are the exception — those
-	 * `core/*` blocks are registered directly and must stay as-is.
+	 * `core/*` blocks are registered directly and must stay as-is — and
+	 * names in {@see self::LEGACY_FORK_NAMES_TO_CORE} are translated back
+	 * to their registered `core/*` name.
 	 *
 	 * @since 1.6.0
 	 *
@@ -169,6 +188,8 @@ class ThemeBlockMarkup
 				&& ! isset( self::CORE_NAMES_NOT_TO_FORK[ $name ] )
 			) {
 				$block['name'] = 'artisanpack/' . substr( $name, strlen( 'core/' ) );
+			} elseif ( is_string( $name ) && isset( self::LEGACY_FORK_NAMES_TO_CORE[ $name ] ) ) {
+				$block['name'] = self::LEGACY_FORK_NAMES_TO_CORE[ $name ];
 			}
 
 			if ( is_array( $block['innerBlocks'] ?? null ) && [] !== $block['innerBlocks'] ) {

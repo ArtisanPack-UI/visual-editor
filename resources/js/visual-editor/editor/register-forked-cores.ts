@@ -1,6 +1,6 @@
 /**
- * Register the upstream `core/navigation` family that the artisanpack
- * block set does not fork.
+ * Register the upstream `core/*` blocks that the artisanpack block set
+ * does not fork: the `core/navigation` family and `core/block`.
  *
  * ## Why
  *
@@ -16,6 +16,13 @@
  * `core/navigation-submenu`, `core/page-list`, `core/home-link`,
  * `core/loginout`) must register alongside it or the block's edit
  * surface refuses to build a menu.
+ *
+ * `core/block` (synced-pattern references) was never forked either: the
+ * editor's pattern code creates and checks it by name
+ * (`convert-to-pattern-control.tsx`, `inserter-patterns-panel.tsx`,
+ * `synced-pattern-indicator.tsx`), and theme templates reference synced
+ * patterns as `wp:block`. Without a registration the reference mounts
+ * as a missing block (#824).
  *
  * ## What
  *
@@ -49,6 +56,7 @@ import { init as initPageList } from '@wordpress/block-library/build-module/page
 import { init as initPageListItem } from '@wordpress/block-library/build-module/page-list-item/index.mjs';
 import { init as initHomeLink } from '@wordpress/block-library/build-module/home-link/index.mjs';
 import { init as initLoginout } from '@wordpress/block-library/build-module/loginout/index.mjs';
+import { init as initSyncedPattern } from '@wordpress/block-library/build-module/block/index.mjs';
 
 import { getBlockType } from '@wordpress/blocks';
 import { addFilter, hasFilter } from '@wordpress/hooks';
@@ -137,12 +145,13 @@ const FORKED_CORE_INITS: ReadonlyArray<[string, () => unknown]> = [
     ['core/page-list-item', initPageListItem],
     ['core/home-link', initHomeLink],
     ['core/loginout', initLoginout],
+    ['core/block', initSyncedPattern],
 ];
 
 /**
- * Register the upstream `core/navigation` family. Safe to call multiple
- * times — each `init` is skipped when its block type is already
- * registered.
+ * Register the upstream `core/navigation` family and `core/block`. Safe
+ * to call multiple times — each `init` is skipped when its block type is
+ * already registered.
  */
 export function registerForkedCoreBlocks(): void {
     // Install the inserter-suppression filter FIRST so any forked block

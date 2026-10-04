@@ -1,7 +1,7 @@
 /**
  * `registerForkedCoreBlocks()` — idempotent registration of the upstream
- * `core/navigation` family plus the `core/navigation` animations opt-in
- * (#808 follow-up).
+ * `core/navigation` family and `core/block` (#824), plus the
+ * `core/navigation` animations opt-in (#808 follow-up).
  *
  * Uses the real `@wordpress/blocks` registry. Each upstream `init` is
  * replaced with the same unguarded `registerBlockType` call
@@ -41,6 +41,9 @@ vi.mock('@wordpress/block-library/build-module/home-link/index.mjs', async () =>
 vi.mock('@wordpress/block-library/build-module/loginout/index.mjs', async () =>
     (await import('./wp-blocks-cjs')).fakeUpstreamInit('core/loginout'),
 );
+vi.mock('@wordpress/block-library/build-module/block/index.mjs', async () =>
+    (await import('./wp-blocks-cjs')).fakeUpstreamInit('core/block'),
+);
 import { getBlockType } from '@wordpress/blocks';
 
 import { registerAnimationsAttribute } from '../../../animations/register-attribute';
@@ -74,6 +77,12 @@ describe('registerForkedCoreBlocks', () => {
         for (const name of FAMILY) {
             expect(getBlockType(name), name).toBeDefined();
         }
+    });
+
+    it('registers core/block so synced-pattern references mount (#824)', () => {
+        registerForkedCoreBlocks();
+
+        expect(getBlockType('core/block')).toBeDefined();
     });
 
     it('is idempotent — a second boot neither throws nor logs duplicate registration', () => {
