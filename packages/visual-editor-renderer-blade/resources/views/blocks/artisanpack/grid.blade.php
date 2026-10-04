@@ -18,8 +18,9 @@
 
 	// Per-breakpoint overrides. Mobile-first CSS cascade handles the rest:
 	// emit `ap-grid-has-N-{bp}-columns` for every breakpoint that carries
-	// its own value. Ascending min-width ordering in grid.css means a
-	// later breakpoint's class wins for the wider viewport.
+	// its own value. grid.css orders the legacy min-width blocks
+	// ascending and the desktop-first `tablet` / `mobile` max-width
+	// blocks after them, so the narrower override wins (#820).
 	$breakpointClasses = [ 'ap-grid-has-' . $baseColumns . '-base-columns' ];
 
 	$responsiveColumns = $attributes['responsive']['numColumns'] ?? [];
@@ -34,7 +35,7 @@
 			if ( ! is_numeric( $value ) ) {
 				continue;
 			}
-			if ( null === $registry->get( (string) $bp ) ) {
+			if ( ! $registry->has( (string) $bp ) ) {
 				continue;
 			}
 
@@ -71,7 +72,7 @@
 				if ( ! is_numeric( $value ) ) {
 					continue;
 				}
-				if ( null === $registry->get( (string) $bp ) ) {
+				if ( ! $registry->has( (string) $bp ) ) {
 					continue;
 				}
 

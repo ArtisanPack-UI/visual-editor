@@ -69,8 +69,19 @@ class GlobalStylesEmissionResolver
 		// built from the resolved settings and placed *before* the emitter
 		// output, so theme / style-variation / user values always win the
 		// `:root` cascade over the fallback.
-		$spacing = PresetRegistry::spacingPresetsCss( PresetRegistry::activeThemeSpacingSizes() );
+		$settings = PresetRegistry::activeThemeSettings();
+		$spacing  = PresetRegistry::spacingPresetsCss( $settings['spacing']['spacingSizes'] ?? null );
 
-		return '' === $spacing ? $css : $spacing . "\n\n" . $css;
+		// #821 — the same treatment for the layout tokens and the font-size
+		// / palette presets, so a theme that ships none still resolves the
+		// values the editor's pickers offer. Also placed before the
+		// emitter output so theme values win.
+		$defaults = array_filter( [
+			PresetRegistry::layoutDefaultsCss(),
+			$spacing,
+			PresetRegistry::presetDefaultsCss( $settings ),
+		], static fn ( string $part ): bool => '' !== $part );
+
+		return implode( "\n\n", [ ...$defaults, $css ] );
 	}
 }

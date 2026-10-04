@@ -17,6 +17,7 @@ use ArtisanPackUI\Ai\Agents\ArtisanPackAgent;
 use ArtisanPackUI\Ai\Contracts\AgentPrompter;
 use ArtisanPackUI\Ai\Credentials\Credentials;
 use ArtisanPackUI\Ai\Exceptions\FeatureError;
+use ArtisanPackUI\VisualEditor\Ai\Support\BlockPayloadLimiter;
 use JsonException;
 
 /**
@@ -58,6 +59,24 @@ use JsonException;
  */
 class LayoutSuggestionAgent extends ArtisanPackAgent
 {
+	/**
+	 * Most pattern slugs sent to the model (#828 hardening).
+	 *
+	 * @since 1.12.1
+	 *
+	 * @var int
+	 */
+	public const MAX_PATTERNS = 200;
+
+	/**
+	 * Longest pattern slug accepted (#828 hardening).
+	 *
+	 * @since 1.12.1
+	 *
+	 * @var int
+	 */
+	public const MAX_PATTERN_LENGTH = 128;
+
 	/**
 	 * {@inheritDoc}
 	 */
@@ -166,6 +185,8 @@ PROMPT;
 			throw FeatureError::forFeature( $this->featureKey, '`section_content` must be an array.' );
 		}
 
+		BlockPayloadLimiter::assertTreeWithinLimits( $input['section_content'], $this->featureKey );
+
 		if ( ! isset( $input['available_patterns'] ) || ! is_array( $input['available_patterns'] ) ) {
 			throw FeatureError::forFeature( $this->featureKey, '`available_patterns` must be an array of pattern slugs.' );
 		}
@@ -179,6 +200,24 @@ PROMPT;
 
 		if ( [] === $patterns ) {
 			throw FeatureError::forFeature( $this->featureKey, '`available_patterns` must contain at least one non-empty slug.' );
+		}
+
+		$patterns = array_values( array_unique( $patterns ) );
+
+		if ( count( $patterns ) > self::MAX_PATTERNS ) {
+			throw FeatureError::forFeature(
+				$this->featureKey,
+				sprintf( '`available_patterns` may list at most %d slugs.', self::MAX_PATTERNS ),
+			);
+		}
+
+		foreach ( $patterns as $slug ) {
+			if ( mb_strlen( $slug ) > self::MAX_PATTERN_LENGTH ) {
+				throw FeatureError::forFeature(
+					$this->featureKey,
+					sprintf( 'pattern slugs may be at most %d characters.', self::MAX_PATTERN_LENGTH ),
+				);
+			}
 		}
 
 		return [
@@ -207,9 +246,14 @@ PROMPT;
 			);
 		}
 
+		$patterns = implode( ', ', $input['available_patterns'] );
+
+		// The byte cap covers everything sent, patterns included.
+		BlockPayloadLimiter::assertSerializedWithinLimit( $content . $patterns, $this->featureKey );
+
 		return [
 			[ 'type' => 'text', 'text' => sprintf( 'Section content: %s', $content ) ],
-			[ 'type' => 'text', 'text' => 'Available patterns: ' . implode( ', ', $input['available_patterns'] ) ],
+			[ 'type' => 'text', 'text' => 'Available patterns: ' . $patterns ],
 		];
 	}
 

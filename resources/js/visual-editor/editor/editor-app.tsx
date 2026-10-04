@@ -54,7 +54,7 @@ import { registerAnimationsAttribute } from '../animations/register-attribute';
 import { registerAnimationsPanel } from '../animations/with-animations-panel';
 import { registerVisibilityAttribute } from '../visibility/register-attribute';
 import { registerVisibilityPanel, setVisibilityBreakpoints, setVisibilityRoles } from '../visibility/with-visibility-panel';
-import { registryFromSnapshot } from '../responsive/registry';
+import { registryFromSnapshot, setResponsiveRegistry } from '../responsive/registry';
 import type { BreakpointRegistrySnapshot } from '../responsive/types';
 import { useCanvasPreviewWidth } from '../responsive/use-canvas-preview-width';
 import {
@@ -558,17 +558,23 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
     // `label` / `previewWidthPx` overrides reach the UI. When the
     // host omits the snapshot, `registryFromSnapshot` falls back to
     // the ship defaults.
-    const viewportRegistry = useMemo(
-        () => registryFromSnapshot(props.breakpoints ?? undefined),
-        [props.breakpoints]
-    );
+    // Published synchronously (#820) so the responsive-attributes HOC and
+    // the style hooks cascade against the host's breakpoints on the very
+    // first block render.
+    const viewportRegistry = useMemo(() => {
+        const registry = registryFromSnapshot(props.breakpoints ?? undefined);
+        setResponsiveRegistry(registry);
+        return registry;
+    }, [props.breakpoints]);
     // Publish the hydrated breakpoint list to the Visibility panel so
     // its Screen Size subsection lists every registered viewport
     // (sm / md / lg / xl / 2xl + host overrides), not just the three
-    // fallback entries baked into with-visibility-panel.tsx.
+    // fallback entries baked into with-visibility-panel.tsx. Screen-size
+    // visibility still builds its ranges from the min-width entries, so
+    // only those are offered (#820).
     useEffect(() => {
         setVisibilityBreakpoints(
-            viewportRegistry.prefixes().map((key: string) => ({
+            viewportRegistry.legacyPrefixes().map((key: string) => ({
                 key,
                 label: viewportRegistry.label(key),
             })),

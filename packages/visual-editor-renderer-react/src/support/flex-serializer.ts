@@ -22,6 +22,16 @@ const TAILWIND_DEFAULTS: ReadonlyArray<{ key: string; minWidthPx: number }> = [
 	{ key: '2xl', minWidthPx: 1536 },
 ]
 
+/**
+ * Desktop-first device breakpoints (#820), largest first. They follow
+ * the legacy mobile-first keys in emission order so a narrower
+ * override wins. Mirrors the editor's `DEVICE_DEFAULTS`.
+ */
+const DEVICE_DEFAULTS: ReadonlyArray<{ key: string; maxWidthPx: number }> = [
+	{ key: 'tablet', maxWidthPx: 1023 },
+	{ key: 'mobile', maxWidthPx: 767 },
+]
+
 const JUSTIFY_TOKEN: Record<string, string> = {
 	'flex-start': 'start',
 	'flex-end': 'end',
@@ -108,7 +118,30 @@ export interface ArbitraryRule {
 }
 
 function keysWithBase(): string[] {
-	return [ BASE_KEY, ...TAILWIND_DEFAULTS.map( ( b ) => b.key ) ]
+	return [ BASE_KEY, ...TAILWIND_DEFAULTS.map( ( b ) => b.key ), ...DEVICE_DEFAULTS.map( ( b ) => b.key ) ]
+}
+
+/**
+ * Keys applying at a breakpoint, highest precedence first. Legacy keys
+ * cascade up from base; device keys cascade down from base — Mobile
+ * inherits from Tablet (#820).
+ */
+function cascadeFor( breakpoint: string ): string[] {
+	const legacy = TAILWIND_DEFAULTS.map( ( b ) => b.key )
+	const legacyIndex = legacy.indexOf( breakpoint )
+
+	if ( -1 !== legacyIndex ) {
+		return [ ...legacy.slice( 0, legacyIndex + 1 ).reverse(), BASE_KEY ]
+	}
+
+	const devices = DEVICE_DEFAULTS.map( ( b ) => b.key )
+	const deviceIndex = devices.indexOf( breakpoint )
+
+	if ( -1 !== deviceIndex ) {
+		return [ ...devices.slice( 0, deviceIndex + 1 ).reverse(), BASE_KEY ]
+	}
+
+	return [ BASE_KEY ]
 }
 
 function resolveValue<T>( attribute: unknown, breakpoint: string ): T | null {
@@ -121,10 +154,7 @@ function resolveValue<T>( attribute: unknown, breakpoint: string ): T | null {
 	}
 
 	const obj = attribute as Record<string, T | null | undefined>
-	const cascade = ( BASE_KEY === breakpoint
-		? [ BASE_KEY ]
-		: keysWithBase().slice( 0, keysWithBase().indexOf( breakpoint ) + 1 ).reverse()
-	)
+	const cascade = cascadeFor( breakpoint )
 
 	for ( const key of cascade ) {
 		if ( ! ( key in obj ) ) {
@@ -145,7 +175,7 @@ function distinctOverrides<T>( attribute: unknown ): Record<string, T> {
 	let previous: T | null       = null
 	let first                    = true
 
-	for ( const key of keysWithBase() ) {
+	for ( const key of [ BASE_KEY, ...TAILWIND_DEFAULTS.map( ( b ) => b.key ) ] ) {
 		const value = resolveValue<T>( attribute, key )
 		if ( null === value ) {
 			continue
@@ -155,6 +185,24 @@ function distinctOverrides<T>( attribute: unknown ): Record<string, T> {
 			previous   = value
 			first      = false
 		}
+	}
+
+	// Device keys (#820) compare down the max-width chain from base. With
+	// legacy keys also set, keep device values so they can override them.
+	const obj = null !== attribute && 'object' === typeof attribute && ! Array.isArray( attribute )
+		? ( attribute as Record<string, unknown> )
+		: {}
+	const hasLegacy = TAILWIND_DEFAULTS.some( ( { key } ) => null !== obj[ key ] && undefined !== obj[ key ] )
+	previous = resolveValue<T>( attribute, BASE_KEY )
+	for ( const { key } of DEVICE_DEFAULTS ) {
+		const value = hasLegacy ? ( ( obj[ key ] as T | null | undefined ) ?? null ) : resolveValue<T>( attribute, key )
+		if ( null === value ) {
+			continue
+		}
+		if ( hasLegacy || value !== previous ) {
+			out[ key ] = value
+		}
+		previous = value
 	}
 	return out
 }
@@ -318,7 +366,8 @@ export function flexClassNames( flex: unknown ): string[] {
  * Groups rules by breakpoint, escapes CSS-significant characters in the
  * class selector (matches Tailwind's arbitrary-value escaping for `[`,
  * `]`, `:`, `.`, etc.), and wraps non-base breakpoints in a
- * `@media (min-width: …)` block.
+ * `@media (min-width: …)` block (legacy keys) or `@media (max-width: …)`
+ * block (desktop-first device keys, #820).
  *
  * Returns an empty string when no rules are present so callers can
  * conditionally skip rendering the `<style>` element.
@@ -335,7 +384,7 @@ export function buildArbitraryStyles( rules: readonly ArbitraryRule[] ): string 
 		grouped[ rule.breakpoint ] = bucket
 	}
 
-	const ordered: string[] = [ BASE_KEY, ...TAILWIND_DEFAULTS.map( ( bp ) => bp.key ) ]
+	const ordered: string[] = keysWithBase()
 
 	let out = ''
 	for ( const bp of ordered ) {
@@ -370,12 +419,13 @@ export function buildArbitraryStyles( rules: readonly ArbitraryRule[] ): string 
 			continue
 		}
 
-		const def = TAILWIND_DEFAULTS.find( ( entry ) => entry.key === bp )
-		if ( ! def ) {
-			continue
+		const legacy = TAILWIND_DEFAULTS.find( ( entry ) => entry.key === bp )
+		const device = DEVICE_DEFAULTS.find( ( entry ) => entry.key === bp )
+		if ( legacy ) {
+			out += `@media (min-width: ${ legacy.minWidthPx }px) { ${ body }} `
+		} else if ( device ) {
+			out += `@media (max-width: ${ device.maxWidthPx }px) { ${ body }} `
 		}
-
-		out += `@media (min-width: ${ def.minWidthPx }px) { ${ body }} `
 	}
 
 	return out.trim()

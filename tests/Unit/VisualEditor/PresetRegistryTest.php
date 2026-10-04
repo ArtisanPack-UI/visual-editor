@@ -420,9 +420,15 @@ describe( 'isSafeCssValue() (#814)', function () {
 it( 'keeps the React / Vue renderers\' DEFAULT_SPACING_SIZES in sync with the package defaults (#814)', function ( string $renderer ) {
 	$source = (string) file_get_contents( dirname( __DIR__, 3 ) . '/packages/visual-editor-renderer-' . $renderer . '/src/support/layoutBaselineCss.ts' );
 
-	preg_match_all( "/\\{ slug: '([^']+)', size: '([^']+)' \\}/", $source, $matches, PREG_SET_ORDER );
+	$list = static function ( string $constant, string $valueKey ) use ( $source ): array {
+		preg_match( '/export const ' . $constant . '\\b[^=]*= \\[(.*?)\\];/s', $source, $block );
+		preg_match_all( "/\\{ slug: '([^']+)', {$valueKey}: '([^']+)' \\}/", $block[1] ?? '', $matches, PREG_SET_ORDER );
 
-	$fromTs = array_map( static fn ( array $match ): array => [ 'slug' => $match[1], 'size' => $match[2] ], $matches );
+		return array_map( static fn ( array $match ): array => [ 'slug' => $match[1], $valueKey => $match[2] ], $matches );
+	};
 
-	expect( $fromTs )->toBe( PresetRegistry::DEFAULT_SPACING_SIZES );
+	expect( $list( 'DEFAULT_SPACING_SIZES', 'size' ) )->toBe( PresetRegistry::DEFAULT_SPACING_SIZES );
+	// #821 — and the font-size / palette defaults.
+	expect( $list( 'DEFAULT_FONT_SIZES', 'size' ) )->toBe( PresetRegistry::DEFAULT_FONT_SIZES );
+	expect( $list( 'DEFAULT_PALETTE', 'color' ) )->toBe( PresetRegistry::DEFAULT_PALETTE );
 } )->with( [ 'react', 'vue' ] );

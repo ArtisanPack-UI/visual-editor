@@ -1245,7 +1245,12 @@ class BlockSupports
 
 			$property = self::RESPONSIVE_CSS_PROPERTY_MAP[ $path ];
 
-			foreach ( $overrides as $breakpoint => $value ) {
+			// Registry emission order, not storage order: legacy min-width
+			// rules ascending, then desktop-first max-width rules from
+			// largest to smallest so the narrower override wins (#820).
+			foreach ( $registry->keysWithBase() as $breakpoint ) {
+				$value = $overrides[ $breakpoint ] ?? null;
+
 				if ( null === $value || '' === $value ) {
 					continue;
 				}
@@ -1262,15 +1267,15 @@ class BlockSupports
 					continue;
 				}
 
-				$minWidth = $registry->get( (string) $breakpoint );
+				$query = $registry->mediaQuery( $breakpoint );
 
-				if ( null === $minWidth ) {
+				if ( null === $query ) {
 					continue;
 				}
 
 				$rules[] = sprintf(
-					'@media (min-width:%dpx){%s{%s}}',
-					$minWidth,
+					'@media %s{%s{%s}}',
+					$query,
 					$selector,
 					$declarations
 				);

@@ -54,7 +54,8 @@ it( 'prepends the in-effect spacing presets before the emitter output (#814)', f
 	$css = ( new GlobalStylesEmissionResolver() )->emit();
 
 	expect( $css )
-		->toStartWith( ":root {\n\t--wp--preset--spacing--20: 0.5rem;" )
+		->toStartWith( ':where(:root) {' )
+		->toContain( ":root {\n\t--wp--preset--spacing--20: 0.5rem;" )
 		->toEndWith( ":root {\n\t--wp--preset--color--primary: #000;\n}" )
 		->toContain( '--wp--preset--spacing--40: 1.5rem;' );
 } );
@@ -85,4 +86,19 @@ it( 'emits nothing when the emitter has no output, keeping the #434 contract (#8
 	fakeGlobalStylesEmitter( '' );
 
 	expect( ( new GlobalStylesEmissionResolver() )->emit() )->toBe( '' );
+} );
+
+it( 'prepends font-size, palette and layout defaults when the theme ships none (#821)', function (): void {
+	fakeGlobalStylesEmitter( ":root {\n\t--wp--preset--color--primary: #000;\n}\n" );
+	fakeResolvedSpacingSizes( null );
+
+	$css = ( new GlobalStylesEmissionResolver() )->emit();
+
+	expect( $css )
+		->toContain( '--wp--style--global--content-size: 720px;' )
+		->toContain( '--wp--preset--font-size--large: 28px;' )
+		->toContain( '.has-large-font-size { font-size: var(--wp--preset--font-size--large) !important; }' )
+		->toContain( '--wp--preset--color--accent: #9333ea;' )
+		// Emitter output stays last so theme / user values win.
+		->toEndWith( ":root {\n\t--wp--preset--color--primary: #000;\n}" );
 } );

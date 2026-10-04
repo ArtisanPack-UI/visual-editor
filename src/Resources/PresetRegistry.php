@@ -82,6 +82,57 @@ class PresetRegistry
 	];
 
 	/**
+	 * Package default font sizes. Mirrors `DEFAULT_FONT_SIZES` in
+	 * `resources/js/visual-editor/editor-settings.ts` (slug + size only)
+	 * so the front end declares the `--wp--preset--font-size--*`
+	 * properties and `.has-{slug}-font-size` classes the editor's picker
+	 * offers when a theme ships no `fontSizes` (#821). Kept in sync by
+	 * `editor/__tests__/default-preset-styles.test.ts`.
+	 *
+	 * @since 1.12.1
+	 */
+	public const DEFAULT_FONT_SIZES = [
+		[ 'slug' => 'small', 'size' => '13px' ],
+		[ 'slug' => 'regular', 'size' => '16px' ],
+		[ 'slug' => 'medium', 'size' => '20px' ],
+		[ 'slug' => 'large', 'size' => '28px' ],
+		[ 'slug' => 'huge', 'size' => '36px' ],
+	];
+
+	/**
+	 * Package default color palette. Mirrors `DEFAULT_PALETTE` in
+	 * `editor-settings.ts` (slug + color only) for the same reason as
+	 * {@see self::DEFAULT_FONT_SIZES} (#821).
+	 *
+	 * @since 1.12.1
+	 */
+	public const DEFAULT_PALETTE = [
+		[ 'slug' => 'base-content', 'color' => '#1f2937' ],
+		[ 'slug' => 'base-muted', 'color' => '#6b7280' ],
+		[ 'slug' => 'primary', 'color' => '#2563eb' ],
+		[ 'slug' => 'secondary', 'color' => '#64748b' ],
+		[ 'slug' => 'accent', 'color' => '#9333ea' ],
+		[ 'slug' => 'success', 'color' => '#16a34a' ],
+		[ 'slug' => 'warning', 'color' => '#d97706' ],
+		[ 'slug' => 'error', 'color' => '#dc2626' ],
+	];
+
+	/**
+	 * Package default layout tokens (#821). `contentSize` / `wideSize`
+	 * match the editor's `__experimentalFeatures.layout`; `blockGap`
+	 * matches the layout baseline's `var(--wp--style--block-gap, 24px)`
+	 * fallback. Declared at zero specificity so any theme value wins.
+	 *
+	 * @since 1.12.1
+	 */
+	public const DEFAULT_LAYOUT = [
+		'contentSize' => '720px',
+		'wideSize'    => '1080px',
+		'blockGap'    => '24px',
+		'rootPadding' => '1.5rem',
+	];
+
+	/**
 	 * Resolve the spacing sizes the editor's pickers offer, so the front
 	 * end can declare a custom property for every one of them (#814).
 	 *
@@ -107,6 +158,50 @@ class PresetRegistry
 		}
 
 		return self::mergeSizedList( self::DEFAULT_SPACING_SIZES, $host );
+	}
+
+	/**
+	 * Resolve the font sizes the editor's picker offers, with the same
+	 * precedence as {@see self::effectiveSpacingSizes()} (#821).
+	 *
+	 * @since 1.12.1
+	 *
+	 * @param  mixed  $themeFontSizes  The theme's `settings.typography.fontSizes`, if any.
+	 *
+	 * @return array<int, array{slug: string, size: string}>
+	 */
+	public static function effectiveFontSizes( mixed $themeFontSizes ): array
+	{
+		$host  = self::fromConfig()['fontSizes'];
+		$theme = self::normaliseThemeList( $themeFontSizes, 'size' );
+
+		if ( null !== $theme ) {
+			return [] === $host['entries'] ? $theme : self::mergeSizedList( $theme, $host, 'size' );
+		}
+
+		return self::mergeSizedList( self::DEFAULT_FONT_SIZES, $host, 'size' );
+	}
+
+	/**
+	 * Resolve the palette the editor's color pickers offer, with the same
+	 * precedence as {@see self::effectiveSpacingSizes()} (#821).
+	 *
+	 * @since 1.12.1
+	 *
+	 * @param  mixed  $themePalette  The theme's `settings.color.palette`, if any.
+	 *
+	 * @return array<int, array{slug: string, color: string}>
+	 */
+	public static function effectivePalette( mixed $themePalette ): array
+	{
+		$host  = self::fromConfig()['palette'];
+		$theme = self::normaliseThemeList( $themePalette, 'color' );
+
+		if ( null !== $theme ) {
+			return [] === $host['entries'] ? $theme : self::mergeSizedList( $theme, $host, 'color' );
+		}
+
+		return self::mergeSizedList( self::DEFAULT_PALETTE, $host, 'color' );
 	}
 
 	/**
@@ -378,6 +473,79 @@ class PresetRegistry
 	}
 
 	/**
+	 * Declare every font-size and palette preset the editor's pickers
+	 * offer, plus the `.has-{slug}-*` classes that point at them (#821).
+	 *
+	 * The theme compiler only emits the presets a theme ships, so on a
+	 * theme-less install a "Large" pick saved `has-large-font-size`
+	 * with nothing behind it. Built from the same lists as the editor
+	 * (package defaults when the theme has none, plus host presets).
+	 *
+	 * @since 1.12.1
+	 *
+	 * @param  array<string, mixed>|null  $themeSettings  The theme's `settings`, if any.
+	 */
+	public static function presetDefaultsCss( ?array $themeSettings ): string
+	{
+		$declarations = [];
+		$utilities    = [];
+
+		foreach ( self::effectiveFontSizes( $themeSettings['typography']['fontSizes'] ?? null ) as $entry ) {
+			$slug = self::presetSlug( $entry['slug'] );
+
+			if ( '' === $slug || ! self::isSafeCssValue( trim( $entry['size'] ) ) ) {
+				continue;
+			}
+
+			$declarations[] = sprintf( '--wp--preset--font-size--%s: %s;', $slug, trim( $entry['size'] ) );
+			$utilities[]    = sprintf( '.has-%1$s-font-size { font-size: var(--wp--preset--font-size--%1$s) !important; }', $slug );
+		}
+
+		foreach ( self::effectivePalette( $themeSettings['color']['palette'] ?? null ) as $entry ) {
+			$slug = self::presetSlug( $entry['slug'] );
+
+			if ( '' === $slug || ! self::isSafeCssValue( trim( $entry['color'] ) ) ) {
+				continue;
+			}
+
+			$declarations[] = sprintf( '--wp--preset--color--%s: %s;', $slug, trim( $entry['color'] ) );
+			$utilities[]    = sprintf( '.has-%1$s-color { color: var(--wp--preset--color--%1$s) !important; }', $slug );
+			$utilities[]    = sprintf( '.has-%1$s-background-color { background-color: var(--wp--preset--color--%1$s) !important; }', $slug );
+			$utilities[]    = sprintf( '.has-%1$s-border-color { border-color: var(--wp--preset--color--%1$s) !important; }', $slug );
+		}
+
+		if ( [] === $declarations ) {
+			return '';
+		}
+
+		return ":root {\n\t" . implode( "\n\t", $declarations ) . "\n}\n\n" . implode( "\n", $utilities );
+	}
+
+	/**
+	 * Zero-specificity defaults for the layout custom properties block
+	 * CSS reads: content / wide size, block gap and root padding (#821).
+	 * `:where(:root)` means any theme `:root` declaration wins whatever
+	 * the source order.
+	 *
+	 * @since 1.12.1
+	 */
+	public static function layoutDefaultsCss(): string
+	{
+		$layout  = self::DEFAULT_LAYOUT;
+		$padding = $layout['rootPadding'];
+
+		return ":where(:root) {\n"
+			. "\t--wp--style--global--content-size: {$layout['contentSize']};\n"
+			. "\t--wp--style--global--wide-size: {$layout['wideSize']};\n"
+			. "\t--wp--style--block-gap: {$layout['blockGap']};\n"
+			. "\t--wp--style--root--padding-top: {$padding};\n"
+			. "\t--wp--style--root--padding-right: {$padding};\n"
+			. "\t--wp--style--root--padding-bottom: {$padding};\n"
+			. "\t--wp--style--root--padding-left: {$padding};\n"
+			. '}';
+	}
+
+	/**
 	 * Normalise a preset slug (or any `var:preset|…` segment) into its
 	 * custom-property form — the one rule every preset declaration and
 	 * reference site shares: split lower→upper camelCase boundaries with
@@ -446,6 +614,20 @@ class PresetRegistry
 	 */
 	public static function activeThemeSpacingSizes(): mixed
 	{
+		return self::activeThemeSettings()['spacing']['spacingSizes'] ?? null;
+	}
+
+	/**
+	 * The active theme's *resolved* `settings` (see
+	 * {@see self::activeThemeSpacingSizes()} for the resolution order),
+	 * or `null` when cms-framework isn't installed / no theme is active.
+	 *
+	 * @since 1.12.1
+	 *
+	 * @return array<string, mixed>|null
+	 */
+	public static function activeThemeSettings(): ?array
+	{
 		$resolver = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Resolution\\GlobalStylesResolver';
 
 		if ( class_exists( $resolver ) && app()->bound( $resolver ) ) {
@@ -456,9 +638,7 @@ class PresetRegistry
 					return null;
 				}
 
-				$settings = is_array( $resolved->settings ?? null ) ? $resolved->settings : [];
-
-				return $settings['spacing']['spacingSizes'] ?? null;
+				return is_array( $resolved->settings ?? null ) ? $resolved->settings : [];
 			} catch ( Throwable ) {
 				// Resolver unusable (e.g. Global Styles table not migrated
 				// yet) — fall through to the raw theme manifest.
@@ -473,7 +653,11 @@ class PresetRegistry
 
 		$theme = app( $themeManager )->getActiveTheme();
 
-		return is_array( $theme ) ? ( $theme['settings']['spacing']['spacingSizes'] ?? null ) : null;
+		if ( ! is_array( $theme ) ) {
+			return null;
+		}
+
+		return is_array( $theme['settings'] ?? null ) ? $theme['settings'] : [];
 	}
 
 	/**
@@ -488,15 +672,28 @@ class PresetRegistry
 	 */
 	protected static function normaliseThemeSpacingSizes( mixed $sizes ): ?array
 	{
-		if ( ! is_array( $sizes ) || [] === $sizes ) {
+		return self::normaliseThemeList( $sizes, 'size' );
+	}
+
+	/**
+	 * Normalise a theme preset list keyed by `$valueKey` (`size`,
+	 * `color`) the way {@see self::normaliseThemeSpacingSizes()} does.
+	 *
+	 * @since 1.12.1
+	 *
+	 * @return array<int, array<string, string>>|null
+	 */
+	protected static function normaliseThemeList( mixed $list, string $valueKey ): ?array
+	{
+		if ( ! is_array( $list ) || [] === $list ) {
 			return null;
 		}
 
 		$out  = [];
 		$seen = [];
 
-		foreach ( $sizes as $entry ) {
-			if ( ! is_array( $entry ) || ! is_string( $entry['slug'] ?? null ) || ! is_string( $entry['size'] ?? null ) ) {
+		foreach ( $list as $entry ) {
+			if ( ! is_array( $entry ) || ! is_string( $entry['slug'] ?? null ) || ! is_string( $entry[ $valueKey ] ?? null ) ) {
 				continue;
 			}
 
@@ -507,7 +704,7 @@ class PresetRegistry
 			}
 
 			$seen[ $slug ] = true;
-			$out[]         = [ 'slug' => $slug, 'size' => $entry['size'] ];
+			$out[]         = [ 'slug' => $slug, $valueKey => $entry[ $valueKey ] ];
 		}
 
 		return [] === $out ? null : $out;
@@ -520,15 +717,16 @@ class PresetRegistry
 	 *
 	 * @since 1.12.0
 	 *
-	 * @param  array<int, array{slug: string, size: string}>  $base
+	 * @param  array<int, array<string, string>>  $base
 	 * @param  array{mode: string, entries: array<int, array<string, string>>}  $host
+	 * @param  string  $valueKey  Value field (`size`, `color`).
 	 *
-	 * @return array<int, array{slug: string, size: string}>
+	 * @return array<int, array<string, string>>
 	 */
-	protected static function mergeSizedList( array $base, array $host ): array
+	protected static function mergeSizedList( array $base, array $host, string $valueKey = 'size' ): array
 	{
 		$hostEntries = array_map(
-			static fn ( array $entry ): array => [ 'slug' => $entry['slug'], 'size' => $entry['size'] ],
+			static fn ( array $entry ): array => [ 'slug' => $entry['slug'], $valueKey => $entry[ $valueKey ] ],
 			$host['entries'],
 		);
 

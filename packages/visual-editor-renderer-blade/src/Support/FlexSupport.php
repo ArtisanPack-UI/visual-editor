@@ -375,12 +375,12 @@ class FlexSupport
 				continue;
 			}
 
-			$minWidth = $this->registry->get( $bp );
-			if ( null === $minWidth ) {
+			$query = $this->registry->mediaQuery( $bp, true );
+			if ( null === $query ) {
 				continue;
 			}
 
-			$out .= sprintf( "@media (min-width: %dpx) { %s} ", $minWidth, $body );
+			$out .= sprintf( "@media %s { %s} ", $query, $body );
 		}
 
 		return trim( $out );

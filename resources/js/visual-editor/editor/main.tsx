@@ -267,7 +267,7 @@ function readMountConfig(element: HTMLElement): MountConfig | null {
     // `data-breakpoints`. Passed through unchanged to the shell,
     // which hydrates it via `registryFromSnapshot()`.
     const rawBreakpoints = parseJsonDataset<
-        ReadonlyArray<{ key: string; minWidthPx: number; previewWidthPx?: number; label?: string }>
+        ReadonlyArray<{ key: string; minWidthPx?: number; maxWidthPx?: number; previewWidthPx?: number; label?: string }>
     >(element.dataset.breakpoints, 'data-breakpoints');
     const breakpoints: BreakpointRegistrySnapshot | null = Array.isArray(rawBreakpoints)
         ? { breakpoints: rawBreakpoints as BreakpointRegistrySnapshot['breakpoints'] }

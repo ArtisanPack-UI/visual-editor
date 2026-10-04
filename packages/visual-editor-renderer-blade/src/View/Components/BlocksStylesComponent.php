@@ -43,7 +43,10 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditorRendererBlade\View\Components;
 
+use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ThemeJsonTokensCompiler;
+use ArtisanPackUI\VisualEditorRendererBlade\Support\DefaultStyles;
+use ArtisanPackUI\VisualEditorRendererBlade\Support\StackingStyles;
 use Illuminate\Contracts\View\View;
 use Illuminate\View\Component;
 
@@ -99,6 +102,12 @@ class BlocksStylesComponent extends Component
 
 	public string $spacingPresetsCss;
 
+	public string $defaultTokensCss;
+
+	public string $defaultStylesCss;
+
+	public string $stackingCss;
+
 	/**
 	 * @param  ThemeJsonTokensCompiler  $compiler  Injected — see provider binding.
 	 * @param  array<string, mixed>|null  $themeJson  Optional theme.json payload to compile.
@@ -140,6 +149,9 @@ class BlocksStylesComponent extends Component
 		$this->emitInteractive        = $interactive;
 		$this->themeTokensCss         = null === $themeJson ? '' : $this->compiler->compile( $themeJson );
 		$this->spacingPresetsCss      = $this->compiler->compileSpacingPresets( $themeJson );
+		$this->defaultTokensCss       = $this->compiler->compileDefaults( $themeJson );
+		$this->defaultStylesCss       = DefaultStyles::enabled( $themeJson ) ? DefaultStyles::CSS : '';
+		$this->stackingCss            = StackingStyles::css( app( BreakpointRegistry::class ) );
 	}
 
 	public function render(): View

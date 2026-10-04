@@ -6,7 +6,7 @@ describe( 'BreakpointRegistry', () => {
 	it( 'defaults to Tailwind v4 mins when nothing else is passed', () => {
 		const registry = new BreakpointRegistry()
 
-		expect( registry.prefixes() ).toEqual( [ 'sm', 'md', 'lg', 'xl', '2xl' ] )
+		expect( registry.prefixes() ).toEqual( [ 'sm', 'md', 'lg', 'xl', '2xl', 'tablet', 'mobile' ] )
 		expect( registry.get( 'md' ) ).toBe( 768 )
 	} )
 
@@ -35,7 +35,7 @@ describe( 'BreakpointRegistry', () => {
 	} )
 
 	it( 'rebuilds from a snapshot or falls back to defaults', () => {
-		expect( registryFromSnapshot( undefined ).prefixes() ).toEqual( [ 'sm', 'md', 'lg', 'xl', '2xl' ] )
+		expect( registryFromSnapshot( undefined ).prefixes() ).toEqual( [ 'sm', 'md', 'lg', 'xl', '2xl', 'tablet', 'mobile' ] )
 
 		const custom = registryFromSnapshot( {
 			breakpoints: [
@@ -49,7 +49,7 @@ describe( 'BreakpointRegistry', () => {
 	} )
 
 	it( 'exports the Tailwind v4 default list as a constant', () => {
-		expect( TAILWIND_V4_DEFAULTS.map( ( bp ) => bp.key ) ).toEqual( [ 'sm', 'md', 'lg', 'xl', '2xl' ] )
+		expect( TAILWIND_V4_DEFAULTS.map( ( bp ) => bp.key ) ).toEqual( [ 'sm', 'md', 'lg', 'xl', '2xl', 'tablet', 'mobile' ] )
 	} )
 
 	// #617 — device labels + preview widths
@@ -103,6 +103,50 @@ describe( 'BreakpointRegistry', () => {
 			] )
 
 			expect( registry.previewWidth( 'sm' ) ).toBe( 640 )
+		} )
+	} )
+
+	describe( 'desktop-first devices (#820)', () => {
+		const registry = new BreakpointRegistry()
+
+		it( 'lists devices largest first and legacy keys ascending', () => {
+			expect( registry.devicePrefixes() ).toEqual( [ 'tablet', 'mobile' ] )
+			expect( registry.legacyPrefixes() ).toEqual( [ 'sm', 'md', 'lg', 'xl', '2xl' ] )
+			expect( registry.maxWidth( 'mobile' ) ).toBe( 767 )
+			expect( registry.get( 'mobile' ) ).toBeNull()
+			expect( registry.isLegacy( 'md' ) ).toBe( true )
+		} )
+
+		it( 'builds media queries for both families', () => {
+			expect( registry.mediaQuery( 'mobile' ) ).toBe( '(max-width:767px)' )
+			expect( registry.mediaQuery( 'md', true ) ).toBe( '(min-width: 768px)' )
+			expect( registry.mediaQuery( 'base' ) ).toBeNull()
+		} )
+
+		it( 'keeps every device preview inside its range', () => {
+			for ( const key of registry.devicePrefixes() ) {
+				expect( registry.previewWidth( key ) ).toBeLessThanOrEqual( registry.maxWidth( key ) as number )
+			}
+			expect( registry.previewWidth( 'tablet' ) ).toBeGreaterThan( registry.maxWidth( 'mobile' ) as number )
+		} )
+
+		it( 'cascades downward and mirrors the PHP registry', () => {
+			expect( registry.cascade( 'mobile' ) ).toEqual( [ 'mobile', 'tablet', 'base' ] )
+			expect( registry.cascade( 'tablet' ) ).toEqual( [ 'tablet', 'md', 'sm', 'base' ] )
+			expect( registry.cascade( 'tablet', false ) ).toEqual( [ 'tablet', 'base' ] )
+			expect( registry.cascade( 'lg' ) ).toEqual( [ 'lg', 'md', 'sm', 'base' ] )
+			expect( registry.cascade( 'base' ) ).toEqual( [ 'base' ] )
+		} )
+
+		it( 'matches the PHP defaults', async () => {
+			const { readFileSync } = await import( 'node:fs' )
+			const { resolve }      = await import( 'node:path' )
+			const php              = readFileSync( resolve( process.cwd(), 'src/Responsive/BreakpointRegistry.php' ), 'utf8' )
+
+			for ( const bp of TAILWIND_V4_DEFAULTS ) {
+				const width = 'number' === typeof bp.maxWidthPx ? `'maxWidthPx' => ${ bp.maxWidthPx }` : `'minWidthPx' => ${ bp.minWidthPx }`
+				expect( php ).toMatch( new RegExp( `'${ bp.key }'\\s*=> \\[ ${ width },\\s+'previewWidthPx' => ${ bp.previewWidthPx },\\s+'label' => '${ String( bp.label ).replace( /[+]/g, '\\+' ) }' \\]` ) )
+			}
 		} )
 	} )
 } )

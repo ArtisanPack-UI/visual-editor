@@ -148,10 +148,14 @@ class BoxShadowEmitter
 			$rules[] = $rule;
 		}
 
-		foreach ( $breakpoints as $bp => $layer ) {
-			$minWidth = $this->breakpoints->get( $bp );
+		// Registry emission order, not storage order: legacy min-width
+		// rules first, then desktop-first max-width rules largest to
+		// smallest, so the narrower override wins (#820).
+		foreach ( $this->breakpoints->prefixes() as $bp ) {
+			$layer = $breakpoints[ $bp ] ?? null;
+			$query = $this->breakpoints->mediaQuery( $bp );
 
-			if ( null === $minWidth ) {
+			if ( null === $layer || null === $query ) {
 				continue;
 			}
 
@@ -161,7 +165,7 @@ class BoxShadowEmitter
 				continue;
 			}
 
-			$rules[] = sprintf( '@media (min-width:%dpx){%s}', $minWidth, $rule );
+			$rules[] = sprintf( '@media %s{%s}', $query, $rule );
 		}
 
 		return implode( '', $rules );

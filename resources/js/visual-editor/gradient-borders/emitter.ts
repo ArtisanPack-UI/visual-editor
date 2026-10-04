@@ -203,15 +203,17 @@ export function emitGradientBorderCss(
 		rules.push( rule )
 	}
 
-	for ( const breakpointKey of Object.keys( bpMap ) ) {
-		const minWidth = breakpoints.get( breakpointKey )
+	// Registry emission order so the narrower desktop-first override
+	// wins (#820).
+	for ( const breakpointKey of breakpoints.prefixes() ) {
+		const query = breakpoints.mediaQuery( breakpointKey )
 
-		if ( null === minWidth ) {
+		if ( ! ( breakpointKey in bpMap ) || null === query ) {
 			continue
 		}
 
 		rules.push(
-			`@media (min-width:${ minWidth }px){${ trimmedScope }::before{background:${ sanitizeGradient( bpMap[ breakpointKey ] ) }}}`,
+			`@media ${ query }{${ trimmedScope }::before{background:${ sanitizeGradient( bpMap[ breakpointKey ] ) }}}`,
 		)
 	}
 

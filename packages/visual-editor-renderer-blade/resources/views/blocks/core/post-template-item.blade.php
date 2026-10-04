@@ -28,7 +28,7 @@
 					continue;
 				}
 
-				if ( BreakpointRegistry::BASE_KEY !== $bp && null === $breakpointRegistry->get( $bp ) ) {
+				if ( ! $breakpointRegistry->has( $bp ) ) {
 					continue;
 				}
 

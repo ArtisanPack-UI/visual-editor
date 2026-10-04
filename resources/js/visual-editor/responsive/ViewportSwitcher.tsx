@@ -46,28 +46,33 @@ export interface ViewportSwitcherProps {
 	labels?: Record<string, string>
 }
 
-// Default labels for keys the ship defaults DO NOT relabel from the
-// registry (`base`, `xl`, `2xl`). `sm`/`md`/`lg` get their
-// `Mobile`/`Tablet`/`Desktop` labels from the registry entry itself
-// (#617), so the switcher falls through to `registry.label(key)` for
-// those. Registry labels are authored, so they take precedence over
-// these fallbacks; the `labels` prop still wins over everything so
-// hosts can override on a per-mount basis.
+// `base` has no registry entry, so it gets its label here. Device keys
+// (`tablet`, `mobile`) take theirs from the registry entry (#617). The
+// `labels` prop still wins over everything so hosts can override on a
+// per-mount basis.
 const DEFAULT_LABELS: Record<string, string> = {
 	[ BASE_KEY ]: 'All sizes',
 }
 
-function tooltipFor( key: string, minWidth: number ): string {
+function tooltipFor( key: string, registry: BreakpointRegistry ): string {
 	if ( BASE_KEY === key ) {
-		return 'Applies to every viewport. Smaller breakpoints inherit this value unless overridden.'
+		return 'The desktop design. Applies at every width; Tablet and Mobile inherit it unless overridden.'
 	}
 
-	return `Applies at ${ minWidth }px and up (mobile-first cascade).`
+	const maxWidth = registry.maxWidth( key )
+
+	if ( null !== maxWidth ) {
+		return `Applies at ${ maxWidth }px and below. Smaller devices inherit this value unless overridden.`
+	}
+
+	return `Applies at ${ registry.get( key ) ?? 0 }px and up.`
 }
 
 export function ViewportSwitcher( { registry, onChange, className, labels }: ViewportSwitcherProps ): JSX.Element {
 	const active = useSyncExternalStore( subscribeActiveBreakpoint, getActiveBreakpoint, getActiveBreakpoint )
-	const keys   = registry.keysWithBase()
+	// Only the desktop-first device breakpoints are offered (#820);
+	// legacy mobile-first keys stay readable but aren't authored any more.
+	const keys   = [ BASE_KEY, ...registry.devicePrefixes() ]
 
 	const displayFor = ( key: string ): string => {
 		if ( labels && key in labels ) {
@@ -93,7 +98,6 @@ export function ViewportSwitcher( { registry, onChange, className, labels }: Vie
 		<div className={ className ?? 've-viewport-switcher' } role="group" aria-label="Preview viewport">
 			{ keys.map( ( key ) => {
 				const isActive = key === active
-				const minWidth = registry.get( key ) ?? 0
 
 				return (
 					<button
@@ -102,7 +106,7 @@ export function ViewportSwitcher( { registry, onChange, className, labels }: Vie
 						aria-pressed={ isActive }
 						data-active={ isActive ? 'true' : 'false' }
 						data-breakpoint={ key }
-						title={ tooltipFor( key, minWidth ) }
+						title={ tooltipFor( key, registry ) }
 						onClick={ () => handleSelect( key ) }
 					>
 						{ displayFor( key ) }

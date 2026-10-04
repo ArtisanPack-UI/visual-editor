@@ -172,3 +172,143 @@ it( 'declares the theme\'s spacing presets in place of the defaults (#814)', fun
 		->not->toContain( '--wp--preset--spacing--40' );
 } );
 
+
+describe( 'theme-less defaults (#821)', function (): void {
+	beforeEach( function (): void {
+		config()->set( 'artisanpack.visual-editor.presets', [] );
+	} );
+
+	it( 'declares every default font-size preset and its utility class with no theme', function (): void {
+		$rendered = Blade::render( '<x-ve-blocks-styles />' );
+
+		foreach ( [ 'small' => '13px', 'regular' => '16px', 'medium' => '20px', 'large' => '28px', 'huge' => '36px' ] as $slug => $size ) {
+			expect( $rendered )
+				->toContain( "--wp--preset--font-size--{$slug}: {$size};" )
+				->toContain( ".has-{$slug}-font-size { font-size: var(--wp--preset--font-size--{$slug}) !important; }" );
+		}
+	} );
+
+	it( 'declares the default palette with its utility classes', function (): void {
+		$rendered = Blade::render( '<x-ve-blocks-styles />' );
+
+		expect( $rendered )
+			->toContain( '--wp--preset--color--primary: #2563eb;' )
+			->toContain( '.has-primary-background-color { background-color: var(--wp--preset--color--primary) !important; }' );
+	} );
+
+	it( 'declares layout tokens at zero specificity and emits default layout rules', function (): void {
+		$rendered = Blade::render( '<x-ve-blocks-styles />' );
+
+		expect( $rendered )
+			->toContain( '<style data-ve-default-tokens>' )
+			->toContain( ':where(:root) {' )
+			->toContain( '--wp--style--global--content-size: 720px;' )
+			->toContain( '--wp--style--global--wide-size: 1080px;' )
+			->toContain( '--wp--style--block-gap: 24px;' )
+			->toContain( '--wp--style--root--padding-left: 1.5rem;' )
+			->toContain( '.wp-block-post-content.is-layout-constrained > .alignwide' )
+			->toContain( ':where(.wp-block-gallery.has-nested-images) { gap: var(--wp--style--unstable-gallery-gap, 16px); }' );
+	} );
+
+	it( 'uses the theme presets in place of the defaults when the theme ships them', function (): void {
+		$rendered = Blade::render( '<x-ve-blocks-styles :theme-json="$themeJson" />', [
+			'themeJson' => [
+				'settings' => [
+					'typography' => [ 'fontSizes' => [ [ 'slug' => 'large', 'size' => '3rem' ] ] ],
+					'layout'     => [ 'contentSize' => '640px', 'wideSize' => '1200px' ],
+				],
+			],
+		] );
+
+		expect( $rendered )
+			->toContain( '--wp--preset--font-size--large: 3rem;' )
+			->not->toContain( '--wp--preset--font-size--large: 28px;' )
+			->not->toContain( '--wp--preset--font-size--huge' )
+			->toContain( '--wp--style--global--content-size: 640px;' );
+	} );
+
+	it( 'emits the baseline stylesheet in auto mode only without a theme', function (): void {
+		expect( Blade::render( '<x-ve-blocks-styles />' ) )->toContain( '<style data-ve-default-styles>' );
+
+		expect( Blade::render( '<x-ve-blocks-styles :theme-json="$themeJson" />', [
+			'themeJson' => [ 'settings' => [ 'layout' => [ 'contentSize' => '640px' ] ] ],
+		] ) )->not->toContain( 'data-ve-default-styles' );
+	} );
+
+	it( 'honours an explicit default_styles flag', function (): void {
+		config()->set( 'artisanpack.visual-editor.default_styles', false );
+		expect( Blade::render( '<x-ve-blocks-styles />' ) )->not->toContain( 'data-ve-default-styles' );
+
+		config()->set( 'artisanpack.visual-editor.default_styles', true );
+		expect( Blade::render( '<x-ve-blocks-styles :theme-json="$themeJson" />', [
+			'themeJson' => [ 'settings' => [ 'layout' => [ 'contentSize' => '640px' ] ] ],
+		] ) )->toContain( 'data-ve-default-styles' );
+	} );
+} );
+
+describe( 'stacking at the mobile breakpoint (#820)', function (): void {
+	it( 'stacks columns and media-text at the registry mobile max-width', function (): void {
+		$rendered = Blade::render( '<x-ve-blocks-styles />' );
+
+		expect( $rendered )
+			->toContain( '<style data-ve-responsive-stacking>' )
+			->toContain( "@media (max-width: 767px) {\n\t.wp-block-columns:not(.is-not-stacked-on-mobile) { flex-wrap: wrap !important; }" )
+			->toContain( '.wp-block-media-text.is-stacked-on-mobile { grid-template-columns: 100% !important; }' )
+			->toContain( '@media (min-width: 768px) {' );
+	} );
+
+	it( 'follows a custom mobile threshold', function (): void {
+		app()->instance(
+			\ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry::class,
+			\ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry::fromLayers( [ 'mobile' => [ 'maxWidthPx' => 599, 'previewWidthPx' => 375 ] ] ),
+		);
+
+		expect( Blade::render( '<x-ve-blocks-styles />' ) )
+			->toContain( '@media (max-width: 599px) {' )
+			->toContain( '@media (min-width: 600px) {' );
+	} );
+
+	it( 'is skipped with the block library', function (): void {
+		expect( Blade::render( '<x-ve-blocks-styles :bundle="false" />' ) )->not->toContain( 'data-ve-responsive-stacking' );
+	} );
+} );
+
+it( 'floats alignleft / alignright under any flow or constrained layout (#819)', function () {
+	$rendered = Blade::render( '<x-ve-blocks-styles />' );
+
+	expect( $rendered )
+		->toContain( ':where(.is-layout-constrained, .is-layout-flow) > .alignleft { float: left; margin-inline-start: 0; margin-inline-end: 2em; }' )
+		->toContain( ':where(.is-layout-constrained, .is-layout-flow) > .alignright { float: right;' )
+		// Tailwind's `size-full` utility would otherwise stretch the figure.
+		->toContain( ':where(.wp-block-image.size-full) { width: auto; height: auto; }' )
+		// The float starts on the same line as the text beside it.
+		->toContain( ':where(.is-layout-constrained, .is-layout-flow) > :is(.alignleft, .alignright) { margin-block-start: var(--wp--style--block-gap, 24px); }' )
+		->toContain( '@media (min-width: 768px) { :where(.is-layout-constrained, .is-layout-flow) > :is(.alignleft, .alignright):first-child + * { margin-block-start: 0; } }' );
+} );
+
+describe( 'default styles scope (#821)', function (): void {
+	it( 'scopes the baseline to block output, not the host page', function (): void {
+		$css = \ArtisanPackUI\VisualEditorRendererBlade\Support\DefaultStyles::CSS;
+
+		expect( $css )
+			->toContain( ':where(.wp-block-post-content) {' )
+			->toContain( ':where(h2.wp-block-heading) { font-size: 2rem; }' )
+			->not->toContain( ':where(body)' )
+			->not->toMatch( '/:where\(h[1-6]\)/' );
+	} );
+
+	it( 'stays off in auto mode when a theme is active even without a theme.json prop', function (): void {
+		$resolver = Mockery::mock( \ArtisanPackUI\CMSFramework\Modules\SiteEditor\Resolution\GlobalStylesResolver::class );
+		$resolver->shouldReceive( 'resolve' )->andReturn( new \ArtisanPackUI\CMSFramework\Modules\SiteEditor\Resolution\ResolvedGlobalStyles(
+			theme               : 'demo',
+			settings            : [],
+			styles              : [],
+			variation           : null,
+			hasUserCustomization: false,
+			model               : null,
+		) );
+		app()->instance( \ArtisanPackUI\CMSFramework\Modules\SiteEditor\Resolution\GlobalStylesResolver::class, $resolver );
+
+		expect( Blade::render( '<x-ve-blocks-styles />' ) )->not->toContain( 'data-ve-default-styles' );
+	} );
+} );

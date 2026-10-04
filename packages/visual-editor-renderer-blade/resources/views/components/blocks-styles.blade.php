@@ -67,6 +67,23 @@
 @if( '' !== $spacingPresetsCss )
 <style data-ve-spacing-presets>{!! $spacingPresetsCss !!}</style>
 @endif
+{{-- #821: package defaults layered under the theme — layout tokens at
+     zero specificity, the font-size / palette presets the editor's
+     pickers offer, and constrained-layout rules when the theme sets
+     no layout sizes. --}}
+@if( '' !== $defaultTokensCss )
+<style data-ve-default-tokens>{!! $defaultTokensCss !!}</style>
+@endif
+{{-- #821: opt-out typography / root-padding baseline for theme-less
+     installs (`artisanpack.visual-editor.default_styles`). --}}
+@if( '' !== $defaultStylesCss )
+<style data-ve-default-styles>{!! $defaultStylesCss !!}</style>
+@endif
+{{-- #820: Columns / Media & Text "stack on mobile" at the registry's
+     mobile breakpoint, so the editor's Mobile preview matches. --}}
+@if( $emitBlockLibrary )
+<style data-ve-responsive-stacking>{!! $stackingCss !!}</style>
+@endif
 {{--
 	Layout baseline rules — flow + constrained + flex + grid.
 
@@ -85,6 +102,24 @@
 	(`wp-block-gallery-is-layout-flex`, `wp-block-cover-is-layout-flex`,
 	…) inherit from the generic `.is-layout-flex` rule so we don't
 	enumerate block names.
+
+	#819 — `.alignleft` / `.alignright` children of any flow or
+	constrained layout float, matching WordPress's layout definitions.
+	The compound rules from `ThemeJsonTokensCompiler` add the
+	content-column offset on top for post content and groups.
+
+	The image block's `size-full` class (WordPress's image-size slug)
+	collides with Tailwind's `size-full` utility (`width: 100%; height:
+	100%`), which stretched aligned images across the column so they
+	could not float. Tailwind puts utilities in `@layer utilities`, and
+	unlayered CSS beats layered CSS whatever the specificity, so the
+	zero-specificity reset wins over Tailwind while any real rule (e.g.
+	photo grid) still wins over it.
+
+	A float takes the same top block gap as the sibling that wraps
+	beside it, so the image and the text start on the same line; a
+	float that opens its container drops the gap on both (above Mobile
+	only, since a stacked float needs the gap below it).
 
 	`:where()` on the flow/constrained selectors keeps specificity at
 	(0,0,0) so any theme rule with higher specificity continues to win
@@ -105,4 +140,12 @@
 .is-layout-flex > :is(*, div) { margin: 0; }
 .is-layout-grid { display: grid; }
 .is-layout-grid > :is(*, div) { margin: 0; }
+:where(.wp-block-gallery.has-nested-images) { gap: var(--wp--style--unstable-gallery-gap, 16px); }
+:where(.wp-block-image.size-full) { width: auto; height: auto; }
+:where(.is-layout-constrained, .is-layout-flow) > .alignleft { float: left; margin-inline-start: 0; margin-inline-end: 2em; }
+:where(.is-layout-constrained, .is-layout-flow) > .alignright { float: right; margin-inline-start: 2em; margin-inline-end: 0; }
+:where(.is-layout-constrained, .is-layout-flow) > :is(.alignleft, .alignright) { margin-block-start: var(--wp--style--block-gap, 24px); }
+:where(.is-layout-constrained, .is-layout-flow) > :is(.alignleft, .alignright):first-child { margin-block-start: 0; }
+@media (min-width: 768px) { :where(.is-layout-constrained, .is-layout-flow) > :is(.alignleft, .alignright):first-child + * { margin-block-start: 0; } }
+@media (max-width: 767px) { :where(.is-layout-constrained, .is-layout-flow) > :is(.alignleft, .alignright) { float: none; margin-inline: auto; } }
 </style>

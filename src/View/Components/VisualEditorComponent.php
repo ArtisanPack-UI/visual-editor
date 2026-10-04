@@ -109,7 +109,7 @@ class VisualEditorComponent extends Component
 	 * theme.json + defaults snapshot the React shell hydrates the
 	 * viewport switcher against.
 	 *
-	 * @var array<int, array{key: string, minWidthPx: int, previewWidthPx: int, label: string}>
+	 * @var array<int, array{key: string, minWidthPx?: int, maxWidthPx?: int, previewWidthPx: int, label: string}>
 	 */
 	public array $breakpoints;
 

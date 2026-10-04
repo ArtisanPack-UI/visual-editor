@@ -13,6 +13,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Http\Requests\Ai;
 
+use ArtisanPackUI\VisualEditor\Ai\Support\BlockPayloadLimiter;
 use Illuminate\Foundation\Http\FormRequest;
 
 class RewriteContentRequest extends FormRequest
@@ -28,7 +29,7 @@ class RewriteContentRequest extends FormRequest
 	public function rules(): array
 	{
 		return [
-			'content' => [ 'required', 'string' ],
+			'content' => [ 'required', 'string', 'max:' . BlockPayloadLimiter::limits()['max_text_chars'] ],
 			'intent'  => [ 'required', 'string', 'max:256' ],
 		];
 	}

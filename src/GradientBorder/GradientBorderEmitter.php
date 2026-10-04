@@ -198,20 +198,21 @@ class GradientBorderEmitter
 			$rules[] = $rule;
 		}
 
-		// Per-breakpoint ::before rules. Mobile-first cascade — the
-		// registry's `get()` returns `null` for keys it doesn't know,
-		// which silently drops the override (same behavior as
+		// Per-breakpoint ::before rules in registry emission order —
+		// legacy min-width first, then desktop-first max-width largest to
+		// smallest (#820). Unknown keys are dropped (same behavior as
 		// `compileResponsive` for spacing/border properties).
-		foreach ( $breakpoints as $breakpointKey => $gradient ) {
-			$minWidth = $this->breakpoints->get( $breakpointKey );
+		foreach ( $this->breakpoints->prefixes() as $breakpointKey ) {
+			$gradient = $breakpoints[ $breakpointKey ] ?? null;
+			$query    = $this->breakpoints->mediaQuery( $breakpointKey );
 
-			if ( null === $minWidth ) {
+			if ( null === $gradient || null === $query ) {
 				continue;
 			}
 
 			$rules[] = sprintf(
-				'@media (min-width:%dpx){%s::before{background:%s}}',
-				$minWidth,
+				'@media %s{%s::before{background:%s}}',
+				$query,
 				$scope,
 				$gradient
 			);

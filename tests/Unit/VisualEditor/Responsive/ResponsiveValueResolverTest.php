@@ -80,3 +80,49 @@ it( 'lists override keys that are not in the active registry as orphans', functi
 
 	expect( $resolver->orphanedKeys( $attribute ) )->toBe( [ 'legacy' ] );
 } );
+
+describe( 'desktop-first device overrides (#820)', function (): void {
+	beforeEach( function (): void {
+		$this->deviceResolver = new ResponsiveValueResolver( BreakpointRegistry::fromLayers( [], [] ) );
+	} );
+
+	it( 'never changes the desktop value when a smaller device is edited', function (): void {
+		$attr = [ 'base' => '50%', 'mobile' => '100%' ];
+
+		expect( $this->deviceResolver->resolve( $attr, 'base' ) )->toBe( '50%' );
+		expect( $this->deviceResolver->resolve( $attr, 'tablet' ) )->toBe( '50%' );
+		expect( $this->deviceResolver->resolve( $attr, 'mobile' ) )->toBe( '100%' );
+	} );
+
+	it( 'applies tablet overrides to mobile unless mobile overrides them', function (): void {
+		expect( $this->deviceResolver->resolve( [ 'base' => 'a', 'tablet' => 'b' ], 'mobile' ) )->toBe( 'b' );
+		expect( $this->deviceResolver->resolve( [ 'base' => 'a', 'tablet' => 'b', 'mobile' => 'c' ], 'mobile' ) )->toBe( 'c' );
+	} );
+
+	it( 'keeps legacy keys resolving mobile-first', function (): void {
+		expect( $this->deviceResolver->resolve( [ 'base' => 'a', 'md' => 'b' ], 'lg' ) )->toBe( 'b' );
+		expect( $this->deviceResolver->resolve( [ 'base' => 'a', 'md' => 'b' ], 'sm' ) )->toBe( 'a' );
+	} );
+
+	it( 'compresses device overrides down the max-width chain', function (): void {
+		expect( $this->deviceResolver->distinctOverrides( [ 'base' => 'a', 'tablet' => 'b', 'mobile' => 'b' ] ) )
+			->toBe( [ 'base' => 'a', 'tablet' => 'b' ] );
+		expect( $this->deviceResolver->distinctOverrides( [ 'base' => 'a', 'tablet' => 'a', 'mobile' => 'c' ] ) )
+			->toBe( [ 'base' => 'a', 'mobile' => 'c' ] );
+	} );
+
+	it( 'compresses legacy content exactly as before', function (): void {
+		expect( $this->deviceResolver->distinctOverrides( [ 'base' => 'a', 'sm' => 'a', 'md' => 'b', 'lg' => 'b' ] ) )
+			->toBe( [ 'base' => 'a', 'md' => 'b' ] );
+	} );
+} );
+
+describe( 'mixed legacy and device keys (#820)', function (): void {
+	it( 'keeps a device value equal to base so it can override a legacy rule', function (): void {
+		$resolver = new ResponsiveValueResolver( BreakpointRegistry::fromLayers( [], [] ) );
+
+		// Saved `{base:a, md:b}`; the author resets Tablet to `a`.
+		expect( $resolver->distinctOverrides( [ 'base' => 'a', 'md' => 'b', 'tablet' => 'a' ] ) )
+			->toBe( [ 'base' => 'a', 'md' => 'b', 'tablet' => 'a' ] );
+	} );
+} );

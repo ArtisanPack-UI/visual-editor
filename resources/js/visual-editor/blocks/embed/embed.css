@@ -133,7 +133,7 @@
 }
 
 .wp-block-post-content .wp-block-embed__learn-more a {
-    color: var(--wp-admin-theme-color);
+    color: var(--wp-admin-theme-color, #3858e9);
 }
 
 .block-library-embed__interactive-overlay {

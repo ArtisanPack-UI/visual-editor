@@ -44,6 +44,7 @@ import {
     pathMatchesAnyRoot,
     setPath,
 } from './attribute-paths'
+import { type BreakpointRegistry, getResponsiveRegistry } from './registry'
 import { BASE_KEY } from './types'
 
 const FILTER_HOOK      = 'editor.BlockEdit'
@@ -99,26 +100,22 @@ function getResponsiveRoots( name: string ): string[] | null {
  * attributes, produces the read view for the active breakpoint.
  *
  * Mirrors the PHP `ResponsiveValueResolver` cascade: every responsive
- * path is walked, taking the largest defined value ≤ the active
- * breakpoint and using it.
+ * path takes the first defined value along the registry cascade for the
+ * active breakpoint — for a device key that is the key itself, then the
+ * larger devices (Mobile inherits from Tablet), then any legacy keys
+ * that also apply at its preview width (#820).
  */
-function buildOverlay(
+export function buildOverlay(
     responsive: ResponsiveOverridesByPath | null | undefined,
     activeBreakpoint: string,
-    breakpointOrder: string[],
+    registry: BreakpointRegistry,
 ): Record<string, unknown> {
-    if ( ! responsive || BASE_KEY === activeBreakpoint ) {
+    if ( ! responsive || BASE_KEY === activeBreakpoint || ! registry.has( activeBreakpoint ) ) {
         return {}
     }
 
-    const activeIndex = breakpointOrder.indexOf( activeBreakpoint )
-
-    if ( -1 === activeIndex ) {
-        return {}
-    }
-
-    // Largest breakpoint at or below active, walking down.
-    const cascade = breakpointOrder.slice( 0, activeIndex + 1 ).reverse()
+    // `base` lives in the plain attributes, not the overlay.
+    const cascade = registry.cascade( activeBreakpoint ).filter( ( key ) => BASE_KEY !== key )
     const overlay: Record<string, unknown> = {}
 
     for ( const path of Object.keys( responsive ) ) {
@@ -167,14 +164,6 @@ function writeInto( target: Record<string, unknown>, path: string, value: unknow
     cursor[ segments[ segments.length - 1 ] ] = value
 }
 
-/**
- * Default breakpoint ordering — must match `TAILWIND_V4_DEFAULTS` in
- * registry.ts. Hard-coded here to keep this module independent of the
- * registry singleton (which won't be hydrated until the editor's
- * bootstrap snapshot lands; see plan §7.2).
- */
-const DEFAULT_BREAKPOINT_ORDER = [ BASE_KEY, 'sm', 'md', 'lg', 'xl', '2xl' ]
-
 export const withResponsiveAttributes = createHigherOrderComponent(
     ( BlockEdit: ComponentType<BlockEditProps> ) => {
         function ResponsiveBlockEdit( props: BlockEditProps ): JSX.Element {
@@ -195,7 +184,7 @@ export const withResponsiveAttributes = createHigherOrderComponent(
                     return attributes
                 }
 
-                const overlay = buildOverlay( responsive, activeBreakpoint, DEFAULT_BREAKPOINT_ORDER )
+                const overlay = buildOverlay( responsive, activeBreakpoint, getResponsiveRegistry() )
 
                 if ( 0 === Object.keys( overlay ).length ) {
                     return attributes

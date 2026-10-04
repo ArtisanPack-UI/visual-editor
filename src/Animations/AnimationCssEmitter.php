@@ -354,7 +354,8 @@ class AnimationCssEmitter
 
 		$css = '';
 
-		foreach ( $this->breakpoints->all() as $prefix => $minWidth ) {
+		foreach ( $this->breakpoints->prefixes() as $prefix ) {
+			$media = $this->breakpoints->mediaQuery( $prefix, true );
 			if ( ! array_key_exists( $prefix, $name ) ) {
 				continue;
 			}
@@ -366,8 +367,8 @@ class AnimationCssEmitter
 				// hiding and the animation property so the block reads
 				// statically.
 				$css .= sprintf(
-					'@media (min-width: %dpx) { %s.%s, %s.%s { animation: none; opacity: 1; transform: none; } }',
-					$minWidth,
+					'@media %s { %s.%s, %s.%s { animation: none; opacity: 1; transform: none; } }',
+					$media,
 					$scope,
 					self::PRE_CLASS,
 					$scope,
@@ -397,8 +398,8 @@ class AnimationCssEmitter
 				: $entranceShorthand;
 
 			$css .= sprintf(
-				'@media (min-width: %dpx) { %s.%s { animation: %s; } }',
-				$minWidth,
+				'@media %s { %s.%s { animation: %s; } }',
+				$media,
 				$scope,
 				self::PLAY_CLASS,
 				$animation,
@@ -482,7 +483,8 @@ class AnimationCssEmitter
 		}
 
 		if ( is_array( $continuous['name'] ?? null ) ) {
-			foreach ( $this->breakpoints->all() as $prefix => $minWidth ) {
+			foreach ( $this->breakpoints->prefixes() as $prefix ) {
+				$media = $this->breakpoints->mediaQuery( $prefix, true );
 				if ( ! array_key_exists( $prefix, $continuous['name'] ) ) {
 					continue;
 				}
@@ -491,8 +493,8 @@ class AnimationCssEmitter
 
 				if ( null === $value ) {
 					$css .= sprintf(
-						'@media (min-width: %dpx) { %s { animation: none; } } ',
-						$minWidth,
+						'@media %s { %s { animation: none; } } ',
+						$media,
 						$scope,
 					);
 					continue;
@@ -505,8 +507,8 @@ class AnimationCssEmitter
 				$definition = $this->registry->get( AnimationRegistry::FAMILY_CONTINUOUS, $value );
 
 				$css .= sprintf(
-					'@media (min-width: %dpx) { %s { animation: %s %dms %s 0ms %s; } } ',
-					$minWidth,
+					'@media %s { %s { animation: %s %dms %s 0ms %s; } } ',
+					$media,
 					$scope,
 					$definition['keyframe'],
 					$this->intOr( $continuous['duration'] ?? null, (int) $definition['duration'] ),
