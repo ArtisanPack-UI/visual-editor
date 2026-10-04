@@ -1,3 +1,7 @@
+---
+title: Configuration
+---
+
 # Configuration
 
 The visual editor reads its configuration from `config/artisanpack/visual-editor.php`. The package's defaults are merged into the host application's config under the `artisanpack.visual-editor.*` key — publish the file to override any of them.
@@ -160,25 +164,44 @@ Configures the `globalStyles` entity the site editor customizes.
 
 ## `breakpoints`
 
-Named breakpoints the editor's viewport switcher and responsive value resolver use. Resolved in priority order:
+**Desktop-first since v1.12.1 (#820).** Named breakpoints the editor's viewport switcher and the responsive value resolver use. "All sizes" (`base`) is the desktop design; each device breakpoint is an override that applies at its `maxWidthPx` **and below**, and inherits from the next larger device (Mobile inherits from Tablet, then base).
+
+Resolved by merging three layers by key, highest wins:
 
 1. Active theme's `theme.json` → `settings.custom.artisanpack.breakpoints`
 2. This config array (host-app overrides)
-3. `BreakpointRegistry::DEFAULTS` (Tailwind v4 mins)
+3. `BreakpointRegistry::DEFAULTS`
+
+The package defaults are:
+
+```php
+'tablet' => [ 'maxWidthPx' => 1023, 'previewWidthPx' => 768, 'label' => 'Tablet' ],
+'mobile' => [ 'maxWidthPx' => 767,  'previewWidthPx' => 375, 'label' => 'Mobile' ],
+```
+
+The published config ships the key empty; override only what you need:
 
 ```php
 'breakpoints' => [
-    'sm'  => '640px',
-    'md'  => '768px',
-    'lg'  => '1024px',
-    'xl'  => '1280px',
-    '2xl' => '1536px',
+    'tablet' => [ 'label' => 'iPad' ],
+    'mobile' => [ 'maxWidthPx' => 767, 'previewWidthPx' => 390, 'label' => 'Phone' ],
 ],
 ```
 
-Merging is by key, so an entry here for `sm` resizes the default `sm` breakpoint without affecting the others; a new key like `3xl` adds a breakpoint. Values may be integer pixels (`640`) or CSS length strings (`'640px'`).
+- **`maxWidthPx`** — the width the override applies at and below, emitted as `@media (max-width: Npx)`.
+- **`previewWidthPx`** — the canvas width the viewport switcher previews at. It must not exceed `maxWidthPx`, so the editor preview always matches the front end. Defaults to the entry's width.
+- **`label`** — the switcher / inspector label. Defaults to the key.
+- **Partial entries** merge into the entry at the same key, so `'tablet' => [ 'label' => 'iPad' ]` keeps the default widths.
+- **Scalar values** (`'mobile' => '600px'` or `600`) change an existing entry's width. An inherited preview width that no longer fits is clamped to the new max-width. A scalar for a key that doesn't exist yet creates a legacy `minWidthPx` entry.
+- **`null` removes a key**: `'tablet' => null` drops the Tablet override.
 
-The implicit `base` slot (no min-width, applies everywhere) is reserved and cannot be redefined.
+**Legacy keys.** The pre-1.12.1 mobile-first keys (`sm` 640, `md` 768, `lg` 1024, `xl` 1280, `2xl` 1536) are still registered with `minWidthPx`, so content saved before 1.12.1 renders exactly as before. They are no longer offered in the viewport switcher; screen-size visibility rules still use them. An entry declares either `maxWidthPx` or `minWidthPx`, never both. Media queries are emitted in registry order — legacy min-width entries ascending, then device max-width entries descending — so smaller-device overrides win the cascade.
+
+**What follows these values.** Per-block CSS (spacing, widths, column counts, position, shadows, gradients, animations) and the Columns / Media & Text / float stacking. The static class-based layout CSS (flex utilities, grid and post-template spans, masonry) and the React / Vue renderers ship rules for the default Tablet (1023px) and Mobile (767px) widths only, so changing those widths or adding devices leaves those layouts on the defaults.
+
+**Validation** runs when the registry is built and throws `InvalidArgumentException` on bad input: keys that aren't letters / numbers / hyphens / underscores, the reserved `base` key, an entry with both or neither of `minWidthPx` / `maxWidthPx`, widths that aren't a positive integer or `Npx` string, empty or non-string labels, duplicate min- or max-widths, and a `previewWidthPx` wider than `maxWidthPx` — see `BreakpointRegistry::validate()`.
+
+The implicit `base` slot is reserved and cannot be redefined.
 
 See [[blocks/Responsive Design Tools]] for the editor + developer workflow.
 
@@ -245,42 +268,222 @@ Full shape contracts for each entity are commented inline in the config file. Se
 
 ```php
 'presets' => [
-    'color'       => [
-        'mode'  => 'append', // 'append' (default) or 'replace'
-        'items' => [
-            [ 'slug' => 'brand-blue', 'name' => 'Brand Blue', 'color' => '#1D4ED8' ],
+    // Bare list — implicit `append` mode.
+    'palette' => [
+        [ 'slug' => 'brand-navy', 'name' => 'Brand Navy', 'color' => '#0a2540' ],
+    ],
+
+    // Wrapper form — `mode` is 'append' (default) or 'replace'.
+    'font_sizes' => [
+        'mode'    => 'replace',
+        'entries' => [
+            [ 'slug' => 'body', 'name' => 'Body', 'size' => '1rem' ],
         ],
     ],
-    'font-size'    => [ /* mode + items */ ],
-    'font-family'  => [ /* mode + items */ ],
-    'spacing-size' => [ /* mode + items */ ],
+
+    'font_families' => [], // entries: [ 'slug', 'name', 'fontFamily' ]
+    'spacing_sizes' => [], // entries: [ 'slug', 'name', 'size' ]
 ],
 ```
 
-Host entries are layered on top of `theme.json` in `useThemedEditorSettings` and override same-slug entries in the theme or the package defaults. `mode: 'replace'` clears the base list before applying `items`; an empty `replace` clears the base list entirely.
+Entry shapes: `palette` → `slug`, `name`, `color` (hex or any CSS color); `font_sizes` / `spacing_sizes` → `slug`, `name`, `size` (any CSS length); `font_families` → `slug`, `name`, `fontFamily` (a CSS `font-family` stack).
+
+Precedence, lowest to highest: the package defaults, the active theme's `theme.json` presets, then this config. Under `append`, host slugs that collide with a theme or default slug replace that entry in place, and an empty list is a no-op. Under `replace`, the host list wins outright for that preset kind — an empty `entries` array wipes both the theme and the default presets.
+
+Slugs must match `/^[a-z0-9_-]+$/`. Entries with an invalid slug or an empty value are silently dropped, so a typo can't break the picker.
+
+Since v1.12.0 the front end declares every spacing preset the pickers offer, and since v1.12.1 every font-size and palette preset too — see [Theme-less front-end defaults](renderers.md#theme-less-front-end-defaults).
 
 ---
 
 ## `taxonomies`
 
-**Since v1.9 (#771).** Taxonomies registered here are surfaced in the `artisanpack/post-terms` Settings-sidebar picker and get one inserter variation each. Resolved through the new `TaxonomyRegistry`; the editor mount stamps them as `data-taxonomies` for both the post and site editors.
+**Since v1.9 (#771).** Taxonomies registered here are surfaced in the `artisanpack/post-terms` Settings-sidebar picker and get one inserter variation each. Resolved through `TaxonomyRegistry`; the editor mount stamps them as `data-taxonomies` for both the post and site editors.
+
+Keys are the taxonomy slug stamped onto the block's `term` attribute (matching the slugs `PostResolver::resolvePostTerms()` reads from the post's relations). Each value is either a display label, or an array with `label` and an optional `plural` for richer inserter keywords:
 
 ```php
 'taxonomies' => [
-    [
-        'slug'  => 'category',
-        'label' => 'Categories',
-        'rest'  => 'categories', // REST base
-    ],
-    // …
+    'category' => 'Category',   // default
+    'post_tag' => 'Tag',        // default
+    'genre'    => 'Genre',
+    'topic'    => [ 'label' => 'Topic', 'plural' => 'Topics' ],
 ],
 ```
+
+The `category` and `post_tag` defaults mirror WordPress core's built-in public taxonomies.
+
+---
+
+## `breadcrumbs`
+
+Configures the `artisanpack/breadcrumbs` block's server-side trail resolver (#565).
+
+```php
+'breadcrumbs' => [
+    'home_url'   => null, // null → url('/')
+    'home_label' => null, // null → the translated "Home" string
+],
+```
+
+Customize the trail itself (e.g. insert a "Category" hop) through the `ap.visualEditor.breadcrumbs.trail` filter.
 
 ---
 
 ## `business.google_maps_api_key`
 
-**Since v1.9 (#761).** Optional Google Maps embed API key used by the `artisanpack/business-address` block. When set, the block composes a Google Maps embed URL; otherwise it falls back to OpenStreetMap around the address `lat`/`lng`. A host-supplied map URL always wins.
+**Since v1.9 (#761).** Optional Google Maps embed API key used by the `artisanpack/business-address` block. Default `null`.
+
+```php
+'business' => [
+    'google_maps_api_key' => null,
+],
+```
+
+When set and the block's `mapProvider` attribute is `google`, the block composes a Google Maps `/maps/embed/v1/place` URL; otherwise it falls back to the keyless OpenStreetMap embed around the address `lat`/`lng`. A host-supplied map URL always wins. The business data itself comes from the `ap.visualEditor.businessInfo` filter.
+
+⚠️ The key ships to the browser inside the embed URL, so use an HTTP-referrer-restricted key limited to the **Maps Embed API**. Never use a server-unrestricted key here.
+
+---
+
+## `animations` / `keyframes`
+
+**Since v1.1 (#489).** `animations` adds, overrides, or removes the presets the Animations panel offers, keyed by family (`entrance`, `hover`, `continuous`). Resolved in priority order: the active theme's `settings.custom.artisanpack.animations`, this config, then `AnimationRegistry::DEFAULTS`. Set a key to `null` to remove a built-in.
+
+```php
+'animations' => [
+    'entrance' => [
+        'fade-in-blur' => [
+            'label'    => 'Fade in (blur)',
+            'keyframe' => 'apFadeInBlur',
+            'duration' => 700,
+            'easing'   => 'ease-out',
+        ],
+    ],
+],
+```
+
+`keyframes` registers named `@keyframes` blocks for the animation dropdowns. They merge with the theme's `settings.custom.artisanpack.keyframes` and editor-authored keyframes saved in Global Styles; built-in names are reserved.
+
+```php
+'keyframes' => [
+    [
+        'name'  => 'confetti',
+        'stops' => [
+            [ 'at' => '0%',   'transform' => 'translateY(0)' ],
+            [ 'at' => '50%',  'transform' => 'translateY(-12px) rotate(10deg)' ],
+            [ 'at' => '100%', 'transform' => 'translateY(0)' ],
+        ],
+    ],
+],
+```
+
+Both ship empty. See [[Animations]] for the required shape per family.
+
+---
+
+## `default_styles`
+
+**Since v1.12.1 (#821).** Controls the baseline front-end stylesheet `<x-ve-blocks-styles>` emits so a site with no theme renders close to the editor canvas (content typography, a heading scale, and root padding for constrained post content). Every rule has zero specificity and is scoped to block output, so host CSS always wins.
+
+```php
+'default_styles' => 'auto',
+```
+
+| Value | Behaviour |
+|-------|-----------|
+| `'auto'` | Emit only when no theme is active (default). |
+| `true` | Always emit. |
+| `false` | Never emit. |
+
+The preset and layout token defaults (font sizes, palette, content and wide size, block gap) are always declared and a theme overrides them; this flag only controls the baseline stylesheet. The Blade renderer is the only one that reads it. See [Theme-less front-end defaults](renderers.md#theme-less-front-end-defaults).
+
+---
+
+## `ai`
+
+**Since v1.12.1 (#828).** Access and payload bounds for the optional AI features. Every call spends the site's AI credentials, so the `/ai/*` endpoints and the `AiTools` Livewire listeners require the `visual-editor.use-ai` ability (denied by default) and the endpoints are throttled.
+
+```php
+'ai' => [
+    'payload_limits' => [
+        'max_blocks'     => 1000,   // total blocks in a tree, nested included
+        'max_depth'      => 12,     // deepest innerBlocks nesting (top level is 1)
+        'max_bytes'      => 131072, // size of the block JSON sent to the model
+        'max_text_chars' => 20000,  // text length for a content rewrite
+    ],
+    'capability' => 'use_ai_features',
+    'throttle'   => '20,1',
+    'alt_text'   => [
+        'allowed_hosts' => [],
+    ],
+],
+```
+
+- `payload_limits` — a request over any limit is rejected rather than truncated.
+- `capability` — what the default `visual-editor.use-ai` gate requires (checked through the user's `hasCapability()` / `hasPermissionTo()` / `hasPermission()`). Set to `''` to deny everyone, or redefine the gate for your own rule.
+- `throttle` — per-user rate limit for the `/ai/*` endpoints, as Laravel `throttle` middleware arguments (`"max attempts,minutes"`).
+- `alt_text.allowed_hosts` — extra hosts alt-text image URLs may point at (e.g. a CDN). The `app.url` host is always allowed and server file paths are never accepted. Don't list a host with an open redirect.
+
+See [[AI Features]] for the full feature and access guide.
+
+---
+
+## `visibility`
+
+**Since v1.4 (#491 · #492 · #493).** Site-wide controls for block visibility rules.
+
+```php
+'visibility' => [
+    'enabled'             => true,
+    'user_model'          => null,
+    'user_search_columns' => null,
+],
+```
+
+- `enabled` — kill switch for the whole feature.
+- `user_model` — model the "Specific User" rule's `/visual-editor/api/users/search` autocomplete queries. `null` falls back to `auth.providers.users.model`.
+- `user_search_columns` — columns that autocomplete searches. `null` uses `email` and `name` when present on the model.
+
+See [[Visibility]].
+
+---
+
+## `fonts`
+
+**Since v1.7 (#627).** Configures the Font Library: where self-hosted fonts are stored, who can manage them, and the remote providers.
+
+```php
+'fonts' => [
+    'disk'                => env('VE_FONTS_DISK', 'public'),
+    'path'                => 'visual-editor/fonts',
+    'css_path'            => 'visual-editor/fonts/fonts.css',
+    'capability'          => 'manage_fonts',
+    'regenerate'          => [ 'queued' => false ],
+    'install_max_seconds' => 0,
+    'bundles'             => [ 'auto_install' => env('VE_FONTS_BUNDLE_AUTO_INSTALL', false) ],
+    'providers'           => [
+        'google' => [ 'enabled' => true, /* metadata_url, css_url, user_agent, subset, per_page, cache_ttl, timeout, max_bytes */ ],
+        'bunny'  => [ 'enabled' => true, /* list_url, css_url, user_agent, subset, per_page, cache_ttl, timeout, max_bytes */ ],
+        'custom' => [ 'enabled' => true ],
+    ],
+    'upload' => [
+        'max_kilobytes'       => 5_120,
+        'max_total_kilobytes' => 25_600,
+        'extensions'          => [ 'woff2', 'woff', 'ttf', 'otf' ],
+    ],
+],
+```
+
+- `disk` / `path` / `css_path` — where fetched and uploaded face files are self-hosted, and the generated `fonts.css` bundle rebuilt on every install / uninstall.
+- `capability` — gates every mutating Font Library action through `FontPolicy`. Users without it can still browse.
+- `regenerate.queued` — reserved; v1 always regenerates synchronously.
+- `install_max_seconds` — wall-clock budget for a catalog install. `0` derives it from `max_execution_time` (80% of it, or 60s when unlimited).
+- `bundles.auto_install` — whether activating a theme installs the fonts its `theme.json` declares but the library lacks (a remote fetch).
+- `providers.*.enabled` — drop a source from the Font Library without code changes. Provider defaults: `subset` `latin`, `per_page` 24, `cache_ttl` 86400, `timeout` 10, `max_bytes` 15 MB.
+- `upload` — per-file and per-request size caps and accepted extensions for custom uploads.
+
+See [[Fonts]] and [[Font Providers]].
 
 ---
 
@@ -297,6 +500,7 @@ Several configuration keys can also be extended via filter hooks at runtime — 
 | `site-editor.navigation` | `ap.visualEditor.navigation` | Merge menu entries |
 | `breakpoints` | (theme.json) | Replace/merge breakpoints from active theme |
 | `states` | (theme.json) | Replace/merge states from active theme |
+| `animations` / `keyframes` | (theme.json) | Replace/merge animations and keyframes from active theme |
 
 Static config always wins on key collision. See [[Hooks and Events]] for the full filter / action reference.
 

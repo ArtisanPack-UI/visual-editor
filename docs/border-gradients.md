@@ -27,9 +27,10 @@ underlying writes go through the standard `withStateAttributes` HOC,
 so the cascade and inheritance behavior match every other state-able
 property.
 
-Same story for breakpoints — switch the viewport chip to `md` (or any
-breakpoint) and re-pick. Writes land in `attributes.responsive`,
-respecting the mobile-first cascade.
+Same story for breakpoints — switch the viewport switcher to
+**Tablet** or **Mobile** and re-pick. Writes land in
+`attributes.responsive`, respecting the desktop-first cascade (since
+1.12.1).
 
 ## Opting a block in
 
@@ -145,17 +146,20 @@ canonical `StateRegistry::DEFAULT_STATES` set.
 
 ### Breakpoint composition
 
-A per-breakpoint override emits an additional `@media (min-width:…)`
+A per-breakpoint override emits an additional `@media (max-width:…)`
 rule:
 
 ```css
-@media (min-width: 768px) {
+@media (max-width:767px) {
     .ve-gb-abc123::before { background: linear-gradient(180deg, #ff0080, #7928ca); }
 }
 ```
 
-Mobile-first cascade — same semantics as the rest of the responsive
-design tools.
+Desktop-first cascade (since 1.12.1) — same semantics as the rest of
+the responsive design tools. Rules are emitted in registry order, so a
+`mobile` override follows (and wins over) a `tablet` one. Overrides
+saved before 1.12.1 under the legacy mobile-first keys (`sm`, `md`,
+…) keep emitting their original `@media (min-width:…)` rules.
 
 ## Output location
 
@@ -284,7 +288,7 @@ The following from the original issue are deferred to a v2 milestone:
 - **Multiple stacked border gradients** — single layer only in v1.
 - **Per-state-per-breakpoint nested cascades** — per-state and
   per-breakpoint each work independently; nesting them (e.g. "hover
-  at the `md` breakpoint") is not supported in v1. The existing
+  at the `mobile` breakpoint") is not supported in v1. The existing
   `attributes.states` / `attributes.responsive` bags are siblings,
   not composable, so this is a structural limitation that lands when
   the upstream cascading is reworked.

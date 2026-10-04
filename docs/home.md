@@ -15,7 +15,7 @@ The Visual Editor is designed to give Laravel apps a first-class block-based aut
 - **42 forked core blocks** under the `artisanpack/*` namespace — content, media, layout, widget, entity, loop/feed, comments, and query/pagination clusters
 - **Three renderer packages** — Blade (PHP, server-side), React, and Vue — for rendering saved block content on the public site
 - **Custom blocks** — Authoring API for shipping your own static or dynamic blocks under any namespace
-- **Responsive design tools** — Per-breakpoint values on block controls, resolved through a theme-aware breakpoint registry
+- **Responsive design tools** — Per-breakpoint values on block controls, resolved through a theme-aware breakpoint registry (desktop-first Tablet / Mobile overrides since 1.12.1)
 - **Interactive state tools** — Per-state (hover, focus, active, disabled, custom) overrides on block controls
 - **Media bridge** — Pluggable picker + upload bridge that routes Gutenberg's `MediaUpload` hook through any host media library
 - **Livewire & Inertia recipes** — Drop-in embedding patterns for both stacks, plus the same browser-event contract regardless of host
@@ -92,7 +92,7 @@ The block library — what ships, how to author your own, and how to wire respon
 - [[Developer Guide]] — Extending and customizing the editor
 - [[Hooks and Events]] — Filters, actions, and browser events for extending functionality
 - [[Renderers]] — Blade, React, and Vue renderers for the public site
-- [[AI Features]] — Optional AI-powered authoring affordances (suggest next block, layout, alt text, rewrite, heading hierarchy) built on `artisanpack-ui/ai` (v1.3)
+- [[AI Features]] — Optional AI-powered authoring affordances (suggest next block, layout, alt text, rewrite, heading hierarchy) built on `artisanpack-ui/ai` (v1.3); gated on the `use_ai_features` capability, throttled, and payload-bounded since v1.12.1
 
 ---
 
@@ -180,4 +180,4 @@ For issues, feature requests, and contributions:
 
 ---
 
-*This documentation covers visual-editor v1.7.0*
+*This documentation covers visual-editor v1.12.1*

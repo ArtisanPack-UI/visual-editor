@@ -37,6 +37,14 @@ Rule shape at a glance:
 | Date/time window     | Start and/or end datetime. Per-rule timezone override.            |
 | Recurring schedule   | Up to 14 weekly windows (day + `HH:MM` start/end).                |
 
+The screen-size rule still uses the legacy mobile-first breakpoint
+keys (`sm` ≥640px, `md` ≥768px, `lg` ≥1024px, `xl` ≥1280px, `2xl`
+≥1536px) and builds its hide ranges from their min-widths. The
+desktop-first **Tablet** / **Mobile** overrides the viewport switcher
+offers since 1.12.1 (see
+[Responsive Design Tools](blocks/Responsive-Design-Tools.md)) are not
+screen-size visibility options.
+
 The editor canvas dims hidden blocks so authors can still see and
 select them while they're toggled off.
 

@@ -31,10 +31,13 @@ Stored on the block as `attributes.style.position`:
 
 Per-breakpoint overrides ride the standard responsive bag,
 `attributes.responsive['style.position']`, keyed by the breakpoint
-prefix (`sm`, `md`, `lg`, `xl`, `2xl`). Missing fields inherit from
-the next-smaller defined breakpoint, then from `base` — the same
-mobile-first cascade the rest of the responsive system uses (see
-[#487](https://github.com/ArtisanPack-UI/visual-editor/issues/487)).
+key. Since 1.12.1 the editor writes the desktop-first device keys
+(`tablet`, `mobile`). Missing fields inherit from the next-larger
+device, then from `base` — the same desktop-first cascade the rest of
+the responsive system uses (see
+[Responsive Design Tools](blocks/Responsive-Design-Tools.md)). Content
+saved before 1.12.1 with the legacy mobile-first keys (`sm`, `md`,
+`lg`, `xl`, `2xl`) keeps rendering as before.
 
 Legacy content that stored `style.position` as a bare string (Gutenberg's
 native sticky shape) is coerced to `{ "value": "sticky" }` on read
@@ -85,9 +88,10 @@ numeric value. Emitted as `top: auto` etc., matching CSS semantics.
 
 ## Per-breakpoint inheritance
 
-Values are resolved mobile-first. Setting an offset only at `md`
-means: `base` and `sm` inherit whatever was set at `base` (or
-nothing); `md` and larger get the `md` override. The panel follows
+Values are resolved desktop-first (since 1.12.1). `base` is the
+desktop design. Setting an offset only at `tablet` means: desktop
+widths keep `base`; tablet (1023px and below) and mobile get the
+`tablet` override unless `mobile` overrides it in turn. The panel follows
 the editor's top-bar viewport switcher — flip to a different
 breakpoint there and the panel re-reads its effective values for
 that breakpoint. The inspector surfaces an **Inherited** hint next
@@ -96,7 +100,7 @@ breakpoint so authors know which value they'd have to change to
 break inheritance.
 
 The three values (position, offsets, `z-index`) inherit
-independently — you can override just `z-index` at `md` and the
+independently — you can override just `z-index` at `mobile` and the
 position + offsets keep flowing from `base`.
 
 ## Positioned-ancestor warning
@@ -128,8 +132,11 @@ Two channels emit on the frontend:
   block markup.
 - **`<style data-ve-position>` block** — the Blade renderer's per-request
   accumulator emits a single `<style>` element at the top of the
-  response with per-breakpoint rules wrapped in `@media (min-width:...)`
-  queries. Scope class is `.ve-pos-<id>` — same id lands on the
+  response with per-breakpoint rules wrapped in `@media (max-width:...)`
+  queries for device overrides (`@media (min-width:...)` for legacy
+  keys). Rules are emitted in registry order — legacy min-width
+  ascending, then device max-width descending — so the narrower
+  override wins. Scope class is `.ve-pos-<id>` — same id lands on the
   wrapper.
 
 Both use `!important` on every declaration. The editor canvas's own

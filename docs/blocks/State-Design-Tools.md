@@ -177,6 +177,8 @@ State-capable attributes are stored as either:
 
 `null` means "inherit from the next link in the chain." The editor promotes a scalar to the discriminated form on first override and demotes it back to a scalar when the last override is cleared, keeping saved JSON compact.
 
+Since 1.12.1, rich-text attribute values (stored by the block editor as `RichTextData` instances) are treated as leaf values when the editor routes a write to a state (or breakpoint) bag. Before 1.12.1, rich-text edits made while a non-idle state — or a non-base breakpoint — was active were silently dropped.
+
 ### 2.5 CSS emission
 
 The server-side `StateCssEmitter` turns a block's stateful attributes into scoped CSS. Given a unique class scope and a map of `property => stateful value`, it emits:

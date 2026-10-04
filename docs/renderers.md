@@ -1,3 +1,7 @@
+---
+title: Renderers
+---
+
 # Renderers
 
 The visual editor saves a Gutenberg-shaped block tree to your model.
@@ -58,6 +62,86 @@ For full-template rendering (with template-part resolution and the
 `<x-ve-template>` looks up the template via `TemplateResolver`, applies
 the fallback chain (theme file → user override → custom), and inlines
 template parts. See [Templates](site-editor/Templates.md) for hierarchy details.
+
+Template-part and synced-pattern references are recognized under both
+their core and forked names (`BlockShape::TEMPLATE_PART_NAMES` /
+`BlockShape::PATTERN_REF_NAMES`):
+
+| Reference | Names expanded |
+|-----------|----------------|
+| Template part | `core/template-part` (theme files), `artisanpack/template-part` (templates saved in the site editor) |
+| Synced pattern | `core/block`, `artisanpack/block` (older saved templates) |
+
+*Since v1.12.1 (#822).* Before 1.12.1 only the core names were expanded,
+so every part in a template saved from the site editor rendered as an
+empty wrapper. The React and Vue inliners follow the same rule. A resolved
+template part keeps the block name it was saved with, and its saved
+`innerBlocks` snapshot is always replaced by the live part. A resolved
+pattern reference is always output as `core/block`.
+
+### Front-end styles
+
+Mount `<x-ve-blocks-styles>` once in your layout's `<head>`:
+
+```blade
+<head>
+    <x-ve-blocks-styles :theme-json="$themeJson" />
+</head>
+```
+
+It links the bundled block-library CSS and the per-block front-end
+stylesheets, and inlines the `--wp--preset--*` tokens compiled from the
+`theme.json` you pass, the layout baseline, and the defaults below. Pass
+`:bundle="false"` to skip the block-library `<link>`s, `:interactive="false"`
+to skip the accordion / tabs assets, and `asset-base` to serve the CSS from
+a CDN.
+
+### Theme-less front-end defaults
+
+*Since v1.12.1 (#821).* A site with no theme now renders close to the
+editor canvas. `<x-ve-blocks-styles>` always declares:
+
+- **Font-size and palette presets** — every preset the editor's pickers
+  offer, as `--wp--preset--font-size--*` / `--wp--preset--color--*`
+  properties, plus the `.has-{slug}-font-size`, `.has-{slug}-color`,
+  `.has-{slug}-background-color`, and `.has-{slug}-border-color` classes
+  that point at them. When the theme ships no list, the package defaults
+  are used (`small` 13px, `regular` 16px, `medium` 20px, `large` 28px,
+  `huge` 36px; `base-content`, `base-muted`, `primary`, `secondary`,
+  `accent`, `success`, `warning`, `error`), with host
+  [`presets`](Configuration.md#presets) layered on top. Before 1.12.1 a
+  "Large" pick on a theme-less site saved `has-large-font-size` with
+  nothing behind it.
+- **Layout tokens at zero specificity** — `:where(:root)` defaults for
+  `--wp--style--global--content-size` (720px),
+  `--wp--style--global--wide-size` (1080px), `--wp--style--block-gap`
+  (24px), and `--wp--style--root--padding-*` (1.5rem), plus the
+  constrained-layout rules when the theme sets no layout sizes. Any theme
+  `:root` declaration wins whatever the source order.
+
+The package's own CSS also gives every `var(--wp--*)` / `var(--ap-*)` a
+fallback value, so a missing token never collapses a declaration.
+
+**Baseline stylesheet.** On top of the tokens, an optional baseline adds
+content typography (system font stack, 16px, line-height 1.6), a heading
+scale for `.wp-block-heading`, and root padding for constrained post
+content (with `.alignfull` children bleeding to the edges). It is scoped
+to block output (`.wp-block-post-content`, `.wp-block-heading`,
+`.has-global-padding`) rather than `body` or bare `h1`–`h6`, so it can't
+restyle a Tailwind host's own chrome, and every rule is wrapped in
+`:where()` so any theme rule wins. The
+[`default_styles`](Configuration.md#default_styles) config key controls
+it:
+
+| Value | Behaviour |
+|-------|-----------|
+| `'auto'` (default) | Emitted only when no theme is active — no `theme-json` is passed and cms-framework reports no active theme. |
+| `true` | Always emitted. |
+| `false` | Never emitted. |
+
+The React and Vue renderers declare the same preset and layout token
+defaults through `<LayoutBaseline />` (see below). The baseline
+stylesheet is Blade-only.
 
 ### Rendering raw block markup
 
@@ -202,7 +286,11 @@ flow / constrained / flex / grid layout rules, it declares the package
 default spacing presets (`--wp--preset--spacing--20` … `--70`) at zero
 specificity (`:where(:root)`) and the navigation block's default item gap
 (`:where(.wp-block-navigation)`), so `var:preset|spacing|*` picks and
-Block spacing resolve even when the theme ships no `spacingSizes`. Any
+Block spacing resolve even when the theme ships no `spacingSizes`. Since
+v1.12.1 (#821) it also declares the default font-size and palette presets
+with their `.has-{slug}-*` classes, and the content size, wide size, block
+gap and root padding tokens — the same defaults as the Blade renderer's
+[theme-less front-end defaults](#theme-less-front-end-defaults). Any
 `:root` declaration from `<GlobalStyles>` — theme, style variation, user
 Global Styles or host presets — overrides those defaults.
 
@@ -281,5 +369,7 @@ publish.
 
 - [Custom blocks](blocks/Custom-Blocks.md) — authoring blocks that need renderers
 - [Templates](site-editor/Templates.md) — template fallback chain and `core/template-part`
+- [Patterns](site-editor/Patterns.md) — synced-pattern (`core/block`) references
+- [Configuration](Configuration.md) — `default_styles` and `presets`
 - [Global styles](site-editor/Global-Styles.md) — CSS emission contract
 - [Inertia](post-editor/Inertia-Integration.md) — embedding the renderers inside Inertia apps

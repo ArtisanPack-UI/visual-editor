@@ -253,6 +253,12 @@ The inverse workflow — a "Book a demo" button visible only on desktop
 — uses the same rule with `Show at → Large` + larger breakpoints, or
 `Hide at → Small` + `Medium`.
 
+The Screen Size options are the legacy mobile-first breakpoint keys
+(`sm`, `md`, `lg`, `xl`, `2xl`), not the desktop-first **Tablet** /
+**Mobile** overrides the viewport switcher uses for styles since
+1.12.1. The two systems are independent: style overrides set at
+Tablet or Mobile don't change which screen sizes a block renders at.
+
 Links and submenus live in the menu, not in the page's block tree, so
 their visibility settings are saved with the menu item. Menu items
 store every block attribute that has no dedicated column (visibility,

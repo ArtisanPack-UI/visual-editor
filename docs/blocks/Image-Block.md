@@ -68,6 +68,21 @@ Pasted `core/image` markup with an existing inline `width` (e.g. `style="width: 
 
 ---
 
+## Alignment and floats (v1.12.1)
+
+Images aligned **Left** or **Right** (`alignleft` / `alignright`) float so the surrounding text wraps beside them. Since 1.12.1 this works the same in the Blade, React, and Vue renderers and in the editor canvas:
+
+- **Any flow or constrained layout** — an `alignleft` / `alignright` child floats (`float: left` / `float: right`) with a `2em` gap toward the text, matching WordPress's layout definitions. The rules use `:where()` (zero specificity), so any theme rule wins.
+- **Constrained post content and groups** — inside `.wp-block-post-content` and constrained Group blocks, the float is offset by the gutter the content-size cap leaves, so it lines up with the content column instead of the container edge. Constrained post content also becomes a block formatting context (`display: flow-root`) so a float at the end of the content doesn't hang out of it.
+- **Vertical alignment** — a float takes the same top block gap as the text that wraps beside it, so the image and the text start on the same line. A float that opens its container drops that gap (above the Mobile breakpoint).
+- **Mobile** — at the Mobile breakpoint (767px and below by default) the float is dropped and the image is centered, since there's no room for text to wrap.
+
+### Tailwind `size-full` collision
+
+The image block's `size-full` class is WordPress's image-size slug, but it collides with Tailwind's `size-full` utility (`width: 100%; height: 100%`), which stretched aligned images across the column so they couldn't float. Since 1.12.1 the renderers ship an unlayered, zero-specificity reset — `:where(.wp-block-image.size-full) { width: auto; height: auto; }` — that beats Tailwind's layered utility while still losing to any real theme rule.
+
+---
+
 ## Divergence from upstream
 
 Upstream `core/image` powers width via `DimensionsTool` and `ResizableBox` from `@wordpress/block-library/private-apis`, which is unreachable from outside `@wordpress/block-library` (blocked by the package's `exports` field). The fork implements width control from scratch on top of the public `@wordpress/components` `ResizableBox`. See `resources/js/visual-editor/blocks/image/upstream-state.json` for the full extension record.
