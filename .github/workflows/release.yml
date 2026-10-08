@@ -481,9 +481,16 @@ jobs:
 
           for IMPORT in import-docs import-changelog; do
             echo "Triggering $IMPORT for $DOCS_PACKAGE_SLUG"
-            curl --fail-with-body -sS --retry 3 -X POST \
+            # Only a 202 means the import was queued — `--fail-with-body`
+            # would also accept a 200/204, so check the status explicitly.
+            STATUS=$(curl -sS --retry 3 -o response.json -w '%{http_code}' -X POST \
               "https://docs.artisanpackui.dev/api/v1/packages/${DOCS_PACKAGE_SLUG}/${IMPORT}" \
               -H "Authorization: Bearer ${DOCS_API_TOKEN}" \
-              -H "Accept: application/json"
+              -H "Accept: application/json")
+            cat response.json
             echo
+            if [ "$STATUS" != "202" ]; then
+              echo "::error::$IMPORT returned HTTP $STATUS (expected 202)."
+              exit 1
+            fi
           done
