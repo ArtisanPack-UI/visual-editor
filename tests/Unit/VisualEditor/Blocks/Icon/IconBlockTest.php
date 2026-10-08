@@ -147,6 +147,23 @@ it( 'inlines a sanitized customSvg', function () {
 		->and( $html )->not->toContain( 'alert(1)' );
 } );
 
+it( 'never renders local file contents from an external-entity customSvg', function () {
+	$secret = tempnam( sys_get_temp_dir(), 've-xxe-' );
+	file_put_contents( $secret, 'VE_XXE_CANARY_SECRET' );
+
+	try {
+		$html = test()->block->render( [
+			'customSvg' => '<!DOC<!DOCTYPE x>TYPE svg [<!ENTITY xxe SYSTEM "file://' . $secret . '">]>'
+				. '<svg xmlns="http://www.w3.org/2000/svg"><text>&xxe;</text></svg>',
+		] );
+	} finally {
+		@unlink( $secret );
+	}
+
+	expect( $html )->not->toContain( 'VE_XXE_CANARY_SECRET' )
+		->and( $html )->not->toContain( '<svg' );
+} );
+
 it( 'wraps the icon in an anchor when link is set', function () {
 	$html = test()->block->render( [
 		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],

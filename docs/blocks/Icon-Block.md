@@ -20,7 +20,7 @@ Authors insert the block from the inserter under the **Design** category, then e
 
 ### Pasting a custom SVG
 
-When the catalog doesn't carry the icon you need, drop into **Inspector → Custom SVG** and paste any SVG markup. The server sanitizes the SVG before it reaches the canvas — script tags, event-handler attributes, and unsafe href schemes are stripped, and the cleaned markup is what persists. Pasting a custom SVG clears any previously-picked `iconRef` so the two render paths can't conflict.
+When the catalog doesn't carry the icon you need, drop into **Inspector → Custom SVG** and paste any SVG markup. The server sanitizes the SVG before it reaches the canvas — script tags, event-handler attributes, and unsafe href schemes are stripped, and the cleaned markup is what persists. SVGs that carry a DTD internal subset or `<!ENTITY>` declarations are refused outright; the bare W3C SVG 1.0 / 1.1 public DOCTYPE that older Illustrator and Inkscape exports include is accepted and dropped. Pasting a custom SVG clears any previously-picked `iconRef` so the two render paths can't conflict.
 
 ### Styling
 

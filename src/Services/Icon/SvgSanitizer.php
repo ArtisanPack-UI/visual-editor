@@ -134,6 +134,18 @@ class SvgSanitizer
 		'src',
 	];
 
+	/**
+	 * The bare W3C SVG 1.0 / 1.1 public DOCTYPE — external identifier only,
+	 * no internal subset. This is the only DOCTYPE the sanitizer tolerates
+	 * (and it is removed before parsing); any other DTD or entity
+	 * declaration causes the input to be refused.
+	 *
+	 * @since 1.12.2
+	 *
+	 * @var string
+	 */
+	private const PUBLIC_SVG_DOCTYPE = '#<!DOCTYPE\s+svg\s+PUBLIC\s+"-//W3C//DTD SVG 1\.[01](?: Basic| Tiny)?//EN"\s+"http://www\.w3\.org/(?:TR/2001/REC-SVG-20010904/DTD/svg10\.dtd|Graphics/SVG/1\.1/DTD/svg11(?:-basic|-tiny)?\.dtd)"\s*>#';
+
 	public function sanitize( string $svg ): SvgSanitizationResult
 	{
 		$trimmed = trim( $svg );
@@ -141,15 +153,20 @@ class SvgSanitizer
 			return new SvgSanitizationResult( '' );
 		}
 
-		// Strip XML declarations + DOCTYPEs up front. They're never part of
-		// an inline icon and DOMDocument resolves doctypes by default — an
-		// attacker could otherwise smuggle an external entity reference.
+		// Strip XML declarations up front — we prepend our own below.
 		$cleaned = preg_replace( '/<\?xml.*?\?>/si', '', $trimmed ) ?? $trimmed;
 
-		// Strip DOCTYPEs *including* internal subsets — a naive `<!DOCTYPE[^>]*>`
-		// regex would stop at the first `>` inside an `<!ENTITY>` declaration,
-		// leaving the XXE payload in place for libxml to ingest.
-		$cleaned = preg_replace( '/<!DOCTYPE\b[^[>]*(\[[^\]]*\])?[^>]*>/si', '', $cleaned ) ?? $cleaned;
+		// Authoring tools (older Illustrator, Inkscape) emit the bare W3C
+		// SVG public DOCTYPE. Drop exactly one of those so the export still
+		// pastes cleanly, then REFUSE anything that still looks like a DTD
+		// or entity declaration. Refusing instead of strip-looping is the
+		// point: a single strip pass is not idempotent, so a DOCTYPE nested
+		// inside another DOCTYPE reassembles itself (GHSA-r4qj-7p7h-gjxr).
+		$cleaned = preg_replace( self::PUBLIC_SVG_DOCTYPE, '', $cleaned, 1 ) ?? $cleaned;
+
+		if ( 1 === preg_match( '/<!\s*(DOCTYPE|ENTITY)/i', $cleaned ) ) {
+			return new SvgSanitizationResult( '', [ 'svg contains a DOCTYPE or ENTITY declaration' ] );
+		}
 
 		$warnings = [];
 
@@ -159,15 +176,23 @@ class SvgSanitizer
 
 		$prev = libxml_use_internal_errors( true );
 
-		// `LIBXML_NONET` blocks network fetches for external entities.
+		// `LIBXML_NONET` blocks network fetches. `LIBXML_NOENT` must never be
+		// passed here — despite the name it *enables* entity substitution,
+		// including external `SYSTEM` entities read from `file://`.
 		$wrapped = '<?xml version="1.0" encoding="UTF-8"?>' . $cleaned;
-		$loaded  = $dom->loadXML( $wrapped, LIBXML_NONET | LIBXML_NOENT );
+		$loaded  = $dom->loadXML( $wrapped, LIBXML_NONET );
 
 		libxml_clear_errors();
 		libxml_use_internal_errors( $prev );
 
 		if ( ! $loaded || null === $dom->documentElement ) {
 			return new SvgSanitizationResult( '', [ 'svg failed to parse' ] );
+		}
+
+		// Belt and braces: the pre-parse check should make this unreachable,
+		// but a document that still carries a doctype is never trusted.
+		if ( null !== $dom->doctype ) {
+			return new SvgSanitizationResult( '', [ 'svg contains a DOCTYPE or ENTITY declaration' ] );
 		}
 
 		$root = $dom->documentElement;

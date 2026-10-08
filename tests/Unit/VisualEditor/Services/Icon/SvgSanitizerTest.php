@@ -147,13 +147,134 @@ it( 'allows harmless version and xml:space root attributes', function () {
 		->and( $result->hasWarnings() )->toBeFalse();
 } );
 
-it( 'strips DOCTYPEs without trying to resolve external entities', function () {
+it( 'refuses DOCTYPEs carrying entity declarations instead of stripping them', function () {
 	$svg = '<!DOCTYPE svg [<!ENTITY xxe SYSTEM "file:///etc/passwd">]>'
 		. '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0"/></svg>';
 
 	$result = test()->sanitizer->sanitize( $svg );
 
-	expect( $result->sanitized )->not->toContain( 'DOCTYPE' )
-		->and( $result->sanitized )->not->toContain( '/etc/passwd' )
-		->and( $result->sanitized )->toContain( '<path' );
+	expect( $result->isEmpty() )->toBeTrue()
+		->and( $result->warnings )->toContain( 'svg contains a DOCTYPE or ENTITY declaration' );
+} );
+
+describe( 'XML external entity hardening (GHSA-r4qj-7p7h-gjxr)', function (): void {
+	beforeEach( function (): void {
+		test()->secretFile = tempnam( sys_get_temp_dir(), 've-xxe-' );
+		file_put_contents( test()->secretFile, 'VE_XXE_CANARY_SECRET' );
+		test()->secretUri = 'file://' . test()->secretFile;
+	} );
+
+	afterEach( function (): void {
+		@unlink( test()->secretFile );
+	} );
+
+	it( 'refuses a DOCTYPE nested inside another DOCTYPE', function (): void {
+		$svg = '<!DOC<!DOCTYPE x>TYPE svg [<!ENTITY xxe SYSTEM "' . test()->secretUri . '">]>'
+			. '<svg xmlns="http://www.w3.org/2000/svg"><title>&xxe;</title><path d="M0 0"/></svg>';
+
+		$result = test()->sanitizer->sanitize( $svg );
+
+		expect( $result->sanitized )->not->toContain( 'VE_XXE_CANARY_SECRET' )
+			->and( $result->isEmpty() )->toBeTrue()
+			->and( $result->warnings )->toContain( 'svg contains a DOCTYPE or ENTITY declaration' );
+	} );
+
+	it( 'refuses an external SYSTEM entity expanded into an allow-listed element', function (): void {
+		$svg = '<!DOCTYPE svg [<!ENTITY xxe SYSTEM "' . test()->secretUri . '">]>'
+			. '<svg xmlns="http://www.w3.org/2000/svg"><text>&xxe;</text></svg>';
+
+		$result = test()->sanitizer->sanitize( $svg );
+
+		expect( $result->sanitized )->not->toContain( 'VE_XXE_CANARY_SECRET' )
+			->and( $result->isEmpty() )->toBeTrue()
+			->and( $result->hasWarnings() )->toBeTrue();
+	} );
+
+	it( 'refuses parameter entities', function (): void {
+		$svg = '<!DOCTYPE svg [<!ENTITY % ext SYSTEM "' . test()->secretUri . '"> %ext;]>'
+			. '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0"/></svg>';
+
+		$result = test()->sanitizer->sanitize( $svg );
+
+		expect( $result->sanitized )->not->toContain( 'VE_XXE_CANARY_SECRET' )
+			->and( $result->isEmpty() )->toBeTrue()
+			->and( $result->hasWarnings() )->toBeTrue();
+	} );
+
+	it( 'refuses a bare ENTITY declaration outside a DOCTYPE', function (): void {
+		$svg = '<!ENTITY xxe SYSTEM "' . test()->secretUri . '">'
+			. '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0"/></svg>';
+
+		$result = test()->sanitizer->sanitize( $svg );
+
+		expect( $result->isEmpty() )->toBeTrue()
+			->and( $result->hasWarnings() )->toBeTrue();
+	} );
+
+	it( 'refuses DOCTYPE declarations regardless of case or whitespace', function ( string $doctype ): void {
+		$svg = $doctype . '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0"/></svg>';
+
+		$result = test()->sanitizer->sanitize( $svg );
+
+		expect( $result->isEmpty() )->toBeTrue()
+			->and( $result->hasWarnings() )->toBeTrue();
+	} )->with( [
+		'lowercase'           => '<!doctype svg [<!entity a "b">]>',
+		'mixed case'          => '<!DocType svg [<!Entity a "b">]>',
+		'whitespace after <!' => '<! DOCTYPE svg>',
+	] );
+
+	it( 'does not expand undeclared entity references', function (): void {
+		$svg = '<svg xmlns="http://www.w3.org/2000/svg"><title>&xxe;</title></svg>';
+
+		$result = test()->sanitizer->sanitize( $svg );
+
+		expect( $result->sanitized )->not->toContain( 'VE_XXE_CANARY_SECRET' )
+			->and( $result->isEmpty() )->toBeTrue();
+	} );
+
+	it( 'still decodes the predefined XML entities', function (): void {
+		$svg = '<svg xmlns="http://www.w3.org/2000/svg"><title>Fish &amp; Chips</title></svg>';
+
+		$result = test()->sanitizer->sanitize( $svg );
+
+		expect( $result->sanitized )->toContain( 'Fish &amp; Chips' )
+			->and( $result->hasWarnings() )->toBeFalse();
+	} );
+
+	it( 'accepts the standard SVG 1.1 public DOCTYPE emitted by authoring tools', function (): void {
+		$svg = '<?xml version="1.0" encoding="utf-8"?>'
+			. '<!-- Generator: Adobe Illustrator 24.0.0, SVG Export Plug-In -->'
+			. '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">'
+			. '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0"/></svg>';
+
+		$result = test()->sanitizer->sanitize( $svg );
+
+		expect( $result->isEmpty() )->toBeFalse()
+			->and( $result->sanitized )->not->toContain( 'DOCTYPE' )
+			->and( $result->sanitized )->toContain( '<path' );
+	} );
+
+	it( 'refuses a malicious DOCTYPE reassembled around the standard public DOCTYPE', function (): void {
+		$svg = '<!DOC<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">'
+			. 'TYPE svg [<!ENTITY xxe SYSTEM "' . test()->secretUri . '">]>'
+			. '<svg xmlns="http://www.w3.org/2000/svg"><title>&xxe;</title></svg>';
+
+		$result = test()->sanitizer->sanitize( $svg );
+
+		expect( $result->sanitized )->not->toContain( 'VE_XXE_CANARY_SECRET' )
+			->and( $result->isEmpty() )->toBeTrue()
+			->and( $result->hasWarnings() )->toBeTrue();
+	} );
+
+	it( 'refuses a standard public DOCTYPE that carries an internal subset', function (): void {
+		$svg = '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd" '
+			. '[<!ENTITY xxe SYSTEM "' . test()->secretUri . '">]>'
+			. '<svg xmlns="http://www.w3.org/2000/svg"><title>&xxe;</title></svg>';
+
+		$result = test()->sanitizer->sanitize( $svg );
+
+		expect( $result->sanitized )->not->toContain( 'VE_XXE_CANARY_SECRET' )
+			->and( $result->isEmpty() )->toBeTrue();
+	} );
 } );

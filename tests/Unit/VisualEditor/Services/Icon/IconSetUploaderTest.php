@@ -123,6 +123,28 @@ it( 'reports sanitization failures without writing the empty result', function (
 		->and( file_exists( test()->baseDir . '/brand/evil.svg' ) )->toBeFalse();
 } );
 
+it( 'refuses svgs that smuggle an external entity and never persists the file contents', function (): void {
+	$secret = tempnam( sys_get_temp_dir(), 've-xxe-' );
+	file_put_contents( $secret, 'VE_XXE_CANARY_SECRET' );
+
+	$zip = makeUploadedZip( [
+		'evil.svg' => '<!DOC<!DOCTYPE x>TYPE svg [<!ENTITY xxe SYSTEM "file://' . $secret . '">]>'
+			. '<svg xmlns="http://www.w3.org/2000/svg"><title>&xxe;</title><path d="M0 0"/></svg>',
+		'good.svg' => '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0"/></svg>',
+	] );
+
+	try {
+		$result = test()->uploader->upload( $zip, 'brand', 'Brand' );
+	} finally {
+		@unlink( $secret );
+	}
+
+	expect( $result->stored )->toBe( [ 'good.svg' ] )
+		->and( $result->failed )->toHaveCount( 1 )
+		->and( $result->failed[0]['file'] )->toBe( 'evil.svg' )
+		->and( file_exists( test()->baseDir . '/brand/evil.svg' ) )->toBeFalse();
+} );
+
 it( 'rejects path traversal in the zip entry names', function (): void {
 	$zip = makeUploadedZip( [
 		'../escape.svg' => '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0"/></svg>',
