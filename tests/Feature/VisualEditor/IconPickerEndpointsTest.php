@@ -182,6 +182,29 @@ it( 'strips a malicious svg and reports warnings via the sanitize endpoint', fun
 	expect( implode( "\n", $warnings ) )->toContain( '<script>' );
 } );
 
+it( 'refuses an external-entity payload via the sanitize endpoint without leaking file contents', function () {
+	actingAsIconPickerUser();
+
+	$secret = tempnam( sys_get_temp_dir(), 've-xxe-' );
+	file_put_contents( $secret, 'VE_XXE_CANARY_SECRET' );
+
+	$payload = '<!DOC<!DOCTYPE x>TYPE svg [<!ENTITY xxe SYSTEM "file://' . $secret . '">]>'
+		. '<svg xmlns="http://www.w3.org/2000/svg"><title>&xxe;</title><path d="M0 0"/></svg>';
+
+	try {
+		$response = $this->postJson(
+			'/visual-editor/api/icons/svg/sanitize',
+			[ 'svg' => $payload ],
+		)->assertOk();
+	} finally {
+		@unlink( $secret );
+	}
+
+	expect( $response->getContent() )->not->toContain( 'VE_XXE_CANARY_SECRET' );
+	expect( $response->json( 'svg' ) )->toBe( '' );
+	expect( $response->json( 'warnings' ) )->toContain( 'svg contains a DOCTYPE or ENTITY declaration' );
+} );
+
 it( 'returns 422 from the sanitize endpoint when svg is not a string', function () {
 	actingAsIconPickerUser();
 
