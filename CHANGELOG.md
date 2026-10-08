@@ -6,6 +6,27 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.12.2] - 2026-10-08
+
+### Upgrade notes
+
+- **SVGs with DTD or entity declarations are now refused.** The SVG
+  sanitizer (custom SVGs in the icon block, the `icons/svg/sanitize`
+  endpoint, and icon-set zip uploads) now rejects any SVG that contains a
+  `<!DOCTYPE>` with an internal subset or an `<!ENTITY>` declaration,
+  instead of trying to strip them. The bare W3C SVG 1.0 / 1.1 public
+  DOCTYPE that older authoring tools emit is still accepted. Icon SVGs
+  never need DTDs, so normal icons are unaffected.
+
+### Security
+
+- Fixed an XML external entity (XXE) vulnerability in `SvgSanitizer` that
+  let an authenticated user read local files readable by the PHP process
+  through the SVG sanitize endpoint, icon block custom SVGs, or icon-set
+  uploads. See
+  [GHSA-r4qj-7p7h-gjxr](https://github.com/ArtisanPack-UI/visual-editor/security/advisories/GHSA-r4qj-7p7h-gjxr).
+  Affects 1.1.0 through 1.12.1.
+
 ## [1.12.1] - 2026-10-04
 
 ### Upgrade notes
