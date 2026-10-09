@@ -78,6 +78,11 @@ it( 'returns null when the column does not exist on the model', function () {
 	expect( $source->resolve( new BindingContext( $model ), [ 'key' => 'no_such_column' ] ) )->toBeNull();
 } );
 
+it( 'returns an empty catalog when cms-framework custom fields are not migrated', function () {
+	// Standalone install: no cms-framework provider or `custom_fields` table.
+	expect( ( new CustomFieldSource() )->availableFields( 'portfolio', TestBindingsModel::class ) )->toBe( [] );
+} );
+
 it( 'declares no eager-load relations', function () {
 	expect( ( new CustomFieldSource() )->eagerLoadRelations( [ [ 'key' => 'whatever' ] ] ) )->toBe( [] );
 } );

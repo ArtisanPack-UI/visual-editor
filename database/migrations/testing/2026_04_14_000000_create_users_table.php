@@ -24,6 +24,12 @@ return new class extends Migration
 {
 	public function up(): void
 	{
+		// cms-framework's own `users` migration may already have run when a
+		// test co-loads it via `Tests\Concerns\WithCmsFramework`.
+		if ( Schema::hasTable( 'users' ) ) {
+			return;
+		}
+
 		Schema::create( 'users', function ( Blueprint $table ) {
 			$table->id();
 			$table->string( 'name' );

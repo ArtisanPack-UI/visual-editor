@@ -53,3 +53,31 @@ it( 'throws InvalidArgumentException with the prescribed message on first resolv
 	InvalidArgumentException::class,
 	'Resource [users] resolves to [' . TestUser::class . '] which does not use HasBlockContent.'
 );
+
+it( 'reports whether a slug is registered, including entries with an invalid class', function () {
+	$resolver = new ResourceResolver( [
+		'posts'  => TestBlockContentModel::class,
+		'broken' => 'App\\Models\\DoesNotExist',
+	] );
+
+	expect( $resolver->has( 'posts' ) )->toBeTrue()
+		->and( $resolver->has( 'broken' ) )->toBeTrue()
+		->and( $resolver->has( 'imaginary' ) )->toBeFalse();
+} );
+
+it( 'honours a subclass that resolves slugs dynamically in has()', function () {
+	$resolver = new class extends ResourceResolver
+	{
+		public function modelClassFor( string $resource ): string
+		{
+			if ( 'portfolio' === $resource ) {
+				return TestBlockContentModel::class;
+			}
+
+			throw new NotFoundHttpException();
+		}
+	};
+
+	expect( $resolver->has( 'portfolio' ) )->toBeTrue()
+		->and( $resolver->has( 'imaginary' ) )->toBeFalse();
+} );
