@@ -10,6 +10,7 @@ declare( strict_types=1 );
 
 use ArtisanPackUI\CMSFramework\Modules\SiteEditor\Models\Menu;
 use ArtisanPackUI\CMSFramework\Modules\SiteEditor\Models\MenuItem;
+use ArtisanPackUI\CMSFramework\Modules\SiteEditor\Models\MenuLocationAssignment;
 use ArtisanPackUI\CMSFramework\Modules\Themes\Managers\ThemeManager;
 use Tests\Concerns\GrantsSiteEditorAccess;
 use Tests\Concerns\WithCmsFramework;
@@ -90,6 +91,116 @@ describe( 'GET /visual-editor/api/menus', function (): void {
 			->assertOk()
 			->assertJsonCount( 1 )
 			->assertJsonPath( '0.theme', 'other-theme' );
+	} );
+} );
+
+describe( 'GET /visual-editor/api/menus/fallback', function (): void {
+	it( 'returns 204 when no menus exist', function (): void {
+		$this->getJson( '/visual-editor/api/menus/fallback' )->assertNoContent();
+	} );
+
+	it( 'returns the only menu in the WP-shape envelope', function (): void {
+		$menu = Menu::create( [ 'theme' => 'digital-shopfront', 'slug' => 'main', 'name' => 'Main' ] );
+		$menu->items()->create( [ 'label' => 'Home', 'url' => '/', 'type' => 'link', 'position' => 0 ] );
+
+		$this->getJson( '/visual-editor/api/menus/fallback' )
+			->assertOk()
+			->assertJsonPath( 'id', $menu->id )
+			->assertJsonPath( 'type', 'wp_navigation' )
+			->assertJsonPath( 'status', 'publish' )
+			->assertJsonPath( 'content.blocks.0.attributes.label', 'Home' );
+	} );
+
+	it( 'prefers the menu assigned to the active theme primary location', function (): void {
+		$primary = Menu::create( [ 'theme' => 'digital-shopfront', 'slug' => 'header', 'name' => 'Header' ] );
+		Menu::create( [ 'theme' => 'digital-shopfront', 'slug' => 'footer', 'name' => 'Footer' ] );
+
+		MenuLocationAssignment::create( [
+			'theme'    => 'digital-shopfront',
+			'location' => 'primary',
+			'menu_id'  => $primary->id,
+		] );
+
+		$this->getJson( '/visual-editor/api/menus/fallback' )
+			->assertOk()
+			->assertJsonPath( 'id', $primary->id );
+	} );
+
+	it( 'ignores primary assignments and menus belonging to another theme', function (): void {
+		$own     = Menu::create( [ 'theme' => 'digital-shopfront', 'slug' => 'main', 'name' => 'Main' ] );
+		$foreign = Menu::create( [ 'theme' => 'other-theme', 'slug' => 'header', 'name' => 'Other Header' ] );
+
+		MenuLocationAssignment::create( [
+			'theme'    => 'other-theme',
+			'location' => 'primary',
+			'menu_id'  => $foreign->id,
+		] );
+
+		$this->getJson( '/visual-editor/api/menus/fallback' )
+			->assertOk()
+			->assertJsonPath( 'id', $own->id );
+	} );
+
+	it( 'ignores menus assigned to non-primary locations', function (): void {
+		$footer = Menu::create( [ 'theme' => 'digital-shopfront', 'slug' => 'footer', 'name' => 'Footer' ] );
+		$footer->forceFill( [ 'updated_at' => now()->subDay() ] )->saveQuietly();
+		$latest = Menu::create( [ 'theme' => 'digital-shopfront', 'slug' => 'main', 'name' => 'Main' ] );
+
+		MenuLocationAssignment::create( [
+			'theme'    => 'digital-shopfront',
+			'location' => 'footer',
+			'menu_id'  => $footer->id,
+		] );
+
+		$this->getJson( '/visual-editor/api/menus/fallback' )
+			->assertOk()
+			->assertJsonPath( 'id', $latest->id );
+	} );
+
+	it( 'falls back to the most recently updated menu without a primary assignment', function (): void {
+		$older = Menu::create( [ 'theme' => 'digital-shopfront', 'slug' => 'older', 'name' => 'Older' ] );
+		$newer = Menu::create( [ 'theme' => 'digital-shopfront', 'slug' => 'newer', 'name' => 'Newer' ] );
+
+		$older->forceFill( [ 'updated_at' => now()->addMinute() ] )->saveQuietly();
+		$newer->forceFill( [ 'updated_at' => now() ] )->saveQuietly();
+
+		$this->getJson( '/visual-editor/api/menus/fallback' )
+			->assertOk()
+			->assertJsonPath( 'id', $older->id );
+	} );
+
+	it( 'breaks updated_at ties by the highest id', function (): void {
+		$timestamp = now()->startOfSecond();
+		$first     = Menu::create( [ 'theme' => 'digital-shopfront', 'slug' => 'first', 'name' => 'First' ] );
+		$second    = Menu::create( [ 'theme' => 'digital-shopfront', 'slug' => 'second', 'name' => 'Second' ] );
+
+		$first->forceFill( [ 'updated_at' => $timestamp ] )->saveQuietly();
+		$second->forceFill( [ 'updated_at' => $timestamp ] )->saveQuietly();
+
+		$this->getJson( '/visual-editor/api/menus/fallback' )
+			->assertOk()
+			->assertJsonPath( 'id', $second->id );
+	} );
+
+	it( 'considers every theme when no theme is active', function (): void {
+		$this->mock( ThemeManager::class, function ( $mock ): void {
+			$mock->shouldReceive( 'getActiveTheme' )->andReturn( null );
+		} );
+
+		Menu::create( [ 'theme' => 'other-theme', 'slug' => 'older', 'name' => 'Older' ] )
+			->forceFill( [ 'updated_at' => now()->subDay() ] )
+			->saveQuietly();
+		$latest = Menu::create( [ 'theme' => 'another-theme', 'slug' => 'newer', 'name' => 'Newer' ] );
+
+		$this->getJson( '/visual-editor/api/menus/fallback' )
+			->assertOk()
+			->assertJsonPath( 'id', $latest->id );
+	} );
+
+	it( 'returns 204 when only another theme has menus', function (): void {
+		Menu::create( [ 'theme' => 'other-theme', 'slug' => 'main', 'name' => 'Other' ] );
+
+		$this->getJson( '/visual-editor/api/menus/fallback' )->assertNoContent();
 	} );
 } );
 

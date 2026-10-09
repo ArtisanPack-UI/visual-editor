@@ -121,6 +121,12 @@ interface CoreDataState {
     deleteErrors: Record<string, Record<string, unknown | null>>;
     globalStylesBase: Record<string, unknown> | null;
     currentGlobalStylesId: EntityKey | null;
+    /**
+     * Id of the `wp_navigation` record a ref-less `core/navigation`
+     * block binds to, as resolved by the backend (#811). `null` until
+     * resolved, or when there is no menu to fall back to.
+     */
+    navigationFallbackId: EntityKey | null;
 }
 
 type CoreDataAction =
@@ -183,6 +189,7 @@ type CoreDataAction =
           styles: Record<string, unknown> | null;
       }
     | { type: 'RECEIVE_CURRENT_GLOBAL_STYLES_ID'; id: EntityKey | null }
+    | { type: 'RECEIVE_NAVIGATION_FALLBACK_ID'; id: EntityKey | null }
     | { type: 'SHIM_NOOP' }
     | { type: 'SHIM_RESET' };
 
@@ -645,6 +652,7 @@ const INITIAL_STATE: CoreDataState = {
     deleteErrors: {},
     globalStylesBase: null,
     currentGlobalStylesId: null,
+    navigationFallbackId: null,
 };
 
 function reducer(
@@ -811,8 +819,16 @@ function reducer(
             const nextEdits = { ...(state.edits[key] ?? {}) };
             delete nextEdits[primaryKey];
 
+            // #811 — never hand a deleted menu out as the navigation
+            // fallback; the delete thunk re-arms the resolver.
+            const removedFallback =
+                key === entityKey('postType', 'wp_navigation') &&
+                state.navigationFallbackId !== null &&
+                String(state.navigationFallbackId) === primaryKey;
+
             return {
                 ...state,
+                ...(removedFallback ? { navigationFallbackId: null } : {}),
                 records: {
                     ...state.records,
                     [key]: {
@@ -932,6 +948,9 @@ function reducer(
 
         case 'RECEIVE_CURRENT_GLOBAL_STYLES_ID':
             return { ...state, currentGlobalStylesId: action.id };
+
+        case 'RECEIVE_NAVIGATION_FALLBACK_ID':
+            return { ...state, navigationFallbackId: action.id };
 
         case 'SHIM_RESET':
             return INITIAL_STATE;
@@ -1340,37 +1359,15 @@ const selectors = {
     // (whose lock/unlock symbol identity is fragile across module
     // copies in a mixed `node_modules` tree).
     //
-    // For issue #808 the shim resolves the fallback to the first
-    // cached `wp_navigation` record's id — matching upstream's
-    // "auto-select the primary menu" behavior when the block is
-    // dropped without a ref. Returning `undefined` leaves the block
-    // stuck on its placeholder even after the picker has loaded a
-    // menu list from the server. Nothing is dispatched from a
-    // selector; the resolver behind `getEntityRecords` primes the
-    // cache on first read from other paths (menu-inspector-controls
-    // etc.), and this selector reflects whatever's currently there.
-    getNavigationFallbackId: (state: CoreDataState): EntityKey | undefined => {
-        const bag = state.records[entityKey('postType', 'wp_navigation')];
-
-        if (!bag) {
-            return undefined;
-        }
-
-        for (const key of Object.keys(bag.items)) {
-            const record = bag.items[key];
-            const status = (record as { status?: unknown }).status;
-
-            if (status === 'publish' || status === 'draft') {
-                const id = (record as { id?: unknown }).id;
-
-                if (typeof id === 'number' || typeof id === 'string') {
-                    return id as EntityKey;
-                }
-            }
-        }
-
-        return undefined;
-    },
+    // #811 — backed by the `getNavigationFallbackId` resolver, which
+    // asks the server for the deterministic fallback (the active theme's
+    // primary-location menu, else its most recently updated menu) the
+    // way upstream resolves `/wp-block-editor/v1/navigation-fallback`.
+    // Pre-#811 (#808) this scanned the `wp_navigation` cache and
+    // returned whichever menu happened to be loaded first, or nothing
+    // when no menu list had been fetched yet.
+    getNavigationFallbackId: (state: CoreDataState): EntityKey | null =>
+        state.navigationFallbackId,
 };
 
 // ---------------------------------------------------------------------------
@@ -1420,6 +1417,7 @@ interface ThunkArgs {
             id: EntityKey,
             acknowledged?: EntityRecord,
         ) => CoreDataAction;
+        receiveNavigationFallbackId: (id: EntityKey | null) => CoreDataAction;
         // Auto-exposed by `@wordpress/data` for any registered store —
         // resets the resolver state for a single selector so the next
         // read re-triggers the resolver. Used after a save invalidates
@@ -1552,6 +1550,60 @@ const actions = {
     receiveCurrentGlobalStylesId: (
         id: EntityKey | null,
     ): CoreDataAction => ({ type: 'RECEIVE_CURRENT_GLOBAL_STYLES_ID', id }),
+
+    receiveNavigationFallbackId: (
+        id: EntityKey | null,
+    ): CoreDataAction => ({ type: 'RECEIVE_NAVIGATION_FALLBACK_ID', id }),
+
+    /**
+     * Fetches the navigation fallback menu (#811) — the `wp_navigation`
+     * record a `core/navigation` block without a `ref` binds to — caches
+     * the record, and stores its id for `getNavigationFallbackId`. A
+     * 204 (no menus) or a failed request resolves to `null`, leaving the
+     * block on its placeholder.
+     */
+    fetchNavigationFallbackId:
+        () =>
+        async ({ dispatch, select }: ThunkArgs): Promise<EntityKey | null> => {
+            const config = select.getEntityConfig('postType', 'wp_navigation');
+
+            if (!config) {
+                dispatch.receiveNavigationFallbackId(null);
+
+                return null;
+            }
+
+            try {
+                const record = (await restRequest(
+                    `${entityUrl(config)}/fallback`,
+                    { method: 'GET', headers: buildHeaders(false) },
+                )) as EntityRecord | null;
+                const id = record?.[config.key];
+
+                if (typeof id !== 'number' && typeof id !== 'string') {
+                    dispatch.receiveNavigationFallbackId(null);
+
+                    return null;
+                }
+
+                dispatch.receiveEntityRecords(
+                    'postType',
+                    'wp_navigation',
+                    [record as EntityRecord],
+                    undefined,
+                    undefined,
+                    undefined,
+                    false,
+                );
+                dispatch.receiveNavigationFallbackId(id);
+
+                return id;
+            } catch {
+                dispatch.receiveNavigationFallbackId(null);
+
+                return null;
+            }
+        },
 
     /**
      * Resets the store to its initial state. Tests and HMR wire this up
@@ -1875,6 +1927,16 @@ const actions = {
                         dispatch.invalidateResolutionForStoreSelector?.(
                             'getEntityRecords',
                         );
+
+                        // #811 — a new menu can change the server's
+                        // fallback (e.g. the first menu created from a
+                        // nav block's placeholder), so re-resolve it on
+                        // the next read instead of serving a stale null.
+                        if (kind === 'postType' && name === 'wp_navigation') {
+                            dispatch.invalidateResolutionForStoreSelector?.(
+                                'getNavigationFallbackId',
+                            );
+                        }
                     } else {
                         // UPDATE (issue #808). Skip both the query wipe
                         // and the resolver invalidation. The record was
@@ -1979,6 +2041,14 @@ const actions = {
                 dispatch.invalidateResolutionForStoreSelector?.(
                     'getEntityRecords',
                 );
+
+                // #811 — the deleted menu may have been the fallback;
+                // re-resolve on the next read.
+                if (kind === 'postType' && name === 'wp_navigation') {
+                    dispatch.invalidateResolutionForStoreSelector?.(
+                        'getNavigationFallbackId',
+                    );
+                }
 
                 dispatch.setEntityDeleting(kind, name, id, false, null);
 
@@ -2122,6 +2192,7 @@ const resolvers = {
     getEntityRecord: actions.fetchEntityRecord,
     getEntityRecords: actions.fetchEntityRecords,
     getEditedEntityRecord: actions.fetchEntityRecord,
+    getNavigationFallbackId: actions.fetchNavigationFallbackId,
 };
 
 // ---------------------------------------------------------------------------

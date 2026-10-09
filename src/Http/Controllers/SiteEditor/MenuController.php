@@ -68,6 +68,14 @@ class MenuController extends Controller
 	protected const BLOCK_ATTRIBUTES_COLUMN = 'block_attributes';
 
 	/**
+	 * The theme menu location whose assigned menu is the navigation
+	 * fallback (#811).
+	 *
+	 * @since 1.13.0
+	 */
+	protected const FALLBACK_LOCATION = 'primary';
+
+	/**
 	 * GET `/visual-editor/api/menus` — list all menus, optionally filtered
 	 * by `?theme=...`. Returns a flat list of WP-shape `wp_navigation`
 	 * records.
@@ -96,6 +104,52 @@ class MenuController extends Controller
 		return response()->json(
 			$menus->map( fn ( $menu ) => $this->menuToShape( $menu ) )->all(),
 		);
+	}
+
+	/**
+	 * GET `/visual-editor/api/menus/fallback` — resolve the menu a freshly
+	 * inserted `core/navigation` block binds to (#811).
+	 *
+	 * Mirrors upstream WordPress's `/wp-block-editor/v1/navigation-fallback`
+	 * deterministically: the menu assigned to the active theme's
+	 * {@see FALLBACK_LOCATION} location wins, otherwise the active theme's
+	 * most recently updated menu. With no active theme the whole menu set
+	 * is considered. Answers 204 when there is no menu to fall back to —
+	 * unlike upstream, no menu is created on the caller's behalf.
+	 *
+	 * @since 1.13.0
+	 */
+	public function fallback(): JsonResponse
+	{
+		if ( ! $this->cmsFrameworkAvailable() ) {
+			return $this->cmsFrameworkUnavailable();
+		}
+
+		$model = self::CMS_MENU_FQCN;
+		$theme = $this->activeThemeSlug();
+
+		$menus = fn () => $model::query()
+			->with( 'items' )
+			->when( null !== $theme, fn ( $query ) => $query->where( 'theme', $theme ) );
+
+		$menu = null === $theme
+			? null
+			: $menus()
+				->whereHas( 'locationAssignments', fn ( $query ) => $query
+					->where( 'theme', $theme )
+					->where( 'location', self::FALLBACK_LOCATION ) )
+				->first();
+
+		$menu ??= $menus()
+			->orderByDesc( 'updated_at' )
+			->orderByDesc( 'id' )
+			->first();
+
+		if ( null === $menu ) {
+			return response()->json( null, Response::HTTP_NO_CONTENT );
+		}
+
+		return response()->json( $this->menuToShape( $menu ) );
 	}
 
 	/**

@@ -30,6 +30,12 @@ it( 'lists an empty array for menus when cms-framework is not integrated', funct
 		->assertExactJson( [] );
 } );
 
+it( 'returns 404 on GET menus/fallback when cms-framework is not integrated', function (): void {
+	$this->getJson( '/visual-editor/api/menus/fallback' )
+		->assertNotFound()
+		->assertJsonPath( 'message', 'The site editor requires artisanpack-ui/cms-framework.' );
+} );
+
 it( 'returns 404 on POST menus when cms-framework is not integrated', function (): void {
 	$this->postJson( '/visual-editor/api/menus', [
 		'theme' => 'digital-shopfront',

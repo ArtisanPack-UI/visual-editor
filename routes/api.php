@@ -251,6 +251,11 @@ Route::delete( 'patterns/{slug}', [ PatternController::class, 'destroy' ] )
 Route::get( 'menus', [ MenuController::class, 'index' ] )
 	->name( 'visual-editor.api.menus.index' );
 
+// #811 — deterministic fallback menu for a freshly inserted
+// `core/navigation` block (backs the shim's `getNavigationFallbackId`).
+Route::get( 'menus/fallback', [ MenuController::class, 'fallback' ] )
+	->name( 'visual-editor.api.menus.fallback' );
+
 Route::post( 'menus', [ MenuController::class, 'store' ] )
 	->middleware( EnsureSiteEditorAccess::class )
 	->name( 'visual-editor.api.menus.store' );
