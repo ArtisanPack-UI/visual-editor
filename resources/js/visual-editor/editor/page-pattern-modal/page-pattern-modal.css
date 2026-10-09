@@ -122,6 +122,13 @@
 	outline: none;
 }
 
+/* #832 — rendered pattern preview at the top of each card. */
+.ap-page-pattern-modal__pattern-preview {
+	display: block;
+	width: 100%;
+	pointer-events: none;
+}
+
 .ap-page-pattern-modal__pattern-title {
 	font-weight: 600;
 	font-size: 0.875rem;

@@ -4,6 +4,7 @@
  * Slug: dev-sample/hero-cta
  * Categories: hero
  * Synced: no
+ * Viewport Width: 1400
  * Description: Unsynced pattern. Inserting it from the inserter drops a copy
  *              of the block tree into the canvas; subsequent edits don't
  *              propagate back to the pattern.

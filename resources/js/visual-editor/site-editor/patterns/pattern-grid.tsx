@@ -2,7 +2,7 @@
  * Patterns canvas grid (list mode).
  *
  * Renders the active sync-tab's patterns as a card grid per design brief
- * §3.6. Each card shows a thumbnail, title, slug, sync status badge, and
+ * §3.6. Each card shows a rendered preview (#832), title, slug, sync status badge, and
  * three actions: Edit, Convert to unsynced copy (synced patterns only,
  * per F6 / P9), and Delete.
  *
@@ -24,7 +24,7 @@ import { TEXT_DOMAIN } from '../../vendor/i18n';
 import type { SiteEditorApiConfig } from '../api-client';
 
 import { type PatternRecord } from './api-client';
-import { PatternThumbnail } from './pattern-thumbnail';
+import { PatternPreview } from './pattern-preview';
 import { usePatternsList } from './use-patterns-list';
 
 import './pattern-grid.css';
@@ -285,10 +285,10 @@ export function PatternGrid(props: PatternGridProps): JSX.Element {
                                 data-active={isActive}
                                 role="listitem"
                             >
-                                <PatternThumbnail
-                                    blocks={pattern.content.blocks}
-                                    rawContent={pattern.content.raw}
+                                <PatternPreview
+                                    pattern={pattern}
                                     title={patternTitle(pattern)}
+                                    apiBase={apiConfig.apiBase}
                                 />
                                 <header className="ap-pattern-card__header">
                                     <h3 className="ap-pattern-card__title">

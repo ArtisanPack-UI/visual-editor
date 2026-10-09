@@ -28,6 +28,7 @@ namespace ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\StorePatternRequest;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\UpdatePatternRequest;
 use ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\SiteEditor\PatternAdapter;
+use ArtisanPackUI\VisualEditor\SiteEditor\Previews\PatternPreviewCache;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\PatternResolver;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedPattern;
 use Illuminate\Database\QueryException;
@@ -206,6 +207,9 @@ class PatternController extends Controller
 
 		$existing->update( $this->modelAttributesFromRequest( $validated ) );
 
+		// #832 — drop the cached card preview so the next view re-renders.
+		app( PatternPreviewCache::class )->forgetPattern( (string) $existing->slug );
+
 		$this->refreshResolver();
 
 		$resolved = $this->findPatternByIdOrSlug( $slug );
@@ -241,7 +245,12 @@ class PatternController extends Controller
 			return response()->json( [ 'message' => 'Pattern not found.' ], Response::HTTP_NOT_FOUND );
 		}
 
+		$slugToForget = (string) $existing->slug;
+
 		$existing->delete();
+
+		// #832 — drop the cached card preview of the deleted pattern.
+		app( PatternPreviewCache::class )->forgetPattern( $slugToForget );
 
 		$this->refreshResolver();
 
