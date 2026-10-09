@@ -34,6 +34,7 @@ import {
 
 import { TEXT_DOMAIN } from '../../vendor/i18n';
 import type { PatternRecord } from '../../site-editor/patterns/api-client';
+import { PatternPreview } from '../../site-editor/patterns/pattern-preview';
 
 import './page-pattern-modal.css';
 
@@ -90,6 +91,12 @@ export interface PagePatternModalProps {
     readonly loading?: boolean;
     /** Error message from a failed pattern fetch. */
     readonly errorMessage?: string | null;
+    /**
+     * Base URL of the visual-editor API (#832). When set, each card shows
+     * a rendered preview of its pattern; without it the cards fall back to
+     * the block-name tree.
+     */
+    readonly apiBase?: string;
     /**
      * i18n override for the dialog title. Optional so custom post
      * types can label the modal ("Choose a post pattern",
@@ -197,6 +204,7 @@ export function PagePatternModal(props: PagePatternModalProps): JSX.Element | nu
         loading = false,
         errorMessage = null,
         title,
+        apiBase,
     } = props;
 
     const titleId = useId();
@@ -398,6 +406,17 @@ export function PagePatternModal(props: PagePatternModalProps): JSX.Element | nu
                                               onClick={() => handleSelectPattern(pattern)}
                                               onKeyDown={(event) => handleCardKey(event, pattern)}
                                           >
+                                              <div
+                                                  className="ap-page-pattern-modal__pattern-preview"
+                                                  aria-hidden="true"
+                                                  data-testid={`ap-page-pattern-modal-pattern-preview-${pattern.slug}`}
+                                              >
+                                                  <PatternPreview
+                                                      pattern={pattern}
+                                                      title={patternTitle(pattern)}
+                                                      apiBase={apiBase}
+                                                  />
+                                              </div>
                                               <p className="ap-page-pattern-modal__pattern-title">
                                                   {patternTitle(pattern)}
                                               </p>

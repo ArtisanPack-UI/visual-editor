@@ -42,7 +42,7 @@ import {
     SiteEditorApiError,
     type PatternRecord,
 } from '../site-editor/patterns/api-client';
-import { PatternThumbnail } from '../site-editor/patterns/pattern-thumbnail';
+import { PatternPreview } from '../site-editor/patterns/pattern-preview';
 
 import './inserter-patterns-panel.css';
 
@@ -92,6 +92,7 @@ function patternBlocks(pattern: PatternRecord): BlockInstance[] {
 
 interface PatternPreviewCardProps {
     pattern: PatternRecord;
+    apiBase: string;
     label: string;
     testId: string;
     onSelect: () => void;
@@ -99,25 +100,18 @@ interface PatternPreviewCardProps {
 }
 
 /**
- * Card layout for an inserter pattern row. Renders a lightweight
- * client-side block-tree summary above the title.
+ * Card layout for an inserter pattern row: a rendered preview of the
+ * pattern above its title.
  *
- * `BlockPreview` from `@wordpress/block-editor` is the WordPress-native
- * alternative, but it mounts a `blob:` iframe per card and the
- * combination of CSP isolation + multiple iframes broke the editor's
- * render tree under our shim. The issue brief explicitly calls for a
- * "lightweight client-side renderer — do NOT spawn a full editor per
- * thumbnail", so the text-tree summary is the V1 ship; a server-
- * rendered thumbnail via the M6 dynamic-blocks endpoint can replace
- * it later.
+ * The preview is a server-rendered, scaled front-end render in a
+ * sandboxed `srcdoc` iframe (#832), with the block-name tree as the
+ * loading / failure fallback. `BlockPreview` from
+ * `@wordpress/block-editor` was tried first and dropped: it mounts a
+ * `blob:` iframe per card, and the combination of CSP isolation + many
+ * iframes broke the editor's render tree under our shim.
  */
 function PatternPreviewCard(props: PatternPreviewCardProps): JSX.Element {
-    const { pattern, label, testId, onSelect, onKeyDown } = props;
-
-    const blocks = useMemo(
-        () => patternBlocks(pattern),
-        [pattern]
-    );
+    const { pattern, apiBase, label, testId, onSelect, onKeyDown } = props;
 
     return (
         <button
@@ -136,9 +130,10 @@ function PatternPreviewCard(props: PatternPreviewCardProps): JSX.Element {
                 aria-hidden="true"
                 data-testid={`${testId}-preview`}
             >
-                <PatternThumbnail
-                    blocks={blocks}
+                <PatternPreview
+                    pattern={pattern}
                     title={patternTitle(pattern)}
+                    apiBase={apiBase}
                 />
             </div>
             <span className="ap-inserter-patterns__row-title">
@@ -533,6 +528,7 @@ export function InserterPatternsPanel(
                             <li key={pattern.id}>
                                 <PatternPreviewCard
                                     pattern={pattern}
+                                    apiBase={apiBase}
                                     label={sprintf(
                                         /* translators: %s: pattern title. */
                                         __(
@@ -565,6 +561,7 @@ export function InserterPatternsPanel(
                             <li key={pattern.id}>
                                 <PatternPreviewCard
                                     pattern={pattern}
+                                    apiBase={apiBase}
                                     label={sprintf(
                                         /* translators: %s: pattern title. */
                                         __(

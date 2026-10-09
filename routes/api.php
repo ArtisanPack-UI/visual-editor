@@ -43,6 +43,7 @@ use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\GlobalStylesControlle
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\MenuController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\MenuItemController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\PatternController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\PatternPreviewController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\ResourceContentController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\TemplateController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\TemplatePartController;
@@ -213,6 +214,15 @@ Route::put( 'global-styles/{id}', [ GlobalStylesController::class, 'update' ] )
 // cms-framework's user-source slug prefix rides through the URL.
 Route::get( 'patterns', [ PatternController::class, 'index' ] )
 	->name( 'visual-editor.api.patterns.index' );
+
+// #832 — batched front-end render of pattern card previews. A read (it
+// renders existing patterns by id or slug and never accepts markup), so it
+// stays on the group's `api` + `auth` stack like the pattern reads above.
+// Throttled because one request can render a full batch of patterns.
+// Declared before `patterns/{slug}` routes; POST has no wildcard sibling.
+Route::post( 'patterns/preview', [ PatternPreviewController::class, 'preview' ] )
+	->middleware( 'throttle:120,1' )
+	->name( 'visual-editor.api.patterns.preview' );
 
 Route::post( 'patterns', [ PatternController::class, 'store' ] )
 	->middleware( EnsureSiteEditorAccess::class )

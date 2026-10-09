@@ -52,6 +52,26 @@ export interface PatternRecord {
      * (which never emits the key) still parse.
      */
     post_types?: readonly string[] | null;
+    /**
+     * Width in pixels the card preview lays the pattern out at before
+     * scaling it down (WordPress's `viewportWidth`, #832). Theme patterns
+     * set it with a `Viewport Width:` file header; `null` or a missing key
+     * means the 1200px default.
+     */
+    viewport_width?: number | null;
+}
+
+/** One pattern's entry in a preview batch response (#832). */
+export type PatternPreviewEntry =
+    | { readonly html: string; readonly error?: undefined }
+    | { readonly error: string; readonly html?: undefined };
+
+/** Response of `POST {apiBase}/patterns/preview` (#832). */
+export interface PatternPreviewBatch {
+    /** `<link>` / `<style>` markup every preview in the batch shares. */
+    readonly styles: string;
+    /** Keyed by the requested pattern id or slug. */
+    readonly patterns: Readonly<Record<string, PatternPreviewEntry>>;
 }
 
 export interface PatternListParams {
@@ -338,6 +358,36 @@ export async function deletePattern(
         await requireOk(response);
     } catch (error: unknown) {
         throw normalizeError(error, 'Failed to delete pattern.');
+    }
+}
+
+/**
+ * Renders a batch of patterns to front-end HTML for card previews (#832).
+ * Takes pattern ids or slugs only — the endpoint never accepts markup.
+ */
+export async function previewPatterns(
+    config: SiteEditorApiConfig,
+    ids: readonly string[]
+): Promise<PatternPreviewBatch> {
+    try {
+        const response = await fetch(buildUrl(config, 'preview'), {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: mutatingHeaders(),
+            body: JSON.stringify({ patterns: ids }),
+        });
+
+        const body = (await requireOk(response)) as Partial<PatternPreviewBatch> | null;
+
+        return {
+            styles: typeof body?.styles === 'string' ? body.styles : '',
+            patterns:
+                body?.patterns !== null && typeof body?.patterns === 'object'
+                    ? body.patterns
+                    : {},
+        };
+    } catch (error: unknown) {
+        throw normalizeError(error, 'Failed to render pattern previews.');
     }
 }
 

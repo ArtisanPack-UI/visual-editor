@@ -713,6 +713,25 @@ return [
 
 	/*
 	|--------------------------------------------------------------------------
+	| Pattern previews (#832)
+	|--------------------------------------------------------------------------
+	|
+	| Pattern cards in the inserter, the Site Editor pattern grid and the
+	| page pattern modal show a scaled front-end render of each pattern.
+	| The server renders it with the Blade renderer and caches the HTML.
+	|
+	| The cache is cleared when a pattern is updated or deleted and when
+	| global styles change. `cache_ttl` (seconds) also expires entries so
+	| dynamic blocks such as Query loops pick up new site content.
+	|
+	*/
+
+	'pattern_previews' => [
+		'cache_ttl' => 3600,
+	],
+
+	/*
+	|--------------------------------------------------------------------------
 	| Default front-end styles (#821)
 	|--------------------------------------------------------------------------
 	|

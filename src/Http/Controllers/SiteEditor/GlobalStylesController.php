@@ -39,6 +39,7 @@ use ArtisanPackUI\VisualEditor\Fonts\Services\FontsCssGenerator;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\UpdateGlobalStylesRequest;
 use ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\SiteEditor\GlobalStylesAdapter;
 use ArtisanPackUI\VisualEditor\Resources\PresetRegistry;
+use ArtisanPackUI\VisualEditor\SiteEditor\Previews\PatternPreviewCache;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\GlobalStylesResolver;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedGlobalStyles;
 use Illuminate\Database\QueryException;
@@ -501,6 +502,10 @@ class GlobalStylesController extends Controller
 			$this->applyValidatedAttributes( $record, $validated );
 			$record->save();
 		}
+
+		// #832 — pattern previews render against global styles, so a
+		// change invalidates every cached preview.
+		app( PatternPreviewCache::class )->flush();
 
 		$this->refreshResolver();
 

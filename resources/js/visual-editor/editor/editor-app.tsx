@@ -1321,6 +1321,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
             }
             loading={pagePatternsLoading}
             errorMessage={pagePatternsError}
+            apiBase={props.apiBase}
         />
     );
 

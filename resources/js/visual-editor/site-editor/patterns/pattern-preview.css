@@ -1,0 +1,28 @@
+/*
+ * Rendered pattern preview (#832). The iframe is laid out at the
+ * pattern's viewport width and scaled down from its top-left corner; the
+ * wrapper's computed height caps it and `overflow: hidden` crops the rest.
+ */
+.ap-pattern-preview-slot {
+    display: block;
+    width: 100%;
+    pointer-events: none;
+}
+
+.ap-pattern-preview {
+    box-sizing: border-box;
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    background: var(--ap-pattern-preview-bg, #fff);
+    border: 1px solid var(--ap-site-editor-border, #d1d5db);
+    border-radius: 6px;
+}
+
+.ap-pattern-preview__frame {
+    display: block;
+    border: 0;
+    transform-origin: top left;
+    pointer-events: none;
+    user-select: none;
+}

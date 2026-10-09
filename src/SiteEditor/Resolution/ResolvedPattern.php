@@ -30,6 +30,28 @@ class ResolvedPattern
 	protected const FILTER_NAME = 'ap.visualEditor.patterns';
 
 	/**
+	 * Width in pixels a pattern preview lays the pattern out at when the
+	 * pattern declares none (WordPress's `viewportWidth` default).
+	 *
+	 * @since 1.13.0
+	 */
+	public const DEFAULT_VIEWPORT_WIDTH = 1200;
+
+	/**
+	 * Narrowest preview width a pattern may declare, in pixels.
+	 *
+	 * @since 1.13.0
+	 */
+	public const MIN_VIEWPORT_WIDTH = 320;
+
+	/**
+	 * Widest preview width a pattern may declare, in pixels.
+	 *
+	 * @since 1.13.0
+	 */
+	public const MAX_VIEWPORT_WIDTH = 2560;
+
+	/**
 	 * @since 1.0.0
 	 *
 	 * @param  string  $slug          Stable identifier; for user patterns this should
@@ -50,6 +72,9 @@ class ResolvedPattern
 	 *                                unmatchable filter, not as "available everywhere",
 	 *                                so a misregistered scope surfaces as "no matches"
 	 *                                instead of leaking into every context.
+	 * @param  int|null  $viewportWidth  Preview layout width in pixels, from a
+	 *                                theme file's `Viewport Width:` header.
+	 *                                `null` means {@see DEFAULT_VIEWPORT_WIDTH}.
 	 */
 	public function __construct(
 		public readonly string $slug,
@@ -62,6 +87,7 @@ class ResolvedPattern
 		public readonly array $blockTypes,
 		public readonly ?int $wpId,
 		public readonly ?array $postTypes = null,
+		public readonly ?int $viewportWidth = null,
 	) {
 	}
 
@@ -159,6 +185,7 @@ class ResolvedPattern
 			) ),
 			wpId       : isset( $data['wp_id'] ) ? (int) $data['wp_id'] : null,
 			postTypes  : self::normalizePostTypes( $data['post_types'] ?? null ),
+			viewportWidth: self::normalizeViewportWidth( $data['viewport_width'] ?? null ),
 		);
 	}
 
@@ -199,6 +226,30 @@ class ResolvedPattern
 		}
 
 		return $slugs;
+	}
+
+	/**
+	 * Normalize the raw `viewport_width` field into a clamped pixel width,
+	 * or `null` when it is missing or not a positive whole number.
+	 *
+	 * cms-framework already validates the theme-file header; this guards
+	 * the other contributors to the `ap.visualEditor.patterns` filter
+	 * (host config, plugins) so a bad value falls back to the default
+	 * instead of reaching the preview.
+	 *
+	 * @since 1.13.0
+	 */
+	protected static function normalizeViewportWidth( mixed $raw ): ?int
+	{
+		if ( is_string( $raw ) && ctype_digit( trim( $raw ) ) ) {
+			$raw = (int) trim( $raw );
+		}
+
+		if ( ! is_int( $raw ) || 0 >= $raw ) {
+			return null;
+		}
+
+		return max( self::MIN_VIEWPORT_WIDTH, min( self::MAX_VIEWPORT_WIDTH, $raw ) );
 	}
 
 	/**
