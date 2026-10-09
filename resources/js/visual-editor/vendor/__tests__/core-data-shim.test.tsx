@@ -2007,6 +2007,56 @@ describe('core-data-shim hooks', () => {
         expect(typeof blocks[0].innerBlocks[0].clientId).toBe('string');
     });
 
+    it('useEntityBlockEditor mints fresh clientIds for duplicates in content.blocks (#812)', () => {
+        coreDispatch().receiveEntityRecords('postType', 'wp_navigation', [
+            {
+                id: 812,
+                slug: 'primary',
+                title: { raw: 'Primary', rendered: 'Primary' },
+                status: 'publish',
+                type: 'wp_navigation',
+                content: {
+                    raw: '',
+                    blocks: [
+                        { name: 'core/navigation-link', clientId: 'dup', attributes: { label: 'Home' }, innerBlocks: [] },
+                        { name: 'core/navigation-link', clientId: 'dup', attributes: { label: 'Home copy' }, innerBlocks: [] },
+                        {
+                            name: 'core/navigation-submenu',
+                            clientId: 'sub',
+                            attributes: { label: 'More' },
+                            innerBlocks: [
+                                { name: 'core/navigation-link', clientId: 'dup', attributes: { label: 'Nested' }, innerBlocks: [] },
+                                { name: 'core/navigation-link', clientId: 'sub', attributes: { label: 'Nested 2' }, innerBlocks: [] },
+                                { name: 'core/navigation-link', clientId: 'leaf', attributes: { label: 'Leaf' }, innerBlocks: [] },
+                            ],
+                        },
+                    ],
+                },
+            },
+        ]);
+
+        const [rawBlocks] = renderHook(() =>
+            useEntityBlockEditor('postType', 'wp_navigation', { id: 812 }),
+        );
+
+        type Decorated = { clientId: string; innerBlocks: readonly Decorated[] };
+        const blocks = rawBlocks as readonly Decorated[];
+        const flatten = (list: readonly Decorated[]): string[] =>
+            list.flatMap((block) => [block.clientId, ...flatten(block.innerBlocks)]);
+        const ids = flatten(blocks);
+
+        expect(ids).toHaveLength(6);
+        expect(new Set(ids).size).toBe(6);
+        // First occurrences and non-colliding ids are preserved.
+        expect(blocks[0].clientId).toBe('dup');
+        expect(blocks[2].clientId).toBe('sub');
+        expect(blocks[2].innerBlocks[2].clientId).toBe('leaf');
+        // Sibling and nested collisions get fresh ids.
+        expect(blocks[1].clientId).not.toBe('dup');
+        expect(blocks[2].innerBlocks[0].clientId).not.toBe('dup');
+        expect(blocks[2].innerBlocks[1].clientId).not.toBe('sub');
+    });
+
     it('useEntityBlockEditor parses a flattened string `content` payload (Keystone #48)', () => {
         // `getEditedEntityRecord` runs `flattenRawProperties` over
         // the cached record, so a server envelope of

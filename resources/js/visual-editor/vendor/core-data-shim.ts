@@ -3189,17 +3189,23 @@ const lastAuthoritativeBlocks = new Map<
  * whole subtree (visible as focus loss + chrome flicker after every
  * insert). When names diverge, or `prev` runs out (e.g. after an
  * insert), the surplus server blocks fall back to fresh decoration and
- * mint new clientIds.
+ * mint new clientIds. `seenClientIds` is shared across the whole tree so
+ * no clientId is handed out twice (#812).
  */
 function decorateReusingClientIds(
     serverBlocks: readonly unknown[],
     prev: readonly DecoratedBlock[],
+    seenClientIds: Set<string> = new Set(),
 ): readonly DecoratedBlock[] {
     const out: DecoratedBlock[] = [];
     let allReused = serverBlocks.length === prev.length;
 
     for (let i = 0; i < serverBlocks.length; i++) {
-        const decorated = decorateBlockReusingClientId(serverBlocks[i], prev[i]);
+        const decorated = decorateBlockReusingClientId(
+            serverBlocks[i],
+            prev[i],
+            seenClientIds,
+        );
 
         if (decorated === null) {
             allReused = false;
@@ -3219,6 +3225,7 @@ function decorateReusingClientIds(
 function decorateBlockReusingClientId(
     block: unknown,
     prev: DecoratedBlock | undefined,
+    seenClientIds: Set<string>,
 ): DecoratedBlock | null {
     if (
         block === null ||
@@ -3231,21 +3238,21 @@ function decorateBlockReusingClientId(
     const server = block as ServerBlock & { clientId?: unknown };
     const namesMatch = prev !== undefined && prev.name === server.name;
 
-    const clientId = namesMatch
-        ? prev!.clientId
-        : typeof server.clientId === 'string' && server.clientId.length > 0
-            ? server.clientId
-            : createClientId();
+    const clientId = claimClientId(
+        namesMatch ? prev!.clientId : server.clientId,
+        seenClientIds,
+    );
 
     const prevInner = namesMatch ? prev!.innerBlocks : EMPTY_RECORDS;
     const innerBlocks = Array.isArray(server.innerBlocks)
-        ? decorateReusingClientIds(server.innerBlocks, prevInner)
+        ? decorateReusingClientIds(server.innerBlocks, prevInner, seenClientIds)
         : EMPTY_RECORDS;
 
     // Reference-preserve the whole block when nothing changed — see the
     // docblock on `decorateReusingClientIds` for why this matters.
     if (
         namesMatch &&
+        clientId === prev!.clientId &&
         innerBlocks === prev!.innerBlocks &&
         attributesAreEqual(prev!.attributes, server.attributes ?? {})
     ) {
@@ -3419,11 +3426,12 @@ function getDecoratedBlocks(
 
 function decorateBlockList(
     blocks: readonly unknown[],
+    seenClientIds: Set<string> = new Set(),
 ): readonly DecoratedBlock[] {
     const out: DecoratedBlock[] = [];
 
     for (const block of blocks) {
-        const decorated = decorateBlock(block);
+        const decorated = decorateBlock(block, seenClientIds);
 
         if (decorated !== null) {
             out.push(decorated);
@@ -3433,7 +3441,10 @@ function decorateBlockList(
     return out;
 }
 
-function decorateBlock(block: unknown): DecoratedBlock | null {
+function decorateBlock(
+    block: unknown,
+    seenClientIds: Set<string>,
+): DecoratedBlock | null {
     if (
         block === null ||
         typeof block !== 'object' ||
@@ -3443,29 +3454,52 @@ function decorateBlock(block: unknown): DecoratedBlock | null {
     }
 
     const server = block as ServerBlock & { clientId?: unknown; isValid?: unknown };
-    const innerBlocks = Array.isArray(server.innerBlocks)
-        ? decorateBlockList(server.innerBlocks)
-        : EMPTY_RECORDS;
 
     // Preserve an existing `clientId` when the source array was
     // produced by Gutenberg itself (a real edit — the block-editor
     // hands each block a stable clientId at mount and relies on it
     // for identity across renders). Only mint a fresh one when the
     // source is a bare server envelope (`{name, attributes,
-    // innerBlocks}`); re-minting on every read would churn identity
-    // and re-mount the subtree.
-    const existingClientId =
-        typeof server.clientId === 'string' && server.clientId.length > 0
-            ? server.clientId
-            : null;
+    // innerBlocks}`) or the id was already claimed earlier in the
+    // tree; re-minting on every read would churn identity and
+    // re-mount the subtree. Claimed before recursing so the parent
+    // keeps its id over a duplicate in its own subtree.
+    const clientId = claimClientId(server.clientId, seenClientIds);
+    const innerBlocks = Array.isArray(server.innerBlocks)
+        ? decorateBlockList(server.innerBlocks, seenClientIds)
+        : EMPTY_RECORDS;
 
     return {
         name: server.name,
-        clientId: existingClientId ?? createClientId(),
+        clientId,
         isValid: true,
         attributes: server.attributes ?? {},
         innerBlocks,
     };
+}
+
+/**
+ * Returns `candidate` when it is a non-empty string not yet claimed in
+ * this tree, otherwise a freshly minted id, and records the result in
+ * `seenClientIds`. Persisted `content.blocks` can carry the same
+ * `clientId` twice (a pasted or duplicated nav item round-tripped
+ * through the REST layer); letting both into the block-editor store
+ * corrupts selection, List View, and move / remove, which all look
+ * blocks up by `clientId`. The first occurrence keeps its id (#812).
+ */
+function claimClientId(candidate: unknown, seenClientIds: Set<string>): string {
+    let clientId =
+        typeof candidate === 'string' && candidate.length > 0 && !seenClientIds.has(candidate)
+            ? candidate
+            : createClientId();
+
+    while (seenClientIds.has(clientId)) {
+        clientId = createClientId();
+    }
+
+    seenClientIds.add(clientId);
+
+    return clientId;
 }
 
 let clientIdCounter = 0;
