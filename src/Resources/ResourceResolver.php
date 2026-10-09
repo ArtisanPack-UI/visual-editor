@@ -79,6 +79,30 @@ class ResourceResolver
 	}
 
 	/**
+	 * Whether a resource slug is registered, regardless of whether its
+	 * class is valid.
+	 *
+	 * Delegates to {@see self::modelClassFor()} so host subclasses that
+	 * resolve slugs dynamically are honoured.
+	 *
+	 * @since 1.13.0
+	 *
+	 * @param  string  $resource  The resource slug.
+	 */
+	public function has( string $resource ): bool
+	{
+		try {
+			$this->modelClassFor( $resource );
+		} catch ( NotFoundHttpException ) {
+			return false;
+		} catch ( RuntimeException ) {
+			return true;
+		}
+
+		return true;
+	}
+
+	/**
 	 * Returns the model class bound to a resource slug.
 	 *
 	 * @since 1.0.0

@@ -23,12 +23,21 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Services\Bindings\Sources;
 
+use ArtisanPackUI\VisualEditor\Resources\ResourceResolver;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BlockBindingSource;
 use Illuminate\Database\Eloquent\Model;
 
 class CustomFieldSource implements BlockBindingSource
 {
+	/**
+	 * cms-framework's custom-field manager, referenced by name so the
+	 * standalone install never autoloads it.
+	 *
+	 * @since 1.13.0
+	 */
+	protected const CUSTOM_FIELD_MANAGER = 'ArtisanPackUI\\CMSFramework\\Modules\\ContentTypes\\Managers\\CustomFieldManager';
+
 	public function name(): string
 	{
 		return 'custom_field';
@@ -66,63 +75,101 @@ class CustomFieldSource implements BlockBindingSource
 		return [];
 	}
 
+	/**
+	 * List the cms-framework custom fields registered for a resource.
+	 *
+	 * cms-framework stores content-type *slugs* in
+	 * `custom_fields.content_types`, so the resource slug is the primary
+	 * lookup key. The model's table name is also tried for hosts where
+	 * slug and table differ only by convention (and for backward
+	 * compatibility with installs where they're equal); results are
+	 * de-duplicated by field key. The slug alone is enough, so a null
+	 * `$modelClass` — or a shared generic model whose table is only set
+	 * per record — still lists fields (#833).
+	 *
+	 * Fields are read through cms-framework's `CustomFieldManager` so
+	 * filter-registered fields are included alongside persisted rows.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param  string                                                 $resource    The resource / content-type slug.
+	 * @param  class-string<\Illuminate\Database\Eloquent\Model>|null  $modelClass  The model registered for the resource, if any.
+	 *
+	 * @return array<int, array{key: string, label: string, type: string}>
+	 */
 	public function availableFields( string $resource, ?string $modelClass = null ): array
 	{
-		if ( null === $modelClass || ! class_exists( $modelClass ) ) {
+		$manager = self::CUSTOM_FIELD_MANAGER;
+
+		if ( ! class_exists( $manager ) ) {
 			return [];
 		}
-
-		$cmsField = '\\ArtisanPackUI\\CMSFramework\\Modules\\ContentTypes\\Models\\CustomField';
-
-		if ( ! class_exists( $cmsField ) ) {
-			return [];
-		}
-
-		// Use the model's table name as the cms-framework "content type"
-		// — that mirrors the convention `HasCustomFields::getCustomFieldsForType()`
-		// uses internally so the picker shows whatever cms-framework will
-		// actually resolve at render time.
-		try {
-			/** @var Model $instance */
-			$instance = new $modelClass();
-
-			if ( ! method_exists( $instance, 'getTable' ) ) {
-				return [];
-			}
-
-			$table = $instance->getTable();
-		} catch ( \Throwable $e ) {
-			return [];
-		}
-
-		$rows = $cmsField::query()
-			->orderBy( 'order' )
-			->orderBy( 'id' )
-			->get();
 
 		$fields = [];
 
-		foreach ( $rows as $row ) {
-			$contentTypes = $row->getAttribute( 'content_types' );
+		foreach ( $this->contentTypeKeys( $resource, $modelClass ) as $contentType ) {
+			try {
+				$rows = app( $manager )->getFieldsForContentType( $contentType );
+			} catch ( \Throwable $e ) {
+				// A missing `custom_fields` table (cms-framework installed
+				// but not migrated) must not 500 the inspector.
+				report( $e );
 
-			if ( ! is_array( $contentTypes ) || ! in_array( $table, $contentTypes, true ) ) {
 				continue;
 			}
 
-			$key = (string) $row->getAttribute( 'key' );
+			foreach ( $rows as $row ) {
+				$key = (string) $row->getAttribute( 'key' );
 
-			if ( '' === $key ) {
-				continue;
+				if ( '' === $key || isset( $fields[ $key ] ) ) {
+					continue;
+				}
+
+				$fields[ $key ] = [
+					'key'   => $key,
+					'label' => (string) ( $row->getAttribute( 'name' ) ?: $key ),
+					'type'  => $this->mapFieldType( $row->getAttribute( 'type' ) ),
+				];
 			}
-
-			$fields[] = [
-				'key'   => $key,
-				'label' => (string) ( $row->getAttribute( 'name' ) ?: $key ),
-				'type'  => $this->mapFieldType( $row->getAttribute( 'type' ) ),
-			];
 		}
 
-		return $fields;
+		return array_values( $fields );
+	}
+
+	/**
+	 * Build the ordered list of cms-framework content-type keys to match
+	 * against: the resource slug first, then the model's table name when
+	 * it differs. The slug is only trusted when it's a registered
+	 * resource, so the endpoint can't be used to enumerate the fields of
+	 * content types that aren't exposed to the editor.
+	 *
+	 * @since 1.13.0
+	 *
+	 * @param  string       $resource    The resource / content-type slug.
+	 * @param  string|null  $modelClass  The model registered for the resource, if any.
+	 *
+	 * @return array<int, string>
+	 */
+	protected function contentTypeKeys( string $resource, ?string $modelClass ): array
+	{
+		$keys = '' !== $resource && app( ResourceResolver::class )->has( $resource ) ? [ $resource ] : [];
+
+		if ( null === $modelClass || ! class_exists( $modelClass ) ) {
+			return $keys;
+		}
+
+		try {
+			$instance = new $modelClass();
+			$table    = $instance instanceof Model ? $instance->getTable() : '';
+		} catch ( \Throwable ) {
+			return $keys;
+		}
+
+		if ( '' !== $table && ! in_array( $table, $keys, true ) ) {
+			$keys[] = $table;
+		}
+
+		return $keys;
 	}
 
 	/**

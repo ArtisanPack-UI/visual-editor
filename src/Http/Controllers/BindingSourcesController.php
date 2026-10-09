@@ -21,18 +21,20 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditor\Http\Controllers;
 
 use ArtisanPackUI\VisualEditor\Registries\BlockBindingSourceRegistry;
+use ArtisanPackUI\VisualEditor\Resources\ResourceResolver;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BlockBindingSource;
-use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use RuntimeException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class BindingSourcesController extends Controller
 {
 	public function __construct(
 		protected BlockBindingSourceRegistry $registry,
-		protected ConfigRepository $config
+		protected ResourceResolver $resources
 	) {
 	}
 
@@ -59,9 +61,10 @@ class BindingSourcesController extends Controller
 	 * Return the field catalog for one source against a resource slug.
 	 *
 	 * Query params:
-	 *  - `resource` (optional) — slug from
-	 *    `config('artisanpack.visual-editor.resources')`. Falls back to
-	 *    an empty catalog when omitted or unknown.
+	 *  - `resource` (optional) — slug registered with the
+	 *    {@see ResourceResolver} (static config merged with the
+	 *    `ap.visualEditor.resources` filter). Falls back to an empty
+	 *    catalog when omitted or unknown.
 	 *
 	 * @since 1.1.0
 	 */
@@ -88,9 +91,14 @@ class BindingSourcesController extends Controller
 
 	/**
 	 * Resolve the model class registered for a resource slug, or null
-	 * when nothing matches. Reads the raw config rather than going
-	 * through `ResourceResolver` so unknown / invalid entries return
-	 * cleanly instead of throwing 404 — the picker treats "no model" as
+	 * when nothing matches.
+	 *
+	 * Goes through the container-bound {@see ResourceResolver} so
+	 * resources contributed through the `ap.visualEditor.resources`
+	 * filter (cms-framework posts / pages / custom content types, host
+	 * registrations) and host-overridden resolvers are honoured, not just
+	 * the static config (#833). The resolver's not-found / invalid-class
+	 * exceptions are swallowed to null — the picker treats "no model" as
 	 * "no discoverable fields," not as an error.
 	 *
 	 * @since 1.1.0
@@ -103,20 +111,17 @@ class BindingSourcesController extends Controller
 			return null;
 		}
 
-		$resources = (array) $this->config->get( 'artisanpack.visual-editor.resources', [] );
-
-		$class = $resources[ $resource ] ?? null;
+		try {
+			$class = $this->resources->modelClassFor( $resource );
+		} catch ( NotFoundHttpException|RuntimeException ) {
+			return null;
+		}
 
 		// Hard-gate non-Eloquent classes so a misconfigured resource
 		// entry can't leak through to source drivers expecting a
 		// `class-string<Model>`. The picker just returns an empty field
 		// catalog for that resource — surfacing a 500 here would break
 		// the inspector for every block.
-		return is_string( $class )
-			&& '' !== $class
-			&& class_exists( $class )
-			&& is_subclass_of( $class, Model::class )
-				? $class
-				: null;
+		return is_subclass_of( $class, Model::class ) ? $class : null;
 	}
 }

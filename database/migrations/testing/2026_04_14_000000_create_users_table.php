@@ -22,8 +22,21 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+	/**
+	 * Whether this migration created the table, so `down()` never drops a
+	 * `users` table owned by cms-framework or the host. Mirrors
+	 * cms-framework's own `create_users_table` migration.
+	 */
+	private static bool $tableCreatedByThisMigration = false;
+
 	public function up(): void
 	{
+		// cms-framework's own `users` migration may already have run when a
+		// test co-loads it via `Tests\Concerns\WithCmsFramework`.
+		if ( Schema::hasTable( 'users' ) ) {
+			return;
+		}
+
 		Schema::create( 'users', function ( Blueprint $table ) {
 			$table->id();
 			$table->string( 'name' );
@@ -33,10 +46,14 @@ return new class extends Migration
 			$table->rememberToken();
 			$table->timestamps();
 		} );
+
+		self::$tableCreatedByThisMigration = true;
 	}
 
 	public function down(): void
 	{
-		Schema::dropIfExists( 'users' );
+		if ( self::$tableCreatedByThisMigration ) {
+			Schema::dropIfExists( 'users' );
+		}
 	}
 };
