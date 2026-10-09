@@ -93,6 +93,127 @@ afterEach(async () => {
     __resetCoreDataShimConfig();
 });
 
+describe('core-data-shim getNavigationFallbackId (issue #811)', () => {
+    const fallbackMenu = {
+        id: 12,
+        slug: 'primary',
+        title: { raw: 'Primary', rendered: 'Primary' },
+        status: 'publish',
+        type: 'wp_navigation',
+        content: { raw: '', blocks: [] },
+    };
+
+    it('resolves the fallback id from the server, not the cache', async () => {
+        const { fetcher, calls } = mockFetcher(async () => jsonResponse(fallbackMenu));
+
+        configureCoreDataShim({ apiBase: '/api', fetcher });
+
+        // A different menu already cached must not win over the server's
+        // answer (pre-#811 the shim returned the first cached record).
+        coreDispatch().receiveEntityRecords('postType', 'wp_navigation', [
+            { ...fallbackMenu, id: 3, slug: 'footer' },
+        ]);
+
+        await expect(coreResolveSelect().getNavigationFallbackId()).resolves.toBe(12);
+
+        expect(calls.map((call) => call.url)).toEqual(['/api/menus/fallback']);
+        expect(coreSelect().getNavigationFallbackId()).toBe(12);
+        expect(coreSelect().getEntityRecord('postType', 'wp_navigation', 12)).toMatchObject({
+            id: 12,
+            slug: 'primary',
+        });
+    });
+
+    it('resolves before any wp_navigation list has been cached', async () => {
+        const { fetcher } = mockFetcher(async () => jsonResponse(fallbackMenu));
+
+        configureCoreDataShim({ apiBase: '/api', fetcher });
+
+        await expect(coreResolveSelect().getNavigationFallbackId()).resolves.toBe(12);
+    });
+
+    it('fetches the fallback only once per resolution', async () => {
+        const { fetcher, calls } = mockFetcher(async () => jsonResponse(fallbackMenu));
+
+        configureCoreDataShim({ apiBase: '/api', fetcher });
+
+        await coreResolveSelect().getNavigationFallbackId();
+        await coreResolveSelect().getNavigationFallbackId();
+
+        expect(calls).toHaveLength(1);
+    });
+
+    it('resolves to null when the server has no menu to fall back to', async () => {
+        const { fetcher } = mockFetcher(async () => new Response(null, { status: 204 }));
+
+        configureCoreDataShim({ apiBase: '/api', fetcher });
+
+        await expect(coreResolveSelect().getNavigationFallbackId()).resolves.toBeNull();
+    });
+
+    it('resolves to null when the request fails', async () => {
+        const { fetcher } = mockFetcher(async () => jsonResponse({}, 404));
+
+        configureCoreDataShim({ apiBase: '/api', fetcher });
+
+        await expect(coreResolveSelect().getNavigationFallbackId()).resolves.toBeNull();
+    });
+
+    it('re-resolves a null fallback after the first menu is created', async () => {
+        let created = false;
+        const { fetcher, calls } = mockFetcher(async (url, init) => {
+            if (init.method === 'POST') {
+                created = true;
+
+                return jsonResponse(fallbackMenu, 201);
+            }
+
+            if (url === '/api/menus/fallback' && !created) {
+                return new Response(null, { status: 204 });
+            }
+
+            return jsonResponse(fallbackMenu);
+        });
+
+        configureCoreDataShim({ apiBase: '/api', fetcher });
+
+        await expect(coreResolveSelect().getNavigationFallbackId()).resolves.toBeNull();
+
+        await coreDispatch().saveEntityRecord('postType', 'wp_navigation', {
+            title: 'Primary',
+            status: 'publish',
+        });
+
+        await expect(coreResolveSelect().getNavigationFallbackId()).resolves.toBe(12);
+        expect(calls.filter((call) => call.url === '/api/menus/fallback')).toHaveLength(2);
+    });
+
+    it('clears and re-resolves the fallback when that menu is deleted', async () => {
+        let deleted = false;
+        const { fetcher, calls } = mockFetcher(async (_url, init) => {
+            if (init.method === 'DELETE') {
+                deleted = true;
+
+                return new Response(null, { status: 204 });
+            }
+
+            return deleted
+                ? jsonResponse({ ...fallbackMenu, id: 13, slug: 'secondary' })
+                : jsonResponse(fallbackMenu);
+        });
+
+        configureCoreDataShim({ apiBase: '/api', fetcher });
+
+        await expect(coreResolveSelect().getNavigationFallbackId()).resolves.toBe(12);
+
+        await coreDispatch().deleteEntityRecord('postType', 'wp_navigation', 12);
+
+        expect(coreSelect().getNavigationFallbackId()).toBeNull();
+        await expect(coreResolveSelect().getNavigationFallbackId()).resolves.toBe(13);
+        expect(calls.filter((call) => call.url === '/api/menus/fallback')).toHaveLength(2);
+    });
+});
+
 describe('core-data-shim entity registry', () => {
     it('registers the V1 site-editor + G3 cms-framework entities by default', () => {
         const names = DEFAULT_ENTITIES.map((entity) => `${entity.kind}|${entity.name}`);
@@ -359,25 +480,6 @@ describe('core-data-shim record cache', () => {
 
     it('returns an empty themeSupports object', () => {
         expect(coreSelect().getThemeSupports()).toEqual({});
-    });
-
-    it('exposes getNavigationFallbackId returning undefined when no menus are cached', () => {
-        expect(coreSelect().getNavigationFallbackId()).toBeUndefined();
-    });
-
-    it('getNavigationFallbackId returns the first published menu id once cached (issue #808)', () => {
-        coreDispatch().receiveEntityRecords('postType', 'wp_navigation', [
-            {
-                id: 7,
-                slug: 'primary',
-                title: { raw: 'Primary', rendered: 'Primary' },
-                status: 'publish',
-                type: 'wp_navigation',
-                content: { raw: '', blocks: [] },
-            },
-        ]);
-
-        expect(coreSelect().getNavigationFallbackId()).toBe(7);
     });
 
     it('reports resolution as not-yet-started for an unread entity tuple', () => {
