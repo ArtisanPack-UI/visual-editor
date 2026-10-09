@@ -1,20 +1,32 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Stub `BlockInspector` — it pulls in the full block-editor store, which
 // isn't what we're testing. The shell behaviour (tab switching, empty
-// state, focus) is what this test owns.
-vi.mock('@wordpress/block-editor', () => {
+// state, focus) is what this test owns. `InspectorControls.Slot` wraps
+// a real bubbles-virtually `Slot` for the `list` group, and the
+// `BlockInspector` stub mounts one too (as upstream does), so tests can
+// observe the single-slot guarantee from #813 against the real
+// SlotFill registry.
+vi.mock('@wordpress/block-editor', async () => {
+    const { Slot: WordPressSlot } = await vi.importActual<
+        typeof import('@wordpress/components')
+    >('@wordpress/components');
     const Slot = ({ group }: { group?: string }): JSX.Element => (
         <div
             data-testid={`ap-visual-editor-inspector-slot-${group ?? 'default'}-stub`}
-        />
+        >
+            {group === 'list' && (
+                <WordPressSlot name="InspectorControlsListView" bubblesVirtually />
+            )}
+        </div>
     );
     return {
         BlockInspector: () => (
             <div data-testid="ap-visual-editor-block-inspector-stub">
                 Block inspector stub
+                <Slot group="list" />
             </div>
         ),
         InspectorControls: { Slot },
@@ -31,17 +43,22 @@ vi.mock('@wordpress/blocks', () => ({
     getBlockType: () => null,
 }));
 
-// Stub `@wordpress/components` `useSlotFills` — the real one needs a
-// SlotFillProvider higher in the tree which these tests don't set up.
-// `mockUseSlotFills` is settable per-test so a case can pretend the
-// `list` group has fills and force the List View tab to render.
+// Stub `@wordpress/components` `useSlotFills` so the List View tab's
+// visibility is controlled per-test. `mockUseSlotFills` is settable
+// per-test so a case can pretend the `list` group has fills and force
+// the List View tab to render. Everything else is the real module.
 const mockUseSlotFills = vi.fn(
     (): unknown[] | undefined => undefined,
 );
-vi.mock('@wordpress/components', () => ({
+vi.mock('@wordpress/components', async () => ({
+    ...(await vi.importActual<typeof import('@wordpress/components')>(
+        '@wordpress/components'
+    )),
     __experimentalUseSlotFills: (name: string) =>
         name === 'InspectorControlsListView' ? mockUseSlotFills() : undefined,
 }));
+
+import { Fill, SlotFillProvider } from '@wordpress/components';
 
 import { InspectorSidebar } from '../inspector-sidebar';
 
@@ -59,11 +76,16 @@ function renderSidebar(props: {
                     </div>
                 )
             }
-        />
+        />,
+        { wrapper: SlotFillProvider }
     );
 }
 
 describe('<InspectorSidebar />', () => {
+    beforeEach(() => {
+        mockUseSlotFills.mockReturnValue(undefined);
+    });
+
     it('exposes an accessible aside with a tablist', () => {
         renderSidebar({ hasSelectedBlockOverride: false });
 
@@ -144,7 +166,8 @@ describe('<InspectorSidebar />', () => {
             <InspectorSidebar
                 hasSelectedBlockOverride={false}
                 documentContent={<div>docs</div>}
-            />
+            />,
+            { wrapper: SlotFillProvider }
         );
 
         rerender(
@@ -170,7 +193,8 @@ describe('<InspectorSidebar />', () => {
             <InspectorSidebar
                 hasSelectedBlockOverride={true}
                 documentContent={<div>docs</div>}
-            />
+            />,
+            { wrapper: SlotFillProvider }
         );
 
         rerender(
@@ -283,5 +307,70 @@ describe('<InspectorSidebar />', () => {
         expect(
             screen.queryByTestId('ap-visual-editor-inspector-tab-list'),
         ).toBeNull();
+    });
+
+    it('renders a `list` fill exactly once, inside the List View tab panel (#813)', async () => {
+        mockUseSlotFills.mockReturnValue([{}]);
+        const user = userEvent.setup();
+
+        render(
+            <>
+                <InspectorSidebar
+                    hasSelectedBlockOverride={true}
+                    documentContent={<div>docs</div>}
+                />
+                <Fill name="InspectorControlsListView">
+                    <span data-testid="ap-visual-editor-list-fill">
+                        Menu items
+                    </span>
+                </Fill>
+            </>,
+            { wrapper: SlotFillProvider }
+        );
+
+        const listPanel = screen.getByTestId(
+            'ap-visual-editor-inspector-list-panel'
+        );
+
+        const expectSingleListFillIn = async (
+            container: HTMLElement
+        ): Promise<void> => {
+            const slots = screen.getAllByTestId(
+                'ap-visual-editor-inspector-slot-list-stub'
+            );
+            expect(slots).toHaveLength(1);
+            expect(container).toContainElement(slots[0]);
+
+            const fills = await screen.findAllByTestId(
+                'ap-visual-editor-list-fill'
+            );
+            expect(fills).toHaveLength(1);
+            expect(container).toContainElement(fills[0]);
+        };
+
+        // Block tab active: only the BlockInspector's own slot is mounted.
+        await expectSingleListFillIn(
+            screen.getByTestId('ap-visual-editor-block-inspector-stub')
+        );
+
+        await user.click(
+            screen.getByTestId('ap-visual-editor-inspector-tab-list')
+        );
+
+        expect(
+            screen.queryByTestId('ap-visual-editor-block-inspector-stub')
+        ).toBeNull();
+        await expectSingleListFillIn(listPanel);
+
+        // Round-trip: the fill must survive the slot swapping back and
+        // forth rather than being dropped when one slot unregisters.
+        await user.click(
+            screen.getByTestId('ap-visual-editor-inspector-tab-block')
+        );
+        await user.click(
+            screen.getByTestId('ap-visual-editor-inspector-tab-list')
+        );
+
+        await expectSingleListFillIn(listPanel);
     });
 });

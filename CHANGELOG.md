@@ -24,6 +24,13 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   the sanitizer (#834). This is defense in depth recommended by
   [GHSA-r4qj-7p7h-gjxr](https://github.com/ArtisanPack-UI/visual-editor/security/advisories/GHSA-r4qj-7p7h-gjxr).
 
+### Fixed
+
+- The inspector sidebar now mounts only one `list` InspectorControls
+  slot at a time. The block inspector is unmounted while the List View
+  tab is active, so navigation menu items no longer risk rendering in
+  the wrong place, or nowhere, after switching tabs (#813).
+
 ## [1.12.2] - 2026-10-08
 
 ### Upgrade notes
