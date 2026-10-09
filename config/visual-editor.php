@@ -403,6 +403,32 @@ return [
 
 	/*
 	|--------------------------------------------------------------------------
+	| Content-authoring access (#834)
+	|--------------------------------------------------------------------------
+	|
+	| The icon picker endpoints (`icons/sets`, `icons/search`, `icons/svg`)
+	| and the custom SVG sanitizer (`icons/svg/sanitize`) require the
+	| `visual-editor.edit-content` ability. It's a post-editor-level check:
+	| authors who can't reach the site editor still pass it.
+	|
+	|   - capability         Left null, any authenticated user passes. Set a
+	|                        capability (e.g. 'edit_content') to require it
+	|                        through the user's hasCapability() /
+	|                        hasPermissionTo() / hasPermission(). Or define
+	|                        the `visual-editor.edit-content` gate yourself.
+	|   - sanitize_throttle  Per-user rate limit for `icons/svg/sanitize`, as
+	|                        Laravel's `throttle` middleware arguments
+	|                        ("max attempts,minutes").
+	|
+	*/
+
+	'content_access' => [
+		'capability'        => null,
+		'sanitize_throttle' => '60,1',
+	],
+
+	/*
+	|--------------------------------------------------------------------------
 	| Loginout block (#522)
 	|--------------------------------------------------------------------------
 	|

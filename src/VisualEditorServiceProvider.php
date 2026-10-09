@@ -936,6 +936,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->registerBladeComponents();
 		$this->registerAiLivewireComponents();
 		$this->registerAiGate();
+		$this->registerContentGate();
 
 		Gate::policy( VisualEditorPost::class, VisualEditorPostPolicy::class );
 
@@ -1553,6 +1554,26 @@ class VisualEditorServiceProvider extends ServiceProvider
 		Gate::define(
 			\ArtisanPackUI\VisualEditor\Ai\Support\AiAccess::ABILITY,
 			static fn ( ?\Illuminate\Contracts\Auth\Authenticatable $user ): bool => \ArtisanPackUI\VisualEditor\Ai\Support\AiAccess::allows( $user ),
+		);
+	}
+
+	/**
+	 * Define the default `visual-editor.edit-content` gate unless the
+	 * host already has (#834). Allows any authenticated user unless a
+	 * capability is configured; see
+	 * {@see \ArtisanPackUI\VisualEditor\Support\ContentAccess}.
+	 *
+	 * @since 1.13.0
+	 */
+	protected function registerContentGate(): void
+	{
+		if ( Gate::has( \ArtisanPackUI\VisualEditor\Support\ContentAccess::ABILITY ) ) {
+			return;
+		}
+
+		Gate::define(
+			\ArtisanPackUI\VisualEditor\Support\ContentAccess::ABILITY,
+			static fn ( ?\Illuminate\Contracts\Auth\Authenticatable $user ): bool => \ArtisanPackUI\VisualEditor\Support\ContentAccess::allows( $user ),
 		);
 	}
 
