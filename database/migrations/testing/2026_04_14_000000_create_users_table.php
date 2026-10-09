@@ -22,6 +22,13 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+	/**
+	 * Whether this migration created the table, so `down()` never drops a
+	 * `users` table owned by cms-framework or the host. Mirrors
+	 * cms-framework's own `create_users_table` migration.
+	 */
+	private static bool $tableCreatedByThisMigration = false;
+
 	public function up(): void
 	{
 		// cms-framework's own `users` migration may already have run when a
@@ -39,10 +46,14 @@ return new class extends Migration
 			$table->rememberToken();
 			$table->timestamps();
 		} );
+
+		self::$tableCreatedByThisMigration = true;
 	}
 
 	public function down(): void
 	{
-		Schema::dropIfExists( 'users' );
+		if ( self::$tableCreatedByThisMigration ) {
+			Schema::dropIfExists( 'users' );
+		}
 	}
 };
