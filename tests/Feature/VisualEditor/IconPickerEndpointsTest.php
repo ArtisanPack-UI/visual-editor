@@ -2,8 +2,14 @@
 
 declare( strict_types=1 );
 
+use ArtisanPackUI\VisualEditor\Http\Middleware\EnsureContentEditorAccess;
 use ArtisanPackUI\VisualEditor\Services\Icon\IconCatalog;
 use ArtisanPackUI\VisualEditor\Services\Icon\IconSvgResolver;
+use ArtisanPackUI\VisualEditor\Support\ContentAccess;
+use ArtisanPackUI\VisualEditor\VisualEditorServiceProvider;
+use Illuminate\Auth\GenericUser;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Route;
 use Tests\TestUser;
 
 function actingAsIconPickerUser(): TestUser
@@ -243,4 +249,120 @@ it( 'returns 413 when the raw request body exceeds the cap even if `svg` decodes
 		],
 		'{"svg":"' . $bigField . '"}',
 	)->assertStatus( 413 );
+} );
+
+// #834 — content-authoring access gate on the icon endpoints.
+
+/**
+ * A user whose RBAC grants exactly the given capabilities.
+ *
+ * @param  array<int, string>  $capabilities
+ */
+function iconRbacUser( array $capabilities = [] ): GenericUser
+{
+	return new class( [ 'id' => 1 ], $capabilities ) extends GenericUser {
+		/** @param array<int, string> $capabilities */
+		public function __construct( array $attributes, private array $capabilities )
+		{
+			parent::__construct( $attributes );
+		}
+
+		public function hasCapability( string $capability ): bool
+		{
+			return in_array( $capability, $this->capabilities, true );
+		}
+	};
+}
+
+dataset( 'icon endpoints', [
+	'sets'     => [ 'GET', '/visual-editor/api/icons/sets' ],
+	'search'   => [ 'GET', '/visual-editor/api/icons/search' ],
+	'svg'      => [ 'GET', '/visual-editor/api/icons/svg?set=fas&name=home' ],
+	'sanitize' => [ 'POST', '/visual-editor/api/icons/svg/sanitize' ],
+] );
+
+it( 'gates every icon route on the content-access middleware', function () {
+	foreach ( [ 'sets', 'search', 'svg', 'svg.sanitize' ] as $name ) {
+		$middleware = Route::getRoutes()->getByName( 'visual-editor.api.icons.' . $name )->gatherMiddleware();
+
+		expect( $middleware )->toContain( EnsureContentEditorAccess::class );
+	}
+} );
+
+it( 'throttles the sanitize endpoint with the configured limit', function () {
+	$middleware = Route::getRoutes()->getByName( 'visual-editor.api.icons.svg.sanitize' )->gatherMiddleware();
+
+	expect( $middleware )->toContain( 'throttle:60,1' );
+} );
+
+it( 'answers 401 to a guest on the icon endpoints', function ( string $method, string $uri ) {
+	$this->json( $method, $uri, [ 'svg' => '<svg/>' ] )->assertUnauthorized();
+} )->with( 'icon endpoints' );
+
+it( 'answers a JSON 403 when the gate denies the user', function ( string $method, string $uri ) {
+	actingAsIconPickerUser();
+	Gate::define( ContentAccess::ABILITY, fn ( $user = null ) => false );
+
+	$this->json( $method, $uri, [ 'svg' => '<svg/>' ] )
+		->assertForbidden()
+		->assertJsonPath( 'message', 'You are not allowed to edit content.' );
+} )->with( 'icon endpoints' );
+
+it( 'answers a JSON 403 even when the client does not ask for JSON', function () {
+	actingAsIconPickerUser();
+	Gate::define( ContentAccess::ABILITY, fn ( $user = null ) => false );
+
+	$this->post( '/visual-editor/api/icons/svg/sanitize', [ 'svg' => '<svg/>' ] )
+		->assertForbidden()
+		->assertHeader( 'Content-Type', 'application/json' );
+} );
+
+it( 'lets any authenticated user sanitize by default', function () {
+	actingAsIconPickerUser();
+
+	$this->postJson( '/visual-editor/api/icons/svg/sanitize', [ 'svg' => '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0"/></svg>' ] )
+		->assertOk()
+		->assertJsonPath( 'warnings', [] );
+} );
+
+it( 'requires the configured capability when one is set', function () {
+	config()->set( 'artisanpack.visual-editor.content_access.capability', 'edit_content' );
+
+	$this->actingAs( iconRbacUser() )
+		->postJson( '/visual-editor/api/icons/svg/sanitize', [ 'svg' => '<svg/>' ] )
+		->assertForbidden();
+
+	$this->actingAs( iconRbacUser( [ 'edit_content' ] ) )
+		->postJson( '/visual-editor/api/icons/svg/sanitize', [ 'svg' => '<svg/>' ] )
+		->assertOk();
+} );
+
+it( 'resolves the default gate from the configured capability', function () {
+	expect( ContentAccess::allows( null ) )->toBeFalse();
+	expect( ContentAccess::allows( iconRbacUser() ) )->toBeTrue();
+	expect( ContentAccess::allows( new GenericUser( [ 'id' => 1 ] ) ) )->toBeTrue();
+
+	config()->set( 'artisanpack.visual-editor.content_access.capability', 'edit_content' );
+
+	expect( ContentAccess::allows( iconRbacUser() ) )->toBeFalse();
+	expect( ContentAccess::allows( iconRbacUser( [ 'edit_content' ] ) ) )->toBeTrue();
+	expect( ContentAccess::allows( new GenericUser( [ 'id' => 1 ] ) ) )->toBeFalse();
+} );
+
+it( 'lets a host-defined gate allow users the default would deny', function () {
+	config()->set( 'artisanpack.visual-editor.content_access.capability', 'edit_content' );
+	Gate::define( ContentAccess::ABILITY, fn ( $user = null ) => null !== $user );
+
+	$this->actingAs( iconRbacUser() )
+		->postJson( '/visual-editor/api/icons/svg/sanitize', [ 'svg' => '<svg/>' ] )
+		->assertOk();
+} );
+
+it( 'does not replace a gate the host already defined', function () {
+	Gate::define( ContentAccess::ABILITY, fn ( $user = null ) => false );
+
+	$provider = new VisualEditorServiceProvider( app() );
+	( fn () => $this->registerContentGate() )->call( $provider );
+
+	expect( Gate::forUser( iconRbacUser() )->allows( ContentAccess::ABILITY ) )->toBeFalse();
 } );

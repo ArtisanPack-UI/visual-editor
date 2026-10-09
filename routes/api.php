@@ -49,6 +49,7 @@ use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\TemplateController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\TemplatePartController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Visibility\UsersSearchController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\VisualEditorBlocksController;
+use ArtisanPackUI\VisualEditor\Http\Middleware\EnsureContentEditorAccess;
 use ArtisanPackUI\VisualEditor\Http\Middleware\EnsureSiteEditorAccess;
 use Illuminate\Support\Facades\Route;
 
@@ -311,27 +312,34 @@ Route::get( 'search', [ EntitySearchController::class, 'index' ] )
 Route::get( 'users/search', [ UsersSearchController::class, 'index' ] )
 	->name( 'visual-editor.api.visibility.users.search' );
 
-// Icon Block Phase 4 (#555) — picker search + set-family chips.
-// Both routes are read-only; the catalog is backed by the bundled
-// `index.json` manifest and exposes paginated results so the editor
-// never has to ship the full FA Free term index to the browser.
-Route::get( 'icons/sets', [ IconSetsController::class, 'index' ] )
-	->name( 'visual-editor.api.icons.sets' );
+// Icon Block endpoints are gated on the post-editor-level
+// `visual-editor.edit-content` ability (#834), so only users who can
+// author content reach them. A denial is a JSON 403.
+Route::middleware( EnsureContentEditorAccess::class )->group( function (): void {
+	// Icon Block Phase 4 (#555) — picker search + set-family chips.
+	// Both routes are read-only; the catalog is backed by the bundled
+	// `index.json` manifest and exposes paginated results so the editor
+	// never has to ship the full FA Free term index to the browser.
+	Route::get( 'icons/sets', [ IconSetsController::class, 'index' ] )
+		->name( 'visual-editor.api.icons.sets' );
 
-Route::get( 'icons/search', [ IconSearchController::class, 'index' ] )
-	->name( 'visual-editor.api.icons.search' );
+	Route::get( 'icons/search', [ IconSearchController::class, 'index' ] )
+		->name( 'visual-editor.api.icons.search' );
 
-Route::get( 'icons/svg', [ IconSvgController::class, 'show' ] )
-	->name( 'visual-editor.api.icons.svg' );
+	Route::get( 'icons/svg', [ IconSvgController::class, 'show' ] )
+		->name( 'visual-editor.api.icons.svg' );
 
-// Icon Block Phase 5 (#556) — custom SVG paste/upload sanitization. The
-// editor POSTs the pasted/uploaded markup, gets back the SvgSanitizer
-// output + warnings, and persists the sanitized result into the block's
-// `customSvg` attribute. Authoritative sanitization still runs at render
-// time inside IconBlock; this endpoint is what lets the editor surface
-// warnings inline before save.
-Route::post( 'icons/svg/sanitize', [ IconSvgSanitizeController::class, 'store' ] )
-	->name( 'visual-editor.api.icons.svg.sanitize' );
+	// Icon Block Phase 5 (#556) — custom SVG paste/upload sanitization. The
+	// editor POSTs the pasted/uploaded markup, gets back the SvgSanitizer
+	// output + warnings, and persists the sanitized result into the block's
+	// `customSvg` attribute. Authoritative sanitization still runs at render
+	// time inside IconBlock; this endpoint is what lets the editor surface
+	// warnings inline before save. Throttled per user because every call
+	// runs the XML parser.
+	Route::post( 'icons/svg/sanitize', [ IconSvgSanitizeController::class, 'store' ] )
+		->middleware( 'throttle:' . (string) config( 'artisanpack.visual-editor.content_access.sanitize_throttle', '60,1' ) )
+		->name( 'visual-editor.api.icons.svg.sanitize' );
+} );
 
 // Icon Block Phase 6 (#557) — admin icon-set management endpoints.
 // Each action runs through the bound `SiteEditorAccessGate` (the

@@ -6,6 +6,24 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Upgrade notes
+
+- **Icon endpoints now check the `visual-editor.edit-content` ability.**
+  `icons/sets`, `icons/search`, `icons/svg`, and `icons/svg/sanitize`
+  answer a JSON 403 to users who fail it. By default any authenticated
+  user passes, so nothing changes unless you opt in: set
+  `content_access.capability` (e.g. `edit_content`) to require that
+  capability, or define your own `visual-editor.edit-content` gate.
+  `icons/svg/sanitize` is also throttled per user
+  (`content_access.sanitize_throttle`, default `60,1`).
+
+### Security
+
+- Gated the icon picker and custom SVG sanitize endpoints on a new
+  post-editor-level `visual-editor.edit-content` ability, and throttled
+  the sanitizer (#834). This is defense in depth recommended by
+  [GHSA-r4qj-7p7h-gjxr](https://github.com/ArtisanPack-UI/visual-editor/security/advisories/GHSA-r4qj-7p7h-gjxr).
+
 ## [1.12.2] - 2026-10-08
 
 ### Upgrade notes
