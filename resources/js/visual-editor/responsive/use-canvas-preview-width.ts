@@ -19,7 +19,42 @@
  * @since 1.0.0
  */
 
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+
+type PreviewWidthListener = ( width: number | null ) => void
+
+let publishedPreviewWidthPx: number | null = null
+const previewWidthListeners: Set<PreviewWidthListener> = new Set()
+
+/**
+ * The mounted shell's canvas preview width (#805), or `null` at
+ * `base`. Lets block-level filters (e.g. the visibility canvas
+ * preview) follow the preview without reaching into shell state.
+ */
+export function getCanvasPreviewWidth(): number | null {
+	return publishedPreviewWidthPx
+}
+
+export function subscribeCanvasPreviewWidth( listener: PreviewWidthListener ): () => void {
+	previewWidthListeners.add( listener )
+
+	return () => {
+		previewWidthListeners.delete( listener )
+	}
+}
+
+/**
+ * Publishes a shell's preview width. Called by
+ * {@link useCanvasPreviewWidth}; exported for tests.
+ */
+export function publishCanvasPreviewWidth( width: number | null ): void {
+	if ( width === publishedPreviewWidthPx ) {
+		return
+	}
+
+	publishedPreviewWidthPx = width
+	previewWidthListeners.forEach( ( listener ) => listener( width ) )
+}
 
 export interface CanvasPreviewWidthApi {
 	/**
@@ -50,6 +85,10 @@ export function useCanvasPreviewWidth(): CanvasPreviewWidthApi {
 		},
 		[],
 	)
+
+	useEffect( () => {
+		publishCanvasPreviewWidth( canvasPreviewWidthPx )
+	}, [ canvasPreviewWidthPx ] )
 
 	return { canvasPreviewWidthPx, handleViewportChange }
 }

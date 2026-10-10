@@ -71,6 +71,7 @@ import { registerStateAttributesFilter } from '../states/with-state-attributes';
 import { registerStateStylesFilters } from '../states/with-state-styles';
 import { registerVisibilityAttribute } from '../visibility/register-attribute';
 import { registerVisibilityPanel } from '../visibility/with-visibility-panel';
+import { registerVisibilityCanvas } from '../visibility/with-visibility-canvas';
 
 import { BlockLibrarySidebar } from '../editor/block-library-sidebar';
 import {
@@ -267,6 +268,9 @@ function ensureEditorBoot(): void {
     registerAnimationsPanel();
     registerVisibilityAttribute();
     registerVisibilityPanel();
+    // #805 — preview screen-size rules in the canvas and flag
+    // visibility in List View labels.
+    registerVisibilityCanvas();
     registerBindingsAttribute();
     registerBindingsPanel();
 
