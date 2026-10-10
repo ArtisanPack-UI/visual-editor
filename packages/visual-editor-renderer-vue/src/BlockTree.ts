@@ -47,8 +47,11 @@ import { inlineSiteMeta } from './siteMeta';
 import type { SiteMeta } from './siteMeta';
 import {
     DEFAULT_MAX_TEMPLATE_PART_DEPTH,
+    inlineNavigationOverlays,
     inlineTemplateParts,
+    isNavigationOverlayContent,
     NAVIGATION_OVERLAY_CONTENT_BLOCK,
+    stripStoredNavigationOverlayContent,
 } from './templateParts';
 import type { TemplatePartRecord } from './templateParts';
 import { LIST_ITEM_BLOCKS, filterVisibleBlocks, stampVisibilityScopes } from './visibility';
@@ -179,7 +182,22 @@ export const BlockTree = defineComponent({
                           maxDepth: props.maxPatternDepth,
                       });
 
-            const withSiteMeta = inlineSiteMeta(withPatterns, props.siteMeta);
+            // Overlay-only pass (RN-9): a navigation that only appears
+            // once synced patterns are expanded gets its `overlay` part
+            // resolved here. Navigations already resolved above are
+            // skipped. It runs before query inlining so a navigation
+            // inside a query loop's template is resolved once and then
+            // stamped per result.
+            const withOverlays =
+                props.templateParts === undefined || props.patterns === undefined
+                    ? withPatterns
+                    : inlineNavigationOverlays(withPatterns, {
+                          parts: props.templateParts,
+                          defaultTheme: props.defaultTheme,
+                          maxDepth: props.maxTemplatePartDepth,
+                      });
+
+            const withSiteMeta = inlineSiteMeta(withOverlays, props.siteMeta);
 
             // Query inlining runs last so a `core/query` block reachable
             // only through a resolved template part / pattern still gets
@@ -345,7 +363,9 @@ function renderBlock(
 ): VNode | null {
     const name = typeof block.name === 'string' ? block.name.trim() : '';
 
-    if (name === '') {
+    // Only the inliner may create overlay-content blocks; a stored one
+    // (e.g. reached through a synced pattern) is never rendered.
+    if (name === '' || (name === NAVIGATION_OVERLAY_CONTENT_BLOCK && !isNavigationOverlayContent(block))) {
         return null;
     }
 
@@ -436,10 +456,11 @@ function renderBlock(
 /**
  * Slot a block is routed into, or `''` for a regular in-place child. Only
  * the synthetic overlay-content block the template-part inliner appends
- * is routed, so a stray `_slot` attribute on stored content is ignored.
+ * (carrying its private marker) is routed, so a stray `_slot` attribute
+ * or a stored block with the overlay-content name is ignored.
  */
 function slotName(block: Block): string {
-    if (block.name !== NAVIGATION_OVERLAY_CONTENT_BLOCK) {
+    if (!isNavigationOverlayContent(block)) {
         return '';
     }
 
@@ -454,7 +475,16 @@ function slotName(block: Block): string {
     return typeof slot === 'string' ? slot : '';
 }
 
+/**
+ * Parse the incoming tree and drop stored overlay-content blocks (RN-10)
+ * before any inlining runs, so only the inliner's own (marked) overlay
+ * blocks ever reach the overlay slot.
+ */
 function normalizeTree(tree: Block[] | string | null | undefined): Block[] {
+    return stripStoredNavigationOverlayContent(parseTree(tree));
+}
+
+function parseTree(tree: Block[] | string | null | undefined): Block[] {
     if (tree === null || tree === undefined) {
         return [];
     }

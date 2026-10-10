@@ -3,11 +3,14 @@ import { describe, expect, it } from 'vitest';
 import {
     DEFAULT_MAX_TEMPLATE_PART_DEPTH,
     findTemplate,
+    inlineNavigationOverlays,
     inlineTemplateParts,
+    isNavigationOverlayContent,
     NAVIGATION_OVERLAY_AREA,
     NAVIGATION_OVERLAY_CONTENT_BLOCK,
     NAVIGATION_OVERLAY_SLOT,
     resolveTemplate,
+    stripStoredNavigationOverlayContent,
     TEMPLATE_PART_BLOCK_NAMES,
     templateFallbackChain,
 } from '../src/templateParts';
@@ -349,6 +352,97 @@ describe('inlineTemplateParts — navigation overlay parts (#804)', () => {
         const parts = [{ ...overlayPart, blocks: [nav({ overlay: 'mobile-overlay' })] }];
 
         const [inlined] = inlineTemplateParts([nav({ overlay: 'mobile-overlay' })], {
+            parts,
+            defaultTheme: 'artisanpack-base',
+        });
+
+        const innerNav = inlined.innerBlocks?.[1]?.innerBlocks?.[0];
+
+        expect(innerNav?.name).toBe('core/navigation');
+        expect(innerNav?.innerBlocks).toHaveLength(1);
+    });
+
+    it('marks the overlay block it creates as inliner-produced', () => {
+        const [inlined] = inlineTemplateParts([nav({ overlay: 'mobile-overlay' })], {
+            parts: [overlayPart],
+            defaultTheme: 'artisanpack-base',
+        });
+        const overlay = inlined.innerBlocks?.[1] as Block;
+
+        expect(isNavigationOverlayContent(overlay)).toBe(true);
+        // A stored (JSON) copy can't carry the marker.
+        expect(isNavigationOverlayContent(JSON.parse(JSON.stringify(overlay)))).toBe(false);
+    });
+
+    it('is idempotent: running the inliner twice yields exactly one overlay block (RN-9)', () => {
+        const options = { parts: [overlayPart], defaultTheme: 'artisanpack-base' };
+        const once = inlineTemplateParts([nav({ overlay: 'mobile-overlay' })], options);
+        const [twice] = inlineTemplateParts(once, options);
+        const [thrice] = inlineNavigationOverlays([twice], options);
+
+        for (const inlined of [twice, thrice]) {
+            expect(inlined.innerBlocks).toHaveLength(2);
+            expect(inlined.innerBlocks?.filter((block) => block.name === NAVIGATION_OVERLAY_CONTENT_BLOCK)).toHaveLength(1);
+        }
+    });
+
+    it('drops a stored overlay-content block instead of routing it (RN-10)', () => {
+        const stored: Block = {
+            clientId: 'stored-overlay',
+            name: NAVIGATION_OVERLAY_CONTENT_BLOCK,
+            attributes: { _slot: NAVIGATION_OVERLAY_SLOT },
+            innerBlocks: [paragraph('Injected')],
+        };
+        const navWithStored = { ...nav({ overlay: 'mobile-overlay' }), innerBlocks: [...(nav({}).innerBlocks ?? []), stored] };
+
+        const [inlined] = inlineTemplateParts([navWithStored], {
+            parts: [overlayPart],
+            defaultTheme: 'artisanpack-base',
+        });
+
+        expect(inlined.innerBlocks).toHaveLength(2);
+        expect(isNavigationOverlayContent(inlined.innerBlocks?.[1] as Block)).toBe(true);
+        expect(inlined.innerBlocks?.[1]?.innerBlocks?.[0].attributes?.content).toBe('Call us');
+
+        const [stripped] = stripStoredNavigationOverlayContent([navWithStored]);
+
+        expect(stripped.innerBlocks).toHaveLength(1);
+        expect(stripped.innerBlocks?.[0].name).toBe('core/navigation-link');
+    });
+
+    it('keeps inliner-produced overlay blocks when stripping stored ones', () => {
+        const inlined = inlineTemplateParts([nav({ overlay: 'mobile-overlay' })], {
+            parts: [overlayPart],
+            defaultTheme: 'artisanpack-base',
+        });
+
+        expect(stripStoredNavigationOverlayContent(inlined)).toEqual(inlined);
+        expect(stripStoredNavigationOverlayContent(inlined)[0]).toBe(inlined[0]);
+    });
+
+    it('resolves a navigation the first pass could not see, without re-resolving template parts (RN-9)', () => {
+        // Simulates a synced pattern expanded after the first pass: the
+        // navigation now sits inside an already-resolved header part.
+        const [header] = inlineTemplateParts([partRef('header')], {
+            parts: [{ slug: 'header', theme: 'artisanpack-base', blocks: [paragraph('Original')] }],
+            defaultTheme: 'artisanpack-base',
+        });
+        const expanded: Block = { ...header, innerBlocks: [nav({ overlay: 'mobile-overlay' })] };
+
+        const [resolved] = inlineNavigationOverlays([expanded], {
+            parts: [overlayPart, { slug: 'header', theme: 'artisanpack-base', blocks: [paragraph('Re-resolved')] }],
+            defaultTheme: 'artisanpack-base',
+        });
+
+        expect(resolved.innerBlocks).toHaveLength(1);
+        expect(resolved.innerBlocks?.[0].name).toBe('core/navigation');
+        expect(isNavigationOverlayContent(resolved.innerBlocks?.[0].innerBlocks?.[1] as Block)).toBe(true);
+    });
+
+    it('keeps the recursion guard in the overlay-only pass', () => {
+        const parts = [{ ...overlayPart, blocks: [nav({ overlay: 'mobile-overlay' })] }];
+
+        const [inlined] = inlineNavigationOverlays([nav({ overlay: 'mobile-overlay' })], {
             parts,
             defaultTheme: 'artisanpack-base',
         });

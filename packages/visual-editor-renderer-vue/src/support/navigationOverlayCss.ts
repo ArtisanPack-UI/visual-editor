@@ -16,6 +16,10 @@
  * drawer's items to the inline-start edge, and swap the menu for the
  * `overlay` template part's content while the drawer is open.
  *
+ * Everything sits in the `ve-navigation` cascade layer, so unlayered host
+ * theme styles (and the block-library stylesheet, when loaded) win over
+ * these defaults regardless of selector specificity.
+ *
  * @since 1.13.0
  */
 
@@ -23,6 +27,7 @@ import { NAVIGATION_BLOCK_NAMES } from '../templateParts';
 import type { Block } from '../types';
 
 export const NAVIGATION_OVERLAY_CSS =
+    '@layer ve-navigation {\n' +
     '.wp-block-navigation__responsive-container { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; }\n' +
     '.wp-block-navigation__responsive-container :where(.wp-block-navigation-item a) { color: inherit; }\n' +
     '.wp-block-navigation__responsive-container .wp-block-navigation__responsive-container-content { display: flex; flex-wrap: var(--navigation-layout-wrap, wrap); flex-direction: var(--navigation-layout-direction, initial); justify-content: var(--navigation-layout-justify, initial); align-items: var(--navigation-layout-align, initial); }\n' +
@@ -43,7 +48,8 @@ export const NAVIGATION_OVERLAY_CSS =
     '.wp-block-navigation__responsive-container.is-menu-open { --navigation-layout-justification-setting: stretch; --navigation-layout-justify: flex-start; --navigation-layout-align: stretch; --wp--style--root--padding-top: 1.5rem; --wp--style--root--padding-right: 1.5rem; --wp--style--root--padding-bottom: 1.5rem; --wp--style--root--padding-left: 1.5rem; }\n' +
     '.wp-block-navigation__responsive-container-content.has-overlay-template .wp-block-navigation__overlay-content { display: none; }\n' +
     '.wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-content.has-overlay-template .wp-block-navigation__container { display: none; }\n' +
-    '.wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-content.has-overlay-template .wp-block-navigation__overlay-content { display: block; }';
+    '.wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-content.has-overlay-template .wp-block-navigation__overlay-content { display: block; }\n' +
+    '}';
 
 /**
  * Whether the tree holds a navigation block whose overlay is switched

@@ -34,6 +34,8 @@ export {
     DEFAULT_MAX_TEMPLATE_PART_DEPTH,
     findTemplate,
     inlineTemplateParts,
+    NAVIGATION_OVERLAY_AREA,
+    NAVIGATION_OVERLAY_SLOT,
     resolveTemplate,
     templateFallbackChain,
 } from './templateParts';

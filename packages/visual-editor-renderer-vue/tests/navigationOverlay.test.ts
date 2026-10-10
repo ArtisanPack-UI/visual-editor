@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import '../src/index';
 import { BlockTree } from '../src/BlockTree';
+import type { PatternRecord } from '../src/patterns';
 import type { TemplatePartRecord } from '../src/templateParts';
 import type { Block } from '../src/types';
 import { makeBlock } from './helpers';
@@ -45,6 +46,21 @@ function renderNav(tree: Block[], templateParts?: TemplatePartRecord[]): HTMLEle
     return mountNav(tree, templateParts).element.parentElement as HTMLElement;
 }
 
+function renderWithPatterns(tree: Block[], patterns: PatternRecord[], templateParts?: TemplatePartRecord[]): HTMLElement {
+    const host = document.createElement('div');
+
+    document.body.appendChild(host);
+
+    const wrapper = mount(BlockTree, {
+        props: { tree, templateParts, patterns },
+        attachTo: host,
+    });
+
+    mounted.push(wrapper);
+
+    return host;
+}
+
 afterEach(() => {
     while (mounted.length > 0) {
         mounted.pop()?.unmount();
@@ -65,21 +81,32 @@ describe('NavigationBlock overlay markup (#804)', () => {
         expect(open?.getAttribute('aria-haspopup')).toBe('dialog');
         expect(open?.getAttribute('aria-label')).toBe('Menu');
         expect(open?.className).toBe('wp-block-navigation__responsive-container-open');
-        expect(overlay?.getAttribute('aria-hidden')).toBe('true');
+        expect(open?.getAttribute('aria-expanded')).toBe('false');
+        // No SSR-stable id source on the `^3.3` peer range, so no aria-controls.
+        expect(open?.hasAttribute('aria-controls')).toBe(false);
+        // RN-1: the closed container doubles as the inline desktop menu,
+        // so it is never aria-hidden and carries no dialog semantics.
+        expect(overlay?.hasAttribute('aria-hidden')).toBe(false);
+        expect(container.querySelector('[aria-hidden="true"]:not(svg)')).toBeNull();
+        expect(container.querySelector('[role="dialog"]')).toBeNull();
+        expect(container.querySelector('[aria-modal]')).toBeNull();
         expect(overlay?.className).toBe('wp-block-navigation__responsive-container');
         expect(
             container.querySelector(
-                '.wp-block-navigation__responsive-dialog[role="dialog"][aria-modal="true"] .wp-block-navigation__responsive-container-content > ul.wp-block-navigation__container a[href="/"]'
+                '.wp-block-navigation__responsive-dialog .wp-block-navigation__responsive-container-content > ul.wp-block-navigation__container a[href="/"]'
             )
         ).not.toBeNull();
         expect(container.querySelector('.wp-block-navigation__overlay-content')).toBeNull();
     });
 
-    it('labels the open button and dialog with the block aria-label', () => {
-        const container = renderNav([navigation({ ariaLabel: 'Primary' })]);
+    it('labels the open button and dialog with the block aria-label', async () => {
+        const wrapper = mountNav([navigation({ ariaLabel: 'Primary' })]);
 
-        expect(container.querySelector('.wp-block-navigation__responsive-container-open')?.getAttribute('aria-label')).toBe('Primary');
-        expect(container.querySelector('[role="dialog"]')?.getAttribute('aria-label')).toBe('Primary');
+        expect(wrapper.find('.wp-block-navigation__responsive-container-open').attributes('aria-label')).toBe('Primary');
+
+        await wrapper.find('.wp-block-navigation__responsive-container-open').trigger('click');
+
+        expect(wrapper.find('[role="dialog"]').attributes('aria-label')).toBe('Primary');
     });
 
     it('renders a bare menu with no overlay scaffolding or CSS when overlayMenu is never', () => {
@@ -129,6 +156,40 @@ describe('NavigationBlock overlay markup (#804)', () => {
 
         expect(overlay?.className).toBe('wp-block-navigation__responsive-container');
         expect(overlay?.getAttribute('style')).toBeNull();
+    });
+
+    it('reduces overlay preset slugs to a single sanitized class token (RN-7)', () => {
+        const container = renderNav([
+            navigation({ overlayBackgroundColor: 'x is-menu-open', overlayTextColor: '"Brand_Red"' }),
+        ]);
+        const overlay = container.querySelector('.wp-block-navigation__responsive-container');
+
+        expect(overlay?.className).toBe(
+            'wp-block-navigation__responsive-container has-x-is-menu-open-background-color has-background has-brand-red-color has-text-color'
+        );
+        expect(overlay?.classList.contains('is-menu-open')).toBe(false);
+    });
+
+    it('drops an overlay preset class whose slug sanitizes to nothing (RN-7)', () => {
+        const container = renderNav([navigation({ overlayBackgroundColor: '"; !', customOverlayBackgroundColor: '#111111' })]);
+        const overlay = container.querySelector<HTMLElement>('.wp-block-navigation__responsive-container');
+
+        // An empty slug falls through to the custom color, as a blank one does.
+        expect(overlay?.className).toBe('wp-block-navigation__responsive-container has-background');
+        expect(overlay?.style.backgroundColor).toBe('rgb(17, 17, 17)');
+    });
+
+    it('trims overlay colors the way PHP trim() does (RN-8)', () => {
+        // PHP trim() leaves the NBSP in place, so Blade rejects the value
+        // and so must we; plain ASCII whitespace is still trimmed.
+        const container = renderNav([
+            navigation({ customOverlayBackgroundColor: '#111111\u00a0', customOverlayTextColor: ' #eeeeee\t' }),
+        ]);
+        const overlay = container.querySelector<HTMLElement>('.wp-block-navigation__responsive-container');
+
+        expect(overlay?.className).toBe('wp-block-navigation__responsive-container has-text-color');
+        expect(overlay?.style.backgroundColor).toBe('');
+        expect(overlay?.style.color).toBe('rgb(238, 238, 238)');
     });
 
     it('renders a stray _slot attribute on stored content in place', () => {
@@ -190,6 +251,59 @@ describe('NavigationBlock overlay template part (#804)', () => {
     });
 });
 
+describe('NavigationBlock overlay inside synced patterns + stored overlay blocks (RN-9 · RN-10)', () => {
+    const storedOverlay = (): Block =>
+        makeBlock('artisanpack/navigation-overlay-content', { _slot: 'overlay' }, [
+            makeBlock('core/paragraph', { content: 'Injected overlay' }, [], 'stored-p'),
+        ], 'stored-overlay');
+
+    it('resolves the overlay of a navigation that only appears inside a synced pattern', () => {
+        const container = renderWithPatterns(
+            [makeBlock('core/block', { ref: 7 }, [], 'pattern-ref')],
+            [{ id: 7, blocks: [navigation({ overlay: 'mobile-overlay' })] }],
+            [OVERLAY_PART]
+        );
+
+        expect(container.querySelectorAll('.wp-block-navigation__overlay-content')).toHaveLength(1);
+        expect(container.querySelector('.wp-block-navigation__overlay-content')?.textContent).toContain('Call us today');
+        expect(container.querySelector('.wp-block-navigation__responsive-container-content')?.className).toContain('has-overlay-template');
+    });
+
+    it('never renders a stored overlay-content block from the saved tree', () => {
+        const nav = navigation();
+        const container = renderNav([{ ...nav, innerBlocks: [...(nav.innerBlocks ?? []), storedOverlay()] }]);
+
+        expect(container.textContent).not.toContain('Injected overlay');
+        expect(container.querySelector('.wp-block-navigation__overlay-content')).toBeNull();
+        expect(container.querySelector('.has-overlay-template')).toBeNull();
+    });
+
+    it('replaces a stored overlay-content block with the resolved part instead of duplicating it', () => {
+        const nav = navigation({ overlay: 'mobile-overlay' });
+        const container = renderNav([{ ...nav, innerBlocks: [...(nav.innerBlocks ?? []), storedOverlay()] }], [OVERLAY_PART]);
+
+        expect(container.querySelectorAll('.wp-block-navigation__overlay-content')).toHaveLength(1);
+        expect(container.textContent).toContain('Call us today');
+        expect(container.textContent).not.toContain('Injected overlay');
+    });
+
+    it('never renders a stored overlay-content block reached through a synced pattern', () => {
+        const nav = navigation();
+        const patternTree = [{ ...nav, innerBlocks: [...(nav.innerBlocks ?? []), storedOverlay()] }];
+
+        for (const templateParts of [undefined, [OVERLAY_PART]]) {
+            const container = renderWithPatterns(
+                [makeBlock('core/block', { ref: 8 }, [], 'pattern-ref-2')],
+                [{ id: 8, blocks: patternTree }],
+                templateParts
+            );
+
+            expect(container.textContent).not.toContain('Injected overlay');
+            expect(container.querySelector('.wp-block-navigation__overlay-content')).toBeNull();
+        }
+    });
+});
+
 describe('NavigationBlock overlay interaction (#804)', () => {
     it('opens the drawer, locks scroll and focuses the close button', async () => {
         const wrapper = mountNav([navigation()]);
@@ -199,7 +313,14 @@ describe('NavigationBlock overlay interaction (#804)', () => {
         const overlay = wrapper.find('.wp-block-navigation__responsive-container');
 
         expect(overlay.classes()).toContain('is-menu-open');
-        expect(overlay.attributes('aria-hidden')).toBe('false');
+        expect(overlay.attributes('aria-hidden')).toBeUndefined();
+        expect(wrapper.find('.wp-block-navigation__responsive-container-open').attributes('aria-expanded')).toBe('true');
+
+        const dialog = wrapper.find('.wp-block-navigation__responsive-dialog');
+
+        expect(dialog.attributes('role')).toBe('dialog');
+        expect(dialog.attributes('aria-modal')).toBe('true');
+        expect(dialog.attributes('aria-label')).toBe('Menu');
         expect(document.body.style.overflow).toBe('hidden');
         expect(document.activeElement).toBe(wrapper.find('.wp-block-navigation__responsive-container-close').element);
     });
@@ -215,7 +336,10 @@ describe('NavigationBlock overlay interaction (#804)', () => {
         const overlay = wrapper.find('.wp-block-navigation__responsive-container');
 
         expect(overlay.classes()).not.toContain('is-menu-open');
-        expect(overlay.attributes('aria-hidden')).toBe('true');
+        expect(overlay.attributes('aria-hidden')).toBeUndefined();
+        expect(open.attributes('aria-expanded')).toBe('false');
+        expect(wrapper.find('[role="dialog"]').exists()).toBe(false);
+        expect(wrapper.find('[aria-modal]').exists()).toBe(false);
         expect(document.body.style.overflow).toBe('');
         expect(document.activeElement).toBe(open.element);
     });
@@ -235,13 +359,79 @@ describe('NavigationBlock overlay interaction (#804)', () => {
         const wrapper = mountNav([navigation()]);
 
         await wrapper.find('.wp-block-navigation__responsive-container-open').trigger('click');
-        await wrapper.find('a[href="/"]').trigger('click');
+        await wrapper.find('.wp-block-navigation__responsive-container-content').trigger('click');
 
         expect(wrapper.find('.wp-block-navigation__responsive-container').classes()).toContain('is-menu-open');
 
         await wrapper.find('.wp-block-navigation__responsive-close').trigger('click');
 
         expect(wrapper.find('.wp-block-navigation__responsive-container').classes()).not.toContain('is-menu-open');
+    });
+
+    it('closes when a link inside the open drawer is clicked (RN-6)', async () => {
+        const wrapper = mountNav([navigation()]);
+        const click = new MouseEvent('click', { bubbles: true, cancelable: true });
+
+        await wrapper.find('.wp-block-navigation__responsive-container-open').trigger('click');
+        expect(document.body.style.overflow).toBe('hidden');
+
+        wrapper.find('a[href="/"]').element.dispatchEvent(click);
+        await nextTick();
+        await nextTick();
+
+        expect(wrapper.find('.wp-block-navigation__responsive-container').classes()).not.toContain('is-menu-open');
+        expect(document.body.style.overflow).toBe('');
+        // The link's own navigation is left alone.
+        expect(click.defaultPrevented).toBe(false);
+    });
+
+    it('wraps Tab focus inside the open drawer (RN-5)', async () => {
+        const wrapper = mountNav([navigation()]);
+        const close = wrapper.find('.wp-block-navigation__responsive-container-close').element as HTMLButtonElement;
+        const link = wrapper.find('a[href="/"]').element as HTMLAnchorElement;
+
+        await wrapper.find('.wp-block-navigation__responsive-container-open').trigger('click');
+        expect(document.activeElement).toBe(close);
+
+        link.focus();
+        const tab = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+        document.dispatchEvent(tab);
+
+        expect(tab.defaultPrevented).toBe(true);
+        expect(document.activeElement).toBe(close);
+
+        const shiftTab = new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true });
+        document.dispatchEvent(shiftTab);
+
+        expect(shiftTab.defaultPrevented).toBe(true);
+        expect(document.activeElement).toBe(link);
+    });
+
+    it('lets Tab move normally between elements in the middle of the drawer (RN-5)', async () => {
+        const wrapper = mountNav([navigation()]);
+
+        await wrapper.find('.wp-block-navigation__responsive-container-open').trigger('click');
+
+        const tab = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+        document.dispatchEvent(tab);
+
+        // Focus is on the close button (first of two); the browser moves on.
+        expect(tab.defaultPrevented).toBe(false);
+    });
+
+    it('skips the swapped-out menu links when wrapping focus with an overlay part (RN-5)', async () => {
+        const part: TemplatePartRecord = {
+            ...OVERLAY_PART,
+            blocks: [makeBlock('core/paragraph', { content: '<a href="/call">Call</a>' }, [], 'overlay-link-p')],
+        };
+        const wrapper = mountNav([navigation({ overlay: 'mobile-overlay' })], [part]);
+
+        await wrapper.find('.wp-block-navigation__responsive-container-open').trigger('click');
+
+        const shiftTab = new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true });
+        document.dispatchEvent(shiftTab);
+
+        expect(document.activeElement).toBe(wrapper.find('.wp-block-navigation__overlay-content a[href="/call"]').element);
     });
 
     it('restores page scroll when unmounted while open', async () => {

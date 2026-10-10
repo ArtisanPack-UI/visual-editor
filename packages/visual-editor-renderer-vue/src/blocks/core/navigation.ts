@@ -14,7 +14,7 @@
 
 import { defineComponent, h, onBeforeUnmount, ref, watch } from 'vue';
 import type { VNode } from 'vue';
-import { attrBoolean, attrString, classList } from '../../support/attributes';
+import { attrBoolean, attrString, classList, phpTrim } from '../../support/attributes';
 import { applyBlockGap, hasBlockGapStyle } from '../../support/blockGap';
 import { safeCssValue } from '../../support/cssValue';
 import { safeUrl } from '../../support/urlSanitizer';
@@ -27,6 +27,62 @@ const CLOSE_LABEL = 'Close menu';
 
 /** Elements that take focus when the overlay opens. */
 const FOCUSABLE_SELECTOR = 'button,[href],[tabindex]:not([tabindex="-1"])';
+
+/**
+ * The menu `<ul>` the swap CSS hides while an overlay template part is
+ * shown in the open drawer; its links are skipped by the focus wrap.
+ */
+const SWAPPED_MENU_SELECTOR = '.has-overlay-template > .wp-block-navigation__container';
+
+/**
+ * Reduce a color preset slug to `[a-z0-9-]` so a stored value can't mint
+ * extra class tokens (e.g. `x is-menu-open`). Mirrors the Blade
+ * partial's slug sanitizing.
+ */
+function presetSlug(value: unknown): string {
+    return phpTrim(attrString(value))
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+}
+
+/**
+ * Focusable elements of the open dialog, in DOM order, minus the menu
+ * links hidden by the overlay-template swap.
+ */
+function dialogFocusables(dialog: HTMLElement): HTMLElement[] {
+    return Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
+        (element) => element.closest(SWAPPED_MENU_SELECTOR) === null
+    );
+}
+
+/**
+ * Keep Tab / Shift+Tab inside the open dialog: wrap from the last
+ * focusable element to the first (and back), and pull focus that has
+ * escaped the dialog back in.
+ */
+function wrapDialogFocus(event: KeyboardEvent, dialog: HTMLElement): void {
+    const focusables = dialogFocusables(dialog);
+
+    if (focusables.length === 0) {
+        return;
+    }
+
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    const active = document.activeElement;
+
+    if (active === null || !dialog.contains(active)) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+    } else if (event.shiftKey && active === first) {
+        event.preventDefault();
+        last.focus();
+    } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+    }
+}
 
 interface OverlayColors {
     classes: string[];
@@ -42,12 +98,14 @@ function overlayColors(attributes: Record<string, unknown>): OverlayColors {
     const classes: string[] = [];
     const style: Record<string, string> = {};
 
-    const backgroundSlug = attrString(attributes.overlayBackgroundColor).trim();
+    // `phpTrim` (not `.trim()`) so NBSP-padded values resolve exactly as
+    // they do through PHP `trim()` in the Blade partial.
+    const backgroundSlug = presetSlug(attributes.overlayBackgroundColor);
     // Custom colors land in an inline `style`; drop anything outside the
     // CSS-value whitelist so a stored value can't add declarations.
-    const backgroundCustom = safeCssValue(attrString(attributes.customOverlayBackgroundColor).trim()) ?? '';
-    const textSlug = attrString(attributes.overlayTextColor).trim();
-    const textCustom = safeCssValue(attrString(attributes.customOverlayTextColor).trim()) ?? '';
+    const backgroundCustom = safeCssValue(phpTrim(attrString(attributes.customOverlayBackgroundColor))) ?? '';
+    const textSlug = presetSlug(attributes.overlayTextColor);
+    const textCustom = safeCssValue(phpTrim(attrString(attributes.customOverlayTextColor))) ?? '';
 
     if (backgroundSlug !== '') {
         classes.push(`has-${backgroundSlug}-background-color`, 'has-background');
@@ -104,6 +162,14 @@ export const NavigationBlock = defineComponent({
         };
 
         const onKeyDown = (event: KeyboardEvent): void => {
+            if (event.key === 'Tab') {
+                if (dialog.value !== null) {
+                    wrapDialogFocus(event, dialog.value);
+                }
+
+                return;
+            }
+
             if (event.key !== 'Escape') {
                 return;
             }
@@ -112,9 +178,10 @@ export const NavigationBlock = defineComponent({
             close();
         };
 
-        // While open: lock page scroll, move focus into the dialog, and
-        // close on Escape — the same behavior as the Blade partial's
-        // script. `flush: 'post'` runs after the dialog is visible.
+        // While open: lock page scroll, move focus into the dialog, keep
+        // Tab inside it, and close on Escape — the same behavior as the
+        // Blade partial's script. `flush: 'post'` runs after the dialog
+        // is visible.
         watch(
             isOpen,
             (open) => {
@@ -199,12 +266,20 @@ export const NavigationBlock = defineComponent({
                     isOpen.value ? 'is-menu-open' : null,
                     ...colors.classes,
                 ]),
-                'aria-hidden': isOpen.value ? 'false' : 'true',
             };
 
             if (Object.keys(colors.style).length > 0) {
                 containerProps.style = colors.style;
             }
+
+            // The container stays in the accessibility tree (it is the
+            // inline desktop menu above the breakpoint); dialog semantics
+            // apply only while the drawer is open. No `aria-controls` on
+            // the open button: the `^3.3` peer range has no `useId` for
+            // an SSR-stable id.
+            const dialogProps: Record<string, string> = isOpen.value
+                ? { role: 'dialog', 'aria-modal': 'true', 'aria-label': openLabel }
+                : {};
 
             const contentChildren: VNode[] = [menu];
 
@@ -221,6 +296,7 @@ export const NavigationBlock = defineComponent({
                         type: 'button',
                         'aria-haspopup': 'dialog',
                         'aria-label': openLabel,
+                        'aria-expanded': isOpen.value ? 'true' : 'false',
                         class: classList([
                             'wp-block-navigation__responsive-container-open',
                             isAlwaysOverlay ? 'always-shown' : null,
@@ -249,10 +325,21 @@ export const NavigationBlock = defineComponent({
                                 'div',
                                 {
                                     class: 'wp-block-navigation__responsive-dialog',
-                                    'aria-label': openLabel,
-                                    'aria-modal': 'true',
-                                    role: 'dialog',
+                                    ...dialogProps,
                                     ref: dialog,
+                                    // A followed link (same-page anchor,
+                                    // client-side route) closes the drawer;
+                                    // the navigation itself is left alone
+                                    // and focus isn't moved.
+                                    onClick: (event: MouseEvent) => {
+                                        if (
+                                            isOpen.value &&
+                                            event.target instanceof Element &&
+                                            event.target.closest('a[href]') !== null
+                                        ) {
+                                            isOpen.value = false;
+                                        }
+                                    },
                                 },
                                 [
                                     h(
