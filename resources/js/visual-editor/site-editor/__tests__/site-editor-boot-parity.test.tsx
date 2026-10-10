@@ -136,6 +136,10 @@ vi.mock('../../visibility/with-visibility-panel', () => ({
     registerVisibilityPanel: vi.fn(),
 }));
 
+vi.mock('../../visibility/with-visibility-canvas', () => ({
+    registerVisibilityCanvas: vi.fn(),
+}));
+
 vi.mock('../../bindings/register-attribute', () => ({
     registerBindingsAttribute: vi.fn(),
 }));
@@ -184,6 +188,9 @@ describe('site-editor boot parity (#799)', () => {
         const visibilityPanel = await import(
             '../../visibility/with-visibility-panel'
         );
+        const visibilityCanvas = await import(
+            '../../visibility/with-visibility-canvas'
+        );
         const bindingsAttr = await import('../../bindings/register-attribute');
         const bindingsPanel = await import('../../bindings/with-bindings-panel');
         const dynamicContent = await import('../../dynamic-content');
@@ -197,6 +204,7 @@ describe('site-editor boot parity (#799)', () => {
         expect(animationsPanel.registerAnimationsPanel).toHaveBeenCalledTimes(1);
         expect(visibilityAttr.registerVisibilityAttribute).toHaveBeenCalledTimes(1);
         expect(visibilityPanel.registerVisibilityPanel).toHaveBeenCalledTimes(1);
+        expect(visibilityCanvas.registerVisibilityCanvas).toHaveBeenCalledTimes(1);
         expect(bindingsAttr.registerBindingsAttribute).toHaveBeenCalledTimes(1);
         expect(bindingsPanel.registerBindingsPanel).toHaveBeenCalledTimes(1);
         expect(dynamicContent.registerDynamicContent).toHaveBeenCalledTimes(1);

@@ -54,6 +54,7 @@ import { registerAnimationsAttribute } from '../animations/register-attribute';
 import { registerAnimationsPanel } from '../animations/with-animations-panel';
 import { registerVisibilityAttribute } from '../visibility/register-attribute';
 import { registerVisibilityPanel, setVisibilityBreakpoints, setVisibilityRoles } from '../visibility/with-visibility-panel';
+import { registerVisibilityCanvas } from '../visibility/with-visibility-canvas';
 import { registryFromSnapshot, setResponsiveRegistry } from '../responsive/registry';
 import type { BreakpointRegistrySnapshot } from '../responsive/types';
 import { useCanvasPreviewWidth } from '../responsive/use-canvas-preview-width';
@@ -181,6 +182,9 @@ function registerOnce(): void {
     // `supports.artisanpackVisibility: false` in their block.json.
     registerVisibilityAttribute();
     registerVisibilityPanel();
+    // #805 — preview screen-size rules in the canvas and flag
+    // visibility in List View labels.
+    registerVisibilityCanvas();
     // #504 — register the bindings sidecar attribute on every block
     // and inject the inspector panel. Runs at editor-bootstrap time so
     // the `bindings` storage key is in every block's schema by the time

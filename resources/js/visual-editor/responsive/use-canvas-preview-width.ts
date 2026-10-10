@@ -19,7 +19,45 @@
  * @since 1.0.0
  */
 
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+
+type PreviewWidthListener = ( width: number | null ) => void
+
+let publishedPreviewWidthPx: number | null = null
+const previewWidthListeners: Set<PreviewWidthListener> = new Set()
+
+/**
+ * The width the mounted shell's canvas is rendering at (#805): the
+ * previewed device width, the measured canvas width at `base` for a
+ * shell that opts into `measureBase`, or `null` when the canvas width
+ * is left to `@media` queries (the post editor's iframe at `base`).
+ * Lets block-level filters (e.g. the visibility canvas preview) follow
+ * the canvas without reaching into shell state.
+ */
+export function getCanvasPreviewWidth(): number | null {
+	return publishedPreviewWidthPx
+}
+
+export function subscribeCanvasPreviewWidth( listener: PreviewWidthListener ): () => void {
+	previewWidthListeners.add( listener )
+
+	return () => {
+		previewWidthListeners.delete( listener )
+	}
+}
+
+/**
+ * Publishes a shell's preview width. Called by
+ * {@link useCanvasPreviewWidth}; exported for tests.
+ */
+export function publishCanvasPreviewWidth( width: number | null ): void {
+	if ( width === publishedPreviewWidthPx ) {
+		return
+	}
+
+	publishedPreviewWidthPx = width
+	previewWidthListeners.forEach( ( listener ) => listener( width ) )
+}
 
 export interface CanvasPreviewWidthApi {
 	/**
@@ -34,9 +72,24 @@ export interface CanvasPreviewWidthApi {
 	 * downstream JSX only has to check for `null`.
 	 */
 	handleViewportChange: ( key: string, previewWidthPx: number ) => void
+	/**
+	 * Callback ref for the canvas container. Only measured when the
+	 * hook runs with `measureBase`; harmless to attach otherwise.
+	 */
+	canvasRef: ( element: HTMLElement | null ) => void
 }
 
-export function useCanvasPreviewWidth(): CanvasPreviewWidthApi {
+export interface CanvasPreviewWidthOptions {
+	/**
+	 * Measure the canvas container at `base` and publish its width
+	 * (#805). For shells that render blocks in the main document —
+	 * there a `@media` query tests the browser window, not the canvas
+	 * squeezed between the sidebars.
+	 */
+	measureBase?: boolean
+}
+
+export function useCanvasPreviewWidth( { measureBase = false }: CanvasPreviewWidthOptions = {} ): CanvasPreviewWidthApi {
 	const [ canvasPreviewWidthPx, setCanvasPreviewWidthPx ] = useState<number | null>( null )
 
 	const handleViewportChange = useCallback(
@@ -51,7 +104,36 @@ export function useCanvasPreviewWidth(): CanvasPreviewWidthApi {
 		[],
 	)
 
-	return { canvasPreviewWidthPx, handleViewportChange }
+	const [ canvasElement, canvasRef ] = useState<HTMLElement | null>( null )
+
+	useEffect( () => {
+		if (
+			canvasPreviewWidthPx !== null
+			|| ! measureBase
+			|| canvasElement === null
+			|| typeof ResizeObserver === 'undefined'
+		) {
+			publishCanvasPreviewWidth( canvasPreviewWidthPx )
+
+			return
+		}
+
+		// A collapsed (zero-width) canvas has nothing meaningful to
+		// measure, so fall back to `@media` queries.
+		const publishMeasured = (): void => {
+			const width = Math.round( canvasElement.getBoundingClientRect().width )
+			publishCanvasPreviewWidth( width > 0 ? width : null )
+		}
+
+		publishMeasured()
+
+		const observer = new ResizeObserver( publishMeasured )
+		observer.observe( canvasElement )
+
+		return () => observer.disconnect()
+	}, [ canvasPreviewWidthPx, measureBase, canvasElement ] )
+
+	return { canvasPreviewWidthPx, handleViewportChange, canvasRef }
 }
 
 /**
