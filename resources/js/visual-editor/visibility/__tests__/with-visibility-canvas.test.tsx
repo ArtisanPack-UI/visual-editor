@@ -38,13 +38,14 @@ import {
     visibilityBreakpoints,
     withVisibilityCanvas,
 } from '../with-visibility-canvas';
+import type { VisibilityAttribute } from '../types';
 
 const BlockListBlock = (props: { wrapperProps?: { className?: string } }) => (
     <div data-testid="block" className={props.wrapperProps?.className ?? ''} />
 );
 const Wrapped = withVisibilityCanvas(BlockListBlock);
 
-function renderBlock(visibility: unknown, clientId = 'abc-123') {
+function renderBlock(visibility: VisibilityAttribute | null, clientId = 'abc-123') {
     return render(
         <Wrapped
             name="core/paragraph"

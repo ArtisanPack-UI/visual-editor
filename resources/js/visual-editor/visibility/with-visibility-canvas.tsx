@@ -6,12 +6,13 @@
  *  1. **`editor.BlockListBlock`** — screen-size rules hide the block
  *     in the canvas exactly where the front end would, using the front
  *     end's hidden width ranges (see `canvas-rules.ts`) scoped to the
- *     block's `clientId`. With a device previewed, the range check runs
- *     against that preview width — the site editor's canvas renders
- *     in-tree, where a `@media` query would test the browser window
- *     instead. At `base` the ranges are emitted as `@media` rules,
- *     which in the post editor's iframe canvas test the real canvas
- *     width. While the block (or anything inside it) is selected —
+ *     block's `clientId`. The range check runs against the canvas
+ *     width the shell publishes: the previewed device width, or at
+ *     `base` the site editor's measured canvas (it renders in-tree,
+ *     where a `@media` query would test the browser window instead).
+ *     When no width is published — the post editor at `base` — the
+ *     ranges are emitted as `@media` rules, which inside its iframe
+ *     canvas test the real canvas width. While the block (or anything inside it) is selected —
  *     e.g. picked from List View — it is revealed dimmed instead so
  *     its toolbar and inline editing keep working. Rules the canvas
  *     can't evaluate (master Hide, request / user / schedule rules)
@@ -127,8 +128,8 @@ function rangeContains(range: HiddenWidthRange, widthPx: number): boolean {
 /**
  * Builds the block's scoped canvas CSS, or `''` when nothing applies.
  *
- * @param previewWidthPx The previewed device width, or `null` at
- *                       `base` to defer to `@media` queries.
+ * @param previewWidthPx The canvas width to evaluate against, or
+ *                       `null` to defer to `@media` queries.
  */
 export function buildVisibilityCanvasCss(
     clientId: string,
