@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { entityTypeForResource } from '../entity-type';
+import { entityTypeForResource, patternPostTypeForResource } from '../entity-type';
 
 describe('entityTypeForResource', () => {
     it('maps the cms-framework "posts" slug onto the "post" entity', () => {
@@ -26,3 +26,23 @@ describe('entityTypeForResource', () => {
         expect(entityTypeForResource('PAGES')).toBeNull();
     });
 } );
+
+describe('patternPostTypeForResource', () => {
+    it('uses the host override for resources outside the posts/pages mapping', () => {
+        expect(patternPostTypeForResource('package', 'package')).toBe('package');
+    });
+
+    it('normalizes the override the same way the server normalizes post_types', () => {
+        expect(patternPostTypeForResource('package', '  Package ')).toBe('package');
+    });
+
+    it('falls back to the entity mapping when no override is supplied', () => {
+        expect(patternPostTypeForResource('pages')).toBe('page');
+        expect(patternPostTypeForResource('posts', '')).toBe('post');
+    });
+
+    it('returns null for an unmapped resource without an override so the modal stays off', () => {
+        expect(patternPostTypeForResource('orders')).toBeNull();
+        expect(patternPostTypeForResource('orders', '   ')).toBeNull();
+    });
+});

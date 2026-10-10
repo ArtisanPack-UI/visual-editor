@@ -21,6 +21,9 @@
 	     auto-opens. --}}
 	@isset($initialCreatedAt) data-created-at="{{ $initialCreatedAt }}" @endisset
 	@isset($initialUpdatedAt) data-updated-at="{{ $initialUpdatedAt }}" @endisset
+	{{-- Page-pattern modal scope for content types outside the
+	     built-in posts / pages mapping (e.g. a host `package` type). --}}
+	@isset($patternPostType) data-pattern-post-type="{{ $patternPostType }}" @endisset
 	data-content-types="{{ json_encode( $contentTypes, JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS ) }}"
 	{{-- #771 — registered taxonomies drive the post-terms inserter
 	     variations + the Settings-sidebar taxonomy picker. --}}

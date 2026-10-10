@@ -255,6 +255,56 @@ it( 'omits optional data attributes when the matching props are not supplied', f
 		->and( $html )->not->toContain( 'data-supports=' );
 } );
 
+it( 'stamps a normalized page-pattern post type override', function (): void {
+	$model = TestBlockContentModel::create( [
+		'title'   => 'Package',
+		'status'  => 'published',
+		'content' => [],
+	] );
+
+	$html = Blade::render(
+		'<x-visual-editor :model="$model" pattern-post-type="  Package " />',
+		[ 'model' => $model ],
+	);
+
+	expect( $html )->toContain( 'data-pattern-post-type="package"' );
+} );
+
+it( 'omits the page-pattern post type when the override is absent or blank', function ( ?string $postType ): void {
+	$model = TestBlockContentModel::create( [
+		'title'   => 'No override',
+		'status'  => 'published',
+		'content' => [],
+	] );
+
+	$html = Blade::render(
+		'<x-visual-editor :model="$model" :pattern-post-type="$postType" />',
+		[ 'model' => $model, 'postType' => $postType ],
+	);
+
+	expect( $html )->not->toContain( 'data-pattern-post-type=' );
+} )->with( [
+	'null'       => [ null ],
+	'empty'      => [ '' ],
+	'whitespace' => [ '   ' ],
+] );
+
+it( 'escapes the page-pattern post type attribute', function (): void {
+	$model = TestBlockContentModel::create( [
+		'title'   => 'Escaped',
+		'status'  => 'published',
+		'content' => [],
+	] );
+
+	$html = Blade::render(
+		'<x-visual-editor :model="$model" :pattern-post-type="$postType" />',
+		[ 'model' => $model, 'postType' => 'x" onmouseover="alert(1)' ],
+	);
+
+	expect( $html )->not->toContain( 'onmouseover="alert(1)"' )
+		->and( $html )->toContain( 'data-pattern-post-type="x&quot; onmouseover=&quot;alert(1)"' );
+} );
+
 describe( 'ap.visualEditor.editorConfig filter', function (): void {
 	afterEach( function (): void {
 		removeAllFilters( 'ap.visualEditor.editorConfig' );

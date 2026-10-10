@@ -103,6 +103,11 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   so hosts that override the `core/navigation` renderer don't have to
   hard-code them. React block renderers receive the overlay content in
   the new `slots` prop; Vue renderers get it as the `overlay` slot.
+- The page-pattern modal can now be used with custom content types. Pass
+  `pattern-post-type` to `<x-visual-editor>` (or set
+  `data-pattern-post-type` on a custom mount) and the modal lists the
+  full-page patterns scoped to that post type. Before, it only appeared
+  for `pages` and `posts`. See `docs/site-editor/Patterns.md`.
 - New `ap.visualEditor.patternPreviewCacheVary` filter. Return an array
   of scalars (a role, a tenant id) to keep separate cached pattern
   previews for each value.

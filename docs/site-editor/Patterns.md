@@ -222,13 +222,41 @@ the inserter alongside user-created patterns and get a "theme" badge in
 the navigator. Editing a theme pattern in the site editor creates a user
 override (same fallback-chain pattern as templates).
 
+### Page-pattern modal and post types
+
+The page-pattern modal (the "choose a pattern" prompt for a new record)
+only lists patterns whose `post_types` array contains the current
+document's post type. Patterns without `post_types` are treated as
+section snippets and stay in the sidebar inserter only.
+
+By default the modal knows two post types: the `pages` resource maps to
+`page` and `posts` maps to `post`. For any other content type, the modal
+stays off unless the host names the post type when mounting the editor.
+*Since v1.13.0.*
+
+- Blade: pass `pattern-post-type` to the component:
+
+  ```blade
+  <x-visual-editor :model="$package" pattern-post-type="package" />
+  ```
+
+- Custom mounts: set `data-pattern-post-type="package"` on the
+  `[data-ap-visual-editor]` element.
+
+The value is trimmed and lowercased, the same way the server normalizes
+a pattern's `post_types`. It only changes which patterns the modal
+fetches (`GET patterns?post_type=package`); it doesn't register the type
+with core-data or change how the record saves. Scope your full-page
+patterns to the type through the `ap.visualEditor.patterns` filter, for
+example `'post_types' => [ 'package' ]`.
+
 ---
 
 ## 6. REST API
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `GET` | `/visual-editor/api/patterns` | List patterns (filter by `?category=...` or `?synced=true`). |
+| `GET` | `/visual-editor/api/patterns` | List patterns (filter by `?category=...`, `?synced=true` or `?post_type=...`). |
 | `POST` | `/visual-editor/api/patterns` | Create a pattern. |
 | `GET` | `/visual-editor/api/patterns/{slug}` | Fetch a pattern. |
 | `PUT` | `/visual-editor/api/patterns/{slug}` | Update a pattern. |
