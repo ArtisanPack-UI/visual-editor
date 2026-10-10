@@ -163,6 +163,29 @@ const FIXTURES: Array<{ name: string; tree: Block[] }> = [
         ],
     },
     {
+        name: 'navigation responsive overlay with aria label + overlay colors (#804)',
+        tree: [
+            makeBlock(
+                'core/navigation',
+                { ariaLabel: 'Primary', overlayBackgroundColor: 'primary', customOverlayTextColor: '#eeeeee' },
+                [makeBlock('core/navigation-link', { label: 'Home', url: '/' }, [], 'nav-ov-link-1')],
+                'nav-ov-1'
+            ),
+            makeBlock(
+                'core/navigation',
+                { overlayMenu: 'always', customOverlayBackgroundColor: '#111111' },
+                [makeBlock('core/navigation-link', { label: 'About', url: '/about' }, [], 'nav-ov-link-2')],
+                'nav-ov-2'
+            ),
+            makeBlock(
+                'core/navigation',
+                { overlayMenu: 'never' },
+                [makeBlock('core/navigation-link', { label: 'Contact', url: '/contact' }, [], 'nav-ov-link-3')],
+                'nav-ov-3'
+            ),
+        ],
+    },
+    {
         name: 'ordered list with start + reversed',
         tree: [
             makeBlock(
@@ -783,6 +806,36 @@ describe('React/Vue renderer parity', () => {
         expect(await renderVue(tree)).toBe(reactHtml);
         expect(reactHtml).toContain('var(--wp--preset--spacing--big-gap)');
         expect(reactHtml).toContain('var(--wp--preset--spacing--a--b)');
+    });
+
+    it('renders the same navigation overlay template part on both renderers (#804)', async () => {
+        const tree: Block[] = [
+            makeBlock(
+                'core/navigation',
+                { overlay: 'mobile-overlay' },
+                [makeBlock('core/navigation-link', { label: 'Home', url: '/' }, [], 'nav-tp-link')],
+                'nav-tp'
+            ),
+        ];
+        const templateParts = [
+            {
+                slug: 'mobile-overlay',
+                area: 'navigation-overlay',
+                blocks: [makeBlock('core/paragraph', { content: 'Call us today' }, [], 'nav-tp-p')],
+            },
+        ];
+
+        const reactHtml = domNormalize(
+            renderToStaticMarkup(createElement(ReactBlockTree, { tree, templateParts }))
+        );
+        const vueApp = createSSRApp({
+            render: () => vueH(VueBlockTree, { tree, templateParts }),
+        });
+        const vueHtml = domNormalize(stripVueServerMarkers(await vueRenderToString(vueApp)));
+
+        expect(vueHtml).toBe(reactHtml);
+        expect(reactHtml).toContain('wp-block-navigation__responsive-container-content has-overlay-template');
+        expect(reactHtml).toContain('<div class="wp-block-navigation__overlay-content"><p');
     });
 
     it('emits the same layout baseline (spacing preset defaults + navigation gap) on both renderers (#814)', async () => {

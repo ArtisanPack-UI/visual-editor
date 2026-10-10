@@ -4,6 +4,9 @@ import {
     DEFAULT_MAX_TEMPLATE_PART_DEPTH,
     findTemplate,
     inlineTemplateParts,
+    NAVIGATION_OVERLAY_AREA,
+    NAVIGATION_OVERLAY_CONTENT_BLOCK,
+    NAVIGATION_OVERLAY_SLOT,
     resolveTemplate,
     TEMPLATE_PART_BLOCK_NAMES,
     templateFallbackChain,
@@ -259,5 +262,97 @@ describe('inlineTemplateParts', () => {
             expect(cycleNode?.name).toBe('artisanpack/template-part');
             expect(cycleNode?.attributes?._resolutionError).toBe('cycle');
         });
+    });
+});
+
+describe('inlineTemplateParts — navigation overlay parts (#804)', () => {
+    function nav(attributes: Record<string, unknown>, name = 'core/navigation'): Block {
+        return {
+            clientId: 'nav-cid',
+            name,
+            attributes,
+            innerBlocks: [
+                { clientId: 'link-cid', name: 'core/navigation-link', attributes: { label: 'Home', url: '/' }, innerBlocks: [] },
+            ],
+        };
+    }
+
+    const overlayPart = {
+        slug: 'mobile-overlay',
+        theme: 'artisanpack-base',
+        area: NAVIGATION_OVERLAY_AREA,
+        blocks: [paragraph('Call us')],
+    };
+
+    it('appends the overlay part as a slot container after the menu items', () => {
+        const [inlined] = inlineTemplateParts([nav({ overlay: 'mobile-overlay' })], {
+            parts: [overlayPart],
+            defaultTheme: 'artisanpack-base',
+        });
+
+        expect(inlined.innerBlocks).toHaveLength(2);
+        expect(inlined.innerBlocks?.[0].name).toBe('core/navigation-link');
+
+        const overlay = inlined.innerBlocks?.[1];
+
+        expect(overlay?.name).toBe(NAVIGATION_OVERLAY_CONTENT_BLOCK);
+        expect(overlay?.clientId).toBe('nav-cid-overlay');
+        expect(overlay?.attributes).toEqual({ _slot: NAVIGATION_OVERLAY_SLOT, slug: 'mobile-overlay' });
+        expect(overlay?.innerBlocks?.[0].attributes?.content).toBe('Call us');
+    });
+
+    it('resolves the overlay on the legacy artisanpack/navigation name', () => {
+        const [inlined] = inlineTemplateParts([nav({ overlay: 'mobile-overlay' }, 'artisanpack/navigation')], {
+            parts: [overlayPart],
+            defaultTheme: 'artisanpack-base',
+        });
+
+        expect(inlined.innerBlocks?.[1]?.name).toBe(NAVIGATION_OVERLAY_CONTENT_BLOCK);
+    });
+
+    it('inlines template-part references nested inside the overlay part', () => {
+        const parts = [
+            { ...overlayPart, blocks: [partRef('social')] },
+            { slug: 'social', theme: 'artisanpack-base', blocks: [paragraph('Follow us')] },
+        ];
+
+        const [inlined] = inlineTemplateParts([nav({ overlay: 'mobile-overlay' })], {
+            parts,
+            defaultTheme: 'artisanpack-base',
+        });
+
+        expect(inlined.innerBlocks?.[1]?.innerBlocks?.[0].innerBlocks?.[0].attributes?.content).toBe('Follow us');
+    });
+
+    it.each([
+        ['the overlay is switched off', { overlay: 'mobile-overlay', overlayMenu: 'never' }, [overlayPart]],
+        ['no overlay is set', {}, [overlayPart]],
+        ['the slug is blank', { overlay: '   ' }, [overlayPart]],
+        ['the slug is unknown', { overlay: 'deleted-overlay' }, [overlayPart]],
+        ['the part is in another area', { overlay: 'mobile-overlay' }, [{ ...overlayPart, area: 'header' }]],
+        ['the part has no area', { overlay: 'mobile-overlay' }, [{ ...overlayPart, area: undefined }]],
+        ['the part has no blocks', { overlay: 'mobile-overlay' }, [{ ...overlayPart, blocks: [] }]],
+    ])('keeps only the menu items when %s', (_label, attributes, parts) => {
+        const [inlined] = inlineTemplateParts([nav(attributes)], {
+            parts,
+            defaultTheme: 'artisanpack-base',
+        });
+
+        expect(inlined.innerBlocks).toHaveLength(1);
+        expect(inlined.innerBlocks?.[0].name).toBe('core/navigation-link');
+    });
+
+    it('does not recurse when the overlay part holds a navigation pointing back at it', () => {
+        const parts = [{ ...overlayPart, blocks: [nav({ overlay: 'mobile-overlay' })] }];
+
+        const [inlined] = inlineTemplateParts([nav({ overlay: 'mobile-overlay' })], {
+            parts,
+            defaultTheme: 'artisanpack-base',
+        });
+
+        const innerNav = inlined.innerBlocks?.[1]?.innerBlocks?.[0];
+
+        expect(innerNav?.name).toBe('core/navigation');
+        expect(innerNav?.innerBlocks).toHaveLength(1);
     });
 });

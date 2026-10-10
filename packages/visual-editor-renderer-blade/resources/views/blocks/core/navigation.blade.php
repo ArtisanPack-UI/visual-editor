@@ -125,8 +125,16 @@
 
 	$overlayClasses = [ 'wp-block-navigation__responsive-container' ];
 
+	// `always` keeps the drawer collapsed behind the open button at every
+	// width. The bundled style.css keys that off upstream's
+	// `hidden-by-default` (container) + `always-shown` (button) classes;
+	// `is-always-overlay` stays for existing theme selectors (#804).
+	$openButtonClasses = [ 'wp-block-navigation__responsive-container-open' ];
+
 	if ( 'always' === $overlayMenu ) {
-		$overlayClasses[] = 'is-always-overlay';
+		$overlayClasses[]    = 'is-always-overlay';
+		$overlayClasses[]    = 'hidden-by-default';
+		$openButtonClasses[] = 'always-shown';
 	}
 
 	// Overlay-specific color attributes (Keystone #54). The nav block
@@ -141,14 +149,17 @@
 	$overlayBgSlug = isset( $attributes['overlayBackgroundColor'] ) && is_string( $attributes['overlayBackgroundColor'] )
 		? trim( $attributes['overlayBackgroundColor'] )
 		: '';
+	// Custom overlay colors land in an inline `style`; drop anything
+	// outside the CSS-value whitelist so a stored value can't add
+	// declarations (#804).
 	$overlayBgCustom = isset( $attributes['customOverlayBackgroundColor'] ) && is_string( $attributes['customOverlayBackgroundColor'] )
-		? trim( $attributes['customOverlayBackgroundColor'] )
+		? ( BlockSupports::safeCssValue( trim( $attributes['customOverlayBackgroundColor'] ) ) ?? '' )
 		: '';
 	$overlayTextSlug = isset( $attributes['overlayTextColor'] ) && is_string( $attributes['overlayTextColor'] )
 		? trim( $attributes['overlayTextColor'] )
 		: '';
 	$overlayTextCustom = isset( $attributes['customOverlayTextColor'] ) && is_string( $attributes['customOverlayTextColor'] )
-		? trim( $attributes['customOverlayTextColor'] )
+		? ( BlockSupports::safeCssValue( trim( $attributes['customOverlayTextColor'] ) ) ?? '' )
 		: '';
 
 	if ( '' !== $overlayBgSlug ) {
@@ -236,7 +247,7 @@
 @endif
 <nav{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}{!! $navAttrs !!}>
 @if ( $wantsOverlay )
-	<button type="button" aria-haspopup="dialog" aria-label="{{ $openLabel }}" class="wp-block-navigation__responsive-container-open" data-ap-nav-overlay-open="{{ $overlayId }}">
+	<button type="button" aria-haspopup="dialog" aria-label="{{ $openLabel }}" class="{{ implode( ' ', $openButtonClasses ) }}" data-ap-nav-overlay-open="{{ $overlayId }}">
 		{!! $hamburgerIcon !!}
 	</button>
 	<div class="{{ implode( ' ', $overlayClasses ) }}" id="{{ $overlayId }}" aria-hidden="true"{!! $overlayStyleAttr !!}>
