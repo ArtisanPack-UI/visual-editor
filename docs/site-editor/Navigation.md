@@ -76,6 +76,23 @@ When a `core/navigation` block renders, the resolver walks this chain:
 
 4. **Empty render** — emits a wrapping `<nav>` with no items.
 
+### Editor fallback for a newly inserted block
+
+*Since v1.13.0 (#841).* When an author inserts a `core/navigation` block
+that has no menu yet, the editor binds it to a fallback menu, resolved by
+`GET /visual-editor/api/menus/fallback`:
+
+1. the menu assigned to the active theme's `primary` location, then
+2. the active theme's most recently updated menu (with no active theme,
+   the most recently updated menu overall).
+
+When there is no menu at all, the endpoint answers `204 No Content` and
+the block shows its menu picker and **Create** button. Unlike WordPress,
+no menu is created on the author's behalf. Before 1.13 the editor took
+the first menu in its cache, which wasn't predictable. The editor
+re-resolves the fallback after a menu is created and when the fallback
+menu is deleted.
+
 ---
 
 ## 4. `core/navigation` block
@@ -128,11 +145,29 @@ by choosing that area. While you edit one, the site editor tells
 Gutenberg (through a minimal `core/editor` store) that the canvas is an
 overlay, so a nav block inside it hides its own Overlay panel.
 
-On the front end, the Blade renderer renders the chosen part's blocks
-inside the open overlay in place of the menu copy. If the part is
-missing or in another area, it falls back to the default overlay. The
-Blade toggle button always uses the default two-line icon — `hasIcon`
-and `icon` only affect the editor for now.
+On the front end, all three renderers render the chosen part's blocks
+inside the open overlay in place of the menu copy (Blade since 1.12, React
+and Vue since 1.13; see [Renderers](../renderers.md#navigation-overlay)
+for passing the part to `BlockTree`). If the part is missing, in another
+area, or renders nothing (for example every block in it is hidden by
+visibility rules), the overlay falls back to the menu. An overlay part
+that contains a navigation pointing back at itself, directly or through
+another part, is skipped instead of recursing. The toggle button always
+uses the default two-line icon — `hasIcon` and `icon` only affect the
+editor for now.
+
+The overlay is accessible in every renderer: at desktop widths the menu
+stays in the accessibility tree (the container never carries
+`aria-hidden`), and the dialog role and `aria-modal` are only applied
+while the drawer is open. The open drawer traps Tab focus, closes on
+Escape, a backdrop click or a link click, returns focus to the menu
+button, and the button reports `aria-expanded`. The overlay colors
+(`overlayBackgroundColor` / `overlayTextColor` presets and the custom
+`customOverlayBackgroundColor` / `customOverlayTextColor` values) are
+sanitized: preset slugs are reduced to `[a-z0-9-]` and custom values must
+pass the CSS-value whitelist. In Blade, the block's own
+`customTextColor` / `customBackgroundColor` go through the same
+whitelist.
 
 ---
 
@@ -162,6 +197,7 @@ level right to make it a child of the item above it.
 |--------|------|---------|
 | `GET` | `/visual-editor/api/menus` | List menus (optionally filter by `?location=...`). |
 | `POST` | `/visual-editor/api/menus` | Create a menu. |
+| `GET` | `/visual-editor/api/menus/fallback` | The menu a new `core/navigation` block binds to: the active theme's `primary` location menu, else its most recently updated menu. `204` when there is no menu. *Since v1.13.0.* |
 | `GET` | `/visual-editor/api/menus/{id}` | Fetch a menu with its items. |
 | `PUT` | `/visual-editor/api/menus/{id}` | Update menu name, location. |
 | `DELETE` | `/visual-editor/api/menus/{id}` | Delete a menu (cascades to items). |

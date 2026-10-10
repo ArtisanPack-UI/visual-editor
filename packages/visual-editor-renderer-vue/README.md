@@ -52,6 +52,9 @@ defineProps<{ post: { content: unknown } }>();
 | `tree` | `Block[] \| string \| null` | `null` | Optional. `null`/`undefined` renders nothing. |
 | `dynamicBlockEndpoint` | `string` | `/visual-editor/api/blocks/preview` | Override if your app prefix is not `visual-editor`. |
 | `fetchOptions` | `RequestInit` | `{ credentials: 'same-origin' }` | Merged on top of the default request. Use for CSRF headers etc. |
+| `templateParts` | `TemplatePartRecord[]` | — | `{ slug, theme?, area?, blocks }` records. Inlines `core/template-part` references and resolves a navigation's `overlay` part (needs `area: 'navigation-overlay'`). See [Navigation overlay](#navigation-overlay). |
+| `patterns` | `PatternRecord[]` | — | Synced-pattern records; replaces `core/block` references with the pattern's blocks. |
+| `defaultTheme` | `string` | — | Theme assumed for template-part references that don't name one. |
 
 ## Registering custom renderers
 
@@ -92,6 +95,60 @@ interface BlockRendererProps {
 Inner blocks are passed through the default slot, already rendered as Vue
 VNodes — render `<slot />` wherever inner blocks should appear so you don't
 have to walk the tree yourself.
+
+Content routed to a named slot arrives as that Vue slot instead of the
+default one. Today that's only the navigation overlay, in the `overlay`
+slot (`NAVIGATION_OVERLAY_SLOT`).
+
+## Navigation overlay
+
+Since 1.13.0, `core/navigation` renders with the same responsive overlay
+as the Blade renderer: a menu button plus a responsive container that
+shows the menu inline at desktop widths and as an accessible full-screen
+drawer below 600px (`overlayMenu: 'mobile'`, the default), or always
+behind the button (`'always'`). `'never'` keeps a plain `<nav><ul>`.
+
+> **Upgrade note:** in 1.12 the menu was a direct `<ul>` child of the
+> `<nav>`. It now sits three levels deeper, inside
+> `.wp-block-navigation__responsive-container`, so update host CSS that
+> targets `.wp-block-navigation > ul`.
+
+`BlockTree` emits the overlay CSS once, in a
+`<style data-ve-navigation-overlay>` tag, inside
+`@layer ve-navigation { … }`. Unlayered host styles always win over it.
+
+To show an overlay template part (the block's `overlay` setting) inside
+the open drawer, pass it in `templateParts` with
+`area: 'navigation-overlay'`:
+
+```vue
+<script setup lang="ts">
+import { BlockTree, NAVIGATION_OVERLAY_AREA } from '@artisanpack-ui/visual-editor-renderer-vue';
+
+const parts = [
+    { slug: 'mobile-overlay', area: NAVIGATION_OVERLAY_AREA, blocks: overlayPart.blocks },
+];
+</script>
+
+<template>
+    <BlockTree :tree="page.content" :template-parts="parts" />
+</template>
+```
+
+A part in another area, a missing part, or a part whose blocks are all
+hidden by visibility rules falls back to the menu. Self-referencing
+overlays are skipped.
+
+If you override the `core/navigation` renderer, render the overlay from
+the `overlay` slot (`slots.overlay?.()`). Both constants are exported:
+
+| Export | Value |
+| --- | --- |
+| `NAVIGATION_OVERLAY_SLOT` | `'overlay'` |
+| `NAVIGATION_OVERLAY_AREA` | `'navigation-overlay'` |
+
+A stored `artisanpack/navigation-overlay-content` block is never rendered;
+only the renderer creates that block.
 
 ## Dynamic blocks
 

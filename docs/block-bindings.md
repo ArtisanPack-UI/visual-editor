@@ -28,6 +28,20 @@ instance bound through cms-framework. `relation` walks
 `business_info.phone` through cms-framework's `DynamicContentAccessor`
 and is independent of the render's parent record.
 
+### Which custom fields a content type offers
+
+*Since v1.13.0 (#837).* The `custom_field` source's field catalog
+matches cms-framework's `custom_fields.content_types` against the
+**resource slug** (the key in the resource map, such as `pages` or
+`events`), with the model's table name as a fallback. Resources are
+looked up through the container-bound `ResourceResolver`, so content
+types registered through the `ap.visualEditor.resources` filter (as
+cms-framework and Keystone do) list their fields too, not only those in
+static config. Fields registered through cms-framework's
+`CustomFieldManager` are included. A slug that isn't a registered
+resource gets no fields, so the endpoint can't list the fields of
+content types the editor doesn't expose.
+
 ## Binding shape
 
 A binding is stored on the block as a top-level `bindings` sidecar
@@ -118,7 +132,7 @@ Authors pick an attribute, a source, and (depending on the source) a
 field or path. The picker calls:
 
 - `GET /visual-editor/api/bindings/sources` — list registered sources.
-- `GET /visual-editor/api/bindings/sources/{source}/fields?resource=…` — field catalog for a source scoped to a resource.
+- `GET /visual-editor/api/bindings/sources/{source}/fields?resource=…` — field catalog for a source scoped to a resource (`resource` is the resource slug; see [above](#which-custom-fields-a-content-type-offers)).
 - `POST /visual-editor/api/bindings/resolve` — preview the resolved
   value against the currently-edited record.
 

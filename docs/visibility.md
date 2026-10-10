@@ -45,8 +45,37 @@ offers since 1.12.1 (see
 [Responsive Design Tools](blocks/Responsive-Design-Tools.md)) are not
 screen-size visibility options.
 
-The editor canvas dims hidden blocks so authors can still see and
-select them while they're toggled off.
+### In the editor
+
+*Since v1.13.0 (#842).* The editor canvas previews visibility rules so
+authors see roughly what visitors will see:
+
+- **Screen-size rules hide the block at the previewed viewport.** Switch
+  the viewport switcher to a device and blocks hidden at that width
+  disappear from the canvas, using the same hidden width ranges as the
+  front end. At the default (`base`) preview, the post editor's iframe
+  canvas applies the front end's `@media` rules, so they test the
+  canvas width. The site editor renders its canvas in the page rather
+  than in an iframe, so at `base` it measures the canvas container's
+  width (between the sidebars) and checks the ranges against that,
+  instead of letting `@media` test the browser window.
+- **A selected hidden block is shown dimmed.** When a hidden block, or a
+  block inside it, is selected (for example from List View), it is
+  revealed at reduced opacity so its toolbar and inline editing keep
+  working.
+- **Rules the canvas can't evaluate dim the block at every width.** The
+  master Hide setting and the server-evaluated rules (login state, user
+  role, specific user, date/time, schedule, query string, referrer,
+  browser / OS / device) show the block dimmed rather than hidden.
+- **List View labels say why.** A block's List View label gets a suffix:
+  "Hidden" (master Hide is on), "Hidden at some screen sizes" (a
+  screen-size rule hides it at one or more breakpoints) or
+  "Conditionally visible" (it has a server-evaluated rule). Custom block
+  names keep the suffix.
+
+The canvas styles for this live in a shared `<style>` in the canvas
+document's `<head>`, not next to each block, so they don't affect
+`:first-child` or block-gap selectors.
 
 ---
 
