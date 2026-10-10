@@ -4,7 +4,7 @@ declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\Resources\TaxonomyRegistry;
 
-it( 'falls back to the category/post_tag defaults when the config is empty', function () {
+it( 'falls back to the category/post_tag defaults when the config is empty', function (): void {
 	config()->set( 'artisanpack.visual-editor.taxonomies', [] );
 
 	expect( TaxonomyRegistry::fromConfig() )->toBe( [
@@ -13,7 +13,7 @@ it( 'falls back to the category/post_tag defaults when the config is empty', fun
 	] );
 } );
 
-it( 'normalises string-label entries and derives the plural', function () {
+it( 'normalises string-label entries and derives the plural', function (): void {
 	config()->set( 'artisanpack.visual-editor.taxonomies', [
 		'category' => 'Category',
 		'genre'    => 'Genre',
@@ -25,7 +25,7 @@ it( 'normalises string-label entries and derives the plural', function () {
 	] );
 } );
 
-it( 'honours an explicit label and plural from an array entry', function () {
+it( 'honours an explicit label and plural from an array entry', function (): void {
 	config()->set( 'artisanpack.visual-editor.taxonomies', [
 		'topic' => [ 'label' => 'Topic', 'plural' => 'Topical Areas' ],
 	] );
@@ -35,7 +35,7 @@ it( 'honours an explicit label and plural from an array entry', function () {
 	] );
 } );
 
-it( 'derives a title-cased label from the slug when none is given', function () {
+it( 'derives a title-cased label from the slug when none is given', function (): void {
 	config()->set( 'artisanpack.visual-editor.taxonomies', [
 		'product_line' => [ 'plural' => 'Product Lines' ],
 	] );
@@ -45,7 +45,7 @@ it( 'derives a title-cased label from the slug when none is given', function () 
 	] );
 } );
 
-it( 'deduplicates entries whose keys collapse to the same normalised slug', function () {
+it( 'deduplicates entries whose keys collapse to the same normalised slug', function (): void {
 	config()->set( 'artisanpack.visual-editor.taxonomies', [
 		'Genre'   => 'Genre',
 		' genre ' => 'Padded',
@@ -59,7 +59,7 @@ it( 'deduplicates entries whose keys collapse to the same normalised slug', func
 	] );
 } );
 
-it( 'drops entries whose slug is outside the safe identifier set', function () {
+it( 'drops entries whose slug is outside the safe identifier set', function (): void {
 	config()->set( 'artisanpack.visual-editor.taxonomies', [
 		'bad slug' => 'Bad',
 		'genre'    => 'Genre',

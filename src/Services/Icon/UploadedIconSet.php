@@ -19,6 +19,7 @@
 declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Services\Icon;
+use InvalidArgumentException;
 
 /**
  * Plain DTO — kept dumb on purpose. The registry handles persistence,
@@ -59,7 +60,7 @@ final class UploadedIconSet
 		foreach ( [ 'prefix', 'label', 'created_at' ] as $field ) {
 			$value = isset( $data[ $field ] ) ? trim( (string) $data[ $field ] ) : '';
 			if ( '' === $value ) {
-				throw new \InvalidArgumentException(
+				throw new InvalidArgumentException(
 					"UploadedIconSet manifest row is missing or blank '{$field}'.",
 				);
 			}

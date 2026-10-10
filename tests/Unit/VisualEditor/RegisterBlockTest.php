@@ -6,19 +6,19 @@ use ArtisanPackUI\VisualEditor\Facades\VisualEditor;
 use ArtisanPackUI\VisualEditor\Registries\BlockTypeRegistry;
 use Tests\Fixtures\TestBlockMetadata;
 
-beforeEach( function () {
+beforeEach( function (): void {
 	$this->tempDir = sys_get_temp_dir() . '/visual-editor-register-block-' . bin2hex( random_bytes( 4 ) );
 	mkdir( $this->tempDir );
 } );
 
-afterEach( function () {
+afterEach( function (): void {
 	if ( isset( $this->tempDir ) && is_dir( $this->tempDir ) ) {
 		array_map( 'unlink', glob( $this->tempDir . '/*' ) ?: [] );
 		rmdir( $this->tempDir );
 	}
 } );
 
-it( 'registers a block from a block.json path', function () {
+it( 'registers a block from a block.json path', function (): void {
 	$path = $this->tempDir . '/block.json';
 	file_put_contents( $path, json_encode( [
 		'name'     => 'tests/path-block',
@@ -35,7 +35,7 @@ it( 'registers a block from a block.json path', function () {
 		->and( $block['title'] )->toBe( 'Path Block' );
 } );
 
-it( 'registers a block from a class implementing ProvidesBlockMetadata', function () {
+it( 'registers a block from a class implementing ProvidesBlockMetadata', function (): void {
 	VisualEditor::registerBlock( TestBlockMetadata::class );
 
 	$block = app( BlockTypeRegistry::class )->get( 'tests/metadata-block' );
@@ -48,7 +48,7 @@ it( 'registers a block from a class implementing ProvidesBlockMetadata', functio
 		] );
 } );
 
-it( 'registers a block from a closure returning metadata', function () {
+it( 'registers a block from a closure returning metadata', function (): void {
 	VisualEditor::registerBlock( static fn (): array => [
 		'name'     => 'tests/closure-block',
 		'title'    => 'Closure Block',
@@ -61,23 +61,23 @@ it( 'registers a block from a closure returning metadata', function () {
 		->and( $block['title'] )->toBe( 'Closure Block' );
 } );
 
-it( 'throws when the block.json file is missing', function () {
+it( 'throws when the block.json file is missing', function (): void {
 	VisualEditor::registerBlock( $this->tempDir . '/missing.json' );
 } )->throws( InvalidArgumentException::class, 'block.json not found' );
 
-it( 'throws when the class does not implement ProvidesBlockMetadata', function () {
-	VisualEditor::registerBlock( \stdClass::class );
+it( 'throws when the class does not implement ProvidesBlockMetadata', function (): void {
+	VisualEditor::registerBlock( stdClass::class );
 } )->throws( InvalidArgumentException::class, 'must implement' );
 
-it( 'throws when the closure does not return an array', function () {
+it( 'throws when the closure does not return an array', function (): void {
 	VisualEditor::registerBlock( static fn () => 'not-an-array' );
 } )->throws( InvalidArgumentException::class, 'must return an array' );
 
-it( 'throws when metadata is missing a name', function () {
+it( 'throws when metadata is missing a name', function (): void {
 	VisualEditor::registerBlock( static fn (): array => [ 'title' => 'Nameless' ] );
 } )->throws( InvalidArgumentException::class, 'name' );
 
-it( 'registers the bundled callout reference block by default', function () {
+it( 'registers the bundled callout reference block by default', function (): void {
 	$block = app( BlockTypeRegistry::class )->get( 'artisanpack/callout' );
 
 	expect( $block )->not->toBeNull()
@@ -87,7 +87,7 @@ it( 'registers the bundled callout reference block by default', function () {
 		->and( $block['attributes'] )->toHaveKey( 'content' );
 } );
 
-it( 'includes artisanpack/callout in the enabled blocks allow-list', function () {
+it( 'includes artisanpack/callout in the enabled blocks allow-list', function (): void {
 	$enabled = config( 'artisanpack.visual-editor.enabled_blocks', [] );
 
 	expect( $enabled )->toContain( 'artisanpack/callout' );

@@ -17,14 +17,14 @@
 
 declare( strict_types=1 );
 
-use ArtisanPackUI\VisualEditor\Http\Controllers\Ai\AiController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Adapters\CmsFramework\PageController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Adapters\CmsFramework\PostController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\Ai\AiController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\AttachmentController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\BindingResolveController;
-use ArtisanPackUI\VisualEditor\Http\Controllers\BusinessInfoController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\BindingSourcesController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\BlockPreviewController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\BusinessInfoController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\DynamicContent\DynamicContentResolveController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\DynamicContent\DynamicContentSourcesController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\DynamicContent\SnippetController;
@@ -38,17 +38,20 @@ use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSvgSanitizeController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\MenuLocationsController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\QueryResolveController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\ResourceAppliedTemplateController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\ResourceContentController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\GlobalStylesController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\MenuController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\MenuItemController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\PatternController;
-use ArtisanPackUI\VisualEditor\Http\Controllers\ResourceContentController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\PatternPreviewController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\TemplateController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\TemplatePartController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Visibility\UsersSearchController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\VisualEditorBlocksController;
+use ArtisanPackUI\VisualEditor\Http\Middleware\EnsureContentEditorAccess;
 use ArtisanPackUI\VisualEditor\Http\Middleware\EnsureSiteEditorAccess;
+use ArtisanPackUI\VisualEditor\Support\RouteThrottle;
 use Illuminate\Support\Facades\Route;
 
 // Generic resource content endpoints (M3). Any model registered in
@@ -98,7 +101,7 @@ Route::get( 'dynamic-content/sources', [ DynamicContentSourcesController::class,
 	->name( 'visual-editor.api.dynamic-content.sources' );
 
 Route::post( 'dynamic-content/resolve', [ DynamicContentResolveController::class, 'resolve' ] )
-	->middleware( 'throttle:60,1' )
+	->middleware( 'throttle:60,1,ve-dynamic-content' )
 	->name( 'visual-editor.api.dynamic-content.resolve' );
 
 // #650 — Reusable snippet CRUD. Backing store for the
@@ -214,6 +217,16 @@ Route::put( 'global-styles/{id}', [ GlobalStylesController::class, 'update' ] )
 Route::get( 'patterns', [ PatternController::class, 'index' ] )
 	->name( 'visual-editor.api.patterns.index' );
 
+// #832 — batched front-end render of pattern card previews. It renders
+// existing patterns by id or slug and never accepts markup, but every call
+// can run a full batch of Blade renders, so it's gated on the
+// `visual-editor.edit-content` ability (only content authors browse
+// patterns) and throttled in its own rate-limit bucket. Declared before
+// `patterns/{slug}` routes; POST has no wildcard sibling.
+Route::post( 'patterns/preview', [ PatternPreviewController::class, 'preview' ] )
+	->middleware( [ EnsureContentEditorAccess::class, 'throttle:120,1,ve-pattern-preview' ] )
+	->name( 'visual-editor.api.patterns.preview' );
+
 Route::post( 'patterns', [ PatternController::class, 'store' ] )
 	->middleware( EnsureSiteEditorAccess::class )
 	->name( 'visual-editor.api.patterns.store' );
@@ -239,6 +252,11 @@ Route::delete( 'patterns/{slug}', [ PatternController::class, 'destroy' ] )
 // menu set (not just menus assigned to a location).
 Route::get( 'menus', [ MenuController::class, 'index' ] )
 	->name( 'visual-editor.api.menus.index' );
+
+// #811 — deterministic fallback menu for a freshly inserted
+// `core/navigation` block (backs the shim's `getNavigationFallbackId`).
+Route::get( 'menus/fallback', [ MenuController::class, 'fallback' ] )
+	->name( 'visual-editor.api.menus.fallback' );
 
 Route::post( 'menus', [ MenuController::class, 'store' ] )
 	->middleware( EnsureSiteEditorAccess::class )
@@ -301,27 +319,39 @@ Route::get( 'search', [ EntitySearchController::class, 'index' ] )
 Route::get( 'users/search', [ UsersSearchController::class, 'index' ] )
 	->name( 'visual-editor.api.visibility.users.search' );
 
-// Icon Block Phase 4 (#555) — picker search + set-family chips.
-// Both routes are read-only; the catalog is backed by the bundled
-// `index.json` manifest and exposes paginated results so the editor
-// never has to ship the full FA Free term index to the browser.
-Route::get( 'icons/sets', [ IconSetsController::class, 'index' ] )
-	->name( 'visual-editor.api.icons.sets' );
+// Icon Block endpoints are gated on the post-editor-level
+// `visual-editor.edit-content` ability (#834), so only users who can
+// author content reach them. A denial is a JSON 403.
+Route::middleware( EnsureContentEditorAccess::class )->group( function (): void {
+	// Icon Block Phase 4 (#555) — picker search + set-family chips.
+	// Both routes are read-only; the catalog is backed by the bundled
+	// `index.json` manifest and exposes paginated results so the editor
+	// never has to ship the full FA Free term index to the browser.
+	Route::get( 'icons/sets', [ IconSetsController::class, 'index' ] )
+		->name( 'visual-editor.api.icons.sets' );
 
-Route::get( 'icons/search', [ IconSearchController::class, 'index' ] )
-	->name( 'visual-editor.api.icons.search' );
+	Route::get( 'icons/search', [ IconSearchController::class, 'index' ] )
+		->name( 'visual-editor.api.icons.search' );
 
-Route::get( 'icons/svg', [ IconSvgController::class, 'show' ] )
-	->name( 'visual-editor.api.icons.svg' );
+	Route::get( 'icons/svg', [ IconSvgController::class, 'show' ] )
+		->name( 'visual-editor.api.icons.svg' );
 
-// Icon Block Phase 5 (#556) — custom SVG paste/upload sanitization. The
-// editor POSTs the pasted/uploaded markup, gets back the SvgSanitizer
-// output + warnings, and persists the sanitized result into the block's
-// `customSvg` attribute. Authoritative sanitization still runs at render
-// time inside IconBlock; this endpoint is what lets the editor surface
-// warnings inline before save.
-Route::post( 'icons/svg/sanitize', [ IconSvgSanitizeController::class, 'store' ] )
-	->name( 'visual-editor.api.icons.svg.sanitize' );
+	// Icon Block Phase 5 (#556) — custom SVG paste/upload sanitization. The
+	// editor POSTs the pasted/uploaded markup, gets back the SvgSanitizer
+	// output + warnings, and persists the sanitized result into the block's
+	// `customSvg` attribute. Authoritative sanitization still runs at render
+	// time inside IconBlock; this endpoint is what lets the editor surface
+	// warnings inline before save. Throttled per user, in its own bucket,
+	// because every call runs the XML parser. An empty `sanitize_throttle`
+	// falls back to 60/min; `false` turns the throttle off.
+	Route::post( 'icons/svg/sanitize', [ IconSvgSanitizeController::class, 'store' ] )
+		->middleware( RouteThrottle::middlewareList(
+			config( 'artisanpack.visual-editor.content_access.sanitize_throttle', '60,1' ),
+			'60,1',
+			've-icon-sanitize',
+		) )
+		->name( 'visual-editor.api.icons.svg.sanitize' );
+} );
 
 // Icon Block Phase 6 (#557) — admin icon-set management endpoints.
 // Each action runs through the bound `SiteEditorAccessGate` (the
@@ -362,7 +392,7 @@ Route::get( 'fonts/sources', [ FontLibraryController::class, 'sources' ] )
 // request amplifier; the mutating actions below carry a tighter limit.
 Route::get( 'fonts/sources/{provider}/catalog', [ FontLibraryController::class, 'catalog' ] )
 	->where( 'provider', '[a-z][a-z0-9_-]*' )
-	->middleware( 'throttle:120,1' )
+	->middleware( 'throttle:120,1,ve-fonts-catalog' )
 	->name( 'visual-editor.api.fonts.sources.catalog' );
 
 // #741 — Same-origin catalog preview. The stylesheet route emits an
@@ -373,7 +403,7 @@ Route::get( 'fonts/sources/{provider}/catalog', [ FontLibraryController::class, 
 Route::get( 'fonts/sources/{provider}/preview/{slug}', [ FontLibraryController::class, 'previewStylesheet' ] )
 	->where( 'provider', '[a-z][a-z0-9_-]*' )
 	->where( 'slug', '[a-z0-9][a-z0-9-]*' )
-	->middleware( 'throttle:120,1' )
+	->middleware( 'throttle:120,1,ve-fonts-preview' )
 	->name( 'visual-editor.api.fonts.sources.preview' );
 
 // The preview-face route streams font bytes from the provider CDN on a cache
@@ -384,24 +414,24 @@ Route::get( 'fonts/sources/{provider}/preview/{slug}/{weight}/{style}', [ FontLi
 	->where( 'slug', '[a-z0-9][a-z0-9-]*' )
 	->where( 'weight', '[1-9][0-9]{0,3}' )
 	->where( 'style', 'normal|italic' )
-	->middleware( 'throttle:60,1' )
+	->middleware( 'throttle:60,1,ve-fonts-preview-face' )
 	->name( 'visual-editor.api.fonts.sources.preview-face' );
 
 Route::post( 'fonts', [ FontLibraryController::class, 'store' ] )
-	->middleware( 'throttle:30,1' )
+	->middleware( 'throttle:30,1,ve-fonts-write' )
 	->name( 'visual-editor.api.fonts.store' );
 
 Route::post( 'fonts/upload', [ FontLibraryController::class, 'upload' ] )
-	->middleware( 'throttle:30,1' )
+	->middleware( 'throttle:30,1,ve-fonts-write' )
 	->name( 'visual-editor.api.fonts.upload' );
 
 Route::post( 'fonts/bulk-uninstall', [ FontLibraryController::class, 'bulkUninstall' ] )
-	->middleware( 'throttle:30,1' )
+	->middleware( 'throttle:30,1,ve-fonts-write' )
 	->name( 'visual-editor.api.fonts.bulk-uninstall' );
 
 Route::delete( 'fonts/{font}', [ FontLibraryController::class, 'destroy' ] )
 	->whereNumber( 'font' )
-	->middleware( 'throttle:30,1' )
+	->middleware( 'throttle:30,1,ve-fonts-write' )
 	->name( 'visual-editor.api.fonts.destroy' );
 
 // G3 cms-framework Post + Page entity adapters — see plan 12 §4.4.
@@ -484,13 +514,13 @@ Route::get( 'business-info', [ BusinessInfoController::class, 'show' ] )
 // interface, so this must be `interface_exists()` — `class_exists()`
 // returns false for interfaces and left every `/ai/*` route
 // unregistered.
-if ( interface_exists( \ArtisanPackUI\Ai\Contracts\FeatureRegistry::class ) ) {
+if ( interface_exists( ArtisanPackUI\Ai\Contracts\FeatureRegistry::class ) ) {
 	// Every call spends the site's AI credentials, so the group is gated
 	// on the `visual-editor.use-ai` ability (deny by default) and
-	// throttled per user (#828 hardening).
+	// throttled per user in its own rate-limit bucket (#828 hardening).
 	Route::middleware( [
-		'can:' . \ArtisanPackUI\VisualEditor\Ai\Support\AiAccess::ABILITY,
-		'throttle:' . (string) config( 'artisanpack.visual-editor.ai.throttle', '20,1' ),
+		'can:' . ArtisanPackUI\VisualEditor\Ai\Support\AiAccess::ABILITY,
+		...RouteThrottle::middlewareList( config( 'artisanpack.visual-editor.ai.throttle', '20,1' ), '20,1', 've-ai' ),
 	] )->group( function (): void {
 		Route::get( 'ai/features', [ AiController::class, 'features' ] )
 			->name( 'visual-editor.api.ai.features' );

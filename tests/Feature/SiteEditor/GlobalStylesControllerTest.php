@@ -54,7 +54,7 @@ function rebuildSiteEditorResolversForGlobalStylesTest(): void
  * `getThemesPath` on the older release because they were still
  * `protected` there.
  */
-function stubThemeManagerHelpersForGlobalStylesTest( \Mockery\MockInterface $mock ): void
+function stubThemeManagerHelpersForGlobalStylesTest( Mockery\MockInterface $mock ): void
 {
 	if ( ! class_exists( 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Support\\ThemeStylesheetReader' ) ) {
 		return;

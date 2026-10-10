@@ -129,7 +129,7 @@ class FormBlock extends DynamicBlock
 			'<div%s data-keystone-form="%s" data-form-id="%d"></div>',
 			BlockSupports::wrapperAttrs( $attrs, [ 'wp-block-artisanpack-form' ] ),
 			e( $form->slug ),
-			$form->id
+			$form->id,
 		);
 	}
 
@@ -141,7 +141,7 @@ class FormBlock extends DynamicBlock
 		return sprintf(
 			'<div%s><p>%s</p></div>',
 			BlockSupports::wrapperAttrs( $attrs, [ 'wp-block-artisanpack-form', 'wp-block-artisanpack-form--placeholder' ] ),
-			e( $message )
+			e( $message ),
 		);
 	}
 

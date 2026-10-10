@@ -24,6 +24,7 @@ namespace ArtisanPackUI\VisualEditor\Blocks\Icon;
 use ArtisanPackUI\VisualEditor\Blocks\DynamicBlock;
 use ArtisanPackUI\VisualEditor\Services\Icon\IconSvgResolver;
 use ArtisanPackUI\VisualEditor\Services\Icon\SvgSanitizer;
+use Generator;
 
 class IconBlock extends DynamicBlock
 {
@@ -130,7 +131,7 @@ class IconBlock extends DynamicBlock
 			'<div class="%s"%s>%s</div>',
 			e( implode( ' ', $wrapperClasses ) ),
 			'' !== $wrapperStyle ? sprintf( ' style="%s"', e( $wrapperStyle ) ) : '',
-			$body
+			$body,
 		);
 	}
 
@@ -156,7 +157,7 @@ class IconBlock extends DynamicBlock
 				'<span class="wp-block-artisanpack-icon__svg" style="%s"%s>%s</span>',
 				e( $bodyStyle ),
 				$ariaAttrs,
-				$result->sanitized
+				$result->sanitized,
 			);
 		}
 
@@ -172,7 +173,7 @@ class IconBlock extends DynamicBlock
 					e( $attrs['iconRef']['name'] ),
 					e( $bodyStyle ),
 					$ariaAttrs,
-					$this->prepareInlineSvg( $resolved )
+					$this->prepareInlineSvg( $resolved ),
 				);
 			}
 
@@ -184,13 +185,13 @@ class IconBlock extends DynamicBlock
 				'<span class="wp-block-artisanpack-icon__placeholder" data-icon-set="%s" data-icon-name="%s" style="%s" aria-hidden="true"></span>',
 				e( $attrs['iconRef']['set'] ),
 				e( $attrs['iconRef']['name'] ),
-				e( $bodyStyle )
+				e( $bodyStyle ),
 			);
 		}
 
 		return sprintf(
 			'<span class="wp-block-artisanpack-icon__placeholder" style="%s" aria-hidden="true"></span>',
-			e( $bodyStyle )
+			e( $bodyStyle ),
 		);
 	}
 
@@ -280,7 +281,7 @@ class IconBlock extends DynamicBlock
 	 */
 	private function bodyStyle( array $attrs ): string
 	{
-		$width  = sprintf( '%s%s', $this->formatNumber( $attrs['width']  ?? $attrs['size'] ), $attrs['widthUnit']  ?? $attrs['sizeUnit'] );
+		$width  = sprintf( '%s%s', $this->formatNumber( $attrs['width'] ?? $attrs['size'] ), $attrs['widthUnit'] ?? $attrs['sizeUnit'] );
 		$height = sprintf( '%s%s', $this->formatNumber( $attrs['height'] ?? $attrs['size'] ), $attrs['heightUnit'] ?? $attrs['sizeUnit'] );
 
 		$parts = [
@@ -364,9 +365,9 @@ class IconBlock extends DynamicBlock
 	 *
 	 * @param  mixed  $border
 	 *
-	 * @return \Generator<int, string>
+	 * @return Generator<int, string>
 	 */
-	private function borderDeclarations( mixed $border ): \Generator
+	private function borderDeclarations( mixed $border ): Generator
 	{
 		if ( ! is_array( $border ) ) {
 			return;
@@ -428,9 +429,9 @@ class IconBlock extends DynamicBlock
 	 * @param  mixed   $value
 	 * @param  string  $shorthand  `padding` or `margin`.
 	 *
-	 * @return \Generator<int, string>
+	 * @return Generator<int, string>
 	 */
-	private function boxDeclarations( mixed $value, string $shorthand ): \Generator
+	private function boxDeclarations( mixed $value, string $shorthand ): Generator
 	{
 		if ( null === $value ) {
 			return;

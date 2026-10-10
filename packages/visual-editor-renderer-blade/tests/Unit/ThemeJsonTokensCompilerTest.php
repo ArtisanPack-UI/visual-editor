@@ -4,11 +4,11 @@ declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ThemeJsonTokensCompiler;
 
-beforeEach( function () {
+beforeEach( function (): void {
 	$this->compiler = new ThemeJsonTokensCompiler();
 } );
 
-it( 'compiles color, gradient, fontSize and spacing presets', function () {
+it( 'compiles color, gradient, fontSize and spacing presets', function (): void {
 	$css = $this->compiler->compile( [
 		'settings' => [
 			'color' => [
@@ -40,7 +40,7 @@ it( 'compiles color, gradient, fontSize and spacing presets', function () {
 		->toContain( '--wp--preset--spacing--sm: 0.5rem;' );
 } );
 
-it( 'returns an empty string when no recognised tokens are present', function () {
+it( 'returns an empty string when no recognised tokens are present', function (): void {
 	expect( $this->compiler->compile( [] ) )->toBe( '' );
 	expect( $this->compiler->compile( [ 'settings' => [] ] ) )->toBe( '' );
 	expect( $this->compiler->compile( [
@@ -48,7 +48,7 @@ it( 'returns an empty string when no recognised tokens are present', function ()
 	] ) )->toBe( '' );
 } );
 
-it( 'normalises slugs to lowercase hyphen-safe identifiers', function () {
+it( 'normalises slugs to lowercase hyphen-safe identifiers', function (): void {
 	$css = $this->compiler->compile( [
 		'settings' => [
 			'color' => [
@@ -62,7 +62,7 @@ it( 'normalises slugs to lowercase hyphen-safe identifiers', function () {
 	expect( $css )->toContain( '--wp--preset--color--primary-brand-: #000;' );
 } );
 
-it( 'skips entries missing slug or value', function () {
+it( 'skips entries missing slug or value', function (): void {
 	$css = $this->compiler->compile( [
 		'settings' => [
 			'color' => [
@@ -83,7 +83,7 @@ it( 'skips entries missing slug or value', function () {
 		->not->toContain( 'no-value' );
 } );
 
-it( 'ignores non-array entries gracefully', function () {
+it( 'ignores non-array entries gracefully', function (): void {
 	$css = $this->compiler->compile( [
 		'settings' => [
 			'color' => [

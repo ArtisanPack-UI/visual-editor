@@ -143,7 +143,7 @@ class BunnyFontsProvider implements FontProvider
 		if ( '' !== $query ) {
 			$families = array_values( array_filter(
 				$families,
-				static fn ( array $family ): bool => str_contains( strtolower( $family['family'] ), $query )
+				static fn ( array $family ): bool => str_contains( strtolower( $family['family'] ), $query ),
 			) );
 		}
 
@@ -159,7 +159,7 @@ class BunnyFontsProvider implements FontProvider
 				'variants'    => $family['variants'],
 				'is_variable' => $family['is_variable'],
 			],
-			$window
+			$window,
 		);
 
 		return [
@@ -212,7 +212,7 @@ class BunnyFontsProvider implements FontProvider
 		if ( null === $family ) {
 			throw new FontProviderException( __(
 				'Bunny Fonts has no family for slug ":slug".',
-				[ 'slug' => $slug ]
+				[ 'slug' => $slug ],
 			) );
 		}
 
@@ -225,7 +225,7 @@ class BunnyFontsProvider implements FontProvider
 		if ( ! in_array( $style, [ 'normal', 'italic' ], true ) ) {
 			throw new FontProviderException( __(
 				'Bunny Fonts does not support the ":style" style.',
-				[ 'style' => $style ]
+				[ 'style' => $style ],
 			) );
 		}
 
@@ -234,7 +234,7 @@ class BunnyFontsProvider implements FontProvider
 		if ( ! ctype_digit( $weight ) ) {
 			throw new FontProviderException( __(
 				'Bunny Fonts weight ":weight" is not a numeric weight.',
-				[ 'weight' => $weight ]
+				[ 'weight' => $weight ],
 			) );
 		}
 
@@ -244,7 +244,7 @@ class BunnyFontsProvider implements FontProvider
 		if ( ! in_array( $variant, $family['variants'], true ) ) {
 			throw new FontProviderException( __(
 				'Bunny Fonts family ":family" has no :weight :style face.',
-				[ 'family' => $family['family'], 'weight' => $weight, 'style' => $style ]
+				[ 'family' => $family['family'], 'weight' => $weight, 'style' => $style ],
 			) );
 		}
 
@@ -254,7 +254,7 @@ class BunnyFontsProvider implements FontProvider
 		if ( null === $fileUrl ) {
 			throw new FontProviderException( __(
 				'Bunny Fonts returned no WOFF2 URL for ":family" :weight :style.',
-				[ 'family' => $family['family'], 'weight' => $weight, 'style' => $style ]
+				[ 'family' => $family['family'], 'weight' => $weight, 'style' => $style ],
 			) );
 		}
 
@@ -308,25 +308,25 @@ class BunnyFontsProvider implements FontProvider
 			throw new FontProviderException(
 				'Failed to reach the Bunny Fonts list endpoint.',
 				0,
-				$e
+				$e,
 			);
 		}
 
 		if ( ! $response->successful() ) {
 			throw new FontProviderException( sprintf(
 				'The Bunny Fonts list endpoint returned HTTP %d.',
-				$response->status()
+				$response->status(),
 			) );
 		}
 
 		$list = json_decode(
 			trim( $this->readBounded( $response, 'the Bunny Fonts list endpoint' ) ),
-			true
+			true,
 		);
 
 		if ( ! is_array( $list ) || [] === $list ) {
 			throw new FontProviderException(
-				'The Bunny Fonts list response did not contain a font list.'
+				'The Bunny Fonts list response did not contain a font list.',
 			);
 		}
 
@@ -346,7 +346,7 @@ class BunnyFontsProvider implements FontProvider
 		// otherwise blank the Font Library for the full cache_ttl.
 		if ( [] === $catalog ) {
 			throw new FontProviderException(
-				'The Bunny Fonts list response contained no usable fonts.'
+				'The Bunny Fonts list response contained no usable fonts.',
 			);
 		}
 
@@ -412,7 +412,7 @@ class BunnyFontsProvider implements FontProvider
 
 		$normalized = array_values( array_unique( array_filter(
 			array_map( 'intval', $weights ),
-			static fn ( int $weight ): bool => $weight > 0
+			static fn ( int $weight ): bool => $weight > 0,
 		) ) );
 
 		sort( $normalized );
@@ -442,7 +442,7 @@ class BunnyFontsProvider implements FontProvider
 
 		$ordered = array_values( array_filter(
 			[ 'normal', 'italic' ],
-			static fn ( string $style ): bool => in_array( $style, $styles, true )
+			static fn ( string $style ): bool => in_array( $style, $styles, true ),
 		) );
 
 		return [] === $ordered ? [ 'normal' ] : $ordered;
@@ -476,14 +476,14 @@ class BunnyFontsProvider implements FontProvider
 			throw new FontProviderException(
 				__( 'Failed to resolve the Bunny Fonts face CSS for ":slug".', [ 'slug' => $slug ] ),
 				0,
-				$e
+				$e,
 			);
 		}
 
 		if ( ! $response->successful() ) {
 			throw new FontProviderException( __(
 				'Bunny Fonts returned HTTP :status resolving the face CSS for ":slug".',
-				[ 'status' => $response->status(), 'slug' => $slug ]
+				[ 'status' => $response->status(), 'slug' => $slug ],
 			) );
 		}
 
@@ -507,7 +507,7 @@ class BunnyFontsProvider implements FontProvider
 			'#/\*\s*(?<subset>[^*]{1,64}?)\s*\*/\s*@font-face\s*\{(?<body>[^}]*)\}#s',
 			$css,
 			$blocks,
-			PREG_SET_ORDER
+			PREG_SET_ORDER,
 		);
 
 		$urls = [];
@@ -556,7 +556,7 @@ class BunnyFontsProvider implements FontProvider
 		if ( 'https' !== $scheme || ! is_string( $host ) || ! $this->isAllowedFileHost( $host ) ) {
 			throw new FontProviderException( sprintf(
 				'Refusing to download a Bunny Fonts face from the untrusted URL "%s".',
-				$fileUrl
+				$fileUrl,
 			) );
 		}
 	}
@@ -603,14 +603,14 @@ class BunnyFontsProvider implements FontProvider
 			throw new FontProviderException(
 				__( 'Failed to download the Bunny Fonts face at ":url".', [ 'url' => $fileUrl ] ),
 				0,
-				$e
+				$e,
 			);
 		}
 
 		if ( ! $response->successful() ) {
 			throw new FontProviderException( __(
 				'Bunny Fonts returned HTTP :status downloading the face at ":url".',
-				[ 'status' => $response->status(), 'url' => $fileUrl ]
+				[ 'status' => $response->status(), 'url' => $fileUrl ],
 			) );
 		}
 
@@ -619,7 +619,7 @@ class BunnyFontsProvider implements FontProvider
 		if ( ! str_starts_with( $body, 'wOF2' ) ) {
 			throw new FontProviderException( __(
 				'The file downloaded from ":url" is not a WOFF2 font.',
-				[ 'url' => $fileUrl ]
+				[ 'url' => $fileUrl ],
 			) );
 		}
 
@@ -646,7 +646,7 @@ class BunnyFontsProvider implements FontProvider
 				throw new FontProviderException( sprintf(
 					'The response from %s exceeded the maximum allowed size of %d bytes.',
 					$context,
-					$this->maxBytes
+					$this->maxBytes,
 				) );
 			}
 		}

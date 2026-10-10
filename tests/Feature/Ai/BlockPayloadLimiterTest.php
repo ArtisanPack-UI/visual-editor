@@ -61,6 +61,6 @@ it( 'applies the same limits to next-block suggestion requests', function (): vo
 it( 'registers the AI endpoints when the ai package is installed', function (): void {
 	// `FeatureRegistry` is an interface; a `class_exists()` guard never
 	// matched it, so no `/ai/*` route was ever registered.
-	expect( \Illuminate\Support\Facades\Route::has( 'visual-editor.api.ai.heading-hierarchy' ) )->toBeTrue();
-	expect( \Illuminate\Support\Facades\Route::has( 'visual-editor.api.ai.suggest-next-block' ) )->toBeTrue();
+	expect( Illuminate\Support\Facades\Route::has( 'visual-editor.api.ai.heading-hierarchy' ) )->toBeTrue();
+	expect( Illuminate\Support\Facades\Route::has( 'visual-editor.api.ai.suggest-next-block' ) )->toBeTrue();
 } );

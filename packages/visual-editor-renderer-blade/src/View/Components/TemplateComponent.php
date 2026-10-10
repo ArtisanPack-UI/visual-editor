@@ -31,12 +31,12 @@ namespace ArtisanPackUI\VisualEditorRendererBlade\View\Components;
 
 use ArtisanPackUI\VisualEditor\Resources\PatternInliner;
 use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
-use ArtisanPackUI\VisualEditor\SiteEditor\NavigationBlockRefResolver;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesEmissionTracker;
+use ArtisanPackUI\VisualEditor\SiteEditor\NavigationBlockRefResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
-use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\BoxShadowCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\PositionCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
@@ -192,6 +192,7 @@ class TemplateComponent extends Component
 	 * @since 1.0.0
 	 *
 	 * @param  array<int, string>  $chain
+	 *
 	 * @return array{0: ?string, 1: ?array<int, array<string, mixed>>}
 	 */
 	protected function resolveTemplate( array $chain ): array

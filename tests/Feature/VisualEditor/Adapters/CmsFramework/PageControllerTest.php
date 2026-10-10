@@ -52,7 +52,7 @@ function pageBlocks(): array
 	];
 }
 
-it( 'returns a single page in the WP-shape envelope with type=page', function () {
+it( 'returns a single page in the WP-shape envelope with type=page', function (): void {
 	pageActor();
 
 	$page = TestBlockContentPageModel::create( [
@@ -68,7 +68,7 @@ it( 'returns a single page in the WP-shape envelope with type=page', function ()
 		->assertJsonPath( 'content.blocks.0.name', 'core/paragraph' );
 } );
 
-it( 'omits page-only fields when the model fixture does not declare them', function () {
+it( 'omits page-only fields when the model fixture does not declare them', function (): void {
 	pageActor();
 
 	$page = TestBlockContentPageModel::create( [
@@ -86,7 +86,7 @@ it( 'omits page-only fields when the model fixture does not declare them', funct
 	$response->assertJsonMissing( [ 'template' => '' ] );
 } );
 
-it( 'creates a page via POST and writes the block tree to the body column', function () {
+it( 'creates a page via POST and writes the block tree to the body column', function (): void {
 	pageActor();
 
 	$payload = [
@@ -113,7 +113,7 @@ it( 'creates a page via POST and writes the block tree to the body column', func
 	expect( $saved->body )->toEqual( pageBlocks() );
 } );
 
-it( 'updates a page via PUT and round-trips through the body column', function () {
+it( 'updates a page via PUT and round-trips through the body column', function (): void {
 	pageActor();
 
 	$page = TestBlockContentPageModel::create( [
@@ -139,7 +139,7 @@ it( 'updates a page via PUT and round-trips through the body column', function (
 	expect( $page->fresh()->body )->toEqual( $next );
 } );
 
-it( 'deletes a page via DELETE and returns 204', function () {
+it( 'deletes a page via DELETE and returns 204', function (): void {
 	pageActor();
 
 	$page = TestBlockContentPageModel::create( [

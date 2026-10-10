@@ -4,7 +4,7 @@ declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\States\InheritanceChainValidator;
 
-it( 'accepts a chain that terminates at idle', function () {
+it( 'accepts a chain that terminates at idle', function (): void {
 	$validator = new InheritanceChainValidator();
 
 	$validator->assertAcyclic( [
@@ -16,7 +16,7 @@ it( 'accepts a chain that terminates at idle', function () {
 	expect( true )->toBeTrue(); // No exception thrown.
 } );
 
-it( 'rejects a direct cycle', function () {
+it( 'rejects a direct cycle', function (): void {
 	( new InheritanceChainValidator() )->assertAcyclic( [
 		'idle' => [ 'inheritsFrom' => null ],
 		'a'    => [ 'inheritsFrom' => 'b' ],
@@ -24,14 +24,14 @@ it( 'rejects a direct cycle', function () {
 	] );
 } )->throws( InvalidArgumentException::class, 'circular' );
 
-it( 'rejects an inheritsFrom that points at an unregistered state', function () {
+it( 'rejects an inheritsFrom that points at an unregistered state', function (): void {
 	( new InheritanceChainValidator() )->assertAcyclic( [
 		'idle' => [ 'inheritsFrom' => null ],
 		'a'    => [ 'inheritsFrom' => 'missing' ],
 	] );
 } )->throws( InvalidArgumentException::class, 'inherits' );
 
-it( 'rejects a self-referencing state', function () {
+it( 'rejects a self-referencing state', function (): void {
 	( new InheritanceChainValidator() )->assertAcyclic( [
 		'idle' => [ 'inheritsFrom' => null ],
 		'a'    => [ 'inheritsFrom' => 'a' ],

@@ -55,6 +55,19 @@ The Inspector's link controls produce a wrapping `<a>` on the rendered icon. `ta
 - **aria-label** — explicit accessible name; required when the icon is the only content in a link.
 - **Decorative** — sets `aria-hidden="true"` and suppresses any `aria-label`. The editor shows a warning if a decorative icon sits inside a link without a wrapping label, because screen readers would announce an unlabeled link.
 
+### Who can use the picker and sanitizer
+
+*Since v1.13.0 (#834).* The picker's endpoints (`GET icons/sets`,
+`GET icons/search`, `GET icons/svg`) and the custom SVG sanitizer
+(`POST icons/svg/sanitize`) require the `visual-editor.edit-content`
+ability and answer a JSON `403` to users who fail it. By default any
+authenticated user passes. Set `content_access.capability` to require a
+capability, or define the `visual-editor.edit-content` gate yourself.
+The sanitizer is also throttled per user (`content_access.sanitize_throttle`,
+default `60,1`; `false` turns it off). See
+[Access Gate](../site-editor/Access-Gate.md#content-authoring-ability-visual-editoredit-content)
+and [Configuration](../Configuration.md#content_access).
+
 ---
 
 ## Developer recipe — registering custom sets

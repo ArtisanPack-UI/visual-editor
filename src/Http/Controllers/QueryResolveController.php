@@ -30,20 +30,21 @@ use ArtisanPackUI\VisualEditor\Services\QueryResolverContract;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Routing\Controller;
 use Throwable;
 
 class QueryResolveController extends Controller
 {
-	public function __construct( protected Container $container ) {}
+	public function __construct( protected Container $container )
+	{
+	}
 
 	public function resolve( QueryResolveRequest $request ): JsonResponse
 	{
 		if ( ! $this->container->bound( QueryResolverContract::class ) ) {
 			return new JsonResponse(
 				[ 'message' => 'Query runtime is not available. Install artisanpack-ui/cms-framework or bind a custom resolver to QueryResolverContract.' ],
-				Response::HTTP_SERVICE_UNAVAILABLE
+				Response::HTTP_SERVICE_UNAVAILABLE,
 			);
 		}
 
@@ -83,14 +84,14 @@ class QueryResolveController extends Controller
 
 			return new JsonResponse(
 				[ 'message' => 'Failed to resolve the query payload.' ],
-				Response::HTTP_BAD_REQUEST
+				Response::HTTP_BAD_REQUEST,
 			);
 		}
 
 		$resourceClass = $this->resourceClassFor( isset( $payload['postType'] ) && is_string( $payload['postType'] ) ? $payload['postType'] : 'post' );
 
 		$data = collect( $paginator->items() )->map(
-			static fn ( object $item ): array => ( new $resourceClass( $item ) )->toArray( request() )
+			static fn ( object $item ): array => ( new $resourceClass( $item ) )->toArray( request() ),
 		)->values()->all();
 
 		return new JsonResponse( [

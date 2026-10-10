@@ -55,7 +55,7 @@ class ResourceContentController extends Controller
 	public function update(
 		UpdateResourceContentRequest $request,
 		string $resource,
-		int|string $id
+		int|string $id,
 	): JsonResponse {
 		$model = $this->resolver->resolve( $resource, $id );
 

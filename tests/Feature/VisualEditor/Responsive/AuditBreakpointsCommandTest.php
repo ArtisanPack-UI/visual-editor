@@ -4,13 +4,13 @@ declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\Models\VisualEditorPost;
 
-beforeEach( function () {
+beforeEach( function (): void {
 	// Only the visual-editor's default 'sm', 'md', 'lg', 'xl', '2xl' breakpoints
 	// are registered, plus the implicit `base`. Anything else is an orphan.
 	config()->set( 'artisanpack.visual-editor.breakpoints', [] );
 } );
 
-it( 'reports orphaned breakpoint overrides on stored block trees', function () {
+it( 'reports orphaned breakpoint overrides on stored block trees', function (): void {
 	VisualEditorPost::create( [
 		'title'  => 'Has orphans',
 		'blocks' => [
@@ -29,7 +29,7 @@ it( 'reports orphaned breakpoint overrides on stored block trees', function () {
 		->expectsOutputToContain( 'legacy' );
 } );
 
-it( 'reports zero orphans when every override key is in the registry', function () {
+it( 'reports zero orphans when every override key is in the registry', function (): void {
 	VisualEditorPost::create( [
 		'title'  => 'Clean',
 		'blocks' => [
@@ -48,7 +48,7 @@ it( 'reports zero orphans when every override key is in the registry', function 
 		->expectsOutputToContain( 'No orphaned breakpoint overrides found' );
 } );
 
-it( 'outputs JSON when --json flag is passed', function () {
+it( 'outputs JSON when --json flag is passed', function (): void {
 	VisualEditorPost::create( [
 		'title'  => 'JSON output',
 		'blocks' => [

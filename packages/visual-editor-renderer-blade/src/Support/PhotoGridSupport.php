@@ -23,6 +23,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditorRendererBlade\Support;
 
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
+use Throwable;
 
 class PhotoGridSupport
 {
@@ -61,13 +62,12 @@ class PhotoGridSupport
 		try {
 			$css = '.' . $scope . '{' . $declaration . '}';
 			app( ResponsiveCssAccumulator::class )->push( $scope, $css );
-		} catch ( \Throwable $e ) {
+		} catch ( Throwable $e ) {
 			// Accumulator not booted (early or test path) — silently drop.
 		}
 
 		return $classes;
 	}
-
 
 	/**
 	 * Compute the wrapper props for a block's Photo Grid attribute.

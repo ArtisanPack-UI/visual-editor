@@ -44,7 +44,8 @@ class PatternAdapter
 	 *     synced: bool,
 	 *     categories: array<int, string>,
 	 *     block_types: array<int, string>,
-	 *     post_types: array<int, string>|null
+	 *     post_types: array<int, string>|null,
+	 *     viewport_width: int|null
 	 * }
 	 */
 	public function toArray( ResolvedPattern $pattern ): array
@@ -95,6 +96,9 @@ class PatternAdapter
 			// unscoped pattern from a pattern that explicitly scoped
 			// itself to zero post types.
 			'post_types'  => $pattern->postTypes,
+			// Preview layout width (WP `viewportWidth`). `null` tells the
+			// client to use its 1200px default.
+			'viewport_width' => $pattern->viewportWidth,
 		];
 	}
 

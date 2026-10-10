@@ -4,7 +4,7 @@ declare( strict_types=1 );
 
 use Illuminate\Support\Facades\Blade;
 
-it( 'emits the block-library and theme stylesheet links by default', function () {
+it( 'emits the block-library and theme stylesheet links by default', function (): void {
 	$rendered = Blade::render( '<x-ve-blocks-styles />' );
 
 	expect( $rendered )
@@ -14,14 +14,14 @@ it( 'emits the block-library and theme stylesheet links by default', function ()
 		->toContain( 'data-ve-block-library-theme' );
 } );
 
-it( 'omits the block-library links when bundle is false', function () {
+it( 'omits the block-library links when bundle is false', function (): void {
 	$rendered = Blade::render( '<x-ve-blocks-styles :bundle="false" />' );
 
 	expect( $rendered )
 		->not->toContain( 'data-ve-block-library' );
 } );
 
-it( 'emits the grid + marquee frontend stylesheet links independently of $emitInteractive', function () {
+it( 'emits the grid + marquee frontend stylesheet links independently of $emitInteractive', function (): void {
 	$rendered = Blade::render( '<x-ve-blocks-styles :interactive="false" />' );
 
 	expect( $rendered )
@@ -33,7 +33,7 @@ it( 'emits the grid + marquee frontend stylesheet links independently of $emitIn
 		->not->toContain( 'data-ve-tabs' );
 } );
 
-it( 'emits the breadcrumbs frontend stylesheet link independently of $emitInteractive', function () {
+it( 'emits the breadcrumbs frontend stylesheet link independently of $emitInteractive', function (): void {
 	$rendered = Blade::render( '<x-ve-blocks-styles :interactive="false" />' );
 
 	expect( $rendered )
@@ -41,7 +41,7 @@ it( 'emits the breadcrumbs frontend stylesheet link independently of $emitIntera
 		->toContain( 'data-ve-breadcrumbs' );
 } );
 
-it( 'emits the query-pagination frontend stylesheet link independently of $emitInteractive', function () {
+it( 'emits the query-pagination frontend stylesheet link independently of $emitInteractive', function (): void {
 	$rendered = Blade::render( '<x-ve-blocks-styles :interactive="false" />' );
 
 	expect( $rendered )
@@ -49,9 +49,9 @@ it( 'emits the query-pagination frontend stylesheet link independently of $emitI
 		->toContain( 'data-ve-query-pagination' );
 } );
 
-it( 'rebases the link href when assetBase is supplied', function () {
+it( 'rebases the link href when assetBase is supplied', function (): void {
 	$rendered = Blade::render(
-		'<x-ve-blocks-styles asset-base="https://cdn.example.com/ve" />'
+		'<x-ve-blocks-styles asset-base="https://cdn.example.com/ve" />',
 	);
 
 	expect( $rendered )
@@ -60,7 +60,7 @@ it( 'rebases the link href when assetBase is supplied', function () {
 		->not->toContain( '/vendor/visual-editor-renderer-blade/style.css' );
 } );
 
-it( 'compiles theme.json palette + fontSizes into --wp--preset--* declarations', function () {
+it( 'compiles theme.json palette + fontSizes into --wp--preset--* declarations', function (): void {
 	$themeJson = [
 		'settings' => [
 			'color' => [
@@ -80,7 +80,7 @@ it( 'compiles theme.json palette + fontSizes into --wp--preset--* declarations',
 
 	$rendered = Blade::render(
 		'<x-ve-blocks-styles :theme-json="$themeJson" />',
-		[ 'themeJson' => $themeJson ]
+		[ 'themeJson' => $themeJson ],
 	);
 
 	expect( $rendered )
@@ -91,7 +91,7 @@ it( 'compiles theme.json palette + fontSizes into --wp--preset--* declarations',
 		->toContain( '--wp--preset--font-size--large: 1.25rem;' );
 } );
 
-it( 'omits the tokens style block when theme.json carries no recognised tokens', function () {
+it( 'omits the tokens style block when theme.json carries no recognised tokens', function (): void {
 	// `settings.layout` is now a recognized category (Keystone #50 — it
 	// produces layout-size custom properties + alignwide/alignfull
 	// rules), so use an unrecognized section to exercise the
@@ -103,7 +103,7 @@ it( 'omits the tokens style block when theme.json carries no recognised tokens',
 	expect( $rendered )->not->toContain( 'data-ve-theme-tokens' );
 } );
 
-it( 'silently skips theme.json entries missing slug or value', function () {
+it( 'silently skips theme.json entries missing slug or value', function (): void {
 	$rendered = Blade::render( '<x-ve-blocks-styles :theme-json="$themeJson" />', [
 		'themeJson' => [
 			'settings' => [
@@ -126,7 +126,7 @@ it( 'silently skips theme.json entries missing slug or value', function () {
 		->not->toContain( 'missing-value' );
 } );
 
-it( 'emits the layout-flow block-gap baseline rule for sibling spacing', function () {
+it( 'emits the layout-flow block-gap baseline rule for sibling spacing', function (): void {
 	// Issue #539 — paragraphs (and any flow-layout children) had no
 	// vertical spacing because the canonical
 	// `:where(.is-layout-flow) > * + * { margin-block-start:
@@ -141,7 +141,7 @@ it( 'emits the layout-flow block-gap baseline rule for sibling spacing', functio
 		->toContain( 'margin-block-start: var(--wp--style--block-gap, 24px)' );
 } );
 
-it( 'publishes block-library assets under the visual-editor-renderer-blade-assets tag', function () {
+it( 'publishes block-library assets under the visual-editor-renderer-blade-assets tag', function (): void {
 	$artisan = $this->artisan( 'vendor:publish', [
 		'--tag'   => 'visual-editor-renderer-blade-assets',
 		'--force' => true,
@@ -150,7 +150,7 @@ it( 'publishes block-library assets under the visual-editor-renderer-blade-asset
 	$artisan->assertExitCode( 0 );
 } );
 
-it( 'declares the default spacing presets even without a theme.json (#814)', function () {
+it( 'declares the default spacing presets even without a theme.json (#814)', function (): void {
 	config()->set( 'artisanpack.visual-editor.presets', [] );
 
 	$rendered = Blade::render( '<x-ve-blocks-styles />' );
@@ -160,7 +160,7 @@ it( 'declares the default spacing presets even without a theme.json (#814)', fun
 		->toContain( '--wp--preset--spacing--40: 1.5rem;' );
 } );
 
-it( 'declares the theme\'s spacing presets in place of the defaults (#814)', function () {
+it( 'declares the theme\'s spacing presets in place of the defaults (#814)', function (): void {
 	config()->set( 'artisanpack.visual-editor.presets', [] );
 
 	$rendered = Blade::render( '<x-ve-blocks-styles :theme-json="$themeJson" />', [
@@ -171,7 +171,6 @@ it( 'declares the theme\'s spacing presets in place of the defaults (#814)', fun
 		->toContain( '--wp--preset--spacing--sm: 4px;' )
 		->not->toContain( '--wp--preset--spacing--40' );
 } );
-
 
 describe( 'theme-less defaults (#821)', function (): void {
 	beforeEach( function (): void {
@@ -259,8 +258,8 @@ describe( 'stacking at the mobile breakpoint (#820)', function (): void {
 
 	it( 'follows a custom mobile threshold', function (): void {
 		app()->instance(
-			\ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry::class,
-			\ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry::fromLayers( [ 'mobile' => [ 'maxWidthPx' => 599, 'previewWidthPx' => 375 ] ] ),
+			ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry::class,
+			ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry::fromLayers( [ 'mobile' => [ 'maxWidthPx' => 599, 'previewWidthPx' => 375 ] ] ),
 		);
 
 		expect( Blade::render( '<x-ve-blocks-styles />' ) )
@@ -273,7 +272,7 @@ describe( 'stacking at the mobile breakpoint (#820)', function (): void {
 	} );
 } );
 
-it( 'floats alignleft / alignright under any flow or constrained layout (#819)', function () {
+it( 'floats alignleft / alignright under any flow or constrained layout (#819)', function (): void {
 	$rendered = Blade::render( '<x-ve-blocks-styles />' );
 
 	expect( $rendered )
@@ -288,7 +287,7 @@ it( 'floats alignleft / alignright under any flow or constrained layout (#819)',
 
 describe( 'default styles scope (#821)', function (): void {
 	it( 'scopes the baseline to block output, not the host page', function (): void {
-		$css = \ArtisanPackUI\VisualEditorRendererBlade\Support\DefaultStyles::CSS;
+		$css = ArtisanPackUI\VisualEditorRendererBlade\Support\DefaultStyles::CSS;
 
 		expect( $css )
 			->toContain( ':where(.wp-block-post-content) {' )
@@ -298,8 +297,8 @@ describe( 'default styles scope (#821)', function (): void {
 	} );
 
 	it( 'stays off in auto mode when a theme is active even without a theme.json prop', function (): void {
-		$resolver = Mockery::mock( \ArtisanPackUI\CMSFramework\Modules\SiteEditor\Resolution\GlobalStylesResolver::class );
-		$resolver->shouldReceive( 'resolve' )->andReturn( new \ArtisanPackUI\CMSFramework\Modules\SiteEditor\Resolution\ResolvedGlobalStyles(
+		$resolver = Mockery::mock( ArtisanPackUI\CMSFramework\Modules\SiteEditor\Resolution\GlobalStylesResolver::class );
+		$resolver->shouldReceive( 'resolve' )->andReturn( new ArtisanPackUI\CMSFramework\Modules\SiteEditor\Resolution\ResolvedGlobalStyles(
 			theme               : 'demo',
 			settings            : [],
 			styles              : [],
@@ -307,7 +306,7 @@ describe( 'default styles scope (#821)', function (): void {
 			hasUserCustomization: false,
 			model               : null,
 		) );
-		app()->instance( \ArtisanPackUI\CMSFramework\Modules\SiteEditor\Resolution\GlobalStylesResolver::class, $resolver );
+		app()->instance( ArtisanPackUI\CMSFramework\Modules\SiteEditor\Resolution\GlobalStylesResolver::class, $resolver );
 
 		expect( Blade::render( '<x-ve-blocks-styles />' ) )->not->toContain( 'data-ve-default-styles' );
 	} );

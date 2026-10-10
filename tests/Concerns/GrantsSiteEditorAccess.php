@@ -45,8 +45,7 @@ trait GrantsSiteEditorAccess
 	 */
 	protected function grantSiteEditorAccess(): void
 	{
-		$this->app->bind( SiteEditorAccessGate::class, fn (): SiteEditorAccessGate => new class implements SiteEditorAccessGate
-		{
+		$this->app->bind( SiteEditorAccessGate::class, fn (): SiteEditorAccessGate => new class implements SiteEditorAccessGate {
 			public function check( Request $request ): ?Response
 			{
 				return null;
@@ -62,8 +61,7 @@ trait GrantsSiteEditorAccess
 	 */
 	protected function denySiteEditorAccess(): void
 	{
-		$this->app->bind( SiteEditorAccessGate::class, fn (): SiteEditorAccessGate => new class implements SiteEditorAccessGate
-		{
+		$this->app->bind( SiteEditorAccessGate::class, fn (): SiteEditorAccessGate => new class implements SiteEditorAccessGate {
 			public function check( Request $request ): ?Response
 			{
 				return response( 'denied', Response::HTTP_FORBIDDEN );

@@ -22,6 +22,13 @@ export interface BlockRendererProps {
     attributes: Record<string, unknown>;
     innerBlocks: Block[];
     children?: ReactNode;
+    /**
+     * Rendered inner blocks routed to a named slot instead of
+     * `children`. The template-part inliner's overlay-content block is a
+     * slot container: its own inner blocks render into `slots[_slot]`
+     * (#804 — the navigation overlay).
+     */
+    slots?: Record<string, ReactNode>;
 }
 
 export type BlockRenderer = ComponentType<BlockRendererProps>;

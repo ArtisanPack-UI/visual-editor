@@ -50,8 +50,20 @@ class TemplatePartInliner
 	public const ERROR_CYCLE         = 'cycle';
 	public const ERROR_DEPTH_LIMIT   = 'depth-limit';
 
+	/**
+	 * cms-framework's TemplatePartResolver class. Lookups go through it
+	 * when the package is installed; without cms-framework no part
+	 * resolves (Phase H install gate is the user-facing surface).
+	 *
+	 * Written without a leading backslash so it matches the key Laravel's
+	 * container stores `TemplatePartResolver::class` under — with one,
+	 * `app()` treats it as a distinct binding and silently builds a fresh
+	 * instance, ignoring any host- or test-supplied override.
+	 */
+	protected const RESOLVER_CLASS = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Resolution\\TemplatePartResolver';
+
 	public function __construct(
-		protected int $maxDepth = self::DEFAULT_MAX_DEPTH
+		protected int $maxDepth = self::DEFAULT_MAX_DEPTH,
 	) {
 	}
 
@@ -183,18 +195,6 @@ class TemplatePartInliner
 	}
 
 	/**
-	 * cms-framework's TemplatePartResolver class. Lookups go through it
-	 * when the package is installed; without cms-framework no part
-	 * resolves (Phase H install gate is the user-facing surface).
-	 *
-	 * Written without a leading backslash so it matches the key Laravel's
-	 * container stores `TemplatePartResolver::class` under — with one,
-	 * `app()` treats it as a distinct binding and silently builds a fresh
-	 * instance, ignoring any host- or test-supplied override.
-	 */
-	protected const RESOLVER_CLASS = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Resolution\\TemplatePartResolver';
-
-	/**
 	 * Looks the part up via cms-framework's resolver. Returns the part's
 	 * block tree or null when the resolver returns no entity, the
 	 * resolver isn't installed, or anything goes wrong reading the
@@ -271,7 +271,7 @@ class TemplatePartInliner
 			'attributes'  => array_merge( $attributes, [
 				'slug'              => $slug,
 				'theme'             => $theme,
-				'_resolutionError' => $reason,
+				'_resolutionError'  => $reason,
 			] ),
 			'innerBlocks' => [],
 		];

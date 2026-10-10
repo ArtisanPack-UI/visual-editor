@@ -7,7 +7,7 @@ use ArtisanPackUI\VisualEditor\VisualEditorServiceProvider;
 use Tests\Fixtures\TestBlockContentModel;
 use Tests\Fixtures\TestBlockContentPageModel;
 
-afterEach( function () {
+afterEach( function (): void {
 	removeAllFilters( 'ap.visualEditor.resources' );
 } );
 
@@ -18,7 +18,7 @@ function rebuildResourceResolver(): ResourceResolver
 	return app( ResourceResolver::class );
 }
 
-it( 'registers resources contributed via the ap.visualEditor.resources filter', function () {
+it( 'registers resources contributed via the ap.visualEditor.resources filter', function (): void {
 	addFilter( 'ap.visualEditor.resources', function ( array $resources ): array {
 		return array_merge( [
 			'posts' => TestBlockContentModel::class,
@@ -30,7 +30,7 @@ it( 'registers resources contributed via the ap.visualEditor.resources filter', 
 	expect( $resolver->modelClassFor( 'posts' ) )->toBe( TestBlockContentModel::class );
 } );
 
-it( 'lets static config win over filter contributions on key collision', function () {
+it( 'lets static config win over filter contributions on key collision', function (): void {
 	config()->set( 'artisanpack.visual-editor.resources', [
 		'posts' => TestBlockContentPageModel::class, // host override
 	] );
@@ -48,7 +48,7 @@ it( 'lets static config win over filter contributions on key collision', functio
 	expect( $resolver->modelClassFor( 'posts' ) )->toBe( TestBlockContentPageModel::class );
 } );
 
-it( 'merges static config and filter contributions when slugs do not collide', function () {
+it( 'merges static config and filter contributions when slugs do not collide', function (): void {
 	config()->set( 'artisanpack.visual-editor.resources', [
 		'pages' => TestBlockContentPageModel::class,
 	] );
@@ -65,7 +65,7 @@ it( 'merges static config and filter contributions when slugs do not collide', f
 	expect( $resolver->modelClassFor( 'posts' ) )->toBe( TestBlockContentModel::class );
 } );
 
-it( 'does not throw at boot when a filter contributes an invalid class — error surfaces on first request', function () {
+it( 'does not throw at boot when a filter contributes an invalid class — error surfaces on first request', function (): void {
 	addFilter( 'ap.visualEditor.resources', function ( array $resources ): array {
 		return array_merge( [
 			'invalid' => 'App\\Models\\DoesNotExist',

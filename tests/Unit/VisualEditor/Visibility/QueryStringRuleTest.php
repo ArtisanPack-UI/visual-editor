@@ -10,13 +10,13 @@ function qsContext( array $query ): VisibilityContext
 	return new VisibilityContext( queryString: $query );
 }
 
-it( 'is visible with no clauses', function () {
+it( 'is visible with no clauses', function (): void {
 	$rule = new QueryStringRule();
 	expect( $rule->evaluate( [], qsContext( [ 'a' => 'b' ] ) )->isVisible() )->toBeTrue();
 } );
 
-it( 'shows when a clause matches (direction=show, combinator=any)', function () {
-	$rule = new QueryStringRule();
+it( 'shows when a clause matches (direction=show, combinator=any)', function (): void {
+	$rule  = new QueryStringRule();
 	$attrs = [
 		'direction'  => 'show',
 		'combinator' => 'any',
@@ -26,15 +26,15 @@ it( 'shows when a clause matches (direction=show, combinator=any)', function () 
 	expect( $rule->evaluate( $attrs, qsContext( [ 'utm_source' => 'other' ] ) )->isHidden() )->toBeTrue();
 } );
 
-it( 'supports the wildcard value "*" meaning "key present"', function () {
-	$rule = new QueryStringRule();
+it( 'supports the wildcard value "*" meaning "key present"', function (): void {
+	$rule  = new QueryStringRule();
 	$attrs = [ 'direction' => 'show', 'clauses' => [ [ 'key' => 'debug', 'value' => '*' ] ] ];
 	expect( $rule->evaluate( $attrs, qsContext( [ 'debug' => 'anything' ] ) )->isVisible() )->toBeTrue();
 	expect( $rule->evaluate( $attrs, qsContext( [] ) )->isHidden() )->toBeTrue();
 } );
 
-it( 'supports combinator=all', function () {
-	$rule = new QueryStringRule();
+it( 'supports combinator=all', function (): void {
+	$rule  = new QueryStringRule();
 	$attrs = [
 		'direction'  => 'show',
 		'combinator' => 'all',
@@ -47,8 +47,8 @@ it( 'supports combinator=all', function () {
 	expect( $rule->evaluate( $attrs, qsContext( [ 'a' => '1' ] ) )->isHidden() )->toBeTrue();
 } );
 
-it( 'inverts when direction=hide', function () {
-	$rule = new QueryStringRule();
+it( 'inverts when direction=hide', function (): void {
+	$rule  = new QueryStringRule();
 	$attrs = [ 'direction' => 'hide', 'clauses' => [ [ 'key' => 'preview', 'value' => 'true' ] ] ];
 	expect( $rule->evaluate( $attrs, qsContext( [ 'preview' => 'true' ] ) )->isHidden() )->toBeTrue();
 	expect( $rule->evaluate( $attrs, qsContext( [] ) )->isVisible() )->toBeTrue();

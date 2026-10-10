@@ -10,18 +10,18 @@ function makeResolver(): ResponsiveValueResolver
 	return new ResponsiveValueResolver( BreakpointRegistry::fromLayers( [], [] ) );
 }
 
-it( 'returns scalars unchanged', function () {
+it( 'returns scalars unchanged', function (): void {
 	expect( makeResolver()->resolve( 4, 'md' ) )->toBe( 4 );
 	expect( makeResolver()->resolve( 'left', 'md' ) )->toBe( 'left' );
 } );
 
-it( 'returns the base value when no breakpoint overrides exist', function () {
+it( 'returns the base value when no breakpoint overrides exist', function (): void {
 	$attribute = [ 'base' => 4 ];
 
 	expect( makeResolver()->resolve( $attribute, 'lg' ) )->toBe( 4 );
 } );
 
-it( 'cascades a smaller breakpoint up through null slots', function () {
+it( 'cascades a smaller breakpoint up through null slots', function (): void {
 	$attribute = [ 'base' => 4, 'sm' => 1, 'md' => null, 'lg' => null ];
 	$resolver  = makeResolver();
 
@@ -30,7 +30,7 @@ it( 'cascades a smaller breakpoint up through null slots', function () {
 	expect( $resolver->resolve( $attribute, 'lg' ) )->toBe( 1 );
 } );
 
-it( 'returns the largest defined override at or below the active breakpoint', function () {
+it( 'returns the largest defined override at or below the active breakpoint', function (): void {
 	$attribute = [ 'base' => 3, 'sm' => 1, 'md' => 2 ];
 	$resolver  = makeResolver();
 
@@ -42,19 +42,19 @@ it( 'returns the largest defined override at or below the active breakpoint', fu
 	expect( $resolver->resolve( $attribute, 'base' ) )->toBe( 3 );
 } );
 
-it( 'returns null when no slot at or below the active breakpoint is defined', function () {
+it( 'returns null when no slot at or below the active breakpoint is defined', function (): void {
 	$attribute = [ 'md' => 5 ];
 
 	expect( makeResolver()->resolve( $attribute, 'sm' ) )->toBeNull();
 } );
 
-it( 'falls back to base when active breakpoint is unknown', function () {
+it( 'falls back to base when active breakpoint is unknown', function (): void {
 	$attribute = [ 'base' => 7, 'md' => 9 ];
 
 	expect( makeResolver()->resolve( $attribute, 'made-up' ) )->toBe( 7 );
 } );
 
-it( 'recognises responsive shape via base or any registry key', function () {
+it( 'recognises responsive shape via base or any registry key', function (): void {
 	$resolver = makeResolver();
 
 	expect( $resolver->isResponsiveAttribute( [ 'base' => 1 ] ) )->toBeTrue();
@@ -64,7 +64,7 @@ it( 'recognises responsive shape via base or any registry key', function () {
 	expect( $resolver->isResponsiveAttribute( 'string' ) )->toBeFalse();
 } );
 
-it( 'compresses distinct overrides to skip redundant inherited values', function () {
+it( 'compresses distinct overrides to skip redundant inherited values', function (): void {
 	$resolver  = makeResolver();
 	$attribute = [ 'base' => 4, 'sm' => 4, 'md' => 6, 'lg' => 6 ];
 
@@ -74,7 +74,7 @@ it( 'compresses distinct overrides to skip redundant inherited values', function
 	] );
 } );
 
-it( 'lists override keys that are not in the active registry as orphans', function () {
+it( 'lists override keys that are not in the active registry as orphans', function (): void {
 	$resolver  = makeResolver();
 	$attribute = [ 'base' => 1, 'md' => 2, 'legacy' => 3 ];
 

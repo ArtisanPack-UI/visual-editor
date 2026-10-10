@@ -31,6 +31,7 @@ use DOMDocument;
 use DOMElement;
 use DOMNode;
 use DOMText;
+use InvalidArgumentException;
 
 final class CanonicalMarkup
 {
@@ -64,6 +65,20 @@ final class CanonicalMarkup
 	private static array $dropClassPatterns = [];
 
 	/**
+	 * Attribute-name regexes declared as known renderer divergences.
+	 *
+	 * @var array<int, string>
+	 */
+	private static array $dropAttributePatterns = [];
+
+	/**
+	 * Canonical open-tag regexes declared as known renderer divergences.
+	 *
+	 * @var array<int, string>
+	 */
+	private static array $dropElementPatterns = [];
+
+	/**
 	 * Serializes rendered HTML into the canonical comparison form.
 	 *
 	 * @since 1.6.0
@@ -77,12 +92,29 @@ final class CanonicalMarkup
 	 *                                                 fixtures.json). Matching tokens
 	 *                                                 are dropped from every class
 	 *                                                 attribute before comparison.
+	 * @param  array<int, string> $dropAttributePatterns  Regex sources matched against
+	 *                                                    lowercased attribute names
+	 *                                                    (`dropAttributesMatching`);
+	 *                                                    matching attributes are dropped
+	 *                                                    from every element.
+	 * @param  array<int, string> $dropElementPatterns    Regex sources matched against an
+	 *                                                    element's canonical open tag,
+	 *                                                    after attribute drops
+	 *                                                    (`dropElementsMatching`); a
+	 *                                                    matching element is dropped with
+	 *                                                    its whole subtree.
 	 *
 	 * @return string Canonical, newline-delimited markup tree.
 	 */
-	public static function fromHtml( string $html, array $dropClassPatterns = [] ): string
-	{
-		self::$dropClassPatterns = $dropClassPatterns;
+	public static function fromHtml(
+		string $html,
+		array $dropClassPatterns = [],
+		array $dropAttributePatterns = [],
+		array $dropElementPatterns = [],
+	): string {
+		self::$dropClassPatterns     = $dropClassPatterns;
+		self::$dropAttributePatterns = $dropAttributePatterns;
+		self::$dropElementPatterns   = $dropElementPatterns;
 
 		$document = new DOMDocument();
 
@@ -91,7 +123,7 @@ final class CanonicalMarkup
 		$document->loadHTML(
 			'<!DOCTYPE html><html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"></head><body><div id="ve-parity-root">'
 			. $html
-			. '</div></body></html>'
+			. '</div></body></html>',
 		);
 
 		libxml_clear_errors();
@@ -108,6 +140,38 @@ final class CanonicalMarkup
 		self::serializeChildren( $root, 0, $lines );
 
 		return implode( "\n", $lines );
+	}
+
+	/**
+	 * Wraps a declared divergence source (`dropClassTokensMatching`,
+	 * `dropAttributesMatching`, `dropElementsMatching`, `fixturesMatching`)
+	 * in its PCRE delimiter and asserts that the result compiles.
+	 *
+	 * Both steps matter. A pattern containing `#` would otherwise end the
+	 * delimiter early and fail to compile, and `preg_match()` signals that
+	 * with a warning plus a `false` return that reads exactly like "no
+	 * match" — the golden would then be written *with* the token while the
+	 * JS side (where `new RegExp(source)` compiles it fine) drops it, a
+	 * permanent and baffling parity failure. Throwing here turns that into
+	 * an immediate, legible error instead.
+	 *
+	 * @since 1.6.0
+	 *
+	 * @param  string  $pattern  Delimiter-less regex source from fixtures.json.
+	 *
+	 * @return string Delimited pattern safe to hand to `preg_match()`.
+	 */
+	public static function compileDropClassPattern( string $pattern ): string
+	{
+		$delimited = '#' . str_replace( '#', '\\#', $pattern ) . '#';
+
+		if ( false === @preg_match( $delimited, '' ) ) {
+			throw new InvalidArgumentException(
+				'Invalid knownDivergences pattern in fixtures.json: ' . $pattern,
+			);
+		}
+
+		return $delimited;
 	}
 
 	/**
@@ -195,6 +259,10 @@ final class CanonicalMarkup
 		foreach ( $element->attributes as $attribute ) {
 			$name = strtolower( $attribute->nodeName );
 
+			if ( self::matchesAny( self::$dropAttributePatterns, $name ) ) {
+				continue;
+			}
+
 			$attributes[ $name ] = self::canonicalAttributeValue( $name, (string) $attribute->nodeValue );
 		}
 
@@ -206,13 +274,18 @@ final class CanonicalMarkup
 			$serialized .= ' ' . $name . '="' . self::escape( $value ) . '"';
 		}
 
-		if ( in_array( $tag, self::VOID_ELEMENTS, true ) ) {
-			$lines[] = $indent . '<' . $tag . $serialized . ' />';
+		$isVoid  = in_array( $tag, self::VOID_ELEMENTS, true );
+		$openTag = '<' . $tag . $serialized . ( $isVoid ? ' />' : '>' );
 
+		if ( self::matchesAny( self::$dropElementPatterns, $openTag ) ) {
 			return;
 		}
 
-		$lines[] = $indent . '<' . $tag . $serialized . '>';
+		$lines[] = $indent . $openTag;
+
+		if ( $isVoid ) {
+			return;
+		}
 
 		self::serializeChildren( $element, $depth + 1, $lines );
 
@@ -287,44 +360,28 @@ final class CanonicalMarkup
 	 */
 	private static function isDeclaredDivergentClass( string $token ): bool
 	{
-		foreach ( self::$dropClassPatterns as $pattern ) {
-			if ( 1 === preg_match( self::compileDropClassPattern( $pattern ), $token ) ) {
+		return self::matchesAny( self::$dropClassPatterns, $token );
+	}
+
+	/**
+	 * Whether any declared divergence pattern matches the subject.
+	 *
+	 * @since 1.13.0
+	 *
+	 * @param  array<int, string>  $patterns  Delimiter-less regex sources.
+	 * @param  string              $subject   Class token, attribute name or open tag.
+	 *
+	 * @return bool True when at least one pattern matches.
+	 */
+	private static function matchesAny( array $patterns, string $subject ): bool
+	{
+		foreach ( $patterns as $pattern ) {
+			if ( 1 === preg_match( self::compileDropClassPattern( $pattern ), $subject ) ) {
 				return true;
 			}
 		}
 
 		return false;
-	}
-
-	/**
-	 * Wraps a `dropClassTokensMatching` source in its PCRE delimiter and
-	 * asserts that the result compiles.
-	 *
-	 * Both steps matter. A pattern containing `#` would otherwise end the
-	 * delimiter early and fail to compile, and `preg_match()` signals that
-	 * with a warning plus a `false` return that reads exactly like "no
-	 * match" — the golden would then be written *with* the token while the
-	 * JS side (where `new RegExp(source)` compiles it fine) drops it, a
-	 * permanent and baffling parity failure. Throwing here turns that into
-	 * an immediate, legible error instead.
-	 *
-	 * @since 1.6.0
-	 *
-	 * @param  string  $pattern  Delimiter-less regex source from fixtures.json.
-	 *
-	 * @return string Delimited pattern safe to hand to `preg_match()`.
-	 */
-	public static function compileDropClassPattern( string $pattern ): string
-	{
-		$delimited = '#' . str_replace( '#', '\\#', $pattern ) . '#';
-
-		if ( false === @preg_match( $delimited, '' ) ) {
-			throw new \InvalidArgumentException(
-				'Invalid dropClassTokensMatching pattern in fixtures.json: ' . $pattern
-			);
-		}
-
-		return $delimited;
 	}
 
 	/**

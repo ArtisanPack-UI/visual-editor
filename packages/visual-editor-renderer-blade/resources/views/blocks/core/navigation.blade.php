@@ -64,12 +64,15 @@
 	// visually no-op.
 	$navStyles = [];
 
+	// Custom colors land in an inline `style`; drop anything outside the
+	// CSS-value whitelist so a stored value can't add declarations
+	// (`#000; position:fixed; …`), matching the overlay colors (#804).
 	$customTextColor = isset( $attributes['customTextColor'] ) && is_string( $attributes['customTextColor'] )
-		? trim( $attributes['customTextColor'] )
+		? ( BlockSupports::safeCssValue( trim( $attributes['customTextColor'] ) ) ?? '' )
 		: '';
 
 	$customBackgroundColor = isset( $attributes['customBackgroundColor'] ) && is_string( $attributes['customBackgroundColor'] )
-		? trim( $attributes['customBackgroundColor'] )
+		? ( BlockSupports::safeCssValue( trim( $attributes['customBackgroundColor'] ) ) ?? '' )
 		: '';
 
 	// `textColor` / `backgroundColor` (preset slugs) are already added
@@ -109,8 +112,8 @@
 	// container` wrapper around the items. Renderer-blade's bundled
 	// style.css already has the breakpoint media queries, the
 	// `is-menu-open` transitions, and the layout rules — the toggle
-	// JS at the bottom of this file flips the `is-menu-open` class
-	// and `aria-hidden`. `overlayMenu: "never"` skips the overlay
+	// JS at the bottom of this file flips the `is-menu-open` class,
+	// the open button's `aria-expanded`, and the dialog semantics. `overlayMenu: "never"` skips the overlay
 	// entirely and renders the bare inline `<ul>` for the always-
 	// inline case.
 	$wantsOverlay = 'never' !== $overlayMenu;
@@ -125,8 +128,16 @@
 
 	$overlayClasses = [ 'wp-block-navigation__responsive-container' ];
 
+	// `always` keeps the drawer collapsed behind the open button at every
+	// width. The bundled style.css keys that off upstream's
+	// `hidden-by-default` (container) + `always-shown` (button) classes;
+	// `is-always-overlay` stays for existing theme selectors (#804).
+	$openButtonClasses = [ 'wp-block-navigation__responsive-container-open' ];
+
 	if ( 'always' === $overlayMenu ) {
-		$overlayClasses[] = 'is-always-overlay';
+		$overlayClasses[]    = 'is-always-overlay';
+		$overlayClasses[]    = 'hidden-by-default';
+		$openButtonClasses[] = 'always-shown';
 	}
 
 	// Overlay-specific color attributes (Keystone #54). The nav block
@@ -138,17 +149,23 @@
 	// author picked a dark overlay background.
 	$overlayStyles = [];
 
+	// Preset slugs go straight into class names; reduce them to
+	// `[a-z0-9-]` so a stored value like `x is-menu-open` can't inject
+	// extra classes. An empty result emits no class.
 	$overlayBgSlug = isset( $attributes['overlayBackgroundColor'] ) && is_string( $attributes['overlayBackgroundColor'] )
-		? trim( $attributes['overlayBackgroundColor'] )
+		? BlockSupports::slugify( $attributes['overlayBackgroundColor'] )
 		: '';
+	// Custom overlay colors land in an inline `style`; drop anything
+	// outside the CSS-value whitelist so a stored value can't add
+	// declarations (#804).
 	$overlayBgCustom = isset( $attributes['customOverlayBackgroundColor'] ) && is_string( $attributes['customOverlayBackgroundColor'] )
-		? trim( $attributes['customOverlayBackgroundColor'] )
+		? ( BlockSupports::safeCssValue( trim( $attributes['customOverlayBackgroundColor'] ) ) ?? '' )
 		: '';
 	$overlayTextSlug = isset( $attributes['overlayTextColor'] ) && is_string( $attributes['overlayTextColor'] )
-		? trim( $attributes['overlayTextColor'] )
+		? BlockSupports::slugify( $attributes['overlayTextColor'] )
 		: '';
 	$overlayTextCustom = isset( $attributes['customOverlayTextColor'] ) && is_string( $attributes['customOverlayTextColor'] )
-		? trim( $attributes['customOverlayTextColor'] )
+		? ( BlockSupports::safeCssValue( trim( $attributes['customOverlayTextColor'] ) ) ?? '' )
 		: '';
 
 	if ( '' !== $overlayBgSlug ) {
@@ -188,6 +205,13 @@
 	// missing migrations). Each fallback path lands on the
 	// inline-menu duplicate the bundled style.css's mobile rules
 	// were already styled against.
+	//
+	// The tracker's overlay stack guards against recursion: an overlay
+	// part whose own nav points back at itself (or an A → B → A cycle)
+	// is skipped at the repeat, and nesting stops at
+	// NavigationOverlayTracker::MAX_OVERLAY_DEPTH. An overlay whose
+	// blocks all render empty (e.g. every block hidden by visibility
+	// rules) also falls back to the menu instead of a blank drawer.
 	$overlayInnerHtml = null;
 
 	if ( $wantsOverlay ) {
@@ -198,7 +222,7 @@
 		if ( '' !== $overlaySlug ) {
 			$resolverClass = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Resolution\\TemplatePartResolver';
 
-			if ( class_exists( $resolverClass ) ) {
+			if ( class_exists( $resolverClass ) && $overlayTracker->enterOverlay( $overlaySlug ) ) {
 				try {
 					$resolved = app( $resolverClass )->resolve( $overlaySlug );
 
@@ -206,8 +230,12 @@
 						$overlayBlocks = is_array( $resolved->blocks ?? null ) ? $resolved->blocks : [];
 
 						if ( [] !== $overlayBlocks ) {
-							$overlayInnerHtml = app( \ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer::class )
+							$overlayHtml = app( \ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer::class )
 								->render( $overlayBlocks );
+
+							if ( '' !== trim( $overlayHtml ) ) {
+								$overlayInnerHtml = $overlayHtml;
+							}
 						}
 					}
 				} catch ( \Throwable $e ) {
@@ -215,6 +243,8 @@
 						'slug'      => $overlaySlug,
 						'exception' => $e->getMessage(),
 					] );
+				} finally {
+					$overlayTracker->leaveOverlay();
 				}
 			}
 		}
@@ -236,12 +266,17 @@
 @endif
 <nav{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}{!! $navAttrs !!}>
 @if ( $wantsOverlay )
-	<button type="button" aria-haspopup="dialog" aria-label="{{ $openLabel }}" class="wp-block-navigation__responsive-container-open" data-ap-nav-overlay-open="{{ $overlayId }}">
+	{{-- The container never carries `aria-hidden`: on desktop (`mobile`)
+	     it IS the visible menu, and the closed drawer is already
+	     `display:none`. Dialog semantics (`role`, `aria-modal`,
+	     `aria-label`) are added by the toggle script only while the
+	     drawer is open. --}}
+	<button type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="{{ $overlayId }}" aria-label="{{ $openLabel }}" class="{{ implode( ' ', $openButtonClasses ) }}" data-ap-nav-overlay-open="{{ $overlayId }}">
 		{!! $hamburgerIcon !!}
 	</button>
-	<div class="{{ implode( ' ', $overlayClasses ) }}" id="{{ $overlayId }}" aria-hidden="true"{!! $overlayStyleAttr !!}>
+	<div class="{{ implode( ' ', $overlayClasses ) }}" id="{{ $overlayId }}"{!! $overlayStyleAttr !!}>
 		<div class="wp-block-navigation__responsive-close" tabindex="-1" data-ap-nav-overlay-backdrop>
-			<div class="wp-block-navigation__responsive-dialog" aria-label="{{ $openLabel }}" aria-modal="true" role="dialog">
+			<div class="wp-block-navigation__responsive-dialog">
 				<button type="button" aria-label="{{ $closeLabel }}" class="wp-block-navigation__responsive-container-close" data-ap-nav-overlay-close>
 					{!! $closeIcon !!}
 				</button>
@@ -296,18 +331,33 @@
 <script>
 /*! Keystone #54 — nav overlay toggle. Tiny inline controller; emitted once per response. */
 (function(){if(window.__apNavOverlayInit)return;window.__apNavOverlayInit=true;
-function open(c){c.classList.add('is-menu-open');c.setAttribute('aria-hidden','false');document.body.style.overflow='hidden';
-var d=c.querySelector('[role="dialog"]');if(d){var f=d.querySelector('button,[href],[tabindex]:not([tabindex="-1"])');if(f)f.focus();}}
-function close(c){c.classList.remove('is-menu-open');c.setAttribute('aria-hidden','true');document.body.style.overflow='';
-var t=document.querySelector('[data-ap-nav-overlay-open="'+c.id+'"]');if(t)t.focus();}
+var F='a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+function btn(c){return document.querySelector('[data-ap-nav-overlay-open="'+c.id+'"]');}
+function dlg(c){return c.querySelector('.wp-block-navigation__responsive-dialog');}
+function focusables(d){return Array.prototype.filter.call(d.querySelectorAll(F),function(el){return el.getClientRects().length>0;});}
+/* Dialog semantics live only on the OPEN drawer; the closed container doubles as the desktop menu (RN-1). */
+function open(c){c.classList.add('is-menu-open');document.body.style.overflow='hidden';var t=btn(c);if(t)t.setAttribute('aria-expanded','true');
+var d=dlg(c);if(d){d.setAttribute('role','dialog');d.setAttribute('aria-modal','true');d.setAttribute('aria-label',t&&t.getAttribute('aria-label')||'Menu');
+var f=focusables(d)[0]||d.querySelector(F);if(f)f.focus();}}
+function close(c,keepFocus){c.classList.remove('is-menu-open');document.body.style.overflow='';
+var d=dlg(c);if(d){d.removeAttribute('role');d.removeAttribute('aria-modal');d.removeAttribute('aria-label');}
+var t=btn(c);if(t){t.setAttribute('aria-expanded','false');if(!keepFocus)t.focus();}}
 document.addEventListener('click',function(e){var o=e.target.closest('[data-ap-nav-overlay-open]');
 if(o){e.preventDefault();var t=document.getElementById(o.getAttribute('data-ap-nav-overlay-open'));if(t)open(t);return;}
 var x=e.target.closest('[data-ap-nav-overlay-close]');if(x){e.preventDefault();
 var c=x.closest('.wp-block-navigation__responsive-container');if(c)close(c);return;}
+/* Link click inside an open drawer — close it (same-page anchors, client-side routing) without preventing navigation or stealing focus. */
+var a=e.target.closest('a[href]');if(a){var m=a.closest('.wp-block-navigation__responsive-container.is-menu-open');if(m)close(m,true);return;}
 /* Backdrop click — only when the click target IS the backdrop itself, not a descendant. Without the identity check, every menu-link click bubbles up to the backdrop and triggers a close + preventDefault, breaking link navigation. */
 var b=e.target.closest('[data-ap-nav-overlay-backdrop]');
 if(b&&e.target===b){var c=b.closest('.wp-block-navigation__responsive-container');if(c)close(c);}});
-document.addEventListener('keydown',function(e){if(e.key!=='Escape')return;
-var c=document.querySelector('.wp-block-navigation__responsive-container.is-menu-open');if(c){e.preventDefault();close(c);}});})();
+document.addEventListener('keydown',function(e){if(e.key!=='Escape'&&e.key!=='Tab')return;
+var c=document.querySelector('.wp-block-navigation__responsive-container.is-menu-open');if(!c)return;
+if(e.key==='Escape'){e.preventDefault();close(c);return;}
+/* Tab / Shift+Tab focus wrap inside the open dialog. */
+var d=dlg(c);if(!d)return;var f=focusables(d);if(!f.length)return;
+var first=f[0],last=f[f.length-1],cur=document.activeElement,inside=d.contains(cur);
+if(e.shiftKey&&(cur===first||!inside)){e.preventDefault();last.focus();}
+else if(!e.shiftKey&&(cur===last||!inside)){e.preventDefault();first.focus();}});})();
 </script>
 @endif

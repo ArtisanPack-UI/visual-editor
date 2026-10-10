@@ -3,7 +3,7 @@
 /**
  * Block font-family preset round-trip (#636).
  *
- * The typography-panel {@see \ArtisanPackUI\VisualEditor\Fonts\Services\FontsCssGenerator}
+ * The typography-panel {@see FontsCssGenerator}
  * exposes each installed font as a `var(--wp--preset--font-family--{slug})`
  * custom property. The block typography panel's FontFamilyPicker writes exactly
  * that value onto a block's `typography.fontFamily`, so a block saved with an

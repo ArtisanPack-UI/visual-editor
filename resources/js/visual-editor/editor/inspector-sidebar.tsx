@@ -432,6 +432,9 @@ export function InspectorSidebar(props: InspectorSidebarProps): JSX.Element {
              * inactive panel is toggled via the `hidden` attribute
              * (which also sets `aria-hidden` automatically) so screen
              * readers and sighted users still see only the active one.
+             * Exception: the `list` InspectorControls slot must only be
+             * mounted once, so `BlockInspector` and the List View slot
+             * swap in and out with the List View tab (#813).
              */}
             <div
                 {...(visibleTabs.length > 1
@@ -459,7 +462,28 @@ export function InspectorSidebar(props: InspectorSidebarProps): JSX.Element {
                             }
                         />
                         <InspectorScopeChip />
-                        <BlockInspector />
+                        {/*
+                         * Upstream `BlockInspector` mounts its own
+                         * `list` InspectorControls slot (inside its List
+                         * View tab, or inline when it has no tabs). The
+                         * slot registry keeps only the last-registered
+                         * slot per name and drops the name entirely
+                         * when that slot unmounts, so two mounted
+                         * `list` slots leave fills flipping between
+                         * them or rendering nowhere. Unmount it while
+                         * the List View tab owns the slot (#813).
+                         *
+                         * This resets BlockInspector's own tab, panels
+                         * and scroll on each List View round-trip.
+                         * Keeping it mounted would need its inner slot
+                         * suppressed or re-registered: it sits in an
+                         * always-rendered Ariakit tab panel, a slot
+                         * re-registers only on remount or a registry
+                         * change, and the registry (`SlotFillContext`)
+                         * isn't exported by `@wordpress/components`, so
+                         * there's no public hook for either.
+                         */}
+                        {activeTab !== 'list' && <BlockInspector />}
                     </>
                 ) : (
                     <p
@@ -482,7 +506,9 @@ export function InspectorSidebar(props: InspectorSidebarProps): JSX.Element {
                     data-testid="ap-visual-editor-inspector-list-panel"
                     hidden={activeTab !== 'list'}
                 >
-                    <InspectorControls.Slot group="list" />
+                    {activeTab === 'list' && (
+                        <InspectorControls.Slot group="list" />
+                    )}
                 </div>
             )}
             {showDocumentTab && (

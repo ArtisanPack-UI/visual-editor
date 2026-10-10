@@ -54,10 +54,21 @@ function domNormalize(html: string): string {
 
     wrapper.innerHTML = html;
 
-    return normalizeHtml(wrapper.innerHTML).replace(
+    return stripReactIds(normalizeHtml(wrapper.innerHTML)).replace(
         /(style="[^"]*?);"/g,
         '$1"'
     );
+}
+
+/**
+ * React ties the navigation open button to its drawer with a `useId()`
+ * id (`aria-controls` → container `id`, RN-5). Vue has no SSR-stable id
+ * source on its `^3.3` peer range, so it omits both — a deliberate
+ * divergence stripped here. React 18 ids look like `:R1:` / `:r0:`,
+ * React 19 ids like `«r0»`.
+ */
+function stripReactIds(html: string): string {
+    return html.replace(/\s(?:id|aria-controls)="(?::[^"]*:|«[^"]*»)"/g, '');
 }
 
 const FIXTURES: Array<{ name: string; tree: Block[] }> = [
@@ -159,6 +170,46 @@ const FIXTURES: Array<{ name: string; tree: Block[] }> = [
                 { style: { spacing: { blockGap: { top: 'var:preset|spacing|x--y', left: 'var:preset|spacing|bigGap' } } } },
                 [makeBlock('core/navigation-link', { label: 'Contact', url: '/contact' }, [], 'nav-gap-link-2')],
                 'nav-gap-2'
+            ),
+        ],
+    },
+    {
+        name: 'navigation responsive overlay with aria label + overlay colors (#804)',
+        tree: [
+            makeBlock(
+                'core/navigation',
+                { ariaLabel: 'Primary', overlayBackgroundColor: 'primary', customOverlayTextColor: '#eeeeee' },
+                [makeBlock('core/navigation-link', { label: 'Home', url: '/' }, [], 'nav-ov-link-1')],
+                'nav-ov-1'
+            ),
+            makeBlock(
+                'core/navigation',
+                { overlayMenu: 'always', customOverlayBackgroundColor: '#111111' },
+                [makeBlock('core/navigation-link', { label: 'About', url: '/about' }, [], 'nav-ov-link-2')],
+                'nav-ov-2'
+            ),
+            makeBlock(
+                'core/navigation',
+                { overlayMenu: 'never' },
+                [makeBlock('core/navigation-link', { label: 'Contact', url: '/contact' }, [], 'nav-ov-link-3')],
+                'nav-ov-3'
+            ),
+        ],
+    },
+    {
+        name: 'navigation overlay preset slug sanitizing + PHP trim parity (RN-7 · RN-8)',
+        tree: [
+            makeBlock(
+                'core/navigation',
+                { overlayBackgroundColor: 'x is-menu-open', overlayTextColor: '"Brand_Red"' },
+                [makeBlock('core/navigation-link', { label: 'Home', url: '/' }, [], 'nav-slug-link-1')],
+                'nav-slug-1'
+            ),
+            makeBlock(
+                'core/navigation',
+                { customOverlayBackgroundColor: '#111111\u00a0', customOverlayTextColor: ' #eeeeee\t', overlayBackgroundColor: '!!' },
+                [makeBlock('core/navigation-link', { label: 'About', url: '/about' }, [], 'nav-slug-link-2')],
+                'nav-slug-2'
             ),
         ],
     },
@@ -783,6 +834,97 @@ describe('React/Vue renderer parity', () => {
         expect(await renderVue(tree)).toBe(reactHtml);
         expect(reactHtml).toContain('var(--wp--preset--spacing--big-gap)');
         expect(reactHtml).toContain('var(--wp--preset--spacing--a--b)');
+    });
+
+    it('renders the same navigation overlay template part on both renderers (#804)', async () => {
+        const tree: Block[] = [
+            makeBlock(
+                'core/navigation',
+                { overlay: 'mobile-overlay' },
+                [makeBlock('core/navigation-link', { label: 'Home', url: '/' }, [], 'nav-tp-link')],
+                'nav-tp'
+            ),
+        ];
+        const templateParts = [
+            {
+                slug: 'mobile-overlay',
+                area: 'navigation-overlay',
+                blocks: [makeBlock('core/paragraph', { content: 'Call us today' }, [], 'nav-tp-p')],
+            },
+        ];
+
+        const reactHtml = domNormalize(
+            renderToStaticMarkup(createElement(ReactBlockTree, { tree, templateParts }))
+        );
+        const vueApp = createSSRApp({
+            render: () => vueH(VueBlockTree, { tree, templateParts }),
+        });
+        const vueHtml = domNormalize(stripVueServerMarkers(await vueRenderToString(vueApp)));
+
+        expect(vueHtml).toBe(reactHtml);
+        expect(reactHtml).toContain('wp-block-navigation__responsive-container-content has-overlay-template');
+        expect(reactHtml).toContain('<div class="wp-block-navigation__overlay-content"><p');
+    });
+
+    it('renders the closed navigation overlay without aria-hidden or dialog semantics on both renderers (RN-1 · RN-5)', async () => {
+        const tree: Block[] = [
+            makeBlock(
+                'core/navigation',
+                {},
+                [makeBlock('core/navigation-link', { label: 'Home', url: '/' }, [], 'nav-a11y-link')],
+                'nav-a11y'
+            ),
+        ];
+
+        const rawReact = renderToStaticMarkup(createElement(ReactBlockTree, { tree }));
+        const reactHtml = renderReact(tree);
+
+        expect(await renderVue(tree)).toBe(reactHtml);
+        expect(reactHtml).toContain('aria-expanded="false"');
+        expect(reactHtml).not.toContain('role="dialog"');
+        expect(reactHtml).not.toContain('aria-modal');
+        expect(reactHtml).not.toMatch(/responsive-container[^>]*aria-hidden/);
+        // React's aria-controls points at the container id (stripped above).
+        const controls = rawReact.match(/aria-controls="([^"]+)"/)?.[1];
+
+        expect(controls).toBeDefined();
+        expect(rawReact).toContain(`id="${controls}"`);
+    });
+
+    it('renders a navigation inside a synced pattern with its overlay part on both renderers (RN-9)', async () => {
+        const tree: Block[] = [makeBlock('core/block', { ref: 7 }, [], 'nav-pattern-ref')];
+        const patterns = [
+            {
+                id: 7,
+                blocks: [
+                    makeBlock(
+                        'core/navigation',
+                        { overlay: 'mobile-overlay' },
+                        [makeBlock('core/navigation-link', { label: 'Home', url: '/' }, [], 'nav-pattern-link')],
+                        'nav-pattern'
+                    ),
+                ],
+            },
+        ];
+        const templateParts = [
+            {
+                slug: 'mobile-overlay',
+                area: 'navigation-overlay',
+                blocks: [makeBlock('core/paragraph', { content: 'Call us today' }, [], 'nav-pattern-p')],
+            },
+        ];
+
+        const reactHtml = domNormalize(
+            renderToStaticMarkup(createElement(ReactBlockTree, { tree, templateParts, patterns }))
+        );
+        const vueApp = createSSRApp({
+            render: () => vueH(VueBlockTree, { tree, templateParts, patterns }),
+        });
+        const vueHtml = domNormalize(stripVueServerMarkers(await vueRenderToString(vueApp)));
+
+        expect(vueHtml).toBe(reactHtml);
+        expect(reactHtml.match(/class="wp-block-navigation__overlay-content"/g)).toHaveLength(1);
+        expect(reactHtml).toContain('Call us today');
     });
 
     it('emits the same layout baseline (spacing preset defaults + navigation gap) on both renderers (#814)', async () => {

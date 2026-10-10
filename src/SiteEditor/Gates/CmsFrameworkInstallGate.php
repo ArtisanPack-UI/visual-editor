@@ -57,7 +57,7 @@ class CmsFrameworkInstallGate implements SiteEditorAccessGate
 			'visual-editor::site-editor.install-gate',
 			[
 				'postEditorUrl' => route( 'visual-editor.editor' ),
-			]
+			],
 		);
 	}
 }

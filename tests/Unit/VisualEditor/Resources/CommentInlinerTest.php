@@ -78,7 +78,7 @@ function commentsTreeWithTemplate(): array
 	];
 }
 
-it( 'marks the comments block as unresolved when no post is supplied', function () {
+it( 'marks the comments block as unresolved when no post is supplied', function (): void {
 	$inliner = new CommentInliner( new CommentResolver() );
 	$out     = $inliner->inline( commentsTreeWithTemplate() );
 
@@ -86,7 +86,7 @@ it( 'marks the comments block as unresolved when no post is supplied', function 
 		->toBe( CommentInliner::ERROR_NO_POST_CONTEXT );
 } );
 
-it( 'stamps post-level _resolved* attributes onto the wrapper', function () {
+it( 'stamps post-level _resolved* attributes onto the wrapper', function (): void {
 	$post = fakeCommentablePost( [
 		'comments_count' => 3,
 		'comments'       => fakeComments( 3 ),
@@ -101,7 +101,7 @@ it( 'stamps post-level _resolved* attributes onto the wrapper', function () {
 		->and( $attrs['_resolvedCommentsLabel'] )->toBe( '3 Comments' );
 } );
 
-it( 'clones the comment-template once per comment and stamps each iteration', function () {
+it( 'clones the comment-template once per comment and stamps each iteration', function (): void {
 	$post = fakeCommentablePost( [
 		'comments' => fakeComments( 2 ),
 	] );
@@ -131,7 +131,7 @@ it( 'clones the comment-template once per comment and stamps each iteration', fu
 	expect( $secondIterationAuthor['attributes']['_resolvedAuthorName'] )->toBe( 'Commenter 2' );
 } );
 
-it( 'forwards post-level _resolved* attributes to non-template children', function () {
+it( 'forwards post-level _resolved* attributes to non-template children', function (): void {
 	$post = fakeCommentablePost( [
 		'comments_count' => 4,
 		'comments'       => fakeComments( 4 ),
@@ -156,7 +156,7 @@ it( 'forwards post-level _resolved* attributes to non-template children', functi
 		->and( $title['attributes']['_resolvedCommentCount'] )->toBe( 4 );
 } );
 
-it( 'collapses the template to empty when the post has no comments', function () {
+it( 'collapses the template to empty when the post has no comments', function (): void {
 	$post = fakeCommentablePost( [
 		'comments' => [],
 	] );
@@ -176,7 +176,7 @@ it( 'collapses the template to empty when the post has no comments', function ()
 		->and( $out[0]['attributes']['_resolvedCommentsLabel'] )->toBe( '0 Comments' );
 } );
 
-it( 'does not mutate the original tree on subsequent passes', function () {
+it( 'does not mutate the original tree on subsequent passes', function (): void {
 	$tree = commentsTreeWithTemplate();
 	$post = fakeCommentablePost( [
 		'comments' => fakeComments( 2 ),
@@ -206,7 +206,7 @@ it( 'does not mutate the original tree on subsequent passes', function () {
 	expect( $second[0]['innerBlocks'][1]['innerBlocks'] )->toHaveCount( 2 );
 } );
 
-it( 'iterates iterable comment sources (e.g. Eloquent collections)', function () {
+it( 'iterates iterable comment sources (e.g. Eloquent collections)', function (): void {
 	$post           = fakeCommentablePost();
 	$post->comments = new ArrayIterator( fakeComments( 2 ) );
 

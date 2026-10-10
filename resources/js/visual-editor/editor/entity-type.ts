@@ -30,3 +30,27 @@ export function entityTypeForResource(resource: string): DocumentType {
 
     return null;
 }
+
+/**
+ * Resolves the post-type slug the page-pattern modal (#639) scopes its
+ * fetch to.
+ *
+ * A host-supplied `override` (the mount's `data-pattern-post-type`)
+ * wins so custom content types — e.g. a host-registered `package` —
+ * can opt into the modal without being enrolled in the core-data
+ * entity wrap that {@see entityTypeForResource} gates. Without one,
+ * falls back to the `posts` / `pages` mapping; `null` keeps the modal
+ * off.
+ */
+export function patternPostTypeForResource(
+    resource: string,
+    override?: string | null
+): string | null {
+    const normalized = override?.trim().toLowerCase();
+
+    if (normalized) {
+        return normalized;
+    }
+
+    return entityTypeForResource(resource);
+}

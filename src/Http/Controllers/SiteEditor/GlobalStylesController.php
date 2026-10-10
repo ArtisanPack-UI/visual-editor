@@ -39,12 +39,14 @@ use ArtisanPackUI\VisualEditor\Fonts\Services\FontsCssGenerator;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\UpdateGlobalStylesRequest;
 use ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\SiteEditor\GlobalStylesAdapter;
 use ArtisanPackUI\VisualEditor\Resources\PresetRegistry;
+use ArtisanPackUI\VisualEditor\SiteEditor\Previews\PatternPreviewCache;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\GlobalStylesResolver;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedGlobalStyles;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
+use stdClass;
 
 class GlobalStylesController extends Controller
 {
@@ -122,9 +124,9 @@ class GlobalStylesController extends Controller
 			return response()->json( [
 				'id'           => self::SINGLETON_ID,
 				'theme'        => '',
-				'settings'     => new \stdClass(),
-				'styles'       => new \stdClass(),
-				'mergedStyles' => new \stdClass(),
+				'settings'     => new stdClass(),
+				'styles'       => new stdClass(),
+				'mergedStyles' => new stdClass(),
 				'variations'   => [],
 			] );
 		}
@@ -143,6 +145,217 @@ class GlobalStylesController extends Controller
 			'mergedStyles' => $mergedStyles,
 			'variations'   => $variations,
 		] );
+	}
+
+	/**
+	 * GET `/global-styles/css` — full canvas stylesheet for the active
+	 * theme. Concatenates three sources in order:
+	 *
+	 *   1. cms-framework's `GlobalStylesEmitter::emit()` — compiled CSS
+	 *      from theme.json `settings` + `styles`, merged with any DB
+	 *      override the user authored through the Styles section.
+	 *   2. The theme's hand-authored `themes/{slug}/style.css` — the
+	 *      same stylesheet the public front-end loads via `<link rel>`.
+	 *   3. The theme's canvas-only `themes/{slug}/editor.css` — the
+	 *      analog of WordPress's `add_editor_style()`. Never emitted
+	 *      on the front-end, so themes can use bare element selectors
+	 *      here without theming inspector-panel mini-previews.
+	 *
+	 * Order matters: the emitter declares `--wp--preset--*` custom
+	 * properties on `:root` first; `style.css` can consume those tokens
+	 * and override emitter rules; `editor.css` runs last so canvas-only
+	 * overrides win.
+	 *
+	 * The site-editor canvas appends the full response to its
+	 * `BlockEditorProvider` `settings.styles` array so the iframe surface
+	 * matches the public front-end's branding 1:1 (Keystone #47) and
+	 * gains WordPress-style canvas-only overrides (cms-framework #199).
+	 *
+	 * File reads delegate to cms-framework's `ThemeStylesheetReader` so
+	 * slug validation, path-containment, and memoization stay in one
+	 * place. Falls back to the inline `readThemeStylesheet()` helper
+	 * for older cms-framework installs (`< 2.5`) that don't ship the
+	 * reader binding — the fallback covers `style.css` only, matching
+	 * this endpoint's pre-#199 behavior.
+	 *
+	 * Returns an empty `text/css` body when cms-framework is not
+	 * installed; the canvas treats that the same as "no theme styles"
+	 * and falls back to the package's `DEFAULT_CANVAS_STYLES`.
+	 *
+	 * @since 1.0.0
+	 */
+	public function css(): Response
+	{
+		$emitterFqcn = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Emission\\GlobalStylesEmitter';
+
+		$emitted = '';
+
+		if ( class_exists( $emitterFqcn ) && app()->bound( $emitterFqcn ) ) {
+			$result  = app( $emitterFqcn )->emit();
+			$emitted = is_string( $result ) ? $result : '';
+		}
+
+		$readerFqcn = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Support\\ThemeStylesheetReader';
+		$emitted    = rtrim( $emitted );
+		$parts      = [];
+
+		// #814 — declare every spacing preset the editor's pickers offer
+		// (package defaults when the resolved global styles ship no
+		// `spacingSizes`, plus host presets). Built from the resolved
+		// settings and placed *before* the emitter's tokens so theme /
+		// style-variation / user values always win the `:root` cascade.
+		// Skipped when the emitter produced nothing (no active theme).
+		if ( '' !== $emitted ) {
+			$parts[] = PresetRegistry::spacingPresetsCss( PresetRegistry::activeThemeSpacingSizes() );
+		}
+
+		$parts[] = $emitted;
+
+		// #632 — enqueue the Font Library's generated bundle into the canvas
+		// iframe. Placed after the emitter's `--wp--preset--*` root block but
+		// before the theme stylesheets so `style.css` can consume the
+		// `--wp--preset--font-family--*` custom properties the bundle declares.
+		$fontsCss = app( FontsCssGenerator::class )->read();
+
+		if ( '' !== $fontsCss ) {
+			$parts[] = $fontsCss;
+		}
+
+		if ( class_exists( $readerFqcn ) && app()->bound( $readerFqcn ) ) {
+			$reader  = app( $readerFqcn );
+			$parts[] = $reader->readWrapped( 'style.css' );
+			$parts[] = $reader->readWrapped( 'editor.css' );
+		} else {
+			// Fallback for cms-framework < 2.5 (no reader binding yet):
+			// preserve the pre-#199 behavior of concatenating just
+			// `style.css` under its historical banner text so themes
+			// installed against older cms-framework releases keep the
+			// canvas parity the endpoint already delivered.
+			$themeCss = $this->readThemeStylesheet();
+
+			if ( '' !== $themeCss ) {
+				$parts[] = "/* === theme stylesheet === */\n" . $themeCss;
+			}
+		}
+
+		$body = implode( "\n\n", array_filter( $parts, static fn ( string $part ): bool => '' !== $part ) );
+
+		return response( $body, Response::HTTP_OK, [ 'Content-Type' => 'text/css; charset=utf-8' ] );
+	}
+
+	/**
+	 * GET `/global-styles/{id}` — fetch the singleton by id. Accepts
+	 * `__base__` (theme defaults) or a numeric DB id.
+	 *
+	 * @since 1.0.0
+	 */
+	public function show( string $id ): JsonResponse
+	{
+		$resolved = $this->resolver->get();
+
+		if ( ! $resolved instanceof ResolvedGlobalStyles ) {
+			return response()->json( [ 'message' => 'Global styles not found.' ], Response::HTTP_NOT_FOUND );
+		}
+
+		$expected = null !== $resolved->wpId && $resolved->wpId > 0
+			? (string) $resolved->wpId
+			: self::SINGLETON_ID;
+
+		if ( $id !== $expected ) {
+			return response()->json( [ 'message' => 'Global styles not found.' ], Response::HTTP_NOT_FOUND );
+		}
+
+		return response()->json( ( new GlobalStylesAdapter() )->toArray( $resolved ) );
+	}
+
+	/**
+	 * PUT `/global-styles/{id}` — update or upsert the active theme's
+	 * global styles. The `__base__` id means "no DB row yet" → upsert
+	 * a new row; a numeric id means "update the existing row by id".
+	 *
+	 * @since 1.0.0
+	 */
+	public function update( UpdateGlobalStylesRequest $request, string $id ): JsonResponse
+	{
+		if ( ! $this->cmsFrameworkAvailable() ) {
+			return $this->cmsFrameworkUnavailable();
+		}
+
+		$validated = $request->validated();
+		$theme     = $this->resolveTheme( $validated );
+
+		if ( null === $theme ) {
+			return response()->json( [
+				'message' => 'A theme is required to identify the global styles record.',
+				'errors'  => [ 'theme' => [ 'The theme field is required when no active theme can be derived from the resolver.' ] ],
+			], Response::HTTP_UNPROCESSABLE_ENTITY );
+		}
+
+		$model = self::CMS_GLOBAL_STYLES_FQCN;
+
+		if ( self::SINGLETON_ID === $id ) {
+			// Upsert the active theme's row. The unique index on `theme`
+			// guarantees only one row per theme; a concurrent first-write
+			// race could see two callers both find "no row" via
+			// `firstOrNew` and both try to insert. Catch the unique
+			// violation, reload the now-existing row, re-apply the
+			// edits, and save — deterministic recovery so neither
+			// caller sees a 500.
+			$record        = $model::firstOrNew( [ 'theme' => $theme ] );
+			$record->theme = $theme;
+
+			$this->applyValidatedAttributes( $record, $validated );
+
+			try {
+				$record->save();
+			} catch ( QueryException $e ) {
+				if ( ! $this->isUniqueViolation( $e ) ) {
+					throw $e;
+				}
+
+				// See {@see TemplateController::update()} for the race-recovery
+				// rationale. Rethrow the original exception when the
+				// post-violation lookup still misses.
+				$record = $model::query()->where( 'theme', $theme )->first();
+
+				if ( null === $record ) {
+					throw $e;
+				}
+
+				$this->applyValidatedAttributes( $record, $validated );
+				$record->save();
+			}
+		} else {
+			// Numeric id — scope by both id AND theme so a malformed
+			// request can't update one theme's row through another
+			// theme's body. cms-framework's unique index guarantees one
+			// row per theme so the (id, theme) pair is sufficient.
+			$record = $model::query()
+				->whereKey( $id )
+				->where( 'theme', $theme )
+				->first();
+
+			if ( null === $record ) {
+				return response()->json( [ 'message' => 'Global styles not found.' ], Response::HTTP_NOT_FOUND );
+			}
+
+			$this->applyValidatedAttributes( $record, $validated );
+			$record->save();
+		}
+
+		// #832 — pattern previews render against global styles, so a
+		// change invalidates every cached preview.
+		app( PatternPreviewCache::class )->flush();
+
+		$this->refreshResolver();
+
+		$resolved = $this->resolver->get();
+
+		if ( ! $resolved instanceof ResolvedGlobalStyles ) {
+			return response()->json( [ 'message' => 'Global styles saved but could not be resolved.' ], Response::HTTP_INTERNAL_SERVER_ERROR );
+		}
+
+		return response()->json( ( new GlobalStylesAdapter() )->toArray( $resolved ) );
 	}
 
 	/**
@@ -256,102 +469,6 @@ class GlobalStylesController extends Controller
 	}
 
 	/**
-	 * GET `/global-styles/css` — full canvas stylesheet for the active
-	 * theme. Concatenates three sources in order:
-	 *
-	 *   1. cms-framework's `GlobalStylesEmitter::emit()` — compiled CSS
-	 *      from theme.json `settings` + `styles`, merged with any DB
-	 *      override the user authored through the Styles section.
-	 *   2. The theme's hand-authored `themes/{slug}/style.css` — the
-	 *      same stylesheet the public front-end loads via `<link rel>`.
-	 *   3. The theme's canvas-only `themes/{slug}/editor.css` — the
-	 *      analog of WordPress's `add_editor_style()`. Never emitted
-	 *      on the front-end, so themes can use bare element selectors
-	 *      here without theming inspector-panel mini-previews.
-	 *
-	 * Order matters: the emitter declares `--wp--preset--*` custom
-	 * properties on `:root` first; `style.css` can consume those tokens
-	 * and override emitter rules; `editor.css` runs last so canvas-only
-	 * overrides win.
-	 *
-	 * The site-editor canvas appends the full response to its
-	 * `BlockEditorProvider` `settings.styles` array so the iframe surface
-	 * matches the public front-end's branding 1:1 (Keystone #47) and
-	 * gains WordPress-style canvas-only overrides (cms-framework #199).
-	 *
-	 * File reads delegate to cms-framework's `ThemeStylesheetReader` so
-	 * slug validation, path-containment, and memoization stay in one
-	 * place. Falls back to the inline `readThemeStylesheet()` helper
-	 * for older cms-framework installs (`< 2.5`) that don't ship the
-	 * reader binding — the fallback covers `style.css` only, matching
-	 * this endpoint's pre-#199 behavior.
-	 *
-	 * Returns an empty `text/css` body when cms-framework is not
-	 * installed; the canvas treats that the same as "no theme styles"
-	 * and falls back to the package's `DEFAULT_CANVAS_STYLES`.
-	 *
-	 * @since 1.0.0
-	 */
-	public function css(): Response
-	{
-		$emitterFqcn = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Emission\\GlobalStylesEmitter';
-
-		$emitted = '';
-
-		if ( class_exists( $emitterFqcn ) && app()->bound( $emitterFqcn ) ) {
-			$result  = app( $emitterFqcn )->emit();
-			$emitted = is_string( $result ) ? $result : '';
-		}
-
-		$readerFqcn = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Support\\ThemeStylesheetReader';
-		$emitted    = rtrim( $emitted );
-		$parts      = [];
-
-		// #814 — declare every spacing preset the editor's pickers offer
-		// (package defaults when the resolved global styles ship no
-		// `spacingSizes`, plus host presets). Built from the resolved
-		// settings and placed *before* the emitter's tokens so theme /
-		// style-variation / user values always win the `:root` cascade.
-		// Skipped when the emitter produced nothing (no active theme).
-		if ( '' !== $emitted ) {
-			$parts[] = PresetRegistry::spacingPresetsCss( PresetRegistry::activeThemeSpacingSizes() );
-		}
-
-		$parts[] = $emitted;
-
-		// #632 — enqueue the Font Library's generated bundle into the canvas
-		// iframe. Placed after the emitter's `--wp--preset--*` root block but
-		// before the theme stylesheets so `style.css` can consume the
-		// `--wp--preset--font-family--*` custom properties the bundle declares.
-		$fontsCss = app( FontsCssGenerator::class )->read();
-
-		if ( '' !== $fontsCss ) {
-			$parts[] = $fontsCss;
-		}
-
-		if ( class_exists( $readerFqcn ) && app()->bound( $readerFqcn ) ) {
-			$reader  = app( $readerFqcn );
-			$parts[] = $reader->readWrapped( 'style.css' );
-			$parts[] = $reader->readWrapped( 'editor.css' );
-		} else {
-			// Fallback for cms-framework < 2.5 (no reader binding yet):
-			// preserve the pre-#199 behavior of concatenating just
-			// `style.css` under its historical banner text so themes
-			// installed against older cms-framework releases keep the
-			// canvas parity the endpoint already delivered.
-			$themeCss = $this->readThemeStylesheet();
-
-			if ( '' !== $themeCss ) {
-				$parts[] = "/* === theme stylesheet === */\n" . $themeCss;
-			}
-		}
-
-		$body = implode( "\n\n", array_filter( $parts, static fn ( string $part ): bool => '' !== $part ) );
-
-		return response( $body, Response::HTTP_OK, [ 'Content-Type' => 'text/css; charset=utf-8' ] );
-	}
-
-	/**
 	 * Read the active theme's hand-authored `style.css` from disk —
 	 * fallback for cms-framework installs older than 2.5 that don't
 	 * ship the `ThemeStylesheetReader` binding. When the reader is
@@ -400,117 +517,6 @@ class GlobalStylesController extends Controller
 		$contents = @file_get_contents( $resolved );
 
 		return is_string( $contents ) ? $contents : '';
-	}
-
-	/**
-	 * GET `/global-styles/{id}` — fetch the singleton by id. Accepts
-	 * `__base__` (theme defaults) or a numeric DB id.
-	 *
-	 * @since 1.0.0
-	 */
-	public function show( string $id ): JsonResponse
-	{
-		$resolved = $this->resolver->get();
-
-		if ( ! $resolved instanceof ResolvedGlobalStyles ) {
-			return response()->json( [ 'message' => 'Global styles not found.' ], Response::HTTP_NOT_FOUND );
-		}
-
-		$expected = null !== $resolved->wpId && $resolved->wpId > 0
-			? (string) $resolved->wpId
-			: self::SINGLETON_ID;
-
-		if ( $id !== $expected ) {
-			return response()->json( [ 'message' => 'Global styles not found.' ], Response::HTTP_NOT_FOUND );
-		}
-
-		return response()->json( ( new GlobalStylesAdapter() )->toArray( $resolved ) );
-	}
-
-	/**
-	 * PUT `/global-styles/{id}` — update or upsert the active theme's
-	 * global styles. The `__base__` id means "no DB row yet" → upsert
-	 * a new row; a numeric id means "update the existing row by id".
-	 *
-	 * @since 1.0.0
-	 */
-	public function update( UpdateGlobalStylesRequest $request, string $id ): JsonResponse
-	{
-		if ( ! $this->cmsFrameworkAvailable() ) {
-			return $this->cmsFrameworkUnavailable();
-		}
-
-		$validated = $request->validated();
-		$theme     = $this->resolveTheme( $validated );
-
-		if ( null === $theme ) {
-			return response()->json( [
-				'message' => 'A theme is required to identify the global styles record.',
-				'errors'  => [ 'theme' => [ 'The theme field is required when no active theme can be derived from the resolver.' ] ],
-			], Response::HTTP_UNPROCESSABLE_ENTITY );
-		}
-
-		$model = self::CMS_GLOBAL_STYLES_FQCN;
-
-		if ( self::SINGLETON_ID === $id ) {
-			// Upsert the active theme's row. The unique index on `theme`
-			// guarantees only one row per theme; a concurrent first-write
-			// race could see two callers both find "no row" via
-			// `firstOrNew` and both try to insert. Catch the unique
-			// violation, reload the now-existing row, re-apply the
-			// edits, and save — deterministic recovery so neither
-			// caller sees a 500.
-			$record        = $model::firstOrNew( [ 'theme' => $theme ] );
-			$record->theme = $theme;
-
-			$this->applyValidatedAttributes( $record, $validated );
-
-			try {
-				$record->save();
-			} catch ( QueryException $e ) {
-				if ( ! $this->isUniqueViolation( $e ) ) {
-					throw $e;
-				}
-
-				// See {@see TemplateController::update()} for the race-recovery
-				// rationale. Rethrow the original exception when the
-				// post-violation lookup still misses.
-				$record = $model::query()->where( 'theme', $theme )->first();
-
-				if ( null === $record ) {
-					throw $e;
-				}
-
-				$this->applyValidatedAttributes( $record, $validated );
-				$record->save();
-			}
-		} else {
-			// Numeric id — scope by both id AND theme so a malformed
-			// request can't update one theme's row through another
-			// theme's body. cms-framework's unique index guarantees one
-			// row per theme so the (id, theme) pair is sufficient.
-			$record = $model::query()
-				->whereKey( $id )
-				->where( 'theme', $theme )
-				->first();
-
-			if ( null === $record ) {
-				return response()->json( [ 'message' => 'Global styles not found.' ], Response::HTTP_NOT_FOUND );
-			}
-
-			$this->applyValidatedAttributes( $record, $validated );
-			$record->save();
-		}
-
-		$this->refreshResolver();
-
-		$resolved = $this->resolver->get();
-
-		if ( ! $resolved instanceof ResolvedGlobalStyles ) {
-			return response()->json( [ 'message' => 'Global styles saved but could not be resolved.' ], Response::HTTP_INTERNAL_SERVER_ERROR );
-		}
-
-		return response()->json( ( new GlobalStylesAdapter() )->toArray( $resolved ) );
 	}
 
 	/**

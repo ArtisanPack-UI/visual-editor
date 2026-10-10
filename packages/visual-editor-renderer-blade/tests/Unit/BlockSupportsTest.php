@@ -655,7 +655,7 @@ describe( 'compile() — state design tools (#488)', function (): void {
 		$result = BlockSupports::compile( [
 			'style'  => [ 'color' => [ 'background' => '#abc123' ] ],
 			'states' => [
-				'_scopeId'              => 'def',
+				'_scopeId'               => 'def',
 				'style.color.background' => [ 'idle' => '#abc123', 'hover' => '#fff' ],
 			],
 		] );
@@ -670,8 +670,8 @@ describe( 'compile() — CSS position (#640)', function (): void {
 		$result = BlockSupports::compile( [
 			'style' => [
 				'position' => [
-					'value'   => 'sticky',
-					'offsets' => [ 'top' => [ 'value' => 0, 'unit' => 'px' ] ],
+					'value'            => 'sticky',
+					'offsets'          => [ 'top' => [ 'value' => 0, 'unit' => 'px' ] ],
 					'_positionScopeId' => 'abc1234',
 				],
 			],
@@ -714,14 +714,14 @@ describe( 'BlockSupports::safeCssValue (#720 shared CSS-value whitelist)', funct
 	it( 'returns lengths, percentages, keywords and calc() unchanged', function ( string $value ): void {
 		expect( BlockSupports::safeCssValue( $value ) )->toBe( $value );
 	} )->with( [
-		'pixel length'      => [ '100px' ],
-		'rem length'        => [ '1.5rem' ],
-		'percentage'        => [ '50%' ],
-		'negative order'    => [ '-5' ],
-		'bare keyword'      => [ 'auto' ],
+		'pixel length'       => [ '100px' ],
+		'rem length'         => [ '1.5rem' ],
+		'percentage'         => [ '50%' ],
+		'negative order'     => [ '-5' ],
+		'bare keyword'       => [ 'auto' ],
 		'hyphenated keyword' => [ 'fit-content' ],
-		'calc with var'     => [ 'calc(50% - var(--wp--style--block-gap, 0.5em) * 0.5)' ],
-		'calc division'     => [ 'calc(100% / 3)' ],
+		'calc with var'      => [ 'calc(50% - var(--wp--style--block-gap, 0.5em) * 0.5)' ],
+		'calc division'      => [ 'calc(100% / 3)' ],
 	] );
 
 	it( 'rejects empty or whitespace-only values', function ( string $value ): void {

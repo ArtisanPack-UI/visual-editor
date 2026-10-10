@@ -137,14 +137,14 @@ class FontFileWriter
 			throw new FontFileWriteException(
 				sprintf( 'Failed to write the font face to "%s".', $path ),
 				0,
-				$e
+				$e,
 			);
 		}
 
 		if ( false === $written ) {
 			throw new FontFileWriteException( sprintf(
 				'Failed to write the font face to "%s".',
-				$path
+				$path,
 			) );
 		}
 
@@ -168,7 +168,7 @@ class FontFileWriter
 	{
 		$paths = array_values( array_filter(
 			$paths,
-			static fn ( $path ): bool => is_string( $path ) && '' !== $path
+			static fn ( $path ): bool => is_string( $path ) && '' !== $path,
 		) );
 
 		if ( [] === $paths ) {

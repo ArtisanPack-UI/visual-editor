@@ -38,15 +38,6 @@ function previewStubModel( array $attributes = [], ?object $author = null ): Mod
 		// Pretend the model lives on a real table so `getKey()` works.
 		protected $table = 'preview_stub';
 
-		public function getAttribute( $key )
-		{
-			if ( 'author' === $key ) {
-				return $this->stubAuthor;
-			}
-
-			return parent::getAttribute( $key );
-		}
-
 		public function __get( $key )
 		{
 			if ( 'author' === $key ) {
@@ -54,6 +45,15 @@ function previewStubModel( array $attributes = [], ?object $author = null ): Mod
 			}
 
 			return parent::__get( $key );
+		}
+
+		public function getAttribute( $key )
+		{
+			if ( 'author' === $key ) {
+				return $this->stubAuthor;
+			}
+
+			return parent::getAttribute( $key );
 		}
 	};
 
@@ -63,7 +63,7 @@ function previewStubModel( array $attributes = [], ?object $author = null ): Mod
 	return $model;
 }
 
-it( 'returns a null `_preview` envelope when no author / featured-media / date is set', function () {
+it( 'returns a null `_preview` envelope when no author / featured-media / date is set', function (): void {
 	$model = previewStubModel();
 
 	$array = ( new PostResource( $model ) )->toArray( Request::create( '/' ) );
@@ -74,7 +74,7 @@ it( 'returns a null `_preview` envelope when no author / featured-media / date i
 	expect( $array['_preview']['dateFormatted'] )->toBeNull();
 } );
 
-it( 'resolves the author envelope from the model\'s `author` accessor', function () {
+it( 'resolves the author envelope from the model\'s `author` accessor', function (): void {
 	$author = (object) [
 		'name'       => 'Jane Doe',
 		'bio'        => 'Writer',
@@ -94,7 +94,7 @@ it( 'resolves the author envelope from the model\'s `author` accessor', function
 	] );
 } );
 
-it( 'falls back to `description` / `website` when the author exposes those keys', function () {
+it( 'falls back to `description` / `website` when the author exposes those keys', function (): void {
 	$author = (object) [
 		'name'        => 'Jane Doe',
 		'description' => 'Long-form description',
@@ -109,7 +109,7 @@ it( 'falls back to `description` / `website` when the author exposes those keys'
 	expect( $array['_preview']['author']['url'] )->toBe( 'https://example.test/jane' );
 } );
 
-it( 'formats the post date for display in `dateFormatted`', function () {
+it( 'formats the post date for display in `dateFormatted`', function (): void {
 	$model = previewStubModel( [
 		'published_at' => '2026-04-30 12:00:00',
 	] );
@@ -119,7 +119,7 @@ it( 'formats the post date for display in `dateFormatted`', function () {
 	expect( $array['_preview']['dateFormatted'] )->toBe( 'April 30, 2026' );
 } );
 
-it( 'returns a null featured image when no media-library helpers are bound', function () {
+it( 'returns a null featured image when no media-library helpers are bound', function (): void {
 	$model = previewStubModel( [
 		'featured_image_id' => 42,
 	] );

@@ -26,14 +26,14 @@ use Tests\TestUser;
 
 class FontCapabilityUser extends TestUser
 {
-	protected $table = 'users';
-
 	/**
 	 * The capabilities this user has been granted.
 	 *
 	 * @var array<int, string>
 	 */
 	public array $grantedCapabilities = [];
+
+	protected $table = 'users';
 
 	/**
 	 * Whether this user holds the given capability.

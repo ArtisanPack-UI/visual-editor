@@ -44,7 +44,7 @@ function fakeRenderablePost( int $id, string $title, string $excerpt = '' ): obj
 	return $post;
 }
 
-it( 'renders core/query results through the full Blade pipeline', function () {
+it( 'renders core/query results through the full Blade pipeline', function (): void {
 	$this->fake->setItems( [
 		fakeRenderablePost( 1, 'First post' ),
 		fakeRenderablePost( 2, 'Second post' ),
@@ -75,7 +75,7 @@ it( 'renders core/query results through the full Blade pipeline', function () {
 		->and( substr_count( $html, 'wp-block-post-template-item' ) )->toBe( 2 );
 } );
 
-it( 'preserves the surrounding tree when the resolver fails', function () {
+it( 'preserves the surrounding tree when the resolver fails', function (): void {
 	$this->app->forgetInstance( QueryResolverContract::class );
 	$this->app->offsetUnset( QueryResolverContract::class );
 

@@ -57,7 +57,7 @@ function navMetadataPost(): object
 it( 'stamps both adjacent links on post-navigation-link for either namespace', function ( string $name ): void {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => $name, 'attributes' => [], 'innerBlocks' => [] ],
-		navMetadataPost()
+		navMetadataPost(),
 	);
 
 	expect( $resolved['attributes']['_resolvedPrevUrl'] )->toBe( 'https://example.test/posts/previous' )
@@ -70,12 +70,12 @@ it( 'stamps both adjacent links on post-navigation-link for either namespace', f
 ] );
 
 it( 'falls back to empty strings when no adjacent post is available', function (): void {
-	$post = new stdClass();
+	$post        = new stdClass();
 	$post->title = 'Solo';
 
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'artisanpack/post-navigation-link', 'attributes' => [], 'innerBlocks' => [] ],
-		$post
+		$post,
 	);
 
 	expect( $resolved['attributes']['_resolvedPrevUrl'] )->toBe( '' )
@@ -87,7 +87,7 @@ it( 'falls back to empty strings when no adjacent post is available', function (
 it( 'stamps the post-terms _resolvedTermsByTaxonomy map keyed by taxonomy', function ( string $name ): void {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => $name, 'attributes' => [], 'innerBlocks' => [] ],
-		navMetadataPost()
+		navMetadataPost(),
 	);
 
 	$map = $resolved['attributes']['_resolvedTermsByTaxonomy'];
@@ -107,7 +107,7 @@ it( 'stamps the post-terms _resolvedTermsByTaxonomy map keyed by taxonomy', func
 ] );
 
 it( 'merges categories/tags shortcut relations into the post-terms map', function (): void {
-	$post = new stdClass();
+	$post             = new stdClass();
 	$post->categories = [
 		(object) [ 'name' => 'Notes', 'slug' => 'notes', 'url' => '/c/notes' ],
 	];
@@ -117,7 +117,7 @@ it( 'merges categories/tags shortcut relations into the post-terms map', functio
 
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'artisanpack/post-terms', 'attributes' => [], 'innerBlocks' => [] ],
-		$post
+		$post,
 	);
 
 	$map = $resolved['attributes']['_resolvedTermsByTaxonomy'];
@@ -129,7 +129,7 @@ it( 'merges categories/tags shortcut relations into the post-terms map', functio
 it( 'stamps read-more with the permalink for either namespace', function ( string $name ): void {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => $name, 'attributes' => [ 'content' => 'Keep reading' ], 'innerBlocks' => [] ],
-		navMetadataPost()
+		navMetadataPost(),
 	);
 
 	expect( $resolved['attributes']['_resolvedPermalink'] )->toBe( 'https://example.test/posts/current' )
@@ -144,7 +144,7 @@ it( 'stamps read-more with the permalink for either namespace', function ( strin
 it( 'stamps term-description from the primary term for either namespace', function ( string $name ): void {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => $name, 'attributes' => [], 'innerBlocks' => [] ],
-		navMetadataPost()
+		navMetadataPost(),
 	);
 
 	// `terms` is iterated in order — first entry (News) is the primary.
@@ -157,7 +157,7 @@ it( 'stamps term-description from the primary term for either namespace', functi
 ] );
 
 it( 'prefers an explicit primary_term accessor when the post exposes one', function (): void {
-	$post = navMetadataPost();
+	$post               = navMetadataPost();
 	$post->primary_term = (object) [
 		'name'        => 'Special',
 		'slug'        => 'special',
@@ -167,7 +167,7 @@ it( 'prefers an explicit primary_term accessor when the post exposes one', funct
 
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'artisanpack/term-description', 'attributes' => [], 'innerBlocks' => [] ],
-		$post
+		$post,
 	);
 
 	expect( $resolved['attributes']['_resolvedTermDescription'] )->toBe( 'Hand-picked' )
@@ -175,7 +175,7 @@ it( 'prefers an explicit primary_term accessor when the post exposes one', funct
 } );
 
 it( 'falls back to the cms-framework permalink accessor for term URLs', function (): void {
-	$post = new stdClass();
+	$post             = new stdClass();
 	$post->categories = [
 		// PostCategory exposes its URL as `permalink` (no `url` field).
 		(object) [
@@ -188,7 +188,7 @@ it( 'falls back to the cms-framework permalink accessor for term URLs', function
 
 	$termsResolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'artisanpack/post-terms', 'attributes' => [], 'innerBlocks' => [] ],
-		$post
+		$post,
 	);
 
 	expect( $termsResolved['attributes']['_resolvedTermsByTaxonomy']['category'][0]['url'] )
@@ -196,7 +196,7 @@ it( 'falls back to the cms-framework permalink accessor for term URLs', function
 
 	$descriptionResolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'artisanpack/term-description', 'attributes' => [], 'innerBlocks' => [] ],
-		$post
+		$post,
 	);
 
 	expect( $descriptionResolved['attributes']['_resolvedTermUrl'] )
@@ -204,7 +204,7 @@ it( 'falls back to the cms-framework permalink accessor for term URLs', function
 } );
 
 it( 'sanitizes script tags / event handlers / javascript: URLs out of term descriptions', function (): void {
-	$post = new stdClass();
+	$post             = new stdClass();
 	$post->categories = [
 		(object) [
 			'name'        => 'Risky',
@@ -218,7 +218,7 @@ it( 'sanitizes script tags / event handlers / javascript: URLs out of term descr
 
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'artisanpack/term-description', 'attributes' => [], 'innerBlocks' => [] ],
-		$post
+		$post,
 	);
 
 	$description = $resolved['attributes']['_resolvedTermDescription'];
@@ -231,12 +231,12 @@ it( 'sanitizes script tags / event handlers / javascript: URLs out of term descr
 } );
 
 it( 'returns empty term-description when the post has no terms', function (): void {
-	$post = new stdClass();
+	$post        = new stdClass();
 	$post->title = 'Termless';
 
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'artisanpack/term-description', 'attributes' => [], 'innerBlocks' => [] ],
-		$post
+		$post,
 	);
 
 	expect( $resolved['attributes']['_resolvedTermDescription'] )->toBe( '' )

@@ -62,6 +62,7 @@ use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulato
 use ArtisanPackUI\VisualEditorRendererBlade\Services\PositionCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\StateCssAccumulator;
+use Throwable;
 
 class BlockSupports
 {
@@ -95,6 +96,33 @@ class BlockSupports
 	 * arbitrary class names into the wrapper.
 	 */
 	protected const ALIGN_VALUES = [ 'wide', 'full', 'left', 'center', 'right' ];
+
+	/**
+	 * The one grammar for "what characters may appear in a user-authored
+	 * CSS value written into a `<style>` block". Everything a length,
+	 * percentage, `calc()` expression or CSS custom property needs —
+	 * letters, digits, whitespace, and `_ + - * / . , ( ) % #` — and
+	 * nothing else. The CSS-structural characters that could close a
+	 * declaration, rule, or the `<style>` element itself
+	 * (`; { } < > : " ' \ @`) are deliberately absent, so a stored value
+	 * can neither inject a sibling declaration/rule nor break out of the
+	 * tag.
+	 *
+	 * Shared by {@see self::sanitizeCssValue()} (strips offending chars)
+	 * and {@see self::safeCssValue()} (rejects the whole value). Mirrored
+	 * by the `safeCssValue` helper in the React and Vue renderers so all
+	 * three drop the same hostile values (kept honest by the
+	 * `renderer-markup-parity` suite).
+	 *
+	 * The whitespace set is spelled out as the ASCII characters
+	 * (` \t\n\r\f`) rather than `\s` on purpose: PCRE `\s` (this pattern
+	 * carries no `/u`) and ECMAScript `\s` disagree on Unicode whitespace
+	 * (e.g. U+00A0), which would let JS keep a value Blade drops. The
+	 * literal class keeps all three renderers byte-identical. `/u` is also
+	 * deliberately absent so an invalid-UTF-8 value fails the match as a
+	 * disallowed byte instead of erroring `preg_match` into a false pass.
+	 */
+	private const CSS_VALUE_DISALLOWED = '/[^a-zA-Z0-9_+\-*\/.,()%#\t\n\r\f ]/';
 
 	/**
 	 * Per-request cache for the position payload produced at the top of
@@ -236,85 +264,6 @@ class BlockSupports
 			'positionClass'       => $position['class'],
 			'positionRules'       => $position['rules'],
 		];
-	}
-
-	/**
-	 * Resolve the request-scoped breakpoint registry from the
-	 * container, falling back to package defaults when the container
-	 * isn't booted (very-early call path / unit-test isolation).
-	 *
-	 * @since 1.0.0
-	 */
-	protected static function resolveRegistry(): BreakpointRegistry
-	{
-		try {
-			return app( BreakpointRegistry::class );
-		} catch ( \Throwable $e ) {
-			return BreakpointRegistry::fromLayers();
-		}
-	}
-
-	/**
-	 * Push a scope's rules into a request-scoped accumulator (#640
-	 * consolidation of the previously copy-pasted per-feature push*
-	 * methods).
-	 *
-	 * Container-not-booted paths (very-early call sites, unit tests
-	 * that exercise BlockSupports without the package service
-	 * provider) silently drop — the call is idempotent and the
-	 * accumulator is a side channel, not the data path.
-	 *
-	 * @since 1.4.0
-	 *
-	 * @param  class-string  $accumulator  Fully-qualified accumulator class.
-	 */
-	/**
-	 * Compose a `ve-<prefix>-<id>` scope class from an
-	 * editor-minted id or a content-derived hash fallback (#640
-	 * consolidation of the previously copy-pasted per-feature
-	 * `resolve*ScopeClass` helpers).
-	 *
-	 * The editor-minted id has to pass a strict allowlist regex + a
-	 * length cap — it lands unescaped in the wrapper's `class`
-	 * attribute, so its content has to be a safe identifier-style
-	 * token.
-	 *
-	 * @since 1.4.0
-	 *
-	 * @param  string                $prefix      Class prefix without the trailing dash (e.g. `ve-bs`).
-	 * @param  string|null           $candidate   Editor-minted id or null.
-	 * @param  array<string, mixed>  $payload     Fallback hash source when the candidate is absent or invalid.
-	 */
-	protected static function composeScopeClass( string $prefix, ?string $candidate, array $payload ): string
-	{
-		if ( is_string( $candidate ) && 1 === preg_match( '/^[a-z0-9][a-z0-9_-]*$/i', $candidate ) && strlen( $candidate ) <= 64 ) {
-			return $prefix . '-' . $candidate;
-		}
-
-		$hash = substr(
-			hash( 'xxh3', (string) json_encode( $payload ) ),
-			0,
-			10
-		);
-
-		return $prefix . '-' . $hash;
-	}
-
-	protected static function pushToAccumulator( string $accumulator, string $scope, string $rules ): void
-	{
-		if ( '' === $scope || '' === $rules ) {
-			return;
-		}
-
-		if ( ! function_exists( 'app' ) ) {
-			return;
-		}
-
-		try {
-			app( $accumulator )->push( $scope, $rules );
-		} catch ( \Throwable $e ) {
-			// Silently drop — see method docblock.
-		}
 	}
 
 	/**
@@ -502,6 +451,401 @@ class BlockSupports
 	}
 
 	/**
+	 * Apply the gradient border feature to an already-rendered block's
+	 * HTML output (#490).
+	 *
+	 * Static blocks (Blade partials) get gradient border handling for
+	 * free via {@see wrapperAttrs} → {@see compile}. Dynamic blocks
+	 * (subclasses of `DynamicBlock`) render their own HTML and never
+	 * call into the compile pipeline — so the renderer pipes their
+	 * output through this method to push the scope's CSS rule into the
+	 * accumulator AND stamp the scope class onto the first opening
+	 * tag.
+	 *
+	 * No-op when the block carries no gradient border configuration at
+	 * any cascade level. Idempotent on the class injection — calling
+	 * twice with the same scope is harmless (the class is deduped at
+	 * the wrapper level by the consumer).
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param  string               $html       Block's pre-rendered HTML.
+	 * @param  array<string, mixed> $attributes Block's attribute payload
+	 *                                          (the same shape `compile`
+	 *                                          would receive).
+	 */
+	public static function applyGradientBorder( string $html, array $attributes ): string
+	{
+		if ( '' === $html ) {
+			return $html;
+		}
+
+		$compiled = self::compileGradientBorder( $attributes );
+
+		if ( '' === $compiled['class'] || '' === $compiled['rules'] ) {
+			return $html;
+		}
+
+		self::pushGradientBorder( $compiled['class'], $compiled['rules'] );
+
+		return self::injectClassIntoFirstTag( $html, $compiled['class'] );
+	}
+
+	/**
+	 * Walk the `attributes.responsive` payload and emit a scoped
+	 * `<style>` block that overrides the base wrapper styles at each
+	 * declared breakpoint.
+	 *
+	 * The payload is path-keyed (`{ "style.spacing.padding": { md: "2rem" } }`
+	 * — same shape the `withResponsiveAttributes` editor HOC writes).
+	 * Paths in {@see self::RESPONSIVE_CSS_PROPERTY_MAP} are handled by
+	 * the generic CSS emitter; everything else (e.g. the columns
+	 * block's `columnCount` override) is the partial's responsibility.
+	 *
+	 * Returns `{class, rules}` — the class merges into the wrapper
+	 * class list so the emitted `@media` rules target it; `rules` is
+	 * the bare CSS body (no surrounding `<style>` tag) that gets
+	 * pushed into the per-request {@see ResponsiveCssAccumulator}.
+	 * Both are empty when no actionable overrides are present.
+	 *
+	 * #509 — consolidated emission. compile() automatically pushes
+	 * these rules into the accumulator, and `<x-ve-blocks>` /
+	 * `<x-ve-template>` drain the accumulator into one
+	 * `<style data-ve-responsive>` block at the top of the render
+	 * output. Per-block partials no longer emit their own `<style>`
+	 * tags inline.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 *
+	 * @return array{class: string, rules: string}
+	 */
+	public static function compileResponsive( array $attributes ): array
+	{
+		$responsive = $attributes['responsive'] ?? null;
+
+		if ( ! is_array( $responsive ) || [] === $responsive ) {
+			return [ 'class' => '', 'rules' => '' ];
+		}
+
+		// Pull the request-scoped registry from the container so
+		// host-configured breakpoints (theme.json → config) are
+		// respected. `fromLayers()` without args only returns the
+		// Tailwind defaults — any custom key (e.g. `3xl`) would
+		// resolve to null here and the override would be silently
+		// dropped at render time. The fallback to defaults preserves
+		// the behavior for callers (mostly tests) that hit
+		// `compileResponsive` outside the container.
+		$registry = function_exists( 'app' )
+			? self::resolveRegistry()
+			: BreakpointRegistry::fromLayers();
+		$rules    = [];
+		$scope    = self::generateResponsiveScopeClass( $responsive );
+
+		// Tripled scope class boosts the rule's specificity to
+		// (0,0,3,0), matching WP core's own
+		// `.wp-block-columns:not(.is-not-stacked-on-mobile) > .wp-block-column`
+		// rule. Both rules then carry `!important`, so source order
+		// decides — and this `<style>` block is emitted right before
+		// the wrapper, after every WP core stylesheet, so we win.
+		$selector = sprintf( '.%1$s.%1$s.%1$s', $scope );
+
+		foreach ( $responsive as $path => $overrides ) {
+			if ( ! is_array( $overrides ) ) {
+				continue;
+			}
+
+			if ( ! isset( self::RESPONSIVE_CSS_PROPERTY_MAP[ $path ] ) ) {
+				continue;
+			}
+
+			$property = self::RESPONSIVE_CSS_PROPERTY_MAP[ $path ];
+
+			// Registry emission order, not storage order: legacy min-width
+			// rules ascending, then desktop-first max-width rules from
+			// largest to smallest so the narrower override wins (#820).
+			foreach ( $registry->keysWithBase() as $breakpoint ) {
+				$value = $overrides[ $breakpoint ] ?? null;
+
+				if ( null === $value || '' === $value ) {
+					continue;
+				}
+
+				$declarations = self::responsiveDeclarations( $property, $value );
+
+				if ( '' === $declarations ) {
+					continue;
+				}
+
+				if ( BreakpointRegistry::BASE_KEY === $breakpoint ) {
+					$rules[] = sprintf( '%s{%s}', $selector, $declarations );
+
+					continue;
+				}
+
+				$query = $registry->mediaQuery( $breakpoint );
+
+				if ( null === $query ) {
+					continue;
+				}
+
+				$rules[] = sprintf(
+					'@media %s{%s{%s}}',
+					$query,
+					$selector,
+					$declarations,
+				);
+			}
+		}
+
+		if ( [] === $rules ) {
+			return [ 'class' => '', 'rules' => '' ];
+		}
+
+		return [
+			'class' => $scope,
+			'rules' => implode( '', $rules ),
+		];
+	}
+
+	/**
+	 * Validate a single user-authored CSS value against the shared
+	 * whitelist ({@see self::CSS_VALUE_DISALLOWED}) and return it
+	 * unchanged when it is safe, or `null` when it is empty or carries a
+	 * disallowed character.
+	 *
+	 * Unlike {@see self::sanitizeCssValue()}, which strips offending
+	 * characters and keeps a (possibly mangled) value, this rejects the
+	 * whole value so the caller can drop the rule entirely. It backs the
+	 * paths that splice a value straight into a `<style>` block without a
+	 * downstream escape — the column-width responsive rules and the flex
+	 * arbitrary-value emitter — where a mangled fragment is never wanted.
+	 *
+	 * The slash and asterisk are whitelisted characters (they are legal
+	 * `calc()` operators), so the CSS comment-open, comment-close and
+	 * double-slash digraphs are rejected explicitly: an unterminated
+	 * comment-open would swallow every following rule in the shared
+	 * `<style>` block, and a double slash is the protocol-relative prefix
+	 * a `url()` would need. No length, percentage or `calc()` value
+	 * contains those sequences, so dropping them costs nothing. This
+	 * helper is therefore safe only for non-URL properties; do not reuse
+	 * it for a value that lands on a fetching property (`background`,
+	 * `cursor`, `mask`, …).
+	 *
+	 * @since 1.7.0
+	 */
+	public static function safeCssValue( string $value ): ?string
+	{
+		if ( '' === trim( $value ) ) {
+			return null;
+		}
+
+		if ( 1 === preg_match( self::CSS_VALUE_DISALLOWED, $value ) ) {
+			return null;
+		}
+
+		if ( str_contains( $value, '/*' ) || str_contains( $value, '*/' ) || str_contains( $value, '//' ) ) {
+			return null;
+		}
+
+		return $value;
+	}
+
+	/**
+	 * Back-compat shim. Previously emitted a per-block `<style>` tag
+	 * before the wrapper; now a no-op because compile() pushes the
+	 * rules into the per-request accumulator and
+	 * `<x-ve-blocks>` / `<x-ve-template>` drain it into one
+	 * consolidated `<style data-ve-responsive>` block at the top of
+	 * the render output. Kept so partials calling
+	 * `{!! BlockSupports::wrapperCss( $attributes ) !!}` continue to
+	 * compile — the call becomes harmless.
+	 *
+	 * Forked or host-app partials that referenced this should drop
+	 * the line; nothing else needs to change.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 *
+	 * @deprecated 1.0.0 — accumulator-based emission supersedes per-block tags.
+	 */
+	public static function wrapperCss( array $attributes ): string
+	{
+		// Trigger the side-effect (accumulator push) for partials
+		// that don't go through compile() — though every shipped
+		// partial does. Keeps behavior consistent if a host calls
+		// wrapperCss() without first calling wrapperAttrs().
+		$responsive = self::compileResponsive( $attributes );
+
+		if ( '' !== $responsive['class'] ) {
+			self::pushResponsive( $responsive['class'], $responsive['rules'] );
+		}
+
+		return '';
+	}
+
+	/**
+	 * Render the wrapper-element attribute string a Blade partial
+	 * splices straight into its opening tag:
+	 *
+	 *     <{{ $tag }} {!! BlockSupports::wrapperAttrs($attributes, ['wp-block-group']) !!}>
+	 *
+	 * Outputs a leading space when any attribute is emitted (`class="…"
+	 * style="…" id="…"`), or an empty string when none are. `$baseClasses`
+	 * are prepended verbatim before the compiled support classes so each
+	 * block partial can declare its own `wp-block-{name}` / layout class
+	 * list without the compiler knowing about them.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 * @param  array<int, string>    $baseClasses
+	 */
+	public static function wrapperAttrs( array $attributes, array $baseClasses = [] ): string
+	{
+		$compiled = self::compile( $attributes );
+
+		$classes = array_values( array_unique( array_filter(
+			array_merge( $baseClasses, $compiled['classes'] ),
+			static fn ( string $class ): bool => '' !== trim( $class ),
+		) ) );
+
+		// #489 — drop the animation wrapper classes, scope class, and
+		// data-* attributes onto any block carrying an
+		// `artisanpackAnimations` attribute bag. Centralising it here
+		// means every block partial that uses `wrapperAttrs` (image,
+		// table, navigation, etc.) picks up animations for free; cover
+		// builds its attrs by hand and handles this inline.
+		$animations = self::resolveAnimations( $attributes );
+
+		if ( null !== $animations ) {
+			foreach ( $animations['classes'] as $class ) {
+				$classes[] = $class;
+			}
+		}
+
+		$parts = [];
+
+		if ( [] !== $classes ) {
+			$parts[] = sprintf( 'class="%s"', e( implode( ' ', $classes ) ) );
+		}
+
+		if ( '' !== $compiled['style'] ) {
+			$parts[] = sprintf( 'style="%s"', e( $compiled['style'] ) );
+		}
+
+		if ( null !== $compiled['id'] ) {
+			$parts[] = sprintf( 'id="%s"', e( $compiled['id'] ) );
+		}
+
+		if ( null !== $animations && '' !== $animations['dataString'] ) {
+			$parts[] = $animations['dataString'];
+		}
+
+		return [] === $parts ? '' : ' ' . implode( ' ', $parts );
+	}
+
+	/**
+	 * Slugify the user-supplied palette slug so a custom slug like
+	 * `Primary Accent` lands as `primary-accent` in the class list.
+	 * Mirrors WP core's behavior for class generation. Public since
+	 * 1.13.0 so block partials (e.g. the navigation overlay colors) can
+	 * reduce stored slugs to `[a-z0-9-]` before building class names.
+	 *
+	 * @since 1.0.0
+	 * @since 1.13.0 Visibility widened to public.
+	 */
+	public static function slugify( string $value ): string
+	{
+		$value = strtolower( trim( $value ) );
+		$value = preg_replace( '/[^a-z0-9]+/', '-', $value );
+		$value = trim( (string) $value, '-' );
+
+		return $value;
+	}
+
+	/**
+	 * Resolve the request-scoped breakpoint registry from the
+	 * container, falling back to package defaults when the container
+	 * isn't booted (very-early call path / unit-test isolation).
+	 *
+	 * @since 1.0.0
+	 */
+	protected static function resolveRegistry(): BreakpointRegistry
+	{
+		try {
+			return app( BreakpointRegistry::class );
+		} catch ( Throwable $e ) {
+			return BreakpointRegistry::fromLayers();
+		}
+	}
+
+	/**
+	 * Push a scope's rules into a request-scoped accumulator (#640
+	 * consolidation of the previously copy-pasted per-feature push*
+	 * methods).
+	 *
+	 * Container-not-booted paths (very-early call sites, unit tests
+	 * that exercise BlockSupports without the package service
+	 * provider) silently drop — the call is idempotent and the
+	 * accumulator is a side channel, not the data path.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param  class-string  $accumulator  Fully-qualified accumulator class.
+	 */
+	/**
+	 * Compose a `ve-<prefix>-<id>` scope class from an
+	 * editor-minted id or a content-derived hash fallback (#640
+	 * consolidation of the previously copy-pasted per-feature
+	 * `resolve*ScopeClass` helpers).
+	 *
+	 * The editor-minted id has to pass a strict allowlist regex + a
+	 * length cap — it lands unescaped in the wrapper's `class`
+	 * attribute, so its content has to be a safe identifier-style
+	 * token.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param  string                $prefix      Class prefix without the trailing dash (e.g. `ve-bs`).
+	 * @param  string|null           $candidate   Editor-minted id or null.
+	 * @param  array<string, mixed>  $payload     Fallback hash source when the candidate is absent or invalid.
+	 */
+	protected static function composeScopeClass( string $prefix, ?string $candidate, array $payload ): string
+	{
+		if ( is_string( $candidate ) && 1 === preg_match( '/^[a-z0-9][a-z0-9_-]*$/i', $candidate ) && strlen( $candidate ) <= 64 ) {
+			return $prefix . '-' . $candidate;
+		}
+
+		$hash = substr(
+			hash( 'xxh3', (string) json_encode( $payload ) ),
+			0,
+			10,
+		);
+
+		return $prefix . '-' . $hash;
+	}
+
+	protected static function pushToAccumulator( string $accumulator, string $scope, string $rules ): void
+	{
+		if ( '' === $scope || '' === $rules ) {
+			return;
+		}
+
+		if ( ! function_exists( 'app' ) ) {
+			return;
+		}
+
+		try {
+			app( $accumulator )->push( $scope, $rules );
+		} catch ( Throwable $e ) {
+			// Silently drop — see method docblock.
+		}
+	}
+
+	/**
 	 * Identify the class tokens emitted by {@see applyColor} that
 	 * correspond to background painting — the `has-background` marker
 	 * and the slug-derived `has-{slug}-background-color` /
@@ -519,7 +863,7 @@ class BlockSupports
 
 		return 1 === preg_match(
 			'/^has-[a-z0-9](?:[a-z0-9-]*[a-z0-9])?-(?:background-color|gradient-background)$/',
-			$class
+			$class,
 		);
 	}
 
@@ -564,7 +908,7 @@ class BlockSupports
 		}
 
 		$backgroundString = [] === $background ? '' : implode( '; ', $background ) . ';';
-		$wrapperString    = [] === $wrapper    ? '' : implode( '; ', $wrapper )    . ';';
+		$wrapperString    = [] === $wrapper    ? '' : implode( '; ', $wrapper ) . ';';
 
 		return [ $backgroundString, $wrapperString ];
 	}
@@ -591,47 +935,6 @@ class BlockSupports
 		return 'background' === $property
 			|| 'background-color' === $property
 			|| 'background-image' === $property;
-	}
-
-	/**
-	 * Apply the gradient border feature to an already-rendered block's
-	 * HTML output (#490).
-	 *
-	 * Static blocks (Blade partials) get gradient border handling for
-	 * free via {@see wrapperAttrs} → {@see compile}. Dynamic blocks
-	 * (subclasses of `DynamicBlock`) render their own HTML and never
-	 * call into the compile pipeline — so the renderer pipes their
-	 * output through this method to push the scope's CSS rule into the
-	 * accumulator AND stamp the scope class onto the first opening
-	 * tag.
-	 *
-	 * No-op when the block carries no gradient border configuration at
-	 * any cascade level. Idempotent on the class injection — calling
-	 * twice with the same scope is harmless (the class is deduped at
-	 * the wrapper level by the consumer).
-	 *
-	 * @since 1.1.0
-	 *
-	 * @param  string               $html       Block's pre-rendered HTML.
-	 * @param  array<string, mixed> $attributes Block's attribute payload
-	 *                                          (the same shape `compile`
-	 *                                          would receive).
-	 */
-	public static function applyGradientBorder( string $html, array $attributes ): string
-	{
-		if ( '' === $html ) {
-			return $html;
-		}
-
-		$compiled = self::compileGradientBorder( $attributes );
-
-		if ( '' === $compiled['class'] || '' === $compiled['rules'] ) {
-			return $html;
-		}
-
-		self::pushGradientBorder( $compiled['class'], $compiled['rules'] );
-
-		return self::injectClassIntoFirstTag( $html, $compiled['class'] );
 	}
 
 	/**
@@ -753,7 +1056,7 @@ class BlockSupports
 				'class' => 'ap-state-' . $scopeId,
 				'rules' => $css,
 			];
-		} catch ( \Throwable $e ) {
+		} catch ( Throwable $e ) {
 			return [ 'class' => '', 'rules' => '' ];
 		}
 	}
@@ -858,7 +1161,7 @@ class BlockSupports
 	{
 		try {
 			return app( StateRegistry::class );
-		} catch ( \Throwable $e ) {
+		} catch ( Throwable $e ) {
 			return StateRegistry::fromLayers();
 		}
 	}
@@ -888,7 +1191,7 @@ class BlockSupports
 
 		return (string) preg_replace_callback(
 			'/(' . $escaped . '[^{,]*?)\s*(\{|,)/',
-			static function ( array $matches ) use ( $scope ) : string {
+			static function ( array $matches ) use ( $scope ): string {
 				$selector = trim( $matches[1] );
 				$delim    = $matches[2];
 
@@ -904,7 +1207,7 @@ class BlockSupports
 
 				return $selector . ', ' . $selector . ' :is(a, button) ' . $delim;
 			},
-			$css
+			$css,
 		);
 	}
 
@@ -950,7 +1253,7 @@ class BlockSupports
 				'class' => $scopeClass,
 				'rules' => $css,
 			];
-		} catch ( \Throwable $e ) {
+		} catch ( Throwable $e ) {
 			return [ 'class' => '', 'rules' => '' ];
 		}
 	}
@@ -1024,7 +1327,7 @@ class BlockSupports
 				'class' => $scopeClass,
 				'rules' => $css,
 			];
-		} catch ( \Throwable $e ) {
+		} catch ( Throwable $e ) {
 			return [ 'class' => '', 'rules' => '' ];
 		}
 	}
@@ -1069,7 +1372,7 @@ class BlockSupports
 		// scoped `<style>` rules. Fall back to a fresh resolve when
 		// called from a code path that didn't seed the cache (tests,
 		// direct callers).
-		$payload = self::$positionPayloadCache ?? PositionResolver::resolve( $attributes );
+		$payload                    = self::$positionPayloadCache ?? PositionResolver::resolve( $attributes );
 		self::$positionPayloadCache = null;
 
 		if ( null === $payload ) {
@@ -1095,7 +1398,7 @@ class BlockSupports
 				'class' => $scopeClass,
 				'rules' => $css,
 			];
-		} catch ( \Throwable $e ) {
+		} catch ( Throwable $e ) {
 			return [ 'class' => '', 'rules' => '' ];
 		}
 	}
@@ -1175,124 +1478,6 @@ class BlockSupports
 	}
 
 	/**
-	 * Walk the `attributes.responsive` payload and emit a scoped
-	 * `<style>` block that overrides the base wrapper styles at each
-	 * declared breakpoint.
-	 *
-	 * The payload is path-keyed (`{ "style.spacing.padding": { md: "2rem" } }`
-	 * — same shape the `withResponsiveAttributes` editor HOC writes).
-	 * Paths in {@see self::RESPONSIVE_CSS_PROPERTY_MAP} are handled by
-	 * the generic CSS emitter; everything else (e.g. the columns
-	 * block's `columnCount` override) is the partial's responsibility.
-	 *
-	 * Returns `{class, rules}` — the class merges into the wrapper
-	 * class list so the emitted `@media` rules target it; `rules` is
-	 * the bare CSS body (no surrounding `<style>` tag) that gets
-	 * pushed into the per-request {@see ResponsiveCssAccumulator}.
-	 * Both are empty when no actionable overrides are present.
-	 *
-	 * #509 — consolidated emission. compile() automatically pushes
-	 * these rules into the accumulator, and `<x-ve-blocks>` /
-	 * `<x-ve-template>` drain the accumulator into one
-	 * `<style data-ve-responsive>` block at the top of the render
-	 * output. Per-block partials no longer emit their own `<style>`
-	 * tags inline.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @param  array<string, mixed>  $attributes
-	 *
-	 * @return array{class: string, rules: string}
-	 */
-	public static function compileResponsive( array $attributes ): array
-	{
-		$responsive = $attributes['responsive'] ?? null;
-
-		if ( ! is_array( $responsive ) || [] === $responsive ) {
-			return [ 'class' => '', 'rules' => '' ];
-		}
-
-		// Pull the request-scoped registry from the container so
-		// host-configured breakpoints (theme.json → config) are
-		// respected. `fromLayers()` without args only returns the
-		// Tailwind defaults — any custom key (e.g. `3xl`) would
-		// resolve to null here and the override would be silently
-		// dropped at render time. The fallback to defaults preserves
-		// the behavior for callers (mostly tests) that hit
-		// `compileResponsive` outside the container.
-		$registry = function_exists( 'app' )
-			? self::resolveRegistry()
-			: BreakpointRegistry::fromLayers();
-		$rules    = [];
-		$scope    = self::generateResponsiveScopeClass( $responsive );
-
-		// Tripled scope class boosts the rule's specificity to
-		// (0,0,3,0), matching WP core's own
-		// `.wp-block-columns:not(.is-not-stacked-on-mobile) > .wp-block-column`
-		// rule. Both rules then carry `!important`, so source order
-		// decides — and this `<style>` block is emitted right before
-		// the wrapper, after every WP core stylesheet, so we win.
-		$selector = sprintf( '.%1$s.%1$s.%1$s', $scope );
-
-		foreach ( $responsive as $path => $overrides ) {
-			if ( ! is_array( $overrides ) ) {
-				continue;
-			}
-
-			if ( ! isset( self::RESPONSIVE_CSS_PROPERTY_MAP[ $path ] ) ) {
-				continue;
-			}
-
-			$property = self::RESPONSIVE_CSS_PROPERTY_MAP[ $path ];
-
-			// Registry emission order, not storage order: legacy min-width
-			// rules ascending, then desktop-first max-width rules from
-			// largest to smallest so the narrower override wins (#820).
-			foreach ( $registry->keysWithBase() as $breakpoint ) {
-				$value = $overrides[ $breakpoint ] ?? null;
-
-				if ( null === $value || '' === $value ) {
-					continue;
-				}
-
-				$declarations = self::responsiveDeclarations( $property, $value );
-
-				if ( '' === $declarations ) {
-					continue;
-				}
-
-				if ( BreakpointRegistry::BASE_KEY === $breakpoint ) {
-					$rules[] = sprintf( '%s{%s}', $selector, $declarations );
-
-					continue;
-				}
-
-				$query = $registry->mediaQuery( $breakpoint );
-
-				if ( null === $query ) {
-					continue;
-				}
-
-				$rules[] = sprintf(
-					'@media %s{%s{%s}}',
-					$query,
-					$selector,
-					$declarations
-				);
-			}
-		}
-
-		if ( [] === $rules ) {
-			return [ 'class' => '', 'rules' => '' ];
-		}
-
-		return [
-			'class' => $scope,
-			'rules' => implode( '', $rules ),
-		];
-	}
-
-	/**
 	 * Turn a single override value into one or more CSS declarations.
 	 * Scalars become `property: value`. Per-side objects (the shape
 	 * Gutenberg uses for spacing/border: `{top, right, bottom, left}`)
@@ -1342,7 +1527,7 @@ class BlockSupports
 				'%s-%s:%s!important',
 				$property,
 				$side,
-				$resolved
+				$resolved,
 			);
 		}
 
@@ -1362,38 +1547,11 @@ class BlockSupports
 		$segments = explode( '|', substr( $value, strlen( 'var:preset|' ) ) );
 		$slug     = implode( '--', array_map(
 			static fn ( string $segment ): string => self::presetSlug( $segment ),
-			$segments
+			$segments,
 		) );
 
 		return sprintf( 'var(--wp--preset--%s)', $slug );
 	}
-
-	/**
-	 * The one grammar for "what characters may appear in a user-authored
-	 * CSS value written into a `<style>` block". Everything a length,
-	 * percentage, `calc()` expression or CSS custom property needs —
-	 * letters, digits, whitespace, and `_ + - * / . , ( ) % #` — and
-	 * nothing else. The CSS-structural characters that could close a
-	 * declaration, rule, or the `<style>` element itself
-	 * (`; { } < > : " ' \ @`) are deliberately absent, so a stored value
-	 * can neither inject a sibling declaration/rule nor break out of the
-	 * tag.
-	 *
-	 * Shared by {@see self::sanitizeCssValue()} (strips offending chars)
-	 * and {@see self::safeCssValue()} (rejects the whole value). Mirrored
-	 * by the `safeCssValue` helper in the React and Vue renderers so all
-	 * three drop the same hostile values (kept honest by the
-	 * `renderer-markup-parity` suite).
-	 *
-	 * The whitespace set is spelled out as the ASCII characters
-	 * (` \t\n\r\f`) rather than `\s` on purpose: PCRE `\s` (this pattern
-	 * carries no `/u`) and ECMAScript `\s` disagree on Unicode whitespace
-	 * (e.g. U+00A0), which would let JS keep a value Blade drops. The
-	 * literal class keeps all three renderers byte-identical. `/u` is also
-	 * deliberately absent so an invalid-UTF-8 value fails the match as a
-	 * disallowed byte instead of erroring `preg_match` into a false pass.
-	 */
-	private const CSS_VALUE_DISALLOWED = '/[^a-zA-Z0-9_+\-*\/.,()%#\t\n\r\f ]/';
 
 	/**
 	 * Whitelists characters legal in a CSS value expression — letters,
@@ -1416,49 +1574,6 @@ class BlockSupports
 	}
 
 	/**
-	 * Validate a single user-authored CSS value against the shared
-	 * whitelist ({@see self::CSS_VALUE_DISALLOWED}) and return it
-	 * unchanged when it is safe, or `null` when it is empty or carries a
-	 * disallowed character.
-	 *
-	 * Unlike {@see self::sanitizeCssValue()}, which strips offending
-	 * characters and keeps a (possibly mangled) value, this rejects the
-	 * whole value so the caller can drop the rule entirely. It backs the
-	 * paths that splice a value straight into a `<style>` block without a
-	 * downstream escape — the column-width responsive rules and the flex
-	 * arbitrary-value emitter — where a mangled fragment is never wanted.
-	 *
-	 * The slash and asterisk are whitelisted characters (they are legal
-	 * `calc()` operators), so the CSS comment-open, comment-close and
-	 * double-slash digraphs are rejected explicitly: an unterminated
-	 * comment-open would swallow every following rule in the shared
-	 * `<style>` block, and a double slash is the protocol-relative prefix
-	 * a `url()` would need. No length, percentage or `calc()` value
-	 * contains those sequences, so dropping them costs nothing. This
-	 * helper is therefore safe only for non-URL properties; do not reuse
-	 * it for a value that lands on a fetching property (`background`,
-	 * `cursor`, `mask`, …).
-	 *
-	 * @since 1.7.0
-	 */
-	public static function safeCssValue( string $value ): ?string
-	{
-		if ( '' === trim( $value ) ) {
-			return null;
-		}
-
-		if ( 1 === preg_match( self::CSS_VALUE_DISALLOWED, $value ) ) {
-			return null;
-		}
-
-		if ( str_contains( $value, '/*' ) || str_contains( $value, '*/' ) || str_contains( $value, '//' ) ) {
-			return null;
-		}
-
-		return $value;
-	}
-
-	/**
 	 * Generates a stable, content-derived class so the same responsive
 	 * payload re-renders to the same scope (cache-friendly + idempotent).
 	 */
@@ -1467,105 +1582,10 @@ class BlockSupports
 		$hash = substr(
 			hash( 'xxh3', (string) json_encode( $responsive ) ),
 			0,
-			10
+			10,
 		);
 
 		return 've-r-' . $hash;
-	}
-
-	/**
-	 * Back-compat shim. Previously emitted a per-block `<style>` tag
-	 * before the wrapper; now a no-op because compile() pushes the
-	 * rules into the per-request accumulator and
-	 * `<x-ve-blocks>` / `<x-ve-template>` drain it into one
-	 * consolidated `<style data-ve-responsive>` block at the top of
-	 * the render output. Kept so partials calling
-	 * `{!! BlockSupports::wrapperCss( $attributes ) !!}` continue to
-	 * compile — the call becomes harmless.
-	 *
-	 * Forked or host-app partials that referenced this should drop
-	 * the line; nothing else needs to change.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @param  array<string, mixed>  $attributes
-	 *
-	 * @deprecated 1.0.0 — accumulator-based emission supersedes per-block tags.
-	 */
-	public static function wrapperCss( array $attributes ): string
-	{
-		// Trigger the side-effect (accumulator push) for partials
-		// that don't go through compile() — though every shipped
-		// partial does. Keeps behavior consistent if a host calls
-		// wrapperCss() without first calling wrapperAttrs().
-		$responsive = self::compileResponsive( $attributes );
-
-		if ( '' !== $responsive['class'] ) {
-			self::pushResponsive( $responsive['class'], $responsive['rules'] );
-		}
-
-		return '';
-	}
-
-	/**
-	 * Render the wrapper-element attribute string a Blade partial
-	 * splices straight into its opening tag:
-	 *
-	 *     <{{ $tag }} {!! BlockSupports::wrapperAttrs($attributes, ['wp-block-group']) !!}>
-	 *
-	 * Outputs a leading space when any attribute is emitted (`class="…"
-	 * style="…" id="…"`), or an empty string when none are. `$baseClasses`
-	 * are prepended verbatim before the compiled support classes so each
-	 * block partial can declare its own `wp-block-{name}` / layout class
-	 * list without the compiler knowing about them.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @param  array<string, mixed>  $attributes
-	 * @param  array<int, string>    $baseClasses
-	 */
-	public static function wrapperAttrs( array $attributes, array $baseClasses = [] ): string
-	{
-		$compiled = self::compile( $attributes );
-
-		$classes = array_values( array_unique( array_filter(
-			array_merge( $baseClasses, $compiled['classes'] ),
-			static fn ( string $class ): bool => '' !== trim( $class ),
-		) ) );
-
-		// #489 — drop the animation wrapper classes, scope class, and
-		// data-* attributes onto any block carrying an
-		// `artisanpackAnimations` attribute bag. Centralising it here
-		// means every block partial that uses `wrapperAttrs` (image,
-		// table, navigation, etc.) picks up animations for free; cover
-		// builds its attrs by hand and handles this inline.
-		$animations = self::resolveAnimations( $attributes );
-
-		if ( null !== $animations ) {
-			foreach ( $animations['classes'] as $class ) {
-				$classes[] = $class;
-			}
-		}
-
-		$parts = [];
-
-		if ( [] !== $classes ) {
-			$parts[] = sprintf( 'class="%s"', e( implode( ' ', $classes ) ) );
-		}
-
-		if ( '' !== $compiled['style'] ) {
-			$parts[] = sprintf( 'style="%s"', e( $compiled['style'] ) );
-		}
-
-		if ( null !== $compiled['id'] ) {
-			$parts[] = sprintf( 'id="%s"', e( $compiled['id'] ) );
-		}
-
-		if ( null !== $animations && '' !== $animations['dataString'] ) {
-			$parts[] = $animations['dataString'];
-		}
-
-		return [] === $parts ? '' : ' ' . implode( ' ', $parts );
 	}
 
 	/**
@@ -1596,9 +1616,9 @@ class BlockSupports
 		}
 
 		try {
-			$resolver = app( \ArtisanPackUI\VisualEditorRendererBlade\Animations\AnimationMarkupResolver::class );
+			$resolver    = app( \ArtisanPackUI\VisualEditorRendererBlade\Animations\AnimationMarkupResolver::class );
 			$accumulator = app( \ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator::class );
-		} catch ( \Throwable $e ) {
+		} catch ( Throwable $e ) {
 			return null;
 		}
 
@@ -1624,7 +1644,7 @@ class BlockSupports
 			$markup['hasEntrance'],
 		);
 
-		$classes = $markup['classes'];
+		$classes   = $markup['classes'];
 		$classes[] = ltrim( $scope, '.' );
 
 		return [
@@ -2152,22 +2172,6 @@ class BlockSupports
 		}
 
 		return '';
-	}
-
-	/**
-	 * Slugify the user-supplied palette slug so a custom slug like
-	 * `Primary Accent` lands as `primary-accent` in the class list.
-	 * Mirrors WP core's behavior for class generation.
-	 *
-	 * @since 1.0.0
-	 */
-	protected static function slugify( string $value ): string
-	{
-		$value = strtolower( trim( $value ) );
-		$value = preg_replace( '/[^a-z0-9]+/', '-', $value );
-		$value = trim( (string) $value, '-' );
-
-		return $value;
 	}
 
 	/**

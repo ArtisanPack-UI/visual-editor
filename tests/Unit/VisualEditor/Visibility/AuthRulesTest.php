@@ -24,19 +24,19 @@ function loggedIn( array $roles = [], ?int $id = 42, ?string $email = 'me@exampl
 
 // LoginStateRule
 
-it( 'login state either short-circuits to visible', function () {
+it( 'login state either short-circuits to visible', function (): void {
 	$rule = new LoginStateRule();
 	expect( $rule->evaluate( [ 'state' => 'either' ], anon() )->isVisible() )->toBeTrue();
 	expect( $rule->evaluate( [ 'state' => 'either' ], loggedIn() )->isVisible() )->toBeTrue();
 } );
 
-it( 'login state loggedIn hides anonymous visitors', function () {
+it( 'login state loggedIn hides anonymous visitors', function (): void {
 	$rule = new LoginStateRule();
 	expect( $rule->evaluate( [ 'state' => 'loggedIn' ], anon() )->isHidden() )->toBeTrue();
 	expect( $rule->evaluate( [ 'state' => 'loggedIn' ], loggedIn() )->isVisible() )->toBeTrue();
 } );
 
-it( 'login state loggedOut hides authenticated visitors', function () {
+it( 'login state loggedOut hides authenticated visitors', function (): void {
 	$rule = new LoginStateRule();
 	expect( $rule->evaluate( [ 'state' => 'loggedOut' ], loggedIn() )->isHidden() )->toBeTrue();
 	expect( $rule->evaluate( [ 'state' => 'loggedOut' ], anon() )->isVisible() )->toBeTrue();
@@ -44,7 +44,7 @@ it( 'login state loggedOut hides authenticated visitors', function () {
 
 // UserRoleRule
 
-it( 'user role rule short-circuits without DB queries for anonymous visitors', function () {
+it( 'user role rule short-circuits without DB queries for anonymous visitors', function (): void {
 	$rule = new UserRoleRule();
 	// direction=show + any + roles configured → anon has no match → hidden
 	expect( $rule->evaluate( [ 'direction' => 'show', 'combinator' => 'any', 'roles' => [ 'admin' ] ], anon() )->isHidden() )->toBeTrue();
@@ -52,15 +52,15 @@ it( 'user role rule short-circuits without DB queries for anonymous visitors', f
 	expect( $rule->evaluate( [ 'direction' => 'hide', 'combinator' => 'any', 'roles' => [ 'admin' ] ], anon() )->isVisible() )->toBeTrue();
 } );
 
-it( 'user role rule with combinator=any matches when the user has ANY of the roles', function () {
-	$rule = new UserRoleRule();
+it( 'user role rule with combinator=any matches when the user has ANY of the roles', function (): void {
+	$rule  = new UserRoleRule();
 	$attrs = [ 'direction' => 'show', 'combinator' => 'any', 'roles' => [ 'admin', 'editor' ] ];
 	expect( $rule->evaluate( $attrs, loggedIn( [ 'editor' ] ) )->isVisible() )->toBeTrue();
 	expect( $rule->evaluate( $attrs, loggedIn( [ 'subscriber' ] ) )->isHidden() )->toBeTrue();
 } );
 
-it( 'user role rule with combinator=all matches only when the user has ALL of the roles', function () {
-	$rule = new UserRoleRule();
+it( 'user role rule with combinator=all matches only when the user has ALL of the roles', function (): void {
+	$rule  = new UserRoleRule();
 	$attrs = [ 'direction' => 'show', 'combinator' => 'all', 'roles' => [ 'admin', 'billing' ] ];
 	expect( $rule->evaluate( $attrs, loggedIn( [ 'admin', 'billing' ] ) )->isVisible() )->toBeTrue();
 	expect( $rule->evaluate( $attrs, loggedIn( [ 'admin' ] ) )->isHidden() )->toBeTrue();
@@ -68,26 +68,26 @@ it( 'user role rule with combinator=all matches only when the user has ALL of th
 
 // SpecificUserRule
 
-it( 'specific user rule always fails for anonymous', function () {
-	$rule = new SpecificUserRule();
+it( 'specific user rule always fails for anonymous', function (): void {
+	$rule  = new SpecificUserRule();
 	$attrs = [ 'direction' => 'show', 'users' => [ [ 'id' => 42, 'email' => 'me@example.com' ] ] ];
 	expect( $rule->evaluate( $attrs, anon() )->isHidden() )->toBeTrue();
 } );
 
-it( 'specific user rule matches by email (case-insensitive)', function () {
-	$rule = new SpecificUserRule();
+it( 'specific user rule matches by email (case-insensitive)', function (): void {
+	$rule  = new SpecificUserRule();
 	$attrs = [ 'direction' => 'show', 'users' => [ [ 'id' => 1, 'email' => 'ME@EXAMPLE.COM' ] ] ];
 	expect( $rule->evaluate( $attrs, loggedIn( [], 999, 'me@example.com' ) )->isVisible() )->toBeTrue();
 } );
 
-it( 'specific user rule matches by id as fallback', function () {
-	$rule = new SpecificUserRule();
+it( 'specific user rule matches by id as fallback', function (): void {
+	$rule  = new SpecificUserRule();
 	$attrs = [ 'direction' => 'show', 'users' => [ [ 'id' => 42, 'email' => 'wrong@example.com' ] ] ];
 	expect( $rule->evaluate( $attrs, loggedIn( [], 42, 'other@example.com' ) )->isVisible() )->toBeTrue();
 } );
 
-it( 'specific user rule matches UUID string IDs', function () {
-	$rule = new SpecificUserRule();
+it( 'specific user rule matches UUID string IDs', function (): void {
+	$rule  = new SpecificUserRule();
 	$uuid  = '018f4d2a-6d3a-7000-b5f3-3f5e8a2e1c9d';
 	$attrs = [ 'direction' => 'show', 'users' => [ [ 'id' => $uuid, 'email' => 'wrong@example.com' ] ] ];
 

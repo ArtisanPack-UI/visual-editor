@@ -58,7 +58,7 @@ class InheritanceChainValidator
 				throw new InvalidArgumentException( sprintf(
 					'State "%s" has a circular inheritance chain: %s.',
 					$start,
-					implode( ' → ', array_keys( $seen ) ) . ' → ' . $current
+					implode( ' → ', array_keys( $seen ) ) . ' → ' . $current,
 				) );
 			}
 
@@ -72,7 +72,7 @@ class InheritanceChainValidator
 				throw new InvalidArgumentException( sprintf(
 					'State "%s" inherits from "%s", which is not registered.',
 					$start,
-					$current
+					$current,
 				) );
 			}
 
@@ -82,7 +82,7 @@ class InheritanceChainValidator
 		throw new InvalidArgumentException( sprintf(
 			'State "%s" chain does not terminate at "%s".',
 			$start,
-			StateRegistry::BASE_KEY
+			StateRegistry::BASE_KEY,
 		) );
 	}
 }

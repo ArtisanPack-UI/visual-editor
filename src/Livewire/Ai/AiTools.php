@@ -103,7 +103,7 @@ class AiTools extends Component
 	 *
 	 * @since 1.3.0
 	 *
-	 * @param  string|array<string, mixed>  $image  Image reference — see AltTextGenerationAgent for accepted shapes.
+	 * @param  array<string, mixed>|string  $image  Image reference — see AltTextGenerationAgent for accepted shapes.
 	 *
 	 * @return void
 	 */

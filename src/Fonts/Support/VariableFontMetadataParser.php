@@ -67,6 +67,23 @@ class VariableFontMetadataParser
 	protected const MAX_AXES = 256;
 
 	/**
+	 * WOFF2 known-table tags, indexed by the 6-bit tag index encoded in each
+	 * directory entry's flags byte (WOFF2 spec, "Known Table Tags").
+	 *
+	 * @var array<int, string>
+	 */
+	protected const WOFF2_KNOWN_TAGS = [
+		'cmap', 'head', 'hhea', 'hmtx', 'maxp', 'name', 'OS/2', 'post',
+		'cvt ', 'fpgm', 'glyf', 'loca', 'prep', 'CFF ', 'VORG', 'EBDT',
+		'EBLC', 'gasp', 'hdmx', 'kern', 'LTSH', 'PCLT', 'VDMX', 'vhea',
+		'vmtx', 'BASE', 'GDEF', 'GPOS', 'GSUB', 'EBSC', 'JSTF', 'MATH',
+		'CBDT', 'CBLC', 'COLR', 'CPAL', 'SVG ', 'sbix', 'acnt', 'avar',
+		'bdat', 'bloc', 'bsln', 'cvar', 'fdsc', 'feat', 'fmtx', 'fvar',
+		'gvar', 'hsty', 'just', 'lcar', 'mort', 'morx', 'opbd', 'prop',
+		'trak', 'Zapf', 'Silf', 'Glat', 'Gloc', 'Feat', 'Sill',
+	];
+
+	/**
 	 * Parse the variable-axis metadata from a font file's raw bytes.
 	 *
 	 * @since 1.7.0
@@ -568,7 +585,7 @@ class VariableFontMetadataParser
 		$count         = $this->u16( $name, 2 );
 		$storageOffset = $this->u16( $name, 4 );
 
-		$names = [];
+		$names       = [];
 		$macFallback = [];
 
 		for ( $i = 0; $i < $count; $i++ ) {
@@ -684,21 +701,4 @@ class VariableFontMetadataParser
 
 		return $raw / 65536;
 	}
-
-	/**
-	 * WOFF2 known-table tags, indexed by the 6-bit tag index encoded in each
-	 * directory entry's flags byte (WOFF2 spec, "Known Table Tags").
-	 *
-	 * @var array<int, string>
-	 */
-	protected const WOFF2_KNOWN_TAGS = [
-		'cmap', 'head', 'hhea', 'hmtx', 'maxp', 'name', 'OS/2', 'post',
-		'cvt ', 'fpgm', 'glyf', 'loca', 'prep', 'CFF ', 'VORG', 'EBDT',
-		'EBLC', 'gasp', 'hdmx', 'kern', 'LTSH', 'PCLT', 'VDMX', 'vhea',
-		'vmtx', 'BASE', 'GDEF', 'GPOS', 'GSUB', 'EBSC', 'JSTF', 'MATH',
-		'CBDT', 'CBLC', 'COLR', 'CPAL', 'SVG ', 'sbix', 'acnt', 'avar',
-		'bdat', 'bloc', 'bsln', 'cvar', 'fdsc', 'feat', 'fmtx', 'fvar',
-		'gvar', 'hsty', 'just', 'lcar', 'mort', 'morx', 'opbd', 'prop',
-		'trak', 'Zapf', 'Silf', 'Glat', 'Gloc', 'Feat', 'Sill',
-	];
 }

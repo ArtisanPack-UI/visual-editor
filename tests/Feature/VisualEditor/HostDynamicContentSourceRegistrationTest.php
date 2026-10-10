@@ -26,7 +26,7 @@ use Tests\Support\FakeDynamicContentAccessor;
 use Tests\Support\FakeDynamicContentTypeRegistry;
 use Tests\TestUser;
 
-beforeEach( function () {
+beforeEach( function (): void {
 	// Clear any registrations from prior tests without swapping the
 	// container binding — VisualEditor captures the registry in its
 	// constructor, so rebinding would leave the facade writing to a
@@ -37,7 +37,7 @@ beforeEach( function () {
 	}
 } );
 
-it( 'registers a singleton host source via the facade', function () {
+it( 'registers a singleton host source via the facade', function (): void {
 	$source = VisualEditor::registerDynamicContentSource( [
 		'slug'        => 'business',
 		'label'       => 'Business',
@@ -56,7 +56,7 @@ it( 'registers a singleton host source via the facade', function () {
 	expect( VisualEditor::getDynamicContentSourceRegistry()->has( 'business' ) )->toBeTrue();
 } );
 
-it( 'rejects a definition missing required fields', function () {
+it( 'rejects a definition missing required fields', function (): void {
 	expect( fn () => VisualEditor::registerDynamicContentSource( [
 		'label'       => 'No slug',
 		'cardinality' => 'singleton',
@@ -64,7 +64,7 @@ it( 'rejects a definition missing required fields', function () {
 	] ) )->toThrow( InvalidArgumentException::class );
 } );
 
-it( 'rejects an invalid slug', function () {
+it( 'rejects an invalid slug', function (): void {
 	expect( fn () => VisualEditor::registerDynamicContentSource( [
 		'slug'        => 'Not-Snake-Case',
 		'cardinality' => 'singleton',
@@ -72,7 +72,7 @@ it( 'rejects an invalid slug', function () {
 	] ) )->toThrow( InvalidArgumentException::class );
 } );
 
-it( 'rejects an unknown cardinality', function () {
+it( 'rejects an unknown cardinality', function (): void {
 	expect( fn () => VisualEditor::registerDynamicContentSource( [
 		'slug'        => 'business',
 		'cardinality' => 'sometimes',
@@ -80,7 +80,7 @@ it( 'rejects an unknown cardinality', function () {
 	] ) )->toThrow( InvalidArgumentException::class );
 } );
 
-it( 'drops duplicate field slugs on a first-wins basis', function () {
+it( 'drops duplicate field slugs on a first-wins basis', function (): void {
 	$source = VisualEditor::registerDynamicContentSource( [
 		'slug'        => 'business',
 		'cardinality' => 'singleton',
@@ -103,7 +103,7 @@ it( 'drops duplicate field slugs on a first-wins basis', function () {
 	expect( $nameField['label'] )->toBe( 'First Name' );
 } );
 
-it( 'supports the pre-1.9 two-argument constructor signature', function () {
+it( 'supports the pre-1.9 two-argument constructor signature', function (): void {
 	// A host that constructs the class directly (rather than resolving
 	// it from the container) must still work without passing a
 	// DynamicContentSourceRegistry.
@@ -124,7 +124,7 @@ it( 'supports the pre-1.9 two-argument constructor signature', function () {
 	expect( $editor->getDynamicContentSourceRegistry()->has( 'business' ) )->toBeTrue();
 } );
 
-it( 'rejects a non-callable resolver', function () {
+it( 'rejects a non-callable resolver', function (): void {
 	expect( fn () => VisualEditor::registerDynamicContentSource( [
 		'slug'        => 'business',
 		'cardinality' => 'singleton',
@@ -132,7 +132,7 @@ it( 'rejects a non-callable resolver', function () {
 	] ) )->toThrow( InvalidArgumentException::class );
 } );
 
-it( 'resolves a host singleton token without cms-framework installed', function () {
+it( 'resolves a host singleton token without cms-framework installed', function (): void {
 	VisualEditor::registerDynamicContentSource( [
 		'slug'        => 'business',
 		'label'       => 'Business',
@@ -157,7 +157,7 @@ it( 'resolves a host singleton token without cms-framework installed', function 
 	expect( $source->resolve( $ctx, [ 'token' => 'business.phone' ] ) )->toBe( '5551234567' );
 } );
 
-it( 'applies the tel: scheme to host source values just like cms-framework values', function () {
+it( 'applies the tel: scheme to host source values just like cms-framework values', function (): void {
 	VisualEditor::registerDynamicContentSource( [
 		'slug'        => 'business',
 		'cardinality' => 'singleton',
@@ -174,7 +174,7 @@ it( 'applies the tel: scheme to host source values just like cms-framework value
 	] ) )->toBe( 'tel:5551234567' );
 } );
 
-it( 'resolves a host collection with implicit first-record semantics', function () {
+it( 'resolves a host collection with implicit first-record semantics', function (): void {
 	VisualEditor::registerDynamicContentSource( [
 		'slug'        => 'team',
 		'cardinality' => 'collection',
@@ -206,7 +206,7 @@ it( 'resolves a host collection with implicit first-record semantics', function 
 	expect( $source->resolve( $ctx, [ 'token' => 'team[42].name' ] ) )->toBeNull();
 } );
 
-it( 'returns null when a singleton source is accessed with an explicit index', function () {
+it( 'returns null when a singleton source is accessed with an explicit index', function (): void {
 	VisualEditor::registerDynamicContentSource( [
 		'slug'        => 'business',
 		'cardinality' => 'singleton',
@@ -227,12 +227,12 @@ it( 'returns null when a singleton source is accessed with an explicit index', f
 	expect( $source->resolve( $ctx, [ 'token' => 'business[3].name' ] ) )->toBeNull();
 } );
 
-it( 'reports and swallows a throwing resolver instead of surfacing the exception', function () {
+it( 'reports and swallows a throwing resolver instead of surfacing the exception', function (): void {
 	VisualEditor::registerDynamicContentSource( [
 		'slug'        => 'business',
 		'cardinality' => 'singleton',
 		'fields'      => [ [ 'slug' => 'name', 'label' => 'Name', 'type' => 'text' ] ],
-		'resolver'    => function () {
+		'resolver'    => function (): void {
 			throw new RuntimeException( 'resolver blew up' );
 		},
 	] );
@@ -247,7 +247,7 @@ it( 'reports and swallows a throwing resolver instead of surfacing the exception
 	expect( $source->resolve( $ctx, [ 'token' => 'business.name' ] ) )->toBeNull();
 } );
 
-it( 'invokes the resolver lazily and only when the token is walked', function () {
+it( 'invokes the resolver lazily and only when the token is walked', function (): void {
 	$calls = 0;
 
 	VisualEditor::registerDynamicContentSource( [
@@ -274,7 +274,7 @@ it( 'invokes the resolver lazily and only when the token is walked', function ()
 	expect( $calls )->toBe( 1 );
 } );
 
-it( 'host source wins over a same-slug cms-framework type', function () {
+it( 'host source wins over a same-slug cms-framework type', function (): void {
 	VisualEditor::registerDynamicContentSource( [
 		'slug'        => 'business_info',
 		'label'       => 'Host Business',
@@ -288,7 +288,7 @@ it( 'host source wins over a same-slug cms-framework type', function () {
 		'ArtisanPackUI\\CMSFramework\\Modules\\DynamicContent\\Services\\DynamicContentAccessor',
 		new FakeDynamicContentAccessor( [
 			'business_info' => [ 'phone' => 'cms-value' ],
-		] )
+		] ),
 	);
 
 	$source = new DynamicContentSource();
@@ -297,7 +297,7 @@ it( 'host source wins over a same-slug cms-framework type', function () {
 	expect( $source->resolve( $ctx, [ 'token' => 'business_info.phone' ] ) )->toBe( 'host-value' );
 } );
 
-it( 'falls through to cms-framework for slugs the host registry does not own', function () {
+it( 'falls through to cms-framework for slugs the host registry does not own', function (): void {
 	VisualEditor::registerDynamicContentSource( [
 		'slug'        => 'business',
 		'cardinality' => 'singleton',
@@ -311,7 +311,7 @@ it( 'falls through to cms-framework for slugs the host registry does not own', f
 			'team' => [
 				[ 'name' => 'Alice', 'role' => 'CTO' ],
 			],
-		] )
+		] ),
 	);
 
 	$source = new DynamicContentSource();
@@ -321,7 +321,7 @@ it( 'falls through to cms-framework for slugs the host registry does not own', f
 	expect( $source->resolve( $ctx, [ 'token' => 'team[0].name' ] ) )->toBe( 'Alice' );
 } );
 
-it( 'lists host fields via availableFields() with no cms-framework installed', function () {
+it( 'lists host fields via availableFields() with no cms-framework installed', function (): void {
 	VisualEditor::registerDynamicContentSource( [
 		'slug'        => 'business',
 		'label'       => 'Business',
@@ -344,7 +344,7 @@ it( 'lists host fields via availableFields() with no cms-framework installed', f
 	expect( $nameEntry['meta']['source_slug'] )->toBe( 'business' );
 } );
 
-it( 'unions host and cms-framework fields, with host winning on collision', function () {
+it( 'unions host and cms-framework fields, with host winning on collision', function (): void {
 	VisualEditor::registerDynamicContentSource( [
 		'slug'        => 'business_info',
 		'label'       => 'Host Business',
@@ -373,7 +373,7 @@ it( 'unions host and cms-framework fields, with host winning on collision', func
 					[ 'slug' => 'name', 'label' => 'Name', 'type' => 'text' ],
 				],
 			],
-		] )
+		] ),
 	);
 
 	$source = new DynamicContentSource();
@@ -390,7 +390,7 @@ it( 'unions host and cms-framework fields, with host winning on collision', func
 	expect( $keys )->toContain( 'team.name' );
 } );
 
-it( 'lists host sources through the /dynamic-content/sources endpoint', function () {
+it( 'lists host sources through the /dynamic-content/sources endpoint', function (): void {
 	config()->set( 'artisanpack.visual-editor.api.middleware', [ 'auth' ] );
 
 	$actor = TestUser::create( [
@@ -426,7 +426,7 @@ it( 'lists host sources through the /dynamic-content/sources endpoint', function
 	expect( $biz['fields'][0] )->toBe( [ 'slug' => 'name', 'label' => 'Name', 'type' => 'text' ] );
 } );
 
-it( 'merges host and cms-framework sources on the sources endpoint with host winning', function () {
+it( 'merges host and cms-framework sources on the sources endpoint with host winning', function (): void {
 	config()->set( 'artisanpack.visual-editor.api.middleware', [ 'auth' ] );
 
 	$actor = TestUser::create( [
@@ -460,7 +460,7 @@ it( 'merges host and cms-framework sources on the sources endpoint with host win
 				'source'      => 'db',
 				'fields'      => [ [ 'slug' => 'name', 'label' => 'Name', 'type' => 'text' ] ],
 			],
-		] )
+		] ),
 	);
 
 	$response = $this->getJson( '/visual-editor/api/dynamic-content/sources' );

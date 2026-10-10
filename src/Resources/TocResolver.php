@@ -31,6 +31,7 @@
 declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Resources;
+use Normalizer;
 
 class TocResolver
 {
@@ -142,7 +143,7 @@ class TocResolver
 		$attributes = isset( $block['attributes'] ) && is_array( $block['attributes'] ) ? $block['attributes'] : [];
 
 		if ( in_array( $name, self::HEADING_BLOCKS, true ) ) {
-			$content = isset( $attributes['content'] ) && is_string( $attributes['content'] ) ? $attributes['content'] : '';
+			$content  = isset( $attributes['content'] ) && is_string( $attributes['content'] ) ? $attributes['content'] : '';
 			$rawLevel = $attributes['level'] ?? 2;
 			$level    = is_numeric( $rawLevel ) ? (int) round( (float) $rawLevel ) : 2;
 
@@ -167,7 +168,7 @@ class TocResolver
 				if ( '' === $slug ) {
 					$anchor = '';
 				} else {
-					$anchor = $this->uniqueSlug( $slug, $used );
+					$anchor          = $this->uniqueSlug( $slug, $used );
 					$used[ $anchor ] = true;
 
 					$attributes             = array_merge( $attributes, [ 'anchor' => $anchor ] );
@@ -243,7 +244,7 @@ class TocResolver
 
 				if ( '' !== $existingId ) {
 					$used[ $existingId ] = true;
-					$headings[] = [
+					$headings[]          = [
 						'level'  => $level,
 						'text'   => $plainText,
 						'anchor' => $existingId,
@@ -258,7 +259,7 @@ class TocResolver
 					return $match[0];
 				}
 
-				$anchor = $this->uniqueSlug( $slug, $used );
+				$anchor          = $this->uniqueSlug( $slug, $used );
 				$used[ $anchor ] = true;
 
 				$headings[] = [
@@ -272,10 +273,10 @@ class TocResolver
 					$level,
 					htmlspecialchars( $anchor, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
 					$attrs,
-					$inner
+					$inner,
 				);
 			},
-			$html
+			$html,
 		);
 
 		return null === $rewritten ? $html : $rewritten;
@@ -419,8 +420,8 @@ class TocResolver
 	 */
 	protected function removeAccents( string $text ): string
 	{
-		if ( class_exists( \Normalizer::class ) ) {
-			$decomposed = \Normalizer::normalize( $text, \Normalizer::FORM_D );
+		if ( class_exists( Normalizer::class ) ) {
+			$decomposed = Normalizer::normalize( $text, Normalizer::FORM_D );
 
 			if ( is_string( $decomposed ) ) {
 				$stripped = preg_replace( '/\p{Mn}+/u', '', $decomposed );
@@ -473,7 +474,7 @@ class TocResolver
 	 */
 	protected function plainText( string $content ): string
 	{
-		$decoded = html_entity_decode( strip_tags( $content ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+		$decoded   = html_entity_decode( strip_tags( $content ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 		$collapsed = preg_replace( '/\s+/u', ' ', $decoded );
 
 		return trim( null === $collapsed ? $decoded : $collapsed );

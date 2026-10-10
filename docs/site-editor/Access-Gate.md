@@ -59,6 +59,94 @@ Two consequences to plan for:
 - Under the package default (`DenyByDefaultGate`), every one of these
   writes is refused until you bind a gate.
 
+## Content-authoring ability (`visual-editor.edit-content`)
+
+*Since v1.13.0 (#834).* A second, lighter check guards the
+content-authoring API endpoints that sit outside any model policy:
+
+| Endpoint | Notes |
+|----------|-------|
+| `GET /visual-editor/api/icons/sets` | Icon picker |
+| `GET /visual-editor/api/icons/search` | Icon picker |
+| `GET /visual-editor/api/icons/svg` | Icon picker |
+| `POST /visual-editor/api/icons/svg/sanitize` | Custom SVG sanitizer; also throttled |
+| `POST /visual-editor/api/patterns/preview` | Pattern card previews; also throttled at 120/min |
+
+These routes run the `EnsureContentEditorAccess` middleware, which checks
+the `visual-editor.edit-content` Gate ability
+(`ContentAccess::ABILITY`). A user who fails it gets a JSON `403`:
+
+```json
+{ "message": "You are not allowed to edit content." }
+```
+
+Guests get the usual `401` from the `auth` middleware first.
+
+### How the default check works
+
+The package registers a default `visual-editor.edit-content` gate (only
+when the host hasn't defined one) backed by `ContentAccess::allows()`:
+
+1. With `content_access.capability` unset (`null`, `''` or any
+   non-string value), **any authenticated user passes**. This is the
+   default, so nothing changes unless you opt in.
+2. With a capability string (for example `'edit_content'`), the user
+   needs it. The check calls the first of these methods the user model
+   has: `hasCapability()`, then `hasPermissionTo()`, then
+   `hasPermission()`. That covers `artisanpack-ui/rbac`, Spatie
+   Permission and similar packages.
+3. If the user model has none of those methods, the check falls back to
+   Laravel's `$user->can( $capability )` and logs a warning once per
+   request, since that usually means the capability doesn't match your
+   authorization setup. (A capability equal to `visual-editor.edit-content`
+   itself is denied rather than checked through `can()`, which would
+   recurse.)
+
+```php
+// config/artisanpack/visual-editor.php
+'content_access' => [
+    'capability'        => 'edit_content',
+    'sanitize_throttle' => '60,1',
+],
+```
+
+`content_access.sanitize_throttle` is the per-user rate limit for
+`icons/svg/sanitize`, as `throttle` middleware arguments
+(`"max attempts,minutes"`, default `'60,1'`). It has its own rate-limit
+bucket, so it doesn't count against other throttled routes. `null` or
+`''` uses the default and `false` turns the throttle off. The value is
+read when routes are registered, so re-run `php artisan route:cache`
+after changing it on an install with cached routes. See
+[Configuration](../Configuration.md#content_access).
+
+### Overriding the gate
+
+Define the ability yourself to replace the default check entirely. The
+package registers its default only when `Gate::has()` reports no
+definition, and a `Gate::before()` callback wins as usual:
+
+```php
+// AppServiceProvider::boot()
+use Illuminate\Support\Facades\Gate;
+
+Gate::define( 'visual-editor.edit-content', function ( $user ): bool {
+    return $user->is_staff;
+} );
+```
+
+### How it differs from the site-editor gate
+
+| | Site-editor gate | `visual-editor.edit-content` |
+|-|------------------|------------------------------|
+| Guards | The site-editor SPA and site-wide API writes | Icon picker, SVG sanitizer, pattern previews |
+| Mechanism | A bound `SiteEditorAccessGate` class | A Laravel Gate ability |
+| Package default | Deny (`DenyByDefaultGate`) | Allow any authenticated user |
+| Failure | The gate's response (a JSON `403` on API writes) | JSON `403` |
+
+It's a post-editor-level check: authors who can't reach the site editor
+can still pass it, so they keep the icon picker and pattern previews in
+the post editor.
+
 ## Package default — fail closed
 
 If a consuming app does not bind a gate, the package binds

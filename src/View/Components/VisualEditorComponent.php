@@ -89,6 +89,19 @@ class VisualEditorComponent extends Component
 	public ?string $initialUpdatedAt;
 
 	/**
+	 * Post-type slug the #639 page-pattern modal scopes its fetch to.
+	 * Optional.
+	 *
+	 * Takes precedence over the built-in `posts` / `pages` mapping so
+	 * hosts can opt a custom content type (e.g. `package`) into the
+	 * modal without enrolling it in the core-data entity wrap. Leave
+	 * null to keep the modal off for unmapped resources.
+	 *
+	 * @since 1.13.0
+	 */
+	public ?string $patternPostType;
+
+	/**
 	 * @var array<int, array{slug: string, label: string}>
 	 */
 	public array $contentTypes;
@@ -145,13 +158,14 @@ class VisualEditorComponent extends Component
 		?array $authorOptions = null,
 		?array $supports = null,
 		?string $previewUrl = null,
+		?string $patternPostType = null,
 	) {
 		$key = $model->getKey();
 
 		if ( ! $model->exists || null === $key || '' === (string) $key ) {
 			throw new RuntimeException( sprintf(
 				'Visual editor cannot mount against an unsaved %s. Persist the model before rendering <x-visual-editor>.',
-				$model::class
+				$model::class,
 			) );
 		}
 
@@ -170,12 +184,18 @@ class VisualEditorComponent extends Component
 		$this->previewUrl           = $previewUrl;
 		$this->initialCreatedAt     = $this->resolveTimestamp( $model, 'created_at' );
 		$this->initialUpdatedAt     = $this->resolveTimestamp( $model, 'updated_at' );
+		$this->patternPostType      = $this->normalizePatternPostType( $patternPostType );
 		$this->contentTypes         = $this->resolveContentTypes();
 		$this->taxonomies           = TaxonomyRegistry::fromConfig();
 		$this->breakpoints          = app( BreakpointRegistry::class )->toArray();
 		$this->presets              = PresetRegistry::fromConfig();
 
 		$this->applyEditorConfigFilter();
+	}
+
+	public function render(): View
+	{
+		return view( 'visual-editor::components.editor' );
 	}
 
 	/**
@@ -244,12 +264,12 @@ class VisualEditorComponent extends Component
 	 */
 	protected function configSchema(): array
 	{
-		$string             = static fn ( mixed $v, mixed $current ) => is_string( $v ) ? $v : $current;
-		$nullableString     = static fn ( mixed $v, mixed $current ) => is_string( $v ) || null === $v ? $v : $current;
-		$nullableArray      = static fn ( mixed $v, mixed $current ) => is_array( $v ) || null === $v ? $v : $current;
-		$nullableBool       = static fn ( mixed $v, mixed $current ) => is_bool( $v ) || null === $v ? $v : $current;
+		$string              = static fn ( mixed $v, mixed $current ) => is_string( $v ) ? $v : $current;
+		$nullableString      = static fn ( mixed $v, mixed $current ) => is_string( $v ) || null === $v ? $v : $current;
+		$nullableArray       = static fn ( mixed $v, mixed $current ) => is_array( $v ) || null === $v ? $v : $current;
+		$nullableBool        = static fn ( mixed $v, mixed $current ) => is_bool( $v ) || null === $v ? $v : $current;
 		$nullableIntOrString = static fn ( mixed $v, mixed $current ) => is_int( $v ) || is_string( $v ) || null === $v ? $v : $current;
-		$array              = static fn ( mixed $v, mixed $current ) => is_array( $v ) ? $v : $current;
+		$array               = static fn ( mixed $v, mixed $current ) => is_array( $v ) ? $v : $current;
 
 		return [
 			'resource'             => $string,
@@ -267,11 +287,34 @@ class VisualEditorComponent extends Component
 			'previewUrl'           => $nullableString,
 			'initialCreatedAt'     => $nullableString,
 			'initialUpdatedAt'     => $nullableString,
+			'patternPostType'      => $nullableString,
 			'contentTypes'         => $array,
 			'taxonomies'           => $array,
 			'breakpoints'          => $array,
 			'presets'              => $array,
 		];
+	}
+
+	/**
+	 * Normalize the page-pattern post-type override the same way the
+	 * server normalizes pattern `post_types` (trimmed, lowercased), so
+	 * a blank value reads as "no override".
+	 *
+	 * @since 1.13.0
+	 *
+	 * @param  string|null  $postType  Raw host-supplied post-type slug.
+	 *
+	 * @return string|null Normalized slug, or null when blank.
+	 */
+	protected function normalizePatternPostType( ?string $postType ): ?string
+	{
+		if ( null === $postType ) {
+			return null;
+		}
+
+		$normalized = strtolower( trim( $postType ) );
+
+		return '' === $normalized ? null : $normalized;
 	}
 
 	/**
@@ -320,7 +363,7 @@ class VisualEditorComponent extends Component
 	 */
 	protected function resolveContentTypes(): array
 	{
-		$map = (array) config( 'artisanpack.visual-editor.resources', [] );
+		$map   = (array) config( 'artisanpack.visual-editor.resources', [] );
 		$types = [];
 
 		foreach ( $map as $plural => $modelClass ) {
@@ -349,11 +392,6 @@ class VisualEditorComponent extends Component
 		return $types;
 	}
 
-	public function render(): View
-	{
-		return view( 'visual-editor::components.editor' );
-	}
-
 	/**
 	 * Looks up the resource slug for the given model class.
 	 *
@@ -373,7 +411,7 @@ class VisualEditorComponent extends Component
 		throw new RuntimeException( sprintf(
 			'Model %s is not registered in config("artisanpack.visual-editor.resources"). '
 			. 'Add it to the resources map or pass an explicit :resource="..." prop.',
-			$class
+			$class,
 		) );
 	}
 

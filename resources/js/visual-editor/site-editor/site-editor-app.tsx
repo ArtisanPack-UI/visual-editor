@@ -71,6 +71,7 @@ import { registerStateAttributesFilter } from '../states/with-state-attributes';
 import { registerStateStylesFilters } from '../states/with-state-styles';
 import { registerVisibilityAttribute } from '../visibility/register-attribute';
 import { registerVisibilityPanel } from '../visibility/with-visibility-panel';
+import { registerVisibilityCanvas } from '../visibility/with-visibility-canvas';
 
 import { BlockLibrarySidebar } from '../editor/block-library-sidebar';
 import {
@@ -267,6 +268,9 @@ function ensureEditorBoot(): void {
     registerAnimationsPanel();
     registerVisibilityAttribute();
     registerVisibilityPanel();
+    // #805 — preview screen-size rules in the canvas and flag
+    // visibility in List View labels.
+    registerVisibilityCanvas();
     registerBindingsAttribute();
     registerBindingsPanel();
 
@@ -389,8 +393,12 @@ function SiteEditorAppShell(props: SiteEditorAppProps): JSX.Element {
     // #617 — viewport preset resizes the site-editor canvas. All three
     // canvas surfaces (templates/parts, patterns, styles slots) render
     // into the same `.ap-site-editor__canvas` container so a single
-    // shell-level width slot covers them.
-    const { canvasPreviewWidthPx, handleViewportChange } = useCanvasPreviewWidth();
+    // shell-level width slot covers them. #805 — the canvas renders
+    // in-tree, so at `base` its measured width (not the browser
+    // window) drives the visibility canvas preview.
+    const { canvasPreviewWidthPx, handleViewportChange, canvasRef } = useCanvasPreviewWidth({
+        measureBase: true,
+    });
     // #617 — hydrate the viewport switcher's registry from the
     // Blade-stamped `data-breakpoints` payload so host-configured
     // `label` / `previewWidthPx` overrides reach the UI. When the
@@ -815,6 +823,7 @@ function SiteEditorAppShell(props: SiteEditorAppProps): JSX.Element {
                     className="ap-site-editor__canvas"
                     data-has-entity="true"
                     data-testid="ap-site-editor-canvas"
+                    ref={canvasRef}
                     {...siteEditorCanvasPreviewProps(canvasPreviewWidthPx)}
                 >
                     {editorViews.canvas}
@@ -828,6 +837,7 @@ function SiteEditorAppShell(props: SiteEditorAppProps): JSX.Element {
                         showPatternsEditor
                     }
                     data-testid="ap-site-editor-canvas"
+                    ref={canvasRef}
                     {...siteEditorCanvasPreviewProps(canvasPreviewWidthPx)}
                 >
                     <div

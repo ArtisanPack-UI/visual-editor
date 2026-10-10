@@ -1,18 +1,14 @@
 /**
- * Lightweight pattern thumbnail.
+ * Lightweight pattern thumbnail: a block-name tree.
  *
- * The design brief calls for "rendered block-tree preview" thumbnails,
- * but spinning up a full block-editor render per card would balloon
- * memory + first-paint time once a few dozen patterns exist (and we
- * haven't shipped a server-side preview endpoint yet — the M6 dynamic-
- * block preview is single-block only). For V1 the thumbnail is a
- * client-side, no-iframe summary: scaled card showing block-tree
- * skeleton (the type names) with the title overlaid. It tells the user
- * what's in the pattern without the cost of an editor instance per
- * card.
+ * A client-side, no-iframe summary of a pattern — the block type names,
+ * indented by nesting — that tells the user what's in the pattern without
+ * any rendering cost.
  *
- * Replace this component with a server-rendered preview the day a
- * pattern-preview endpoint ships.
+ * Since #832 pattern cards show a server-rendered preview
+ * (`PatternPreview`), and this tree is its fallback: it shows while the
+ * preview loads, when the preview can't render, and as the "Empty
+ * pattern" placeholder for patterns with no blocks.
  */
 
 import { parse } from '@wordpress/blocks';

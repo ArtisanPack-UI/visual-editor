@@ -13,8 +13,28 @@ vi.mock('../../site-editor/patterns/api-client', async () => {
     return {
         ...actual,
         listPatterns: (...args: unknown[]) => LIST_MOCK(...args),
+        previewPatterns: (...args: unknown[]) => PREVIEW_MOCK(...args),
     };
 });
+
+const PREVIEW_MOCK = vi.fn();
+
+const observerRoots: Array<Element | Document | null | undefined> = [];
+
+class ImmediateIntersectionObserver {
+    constructor(
+        private readonly callback: (entries: Array<{ isIntersecting: boolean }>) => void,
+        options?: IntersectionObserverInit
+    ) {
+        observerRoots.push(options?.root);
+    }
+
+    observe(): void {
+        this.callback([{ isIntersecting: true }]);
+    }
+
+    disconnect(): void {}
+}
 
 const insertedBlocks: Array<{
     block: { name: string; attributes?: Record<string, unknown> };
@@ -100,9 +120,12 @@ vi.mock('@wordpress/data', () => ({
 
 
 import { InserterPatternsPanel } from '../inserter-patterns-panel';
+import { resetPatternPreviewLoaders } from '../../site-editor/patterns/pattern-preview-loader';
 
 beforeEach(() => {
     LIST_MOCK.mockReset();
+    PREVIEW_MOCK.mockReset();
+    resetPatternPreviewLoaders();
     insertedBlocks.length = 0;
     insertedTrees.length = 0;
     primedRecords.length = 0;
@@ -310,5 +333,96 @@ describe('<InserterPatternsPanel />', () => {
         expect(
             screen.queryByTestId('ap-inserter-patterns-error')
         ).not.toBeInTheDocument();
+    });
+
+    it('renders a front-end preview inside each pattern row (#832)', async () => {
+        vi.stubGlobal('IntersectionObserver', ImmediateIntersectionObserver);
+        LIST_MOCK.mockImplementation((_config, params: { synced: boolean }) =>
+            Promise.resolve(
+                params.synced
+                    ? []
+                    : [
+                          {
+                              id: 'about-full',
+                              slug: 'about-full',
+                              title: { rendered: 'About' },
+                              content: { raw: '<!-- wp:paragraph --><p>About</p><!-- /wp:paragraph -->', blocks: [] },
+                              synced: false,
+                              categories: [],
+                              status: 'publish',
+                              type: 'wp_block',
+                          },
+                      ]
+            )
+        );
+        PREVIEW_MOCK.mockResolvedValue({
+            styles: '',
+            patterns: { 'about-full': { html: '<p>Rendered about</p>' } },
+        });
+
+        render(<InserterPatternsPanel apiBase="/visual-editor/api" />);
+
+        const preview = await screen.findByTestId(
+            'ap-inserter-patterns-row-unsynced-about-full-preview'
+        );
+
+        await waitFor(() => expect(preview.querySelector('iframe')).not.toBeNull());
+
+        expect(PREVIEW_MOCK).toHaveBeenCalledWith(
+            { apiBase: '/visual-editor/api' },
+            ['about-full'],
+            expect.objectContaining({ signal: expect.anything() })
+        );
+        expect(
+            screen.getByTestId('ap-inserter-patterns-row-unsynced-about-full')
+        ).toHaveAccessibleName('Insert unsynced pattern: About');
+    });
+
+    it('keeps the preview iframe out of the row button and observes the panel (FE-3 · FE-10b)', async () => {
+        observerRoots.length = 0;
+        vi.stubGlobal('IntersectionObserver', ImmediateIntersectionObserver);
+        LIST_MOCK.mockImplementation((_config, params: { synced: boolean }) =>
+            Promise.resolve(
+                params.synced
+                    ? []
+                    : [
+                          {
+                              id: 'about-full',
+                              slug: 'about-full',
+                              title: { rendered: 'About' },
+                              content: { raw: '', blocks: [{ name: 'core/heading', attributes: {} }] },
+                              synced: false,
+                              categories: [],
+                              status: 'publish',
+                              type: 'wp_block',
+                          },
+                      ]
+            )
+        );
+        PREVIEW_MOCK.mockResolvedValue({
+            styles: '',
+            patterns: { 'about-full': { html: '<p>Rendered about</p>' } },
+        });
+
+        const user = userEvent.setup();
+
+        render(<InserterPatternsPanel apiBase="/visual-editor/api" />);
+
+        const preview = await screen.findByTestId(
+            'ap-inserter-patterns-row-unsynced-about-full-preview'
+        );
+        const row = screen.getByTestId('ap-inserter-patterns-row-unsynced-about-full');
+
+        await waitFor(() => expect(preview.querySelector('iframe')).not.toBeNull());
+
+        expect(row.tagName).toBe('BUTTON');
+        expect(row.querySelector('iframe, div')).toBeNull();
+        expect(preview.closest('button')).toBeNull();
+        expect(observerRoots[0]).toBe(screen.getByTestId('ap-inserter-patterns'));
+
+        row.focus();
+        await user.keyboard('{Enter}');
+
+        expect(insertedTrees).toHaveLength(1);
     });
 });

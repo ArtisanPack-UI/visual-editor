@@ -455,3 +455,50 @@ jobs:
           gh release edit "v${VERSION_INPUT}" \
             --repo "$REPOSITORY" \
             --draft=false
+
+  sync-docs:
+    # Queues a docs + changelog import on docs.artisanpackui.dev so the
+    # docs site tracks each release without a manual admin trigger
+    # (#831). Runs as its own job after `release` so a docs-site outage
+    # only marks this job red — the tag, GitHub release and Packagist
+    # notify have already happened. Skips with a notice until the org
+    # `DOCS_API_TOKEN` secret (scoped to `imports:trigger`) exists.
+    needs: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    name: Import docs on docs site
+    # Only calls an external API with its own token; needs no
+    # GITHUB_TOKEN scopes.
+    permissions: {}
+
+    steps:
+      - name: Queue documentation and changelog imports
+        env:
+          DOCS_API_TOKEN: ${{ secrets.DOCS_API_TOKEN }}
+          DOCS_PACKAGE_SLUG: ${{ vars.DOCS_PACKAGE_SLUG || github.event.repository.name }}
+        run: |
+          if [ -z "$DOCS_API_TOKEN" ]; then
+            echo "::notice::DOCS_API_TOKEN is not set; skipping docs-site import."
+            exit 0
+          fi
+
+          for IMPORT in import-docs import-changelog; do
+            echo "Triggering $IMPORT for $DOCS_PACKAGE_SLUG"
+            # Only a 202 means the import was queued — `--fail-with-body`
+            # would also accept a 200/204, so check the status explicitly.
+            # Timeouts keep a hung connection from eating the job timeout,
+            # and `|| STATUS="000"` keeps `bash -e` from exiting on a
+            # transport failure before the ::error:: annotation prints.
+            rm -f response.json
+            STATUS=$(curl -sS --retry 3 --connect-timeout 10 --max-time 30 \
+              -o response.json -w '%{http_code}' -X POST \
+              "https://docs.artisanpackui.dev/api/v1/packages/${DOCS_PACKAGE_SLUG}/${IMPORT}" \
+              -H "Authorization: Bearer ${DOCS_API_TOKEN}" \
+              -H "Accept: application/json") || STATUS="000"
+            cat response.json 2>/dev/null || true
+            echo
+            if [ "$STATUS" != "202" ]; then
+              echo "::error::$IMPORT returned HTTP $STATUS (expected 202)."
+              exit 1
+            fi
+          done

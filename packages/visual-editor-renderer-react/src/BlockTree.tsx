@@ -29,6 +29,10 @@ import {
     type ArbitraryRule,
 } from './support/flex-serializer';
 import { stampColumnWidthScopes } from './support/columnWidth';
+import {
+    NAVIGATION_OVERLAY_CSS,
+    treeHasNavigationOverlay,
+} from './support/navigationOverlayCss';
 import { stampPhotoGridScopes } from './support/photoGrid';
 import {
     DEFAULT_MAX_PATTERN_DEPTH,
@@ -43,7 +47,11 @@ import { inlineSiteMeta } from './siteMeta';
 import type { SiteMeta } from './siteMeta';
 import {
     DEFAULT_MAX_TEMPLATE_PART_DEPTH,
+    inlineNavigationOverlays,
     inlineTemplateParts,
+    isNavigationOverlayContent,
+    NAVIGATION_OVERLAY_CONTENT_BLOCK,
+    stripStoredNavigationOverlayContent,
 } from './templateParts';
 import type { TemplatePartRecord } from './templateParts';
 import { LIST_ITEM_BLOCKS, filterVisibleBlocks, stampVisibilityScopes } from './visibility';
@@ -138,7 +146,21 @@ export function BlockTree({
                       maxDepth: maxPatternDepth,
                   });
 
-        const withSiteMeta = inlineSiteMeta(withPatterns, siteMeta);
+        // Overlay-only pass (RN-9): a navigation that only appears once
+        // synced patterns are expanded gets its `overlay` part resolved
+        // here. Navigations already resolved above are skipped. It runs
+        // before query inlining so a navigation inside a query loop's
+        // template is resolved once and then stamped per result.
+        const withOverlays =
+            templateParts === undefined || patterns === undefined
+                ? withPatterns
+                : inlineNavigationOverlays(withPatterns, {
+                      parts: templateParts,
+                      defaultTheme,
+                      maxDepth: maxTemplatePartDepth,
+                  });
+
+        const withSiteMeta = inlineSiteMeta(withOverlays, siteMeta);
 
         // Query inlining runs last so a `core/query` block reachable only
         // through a resolved template part / pattern still gets its loop
@@ -191,6 +213,10 @@ export function BlockTree({
         return stampPhotoGridScopes(columnWidthTree);
     }, [columnWidthTree]);
 
+    // Navigation overlay (#804) — the drawer's breakpoint + open-state
+    // rules, emitted once when any navigation block has its overlay on.
+    const hasNavigationOverlay = useMemo(() => treeHasNavigationOverlay(renderTree), [renderTree]);
+
     return (
         <>
             <GlobalStyles css={globalStylesCss} />
@@ -208,6 +234,9 @@ export function BlockTree({
             )}
             {photoGridCss !== '' && (
                 <style data-ve-photo-grid="">{photoGridCss}</style>
+            )}
+            {hasNavigationOverlay && (
+                <style data-ve-navigation-overlay="">{NAVIGATION_OVERLAY_CSS}</style>
             )}
             {renderTree.map((block, index) =>
                 renderBlock(block, index, dynamicBlockEndpoint, fetchOptions)
@@ -267,7 +296,9 @@ function renderBlock(
 ): ReactNode {
     const name = typeof block.name === 'string' ? block.name.trim() : '';
 
-    if (name === '') {
+    // Only the inliner may create overlay-content blocks; a stored one
+    // (e.g. reached through a synced pattern) is never rendered.
+    if (name === '' || (name === NAVIGATION_OVERLAY_CONTENT_BLOCK && !isNavigationOverlayContent(block))) {
         return null;
     }
 
@@ -276,7 +307,8 @@ function renderBlock(
             ? (block.attributes as Record<string, unknown>)
             : {};
 
-    const innerBlocks = Array.isArray(block.innerBlocks) ? block.innerBlocks.filter(isBlock) : [];
+    const allInnerBlocks = Array.isArray(block.innerBlocks) ? block.innerBlocks.filter(isBlock) : [];
+    const innerBlocks = allInnerBlocks.filter((child) => slotName(child) === '');
     const key = typeof block.clientId === 'string' && block.clientId !== '' ? block.clientId : `${name}-${index}`;
 
     const renderedChildren =
@@ -285,6 +317,28 @@ function renderBlock(
             : innerBlocks.map((child, childIndex) =>
                   renderBlock(child, childIndex, endpoint, fetchOptions)
               );
+
+    // Slot containers (#804) render their inner blocks into a named slot
+    // on the parent renderer instead of in place.
+    const slots: Record<string, ReactNode> = {};
+
+    for (const child of allInnerBlocks) {
+        const slot = slotName(child);
+
+        if (slot === '') {
+            continue;
+        }
+
+        const slotChildren = (Array.isArray(child.innerBlocks) ? child.innerBlocks.filter(isBlock) : [])
+            .map((slotBlock, slotIndex) => renderBlock(slotBlock, slotIndex, endpoint, fetchOptions))
+            .filter((node) => node !== null);
+
+        if (slotChildren.length === 0) {
+            continue;
+        }
+
+        slots[slot] = <Fragment>{slotChildren}</Fragment>;
+    }
 
     const Renderer = getBlockRenderer(name);
 
@@ -305,6 +359,7 @@ function renderBlock(
                 name={name}
                 attributes={rendererAttributes}
                 innerBlocks={innerBlocks}
+                {...(Object.keys(slots).length > 0 ? { slots } : {})}
             >
                 {renderedChildren === null ? null : <Fragment>{renderedChildren}</Fragment>}
             </Renderer>
@@ -335,7 +390,38 @@ function renderBlock(
     return element;
 }
 
+/**
+ * Slot a block is routed into, or `''` for a regular in-place child. Only
+ * the synthetic overlay-content block the template-part inliner appends
+ * (carrying its private marker) is routed, so a stray `_slot` attribute
+ * or a stored block with the overlay-content name is ignored.
+ */
+function slotName(block: Block): string {
+    if (!isNavigationOverlayContent(block)) {
+        return '';
+    }
+
+    const attributes = block.attributes;
+
+    if (attributes === null || typeof attributes !== 'object' || Array.isArray(attributes)) {
+        return '';
+    }
+
+    const slot = (attributes as Record<string, unknown>)._slot;
+
+    return typeof slot === 'string' ? slot : '';
+}
+
+/**
+ * Parse the incoming tree and drop stored overlay-content blocks (RN-10)
+ * before any inlining runs, so only the inliner's own (marked) overlay
+ * blocks ever reach the overlay slot.
+ */
 function normalizeTree(tree: Block[] | string | null | undefined): Block[] {
+    return stripStoredNavigationOverlayContent(parseTree(tree));
+}
+
+function parseTree(tree: Block[] | string | null | undefined): Block[] {
     if (tree === null || tree === undefined) {
         return [];
     }

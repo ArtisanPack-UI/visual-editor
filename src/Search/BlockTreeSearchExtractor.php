@@ -23,6 +23,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditor\Search;
 
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
+use Throwable;
 
 class BlockTreeSearchExtractor
 {
@@ -37,7 +38,9 @@ class BlockTreeSearchExtractor
 	 */
 	public const STATIC_TEXT_ATTRIBUTES = [ 'content', 'caption', 'alt', 'title' ];
 
-	public function __construct( protected DynamicBlockRegistry $registry ) {}
+	public function __construct( protected DynamicBlockRegistry $registry )
+	{
+	}
 
 	/**
 	 * Walk the given block tree and return a single space-separated string
@@ -107,7 +110,7 @@ class BlockTreeSearchExtractor
 
 		try {
 			$text = $block->searchableText( $attrs );
-		} catch ( \Throwable $e ) {
+		} catch ( Throwable $e ) {
 			return;
 		}
 

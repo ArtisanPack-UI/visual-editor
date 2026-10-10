@@ -20,11 +20,11 @@ function makeAnimEmitter(): AnimationCssEmitter
 	);
 }
 
-it( 'emits nothing for an empty attribute bag', function () {
+it( 'emits nothing for an empty attribute bag', function (): void {
 	expect( makeAnimEmitter()->emit( '.ap-block-x', [] ) )->toBe( '' );
 } );
 
-it( 'emits the entrance pre-state and play rule', function () {
+it( 'emits the entrance pre-state and play rule', function (): void {
 	$css = makeAnimEmitter()->emit( '.ap-block-x', [
 		'entrance' => [ 'name' => 'fade-in-up' ],
 	] );
@@ -34,7 +34,7 @@ it( 'emits the entrance pre-state and play rule', function () {
 	expect( $css )->toContain( '600ms' );
 } );
 
-it( 'lets a per-breakpoint null disable the entrance animation', function () {
+it( 'lets a per-breakpoint null disable the entrance animation', function (): void {
 	$css = makeAnimEmitter()->emit( '.ap-block-x', [
 		'entrance' => [ 'name' => [ 'base' => 'fade-in', 'md' => null ] ],
 	] );
@@ -43,7 +43,7 @@ it( 'lets a per-breakpoint null disable the entrance animation', function () {
 	expect( $css )->toContain( 'animation: none' );
 } );
 
-it( 'emits a hover preset rule wrapped in a hover media query', function () {
+it( 'emits a hover preset rule wrapped in a hover media query', function (): void {
 	$css = makeAnimEmitter()->emit( '.ap-block-x', [
 		'hover' => [ 'name' => 'lift' ],
 	] );
@@ -53,7 +53,7 @@ it( 'emits a hover preset rule wrapped in a hover media query', function () {
 	expect( $css )->toContain( 'transition' );
 } );
 
-it( 'emits a continuous animation with infinite iteration by default', function () {
+it( 'emits a continuous animation with infinite iteration by default', function (): void {
 	$css = makeAnimEmitter()->emit( '.ap-block-x', [
 		'continuous' => [ 'name' => 'pulse' ],
 	] );
@@ -62,7 +62,7 @@ it( 'emits a continuous animation with infinite iteration by default', function 
 	expect( $css )->toContain( 'infinite' );
 } );
 
-it( 'guards entrance + continuous against prefers-reduced-motion by default', function () {
+it( 'guards entrance + continuous against prefers-reduced-motion by default', function (): void {
 	$css = makeAnimEmitter()->emit( '.ap-block-x', [
 		'entrance' => [ 'name' => 'fade-in' ],
 	] );
@@ -71,7 +71,7 @@ it( 'guards entrance + continuous against prefers-reduced-motion by default', fu
 	expect( $css )->toContain( 'animation: none !important' );
 } );
 
-it( 'skips the reduced-motion guard when the block opts out', function () {
+it( 'skips the reduced-motion guard when the block opts out', function (): void {
 	$css = makeAnimEmitter()->emit( '.ap-block-x', [
 		'entrance'      => [ 'name' => 'fade-in' ],
 		'reducedMotion' => 'allow',
@@ -80,7 +80,7 @@ it( 'skips the reduced-motion guard when the block opts out', function () {
 	expect( $css )->not->toContain( 'prefers-reduced-motion' );
 } );
 
-it( 'reports whether any family has an animation set', function () {
+it( 'reports whether any family has an animation set', function (): void {
 	$emitter = makeAnimEmitter();
 
 	expect( $emitter->hasAny( [] ) )->toBeFalse();
@@ -89,14 +89,14 @@ it( 'reports whether any family has an animation set', function () {
 	expect( $emitter->hasAny( [ 'continuous' => [ 'name' => 'pulse' ] ] ) )->toBeTrue();
 } );
 
-it( 'reports whether any entrance is configured for runtime gating', function () {
+it( 'reports whether any entrance is configured for runtime gating', function (): void {
 	$emitter = makeAnimEmitter();
 
 	expect( $emitter->hasEntrance( [ 'continuous' => [ 'name' => 'pulse' ] ] ) )->toBeFalse();
 	expect( $emitter->hasEntrance( [ 'entrance' => [ 'name' => 'fade-in' ] ] ) )->toBeTrue();
 } );
 
-it( 'computes the wrapper class list', function () {
+it( 'computes the wrapper class list', function (): void {
 	$classes = makeAnimEmitter()->wrapperClasses( [
 		'entrance' => [ 'name' => 'fade-in' ],
 	] );
@@ -105,7 +105,7 @@ it( 'computes the wrapper class list', function () {
 	expect( $classes )->toContain( 'ap-anim-pre' );
 } );
 
-it( 'computes data-* attributes the runtime keys off', function () {
+it( 'computes data-* attributes the runtime keys off', function (): void {
 	$data = makeAnimEmitter()->dataAttributes( [
 		'entrance' => [ 'name' => 'fade-in', 'threshold' => 0.5, 'once' => false ],
 	] );
@@ -115,13 +115,13 @@ it( 'computes data-* attributes the runtime keys off', function () {
 	expect( $data['data-ap-anim-once'] )->toBe( 'false' );
 } );
 
-it( 'returns the noscript fallback CSS for entrance blocks', function () {
+it( 'returns the noscript fallback CSS for entrance blocks', function (): void {
 	expect( makeAnimEmitter()->noscriptCss( '.ap-block-x' ) )
 		->toContain( '.ap-block-x.ap-anim-pre' )
 		->toContain( 'opacity: 1' );
 } );
 
-it( 'composes entrance + continuous so the continuous loop survives the play class swap', function () {
+it( 'composes entrance + continuous so the continuous loop survives the play class swap', function (): void {
 	$css = makeAnimEmitter()->emit( '.ap-block-x', [
 		'entrance'   => [ 'name' => 'fade-in-up' ],
 		'continuous' => [ 'name' => 'pulse' ],
@@ -137,7 +137,7 @@ it( 'composes entrance + continuous so the continuous loop survives the play cla
 	expect( $css )->toMatch( '/\.ap-block-x\s*\{\s*animation:\s*apPulse/' );
 } );
 
-it( 'emits the pre-state and data attr for responsive-only entrance configs', function () {
+it( 'emits the pre-state and data attr for responsive-only entrance configs', function (): void {
 	$emitter = makeAnimEmitter();
 
 	$attributes = [
@@ -151,7 +151,7 @@ it( 'emits the pre-state and data attr for responsive-only entrance configs', fu
 	expect( $data['data-ap-anim-entrance'] )->toBe( 'fade-in-up' );
 } );
 
-it( 'rejects easing values containing CSS-injection characters', function () {
+it( 'rejects easing values containing CSS-injection characters', function (): void {
 	$css = makeAnimEmitter()->emit( '.ap-block-x', [
 		'entrance' => [ 'name' => 'fade-in', 'easing' => 'ease; } body {' ],
 	] );

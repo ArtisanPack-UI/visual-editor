@@ -13,21 +13,21 @@ use ArtisanPackUI\VisualEditorRendererBlade\Support\PhotoGridSupport;
  * malformed input the same way the JS helper does.
  */
 
-it( 'returns empty result when photoGrid attribute is missing', function () {
+it( 'returns empty result when photoGrid attribute is missing', function (): void {
 	$result = PhotoGridSupport::wrapper( [] );
 
 	expect( $result[ 'classes' ] )->toBe( [] )
 		->and( $result[ 'styles' ] )->toBe( [] );
 } );
 
-it( 'returns empty result when photoGrid attribute is null', function () {
+it( 'returns empty result when photoGrid attribute is null', function (): void {
 	$result = PhotoGridSupport::wrapper( [ 'photoGrid' => null ] );
 
 	expect( $result[ 'classes' ] )->toBe( [] )
 		->and( $result[ 'styles' ] )->toBe( [] );
 } );
 
-it( 'returns empty result when photoGrid.enabled is false', function () {
+it( 'returns empty result when photoGrid.enabled is false', function (): void {
 	$result = PhotoGridSupport::wrapper( [
 		'photoGrid' => [
 			'enabled'        => false,
@@ -41,7 +41,7 @@ it( 'returns empty result when photoGrid.enabled is false', function () {
 		->and( $result[ 'styles' ] )->toBe( [] );
 } );
 
-it( 'emits the has-photo-grid class plus aspect/fit/position vars when enabled', function () {
+it( 'emits the has-photo-grid class plus aspect/fit/position vars when enabled', function (): void {
 	$result = PhotoGridSupport::wrapper( [
 		'photoGrid' => [
 			'enabled'        => true,
@@ -59,7 +59,7 @@ it( 'emits the has-photo-grid class plus aspect/fit/position vars when enabled',
 		] );
 } );
 
-it( 'preserves the contain object-fit token', function () {
+it( 'preserves the contain object-fit token', function (): void {
 	$result = PhotoGridSupport::wrapper( [
 		'photoGrid' => [
 			'enabled'        => true,
@@ -73,7 +73,7 @@ it( 'preserves the contain object-fit token', function () {
 		->and( $result[ 'styles' ][ '--ap-photo-grid-position' ] )->toBe( '30% 70%' );
 } );
 
-it( 'omits the aspect-ratio var when value is null (inherit container)', function () {
+it( 'omits the aspect-ratio var when value is null (inherit container)', function (): void {
 	$result = PhotoGridSupport::wrapper( [
 		'photoGrid' => [
 			'enabled'        => true,
@@ -87,7 +87,7 @@ it( 'omits the aspect-ratio var when value is null (inherit container)', functio
 		->and( $result[ 'styles' ] )->not->toHaveKey( '--ap-photo-grid-aspect' );
 } );
 
-it( 'accepts decimal aspect ratios', function () {
+it( 'accepts decimal aspect ratios', function (): void {
 	$result = PhotoGridSupport::wrapper( [
 		'photoGrid' => [
 			'enabled'        => true,
@@ -100,7 +100,7 @@ it( 'accepts decimal aspect ratios', function () {
 	expect( $result[ 'styles' ][ '--ap-photo-grid-aspect' ] )->toBe( '21.5/9' );
 } );
 
-it( 'rejects malformed aspect ratios (drops the aspect var)', function () {
+it( 'rejects malformed aspect ratios (drops the aspect var)', function (): void {
 	foreach ( [ '16x9', '16 9', '/9', '16/', '-16/9', '0/9', '16/0', 'abc' ] as $bad ) {
 		$result = PhotoGridSupport::wrapper( [
 			'photoGrid' => [
@@ -115,7 +115,7 @@ it( 'rejects malformed aspect ratios (drops the aspect var)', function () {
 	}
 } );
 
-it( 'defaults objectFit to cover for unknown tokens', function () {
+it( 'defaults objectFit to cover for unknown tokens', function (): void {
 	$result = PhotoGridSupport::wrapper( [
 		'photoGrid' => [
 			'enabled'        => true,
@@ -128,7 +128,7 @@ it( 'defaults objectFit to cover for unknown tokens', function () {
 	expect( $result[ 'styles' ][ '--ap-photo-grid-fit' ] )->toBe( 'cover' );
 } );
 
-it( 'defaults objectPosition to 50% 50% for empty / non-string values', function () {
+it( 'defaults objectPosition to 50% 50% for empty / non-string values', function (): void {
 	foreach ( [ '', null, 0, false, [] ] as $bad ) {
 		$result = PhotoGridSupport::wrapper( [
 			'photoGrid' => [
@@ -143,7 +143,7 @@ it( 'defaults objectPosition to 50% 50% for empty / non-string values', function
 	}
 } );
 
-it( 'rejects CSS-breakout attempts in objectPosition', function () {
+it( 'rejects CSS-breakout attempts in objectPosition', function (): void {
 	foreach ( [ '50% 50%; color: red', '50% 50%}{background:red', '50%<script>', 'top}', '{x' ] as $bad ) {
 		$result = PhotoGridSupport::wrapper( [
 			'photoGrid' => [
@@ -158,7 +158,7 @@ it( 'rejects CSS-breakout attempts in objectPosition', function () {
 	}
 } );
 
-it( 'inlineStyle renders declarations as a `key:value;…` string', function () {
+it( 'inlineStyle renders declarations as a `key:value;…` string', function (): void {
 	$css = PhotoGridSupport::inlineStyle( [
 		'--ap-photo-grid-fit'      => 'cover',
 		'--ap-photo-grid-position' => '50% 50%',
@@ -168,11 +168,11 @@ it( 'inlineStyle renders declarations as a `key:value;…` string', function () 
 	expect( $css )->toBe( '--ap-photo-grid-fit:cover;--ap-photo-grid-position:50% 50%;--ap-photo-grid-aspect:16/9;' );
 } );
 
-it( 'inlineStyle returns an empty string for an empty styles array', function () {
+it( 'inlineStyle returns an empty string for an empty styles array', function (): void {
 	expect( PhotoGridSupport::inlineStyle( [] ) )->toBe( '' );
 } );
 
-it( 'wrapperForBlock returns the class list including a scope class when enabled', function () {
+it( 'wrapperForBlock returns the class list including a scope class when enabled', function (): void {
 	$classes = PhotoGridSupport::wrapperForBlock( [
 		'photoGrid' => [
 			'enabled'        => true,
@@ -187,7 +187,7 @@ it( 'wrapperForBlock returns the class list including a scope class when enabled
 
 	$scope = array_values( array_filter(
 		$classes,
-		static fn ( string $c ): bool => str_starts_with( $c, 'photo-grid-' )
+		static fn ( string $c ): bool => str_starts_with( $c, 'photo-grid-' ),
 	) );
 	expect( $scope )->toHaveCount( 1 )
 		->and( $scope[ 0 ] )->toMatch( '/^photo-grid-[a-f0-9]{12}$/' );
@@ -207,7 +207,7 @@ it( 'wrapperForBlock returns the class list including a scope class when enabled
 	expect( $classes )->toEqual( $again );
 } );
 
-it( 'wrapperForBlock returns an empty array when disabled', function () {
+it( 'wrapperForBlock returns an empty array when disabled', function (): void {
 	expect( PhotoGridSupport::wrapperForBlock( [] ) )->toBe( [] )
 		->and( PhotoGridSupport::wrapperForBlock( [ 'photoGrid' => null ] ) )->toBe( [] )
 		->and( PhotoGridSupport::wrapperForBlock( [

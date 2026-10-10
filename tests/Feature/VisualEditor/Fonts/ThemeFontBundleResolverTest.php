@@ -66,7 +66,7 @@ function fakeBundleFontProvider( array $options = [] ): FontProvider
 			$this->fetched[] = $weight . ':' . $style;
 
 			if ( true === ( $this->options['failAll'] ?? false ) ) {
-				throw new \RuntimeException( 'Simulated provider failure.' );
+				throw new RuntimeException( 'Simulated provider failure.' );
 			}
 
 			return 'wOF2' . $weight . $style;
@@ -245,7 +245,7 @@ it( 'records a provider failure and still links the other fonts', function (): v
 it( 're-syncs bundles on re-activation, dropping removed declarations', function (): void {
 	app( FontSourceRegistry::class )->register( fakeBundleFontProvider( [ 'key' => 'fake' ] ) );
 
-	$inter = Font::factory()->create( [ 'provider' => 'fake', 'family' => 'Inter', 'slug' => 'inter' ] );
+	$inter  = Font::factory()->create( [ 'provider' => 'fake', 'family' => 'Inter', 'slug' => 'inter' ] );
 	$roboto = Font::factory()->create( [ 'provider' => 'fake', 'family' => 'Roboto', 'slug' => 'roboto' ] );
 
 	$resolver = app( ThemeFontBundleResolver::class );

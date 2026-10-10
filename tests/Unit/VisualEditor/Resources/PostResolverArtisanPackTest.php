@@ -43,112 +43,112 @@ function fakeArtisanPackPost(): object
 	return $post;
 }
 
-it( 'stamps artisanpack/post-title the same as core/post-title', function () {
+it( 'stamps artisanpack/post-title the same as core/post-title', function (): void {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'artisanpack/post-title', 'attributes' => [], 'innerBlocks' => [] ],
-		fakeArtisanPackPost()
+		fakeArtisanPackPost(),
 	);
 
 	expect( $resolved['attributes']['_resolvedTitle'] )->toBe( 'Hello world' )
 		->and( $resolved['attributes']['_resolvedPermalink'] )->toBe( 'https://example.test/posts/hello' );
 } );
 
-it( 'stamps artisanpack/post-content', function () {
+it( 'stamps artisanpack/post-content', function (): void {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'artisanpack/post-content', 'attributes' => [], 'innerBlocks' => [] ],
-		fakeArtisanPackPost()
+		fakeArtisanPackPost(),
 	);
 
 	expect( $resolved['attributes']['_resolvedContent'] )->toBe( '<p>Body.</p>' );
 } );
 
-it( 'stamps artisanpack/post-excerpt', function () {
+it( 'stamps artisanpack/post-excerpt', function (): void {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'artisanpack/post-excerpt', 'attributes' => [], 'innerBlocks' => [] ],
-		fakeArtisanPackPost()
+		fakeArtisanPackPost(),
 	);
 
 	expect( $resolved['attributes']['_resolvedExcerpt'] )->toBe( 'A brief excerpt' );
 } );
 
-it( 'stamps artisanpack/post-date including the modified date', function () {
+it( 'stamps artisanpack/post-date including the modified date', function (): void {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'artisanpack/post-date', 'attributes' => [], 'innerBlocks' => [] ],
-		fakeArtisanPackPost()
+		fakeArtisanPackPost(),
 	);
 
 	expect( $resolved['attributes']['_resolvedDateFormatted'] )->toBe( 'April 20, 2026' )
 		->and( $resolved['attributes']['_resolvedModifiedDateFormatted'] )->toBe( 'April 21, 2026' );
 } );
 
-it( 'stamps artisanpack/post-author from the loaded relation', function () {
+it( 'stamps artisanpack/post-author from the loaded relation', function (): void {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'artisanpack/post-author', 'attributes' => [], 'innerBlocks' => [] ],
-		fakeArtisanPackPost()
+		fakeArtisanPackPost(),
 	);
 
 	expect( $resolved['attributes']['_resolvedAuthorName'] )->toBe( 'Jane Doe' )
 		->and( $resolved['attributes']['_resolvedAuthorUrl'] )->toBe( 'https://example.test/jane' );
 } );
 
-it( 'stamps artisanpack/post-author-name from the loaded relation (#518)', function () {
+it( 'stamps artisanpack/post-author-name from the loaded relation (#518)', function (): void {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'artisanpack/post-author-name', 'attributes' => [], 'innerBlocks' => [] ],
-		fakeArtisanPackPost()
+		fakeArtisanPackPost(),
 	);
 
 	expect( $resolved['attributes']['_resolvedAuthorName'] )->toBe( 'Jane Doe' )
 		->and( $resolved['attributes']['_resolvedAuthorUrl'] )->toBe( 'https://example.test/jane' );
 } );
 
-it( 'stamps artisanpack/post-author-biography from the loaded relation (#518)', function () {
+it( 'stamps artisanpack/post-author-biography from the loaded relation (#518)', function (): void {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'artisanpack/post-author-biography', 'attributes' => [], 'innerBlocks' => [] ],
-		fakeArtisanPackPost()
+		fakeArtisanPackPost(),
 	);
 
 	expect( $resolved['attributes']['_resolvedAuthorBio'] )->toBe( 'Writer' );
 } );
 
-it( 'stamps artisanpack/avatar with the author avatar URL and name (#518)', function () {
+it( 'stamps artisanpack/avatar with the author avatar URL and name (#518)', function (): void {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'artisanpack/avatar', 'attributes' => [], 'innerBlocks' => [] ],
-		fakeArtisanPackPost()
+		fakeArtisanPackPost(),
 	);
 
 	expect( $resolved['attributes']['_resolvedAuthorAvatar'] )->toBe( 'https://example.test/avatar.jpg' )
 		->and( $resolved['attributes']['_resolvedAuthorName'] )->toBe( 'Jane Doe' );
 } );
 
-it( 'stamps the core/* counterparts for the author family identically to the artisanpack/* forks (#518)', function () {
+it( 'stamps the core/* counterparts for the author family identically to the artisanpack/* forks (#518)', function (): void {
 	$resolver = new PostResolver();
 	$post     = fakeArtisanPackPost();
 
 	$artisanName = $resolver->stampBlock(
 		[ 'name' => 'artisanpack/post-author-name', 'attributes' => [], 'innerBlocks' => [] ],
-		$post
+		$post,
 	);
 	$coreName = $resolver->stampBlock(
 		[ 'name' => 'core/post-author-name', 'attributes' => [], 'innerBlocks' => [] ],
-		$post
+		$post,
 	);
 
 	$artisanBio = $resolver->stampBlock(
 		[ 'name' => 'artisanpack/post-author-biography', 'attributes' => [], 'innerBlocks' => [] ],
-		$post
+		$post,
 	);
 	$coreBio = $resolver->stampBlock(
 		[ 'name' => 'core/post-author-biography', 'attributes' => [], 'innerBlocks' => [] ],
-		$post
+		$post,
 	);
 
 	$artisanAvatar = $resolver->stampBlock(
 		[ 'name' => 'artisanpack/avatar', 'attributes' => [], 'innerBlocks' => [] ],
-		$post
+		$post,
 	);
 	$coreAvatar = $resolver->stampBlock(
 		[ 'name' => 'core/avatar', 'attributes' => [], 'innerBlocks' => [] ],
-		$post
+		$post,
 	);
 
 	// Compare the resolved attribute bags directly so a regression on
@@ -160,7 +160,7 @@ it( 'stamps the core/* counterparts for the author family identically to the art
 		->and( $coreAvatar['attributes'] )->toEqual( $artisanAvatar['attributes'] );
 } );
 
-it( 'recurses into inner blocks so an artisanpack/query template stamps too', function () {
+it( 'recurses into inner blocks so an artisanpack/query template stamps too', function (): void {
 	$tree = [
 		[
 			'name'        => 'artisanpack/post-title',
@@ -177,14 +177,14 @@ it( 'recurses into inner blocks so an artisanpack/query template stamps too', fu
 		->and( $stamped[0]['innerBlocks'][0]['attributes']['_resolvedDateFormatted'] )->toBe( 'April 20, 2026' );
 } );
 
-it( 'leaves a pre-existing _resolved* value untouched (host wins)', function () {
+it( 'leaves a pre-existing _resolved* value untouched (host wins)', function (): void {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[
 			'name'        => 'artisanpack/post-title',
 			'attributes'  => [ '_resolvedTitle' => 'Host override' ],
 			'innerBlocks' => [],
 		],
-		fakeArtisanPackPost()
+		fakeArtisanPackPost(),
 	);
 
 	expect( $resolved['attributes']['_resolvedTitle'] )->toBe( 'Host override' );

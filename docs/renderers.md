@@ -294,6 +294,87 @@ gap and root padding tokens — the same defaults as the Blade renderer's
 `:root` declaration from `<GlobalStyles>` — theme, style variation, user
 Global Styles or host presets — overrides those defaults.
 
+### Navigation overlay
+
+*Since v1.13.0 (#804).* The React and Vue renderers render
+`core/navigation` with the same responsive overlay as Blade: a menu
+button plus a responsive container that shows the menu inline at desktop
+widths and as a full-screen drawer below 600px (with the default
+`overlayMenu: 'mobile'`), or always behind the button (`'always'`).
+`'never'` keeps the plain `<nav><ul>`. The drawer closes on Escape, a
+backdrop click or a link click, traps Tab focus while open and returns
+focus to the menu button.
+
+> **Upgrade note.** In 1.12 the React and Vue renderers output a plain
+> `<nav><ul>`. With the overlay, the menu `<ul>` sits three levels
+> deeper, inside `.wp-block-navigation__responsive-container`. Update
+> host CSS that targets `.wp-block-navigation > ul`.
+
+When the tree contains a navigation with an overlay, `<BlockTree>` emits
+the overlay CSS once, in a `<style data-ve-navigation-overlay>` tag.
+The rules sit in the `ve-navigation` cascade layer
+(`@layer ve-navigation { … }`), so any unlayered host or theme rule wins
+over them regardless of specificity.
+
+To render a navigation overlay template part (the block's `overlay`
+setting) inside the open drawer, pass the part in `templateParts` with
+`area: 'navigation-overlay'`. A reference to a part in any other area is
+ignored, and the drawer falls back to the menu, as it also does when the
+part is missing or visibility rules hide all of its blocks:
+
+```tsx
+import { BlockTree, NAVIGATION_OVERLAY_AREA } from '@artisanpack-ui/visual-editor-renderer-react';
+
+<BlockTree
+    tree={page.content}
+    templateParts={[
+        { slug: 'header', area: 'header', blocks: header.blocks },
+        // NAVIGATION_OVERLAY_AREA === 'navigation-overlay'
+        { slug: 'mobile-overlay', area: NAVIGATION_OVERLAY_AREA, blocks: overlay.blocks },
+    ]}
+/>
+```
+
+The overlay part is resolved wherever the navigation ends up, including
+inside template parts, synced patterns (when you pass `patterns`) and
+query loops. A part that references itself, directly or through
+another part, is skipped instead of recursing.
+
+**Custom navigation renderers.** The renderer resolves the part into an
+internal overlay-content block and hands its rendered blocks to the
+`core/navigation` renderer as a named slot, not as `children`:
+
+- React: the new `slots` prop on `BlockRendererProps`. The overlay is
+  `slots[NAVIGATION_OVERLAY_SLOT]` (`'overlay'`).
+- Vue: the named slot `overlay` (`slots.overlay?.()`).
+
+```tsx
+import {
+    NAVIGATION_OVERLAY_SLOT,
+    registerBlockRenderer,
+    type BlockRendererProps,
+} from '@artisanpack-ui/visual-editor-renderer-react';
+
+function MyNavigation({ attributes, children, slots }: BlockRendererProps) {
+    const overlay = slots?.[NAVIGATION_OVERLAY_SLOT];
+
+    return (
+        <nav className="my-nav">
+            <ul>{children}</ul>
+            {overlay !== undefined && <div className="my-nav__drawer">{overlay}</div>}
+        </nav>
+    );
+}
+
+registerBlockRenderer('core/navigation', MyNavigation);
+```
+
+Both packages export `NAVIGATION_OVERLAY_SLOT` and
+`NAVIGATION_OVERLAY_AREA`, so you don't have to hard-code either string.
+Only the renderer creates the overlay-content block
+(`artisanpack/navigation-overlay-content`); a stored block with that name
+is dropped and never rendered.
+
 ---
 
 ## 3. Vue renderer
@@ -322,6 +403,11 @@ registerBlockRenderer('artisanpack/callout', CalloutBlock);
 
 The `<BlockTree>` / `<Template>` / `<GlobalStyles>` components mirror the
 React renderer's API.
+
+That includes the [navigation overlay](#navigation-overlay):
+`templateParts` takes the same records (`area: 'navigation-overlay'` for
+overlay parts), and a custom `core/navigation` renderer receives the
+overlay content in the named `overlay` slot instead of the default slot.
 
 ---
 

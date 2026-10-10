@@ -25,7 +25,7 @@ afterEach( function (): void {
 	}
 } );
 
-it( 'discovers fas, far, and fab when all three set directories exist', function () {
+it( 'discovers fas, far, and fab when all three set directories exist', function (): void {
 	mkdir( test()->fixtureBase . '/fas' );
 	mkdir( test()->fixtureBase . '/far' );
 	mkdir( test()->fixtureBase . '/fab' );
@@ -37,7 +37,7 @@ it( 'discovers fas, far, and fab when all three set directories exist', function
 		->and( $found['fab'] )->toBe( test()->fixtureBase . '/fab' );
 } );
 
-it( 'silently skips sets whose directory has not been synced yet', function () {
+it( 'silently skips sets whose directory has not been synced yet', function (): void {
 	mkdir( test()->fixtureBase . '/fas' );
 	mkdir( test()->fixtureBase . '/fab' );
 
@@ -47,13 +47,13 @@ it( 'silently skips sets whose directory has not been synced yet', function () {
 		->and( $found )->not->toHaveKey( 'far' );
 } );
 
-it( 'returns an empty array when the base directory is absent', function () {
+it( 'returns an empty array when the base directory is absent', function (): void {
 	$found = FontAwesomeFreeIconSets::discover( test()->fixtureBase . '/missing' );
 
 	expect( $found )->toBe( [] );
 } );
 
-it( 'registers each discovered set on the IconSetRegistration', function () {
+it( 'registers each discovered set on the IconSetRegistration', function (): void {
 	mkdir( test()->fixtureBase . '/fas' );
 	mkdir( test()->fixtureBase . '/far' );
 	mkdir( test()->fixtureBase . '/fab' );
@@ -67,7 +67,7 @@ it( 'registers each discovered set on the IconSetRegistration', function () {
 		->and( $sets['fas']['path'] )->toBe( test()->fixtureBase . '/fas' );
 } );
 
-it( 'does not throw when the base directory is missing', function () {
+it( 'does not throw when the base directory is missing', function (): void {
 	$registry = new IconSetRegistration();
 
 	expect( fn () => FontAwesomeFreeIconSets::register( $registry, test()->fixtureBase . '/missing' ) )
@@ -76,7 +76,7 @@ it( 'does not throw when the base directory is missing', function () {
 	expect( $registry->getSets() )->toBe( [] );
 } );
 
-it( 'skips registration when owenvoke/blade-fontawesome is installed (issue #587)', function () {
+it( 'skips registration when owenvoke/blade-fontawesome is installed (issue #587)', function (): void {
 	mkdir( test()->fixtureBase . '/fas' );
 	mkdir( test()->fixtureBase . '/far' );
 	mkdir( test()->fixtureBase . '/fab' );
@@ -91,7 +91,7 @@ it( 'skips registration when owenvoke/blade-fontawesome is installed (issue #587
 		->and( $result->getSets() )->toBe( [] );
 } );
 
-it( 'still registers discovered sets when blade-fontawesome is absent', function () {
+it( 'still registers discovered sets when blade-fontawesome is absent', function (): void {
 	mkdir( test()->fixtureBase . '/fas' );
 	mkdir( test()->fixtureBase . '/far' );
 	mkdir( test()->fixtureBase . '/fab' );

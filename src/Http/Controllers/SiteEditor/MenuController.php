@@ -36,6 +36,7 @@ use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\MenuContentBlocksRule;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\StoreMenuRequest;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\UpdateMenuRequest;
 use ArtisanPackUI\VisualEditor\SiteEditor\MenuItemBlockBridge;
+use ArtisanPackUI\VisualEditor\SiteEditor\Previews\PatternPreviewCache;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -68,6 +69,14 @@ class MenuController extends Controller
 	protected const BLOCK_ATTRIBUTES_COLUMN = 'block_attributes';
 
 	/**
+	 * The theme menu location whose assigned menu is the navigation
+	 * fallback (#811).
+	 *
+	 * @since 1.13.0
+	 */
+	protected const FALLBACK_LOCATION = 'primary';
+
+	/**
 	 * GET `/visual-editor/api/menus` — list all menus, optionally filtered
 	 * by `?theme=...`. Returns a flat list of WP-shape `wp_navigation`
 	 * records.
@@ -96,6 +105,52 @@ class MenuController extends Controller
 		return response()->json(
 			$menus->map( fn ( $menu ) => $this->menuToShape( $menu ) )->all(),
 		);
+	}
+
+	/**
+	 * GET `/visual-editor/api/menus/fallback` — resolve the menu a freshly
+	 * inserted `core/navigation` block binds to (#811).
+	 *
+	 * Mirrors upstream WordPress's `/wp-block-editor/v1/navigation-fallback`
+	 * deterministically: the menu assigned to the active theme's
+	 * {@see FALLBACK_LOCATION} location wins, otherwise the active theme's
+	 * most recently updated menu. With no active theme the whole menu set
+	 * is considered. Answers 204 when there is no menu to fall back to —
+	 * unlike upstream, no menu is created on the caller's behalf.
+	 *
+	 * @since 1.13.0
+	 */
+	public function fallback(): JsonResponse
+	{
+		if ( ! $this->cmsFrameworkAvailable() ) {
+			return $this->cmsFrameworkUnavailable();
+		}
+
+		$model = self::CMS_MENU_FQCN;
+		$theme = $this->activeThemeSlug();
+
+		$menus = fn () => $model::query()
+			->with( 'items' )
+			->when( null !== $theme, fn ( $query ) => $query->where( 'theme', $theme ) );
+
+		$menu = null === $theme
+			? null
+			: $menus()
+				->whereHas( 'locationAssignments', fn ( $query ) => $query
+					->where( 'theme', $theme )
+					->where( 'location', self::FALLBACK_LOCATION ) )
+				->first();
+
+		$menu ??= $menus()
+			->orderByDesc( 'updated_at' )
+			->orderByDesc( 'id' )
+			->first();
+
+		if ( null === $menu ) {
+			return response()->json( null, Response::HTTP_NO_CONTENT );
+		}
+
+		return response()->json( $this->menuToShape( $menu ) );
 	}
 
 	/**
@@ -186,6 +241,9 @@ class MenuController extends Controller
 					return $menu;
 				} );
 
+				// #832 — pattern previews render navigation menus.
+				app( PatternPreviewCache::class )->flush();
+
 				return response()->json( $this->menuToShape( $menu->fresh() ), Response::HTTP_CREATED );
 			} catch ( QueryException $e ) {
 				if ( ! $this->isUniqueViolation( $e ) ) {
@@ -198,46 +256,6 @@ class MenuController extends Controller
 			'message' => __( 'A menu with this slug already exists for the theme.' ),
 			'errors'  => [ 'slug' => [ __( 'Slug must be unique within the theme.' ) ] ],
 		], Response::HTTP_CONFLICT );
-	}
-
-	/**
-	 * Build a unique slug from a menu name, scoped to a theme.
-	 *
-	 * Gutenberg's create-menu payload carries no slug, so we derive
-	 * one from the title. cms-framework enforces `(theme, slug)`
-	 * uniqueness at the DB layer; we probe existing rows and append
-	 * `-2`, `-3`, ... on collision so the first create from the
-	 * placeholder never trips the unique-violation path.
-	 *
-	 * @since 1.12.0
-	 *
-	 * @param  class-string  $model
-	 */
-	protected function deriveUniqueSlug( string $model, string $name, string $theme ): string
-	{
-		$base = Str::slug( $name );
-
-		if ( '' === $base ) {
-			$base = 'menu';
-		}
-
-		// cms-framework's `menus.slug` column is a default Laravel string
-		// (255 chars). Cap the base and reserve room for the collision
-		// suffix so a full-length name plus `-NN` never overflows the
-		// column.
-		$maxSlugLength = 255;
-		$base          = substr( $base, 0, $maxSlugLength );
-
-		$candidate = $base;
-		$suffix    = 2;
-
-		while ( $model::query()->where( 'theme', $theme )->where( 'slug', $candidate )->exists() ) {
-			$suffixPart = '-' . $suffix;
-			$candidate  = substr( $base, 0, $maxSlugLength - strlen( $suffixPart ) ) . $suffixPart;
-			$suffix++;
-		}
-
-		return $candidate;
 	}
 
 	/**
@@ -296,7 +314,78 @@ class MenuController extends Controller
 			throw $e;
 		}
 
+		// #832 — pattern previews render navigation menus.
+		app( PatternPreviewCache::class )->flush();
+
 		return response()->json( $this->menuToShape( $menu->fresh() ) );
+	}
+
+	/**
+	 * DELETE `/visual-editor/api/menus/{id}` — delete a menu record.
+	 *
+	 * Cascade deletes the menu's items and any location assignments via
+	 * cms-framework's foreign-key constraints.
+	 *
+	 * @since 1.0.0
+	 */
+	public function destroy( int|string $id ): JsonResponse
+	{
+		if ( ! $this->cmsFrameworkAvailable() ) {
+			return $this->cmsFrameworkUnavailable();
+		}
+
+		$menu = $this->findMenu( $id );
+
+		if ( null === $menu ) {
+			return response()->json( [ 'message' => 'Menu not found.' ], Response::HTTP_NOT_FOUND );
+		}
+
+		$menu->delete();
+
+		// #832 — pattern previews render navigation menus.
+		app( PatternPreviewCache::class )->flush();
+
+		return response()->json( null, Response::HTTP_NO_CONTENT );
+	}
+
+	/**
+	 * Build a unique slug from a menu name, scoped to a theme.
+	 *
+	 * Gutenberg's create-menu payload carries no slug, so we derive
+	 * one from the title. cms-framework enforces `(theme, slug)`
+	 * uniqueness at the DB layer; we probe existing rows and append
+	 * `-2`, `-3`, ... on collision so the first create from the
+	 * placeholder never trips the unique-violation path.
+	 *
+	 * @since 1.12.0
+	 *
+	 * @param  class-string  $model
+	 */
+	protected function deriveUniqueSlug( string $model, string $name, string $theme ): string
+	{
+		$base = Str::slug( $name );
+
+		if ( '' === $base ) {
+			$base = 'menu';
+		}
+
+		// cms-framework's `menus.slug` column is a default Laravel string
+		// (255 chars). Cap the base and reserve room for the collision
+		// suffix so a full-length name plus `-NN` never overflows the
+		// column.
+		$maxSlugLength = 255;
+		$base          = substr( $base, 0, $maxSlugLength );
+
+		$candidate = $base;
+		$suffix    = 2;
+
+		while ( $model::query()->where( 'theme', $theme )->where( 'slug', $candidate )->exists() ) {
+			$suffixPart = '-' . $suffix;
+			$candidate  = substr( $base, 0, $maxSlugLength - strlen( $suffixPart ) ) . $suffixPart;
+			$suffix++;
+		}
+
+		return $candidate;
 	}
 
 	/**
@@ -460,31 +549,6 @@ class MenuController extends Controller
 				$this->insertItemSpecs( $menu, $spec['children'], (int) $row->id, $storeBlockAttributes );
 			}
 		}
-	}
-
-	/**
-	 * DELETE `/visual-editor/api/menus/{id}` — delete a menu record.
-	 *
-	 * Cascade deletes the menu's items and any location assignments via
-	 * cms-framework's foreign-key constraints.
-	 *
-	 * @since 1.0.0
-	 */
-	public function destroy( int|string $id ): JsonResponse
-	{
-		if ( ! $this->cmsFrameworkAvailable() ) {
-			return $this->cmsFrameworkUnavailable();
-		}
-
-		$menu = $this->findMenu( $id );
-
-		if ( null === $menu ) {
-			return response()->json( [ 'message' => 'Menu not found.' ], Response::HTTP_NOT_FOUND );
-		}
-
-		$menu->delete();
-
-		return response()->json( null, Response::HTTP_NO_CONTENT );
 	}
 
 	/**
@@ -666,7 +730,6 @@ class MenuController extends Controller
 
 	/**
 	 * @since 1.0.0
-	 *
 	 * @see TemplateController::isUniqueViolation() for the rationale.
 	 */
 	protected function isUniqueViolation( QueryException $e ): bool

@@ -24,7 +24,7 @@ function adapterFixture( array $overrides = [] ): array
 	], $overrides );
 }
 
-it( 'maps the core attachment fields', function () {
+it( 'maps the core attachment fields', function (): void {
 	$adapter = new GutenbergAttachmentAdapter();
 
 	$result = $adapter->toGutenberg( adapterFixture() );
@@ -42,7 +42,7 @@ it( 'maps the core attachment fields', function () {
 	] );
 } );
 
-it( 'collapses null alt and caption to empty strings', function () {
+it( 'collapses null alt and caption to empty strings', function (): void {
 	$adapter = new GutenbergAttachmentAdapter();
 
 	$result = $adapter->toGutenberg( adapterFixture( [
@@ -54,7 +54,7 @@ it( 'collapses null alt and caption to empty strings', function () {
 		->and( $result['caption'] )->toBe( '' );
 } );
 
-it( 'omits width, height, and filename when the source lacks them', function () {
+it( 'omits width, height, and filename when the source lacks them', function (): void {
 	$adapter = new GutenbergAttachmentAdapter();
 
 	$result = $adapter->toGutenberg( adapterFixture( [
@@ -68,7 +68,7 @@ it( 'omits width, height, and filename when the source lacks them', function () 
 		->and( $result )->not->toHaveKey( 'filename' );
 } );
 
-it( 'infers media_type from the mime prefix when flags are missing', function () {
+it( 'infers media_type from the mime prefix when flags are missing', function (): void {
 	$adapter = new GutenbergAttachmentAdapter();
 
 	expect( $adapter->toGutenberg( [
@@ -96,7 +96,7 @@ it( 'infers media_type from the mime prefix when flags are missing', function ()
 	] )['media_type'] )->toBe( 'file' );
 } );
 
-it( 'prefers explicit type flags over the mime prefix', function () {
+it( 'prefers explicit type flags over the mime prefix', function (): void {
 	$adapter = new GutenbergAttachmentAdapter();
 
 	$result = $adapter->toGutenberg( adapterFixture( [
@@ -108,7 +108,7 @@ it( 'prefers explicit type flags over the mime prefix', function () {
 	expect( $result['media_type'] )->toBe( 'video' );
 } );
 
-it( 'pulls image sizes from the top-level image_sizes helper output', function () {
+it( 'pulls image sizes from the top-level image_sizes helper output', function (): void {
 	$adapter = new GutenbergAttachmentAdapter();
 
 	$result = $adapter->toGutenberg( adapterFixture( [
@@ -124,7 +124,7 @@ it( 'pulls image sizes from the top-level image_sizes helper output', function (
 	] );
 } );
 
-it( 'accepts richer metadata.sizes entries with dimensions', function () {
+it( 'accepts richer metadata.sizes entries with dimensions', function (): void {
 	$adapter = new GutenbergAttachmentAdapter();
 
 	$result = $adapter->toGutenberg( adapterFixture( [
@@ -150,7 +150,7 @@ it( 'accepts richer metadata.sizes entries with dimensions', function () {
 	] );
 } );
 
-it( 'drops malformed size entries instead of emitting a broken url', function () {
+it( 'drops malformed size entries instead of emitting a broken url', function (): void {
 	$adapter = new GutenbergAttachmentAdapter();
 
 	$result = $adapter->toGutenberg( adapterFixture( [
@@ -168,7 +168,7 @@ it( 'drops malformed size entries instead of emitting a broken url', function ()
 	] );
 } );
 
-it( 'omits the sizes key when no sizes are available', function () {
+it( 'omits the sizes key when no sizes are available', function (): void {
 	$adapter = new GutenbergAttachmentAdapter();
 
 	$result = $adapter->toGutenberg( adapterFixture() );
@@ -176,7 +176,7 @@ it( 'omits the sizes key when no sizes are available', function () {
 	expect( $result )->not->toHaveKey( 'sizes' );
 } );
 
-it( 'accepts an Arrayable record', function () {
+it( 'accepts an Arrayable record', function (): void {
 	$adapter = new GutenbergAttachmentAdapter();
 
 	$record = new class implements Arrayable {
@@ -191,7 +191,7 @@ it( 'accepts an Arrayable record', function () {
 	expect( $result['id'] )->toBe( 99 );
 } );
 
-it( 'accepts a plain object with toArray()', function () {
+it( 'accepts a plain object with toArray()', function (): void {
 	$adapter = new GutenbergAttachmentAdapter();
 
 	$record = new class {
@@ -206,7 +206,7 @@ it( 'accepts a plain object with toArray()', function () {
 	expect( $result['id'] )->toBe( 77 );
 } );
 
-it( 'maps a list of records without mutating the inputs', function () {
+it( 'maps a list of records without mutating the inputs', function (): void {
 	$adapter = new GutenbergAttachmentAdapter();
 
 	$inputs = [
@@ -222,13 +222,13 @@ it( 'maps a list of records without mutating the inputs', function () {
 		->and( $inputs[0]['id'] )->toBe( 1 );
 } );
 
-it( 'is resolvable from the service container', function () {
+it( 'is resolvable from the service container', function (): void {
 	$adapter = app( GutenbergAttachmentAdapter::class );
 
 	expect( $adapter )->toBeInstanceOf( GutenbergAttachmentAdapter::class );
 } );
 
-it( 'emits the WP REST media shape for getEntityRecord(attachment) consumers', function () {
+it( 'emits the WP REST media shape for getEntityRecord(attachment) consumers', function (): void {
 	$adapter = new GutenbergAttachmentAdapter();
 
 	$result = $adapter->toWpRestShape( adapterFixture() );
@@ -249,7 +249,7 @@ it( 'emits the WP REST media shape for getEntityRecord(attachment) consumers', f
 	] );
 } );
 
-it( 'reshapes Gutenberg-style sizes into WP REST media-details sizes', function () {
+it( 'reshapes Gutenberg-style sizes into WP REST media-details sizes', function (): void {
 	$adapter = new GutenbergAttachmentAdapter();
 
 	$result = $adapter->toWpRestShape( adapterFixture( [
@@ -273,7 +273,7 @@ it( 'reshapes Gutenberg-style sizes into WP REST media-details sizes', function 
 	] );
 } );
 
-it( 'collapses null caption to a rendered empty string', function () {
+it( 'collapses null caption to a rendered empty string', function (): void {
 	$adapter = new GutenbergAttachmentAdapter();
 
 	$result = $adapter->toWpRestShape( adapterFixture( [

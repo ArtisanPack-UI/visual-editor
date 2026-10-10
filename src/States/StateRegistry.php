@@ -255,7 +255,7 @@ class StateRegistry
 		if ( ! isset( $raw[ self::BASE_KEY ] ) ) {
 			throw new InvalidArgumentException( sprintf(
 				'State registry is missing the reserved "%s" base state.',
-				self::BASE_KEY
+				self::BASE_KEY,
 			) );
 		}
 
@@ -269,14 +269,14 @@ class StateRegistry
 			if ( 1 !== preg_match( '/^[a-z0-9][a-z0-9_:-]*$/i', $key ) ) {
 				throw new InvalidArgumentException( sprintf(
 					'State key "%s" must contain only letters, numbers, hyphens, underscores, or colons.',
-					$key
+					$key,
 				) );
 			}
 
 			if ( ! is_array( $definition ) ) {
 				throw new InvalidArgumentException( sprintf(
 					'State "%s" must be defined as an associative array.',
-					$key
+					$key,
 				) );
 			}
 
@@ -284,7 +284,7 @@ class StateRegistry
 			if ( ! is_string( $label ) || '' === trim( $label ) ) {
 				throw new InvalidArgumentException( sprintf(
 					'State "%s" must declare a non-empty `label`.',
-					$key
+					$key,
 				) );
 			}
 
@@ -293,14 +293,14 @@ class StateRegistry
 				if ( '' !== $selector ) {
 					throw new InvalidArgumentException( sprintf(
 						'The reserved "%s" state must have an empty selector — it is the base slot.',
-						self::BASE_KEY
+						self::BASE_KEY,
 					) );
 				}
 			} else {
 				if ( ! is_string( $selector ) || '' === trim( $selector ) ) {
 					throw new InvalidArgumentException( sprintf(
 						'State "%s" must declare a non-empty `selector`.',
-						$key
+						$key,
 					) );
 				}
 			}
@@ -313,7 +313,7 @@ class StateRegistry
 				if ( ! is_string( $inheritsFrom ) || '' === trim( $inheritsFrom ) ) {
 					throw new InvalidArgumentException( sprintf(
 						'State "%s" `inheritsFrom` must be a non-empty string or null.',
-						$key
+						$key,
 					) );
 				}
 
@@ -321,7 +321,7 @@ class StateRegistry
 					throw new InvalidArgumentException( sprintf(
 						'State "%s" inherits from "%s", which is not registered.',
 						$key,
-						$inheritsFrom
+						$inheritsFrom,
 					) );
 				}
 			}

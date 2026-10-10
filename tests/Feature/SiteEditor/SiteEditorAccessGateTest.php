@@ -48,8 +48,7 @@ test( 'deny-by-default gate fires for nested SPA paths too', function (): void {
 
 test( 'a consumer-supplied gate returning null allows the request through', function (): void {
 	$this->app->bind( SiteEditorAccessGate::class, function () {
-		return new class implements SiteEditorAccessGate
-		{
+		return new class implements SiteEditorAccessGate {
 			public function check( Request $request ): ?Response
 			{
 				return null;
@@ -67,8 +66,7 @@ test( 'a consumer-supplied gate returning null allows the request through', func
 
 test( 'a consumer-supplied gate returning a response short-circuits the route', function (): void {
 	$this->app->bind( SiteEditorAccessGate::class, function () {
-		return new class implements SiteEditorAccessGate
-		{
+		return new class implements SiteEditorAccessGate {
 			public function check( Request $request ): ?Response
 			{
 				return response( 'consumer-denied', Response::HTTP_FORBIDDEN );
@@ -86,9 +84,10 @@ test( 'the gate receives the incoming request', function (): void {
 	$capturedPath = null;
 
 	$this->app->bind( SiteEditorAccessGate::class, function () use ( &$capturedPath ) {
-		return new class( $capturedPath ) implements SiteEditorAccessGate
-		{
-			public function __construct( public ?string &$captured ) {}
+		return new class( $capturedPath ) implements SiteEditorAccessGate {
+			public function __construct( public ?string &$captured )
+			{
+			}
 
 			public function check( Request $request ): ?Response
 			{

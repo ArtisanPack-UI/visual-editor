@@ -44,10 +44,20 @@ class StateCssEmitter
 	 */
 	public const DEFAULT_TRANSITION = 'all 150ms ease';
 
+	/**
+	 * Properties that should NOT carry `!important` — `transition` is
+	 * the only one in the v1.0 set; an `!important` transition can't
+	 * be cancelled by host CSS, which is rarely what an author wants.
+	 *
+	 * @var array<int, string>
+	 */
+	protected const NEVER_IMPORTANT = [ 'transition' ];
+
 	public function __construct(
 		protected StateRegistry $registry,
 		protected StateValueResolver $resolver,
-	) {}
+	) {
+	}
 
 	/**
 	 * Emits a CSS string for a single block scope.
@@ -104,7 +114,7 @@ class StateCssEmitter
 				continue;
 			}
 
-			$rule = sprintf( "%s { %s }", $selector, $this->joinDeclarations( $declarations ) );
+			$rule = sprintf( '%s { %s }', $selector, $this->joinDeclarations( $declarations ) );
 
 			if ( ! empty( $definition['hoverMediaWrap'] ) ) {
 				$hoverCss .= ( '' === $hoverCss ? '' : ' ' ) . $rule;
@@ -234,15 +244,6 @@ class StateCssEmitter
 
 		return implode( ', ', $mapped );
 	}
-
-	/**
-	 * Properties that should NOT carry `!important` — `transition` is
-	 * the only one in the v1.0 set; an `!important` transition can't
-	 * be cancelled by host CSS, which is rarely what an author wants.
-	 *
-	 * @var array<int, string>
-	 */
-	protected const NEVER_IMPORTANT = [ 'transition' ];
 
 	/**
 	 * @param  array<string, string>  $declarations

@@ -4,7 +4,7 @@ declare( strict_types=1 );
 
 use Illuminate\Support\Facades\Blade;
 
-it( 'renders the x-ve-blocks component from an array tree', function () {
+it( 'renders the x-ve-blocks component from an array tree', function (): void {
 	$tree = [
 		[
 			'clientId'    => 'p-1',
@@ -20,7 +20,7 @@ it( 'renders the x-ve-blocks component from an array tree', function () {
 		->toBe( '<p class="wp-block-paragraph">Hello from Blade</p>' );
 } );
 
-it( 'accepts a JSON string tree', function () {
+it( 'accepts a JSON string tree', function (): void {
 	$json = json_encode( [
 		[
 			'clientId'    => 'p-1',
@@ -36,7 +36,7 @@ it( 'accepts a JSON string tree', function () {
 		->toBe( '<p class="wp-block-paragraph">JSON string</p>' );
 } );
 
-it( 'renders an empty output when the tree is null and cms-framework is not installed', function () {
+it( 'renders an empty output when the tree is null and cms-framework is not installed', function (): void {
 	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => null ] );
 
 	// #434: the legacy `GlobalStylesCssProvider` used to emit bundled
@@ -48,7 +48,7 @@ it( 'renders an empty output when the tree is null and cms-framework is not inst
 	expect( trim( $rendered ) )->toBe( '' );
 } );
 
-it( 'publishes block views under the visual-editor-blade-views tag', function () {
+it( 'publishes block views under the visual-editor-blade-views tag', function (): void {
 	$tag = 'visual-editor-blade-views';
 
 	$artisan = $this->artisan( 'vendor:publish', [ '--tag' => $tag, '--force' => true ] );
@@ -56,7 +56,7 @@ it( 'publishes block views under the visual-editor-blade-views tag', function ()
 	$artisan->assertExitCode( 0 );
 } );
 
-it( 'passes the nav-block tree through unchanged when no defaultTheme is supplied (Keystone #51)', function () {
+it( 'passes the nav-block tree through unchanged when no defaultTheme is supplied (Keystone #51)', function (): void {
 	// Without a theme, the navigation resolver has no `(theme, location)`
 	// to query against, so the tree should pass through. The block's
 	// own Blade view renders an empty `<nav>` — same as before #51.
@@ -77,7 +77,7 @@ it( 'passes the nav-block tree through unchanged when no defaultTheme is supplie
 		->toContain( '<ul class="wp-block-navigation__container"></ul>' );
 } );
 
-it( 'passes the nav-block tree through unchanged when cms-framework is not installed (Keystone #51)', function () {
+it( 'passes the nav-block tree through unchanged when cms-framework is not installed (Keystone #51)', function (): void {
 	// cms-framework's `MenuLocationAssignment` model isn't autoloaded in
 	// this Testbench environment, so the resolver's `class_exists` guard
 	// short-circuits the lookup. With a theme present but no DB to
@@ -108,9 +108,12 @@ it( 'passes the nav-block tree through unchanged when cms-framework is not insta
  * instead of the real resolver (which needs an active theme + DB row).
  * `$resolved` is what the stub's `resolve()` hands back.
  */
-function bindOverlayResolverStub( ?object $resolved ): void {
+function bindOverlayResolverStub( ?object $resolved ): void
+{
 	$stub = new class( $resolved ) {
-		public function __construct( private ?object $resolved ) {}
+		public function __construct( private ?object $resolved )
+		{
+		}
 
 		public function resolve( string $slug ): ?object
 		{
@@ -124,7 +127,7 @@ function bindOverlayResolverStub( ?object $resolved ): void {
 	);
 }
 
-it( 'renders the overlay template-part contents inside the responsive container when overlay attr resolves (Keystone #58)', function () {
+it( 'renders the overlay template-part contents inside the responsive container when overlay attr resolves (Keystone #58)', function (): void {
 	// The overlay points at a navigation-overlay template-part whose
 	// blocks should REPLACE the duplicate inline-menu fallback in
 	// the responsive container. WP core renders the picked overlay's
@@ -174,7 +177,7 @@ it( 'renders the overlay template-part contents inside the responsive container 
 		->and( $rendered )->toContain( 'wp-block-navigation__responsive-container-content has-overlay-template' );
 } );
 
-it( 'falls back to the duplicate inline-menu container when overlay slug resolves to a non-overlay area (Keystone #58)', function () {
+it( 'falls back to the duplicate inline-menu container when overlay slug resolves to a non-overlay area (Keystone #58)', function (): void {
 	// Defensive: a stale overlay slug that now points at a header /
 	// footer template-part must NOT render that part's blocks in the
 	// nav-block's drawer — the author meant a navigation-overlay,
@@ -219,7 +222,7 @@ it( 'falls back to the duplicate inline-menu container when overlay slug resolve
 		->and( $rendered )->toContain( '<ul class="wp-block-navigation__container">' );
 } );
 
-it( 'falls back to the duplicate inline-menu container when the overlay slug resolves to null (Keystone #58)', function () {
+it( 'falls back to the duplicate inline-menu container when the overlay slug resolves to null (Keystone #58)', function (): void {
 	bindOverlayResolverStub( null );
 
 	$tree = [
@@ -248,7 +251,7 @@ it( 'falls back to the duplicate inline-menu container when the overlay slug res
 		->and( $rendered )->toContain( '<ul class="wp-block-navigation__container">' );
 } );
 
-it( 'renders style.elements.link.color.text on the nav block as a scoped style + class (Keystone #56)', function () {
+it( 'renders style.elements.link.color.text on the nav block as a scoped style + class (Keystone #56)', function (): void {
 	// The dedicated Link color picker on core/navigation writes to
 	// `style.elements.link.color.text` — a path separate from the
 	// `textColor` / `customTextColor` attributes. Renderer-blade now
@@ -291,7 +294,7 @@ it( 'renders style.elements.link.color.text on the nav block as a scoped style +
 	expect( $rendered )->toContain( 'a:hover{color: #0f172a !important;}' );
 } );
 
-it( 'emits items-justified-* class from layout.justifyContent (Keystone #52)', function () {
+it( 'emits items-justified-* class from layout.justifyContent (Keystone #52)', function (): void {
 	// Gutenberg writes the modern flex-layout justification to
 	// `attributes.layout.justifyContent`. The legacy top-level
 	// `itemsJustification` attribute is still emitted by some older
@@ -320,7 +323,7 @@ it( 'emits items-justified-* class from layout.justifyContent (Keystone #52)', f
 	expect( $rendered )->toContain( 'items-justified-right' );
 } );
 
-it( 'falls back to the legacy itemsJustification attribute when layout.justifyContent is absent (Keystone #52)', function () {
+it( 'falls back to the legacy itemsJustification attribute when layout.justifyContent is absent (Keystone #52)', function (): void {
 	$tree = [
 		[
 			'clientId'    => 'nav-1',
@@ -342,7 +345,7 @@ it( 'falls back to the legacy itemsJustification attribute when layout.justifyCo
 	expect( $rendered )->toContain( 'items-justified-center' );
 } );
 
-it( 'renders the overlay container + hamburger toggle by default (Keystone #54)', function () {
+it( 'renders the overlay container + hamburger toggle by default (Keystone #54)', function (): void {
 	// `overlayMenu` defaults to "mobile" so a nav block authored
 	// without an explicit value still gets the responsive overlay
 	// scaffolding on the front-end. The bundled style.css's
@@ -363,7 +366,7 @@ it( 'renders the overlay container + hamburger toggle by default (Keystone #54)'
 		],
 	];
 
-	app( \ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker::class )->reset();
+	app( ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker::class )->reset();
 
 	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
 
@@ -374,14 +377,17 @@ it( 'renders the overlay container + hamburger toggle by default (Keystone #54)'
 		->and( $rendered )->toContain( 'wp-block-navigation__responsive-container-close' )
 		->and( $rendered )->toContain( 'data-ap-nav-overlay-open="ap-modal-nav-1"' )
 		->and( $rendered )->toContain( 'id="ap-modal-nav-1"' )
-		->and( $rendered )->toContain( 'aria-hidden="true"' )
-		->and( $rendered )->toContain( 'aria-modal="true"' )
-		->and( $rendered )->toContain( 'role="dialog"' )
+		->and( $rendered )->toContain( 'aria-expanded="false"' )
+		->and( $rendered )->toContain( 'aria-controls="ap-modal-nav-1"' )
+		// RN-1 — no static `aria-hidden` / dialog semantics; the toggle
+		// script adds `role="dialog"` + `aria-modal` only while open.
+		->and( $rendered )->not->toContain( 'aria-modal="true"' )
+		->and( $rendered )->not->toContain( 'role="dialog"' )
 		// Inline toggle script emitted once.
 		->and( $rendered )->toContain( '__apNavOverlayInit' );
 } );
 
-it( 'distinguishes the backdrop wrapper from the close button so link clicks inside the dialog navigate (CodeRabbit follow-up on #54)', function () {
+it( 'distinguishes the backdrop wrapper from the close button so link clicks inside the dialog navigate (CodeRabbit follow-up on #54)', function (): void {
 	// Backdrop carries `data-ap-nav-overlay-backdrop`, close button
 	// carries `data-ap-nav-overlay-close`. The JS handler only
 	// treats backdrop clicks as close when the click target IS the
@@ -398,7 +404,7 @@ it( 'distinguishes the backdrop wrapper from the close button so link clicks ins
 		],
 	];
 
-	app( \ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker::class )->reset();
+	app( ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker::class )->reset();
 
 	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
 
@@ -411,7 +417,7 @@ it( 'distinguishes the backdrop wrapper from the close button so link clicks ins
 	expect( $rendered )->not->toMatch( '/<div class="wp-block-navigation__responsive-close"[^>]*data-ap-nav-overlay-close/' );
 } );
 
-it( 'adds the is-always-overlay class when overlayMenu is "always" (Keystone #54)', function () {
+it( 'adds the is-always-overlay class when overlayMenu is "always" (Keystone #54)', function (): void {
 	$tree = [
 		[
 			'clientId'    => 'nav-1',
@@ -421,16 +427,110 @@ it( 'adds the is-always-overlay class when overlayMenu is "always" (Keystone #54
 		],
 	];
 
-	app( \ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker::class )->reset();
+	app( ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker::class )->reset();
 
 	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
 
 	expect( $rendered )
 		->toContain( 'is-always-overlay' )
-		->and( $rendered )->toContain( 'wp-block-navigation__responsive-container-open' );
+		->and( $rendered )->toContain( 'wp-block-navigation__responsive-container-open' )
+		// #804 — the bundled style.css only collapses the drawer at
+		// desktop widths through upstream's `hidden-by-default` +
+		// `always-shown` pair.
+		->and( $rendered )->toContain( 'wp-block-navigation__responsive-container is-always-overlay hidden-by-default' )
+		->and( $rendered )->toContain( 'class="wp-block-navigation__responsive-container-open always-shown"' );
 } );
 
-it( 'skips overlay scaffolding entirely when overlayMenu is "never" (Keystone #54)', function () {
+it( 'keeps the default mobile overlay free of the always-shown classes (#804)', function (): void {
+	$tree = [
+		[
+			'clientId'    => 'nav-1',
+			'name'        => 'core/navigation',
+			'attributes'  => [],
+			'innerBlocks' => [],
+		],
+	];
+
+	app( ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker::class )->reset();
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+	expect( $rendered )
+		->toContain( 'class="wp-block-navigation__responsive-container-open"' )
+		->and( $rendered )->not->toContain( 'hidden-by-default' )
+		->and( $rendered )->not->toContain( 'always-shown' );
+} );
+
+it( 'drops custom overlay colors that would inject extra declarations (#804)', function (): void {
+	$tree = [
+		[
+			'clientId'    => 'nav-1',
+			'name'        => 'core/navigation',
+			'attributes'  => [
+				'customOverlayBackgroundColor' => '#000; position: fixed; inset: 0',
+				'customOverlayTextColor'       => 'red;background-image:url(x)',
+			],
+			'innerBlocks' => [],
+		],
+	];
+
+	app( ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker::class )->reset();
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+	expect( $rendered )
+		->toContain( '<div class="wp-block-navigation__responsive-container" id="ap-modal-nav-1">' )
+		->and( $rendered )->not->toContain( 'position: fixed' )
+		->and( $rendered )->not->toContain( 'background-image' );
+} );
+
+it( 'keeps a safe custom overlay color (#804)', function (): void {
+	$tree = [
+		[
+			'clientId'    => 'nav-1',
+			'name'        => 'core/navigation',
+			'attributes'  => [ 'customOverlayBackgroundColor' => '#111111' ],
+			'innerBlocks' => [],
+		],
+	];
+
+	app( ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker::class )->reset();
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+	expect( $rendered )->toContain( 'class="wp-block-navigation__responsive-container has-background" id="ap-modal-nav-1" style="background-color: #111111"' );
+} );
+
+it( 'ignores the overlay template part when overlayMenu is "never" (#804)', function (): void {
+	bindOverlayResolverStub( (object) [
+		'area'   => 'navigation-overlay',
+		'blocks' => [
+			[
+				'clientId'    => 'p-1',
+				'name'        => 'core/paragraph',
+				'attributes'  => [ 'content' => 'Overlay-only CTA' ],
+				'innerBlocks' => [],
+			],
+		],
+	] );
+
+	$tree = [
+		[
+			'clientId'    => 'nav-1',
+			'name'        => 'core/navigation',
+			'attributes'  => [ 'overlayMenu' => 'never', 'overlay' => 'mobile-overlay' ],
+			'innerBlocks' => [],
+		],
+	];
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+	expect( $rendered )
+		->not->toContain( 'Overlay-only CTA' )
+		->and( $rendered )->not->toContain( 'wp-block-navigation__responsive-container' );
+} );
+
+it( 'skips overlay scaffolding entirely when overlayMenu is "never" (Keystone #54)', function (): void {
 	$tree = [
 		[
 			'clientId'    => 'nav-1',
@@ -447,7 +547,7 @@ it( 'skips overlay scaffolding entirely when overlayMenu is "never" (Keystone #5
 		],
 	];
 
-	app( \ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker::class )->reset();
+	app( ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker::class )->reset();
 
 	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
 
@@ -461,7 +561,7 @@ it( 'skips overlay scaffolding entirely when overlayMenu is "never" (Keystone #5
 		->and( $rendered )->toContain( 'Home' );
 } );
 
-it( 'applies overlayBackgroundColor + overlayTextColor presets to the responsive container (Keystone #54)', function () {
+it( 'applies overlayBackgroundColor + overlayTextColor presets to the responsive container (Keystone #54)', function (): void {
 	$tree = [
 		[
 			'clientId'    => 'nav-1',
@@ -474,7 +574,7 @@ it( 'applies overlayBackgroundColor + overlayTextColor presets to the responsive
 		],
 	];
 
-	app( \ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker::class )->reset();
+	app( ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker::class )->reset();
 
 	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
 
@@ -486,7 +586,7 @@ it( 'applies overlayBackgroundColor + overlayTextColor presets to the responsive
 		->and( $rendered )->toContain( 'has-text-color' );
 } );
 
-it( 'applies customOverlayBackgroundColor + customOverlayTextColor as inline styles on the responsive container (Keystone #54)', function () {
+it( 'applies customOverlayBackgroundColor + customOverlayTextColor as inline styles on the responsive container (Keystone #54)', function (): void {
 	$tree = [
 		[
 			'clientId'    => 'nav-1',
@@ -499,7 +599,7 @@ it( 'applies customOverlayBackgroundColor + customOverlayTextColor as inline sty
 		],
 	];
 
-	app( \ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker::class )->reset();
+	app( ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker::class )->reset();
 
 	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
 
@@ -509,7 +609,7 @@ it( 'applies customOverlayBackgroundColor + customOverlayTextColor as inline sty
 		->toMatch( '/<div class="[^"]*wp-block-navigation__responsive-container[^"]*"[^>]*id="ap-modal-nav-1"[^>]*style="background-color: #0a0606; color: #ffffff"/' );
 } );
 
-it( 'emits the overlay toggle script exactly once even with multiple nav blocks (Keystone #54)', function () {
+it( 'emits the overlay toggle script exactly once even with multiple nav blocks (Keystone #54)', function (): void {
 	// Two nav blocks on the same page get distinct overlay ids and
 	// share a single inline `<script>` — the tracker gates emission
 	// so the toggle controller only initializes once.
@@ -528,7 +628,7 @@ it( 'emits the overlay toggle script exactly once even with multiple nav blocks 
 		],
 	];
 
-	app( \ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker::class )->reset();
+	app( ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker::class )->reset();
 
 	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
 
@@ -539,7 +639,7 @@ it( 'emits the overlay toggle script exactly once even with multiple nav blocks 
 	expect( substr_count( $rendered, 'Keystone #54 — nav overlay toggle' ) )->toBe( 1 );
 } );
 
-it( 'preserves authored innerBlocks on a nav block instead of overwriting them (Keystone #51)', function () {
+it( 'preserves authored innerBlocks on a nav block instead of overwriting them (Keystone #51)', function (): void {
 	// A nav block authored with explicit nav-links keeps them — the
 	// resolver only projects menu items when the tree is empty.
 	$tree = [

@@ -199,6 +199,52 @@ class MenuItemBlockBridge
 	}
 
 	/**
+	 * Write path — parse a `core/navigation-*` block tree into a nested
+	 * list of row-attribute specs the controller inserts depth-first.
+	 *
+	 * Each spec is `{ attributes: array<string,mixed>, children: array }`.
+	 * `parent_id` / `position` are deliberately absent — they're
+	 * relational and assigned at insert time.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  array<int, mixed>  $blocks
+	 *
+	 * @return array<int, array{attributes: array<string, mixed>, children: array<int, mixed>}>
+	 */
+	public function blocksToItemSpecs( array $blocks ): array
+	{
+		$specs = [];
+
+		foreach ( $blocks as $raw ) {
+			if ( ! is_array( $raw ) ) {
+				continue;
+			}
+
+			$name = $raw['name'] ?? null;
+
+			// Drop blocks we don't translate — matches `menu-tree.ts`:
+			// the native editor has no UI for them, and preserving
+			// opaque rows the user can't act on is worse than dropping.
+			if ( self::NAV_LINK !== $name && self::NAV_SUBMENU !== $name ) {
+				continue;
+			}
+
+			$attributes  = is_array( $raw['attributes'] ?? null ) ? $raw['attributes'] : [];
+			$innerBlocks = is_array( $raw['innerBlocks'] ?? null ) ? $raw['innerBlocks'] : [];
+
+			$children = $this->blocksToItemSpecs( $innerBlocks );
+
+			$specs[] = [
+				'attributes' => $this->blockAttributesToRow( $attributes, [] !== $children ),
+				'children'   => $children,
+			];
+		}
+
+		return $specs;
+	}
+
+	/**
 	 * Tokenize a block-comment string into a flat list of OPEN /
 	 * SELFCLOSE / CLOSE tokens. Each token carries the canonical block
 	 * name (with `core/` prefix re-added) and, for openers, the
@@ -417,7 +463,7 @@ class MenuItemBlockBridge
 			$shortName,
 			$json,
 			$inner,
-			$shortName
+			$shortName,
 		);
 	}
 
@@ -449,52 +495,6 @@ class MenuItemBlockBridge
 			'&'    => '\\u0026',
 			'\\"'  => '\\u0022',
 		] );
-	}
-
-	/**
-	 * Write path — parse a `core/navigation-*` block tree into a nested
-	 * list of row-attribute specs the controller inserts depth-first.
-	 *
-	 * Each spec is `{ attributes: array<string,mixed>, children: array }`.
-	 * `parent_id` / `position` are deliberately absent — they're
-	 * relational and assigned at insert time.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @param  array<int, mixed>  $blocks
-	 *
-	 * @return array<int, array{attributes: array<string, mixed>, children: array<int, mixed>}>
-	 */
-	public function blocksToItemSpecs( array $blocks ): array
-	{
-		$specs = [];
-
-		foreach ( $blocks as $raw ) {
-			if ( ! is_array( $raw ) ) {
-				continue;
-			}
-
-			$name = $raw['name'] ?? null;
-
-			// Drop blocks we don't translate — matches `menu-tree.ts`:
-			// the native editor has no UI for them, and preserving
-			// opaque rows the user can't act on is worse than dropping.
-			if ( self::NAV_LINK !== $name && self::NAV_SUBMENU !== $name ) {
-				continue;
-			}
-
-			$attributes = is_array( $raw['attributes'] ?? null ) ? $raw['attributes'] : [];
-			$innerBlocks = is_array( $raw['innerBlocks'] ?? null ) ? $raw['innerBlocks'] : [];
-
-			$children = $this->blocksToItemSpecs( $innerBlocks );
-
-			$specs[] = [
-				'attributes' => $this->blockAttributesToRow( $attributes, [] !== $children ),
-				'children'   => $children,
-			];
-		}
-
-		return $specs;
 	}
 
 	/**

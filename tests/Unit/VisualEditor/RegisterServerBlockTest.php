@@ -6,7 +6,7 @@ use ArtisanPackUI\VisualEditor\Facades\VisualEditor;
 use ArtisanPackUI\VisualEditor\Registries\BlockTypeRegistry;
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
 
-it( 'registers both the block type metadata and the server renderer', function () {
+it( 'registers both the block type metadata and the server renderer', function (): void {
 	VisualEditor::registerServerBlock(
 		'tests/server-block',
 		[
@@ -31,7 +31,7 @@ it( 'registers both the block type metadata and the server renderer', function (
 		->and( (string) $dynamic->render( [ 'label' => 'World' ] ) )->toBe( '<p>World</p>' );
 } );
 
-it( 'returns the registered dynamic block instance', function () {
+it( 'returns the registered dynamic block instance', function (): void {
 	$block = VisualEditor::registerServerBlock(
 		'tests/returns-instance',
 		[ 'title' => 'X' ],
@@ -41,7 +41,7 @@ it( 'returns the registered dynamic block instance', function () {
 	expect( $block )->toBe( app( DynamicBlockRegistry::class )->get( 'tests/returns-instance' ) );
 } );
 
-it( 'ignores a stray name in the metadata array', function () {
+it( 'ignores a stray name in the metadata array', function (): void {
 	VisualEditor::registerServerBlock(
 		'tests/authoritative-name',
 		[ 'name' => 'tests/other-name', 'title' => 'X' ],
@@ -52,7 +52,7 @@ it( 'ignores a stray name in the metadata array', function () {
 		->and( app( BlockTypeRegistry::class )->get( 'tests/other-name' ) )->toBeNull();
 } );
 
-it( 'wires optional callbacks through to the dynamic block', function () {
+it( 'wires optional callbacks through to the dynamic block', function (): void {
 	VisualEditor::registerServerBlock(
 		'tests/with-search',
 		[ 'title' => 'X' ],
@@ -65,7 +65,7 @@ it( 'wires optional callbacks through to the dynamic block', function () {
 	expect( $block->searchableText( [ 'q' => 'findable' ] ) )->toBe( 'findable' );
 } );
 
-it( 'registers neither the type nor the renderer when a callback is invalid', function () {
+it( 'registers neither the type nor the renderer when a callback is invalid', function (): void {
 	try {
 		VisualEditor::registerServerBlock(
 			'tests/bad-callback',
@@ -83,6 +83,6 @@ it( 'registers neither the type nor the renderer when a callback is invalid', fu
 	}
 } );
 
-it( 'throws when the block name is invalid', function () {
+it( 'throws when the block name is invalid', function (): void {
 	VisualEditor::registerServerBlock( 'not-namespaced', [ 'title' => 'X' ], fn ( array $attrs ): string => 'x' );
 } )->throws( InvalidArgumentException::class );

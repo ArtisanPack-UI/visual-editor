@@ -165,7 +165,7 @@ class BlockShape
 	{
 		return array_values( array_map(
 			static fn ( $block ) => is_array( $block ) ? self::normalizeBlock( $block ) : $block,
-			$tree
+			$tree,
 		) );
 	}
 

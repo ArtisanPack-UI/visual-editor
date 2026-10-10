@@ -21,11 +21,10 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
 	public function up(): void
 	{
-		Schema::create( 've_theme_font_bundles', function ( Blueprint $table ) {
+		Schema::create( 've_theme_font_bundles', function ( Blueprint $table ): void {
 			$table->id();
 			$table->string( 'theme_slug' );
 			$table->foreignId( 'font_id' )->constrained( 've_fonts' )->cascadeOnDelete();

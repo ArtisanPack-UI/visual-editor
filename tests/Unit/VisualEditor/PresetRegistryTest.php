@@ -4,7 +4,7 @@ declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\Resources\PresetRegistry;
 
-it( 'returns empty append-mode lists when no presets are configured', function () {
+it( 'returns empty append-mode lists when no presets are configured', function (): void {
 	config()->set( 'artisanpack.visual-editor.presets', [] );
 
 	expect( PresetRegistry::fromConfig() )->toBe( [
@@ -15,7 +15,7 @@ it( 'returns empty append-mode lists when no presets are configured', function (
 	] );
 } );
 
-it( 'normalises a bare palette entry list as append mode', function () {
+it( 'normalises a bare palette entry list as append mode', function (): void {
 	config()->set( 'artisanpack.visual-editor.presets.palette', [
 		[ 'slug' => 'brand-navy', 'name' => 'Brand Navy', 'color' => '#0a2540' ],
 	] );
@@ -30,7 +30,7 @@ it( 'normalises a bare palette entry list as append mode', function () {
 	] );
 } );
 
-it( 'honours the explicit replace mode wrapper', function () {
+it( 'honours the explicit replace mode wrapper', function (): void {
 	config()->set( 'artisanpack.visual-editor.presets.palette', [
 		'mode'    => 'replace',
 		'entries' => [
@@ -46,7 +46,7 @@ it( 'honours the explicit replace mode wrapper', function () {
 		] );
 } );
 
-it( 'falls back to append when the mode value is unknown', function () {
+it( 'falls back to append when the mode value is unknown', function (): void {
 	config()->set( 'artisanpack.visual-editor.presets.palette', [
 		'mode'    => 'merge',
 		'entries' => [
@@ -59,7 +59,7 @@ it( 'falls back to append when the mode value is unknown', function () {
 	expect( $presets['palette']['mode'] )->toBe( 'append' );
 } );
 
-it( 'derives a title-cased name from the slug when none is given', function () {
+it( 'derives a title-cased name from the slug when none is given', function (): void {
 	config()->set( 'artisanpack.visual-editor.presets.palette', [
 		[ 'slug' => 'brand_navy', 'color' => '#0a2540' ],
 	] );
@@ -71,7 +71,7 @@ it( 'derives a title-cased name from the slug when none is given', function () {
 	] );
 } );
 
-it( 'drops palette entries with an invalid slug', function () {
+it( 'drops palette entries with an invalid slug', function (): void {
 	config()->set( 'artisanpack.visual-editor.presets.palette', [
 		[ 'slug' => 'bad slug', 'color' => '#000' ],
 		[ 'slug' => 'good', 'color' => '#111' ],
@@ -84,11 +84,11 @@ it( 'drops palette entries with an invalid slug', function () {
 	] );
 } );
 
-it( 'drops palette entries whose color contains an HTML-attribute-breakout character', function () {
+it( 'drops palette entries whose color contains an HTML-attribute-breakout character', function (): void {
 	config()->set( 'artisanpack.visual-editor.presets.palette', [
 		[ 'slug' => 'x', 'color' => 'red<script>' ],
 		[ 'slug' => 'y', 'color' => 'red"and-quote' ],
-		[ 'slug' => 'z', 'color' => "back`tick" ],
+		[ 'slug' => 'z', 'color' => 'back`tick' ],
 	] );
 
 	$presets = PresetRegistry::fromConfig();
@@ -96,7 +96,7 @@ it( 'drops palette entries whose color contains an HTML-attribute-breakout chara
 	expect( $presets['palette']['entries'] )->toBe( [] );
 } );
 
-it( 'preserves internal whitespace so multi-argument CSS color functions survive', function () {
+it( 'preserves internal whitespace so multi-argument CSS color functions survive', function (): void {
 	config()->set( 'artisanpack.visual-editor.presets.palette', [
 		[ 'slug' => 'a', 'color' => 'rgb(0, 0, 0)' ],
 		[ 'slug' => 'b', 'color' => 'oklch(0.5 0.1 200)' ],
@@ -112,7 +112,7 @@ it( 'preserves internal whitespace so multi-argument CSS color functions survive
 	] );
 } );
 
-it( 'accepts hex-only colors and non-whitespace CSS values', function () {
+it( 'accepts hex-only colors and non-whitespace CSS values', function (): void {
 	config()->set( 'artisanpack.visual-editor.presets.palette', [
 		[ 'slug' => 'a', 'color' => '#abc' ],
 		[ 'slug' => 'b', 'color' => '#aabbcc' ],
@@ -125,7 +125,7 @@ it( 'accepts hex-only colors and non-whitespace CSS values', function () {
 		->toBe( [ 'a', 'b', 'c' ] );
 } );
 
-it( 'deduplicates palette entries whose slug collapses to the same value', function () {
+it( 'deduplicates palette entries whose slug collapses to the same value', function (): void {
 	config()->set( 'artisanpack.visual-editor.presets.palette', [
 		[ 'slug' => 'Brand', 'color' => '#111' ],
 		[ 'slug' => ' brand ', 'color' => '#222' ],
@@ -138,7 +138,7 @@ it( 'deduplicates palette entries whose slug collapses to the same value', funct
 		->toBe( [ 'brand', 'other' ] );
 } );
 
-it( 'normalises font_sizes, font_families, and spacing_sizes entries', function () {
+it( 'normalises font_sizes, font_families, and spacing_sizes entries', function (): void {
 	config()->set( 'artisanpack.visual-editor.presets', [
 		'font_sizes'    => [
 			[ 'slug' => 'display', 'name' => 'Display', 'size' => '48px' ],
@@ -164,7 +164,7 @@ it( 'normalises font_sizes, font_families, and spacing_sizes entries', function 
 	] );
 } );
 
-it( 'accepts snake_case font_family alongside camelCase for font families', function () {
+it( 'accepts snake_case font_family alongside camelCase for font families', function (): void {
 	config()->set( 'artisanpack.visual-editor.presets.font_families', [
 		[ 'slug' => 'brand', 'font_family' => 'Inter, sans-serif' ],
 	] );
@@ -176,7 +176,7 @@ it( 'accepts snake_case font_family alongside camelCase for font families', func
 	] );
 } );
 
-it( 'drops entries missing the value key required for their list', function () {
+it( 'drops entries missing the value key required for their list', function (): void {
 	config()->set( 'artisanpack.visual-editor.presets', [
 		'palette'       => [ [ 'slug' => 'a' ] ],
 		'font_sizes'    => [ [ 'slug' => 'a' ] ],
@@ -192,7 +192,7 @@ it( 'drops entries missing the value key required for their list', function () {
 	expect( $presets['spacingSizes']['entries'] )->toBe( [] );
 } );
 
-it( 'ignores non-array entries inside a list', function () {
+it( 'ignores non-array entries inside a list', function (): void {
 	config()->set( 'artisanpack.visual-editor.presets.palette', [
 		'not-an-array',
 		[ 'slug' => 'good', 'color' => '#111' ],
@@ -206,7 +206,7 @@ it( 'ignores non-array entries inside a list', function () {
 	] );
 } );
 
-it( 'returns empty append lists when a preset key is not an array', function () {
+it( 'returns empty append lists when a preset key is not an array', function (): void {
 	config()->set( 'artisanpack.visual-editor.presets.palette', 'nope' );
 
 	$presets = PresetRegistry::fromConfig();
@@ -214,7 +214,7 @@ it( 'returns empty append lists when a preset key is not an array', function () 
 	expect( $presets['palette'] )->toBe( [ 'mode' => 'append', 'entries' => [] ] );
 } );
 
-it( 'preserves a replace wrapper with an empty entries list as an explicit clear', function () {
+it( 'preserves a replace wrapper with an empty entries list as an explicit clear', function (): void {
 	// The PHP layer emits the mode verbatim so the JS merge helper can
 	// treat this shape as an explicit "no presets for this list"
 	// instruction (per the "host wins outright" contract in
@@ -230,7 +230,7 @@ it( 'preserves a replace wrapper with an empty entries list as an explicit clear
 	expect( $presets['palette'] )->toBe( [ 'mode' => 'replace', 'entries' => [] ] );
 } );
 
-it( 'returns the whole config record even when only one list is populated', function () {
+it( 'returns the whole config record even when only one list is populated', function (): void {
 	config()->set( 'artisanpack.visual-editor.presets', [
 		'palette' => [ [ 'slug' => 'x', 'color' => '#111' ] ],
 	] );
@@ -242,12 +242,12 @@ it( 'returns the whole config record even when only one list is populated', func
 	expect( $presets['fontSizes'] )->toBe( [ 'mode' => 'append', 'entries' => [] ] );
 } );
 
-describe( 'effectiveSpacingSizes() (#814)', function () {
-	beforeEach( function () {
+describe( 'effectiveSpacingSizes() (#814)', function (): void {
+	beforeEach( function (): void {
 		config()->set( 'artisanpack.visual-editor.presets', [] );
 	} );
 
-	it( 'falls back to the package defaults when the theme ships no spacing sizes', function ( mixed $themeSizes ) {
+	it( 'falls back to the package defaults when the theme ships no spacing sizes', function ( mixed $themeSizes ): void {
 		expect( PresetRegistry::effectiveSpacingSizes( $themeSizes ) )
 			->toBe( PresetRegistry::DEFAULT_SPACING_SIZES );
 	} )->with( [
@@ -257,7 +257,7 @@ describe( 'effectiveSpacingSizes() (#814)', function () {
 		'no usable entries' => [ [ [ 'slug' => '', 'size' => '1rem' ], [ 'slug' => 'x' ], 'junk' ] ],
 	] );
 
-	it( 'uses the theme list instead of the defaults, first slug winning', function () {
+	it( 'uses the theme list instead of the defaults, first slug winning', function (): void {
 		expect( PresetRegistry::effectiveSpacingSizes( [
 			[ 'slug' => ' SM ', 'size' => '4px', 'name' => 'Small' ],
 			[ 'slug' => 'sm', 'size' => '99px' ],
@@ -268,7 +268,7 @@ describe( 'effectiveSpacingSizes() (#814)', function () {
 		] );
 	} );
 
-	it( 'merges host append entries into the defaults, overriding colliding slugs in place', function () {
+	it( 'merges host append entries into the defaults, overriding colliding slugs in place', function (): void {
 		config()->set( 'artisanpack.visual-editor.presets.spacing_sizes', [
 			[ 'slug' => '40', 'size' => '2rem' ],
 			[ 'slug' => 'gutter', 'size' => '18px' ],
@@ -281,20 +281,20 @@ describe( 'effectiveSpacingSizes() (#814)', function () {
 		expect( $sizes )->toHaveCount( 7 );
 	} );
 
-	it( 'lets host replace mode wipe the defaults, even with no entries', function () {
+	it( 'lets host replace mode wipe the defaults, even with no entries', function (): void {
 		config()->set( 'artisanpack.visual-editor.presets.spacing_sizes', [ 'mode' => 'replace', 'entries' => [] ] );
 
 		expect( PresetRegistry::effectiveSpacingSizes( null ) )->toBe( [] );
 	} );
 
-	it( 'keeps the theme list under an empty host replace, mirroring the editor', function () {
+	it( 'keeps the theme list under an empty host replace, mirroring the editor', function (): void {
 		config()->set( 'artisanpack.visual-editor.presets.spacing_sizes', [ 'mode' => 'replace', 'entries' => [] ] );
 
 		expect( PresetRegistry::effectiveSpacingSizes( [ [ 'slug' => 'sm', 'size' => '4px' ] ] ) )
 			->toBe( [ [ 'slug' => 'sm', 'size' => '4px' ] ] );
 	} );
 
-	it( 'merges host entries on top of a theme list', function () {
+	it( 'merges host entries on top of a theme list', function (): void {
 		config()->set( 'artisanpack.visual-editor.presets.spacing_sizes', [
 			[ 'slug' => 'sm', 'size' => '6px' ],
 		] );
@@ -309,12 +309,12 @@ describe( 'effectiveSpacingSizes() (#814)', function () {
 	} );
 } );
 
-describe( 'spacingPresetsCss() (#814)', function () {
-	beforeEach( function () {
+describe( 'spacingPresetsCss() (#814)', function (): void {
+	beforeEach( function (): void {
 		config()->set( 'artisanpack.visual-editor.presets', [] );
 	} );
 
-	it( 'declares every default spacing preset on :root when the theme has none', function () {
+	it( 'declares every default spacing preset on :root when the theme has none', function (): void {
 		expect( PresetRegistry::spacingPresetsCss( null ) )->toBe(
 			":root {\n"
 			. "\t--wp--preset--spacing--20: 0.5rem;\n"
@@ -323,11 +323,11 @@ describe( 'spacingPresetsCss() (#814)', function () {
 			. "\t--wp--preset--spacing--50: 3rem;\n"
 			. "\t--wp--preset--spacing--60: 5rem;\n"
 			. "\t--wp--preset--spacing--70: 7rem;\n"
-			. '}'
+			. '}',
 		);
 	} );
 
-	it( 'kebabs slugs and skips values that could break out of the style block', function () {
+	it( 'kebabs slugs and skips values that could break out of the style block', function (): void {
 		$css = PresetRegistry::spacingPresetsCss( [
 			[ 'slug' => 'Big Gap', 'size' => '2rem' ],
 			[ 'slug' => 'evil', 'size' => '1px; } body { display: none' ],
@@ -343,15 +343,15 @@ describe( 'spacingPresetsCss() (#814)', function () {
 			->not->toContain( 'escape' );
 	} );
 
-	it( 'returns an empty string when no preset survives', function () {
+	it( 'returns an empty string when no preset survives', function (): void {
 		config()->set( 'artisanpack.visual-editor.presets.spacing_sizes', [ 'mode' => 'replace', 'entries' => [] ] );
 
 		expect( PresetRegistry::spacingPresetsCss( null ) )->toBe( '' );
 	} );
 } );
 
-describe( 'presetSlug() (#814)', function () {
-	it( 'lowercases and maps every character outside [a-z0-9-] to a dash, without collapsing', function ( string $in, string $out ) {
+describe( 'presetSlug() (#814)', function (): void {
+	it( 'lowercases and maps every character outside [a-z0-9-] to a dash, without collapsing', function ( string $in, string $out ): void {
 		expect( PresetRegistry::presetSlug( $in ) )->toBe( $out );
 	} )->with( [
 		'plain'        => [ '40', '40' ],
@@ -364,7 +364,7 @@ describe( 'presetSlug() (#814)', function () {
 		'camel case'   => [ 'bigGap', 'big-gap' ],
 	] );
 
-	it( 'declares underscore and double-dash slugs exactly as the references expand them', function () {
+	it( 'declares underscore and double-dash slugs exactly as the references expand them', function (): void {
 		$css = PresetRegistry::spacingPresetsCss( [
 			[ 'slug' => 'big_gap', 'size' => '2rem' ],
 			[ 'slug' => 'x--y', 'size' => '3rem' ],
@@ -376,8 +376,8 @@ describe( 'presetSlug() (#814)', function () {
 	} );
 } );
 
-describe( 'isSafeCssValue() (#814)', function () {
-	it( 'accepts ordinary lengths and balanced functions', function ( string $value ) {
+describe( 'isSafeCssValue() (#814)', function (): void {
+	it( 'accepts ordinary lengths and balanced functions', function ( string $value ): void {
 		expect( PresetRegistry::isSafeCssValue( $value ) )->toBeTrue();
 	} )->with( [
 		'rem'         => [ '1.5rem' ],
@@ -386,7 +386,7 @@ describe( 'isSafeCssValue() (#814)', function () {
 		'custom prop' => [ 'var(--wp--custom--gap)' ],
 	] );
 
-	it( 'rejects values that could unbalance or break out of the style block', function ( string $value ) {
+	it( 'rejects values that could unbalance or break out of the style block', function ( string $value ): void {
 		expect( PresetRegistry::isSafeCssValue( $value ) )->toBeFalse();
 	} )->with( [
 		'empty'          => [ '' ],
@@ -407,7 +407,7 @@ describe( 'isSafeCssValue() (#814)', function () {
 		'del'            => [ "1rem\x7F" ],
 	] );
 
-	it( 'drops an unbalanced value from the declared block', function () {
+	it( 'drops an unbalanced value from the declared block', function (): void {
 		$css = PresetRegistry::spacingPresetsCss( [
 			[ 'slug' => 'broken', 'size' => 'calc(1rem' ],
 			[ 'slug' => 'ok', 'size' => '1rem' ],
@@ -417,7 +417,7 @@ describe( 'isSafeCssValue() (#814)', function () {
 	} );
 } );
 
-it( 'keeps the React / Vue renderers\' DEFAULT_SPACING_SIZES in sync with the package defaults (#814)', function ( string $renderer ) {
+it( 'keeps the React / Vue renderers\' DEFAULT_SPACING_SIZES in sync with the package defaults (#814)', function ( string $renderer ): void {
 	$source = (string) file_get_contents( dirname( __DIR__, 3 ) . '/packages/visual-editor-renderer-' . $renderer . '/src/support/layoutBaselineCss.ts' );
 
 	$list = static function ( string $constant, string $valueKey ) use ( $source ): array {

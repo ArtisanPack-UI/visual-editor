@@ -7,13 +7,13 @@ use ArtisanPackUI\VisualEditor\Services\Bindings\Sources\PostCoreSource;
 use Tests\Fixtures\TestBindingsModel;
 use Tests\TestUser;
 
-it( 'returns null when no model is in scope', function () {
+it( 'returns null when no model is in scope', function (): void {
 	$source = new PostCoreSource();
 
 	expect( $source->resolve( new BindingContext(), [ 'key' => 'title' ] ) )->toBeNull();
 } );
 
-it( 'reads the title off the parent model', function () {
+it( 'reads the title off the parent model', function (): void {
 	$model = TestBindingsModel::query()->create( [
 		'title'   => 'Welcome',
 		'status'  => 'published',
@@ -25,7 +25,7 @@ it( 'reads the title off the parent model', function () {
 	expect( $source->resolve( new BindingContext( $model ), [ 'key' => 'title' ] ) )->toBe( 'Welcome' );
 } );
 
-it( 'prefers a draft value over the saved column', function () {
+it( 'prefers a draft value over the saved column', function (): void {
 	$model = TestBindingsModel::query()->create( [
 		'title'   => 'Saved Title',
 		'status'  => 'published',
@@ -39,7 +39,7 @@ it( 'prefers a draft value over the saved column', function () {
 	expect( $source->resolve( $ctx, [ 'key' => 'title' ] ) )->toBe( 'Editor Draft' );
 } );
 
-it( 'resolves the author name via the belongsTo relation', function () {
+it( 'resolves the author name via the belongsTo relation', function (): void {
 	$author = TestUser::query()->create( [
 		'name'     => 'Ada Lovelace',
 		'email'    => 'ada+' . uniqid() . '@example.com',
@@ -59,19 +59,19 @@ it( 'resolves the author name via the belongsTo relation', function () {
 		->toBe( 'Ada Lovelace' );
 } );
 
-it( 'declares the author relation for eager-loading when author_name is bound', function () {
+it( 'declares the author relation for eager-loading when author_name is bound', function (): void {
 	$source = new PostCoreSource();
 
 	expect( $source->eagerLoadRelations( [ [ 'key' => 'author_name' ] ] ) )->toBe( [ 'author' ] );
 } );
 
-it( 'declares no relations when only title or excerpt is bound', function () {
+it( 'declares no relations when only title or excerpt is bound', function (): void {
 	$source = new PostCoreSource();
 
 	expect( $source->eagerLoadRelations( [ [ 'key' => 'title' ], [ 'key' => 'excerpt' ] ] ) )->toBe( [] );
 } );
 
-it( 'returns null when the key is empty', function () {
+it( 'returns null when the key is empty', function (): void {
 	$source = new PostCoreSource();
 	$model  = new TestBindingsModel( [ 'title' => 'X' ] );
 
@@ -79,7 +79,7 @@ it( 'returns null when the key is empty', function () {
 		->and( $source->resolve( new BindingContext( $model ), [ 'key' => '' ] ) )->toBeNull();
 } );
 
-it( 'refuses to resolve a key that is not in the supported whitelist', function () {
+it( 'refuses to resolve a key that is not in the supported whitelist', function (): void {
 	$model = TestBindingsModel::query()->create( [
 		'title'     => 'X',
 		'status'    => 'published',

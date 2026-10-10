@@ -4,7 +4,7 @@ declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\VisualEditor;
 
-it( 'returns the frozen V1 block allow-list under the default config', function () {
+it( 'returns the frozen V1 block allow-list under the default config', function (): void {
 	$editor = app( VisualEditor::class );
 
 	// Snapshot of the V1 default block set. Update this array only when
@@ -120,9 +120,9 @@ it( 'returns the frozen V1 block allow-list under the default config', function 
 	] );
 } );
 
-it( 'removes deny-listed names even when they appear on the allow-list', function () {
+it( 'removes deny-listed names even when they appear on the allow-list', function (): void {
 	config( [
-		'artisanpack.visual-editor.enabled_blocks' => ['core/paragraph', 'core/query', 'core/heading'],
+		'artisanpack.visual-editor.enabled_blocks'  => ['core/paragraph', 'core/query', 'core/heading'],
 		'artisanpack.visual-editor.disabled_blocks' => ['core/query'],
 	] );
 
@@ -131,7 +131,7 @@ it( 'removes deny-listed names even when they appear on the allow-list', functio
 	expect( $editor->getEnabledBlockNames() )->toBe( ['core/paragraph', 'core/heading'] );
 } );
 
-it( 'falls back to the full registry when the allow-list is empty', function () {
+it( 'falls back to the full registry when the allow-list is empty', function (): void {
 	config( [
 		'artisanpack.visual-editor.enabled_blocks'  => [],
 		'artisanpack.visual-editor.disabled_blocks' => [],
@@ -148,7 +148,7 @@ it( 'falls back to the full registry when the allow-list is empty', function () 
 		->and( $names )->toContain( 'artisanpack/custom-b' );
 } );
 
-it( 'de-duplicates repeated block names while preserving order', function () {
+it( 'de-duplicates repeated block names while preserving order', function (): void {
 	config( [
 		'artisanpack.visual-editor.enabled_blocks' => [
 			'core/paragraph',
@@ -163,7 +163,7 @@ it( 'de-duplicates repeated block names while preserving order', function () {
 	expect( $editor->getEnabledBlockNames() )->toBe( ['core/paragraph', 'core/heading'] );
 } );
 
-it( 'ignores non-string entries in the config arrays', function () {
+it( 'ignores non-string entries in the config arrays', function (): void {
 	config( [
 		'artisanpack.visual-editor.enabled_blocks' => [
 			'core/paragraph',

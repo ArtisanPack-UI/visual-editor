@@ -54,6 +54,7 @@ import { registerAnimationsAttribute } from '../animations/register-attribute';
 import { registerAnimationsPanel } from '../animations/with-animations-panel';
 import { registerVisibilityAttribute } from '../visibility/register-attribute';
 import { registerVisibilityPanel, setVisibilityBreakpoints, setVisibilityRoles } from '../visibility/with-visibility-panel';
+import { registerVisibilityCanvas } from '../visibility/with-visibility-canvas';
 import { registryFromSnapshot, setResponsiveRegistry } from '../responsive/registry';
 import type { BreakpointRegistrySnapshot } from '../responsive/types';
 import { useCanvasPreviewWidth } from '../responsive/use-canvas-preview-width';
@@ -92,7 +93,7 @@ import {
     type FeaturedImageValue,
     type PostStatus,
 } from './document-panels';
-import { entityTypeForResource } from './entity-type';
+import { entityTypeForResource, patternPostTypeForResource } from './entity-type';
 import { InspectorSidebar } from './inspector-sidebar';
 import { KeyboardShortcutsModal } from './keyboard-shortcuts-modal';
 import { useSaveNotifications } from './save-notifications';
@@ -181,6 +182,9 @@ function registerOnce(): void {
     // `supports.artisanpackVisibility: false` in their block.json.
     registerVisibilityAttribute();
     registerVisibilityPanel();
+    // #805 — preview screen-size rules in the canvas and flag
+    // visibility in List View labels.
+    registerVisibilityCanvas();
     // #504 — register the bindings sidecar attribute on every block
     // and inject the inspector panel. Runs at editor-bootstrap time so
     // the `bindings` storage key is in every block's schema by the time
@@ -283,6 +287,13 @@ export interface EditorAppProps {
      * See {@link initialCreatedAt}.
      */
     initialUpdatedAt?: string;
+    /**
+     * Post-type slug the page-pattern modal scopes its fetch to. Takes
+     * precedence over the `posts` / `pages` mapping so hosts can opt
+     * custom content types (e.g. `package`) into the modal without
+     * enrolling them in the core-data entity wrap.
+     */
+    patternPostType?: string;
     authorOptions?: ReadonlyArray<AuthorOption>;
     supports?: DocumentSupports;
     previewUrl?: string | null;
@@ -380,6 +391,10 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
     const themedSettings = useThemedEditorSettings({ apiBase: props.apiBase });
 
     const documentType = entityTypeForResource(props.resource);
+    const patternPostType = patternPostTypeForResource(
+        props.resource,
+        props.patternPostType
+    );
     // Validate against a whole-digit regex *before* parsing so malformed
     // ids like "42abc" don't silently promote to 42 — the EntityProvider
     // wrap below would otherwise fetch the wrong entity record.
@@ -1019,12 +1034,12 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
     }, [blocks, onBlocksChange]);
 
     // #639 — fetch page-scope patterns whenever the mounted post-type
-    // context changes. `documentType` is the WP-style singular slug
-    // (`page`, `post`, …); when it's null (custom HasBlockContent
-    // models without a shim registration), we skip the fetch and the
-    // modal stays closed.
+    // context changes. `patternPostType` is the WP-style singular slug
+    // (`page`, `post`, or a host-supplied custom type); when it's null
+    // (custom HasBlockContent models the host didn't opt in), we skip
+    // the fetch and the modal stays closed.
     useEffect(() => {
-        if (documentType === null) {
+        if (patternPostType === null) {
             setPagePatterns([]);
             setPagePatternsLoading(false);
             return;
@@ -1044,7 +1059,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
         // shipped as starters.
         listPatterns(
             { apiBase: props.apiBase },
-            { postType: documentType, source: 'theme', perPage: 100 }
+            { postType: patternPostType, source: 'theme', perPage: 100 }
         )
             .then((records) => {
                 if (cancelled) {
@@ -1056,7 +1071,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
                 // block-inserter treats as "library of everything")
                 // don't leak into the whole-page modal. See the helper
                 // for the seed carve-out.
-                setPagePatterns(filterModalPatterns(records, documentType));
+                setPagePatterns(filterModalPatterns(records, patternPostType));
                 setPagePatternsLoading(false);
             })
             .catch((error: unknown) => {
@@ -1076,7 +1091,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
         return () => {
             cancelled = true;
         };
-    }, [documentType, props.apiBase]);
+    }, [patternPostType, props.apiBase]);
 
     // #639 — fetch the site-editor template list once per mount so the
     // modal's template selector has entries to render. Templates are
@@ -1321,6 +1336,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
             }
             loading={pagePatternsLoading}
             errorMessage={pagePatternsError}
+            apiBase={props.apiBase}
         />
     );
 

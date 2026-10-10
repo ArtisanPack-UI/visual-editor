@@ -14,7 +14,7 @@ declare( strict_types=1 );
 
 use Tests\TestUser;
 
-beforeEach( function () {
+beforeEach( function (): void {
 	config()->set( 'artisanpack.visual-editor.api.middleware', [ 'auth' ] );
 	config()->set( 'artisanpack.visual-editor.business.google_maps_api_key', null );
 
@@ -31,7 +31,7 @@ beforeEach( function () {
 	$this->actingAs( $this->actor );
 } );
 
-it( 'returns an empty envelope when no host filter is registered', function () {
+it( 'returns an empty envelope when no host filter is registered', function (): void {
 	$this->getJson( '/visual-editor/api/business-info' )
 		->assertOk()
 		->assertJsonPath( 'phone', '' )
@@ -42,7 +42,7 @@ it( 'returns an empty envelope when no host filter is registered', function () {
 		->assertJsonPath( 'mapEmbedUrl', null );
 } );
 
-it( 'returns the envelope populated by the host filter', function () {
+it( 'returns the envelope populated by the host filter', function (): void {
 	if ( ! function_exists( 'addFilter' ) ) {
 		expect( true )->toBeTrue();
 
@@ -73,7 +73,7 @@ it( 'returns the envelope populated by the host filter', function () {
 		->assertJsonPath( 'hours.monday.open', '09:00' );
 } );
 
-it( 'composes an OSM map embed URL by default', function () {
+it( 'composes an OSM map embed URL by default', function (): void {
 	if ( ! function_exists( 'addFilter' ) ) {
 		expect( true )->toBeTrue();
 
@@ -100,7 +100,7 @@ it( 'composes an OSM map embed URL by default', function () {
 	expect( $url )->toContain( 'marker=' );
 } );
 
-it( 'composes a Google Maps embed URL when a key is configured and the block opts in', function () {
+it( 'composes a Google Maps embed URL when a key is configured and the block opts in', function (): void {
 	if ( ! function_exists( 'addFilter' ) ) {
 		expect( true )->toBeTrue();
 
@@ -130,7 +130,7 @@ it( 'composes a Google Maps embed URL when a key is configured and the block opt
 	expect( $url )->toContain( 'zoom=17' );
 } );
 
-it( 'returns null mapEmbedUrl when the block requests showMap=false', function () {
+it( 'returns null mapEmbedUrl when the block requests showMap=false', function (): void {
 	if ( ! function_exists( 'addFilter' ) ) {
 		expect( true )->toBeTrue();
 
@@ -150,7 +150,7 @@ it( 'returns null mapEmbedUrl when the block requests showMap=false', function (
 		->assertJsonPath( 'mapEmbedUrl', null );
 } );
 
-it( 'filters special-hours entries to the requested window', function () {
+it( 'filters special-hours entries to the requested window', function (): void {
 	if ( ! function_exists( 'addFilter' ) ) {
 		expect( true )->toBeTrue();
 
@@ -178,7 +178,7 @@ it( 'filters special-hours entries to the requested window', function () {
 	expect( $specialHours[0]['label'] )->toBe( 'Nearby' );
 } );
 
-it( 'whitelists the response envelope to the documented public keys', function () {
+it( 'whitelists the response envelope to the documented public keys', function (): void {
 	if ( ! function_exists( 'addFilter' ) ) {
 		expect( true )->toBeTrue();
 
@@ -207,7 +207,7 @@ it( 'whitelists the response envelope to the documented public keys', function (
 	expect( array_key_exists( 'mapEmbedUrl', $body ) )->toBeTrue();
 } );
 
-it( 'treats a garbage showMap value the same as omitting the parameter (default: map on)', function () {
+it( 'treats a garbage showMap value the same as omitting the parameter (default: map on)', function (): void {
 	if ( ! function_exists( 'addFilter' ) ) {
 		expect( true )->toBeTrue();
 
@@ -237,7 +237,7 @@ it( 'treats a garbage showMap value the same as omitting the parameter (default:
 	expect( $garbage )->toContain( 'openstreetmap.org' );
 } );
 
-it( 'rejects unauthenticated requests when the api middleware requires auth', function () {
+it( 'rejects unauthenticated requests when the api middleware requires auth', function (): void {
 	auth()->logout();
 
 	$this->getJson( '/visual-editor/api/business-info' )->assertUnauthorized();

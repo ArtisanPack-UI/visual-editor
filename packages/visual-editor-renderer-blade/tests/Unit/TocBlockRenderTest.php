@@ -43,7 +43,7 @@ function renderTocTree( array $tree ): string
 	return tocRenderer()->render( $resolved );
 }
 
-it( 'renders a table of contents with in-page anchor links (#760)', function () {
+it( 'renders a table of contents with in-page anchor links (#760)', function (): void {
 	$tree = [
 		tocRenderBlock( 'artisanpack/toc', [ 'heading' => 'On this page' ] ),
 		tocRenderBlock( 'core/heading', [ 'level' => 2, 'content' => 'Getting started' ] ),
@@ -61,7 +61,7 @@ it( 'renders a table of contents with in-page anchor links (#760)', function () 
 		->and( $html )->toContain( '<a class="ap-toc__link" href="#configuration">Configuration</a>' );
 } );
 
-it( 'nests deeper headings under their preceding parent heading', function () {
+it( 'nests deeper headings under their preceding parent heading', function (): void {
 	$tree = [
 		tocRenderBlock( 'artisanpack/toc' ),
 		tocRenderBlock( 'core/heading', [ 'level' => 2, 'content' => 'Parent A' ] ),
@@ -87,7 +87,7 @@ it( 'nests deeper headings under their preceding parent heading', function () {
 	expect( substr_count( $html, 'class="ap-toc__list"' ) )->toBeGreaterThanOrEqual( 2 );
 } );
 
-it( 'renders an ordered list when the ordered attribute is on', function () {
+it( 'renders an ordered list when the ordered attribute is on', function (): void {
 	$tree = [
 		tocRenderBlock( 'artisanpack/toc', [ 'ordered' => true ] ),
 		tocRenderBlock( 'core/heading', [ 'level' => 2, 'content' => 'One' ] ),
@@ -99,7 +99,7 @@ it( 'renders an ordered list when the ordered attribute is on', function () {
 		->and( $html )->not->toContain( '<ul class="ap-toc__list">' );
 } );
 
-it( 'defaults to an unordered list', function () {
+it( 'defaults to an unordered list', function (): void {
 	$tree = [
 		tocRenderBlock( 'artisanpack/toc' ),
 		tocRenderBlock( 'core/heading', [ 'level' => 2, 'content' => 'One' ] ),
@@ -110,7 +110,7 @@ it( 'defaults to an unordered list', function () {
 	expect( $html )->toContain( '<ul class="ap-toc__list">' );
 } );
 
-it( 'stamps an id on every rendered heading so the TOC links land somewhere', function () {
+it( 'stamps an id on every rendered heading so the TOC links land somewhere', function (): void {
 	$tree = [
 		tocRenderBlock( 'artisanpack/toc' ),
 		tocRenderBlock( 'core/heading', [ 'level' => 2, 'content' => 'Heading one' ] ),
@@ -123,7 +123,7 @@ it( 'stamps an id on every rendered heading so the TOC links land somewhere', fu
 		->and( $html )->toContain( 'id="heading-two"' );
 } );
 
-it( 'omits an out-of-range heading from the list but still stamps its id', function () {
+it( 'omits an out-of-range heading from the list but still stamps its id', function (): void {
 	$tree = [
 		tocRenderBlock( 'artisanpack/toc', [ 'minLevel' => 2, 'maxLevel' => 3 ] ),
 		tocRenderBlock( 'core/heading', [ 'level' => 2, 'content' => 'In range' ] ),
@@ -138,7 +138,7 @@ it( 'omits an out-of-range heading from the list but still stamps its id', funct
 		->and( $html )->toContain( 'id="out-of-range"' );
 } );
 
-it( 'renders a placeholder when no headings are on the page', function () {
+it( 'renders a placeholder when no headings are on the page', function (): void {
 	$tree = [
 		tocRenderBlock( 'artisanpack/toc' ),
 		tocRenderBlock( 'core/paragraph', [ 'content' => 'No headings here' ] ),
@@ -149,7 +149,7 @@ it( 'renders a placeholder when no headings are on the page', function () {
 	expect( $html )->toContain( 'ap-toc__placeholder' );
 } );
 
-it( 'sets an aria-label on the landmark from the heading text, or the default when blank', function () {
+it( 'sets an aria-label on the landmark from the heading text, or the default when blank', function (): void {
 	$labeled = [
 		tocRenderBlock( 'artisanpack/toc', [ 'heading' => 'Contents' ] ),
 		tocRenderBlock( 'core/heading', [ 'level' => 2, 'content' => 'One' ] ),
@@ -169,7 +169,7 @@ it( 'sets an aria-label on the landmark from the heading text, or the default wh
 	expect( $blankHtml )->toContain( 'aria-label="Table of contents"' );
 } );
 
-it( 'derives entries from headings nested inside container blocks', function () {
+it( 'derives entries from headings nested inside container blocks', function (): void {
 	$tree = [
 		tocRenderBlock( 'artisanpack/toc' ),
 		tocRenderBlock( 'core/group', [], [
@@ -183,7 +183,7 @@ it( 'derives entries from headings nested inside container blocks', function () 
 		->and( $html )->toContain( 'id="nested-heading"' );
 } );
 
-it( 'reuses an author-set anchor for the TOC link and the heading id', function () {
+it( 'reuses an author-set anchor for the TOC link and the heading id', function (): void {
 	$tree = [
 		tocRenderBlock( 'artisanpack/toc' ),
 		tocRenderBlock( 'core/heading', [
@@ -200,7 +200,7 @@ it( 'reuses an author-set anchor for the TOC link and the heading id', function 
 		->and( $html )->not->toContain( 'id="author-anchor"' );
 } );
 
-it( 'renders the same anchor label as the heading, with HTML tags stripped', function () {
+it( 'renders the same anchor label as the heading, with HTML tags stripped', function (): void {
 	$tree = [
 		tocRenderBlock( 'artisanpack/toc' ),
 		tocRenderBlock( 'core/heading', [

@@ -4,7 +4,7 @@ declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\States\StateRegistry;
 
-it( 'falls back to built-in defaults when nothing overrides them', function () {
+it( 'falls back to built-in defaults when nothing overrides them', function (): void {
 	$registry = StateRegistry::fromLayers( [], [] );
 
 	expect( $registry->keys() )->toBe( [
@@ -17,10 +17,10 @@ it( 'falls back to built-in defaults when nothing overrides them', function () {
 	] );
 } );
 
-it( 'merges config overrides on top of defaults', function () {
+it( 'merges config overrides on top of defaults', function (): void {
 	$registry = StateRegistry::fromLayers(
 		[ 'hover' => [ 'label' => 'Hovered' ] ],
-		[]
+		[],
 	);
 
 	$hover = $registry->get( 'hover' );
@@ -30,34 +30,34 @@ it( 'merges config overrides on top of defaults', function () {
 	expect( $hover['selector'] )->toBe( '&:hover' );
 } );
 
-it( 'merges theme.json overrides on top of config', function () {
+it( 'merges theme.json overrides on top of config', function (): void {
 	$registry = StateRegistry::fromLayers(
 		[ 'hover' => [ 'label' => 'Config label' ] ],
 		[ 'aria-current' => [
 			'label'        => 'Current',
 			'selector'     => '&[aria-current="page"]',
 			'inheritsFrom' => 'idle',
-		] ]
+		] ],
 	);
 
 	expect( $registry->has( 'aria-current' ) )->toBeTrue();
 	expect( $registry->get( 'aria-current' )['selector'] )->toBe( '&[aria-current="page"]' );
 } );
 
-it( 'hoists idle to the front so iteration order is stable', function () {
+it( 'hoists idle to the front so iteration order is stable', function (): void {
 	$registry = StateRegistry::fromLayers(
 		[],
 		[ 'aria-current' => [
 			'label'        => 'Current',
 			'selector'     => '&[aria-current]',
 			'inheritsFrom' => 'idle',
-		] ]
+		] ],
 	);
 
 	expect( $registry->keys()[0] )->toBe( 'idle' );
 } );
 
-it( 'returns the inheritance chain ending at idle', function () {
+it( 'returns the inheritance chain ending at idle', function (): void {
 	$registry = StateRegistry::fromLayers( [], [] );
 
 	expect( $registry->inheritanceChain( 'active' ) )->toBe( [ 'active', 'hover', 'idle' ] );
@@ -66,46 +66,46 @@ it( 'returns the inheritance chain ending at idle', function () {
 	expect( $registry->inheritanceChain( 'made-up' ) )->toBe( [ 'idle' ] );
 } );
 
-it( 'rejects a registry missing the reserved idle slot', function () {
+it( 'rejects a registry missing the reserved idle slot', function (): void {
 	StateRegistry::fromLayers(
 		[ 'idle' => null ],
-		[]
+		[],
 	);
 } )->throws( InvalidArgumentException::class, 'idle' );
 
-it( 'rejects an idle slot with a non-empty selector', function () {
+it( 'rejects an idle slot with a non-empty selector', function (): void {
 	StateRegistry::fromLayers(
 		[ 'idle' => [ 'label' => 'Idle', 'selector' => '&:idle' ] ],
-		[]
+		[],
 	);
 } )->throws( InvalidArgumentException::class, 'idle' );
 
-it( 'rejects a non-idle state with a missing or empty selector', function () {
+it( 'rejects a non-idle state with a missing or empty selector', function (): void {
 	StateRegistry::fromLayers(
 		[],
-		[ 'broken' => [ 'label' => 'Broken', 'selector' => '', 'inheritsFrom' => 'idle' ] ]
+		[ 'broken' => [ 'label' => 'Broken', 'selector' => '', 'inheritsFrom' => 'idle' ] ],
 	);
 } )->throws( InvalidArgumentException::class, 'selector' );
 
-it( 'rejects a state whose inheritsFrom is not registered', function () {
+it( 'rejects a state whose inheritsFrom is not registered', function (): void {
 	StateRegistry::fromLayers(
 		[],
 		[ 'orphan' => [
 			'label'        => 'Orphan',
 			'selector'     => '&[data-orphan]',
 			'inheritsFrom' => 'made-up',
-		] ]
+		] ],
 	);
 } )->throws( InvalidArgumentException::class, 'inherits' );
 
-it( 'allows removing a built-in state by setting it to null', function () {
+it( 'allows removing a built-in state by setting it to null', function (): void {
 	$registry = StateRegistry::fromLayers( [ 'disabled' => null ], [] );
 
 	expect( $registry->has( 'disabled' ) )->toBeFalse();
 	expect( $registry->has( 'hover' ) )->toBeTrue();
 } );
 
-it( 'flags hover with hoverMediaWrap=true by default', function () {
+it( 'flags hover with hoverMediaWrap=true by default', function (): void {
 	$registry = StateRegistry::fromLayers( [], [] );
 
 	expect( $registry->get( 'hover' )['hoverMediaWrap'] )->toBeTrue();

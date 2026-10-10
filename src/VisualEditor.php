@@ -53,19 +53,6 @@ class VisualEditor
 	}
 
 	/**
-	 * Resolve the Dynamic Content source registry, materializing a
-	 * fresh one on first use when the constructor was called without
-	 * one (the pre-1.9 two-argument shape).
-	 *
-	 * @since 1.9.0
-	 */
-	protected function dynamicContentSourceRegistry(): DynamicContentSourceRegistry
-	{
-		return $this->dynamicContentSourceRegistry
-			??= new DynamicContentSourceRegistry();
-	}
-
-	/**
 	 * Registers a block type from one of three sources.
 	 *
 	 *   1. **Path string** — an absolute path to a `block.json` manifest.
@@ -91,7 +78,7 @@ class VisualEditor
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param  string|Closure  $source  Path to block.json, a class name that implements
+	 * @param  Closure|string  $source  Path to block.json, a class name that implements
 	 *                                  {@see ProvidesBlockMetadata}, or a closure that
 	 *                                  returns a metadata array.
 	 *
@@ -105,7 +92,7 @@ class VisualEditor
 
 		if ( ! isset( $metadata['name'] ) || ! is_string( $metadata['name'] ) ) {
 			throw new InvalidArgumentException(
-				'Block metadata is missing a non-empty "name" field.'
+				'Block metadata is missing a non-empty "name" field.',
 			);
 		}
 
@@ -113,7 +100,7 @@ class VisualEditor
 
 		if ( '' === $normalizedName ) {
 			throw new InvalidArgumentException(
-				'Block metadata is missing a non-empty "name" field.'
+				'Block metadata is missing a non-empty "name" field.',
 			);
 		}
 
@@ -125,93 +112,6 @@ class VisualEditor
 		$metadata['name'] = $normalizedName;
 
 		$this->registry->register( $normalizedName, $metadata );
-	}
-
-	/**
-	 * Resolve the block metadata array from the registration source.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @param  string|Closure  $source
-	 *
-	 * @return array<string, mixed>
-	 */
-	protected function resolveBlockMetadata( $source ): array
-	{
-		if ( $source instanceof Closure ) {
-			$value = ( $source )();
-
-			if ( ! is_array( $value ) ) {
-				throw new InvalidArgumentException(
-					'Block registration closure must return an array of metadata.'
-				);
-			}
-
-			return $value;
-		}
-
-		if ( ! is_string( $source ) || '' === trim( $source ) ) {
-			throw new InvalidArgumentException(
-				'Block registration requires a block.json path, a class name, or a closure.'
-			);
-		}
-
-		if ( class_exists( $source ) ) {
-			if ( ! is_subclass_of( $source, ProvidesBlockMetadata::class ) && ! in_array( ProvidesBlockMetadata::class, class_implements( $source ) ?: [], true ) ) {
-				throw new InvalidArgumentException( sprintf(
-					'Block class "%s" must implement %s.',
-					$source,
-					ProvidesBlockMetadata::class
-				) );
-			}
-
-			$value = $source::blockMetadata();
-
-			if ( ! is_array( $value ) ) {
-				throw new InvalidArgumentException( sprintf(
-					'%s::blockMetadata() must return an array.',
-					$source
-				) );
-			}
-
-			return $value;
-		}
-
-		return $this->loadBlockJsonMetadata( $source );
-	}
-
-	/**
-	 * Read and decode a `block.json` manifest file into a metadata array.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return array<string, mixed>
-	 */
-	protected function loadBlockJsonMetadata( string $blockJsonPath ): array
-	{
-		if ( ! file_exists( $blockJsonPath ) ) {
-			throw new InvalidArgumentException(
-				sprintf( 'block.json not found: %s', $blockJsonPath )
-			);
-		}
-
-		$json = file_get_contents( $blockJsonPath );
-
-		if ( false === $json ) {
-			throw new InvalidArgumentException(
-				sprintf( 'Unable to read block.json: %s', $blockJsonPath )
-			);
-		}
-
-		$metadata = json_decode( $json, true, 512, JSON_THROW_ON_ERROR );
-
-		if ( ! is_array( $metadata ) ) {
-			throw new InvalidArgumentException(
-				sprintf( 'block.json did not decode to an object: %s', $blockJsonPath )
-			);
-		}
-
-		return $metadata;
 	}
 
 	/**
@@ -365,7 +265,7 @@ class VisualEditor
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param  DynamicBlock|class-string<DynamicBlock>|string  $blockOrName
+	 * @param  class-string<DynamicBlock>|DynamicBlock|string  $blockOrName
 	 * @param  array<string, callable>|null                    $config
 	 */
 	public function registerDynamicBlock( $blockOrName, ?array $config = null ): DynamicBlock
@@ -378,12 +278,161 @@ class VisualEditor
 	}
 
 	/**
+	 * Returns the fully-qualified names of blocks that should be exposed to
+	 * the editor after the allow-list + deny-list filters run.
+	 *
+	 * Resolution order:
+	 *   1. Start with the configured `enabled_blocks` allow-list. When
+	 *      empty, fall back to every block currently in the registry — the
+	 *      allow-list is only enforced when the host app has opted in.
+	 *   2. Remove anything in the `disabled_blocks` deny-list.
+	 *   3. De-duplicate and preserve authoring order.
+	 *
+	 * The return value is deterministic (no registry lookups, no locale
+	 * sorting) so it can drive a snapshot test.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<int, string>
+	 */
+	public function getEnabledBlockNames(): array
+	{
+		$enabled  = $this->stringListFromConfig( 'artisanpack.visual-editor.enabled_blocks' );
+		$disabled = $this->stringListFromConfig( 'artisanpack.visual-editor.disabled_blocks' );
+
+		$candidates = [] === $enabled
+			? array_column( $this->registry->all(), 'name' )
+			: $enabled;
+
+		$denyIndex = array_flip( $disabled );
+		$seen      = [];
+		$result    = [];
+
+		foreach ( $candidates as $name ) {
+			if ( ! is_string( $name ) ) {
+				continue;
+			}
+
+			$normalized = trim( $name );
+
+			if ( '' === $normalized || isset( $denyIndex[ $normalized ] ) || isset( $seen[ $normalized ] ) ) {
+				continue;
+			}
+
+			$seen[ $normalized ] = true;
+			$result[]            = $normalized;
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Resolve the Dynamic Content source registry, materializing a
+	 * fresh one on first use when the constructor was called without
+	 * one (the pre-1.9 two-argument shape).
+	 *
+	 * @since 1.9.0
+	 */
+	protected function dynamicContentSourceRegistry(): DynamicContentSourceRegistry
+	{
+		return $this->dynamicContentSourceRegistry
+			??= new DynamicContentSourceRegistry();
+	}
+
+	/**
+	 * Resolve the block metadata array from the registration source.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  Closure|string  $source
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function resolveBlockMetadata( $source ): array
+	{
+		if ( $source instanceof Closure ) {
+			$value = ( $source )();
+
+			if ( ! is_array( $value ) ) {
+				throw new InvalidArgumentException(
+					'Block registration closure must return an array of metadata.',
+				);
+			}
+
+			return $value;
+		}
+
+		if ( ! is_string( $source ) || '' === trim( $source ) ) {
+			throw new InvalidArgumentException(
+				'Block registration requires a block.json path, a class name, or a closure.',
+			);
+		}
+
+		if ( class_exists( $source ) ) {
+			if ( ! is_subclass_of( $source, ProvidesBlockMetadata::class ) && ! in_array( ProvidesBlockMetadata::class, class_implements( $source ) ?: [], true ) ) {
+				throw new InvalidArgumentException( sprintf(
+					'Block class "%s" must implement %s.',
+					$source,
+					ProvidesBlockMetadata::class,
+				) );
+			}
+
+			$value = $source::blockMetadata();
+
+			if ( ! is_array( $value ) ) {
+				throw new InvalidArgumentException( sprintf(
+					'%s::blockMetadata() must return an array.',
+					$source,
+				) );
+			}
+
+			return $value;
+		}
+
+		return $this->loadBlockJsonMetadata( $source );
+	}
+
+	/**
+	 * Read and decode a `block.json` manifest file into a metadata array.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function loadBlockJsonMetadata( string $blockJsonPath ): array
+	{
+		if ( ! file_exists( $blockJsonPath ) ) {
+			throw new InvalidArgumentException(
+				sprintf( 'block.json not found: %s', $blockJsonPath ),
+			);
+		}
+
+		$json = file_get_contents( $blockJsonPath );
+
+		if ( false === $json ) {
+			throw new InvalidArgumentException(
+				sprintf( 'Unable to read block.json: %s', $blockJsonPath ),
+			);
+		}
+
+		$metadata = json_decode( $json, true, 512, JSON_THROW_ON_ERROR );
+
+		if ( ! is_array( $metadata ) ) {
+			throw new InvalidArgumentException(
+				sprintf( 'block.json did not decode to an object: %s', $blockJsonPath ),
+			);
+		}
+
+		return $metadata;
+	}
+
+	/**
 	 * Resolve the appropriate {@see DynamicBlock} instance for the arguments
 	 * passed to {@see registerDynamicBlock()}.
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param  DynamicBlock|class-string<DynamicBlock>|string  $blockOrName
+	 * @param  class-string<DynamicBlock>|DynamicBlock|string  $blockOrName
 	 * @param  array<string, callable>|null                    $config
 	 */
 	protected function resolveDynamicBlock( $blockOrName, ?array $config ): DynamicBlock
@@ -476,60 +525,11 @@ class VisualEditor
 			throw new InvalidArgumentException( sprintf(
 				'Dynamic block "%s" has a non-callable "%s" entry.',
 				$name,
-				$key
+				$key,
 			) );
 		}
 
 		return Closure::fromCallable( $value );
-	}
-
-	/**
-	 * Returns the fully-qualified names of blocks that should be exposed to
-	 * the editor after the allow-list + deny-list filters run.
-	 *
-	 * Resolution order:
-	 *   1. Start with the configured `enabled_blocks` allow-list. When
-	 *      empty, fall back to every block currently in the registry — the
-	 *      allow-list is only enforced when the host app has opted in.
-	 *   2. Remove anything in the `disabled_blocks` deny-list.
-	 *   3. De-duplicate and preserve authoring order.
-	 *
-	 * The return value is deterministic (no registry lookups, no locale
-	 * sorting) so it can drive a snapshot test.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return array<int, string>
-	 */
-	public function getEnabledBlockNames(): array
-	{
-		$enabled  = $this->stringListFromConfig( 'artisanpack.visual-editor.enabled_blocks' );
-		$disabled = $this->stringListFromConfig( 'artisanpack.visual-editor.disabled_blocks' );
-
-		$candidates = [] === $enabled
-			? array_column( $this->registry->all(), 'name' )
-			: $enabled;
-
-		$denyIndex = array_flip( $disabled );
-		$seen      = [];
-		$result    = [];
-
-		foreach ( $candidates as $name ) {
-			if ( ! is_string( $name ) ) {
-				continue;
-			}
-
-			$normalized = trim( $name );
-
-			if ( '' === $normalized || isset( $denyIndex[ $normalized ] ) || isset( $seen[ $normalized ] ) ) {
-				continue;
-			}
-
-			$seen[ $normalized ] = true;
-			$result[]            = $normalized;
-		}
-
-		return $result;
 	}
 
 	/**

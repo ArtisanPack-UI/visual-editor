@@ -21,3 +21,6 @@ resources/js/visual-editor/blocks/**/upstream-diff-report.json
 # The renderer-blade sub-package's vendor tree is dev-only — never ships.
 /packages/visual-editor-renderer-blade/vendor/
 /packages/visual-editor-renderer-blade/composer.lock
+
+# PHP-CS-Fixer cache is per-machine.
+.php-cs-fixer.cache

@@ -17,6 +17,7 @@ vi.mock('@wordpress/blocks', () => ({
 }));
 
 import { PatternGrid } from '../pattern-grid';
+import { resetPatternPreviewLoaders } from '../pattern-preview-loader';
 import type { PatternRecord } from '../api-client';
 
 const LIST_MOCK = vi.fn();
@@ -28,8 +29,23 @@ vi.mock('../api-client', async () => {
     return {
         ...actual,
         listPatterns: (...args: unknown[]) => LIST_MOCK(...args),
+        previewPatterns: (...args: unknown[]) => PREVIEW_MOCK(...args),
     };
 });
+
+const PREVIEW_MOCK = vi.fn();
+
+class ImmediateIntersectionObserver {
+    constructor(
+        private readonly callback: (entries: Array<{ isIntersecting: boolean }>) => void
+    ) {}
+
+    observe(): void {
+        this.callback([{ isIntersecting: true }]);
+    }
+
+    disconnect(): void {}
+}
 
 const API_CONFIG = { apiBase: '/visual-editor/api' };
 
@@ -49,6 +65,8 @@ function makePattern(overrides: Partial<PatternRecord> = {}): PatternRecord {
 
 beforeEach(() => {
     LIST_MOCK.mockReset();
+    PREVIEW_MOCK.mockReset();
+    resetPatternPreviewLoaders();
 });
 
 afterEach(() => {
@@ -223,5 +241,44 @@ describe('<PatternGrid />', () => {
         // against a regression where the thumbnail renders the
         // wrapper markup but describeBlocks receives an empty array.
         expect(screen.getByText('core/heading')).toBeInTheDocument();
+    });
+
+    it('renders a front-end preview for each visible card in one batch (#832)', async () => {
+        vi.stubGlobal('IntersectionObserver', ImmediateIntersectionObserver);
+        LIST_MOCK.mockResolvedValue([
+            makePattern({ id: 5, content: { raw: '<!-- wp:heading --><h2>A</h2><!-- /wp:heading -->', blocks: [] } }),
+            makePattern({ id: 6, content: { raw: '<!-- wp:heading --><h2>B</h2><!-- /wp:heading -->', blocks: [] } }),
+        ]);
+        PREVIEW_MOCK.mockResolvedValue({
+            styles: '',
+            patterns: {
+                '5': { html: '<h2>Rendered A</h2>' },
+                '6': { html: '<h2>Rendered B</h2>' },
+            },
+        });
+
+        render(
+            <PatternGrid
+                apiConfig={API_CONFIG}
+                synced
+                activeEntityId={null}
+                onEdit={() => undefined}
+                onConvertToUnsynced={() => undefined}
+                onDelete={() => undefined}
+                onCreate={() => undefined}
+            />
+        );
+
+        await waitFor(() =>
+            expect(
+                screen.getByTestId('ap-pattern-card-5').querySelector('iframe')
+            ).not.toBeNull()
+        );
+
+        expect(screen.getByTestId('ap-pattern-card-6').querySelector('iframe')).not.toBeNull();
+        expect(PREVIEW_MOCK).toHaveBeenCalledTimes(1);
+        expect(PREVIEW_MOCK.mock.calls[0]?.[1]).toEqual(['5', '6']);
+        // The Edit button stays the card's focus target.
+        expect(screen.getByTestId('ap-pattern-card-edit-5')).toHaveAccessibleName('Edit pattern: Sample');
     });
 });

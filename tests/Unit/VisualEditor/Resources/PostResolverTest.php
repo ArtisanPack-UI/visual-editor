@@ -39,66 +39,66 @@ function fakePost( array $overrides = [] ): object
 	return $post;
 }
 
-it( 'stamps post-title attributes', function () {
+it( 'stamps post-title attributes', function (): void {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'core/post-title', 'attributes' => [], 'innerBlocks' => [] ],
-		fakePost()
+		fakePost(),
 	);
 
 	expect( $resolved['attributes']['_resolvedTitle'] )->toBe( 'Hello world' )
 		->and( $resolved['attributes']['_resolvedPermalink'] )->toBe( 'https://example.test/posts/hello' );
 } );
 
-it( 'stamps post-content attributes', function () {
+it( 'stamps post-content attributes', function (): void {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'core/post-content', 'attributes' => [], 'innerBlocks' => [] ],
-		fakePost()
+		fakePost(),
 	);
 
 	expect( $resolved['attributes']['_resolvedContent'] )->toBe( '<p>Body.</p>' );
 } );
 
-it( 'prefers rendered_content over content when the host exposes the accessor', function () {
+it( 'prefers rendered_content over content when the host exposes the accessor', function (): void {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'core/post-content', 'attributes' => [], 'innerBlocks' => [] ],
 		fakePost( [
 			'content'          => [ [ 'name' => 'core/paragraph' ] ],
 			'rendered_content' => '<p>Rendered HTML.</p>',
-		] )
+		] ),
 	);
 
 	expect( $resolved['attributes']['_resolvedContent'] )->toBe( '<p>Rendered HTML.</p>' );
 } );
 
-it( 'falls back to content when rendered_content is missing or empty', function () {
+it( 'falls back to content when rendered_content is missing or empty', function (): void {
 	$emptyRendered = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'core/post-content', 'attributes' => [], 'innerBlocks' => [] ],
-		fakePost( [ 'rendered_content' => '' ] )
+		fakePost( [ 'rendered_content' => '' ] ),
 	);
 
 	$nonStringContent = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'core/post-content', 'attributes' => [], 'innerBlocks' => [] ],
-		fakePost( [ 'content' => [ [ 'name' => 'core/paragraph' ] ] ] )
+		fakePost( [ 'content' => [ [ 'name' => 'core/paragraph' ] ] ] ),
 	);
 
 	expect( $emptyRendered['attributes']['_resolvedContent'] )->toBe( '<p>Body.</p>' )
 		->and( $nonStringContent['attributes']['_resolvedContent'] )->toBe( '' );
 } );
 
-it( 'stamps post-excerpt attributes', function () {
+it( 'stamps post-excerpt attributes', function (): void {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'core/post-excerpt', 'attributes' => [], 'innerBlocks' => [] ],
-		fakePost()
+		fakePost(),
 	);
 
 	expect( $resolved['attributes']['_resolvedExcerpt'] )->toBe( 'A brief excerpt' )
 		->and( $resolved['attributes']['_resolvedPermalink'] )->toBe( 'https://example.test/posts/hello' );
 } );
 
-it( 'stamps post-date attributes including modified date', function () {
+it( 'stamps post-date attributes including modified date', function (): void {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'core/post-date', 'attributes' => [], 'innerBlocks' => [] ],
-		fakePost()
+		fakePost(),
 	);
 
 	expect( $resolved['attributes']['_resolvedDate'] )->toBe( '2026-04-20T12:00:00+00:00' )
@@ -107,10 +107,10 @@ it( 'stamps post-date attributes including modified date', function () {
 		->and( $resolved['attributes']['_resolvedModifiedDateFormatted'] )->toBe( 'April 21, 2026' );
 } );
 
-it( 'stamps post-author attributes from the loaded relation', function () {
+it( 'stamps post-author attributes from the loaded relation', function (): void {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'core/post-author', 'attributes' => [], 'innerBlocks' => [] ],
-		fakePost()
+		fakePost(),
 	);
 
 	expect( $resolved['attributes']['_resolvedAuthorName'] )->toBe( 'Jane Doe' )
@@ -119,30 +119,30 @@ it( 'stamps post-author attributes from the loaded relation', function () {
 		->and( $resolved['attributes']['_resolvedAuthorAvatar'] )->toBe( 'https://example.test/avatar.jpg' );
 } );
 
-it( 'leaves author fields empty when the relation is not loaded', function () {
+it( 'leaves author fields empty when the relation is not loaded', function (): void {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'core/post-author', 'attributes' => [], 'innerBlocks' => [] ],
-		fakePost( [ 'author' => null ] )
+		fakePost( [ 'author' => null ] ),
 	);
 
 	expect( $resolved['attributes']['_resolvedAuthorName'] )->toBe( '' )
 		->and( $resolved['attributes']['_resolvedAuthorBio'] )->toBe( '' );
 } );
 
-it( 'preserves pre-existing _resolved attributes on a block', function () {
+it( 'preserves pre-existing _resolved attributes on a block', function (): void {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[
 			'name'        => 'core/post-title',
 			'attributes'  => [ '_resolvedTitle' => 'Host override' ],
 			'innerBlocks' => [],
 		],
-		fakePost()
+		fakePost(),
 	);
 
 	expect( $resolved['attributes']['_resolvedTitle'] )->toBe( 'Host override' );
 } );
 
-it( 'recurses into innerBlocks', function () {
+it( 'recurses into innerBlocks', function (): void {
 	$tree = [
 		'name'        => 'core/group',
 		'attributes'  => [],
@@ -156,10 +156,10 @@ it( 'recurses into innerBlocks', function () {
 	expect( $resolved['innerBlocks'][0]['attributes']['_resolvedTitle'] )->toBe( 'Hello world' );
 } );
 
-it( 'leaves non-post-context blocks untouched', function () {
+it( 'leaves non-post-context blocks untouched', function (): void {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'core/paragraph', 'attributes' => [ 'content' => 'untouched' ], 'innerBlocks' => [] ],
-		fakePost()
+		fakePost(),
 	);
 
 	expect( $resolved['attributes'] )->toBe( [ 'content' => 'untouched' ] );
@@ -167,37 +167,37 @@ it( 'leaves non-post-context blocks untouched', function () {
 
 // Comments-family Pass 2 (#519) — post-level comment metadata.
 
-it( 'stamps post-comments-count from comments_count accessor', function () {
+it( 'stamps post-comments-count from comments_count accessor', function (): void {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'core/post-comments-count', 'attributes' => [], 'innerBlocks' => [] ],
-		fakePost( [ 'comments_count' => 7 ] )
+		fakePost( [ 'comments_count' => 7 ] ),
 	);
 
 	expect( $resolved['attributes']['_resolvedCommentCount'] )->toBe( 7 );
 } );
 
-it( 'stamps post-comments-count by counting a comments collection when no accessor is set', function () {
+it( 'stamps post-comments-count by counting a comments collection when no accessor is set', function (): void {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'core/post-comments-count', 'attributes' => [], 'innerBlocks' => [] ],
 		fakePost( [
 			'comments_count' => null,
 			'comments'       => [ (object) [], (object) [], (object) [] ],
-		] )
+		] ),
 	);
 
 	expect( $resolved['attributes']['_resolvedCommentCount'] )->toBe( 3 );
 } );
 
-it( 'stamps post-comments-count as zero when no count or collection is exposed', function () {
+it( 'stamps post-comments-count as zero when no count or collection is exposed', function (): void {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'core/post-comments-count', 'attributes' => [], 'innerBlocks' => [] ],
-		fakePost( [ 'comments_count' => null ] )
+		fakePost( [ 'comments_count' => null ] ),
 	);
 
 	expect( $resolved['attributes']['_resolvedCommentCount'] )->toBe( 0 );
 } );
 
-it( 'stamps artisanpack/comments-number with the resolved count from comments_count accessor', function () {
+it( 'stamps artisanpack/comments-number with the resolved count from comments_count accessor', function (): void {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[
 			'name'        => 'artisanpack/comments-number',
@@ -207,7 +207,7 @@ it( 'stamps artisanpack/comments-number with the resolved count from comments_co
 			],
 			'innerBlocks' => [],
 		],
-		fakePost( [ 'comments_count' => 4 ] )
+		fakePost( [ 'comments_count' => 4 ] ),
 	);
 
 	expect( $resolved['attributes']['_resolvedCommentCount'] )->toBe( 4 )
@@ -215,19 +215,19 @@ it( 'stamps artisanpack/comments-number with the resolved count from comments_co
 		->and( $resolved['attributes']['pluralCommentText'] )->toBe( 'Replies' );
 } );
 
-it( 'stamps artisanpack/comments-number as zero when the post exposes neither count nor collection', function () {
+it( 'stamps artisanpack/comments-number as zero when the post exposes neither count nor collection', function (): void {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'artisanpack/comments-number', 'attributes' => [], 'innerBlocks' => [] ],
-		fakePost( [ 'comments_count' => null ] )
+		fakePost( [ 'comments_count' => null ] ),
 	);
 
 	expect( $resolved['attributes']['_resolvedCommentCount'] )->toBe( 0 );
 } );
 
-it( 'stamps post-comments-link with permalink anchor when no explicit URL is set', function () {
+it( 'stamps post-comments-link with permalink anchor when no explicit URL is set', function (): void {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'core/post-comments-link', 'attributes' => [], 'innerBlocks' => [] ],
-		fakePost( [ 'comments_count' => 2 ] )
+		fakePost( [ 'comments_count' => 2 ] ),
 	);
 
 	expect( $resolved['attributes']['_resolvedCommentCount'] )->toBe( 2 )
@@ -235,46 +235,46 @@ it( 'stamps post-comments-link with permalink anchor when no explicit URL is set
 		->and( $resolved['attributes']['_resolvedCommentsLabel'] )->toBe( '2 Comments' );
 } );
 
-it( 'stamps post-comments-link with the explicit comments URL when present', function () {
+it( 'stamps post-comments-link with the explicit comments URL when present', function (): void {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'core/post-comments-link', 'attributes' => [], 'innerBlocks' => [] ],
 		fakePost( [
 			'comments_count' => 1,
 			'comments_url'   => 'https://example.test/explicit-comments',
-		] )
+		] ),
 	);
 
 	expect( $resolved['attributes']['_resolvedCommentsUrl'] )->toBe( 'https://example.test/explicit-comments' )
 		->and( $resolved['attributes']['_resolvedCommentsLabel'] )->toBe( '1 Comment' );
 } );
 
-it( 'stamps post-comments-title with pluralization', function () {
+it( 'stamps post-comments-title with pluralization', function (): void {
 	$resolver = new PostResolver();
 
 	expect(
 		$resolver->stampBlock(
 			[ 'name' => 'core/post-comments-title', 'attributes' => [], 'innerBlocks' => [] ],
-			fakePost( [ 'comments_count' => 0 ] )
-		)['attributes']['_resolvedCommentsTitle']
+			fakePost( [ 'comments_count' => 0 ] ),
+		)['attributes']['_resolvedCommentsTitle'],
 	)->toBe( 'No Comments' )
 		->and(
 			$resolver->stampBlock(
 				[ 'name' => 'core/post-comments-title', 'attributes' => [], 'innerBlocks' => [] ],
-				fakePost( [ 'comments_count' => 1 ] )
-			)['attributes']['_resolvedCommentsTitle']
+				fakePost( [ 'comments_count' => 1 ] ),
+			)['attributes']['_resolvedCommentsTitle'],
 		)->toBe( '1 Comment' )
 		->and(
 			$resolver->stampBlock(
 				[ 'name' => 'core/post-comments-title', 'attributes' => [], 'innerBlocks' => [] ],
-				fakePost( [ 'comments_count' => 5 ] )
-			)['attributes']['_resolvedCommentsTitle']
+				fakePost( [ 'comments_count' => 5 ] ),
+			)['attributes']['_resolvedCommentsTitle'],
 		)->toBe( '5 Comments' );
 } );
 
-it( 'stamps post-comments-form with the post id so the rendered form posts to the right post', function () {
+it( 'stamps post-comments-form with the post id so the rendered form posts to the right post', function (): void {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'core/post-comments-form', 'attributes' => [], 'innerBlocks' => [] ],
-		fakePost( [ 'id' => 42 ] )
+		fakePost( [ 'id' => 42 ] ),
 	);
 
 	expect( $resolved['attributes']['_resolvedPostId'] )->toBe( 42 );
@@ -282,22 +282,22 @@ it( 'stamps post-comments-form with the post id so the rendered form posts to th
 	// Same for the artisanpack/* fork.
 	$forked = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'artisanpack/post-comments-form', 'attributes' => [], 'innerBlocks' => [] ],
-		fakePost( [ 'id' => 42 ] )
+		fakePost( [ 'id' => 42 ] ),
 	);
 
 	expect( $forked['attributes']['_resolvedPostId'] )->toBe( 42 );
 } );
 
-it( 'resolves artisanpack/post-comments-* forks through the same branches as core/*', function () {
+it( 'resolves artisanpack/post-comments-* forks through the same branches as core/*', function (): void {
 	$resolver = new PostResolver();
 
 	$core      = $resolver->stampBlock(
 		[ 'name' => 'core/post-comments-count', 'attributes' => [], 'innerBlocks' => [] ],
-		fakePost( [ 'comments_count' => 4 ] )
+		fakePost( [ 'comments_count' => 4 ] ),
 	);
 	$forked    = $resolver->stampBlock(
 		[ 'name' => 'artisanpack/post-comments-count', 'attributes' => [], 'innerBlocks' => [] ],
-		fakePost( [ 'comments_count' => 4 ] )
+		fakePost( [ 'comments_count' => 4 ] ),
 	);
 
 	expect( $forked['attributes'] )->toEqual( $core['attributes'] );

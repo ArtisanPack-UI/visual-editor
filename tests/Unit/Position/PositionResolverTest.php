@@ -41,7 +41,7 @@ describe( 'PositionResolver::resolve', function (): void {
 
 	it( 'reads per-breakpoint overrides from the responsive bag', function (): void {
 		$resolved = PositionResolver::resolve( [
-			'style' => [ 'position' => [ 'value' => 'relative' ] ],
+			'style'      => [ 'position' => [ 'value' => 'relative' ] ],
 			'responsive' => [
 				'style.position' => [
 					'md' => [ 'value' => 'absolute', 'zIndex' => 2 ],

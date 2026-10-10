@@ -105,31 +105,6 @@ class BusinessInfoResolver
 	}
 
 	/**
-	 * Recursive helper — separated from stampTree() so the per-call cache
-	 * reset happens exactly once at the top of a walk.
-	 *
-	 * @since 1.9.0
-	 *
-	 * @param  array<int, array<string, mixed>>  $tree
-	 *
-	 * @return array<int, array<string, mixed>>
-	 */
-	protected function stampSubtree( array $tree, ?object $post ): array
-	{
-		$out = [];
-
-		foreach ( $tree as $block ) {
-			if ( ! is_array( $block ) ) {
-				continue;
-			}
-
-			$out[] = $this->stampBlock( $block, $post );
-		}
-
-		return $out;
-	}
-
-	/**
 	 * Stamp a single block (and recurse into its inner blocks). Only the
 	 * four business-info block names get a `_resolvedBusinessInfo` bag;
 	 * everything else is forwarded with its inner tree walked through.
@@ -168,7 +143,7 @@ class BusinessInfoResolver
 				if ( 'artisanpack/business-hours' === $name ) {
 					$envelope['specialHours'] = $this->filterSpecialHoursWindow(
 						$this->normalizeSpecialHours( $envelope['specialHours'] ?? [] ),
-						$attributes
+						$attributes,
 					);
 				}
 
@@ -179,7 +154,7 @@ class BusinessInfoResolver
 				if ( array_key_exists( 'specialHours', $preStamped ) ) {
 					$preStamped['specialHours'] = $this->filterSpecialHoursWindow(
 						$this->normalizeSpecialHours( $preStamped['specialHours'] ),
-						$attributes
+						$attributes,
 					);
 
 					$attributes['_resolvedBusinessInfo'] = $preStamped;
@@ -229,37 +204,6 @@ class BusinessInfoResolver
 		$this->cached[ $key ] = $envelope;
 
 		return $envelope;
-	}
-
-	/**
-	 * The empty-shape default envelope. Every top-level key is present so
-	 * the renderers can rely on their existence and only branch on
-	 * emptiness. Address is a nested associative array with its own
-	 * empty defaults.
-	 *
-	 * @since 1.9.0
-	 *
-	 * @return array<string, mixed>
-	 */
-	protected function defaults(): array
-	{
-		return [
-			'address'      => [
-				'street'      => '',
-				'street2'     => '',
-				'city'        => '',
-				'region'      => '',
-				'postal_code' => '',
-				'country'     => '',
-			],
-			'phone'        => '',
-			'email'        => '',
-			'hours'        => [],
-			'specialHours' => [],
-			'latitude'     => null,
-			'longitude'    => null,
-			'mapEmbedUrl'  => null,
-		];
 	}
 
 	/**
@@ -325,7 +269,7 @@ class BusinessInfoResolver
 				'https://www.google.com/maps/embed/v1/place?key=%s&q=%s&zoom=%d',
 				rawurlencode( trim( $googleKey ) ),
 				rawurlencode( $query ),
-				$zoom
+				$zoom,
 			);
 		}
 
@@ -356,72 +300,8 @@ class BusinessInfoResolver
 			$this->formatCoord( $east ),
 			$this->formatCoord( $north ),
 			$this->formatCoord( $latitude ),
-			$this->formatCoord( $longitude )
+			$this->formatCoord( $longitude ),
 		);
-	}
-
-	/**
-	 * Build a human-readable single-line query string suitable for a map
-	 * provider's search endpoint. Prefers coordinates when both are
-	 * supplied, then falls back to the address string.
-	 *
-	 * @since 1.9.0
-	 *
-	 * @param  array<string, mixed>  $envelope
-	 */
-	protected function buildAddressQuery( array $envelope, ?float $latitude, ?float $longitude ): string
-	{
-		if ( null !== $latitude && null !== $longitude ) {
-			return sprintf( '%s,%s', $this->formatCoord( $latitude ), $this->formatCoord( $longitude ) );
-		}
-
-		$address = isset( $envelope['address'] ) && is_array( $envelope['address'] )
-			? $envelope['address']
-			: [];
-
-		$parts = [];
-
-		foreach ( [ 'street', 'street2', 'city', 'region', 'postal_code', 'country' ] as $key ) {
-			$value = $address[ $key ] ?? '';
-
-			if ( is_scalar( $value ) && '' !== trim( (string) $value ) ) {
-				$parts[] = trim( (string) $value );
-			}
-		}
-
-		return implode( ', ', $parts );
-	}
-
-	/**
-	 * Format a float coordinate with fixed precision so the resulting URL
-	 * is stable across PHP locale changes (`sprintf( '%f', … )` is locale
-	 * sensitive on some platforms).
-	 *
-	 * @since 1.9.0
-	 */
-	protected function formatCoord( float $value ): string
-	{
-		return number_format( $value, 6, '.', '' );
-	}
-
-	/**
-	 * Coerce a mixed value to a float or null. Accepts ints, floats, and
-	 * numeric strings; anything else returns null so the URL composer can
-	 * fall back to the address-string path.
-	 *
-	 * @since 1.9.0
-	 */
-	protected function numericOrNull( mixed $value ): ?float
-	{
-		if ( is_int( $value ) || is_float( $value ) ) {
-			return (float) $value;
-		}
-
-		if ( is_string( $value ) && '' !== trim( $value ) && is_numeric( $value ) ) {
-			return (float) $value;
-		}
-
-		return null;
 	}
 
 	/**
@@ -516,5 +396,125 @@ class BusinessInfoResolver
 		}
 
 		return $out;
+	}
+
+	/**
+	 * Recursive helper — separated from stampTree() so the per-call cache
+	 * reset happens exactly once at the top of a walk.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @param  array<int, array<string, mixed>>  $tree
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	protected function stampSubtree( array $tree, ?object $post ): array
+	{
+		$out = [];
+
+		foreach ( $tree as $block ) {
+			if ( ! is_array( $block ) ) {
+				continue;
+			}
+
+			$out[] = $this->stampBlock( $block, $post );
+		}
+
+		return $out;
+	}
+
+	/**
+	 * The empty-shape default envelope. Every top-level key is present so
+	 * the renderers can rely on their existence and only branch on
+	 * emptiness. Address is a nested associative array with its own
+	 * empty defaults.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function defaults(): array
+	{
+		return [
+			'address'      => [
+				'street'      => '',
+				'street2'     => '',
+				'city'        => '',
+				'region'      => '',
+				'postal_code' => '',
+				'country'     => '',
+			],
+			'phone'        => '',
+			'email'        => '',
+			'hours'        => [],
+			'specialHours' => [],
+			'latitude'     => null,
+			'longitude'    => null,
+			'mapEmbedUrl'  => null,
+		];
+	}
+
+	/**
+	 * Build a human-readable single-line query string suitable for a map
+	 * provider's search endpoint. Prefers coordinates when both are
+	 * supplied, then falls back to the address string.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @param  array<string, mixed>  $envelope
+	 */
+	protected function buildAddressQuery( array $envelope, ?float $latitude, ?float $longitude ): string
+	{
+		if ( null !== $latitude && null !== $longitude ) {
+			return sprintf( '%s,%s', $this->formatCoord( $latitude ), $this->formatCoord( $longitude ) );
+		}
+
+		$address = isset( $envelope['address'] ) && is_array( $envelope['address'] )
+			? $envelope['address']
+			: [];
+
+		$parts = [];
+
+		foreach ( [ 'street', 'street2', 'city', 'region', 'postal_code', 'country' ] as $key ) {
+			$value = $address[ $key ] ?? '';
+
+			if ( is_scalar( $value ) && '' !== trim( (string) $value ) ) {
+				$parts[] = trim( (string) $value );
+			}
+		}
+
+		return implode( ', ', $parts );
+	}
+
+	/**
+	 * Format a float coordinate with fixed precision so the resulting URL
+	 * is stable across PHP locale changes (`sprintf( '%f', … )` is locale
+	 * sensitive on some platforms).
+	 *
+	 * @since 1.9.0
+	 */
+	protected function formatCoord( float $value ): string
+	{
+		return number_format( $value, 6, '.', '' );
+	}
+
+	/**
+	 * Coerce a mixed value to a float or null. Accepts ints, floats, and
+	 * numeric strings; anything else returns null so the URL composer can
+	 * fall back to the address-string path.
+	 *
+	 * @since 1.9.0
+	 */
+	protected function numericOrNull( mixed $value ): ?float
+	{
+		if ( is_int( $value ) || is_float( $value ) ) {
+			return (float) $value;
+		}
+
+		if ( is_string( $value ) && '' !== trim( $value ) && is_numeric( $value ) ) {
+			return (float) $value;
+		}
+
+		return null;
 	}
 }

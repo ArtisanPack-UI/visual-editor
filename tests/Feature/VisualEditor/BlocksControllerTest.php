@@ -5,13 +5,13 @@ declare( strict_types=1 );
 use ArtisanPackUI\VisualEditor\Facades\VisualEditor;
 use Tests\TestUser;
 
-it( 'returns 401 for unauthenticated blocks requests', function () {
+it( 'returns 401 for unauthenticated blocks requests', function (): void {
 	$response = $this->getJson( '/visual-editor/api/blocks' );
 
 	$response->assertUnauthorized();
 } );
 
-it( 'returns the registered block types from block.json manifests', function () {
+it( 'returns the registered block types from block.json manifests', function (): void {
 	$user = TestUser::create( [
 		'name'     => 'Jane',
 		'email'    => 'jane@example.com',
@@ -34,7 +34,7 @@ it( 'returns the registered block types from block.json manifests', function () 
 	expect( $names )->toContain( 'artisanpack/paragraph', 'artisanpack/heading' );
 } );
 
-it( 'flags server-rendered blocks with apServerRender for the editor', function () {
+it( 'flags server-rendered blocks with apServerRender for the editor', function (): void {
 	VisualEditor::registerServerBlock(
 		'tests/server-widget',
 		[

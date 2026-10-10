@@ -46,7 +46,7 @@ function gridTreeWithVariantSpan(
 	int $columnSpan,
 	int $rowSpan,
 	?array $responsive = null,
-	string $layout = 'grid'
+	string $layout = 'grid',
 ): array {
 	$variantAttributes = [
 		'matcher'        => [ 'kind' => 'position', 'value' => 'first' ],
@@ -91,7 +91,7 @@ function gridTreeWithVariantSpan(
 	];
 }
 
-it( 'emits ap-post-span classes on the first iteration <li> when the variant matched in a grid layout', function () {
+it( 'emits ap-post-span classes on the first iteration <li> when the variant matched in a grid layout', function (): void {
 	$this->fake->setItems( [
 		spanRenderablePost( 1, 'Hero' ),
 		spanRenderablePost( 2, 'Listed' ),
@@ -108,7 +108,7 @@ it( 'emits ap-post-span classes on the first iteration <li> when the variant mat
 		->and( substr_count( $html, 'ap-post-span-2-base-columns' ) )->toBe( 1 );
 } );
 
-it( 'does not emit ap-post-span classes when the post-template layout is not grid', function () {
+it( 'does not emit ap-post-span classes when the post-template layout is not grid', function (): void {
 	$this->fake->setItems( [
 		spanRenderablePost( 1, 'Hero' ),
 	] );
@@ -120,7 +120,7 @@ it( 'does not emit ap-post-span classes when the post-template layout is not gri
 	expect( $html )->not->toContain( 'ap-post-span-' );
 } );
 
-it( 'emits per-breakpoint span classes when the variant carries responsive overrides', function () {
+it( 'emits per-breakpoint span classes when the variant carries responsive overrides', function (): void {
 	$this->fake->setItems( [
 		spanRenderablePost( 1, 'Hero' ),
 	] );

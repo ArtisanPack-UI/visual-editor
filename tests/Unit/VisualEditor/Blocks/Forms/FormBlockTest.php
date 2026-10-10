@@ -131,9 +131,10 @@ it( 'appends the user-supplied className alongside the base class', function ():
  * pulling the forms package in as a dev dep.
  */
 $fakeForm = static function ( int $id, string $slug, bool $isActive ): object {
-	return new class( $id, $slug, $isActive )
-	{
-		public function __construct( public int $id, public string $slug, public bool $is_active ) {}
+	return new class( $id, $slug, $isActive ) {
+		public function __construct( public int $id, public string $slug, public bool $is_active )
+		{
+		}
 	};
 };
 

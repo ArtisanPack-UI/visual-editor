@@ -48,7 +48,7 @@ class ScreenSizeRule implements VisibilityRule
 
 	public function evaluate( array $ruleAttributes, VisibilityContext $context ): VisibilityDecision
 	{
-		$direction = ( 'hide' === ( $ruleAttributes['direction'] ?? 'hide' ) ) ? 'hide' : 'show';
+		$direction  = ( 'hide' === ( $ruleAttributes['direction'] ?? 'hide' ) ) ? 'hide' : 'show';
 		$configured = isset( $ruleAttributes['breakpoints'] ) && is_array( $ruleAttributes['breakpoints'] )
 			? array_values( array_unique( array_filter( $ruleAttributes['breakpoints'], 'is_string' ) ) )
 			: [];

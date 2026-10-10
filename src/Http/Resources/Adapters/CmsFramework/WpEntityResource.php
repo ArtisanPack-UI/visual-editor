@@ -36,14 +36,6 @@ use Throwable;
 abstract class WpEntityResource extends JsonResource
 {
 	/**
-	 * Returns the WP-shape `type` discriminator for this entity (e.g.
-	 * `post`, `page`).
-	 *
-	 * @since 1.0.0
-	 */
-	abstract protected function type(): string;
-
-	/**
 	 * Transforms the model into the WP-shape envelope.
 	 *
 	 * @since 1.0.0
@@ -98,6 +90,14 @@ abstract class WpEntityResource extends JsonResource
 
 		return array_merge( $base, $this->extraFields( $model ) );
 	}
+
+	/**
+	 * Returns the WP-shape `type` discriminator for this entity (e.g.
+	 * `post`, `page`).
+	 *
+	 * @since 1.0.0
+	 */
+	abstract protected function type(): string;
 
 	/**
 	 * Editor-canvas preview envelope used by `artisanpack/query`'s
@@ -612,8 +612,8 @@ abstract class WpEntityResource extends JsonResource
 			'intval',
 			array_filter(
 				$collection->pluck( 'id' )->all(),
-				static fn ( $id ): bool => is_int( $id ) || ( is_string( $id ) && ctype_digit( $id ) )
-			)
+				static fn ( $id ): bool => is_int( $id ) || ( is_string( $id ) && ctype_digit( $id ) ),
+			),
 		) );
 	}
 }

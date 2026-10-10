@@ -102,12 +102,12 @@ class DynamicLoopBlock extends DynamicBlock implements WantsInnerBlocks
 			$context = new BindingContext(
 				null,
 				[],
-				[ DynamicContentSource::EXTRAS_INDEX_KEY => [ $collectionSlug => $i ] ]
+				[ DynamicContentSource::EXTRAS_INDEX_KEY => [ $collectionSlug => $i ] ],
 			);
 
 			try {
 				$resolved = $this->bindingResolver->resolve( $template, $context );
-				$out     .= $renderer->render( $resolved );
+				$out .= $renderer->render( $resolved );
 			} catch ( Throwable $e ) {
 				report( $e );
 			}
@@ -148,7 +148,7 @@ class DynamicLoopBlock extends DynamicBlock implements WantsInnerBlocks
 
 		return sprintf(
 			'<div class="ve-dynamic-loop-missing" role="note">Missing collection: "%s"</div>',
-			$safe
+			$safe,
 		);
 	}
 }

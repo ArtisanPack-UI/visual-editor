@@ -121,6 +121,12 @@ interface CoreDataState {
     deleteErrors: Record<string, Record<string, unknown | null>>;
     globalStylesBase: Record<string, unknown> | null;
     currentGlobalStylesId: EntityKey | null;
+    /**
+     * Id of the `wp_navigation` record a ref-less `core/navigation`
+     * block binds to, as resolved by the backend (#811). `null` until
+     * resolved, or when there is no menu to fall back to.
+     */
+    navigationFallbackId: EntityKey | null;
 }
 
 type CoreDataAction =
@@ -183,6 +189,7 @@ type CoreDataAction =
           styles: Record<string, unknown> | null;
       }
     | { type: 'RECEIVE_CURRENT_GLOBAL_STYLES_ID'; id: EntityKey | null }
+    | { type: 'RECEIVE_NAVIGATION_FALLBACK_ID'; id: EntityKey | null }
     | { type: 'SHIM_NOOP' }
     | { type: 'SHIM_RESET' };
 
@@ -645,6 +652,7 @@ const INITIAL_STATE: CoreDataState = {
     deleteErrors: {},
     globalStylesBase: null,
     currentGlobalStylesId: null,
+    navigationFallbackId: null,
 };
 
 function reducer(
@@ -811,8 +819,16 @@ function reducer(
             const nextEdits = { ...(state.edits[key] ?? {}) };
             delete nextEdits[primaryKey];
 
+            // #811 — never hand a deleted menu out as the navigation
+            // fallback; the delete thunk re-arms the resolver.
+            const removedFallback =
+                key === entityKey('postType', 'wp_navigation') &&
+                state.navigationFallbackId !== null &&
+                String(state.navigationFallbackId) === primaryKey;
+
             return {
                 ...state,
+                ...(removedFallback ? { navigationFallbackId: null } : {}),
                 records: {
                     ...state.records,
                     [key]: {
@@ -932,6 +948,9 @@ function reducer(
 
         case 'RECEIVE_CURRENT_GLOBAL_STYLES_ID':
             return { ...state, currentGlobalStylesId: action.id };
+
+        case 'RECEIVE_NAVIGATION_FALLBACK_ID':
+            return { ...state, navigationFallbackId: action.id };
 
         case 'SHIM_RESET':
             return INITIAL_STATE;
@@ -1340,37 +1359,15 @@ const selectors = {
     // (whose lock/unlock symbol identity is fragile across module
     // copies in a mixed `node_modules` tree).
     //
-    // For issue #808 the shim resolves the fallback to the first
-    // cached `wp_navigation` record's id — matching upstream's
-    // "auto-select the primary menu" behavior when the block is
-    // dropped without a ref. Returning `undefined` leaves the block
-    // stuck on its placeholder even after the picker has loaded a
-    // menu list from the server. Nothing is dispatched from a
-    // selector; the resolver behind `getEntityRecords` primes the
-    // cache on first read from other paths (menu-inspector-controls
-    // etc.), and this selector reflects whatever's currently there.
-    getNavigationFallbackId: (state: CoreDataState): EntityKey | undefined => {
-        const bag = state.records[entityKey('postType', 'wp_navigation')];
-
-        if (!bag) {
-            return undefined;
-        }
-
-        for (const key of Object.keys(bag.items)) {
-            const record = bag.items[key];
-            const status = (record as { status?: unknown }).status;
-
-            if (status === 'publish' || status === 'draft') {
-                const id = (record as { id?: unknown }).id;
-
-                if (typeof id === 'number' || typeof id === 'string') {
-                    return id as EntityKey;
-                }
-            }
-        }
-
-        return undefined;
-    },
+    // #811 — backed by the `getNavigationFallbackId` resolver, which
+    // asks the server for the deterministic fallback (the active theme's
+    // primary-location menu, else its most recently updated menu) the
+    // way upstream resolves `/wp-block-editor/v1/navigation-fallback`.
+    // Pre-#811 (#808) this scanned the `wp_navigation` cache and
+    // returned whichever menu happened to be loaded first, or nothing
+    // when no menu list had been fetched yet.
+    getNavigationFallbackId: (state: CoreDataState): EntityKey | null =>
+        state.navigationFallbackId,
 };
 
 // ---------------------------------------------------------------------------
@@ -1420,6 +1417,7 @@ interface ThunkArgs {
             id: EntityKey,
             acknowledged?: EntityRecord,
         ) => CoreDataAction;
+        receiveNavigationFallbackId: (id: EntityKey | null) => CoreDataAction;
         // Auto-exposed by `@wordpress/data` for any registered store —
         // resets the resolver state for a single selector so the next
         // read re-triggers the resolver. Used after a save invalidates
@@ -1552,6 +1550,60 @@ const actions = {
     receiveCurrentGlobalStylesId: (
         id: EntityKey | null,
     ): CoreDataAction => ({ type: 'RECEIVE_CURRENT_GLOBAL_STYLES_ID', id }),
+
+    receiveNavigationFallbackId: (
+        id: EntityKey | null,
+    ): CoreDataAction => ({ type: 'RECEIVE_NAVIGATION_FALLBACK_ID', id }),
+
+    /**
+     * Fetches the navigation fallback menu (#811) — the `wp_navigation`
+     * record a `core/navigation` block without a `ref` binds to — caches
+     * the record, and stores its id for `getNavigationFallbackId`. A
+     * 204 (no menus) or a failed request resolves to `null`, leaving the
+     * block on its placeholder.
+     */
+    fetchNavigationFallbackId:
+        () =>
+        async ({ dispatch, select }: ThunkArgs): Promise<EntityKey | null> => {
+            const config = select.getEntityConfig('postType', 'wp_navigation');
+
+            if (!config) {
+                dispatch.receiveNavigationFallbackId(null);
+
+                return null;
+            }
+
+            try {
+                const record = (await restRequest(
+                    `${entityUrl(config)}/fallback`,
+                    { method: 'GET', headers: buildHeaders(false) },
+                )) as EntityRecord | null;
+                const id = record?.[config.key];
+
+                if (typeof id !== 'number' && typeof id !== 'string') {
+                    dispatch.receiveNavigationFallbackId(null);
+
+                    return null;
+                }
+
+                dispatch.receiveEntityRecords(
+                    'postType',
+                    'wp_navigation',
+                    [record as EntityRecord],
+                    undefined,
+                    undefined,
+                    undefined,
+                    false,
+                );
+                dispatch.receiveNavigationFallbackId(id);
+
+                return id;
+            } catch {
+                dispatch.receiveNavigationFallbackId(null);
+
+                return null;
+            }
+        },
 
     /**
      * Resets the store to its initial state. Tests and HMR wire this up
@@ -1875,6 +1927,16 @@ const actions = {
                         dispatch.invalidateResolutionForStoreSelector?.(
                             'getEntityRecords',
                         );
+
+                        // #811 — a new menu can change the server's
+                        // fallback (e.g. the first menu created from a
+                        // nav block's placeholder), so re-resolve it on
+                        // the next read instead of serving a stale null.
+                        if (kind === 'postType' && name === 'wp_navigation') {
+                            dispatch.invalidateResolutionForStoreSelector?.(
+                                'getNavigationFallbackId',
+                            );
+                        }
                     } else {
                         // UPDATE (issue #808). Skip both the query wipe
                         // and the resolver invalidation. The record was
@@ -1979,6 +2041,14 @@ const actions = {
                 dispatch.invalidateResolutionForStoreSelector?.(
                     'getEntityRecords',
                 );
+
+                // #811 — the deleted menu may have been the fallback;
+                // re-resolve on the next read.
+                if (kind === 'postType' && name === 'wp_navigation') {
+                    dispatch.invalidateResolutionForStoreSelector?.(
+                        'getNavigationFallbackId',
+                    );
+                }
 
                 dispatch.setEntityDeleting(kind, name, id, false, null);
 
@@ -2122,6 +2192,7 @@ const resolvers = {
     getEntityRecord: actions.fetchEntityRecord,
     getEntityRecords: actions.fetchEntityRecords,
     getEditedEntityRecord: actions.fetchEntityRecord,
+    getNavigationFallbackId: actions.fetchNavigationFallbackId,
 };
 
 // ---------------------------------------------------------------------------
@@ -3189,17 +3260,24 @@ const lastAuthoritativeBlocks = new Map<
  * whole subtree (visible as focus loss + chrome flicker after every
  * insert). When names diverge, or `prev` runs out (e.g. after an
  * insert), the surplus server blocks fall back to fresh decoration and
- * mint new clientIds.
+ * mint new clientIds. `claims` is shared across the whole tree so no
+ * clientId is handed out twice (#812), and names the entity the tree
+ * belongs to so no other entity's ids are reused either (FE-9).
  */
 function decorateReusingClientIds(
     serverBlocks: readonly unknown[],
     prev: readonly DecoratedBlock[],
+    claims: ClientIdClaims = newClientIdClaims(null),
 ): readonly DecoratedBlock[] {
     const out: DecoratedBlock[] = [];
     let allReused = serverBlocks.length === prev.length;
 
     for (let i = 0; i < serverBlocks.length; i++) {
-        const decorated = decorateBlockReusingClientId(serverBlocks[i], prev[i]);
+        const decorated = decorateBlockReusingClientId(
+            serverBlocks[i],
+            prev[i],
+            claims,
+        );
 
         if (decorated === null) {
             allReused = false;
@@ -3219,6 +3297,7 @@ function decorateReusingClientIds(
 function decorateBlockReusingClientId(
     block: unknown,
     prev: DecoratedBlock | undefined,
+    claims: ClientIdClaims,
 ): DecoratedBlock | null {
     if (
         block === null ||
@@ -3231,21 +3310,21 @@ function decorateBlockReusingClientId(
     const server = block as ServerBlock & { clientId?: unknown };
     const namesMatch = prev !== undefined && prev.name === server.name;
 
-    const clientId = namesMatch
-        ? prev!.clientId
-        : typeof server.clientId === 'string' && server.clientId.length > 0
-            ? server.clientId
-            : createClientId();
+    const clientId = claimClientId(
+        namesMatch ? prev!.clientId : server.clientId,
+        claims,
+    );
 
     const prevInner = namesMatch ? prev!.innerBlocks : EMPTY_RECORDS;
     const innerBlocks = Array.isArray(server.innerBlocks)
-        ? decorateReusingClientIds(server.innerBlocks, prevInner)
+        ? decorateReusingClientIds(server.innerBlocks, prevInner, claims)
         : EMPTY_RECORDS;
 
     // Reference-preserve the whole block when nothing changed — see the
     // docblock on `decorateReusingClientIds` for why this matters.
     if (
         namesMatch &&
+        clientId === prev!.clientId &&
         innerBlocks === prev!.innerBlocks &&
         attributesAreEqual(prev!.attributes, server.attributes ?? {})
     ) {
@@ -3349,6 +3428,11 @@ function rememberAuthoritativeBlocks(
     blocks: readonly unknown[],
 ): void {
     const cacheKey = `${kind}|${name}|${id}`;
+    // The block editor is authoritative for what it commits: a block
+    // moved here from another entity keeps its clientId, so ownership
+    // moves with it rather than forcing a re-mint (and a remount) on
+    // the next read.
+    takeClientIdOwnership(blocks, cacheKey);
     lastAuthoritativeBlocks.set(
         cacheKey,
         blocks as readonly DecoratedBlock[],
@@ -3401,7 +3485,11 @@ function getDecoratedBlocks(
         // they keep their clientIds, so the change surfaces without a
         // remount. A shape-only comparison here used to return the
         // stale authoritative tree for attribute-only changes.
-        const merged = decorateReusingClientIds(serverBlocks, authoritative);
+        const merged = decorateReusingClientIds(
+            serverBlocks,
+            authoritative,
+            newClientIdClaims(cacheKey),
+        );
         decoratedBlocksCache.set(cacheKey, {
             source: serverBlocks,
             decorated: merged,
@@ -3410,7 +3498,7 @@ function getDecoratedBlocks(
         return merged;
     }
 
-    const decorated = decorateBlockList(serverBlocks);
+    const decorated = decorateBlockList(serverBlocks, newClientIdClaims(cacheKey));
     decoratedBlocksCache.set(cacheKey, { source: serverBlocks, decorated });
     lastAuthoritativeBlocks.set(cacheKey, decorated);
 
@@ -3419,11 +3507,12 @@ function getDecoratedBlocks(
 
 function decorateBlockList(
     blocks: readonly unknown[],
+    claims: ClientIdClaims = newClientIdClaims(null),
 ): readonly DecoratedBlock[] {
     const out: DecoratedBlock[] = [];
 
     for (const block of blocks) {
-        const decorated = decorateBlock(block);
+        const decorated = decorateBlock(block, claims);
 
         if (decorated !== null) {
             out.push(decorated);
@@ -3433,7 +3522,10 @@ function decorateBlockList(
     return out;
 }
 
-function decorateBlock(block: unknown): DecoratedBlock | null {
+function decorateBlock(
+    block: unknown,
+    claims: ClientIdClaims,
+): DecoratedBlock | null {
     if (
         block === null ||
         typeof block !== 'object' ||
@@ -3443,29 +3535,116 @@ function decorateBlock(block: unknown): DecoratedBlock | null {
     }
 
     const server = block as ServerBlock & { clientId?: unknown; isValid?: unknown };
-    const innerBlocks = Array.isArray(server.innerBlocks)
-        ? decorateBlockList(server.innerBlocks)
-        : EMPTY_RECORDS;
 
     // Preserve an existing `clientId` when the source array was
     // produced by Gutenberg itself (a real edit — the block-editor
     // hands each block a stable clientId at mount and relies on it
     // for identity across renders). Only mint a fresh one when the
     // source is a bare server envelope (`{name, attributes,
-    // innerBlocks}`); re-minting on every read would churn identity
-    // and re-mount the subtree.
-    const existingClientId =
-        typeof server.clientId === 'string' && server.clientId.length > 0
-            ? server.clientId
-            : null;
+    // innerBlocks}`) or the id was already claimed earlier in the
+    // tree; re-minting on every read would churn identity and
+    // re-mount the subtree. Claimed before recursing so the parent
+    // keeps its id over a duplicate in its own subtree.
+    const clientId = claimClientId(server.clientId, claims);
+    const innerBlocks = Array.isArray(server.innerBlocks)
+        ? decorateBlockList(server.innerBlocks, claims)
+        : EMPTY_RECORDS;
 
     return {
         name: server.name,
-        clientId: existingClientId ?? createClientId(),
+        clientId,
         isValid: true,
         attributes: server.attributes ?? {},
         innerBlocks,
     };
+}
+
+/**
+ * Registry-wide owner of every clientId the shim has handed out: the
+ * `kind|name|id` cache key of the entity whose tree holds it (FE-9).
+ * Two entities can carry the same persisted clientId (a template and a
+ * template part, or two menus built from the same paste); without a
+ * registry-wide check both trees would mount blocks with one id.
+ */
+const clientIdOwners = new Map<string, string>();
+
+/**
+ * Claim state for decorating one entity tree: the ids already used in
+ * the tree, and the entity's cache key (`null` when there's no entity,
+ * which skips the registry-wide check).
+ */
+interface ClientIdClaims {
+    readonly seen: Set<string>;
+    readonly owner: string | null;
+}
+
+function newClientIdClaims(owner: string | null): ClientIdClaims {
+    return { seen: new Set(), owner };
+}
+
+/**
+ * Records `owner` as the owner of every clientId in `blocks`, taking
+ * them over from any other entity.
+ */
+function takeClientIdOwnership(blocks: readonly unknown[], owner: string): void {
+    for (const block of blocks) {
+        if (block === null || typeof block !== 'object') {
+            continue;
+        }
+
+        const { clientId, innerBlocks } = block as {
+            clientId?: unknown;
+            innerBlocks?: unknown;
+        };
+
+        if (typeof clientId === 'string' && clientId.length > 0) {
+            clientIdOwners.set(clientId, owner);
+        }
+
+        if (Array.isArray(innerBlocks)) {
+            takeClientIdOwnership(innerBlocks, owner);
+        }
+    }
+}
+
+/**
+ * Returns `candidate` when it is a non-empty string not yet claimed in
+ * this tree and not owned by another entity, otherwise a freshly minted
+ * id, and records the result in the claims (and as owned by the claims'
+ * entity). Persisted `content.blocks` can carry the same `clientId`
+ * twice (a pasted or duplicated nav item round-tripped through the REST
+ * layer); letting both into the block-editor store corrupts selection,
+ * List View, and move / remove, which all look blocks up by `clientId`.
+ * The first occurrence keeps its id (#812). Ids stay stable per entity:
+ * an entity re-reading its own tree keeps the ids it already owns.
+ */
+function claimClientId(candidate: unknown, claims: ClientIdClaims): string {
+    const isAvailable = (id: string): boolean => {
+        if (claims.seen.has(id)) {
+            return false;
+        }
+
+        const owner = clientIdOwners.get(id);
+
+        return claims.owner === null || owner === undefined || owner === claims.owner;
+    };
+
+    let clientId =
+        typeof candidate === 'string' && candidate.length > 0 && isAvailable(candidate)
+            ? candidate
+            : createClientId();
+
+    while (!isAvailable(clientId)) {
+        clientId = createClientId();
+    }
+
+    claims.seen.add(clientId);
+
+    if (claims.owner !== null) {
+        clientIdOwners.set(clientId, claims.owner);
+    }
+
+    return clientId;
 }
 
 let clientIdCounter = 0;

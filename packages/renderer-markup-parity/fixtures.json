@@ -1,6 +1,84 @@
 {
     "$comment": "Shared, language-neutral block trees for the Blade-vs-JS markup parity check (#704). Consumed by both packages/visual-editor-renderer-blade/tests/Feature/RendererMarkupParityTest.php (PHP) and packages/renderer-markup-parity/tests/blade-parity.test.ts (JS). Adding a fixture here automatically exercises it against all three renderers. See README.md for the golden-file workflow.",
-    "knownDivergences": [],
+    "knownDivergences": [
+        {
+            "id": "navigation-overlay-ids",
+            "issue": "#804",
+            "fixturesMatching": "^navigation-overlay-",
+            "reason": "Element ids differ by design. Blade mints `ap-modal-nav-N` (container) and `ap-modal-nav-N-content` from NavigationOverlayTracker so its inline script can find the drawer; React's container id comes from `useId()` (SSR-safe, `:R…:`); Vue sets none (the `^3.3` peer has no `useId`). The id values can never match, so `id` is dropped inside navigation overlay fixtures only.",
+            "dropAttributesMatching": "^id$"
+        },
+        {
+            "id": "navigation-overlay-aria-controls",
+            "issue": "#804",
+            "fixturesMatching": "^navigation-overlay-",
+            "reason": "RN-5: the open button's `aria-controls` points at the renderer's own container id (Blade tracker id, React `useId()`); Vue omits it because it has no SSR-stable id. The value is renderer-specific by construction. `aria-expanded`, `aria-haspopup` and `aria-label` are still compared.",
+            "dropAttributesMatching": "^aria-controls$"
+        },
+        {
+            "id": "navigation-overlay-blade-script-hooks",
+            "issue": "#804",
+            "fixturesMatching": "^navigation-overlay-",
+            "reason": "Blade-only `data-ap-nav-overlay-open` / `-close` / `-backdrop` hooks wire the delegated inline toggle script; React and Vue bind the same behavior with component event handlers, so they have no hook attributes.",
+            "dropAttributesMatching": "^data-ap-nav-overlay-"
+        },
+        {
+            "id": "navigation-overlay-blade-inline-assets",
+            "issue": "#804",
+            "fixturesMatching": "^navigation-overlay-",
+            "reason": "Blade emits the overlay fix-up CSS and the toggle controller once per response as attribute-less inline `<style>` and `<script>` after the first overlay nav. React and Vue need no script (component state) and ship their CSS in `<style data-ve-navigation-overlay>` (declared separately).",
+            "dropElementsMatching": "^<(style|script)>$"
+        },
+        {
+            "id": "navigation-overlay-js-css",
+            "issue": "#804",
+            "fixturesMatching": "^navigation-overlay-",
+            "reason": "React/Vue inject `NAVIGATION_OVERLAY_CSS` (block-library overlay subset + the Blade fix-ups, in `@layer ve-navigation`) because JS hosts are not required to load the block-library stylesheet; Blade relies on its bundled style.css plus the inline fix-ups. The bodies differ by design, so the tag is dropped rather than compared as per-instance CSS.",
+            "dropRendererStyleTag": "data-ve-navigation-overlay"
+        },
+        {
+            "id": "navigation-layout-orientation",
+            "issue": "RN-12",
+            "fixturesMatching": "^navigation-layout-colors-elements$",
+            "reason": "Blade reads the modern flex-layout `layout.orientation` (falling back to the legacy top-level `orientation`); React/Vue read only `orientation` and default to `is-horizontal`, so a `layout.orientation: vertical` nav renders `is-vertical` only in Blade.",
+            "dropClassTokensMatching": "^is-(horizontal|vertical)$"
+        },
+        {
+            "id": "navigation-layout-justification",
+            "issue": "RN-12",
+            "fixturesMatching": "^navigation-layout-colors-elements$",
+            "reason": "Blade honors `layout.justifyContent` (Keystone #52, winning over legacy `itemsJustification`); React/Vue read only `itemsJustification`, so `items-justified-*` from the modern path is Blade-only.",
+            "dropClassTokensMatching": "^items-justified-"
+        },
+        {
+            "id": "navigation-custom-colors-classes",
+            "issue": "RN-4",
+            "fixturesMatching": "^navigation-layout-colors-elements$",
+            "reason": "Nav-level `customTextColor` / `customBackgroundColor` (Keystone #53) are rendered — sanitized through `safeCssValue` — only by Blade; React/Vue do not render them at all, so `has-text-color` / `has-background` on the `<nav>` are Blade-only.",
+            "dropClassTokensMatching": "^has-(text-color|background)$"
+        },
+        {
+            "id": "navigation-custom-colors-style",
+            "issue": "RN-4",
+            "fixturesMatching": "^navigation-layout-colors-elements$",
+            "reason": "The inline `color` / `background-color` declarations those nav-level custom colors produce on the `<nav>` are Blade-only for the same reason; the only `style` attribute in this fixture is the nav's.",
+            "dropAttributesMatching": "^style$"
+        },
+        {
+            "id": "navigation-elements-support-class",
+            "issue": "Keystone #56",
+            "fixturesMatching": "^navigation-layout-colors-elements$",
+            "reason": "`ElementsSupport` (Elements API link color, `style.elements.link.color.text`) is compiled only by the Blade partial into a per-block `wp-elements-{hash}` scope class; the JS renderers have no ElementsSupport.",
+            "dropClassTokensMatching": "^wp-elements-[0-9a-f]+$"
+        },
+        {
+            "id": "navigation-elements-support-style",
+            "issue": "Keystone #56",
+            "fixturesMatching": "^navigation-layout-colors-elements$",
+            "reason": "The scoped `.wp-elements-{hash} a { color: … }` rule ElementsSupport emits as an attribute-less `<style>` before the `<nav>` — Blade-only, like its scope class.",
+            "dropElementsMatching": "^<style>$"
+        }
+    ],
     "fixtures": [
         {
             "name": "paragraph",
@@ -1022,6 +1100,262 @@
                             "clientId": "g-dim-p",
                             "name": "core/paragraph",
                             "attributes": { "content": "Dim" },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "$comment": "RN-12 — default `overlayMenu` (`mobile`): hamburger open button (aria-haspopup=dialog, aria-expanded=false) plus the responsive container. The closed container carries no `aria-hidden` and the dialog carries no `role`/`aria-modal` until opened (RN-1/RN-5). Blade/React-only ids and Blade's `data-ap-nav-overlay-*` hooks are declared divergences.",
+            "name": "navigation-overlay-mobile",
+            "tree": [
+                {
+                    "clientId": "nav-mobile",
+                    "name": "core/navigation",
+                    "attributes": {},
+                    "innerBlocks": [
+                        {
+                            "clientId": "nav-mobile-l1",
+                            "name": "core/navigation-link",
+                            "attributes": {
+                                "label": "Home",
+                                "url": "/"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "nav-mobile-l2",
+                            "name": "core/navigation-link",
+                            "attributes": {
+                                "label": "About",
+                                "url": "/about"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "$comment": "RN-12 — `overlayMenu: 'always'`: container gains `is-always-overlay hidden-by-default`, open button gains `always-shown` (#804).",
+            "name": "navigation-overlay-always",
+            "tree": [
+                {
+                    "clientId": "nav-always",
+                    "name": "core/navigation",
+                    "attributes": {
+                        "overlayMenu": "always"
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "nav-always-l1",
+                            "name": "core/navigation-link",
+                            "attributes": {
+                                "label": "Home",
+                                "url": "/"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "nav-always-l2",
+                            "name": "core/navigation-link",
+                            "attributes": {
+                                "label": "About",
+                                "url": "/about"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "$comment": "RN-12 — `overlayMenu: 'never'`: no overlay, no `is-responsive`, the bare `<ul>` only. No declared divergence applies to this markup.",
+            "name": "navigation-overlay-never",
+            "tree": [
+                {
+                    "clientId": "nav-never",
+                    "name": "core/navigation",
+                    "attributes": {
+                        "overlayMenu": "never"
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "nav-never-l1",
+                            "name": "core/navigation-link",
+                            "attributes": {
+                                "label": "Home",
+                                "url": "/"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "nav-never-l2",
+                            "name": "core/navigation-link",
+                            "attributes": {
+                                "label": "About",
+                                "url": "/about"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "$comment": "RN-12 — safe custom overlay colors land in the container's inline style with `has-background` / `has-text-color`; an `ariaLabel` also labels the open button.",
+            "name": "navigation-overlay-custom-colors",
+            "tree": [
+                {
+                    "clientId": "nav-custom",
+                    "name": "core/navigation",
+                    "attributes": {
+                        "ariaLabel": "Primary",
+                        "customOverlayBackgroundColor": "#112233",
+                        "customOverlayTextColor": "rgb(250, 250, 250)"
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "nav-custom-l1",
+                            "name": "core/navigation-link",
+                            "attributes": {
+                                "label": "Home",
+                                "url": "/"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "nav-custom-l2",
+                            "name": "core/navigation-link",
+                            "attributes": {
+                                "label": "About",
+                                "url": "/about"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "$comment": "RN-12 / RN-7 — preset overlay slugs become `has-{slug}-*` classes, reduced to `[a-z0-9-]` so a stored value can't mint extra class tokens (`x is-menu-open` must not open the drawer). A preset slug wins over the matching custom color.",
+            "name": "navigation-overlay-preset-colors",
+            "tree": [
+                {
+                    "clientId": "nav-preset",
+                    "name": "core/navigation",
+                    "attributes": {
+                        "overlayBackgroundColor": "Primary Dark",
+                        "customOverlayBackgroundColor": "#000000",
+                        "overlayTextColor": "x is-menu-open"
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "nav-preset-l1",
+                            "name": "core/navigation-link",
+                            "attributes": {
+                                "label": "Home",
+                                "url": "/"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "nav-preset-l2",
+                            "name": "core/navigation-link",
+                            "attributes": {
+                                "label": "About",
+                                "url": "/about"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "$comment": "RN-12 / RN-13 — an `overlay` reference that resolves to a `navigation-overlay` template part renders the part inside the drawer (`has-overlay-template` + `wp-block-navigation__overlay-content`) alongside the menu. `templateParts` is fed to the React/Vue `BlockTree` and to a TemplatePartResolver stub on the Blade side.",
+            "name": "navigation-overlay-template-part",
+            "templateParts": [
+                {
+                    "slug": "mobile-drawer",
+                    "area": "navigation-overlay",
+                    "blocks": [
+                        {
+                            "clientId": "drawer-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Drawer"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ],
+            "tree": [
+                {
+                    "clientId": "nav-part",
+                    "name": "core/navigation",
+                    "attributes": {
+                        "overlay": "mobile-drawer"
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "nav-part-l1",
+                            "name": "core/navigation-link",
+                            "attributes": {
+                                "label": "Home",
+                                "url": "/"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "nav-part-l2",
+                            "name": "core/navigation-link",
+                            "attributes": {
+                                "label": "About",
+                                "url": "/about"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "$comment": "RN-12 — nav-level attributes only the Blade partial honors: modern `layout.orientation` / `layout.justifyContent` (the JS renderers read only the legacy top-level `orientation` / `itemsJustification`), the block-specific `customTextColor` / `customBackgroundColor`, and the Elements API link color (`ElementsSupport`, a scoped `wp-elements-*` class plus an attribute-less `<style>`). Each is a declared divergence scoped to this fixture; `overlayMenu: 'never'` keeps the overlay out of the picture.",
+            "name": "navigation-layout-colors-elements",
+            "tree": [
+                {
+                    "clientId": "nav-lce",
+                    "name": "core/navigation",
+                    "attributes": {
+                        "overlayMenu": "never",
+                        "layout": {
+                            "type": "flex",
+                            "orientation": "vertical",
+                            "justifyContent": "right"
+                        },
+                        "customTextColor": "#222222",
+                        "customBackgroundColor": "#eeeeee",
+                        "style": {
+                            "elements": {
+                                "link": {
+                                    "color": {
+                                        "text": "#ff0000"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "nav-lce-l1",
+                            "name": "core/navigation-link",
+                            "attributes": {
+                                "label": "Home",
+                                "url": "/"
+                            },
                             "innerBlocks": []
                         }
                     ]

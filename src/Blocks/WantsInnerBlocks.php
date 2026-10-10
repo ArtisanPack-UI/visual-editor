@@ -34,7 +34,7 @@ interface WantsInnerBlocks
 	 * @param  array<string, mixed>             $attrs
 	 * @param  array<int, array<string, mixed>> $innerBlocks
 	 *
-	 * @return View|Stringable|string
+	 * @return string|Stringable|View
 	 *
 	 * @since 1.4.0
 	 */

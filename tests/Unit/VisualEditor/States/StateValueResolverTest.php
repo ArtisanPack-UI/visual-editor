@@ -10,24 +10,24 @@ function makeStateResolver(): StateValueResolver
 	return new StateValueResolver( StateRegistry::fromLayers( [], [] ) );
 }
 
-it( 'returns scalars unchanged', function () {
+it( 'returns scalars unchanged', function (): void {
 	expect( makeStateResolver()->resolve( 'red', 'hover' ) )->toBe( 'red' );
 	expect( makeStateResolver()->resolve( 4, 'hover' ) )->toBe( 4 );
 } );
 
-it( 'returns idle when no per-state overrides exist', function () {
+it( 'returns idle when no per-state overrides exist', function (): void {
 	$attribute = [ 'idle' => 'red' ];
 
 	expect( makeStateResolver()->resolve( $attribute, 'hover' ) )->toBe( 'red' );
 } );
 
-it( 'walks the inheritance chain through null slots', function () {
+it( 'walks the inheritance chain through null slots', function (): void {
 	$attribute = [ 'idle' => 'red', 'hover' => 'blue', 'active' => null ];
 
 	expect( makeStateResolver()->resolve( $attribute, 'active' ) )->toBe( 'blue' );
 } );
 
-it( 'returns the override at the active state when one exists', function () {
+it( 'returns the override at the active state when one exists', function (): void {
 	$attribute = [ 'idle' => 'red', 'hover' => 'blue' ];
 	$resolver  = makeStateResolver();
 
@@ -37,19 +37,19 @@ it( 'returns the override at the active state when one exists', function () {
 	expect( $resolver->resolve( $attribute, 'focus' ) )->toBe( 'red' );
 } );
 
-it( 'returns null when no slot in the chain is defined', function () {
+it( 'returns null when no slot in the chain is defined', function (): void {
 	$attribute = [ 'hover' => 'blue' ];
 
 	expect( makeStateResolver()->resolve( $attribute, 'focus' ) )->toBeNull();
 } );
 
-it( 'falls back to idle when active state is unknown', function () {
+it( 'falls back to idle when active state is unknown', function (): void {
 	$attribute = [ 'idle' => 'red', 'hover' => 'blue' ];
 
 	expect( makeStateResolver()->resolve( $attribute, 'made-up' ) )->toBe( 'red' );
 } );
 
-it( 'recognises stateful shape via idle or any registry key', function () {
+it( 'recognises stateful shape via idle or any registry key', function (): void {
 	$resolver = makeStateResolver();
 
 	expect( $resolver->isStatefulAttribute( [ 'idle' => 'a' ] ) )->toBeTrue();
@@ -59,7 +59,7 @@ it( 'recognises stateful shape via idle or any registry key', function () {
 	expect( $resolver->isStatefulAttribute( [] ) )->toBeFalse();
 } );
 
-it( 'collapses distinctOverrides to only states that differ from their inheritance parent', function () {
+it( 'collapses distinctOverrides to only states that differ from their inheritance parent', function (): void {
 	$attribute = [ 'idle' => 'red', 'hover' => 'red', 'active' => 'red', 'focus' => 'blue' ];
 
 	$result = makeStateResolver()->distinctOverrides( $attribute );
@@ -67,19 +67,19 @@ it( 'collapses distinctOverrides to only states that differ from their inheritan
 	expect( $result )->toBe( [ 'idle' => 'red', 'focus' => 'blue' ] );
 } );
 
-it( 'includes idle in distinctOverrides whenever it has a non-null value', function () {
+it( 'includes idle in distinctOverrides whenever it has a non-null value', function (): void {
 	$attribute = [ 'idle' => 'red' ];
 
 	expect( makeStateResolver()->distinctOverrides( $attribute ) )->toBe( [ 'idle' => 'red' ] );
 } );
 
-it( 'returns orphaned keys for states not present in the registry', function () {
+it( 'returns orphaned keys for states not present in the registry', function (): void {
 	$attribute = [ 'idle' => 'a', 'hover' => 'b', 'legacy-state' => 'c' ];
 
 	expect( makeStateResolver()->orphanedKeys( $attribute ) )->toBe( [ 'legacy-state' ] );
 } );
 
-it( 'resolveAll returns the cascaded value for every registered state', function () {
+it( 'resolveAll returns the cascaded value for every registered state', function (): void {
 	$attribute = [ 'idle' => 'red', 'hover' => 'blue' ];
 
 	$all = makeStateResolver()->resolveAll( $attribute );

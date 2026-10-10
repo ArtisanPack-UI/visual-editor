@@ -40,7 +40,7 @@ function renderBusinessTree( array $tree ): string
 {
 	return Blade::render(
 		'<x-ve-blocks :tree="$tree" />',
-		[ 'tree' => $tree ]
+		[ 'tree' => $tree ],
 	);
 }
 
@@ -52,7 +52,7 @@ beforeEach( function (): void {
 	config()->set( 'artisanpack.visual-editor.business.google_maps_api_key', null );
 } );
 
-it( 'stamps _resolvedBusinessInfo on every business-info block from the filter', function () {
+it( 'stamps _resolvedBusinessInfo on every business-info block from the filter', function (): void {
 	if ( ! function_exists( 'addFilter' ) ) {
 		expect( true )->toBeTrue();
 
@@ -79,7 +79,7 @@ it( 'stamps _resolvedBusinessInfo on every business-info block from the filter',
 	expect( $stamped[1]['attributes']['_resolvedBusinessInfo']['email'] )->toBe( 'hello@example.test' );
 } );
 
-it( 'yields the empty-envelope defaults when no filter is registered', function () {
+it( 'yields the empty-envelope defaults when no filter is registered', function (): void {
 	$resolver = $this->app->make( BusinessInfoResolver::class );
 
 	$stamped = $resolver->stampTree( [ businessBlockNode( 'artisanpack/business-phone' ) ], null );
@@ -94,14 +94,14 @@ it( 'yields the empty-envelope defaults when no filter is registered', function 
 	expect( $info['specialHours'] )->toBe( [] );
 } );
 
-it( 'renders an empty wrapper when the phone envelope is empty (SSR-safe)', function () {
+it( 'renders an empty wrapper when the phone envelope is empty (SSR-safe)', function (): void {
 	$rendered = $this->stripGlobalStyles( renderBusinessTree( [ businessBlockNode( 'artisanpack/business-phone' ) ] ) );
 
 	expect( $rendered )->toContain( 'ap-business-phone' );
 	expect( $rendered )->not->toContain( 'tel:' );
 } );
 
-it( 'renders a tel: link when the phone envelope is populated', function () {
+it( 'renders a tel: link when the phone envelope is populated', function (): void {
 	if ( ! function_exists( 'addFilter' ) ) {
 		expect( true )->toBeTrue();
 
@@ -117,7 +117,7 @@ it( 'renders a tel: link when the phone envelope is populated', function () {
 		->toContain( '+1 (555) 123-4567' );
 } );
 
-it( 'renders a mailto: link when the email envelope is a valid email', function () {
+it( 'renders a mailto: link when the email envelope is a valid email', function (): void {
 	if ( ! function_exists( 'addFilter' ) ) {
 		expect( true )->toBeTrue();
 
@@ -133,7 +133,7 @@ it( 'renders a mailto: link when the email envelope is a valid email', function 
 		->toContain( 'hello@example.test' );
 } );
 
-it( 'drops the mailto: link when the email is invalid', function () {
+it( 'drops the mailto: link when the email is invalid', function (): void {
 	if ( ! function_exists( 'addFilter' ) ) {
 		expect( true )->toBeTrue();
 
@@ -147,7 +147,7 @@ it( 'drops the mailto: link when the email is invalid', function () {
 	expect( $rendered )->not->toContain( 'mailto:' );
 } );
 
-it( 'renders the weekly hours table with day names and open/close ranges', function () {
+it( 'renders the weekly hours table with day names and open/close ranges', function (): void {
 	if ( ! function_exists( 'addFilter' ) ) {
 		expect( true )->toBeTrue();
 
@@ -171,16 +171,16 @@ it( 'renders the weekly hours table with day names and open/close ranges', funct
 		->toContain( 'Closed' );
 } );
 
-it( 'renders upcoming special-hours overrides within the window', function () {
+it( 'renders upcoming special-hours overrides within the window', function (): void {
 	if ( ! function_exists( 'addFilter' ) ) {
 		expect( true )->toBeTrue();
 
 		return;
 	}
 
-	$soon = date( 'Y-m-d', strtotime( '+5 days' ) );
+	$soon      = date( 'Y-m-d', strtotime( '+5 days' ) );
 	$farFuture = date( 'Y-m-d', strtotime( '+90 days' ) );
-	$past = date( 'Y-m-d', strtotime( '-1 day' ) );
+	$past      = date( 'Y-m-d', strtotime( '-1 day' ) );
 
 	addFilter( 'ap.visualEditor.businessInfo', fn ( array $env ): array => array_merge( $env, [
 		'hours'        => [
@@ -203,7 +203,7 @@ it( 'renders upcoming special-hours overrides within the window', function () {
 		->not->toContain( 'Old Holiday' );
 } );
 
-it( 'renders the address block with an OSM embed URL by default', function () {
+it( 'renders the address block with an OSM embed URL by default', function (): void {
 	if ( ! function_exists( 'addFilter' ) ) {
 		expect( true )->toBeTrue();
 
@@ -236,7 +236,7 @@ it( 'renders the address block with an OSM embed URL by default', function () {
 		->toContain( 'sandbox="allow-scripts allow-same-origin allow-popups"' );
 } );
 
-it( 'renders the address block with a Google Maps embed URL when a key is configured', function () {
+it( 'renders the address block with a Google Maps embed URL when a key is configured', function (): void {
 	if ( ! function_exists( 'addFilter' ) ) {
 		expect( true )->toBeTrue();
 
@@ -264,7 +264,7 @@ it( 'renders the address block with a Google Maps embed URL when a key is config
 		->toContain( 'key=test-key-abc' );
 } );
 
-it( 'falls back to OSM when mapProvider is google but no API key is configured', function () {
+it( 'falls back to OSM when mapProvider is google but no API key is configured', function (): void {
 	if ( ! function_exists( 'addFilter' ) ) {
 		expect( true )->toBeTrue();
 
@@ -285,7 +285,7 @@ it( 'falls back to OSM when mapProvider is google but no API key is configured',
 		->not->toContain( 'google.com/maps' );
 } );
 
-it( 'omits the map iframe when showMap is false', function () {
+it( 'omits the map iframe when showMap is false', function (): void {
 	if ( ! function_exists( 'addFilter' ) ) {
 		expect( true )->toBeTrue();
 
@@ -307,7 +307,7 @@ it( 'omits the map iframe when showMap is false', function () {
 		->not->toContain( '<iframe' );
 } );
 
-it( 'passes through a host-supplied mapEmbedUrl verbatim', function () {
+it( 'passes through a host-supplied mapEmbedUrl verbatim', function (): void {
 	if ( ! function_exists( 'addFilter' ) ) {
 		expect( true )->toBeTrue();
 
@@ -326,7 +326,7 @@ it( 'passes through a host-supplied mapEmbedUrl verbatim', function () {
 	expect( $rendered )->toContain( 'https://example.test/my-embed?abc=1' );
 } );
 
-it( 'emits no JSON-LD from any business-info block', function () {
+it( 'emits no JSON-LD from any business-info block', function (): void {
 	if ( ! function_exists( 'addFilter' ) ) {
 		expect( true )->toBeTrue();
 
@@ -352,7 +352,7 @@ it( 'emits no JSON-LD from any business-info block', function () {
 		->not->toContain( 'schema.org/LocalBusiness' );
 } );
 
-it( 'respects a pre-stamped _resolvedBusinessInfo on the saved tree', function () {
+it( 'respects a pre-stamped _resolvedBusinessInfo on the saved tree', function (): void {
 	$resolver = $this->app->make( BusinessInfoResolver::class );
 
 	$preStamped = [
@@ -362,13 +362,13 @@ it( 'respects a pre-stamped _resolvedBusinessInfo on the saved tree', function (
 
 	$stamped = $resolver->stampTree(
 		[ businessBlockNode( 'artisanpack/business-phone', [ '_resolvedBusinessInfo' => $preStamped ] ) ],
-		null
+		null,
 	);
 
 	expect( $stamped[0]['attributes']['_resolvedBusinessInfo'] )->toBe( $preStamped );
 } );
 
-it( 'walks nested business-info blocks inside container blocks', function () {
+it( 'walks nested business-info blocks inside container blocks', function (): void {
 	if ( ! function_exists( 'addFilter' ) ) {
 		expect( true )->toBeTrue();
 
@@ -397,7 +397,7 @@ it( 'walks nested business-info blocks inside container blocks', function () {
 	expect( $innerBlock['attributes']['_resolvedBusinessInfo']['phone'] )->toBe( '+1 555-000-2222' );
 } );
 
-it( 'keys the per-call memo by post identity so two posts get two envelopes', function () {
+it( 'keys the per-call memo by post identity so two posts get two envelopes', function (): void {
 	if ( ! function_exists( 'addFilter' ) ) {
 		expect( true )->toBeTrue();
 
@@ -442,7 +442,7 @@ it( 'keys the per-call memo by post identity so two posts get two envelopes', fu
 	expect( $calls )->toBe( 3 ); // one for the null-post stampTree + two for the two post objects.
 } );
 
-it( 'normalizes special-hours on a pre-stamped envelope so malformed dates are dropped', function () {
+it( 'normalizes special-hours on a pre-stamped envelope so malformed dates are dropped', function (): void {
 	$resolver = $this->app->make( BusinessInfoResolver::class );
 
 	$preStamped = [
@@ -456,7 +456,7 @@ it( 'normalizes special-hours on a pre-stamped envelope so malformed dates are d
 
 	$stamped = $resolver->stampTree(
 		[ businessBlockNode( 'artisanpack/business-hours', [ '_resolvedBusinessInfo' => $preStamped, 'specialHoursWindowDays' => 30 ] ) ],
-		null
+		null,
 	);
 
 	$after = $stamped[0]['attributes']['_resolvedBusinessInfo']['specialHours'];
@@ -466,7 +466,7 @@ it( 'normalizes special-hours on a pre-stamped envelope so malformed dates are d
 	expect( $after[0]['label'] )->toBe( 'Upcoming' );
 } );
 
-it( 'drops special-hours entries with calendar-invalid dates (e.g. Feb 31)', function () {
+it( 'drops special-hours entries with calendar-invalid dates (e.g. Feb 31)', function (): void {
 	$resolver = $this->app->make( BusinessInfoResolver::class );
 
 	$preStamped = [
@@ -479,7 +479,7 @@ it( 'drops special-hours entries with calendar-invalid dates (e.g. Feb 31)', fun
 
 	$stamped = $resolver->stampTree(
 		[ businessBlockNode( 'artisanpack/business-hours', [ '_resolvedBusinessInfo' => $preStamped ] ) ],
-		null
+		null,
 	);
 
 	$after = $stamped[0]['attributes']['_resolvedBusinessInfo']['specialHours'];
@@ -489,7 +489,7 @@ it( 'drops special-hours entries with calendar-invalid dates (e.g. Feb 31)', fun
 	expect( $after[0]['label'] )->toBe( 'Real' );
 } );
 
-it( 'renders no map iframe on the OSM branch when only an address (no coordinates) is available', function () {
+it( 'renders no map iframe on the OSM branch when only an address (no coordinates) is available', function (): void {
 	if ( ! function_exists( 'addFilter' ) ) {
 		expect( true )->toBeTrue();
 
@@ -522,7 +522,7 @@ it( 'renders no map iframe on the OSM branch when only an address (no coordinate
 		->not->toContain( 'openstreetmap.org/search' );
 } );
 
-it( 'memoizes the filter for the duration of a single stampTree call', function () {
+it( 'memoizes the filter for the duration of a single stampTree call', function (): void {
 	if ( ! function_exists( 'addFilter' ) ) {
 		expect( true )->toBeTrue();
 

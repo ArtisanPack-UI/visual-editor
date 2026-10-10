@@ -31,9 +31,13 @@ class FakeAdjacencyPost
 	{
 		$this->lastBuilder = new class( $this->stubResult ) {
 			public string $whereColumn   = '';
+
 			public string $whereOperator = '';
+
 			public mixed $whereValue     = null;
+
 			public string $orderColumn   = '';
+
 			public string $orderDir      = '';
 
 			public function __construct( private readonly ?object $result )
@@ -79,7 +83,7 @@ it( 'does not run the query fallback when the config flag is off', function (): 
 
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'artisanpack/post-navigation-link', 'attributes' => [], 'innerBlocks' => [] ],
-		$post
+		$post,
 	);
 
 	expect( $resolved['attributes']['_resolvedPrevUrl'] )->toBe( '' )
@@ -139,7 +143,7 @@ it( 'stamps both adjacent links through the query fallback when the flag is on',
 
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'artisanpack/post-navigation-link', 'attributes' => [], 'innerBlocks' => [] ],
-		$post
+		$post,
 	);
 
 	expect( $resolved['attributes']['_resolvedPrevUrl'] )->toBe( 'https://example.test/posts/adjacent' )
@@ -156,7 +160,7 @@ it( 'skips the query fallback when the model lacks newQuery()', function (): voi
 
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'artisanpack/post-navigation-link', 'attributes' => [], 'innerBlocks' => [] ],
-		$post
+		$post,
 	);
 
 	expect( $resolved['attributes']['_resolvedPrevUrl'] )->toBe( '' )
@@ -171,7 +175,7 @@ it( 'skips the query fallback when published_at is missing', function (): void {
 
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'artisanpack/post-navigation-link', 'attributes' => [], 'innerBlocks' => [] ],
-		$post
+		$post,
 	);
 
 	expect( $resolved['attributes']['_resolvedPrevUrl'] )->toBe( '' )
@@ -195,7 +199,7 @@ it( 'prefers the named accessor over the query fallback when both are available'
 
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'artisanpack/post-navigation-link', 'attributes' => [], 'innerBlocks' => [] ],
-		$post
+		$post,
 	);
 
 	expect( $resolved['attributes']['_resolvedPrevUrl'] )->toBe( 'https://example.test/posts/explicit-previous' )
@@ -211,7 +215,7 @@ it( 'returns empty stamps when the query fallback finds no adjacent row', functi
 
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'artisanpack/post-navigation-link', 'attributes' => [], 'innerBlocks' => [] ],
-		$post
+		$post,
 	);
 
 	expect( $resolved['attributes']['_resolvedPrevUrl'] )->toBe( '' )

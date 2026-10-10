@@ -36,7 +36,7 @@ afterEach( function (): void {
 	app( SiteMetaResolver::class )->flush();
 } );
 
-it( 'falls back to config defaults when cms-framework helpers are absent', function () {
+it( 'falls back to config defaults when cms-framework helpers are absent', function (): void {
 	config()->set( 'artisanpack.visual-editor.site_meta', [
 		'title'       => 'Config Title',
 		'description' => 'Config Tagline',
@@ -58,7 +58,7 @@ it( 'falls back to config defaults when cms-framework helpers are absent', funct
 		->toContain( '<p class="wp-block-site-tagline">Config Tagline</p>' );
 } );
 
-it( 'reads from apGetSetting when the helper is loaded', function () {
+it( 'reads from apGetSetting when the helper is loaded', function (): void {
 	if ( ! function_exists( 'apGetSetting' ) ) {
 		$this->markTestSkipped( 'apGetSetting() helper from artisanpack-ui/cms-framework is not loaded in this test run.' );
 	}
@@ -86,7 +86,7 @@ it( 'reads from apGetSetting when the helper is loaded', function () {
 	removeAllFilters( 'ap.settings.registeredSettings' );
 } );
 
-it( 'lets host-stamped attributes win over the resolver fallback', function () {
+it( 'lets host-stamped attributes win over the resolver fallback', function (): void {
 	config()->set( 'artisanpack.visual-editor.site_meta', [
 		'title' => 'From Config',
 		'url'   => 'https://config.example',
@@ -107,7 +107,7 @@ it( 'lets host-stamped attributes win over the resolver fallback', function () {
 		->not()->toContain( 'From Config' );
 } );
 
-it( 'lets a host-stamped logo URL win over the resolver fallback', function () {
+it( 'lets a host-stamped logo URL win over the resolver fallback', function (): void {
 	// site_meta.logo_id is configured, but the resolver's URL resolution
 	// goes through `apGetMediaUrl()` which isn't loaded in the test env;
 	// the host stamps the URL directly on the block instead. This proves
@@ -132,7 +132,7 @@ it( 'lets a host-stamped logo URL win over the resolver fallback', function () {
 		->toContain( 'href="https://host.example"' );
 } );
 
-it( 'leaves non-site-meta blocks untouched', function () {
+it( 'leaves non-site-meta blocks untouched', function (): void {
 	config()->set( 'artisanpack.visual-editor.site_meta', [
 		'title' => 'Should Not Appear',
 	] );

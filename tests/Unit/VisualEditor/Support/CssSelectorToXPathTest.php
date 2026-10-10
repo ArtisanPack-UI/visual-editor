@@ -35,40 +35,40 @@ function veMatchTags( string $html, string $selector ): array
 	return $out;
 }
 
-it( 'matches a fragment root by tag name', function () {
+it( 'matches a fragment root by tag name', function (): void {
 	expect( veMatchTags( '<p>Hello</p>', 'p' ) )->toBe( [ 'p:Hello' ] );
 } );
 
-it( 'matches any of a comma-separated group', function () {
+it( 'matches any of a comma-separated group', function (): void {
 	expect( veMatchTags( '<h3>Title</h3>', 'h1,h2,h3,h4,h5,h6' ) )->toBe( [ 'h3:Title' ] );
 } );
 
-it( 'matches a class selector', function () {
+it( 'matches a class selector', function (): void {
 	expect( veMatchTags( '<div class="ap-callout__body other">Body</div>', 'div.ap-callout__body' ) )
 		->toBe( [ 'div:Body' ] );
 } );
 
-it( 'does not match a class that is only a substring of another class', function () {
+it( 'does not match a class that is only a substring of another class', function (): void {
 	expect( veMatchTags( '<div class="ap-callout__bodyguard">x</div>', '.ap-callout__body' ) )->toBe( [] );
 } );
 
-it( 'honours the child combinator', function () {
+it( 'honours the child combinator', function (): void {
 	expect( veMatchTags( '<figure><a href="#">link</a></figure>', 'figure > a' ) )->toBe( [ 'a:link' ] );
 	expect( veMatchTags( '<figure><span><a href="#">link</a></span></figure>', 'figure > a' ) )->toBe( [] );
 } );
 
-it( 'honours the descendant combinator', function () {
+it( 'honours the descendant combinator', function (): void {
 	expect( veMatchTags( '<figure><span><img/></span></figure>', 'figure img' ) )->toBe( [ 'img' ] );
 } );
 
-it( 'matches attribute presence and negation', function () {
+it( 'matches attribute presence and negation', function (): void {
 	$html = '<div><a href="#a">plain</a><a download href="#b">dl</a></div>';
 
 	expect( veMatchTags( $html, 'a[download]' ) )->toBe( [ 'a:dl' ] );
 	expect( veMatchTags( $html, 'a:not([download])' ) )->toBe( [ 'a:plain' ] );
 } );
 
-it( 'matches attribute equality across quoting styles', function () {
+it( 'matches attribute equality across quoting styles', function (): void {
 	$html = '<div><input type="text"/><input type="hidden"/></div>';
 
 	expect( CssSelectorToXPath::translate( '[type=text]' ) )
@@ -77,11 +77,11 @@ it( 'matches attribute equality across quoting styles', function () {
 	expect( veMatchTags( $html, 'input[type="hidden"]' ) )->toBe( [ 'input' ] );
 } );
 
-it( 'returns matches in document order for a comma group', function () {
+it( 'returns matches in document order for a comma group', function (): void {
 	expect( veMatchTags( '<tr><th>H</th><td>D</td></tr>', 'td,th' ) )->toBe( [ 'th:H', 'td:D' ] );
 } );
 
-it( 'translates every selector used by every bundled block manifest', function () {
+it( 'translates every selector used by every bundled block manifest', function (): void {
 	// The translator supports a deliberate SUBSET of CSS. This guard
 	// makes a manifest that introduces a selector outside that subset
 	// (`~`, `+`, a pseudo-class, a comma inside an attribute value) fail
@@ -123,7 +123,7 @@ it( 'translates every selector used by every bundled block manifest', function (
 	}
 } );
 
-it( 'rejects selectors outside the supported subset', function () {
+it( 'rejects selectors outside the supported subset', function (): void {
 	expect( fn () => CssSelectorToXPath::translate( 'p:nth-child(2)' ) )
 		->toThrow( UnsupportedSelectorException::class );
 

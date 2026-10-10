@@ -130,6 +130,14 @@ export interface MountConfig {
      * (#639). See {@link initialCreatedAt}.
      */
     initialUpdatedAt?: string;
+    /**
+     * Post-type slug the page-pattern modal scopes its fetch to, for
+     * resources outside the built-in `posts` / `pages` mapping (e.g. a
+     * host-registered `package` content type). Hosts pass via
+     * `data-pattern-post-type`; omit to keep the modal off for
+     * unmapped resources.
+     */
+    patternPostType?: string;
     authorOptions?: ReadonlyArray<AuthorOption>;
     supports?: DocumentSupports;
     previewUrl?: string | null;
@@ -188,7 +196,18 @@ function parseJsonDataset<T>(raw: string | undefined, context: string): T | null
     }
 }
 
-function readMountConfig(element: HTMLElement): MountConfig | null {
+/**
+ * Reads the editor mount's `data-*` attributes into a {@link MountConfig}.
+ * Returns null when a required attribute (`api-base`, `resource`, `id`)
+ * is missing.
+ *
+ * Exported for tests; hosts should mount through {@link bootVisualEditor}
+ * or {@link mountEditor}.
+ *
+ * @internal
+ * @since 1.13.0 Exported.
+ */
+export function readMountConfig(element: HTMLElement): MountConfig | null {
     const apiBase = element.dataset.apiBase?.trim();
     const resource = element.dataset.resource?.trim();
     const id = element.dataset.id?.trim();
@@ -209,6 +228,7 @@ function readMountConfig(element: HTMLElement): MountConfig | null {
     const initialTemplate = element.dataset.template?.trim();
     const initialCreatedAt = element.dataset.createdAt?.trim();
     const initialUpdatedAt = element.dataset.updatedAt?.trim();
+    const patternPostType = element.dataset.patternPostType?.trim();
     const siteEditorRouteBase = element.dataset.siteEditorRouteBase?.trim();
 
     const initialCategories = parseIdListDataset(
@@ -305,6 +325,7 @@ function readMountConfig(element: HTMLElement): MountConfig | null {
         ...(initialTemplate ? { initialTemplate } : {}),
         ...(initialCreatedAt ? { initialCreatedAt } : {}),
         ...(initialUpdatedAt ? { initialUpdatedAt } : {}),
+        ...(patternPostType ? { patternPostType } : {}),
         ...(breakpoints !== null ? { breakpoints } : {}),
         ...(siteEditorRouteBase ? { siteEditorRouteBase } : {}),
         previewUrl: previewUrl ?? null,

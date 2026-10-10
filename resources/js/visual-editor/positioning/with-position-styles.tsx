@@ -7,7 +7,10 @@
  * that class carries the emitted CSS. Both the canvas
  * (`editor.BlockListBlock`) and the save path
  * (`blocks.getSaveContent.extraProps` + `blocks.getSaveElement`)
- * apply the same emission.
+ * apply the same emission. In the canvas the CSS goes into the shared
+ * `position` style host in the canvas document's `<head>`
+ * (`support/canvas-scoped-styles.ts`) rather than a `<style>` sibling,
+ * so block-list `:first-child` / `* + *` selectors are unaffected.
  *
  * @package @artisanpack-ui/visual-editor
  * @since 1.4.0
@@ -18,6 +21,8 @@ import { createHigherOrderComponent } from '@wordpress/compose'
 import { addFilter } from '@wordpress/hooks'
 import { Fragment, createElement, useEffect, useMemo, useRef } from 'react'
 import type { ComponentType, ReactNode } from 'react'
+
+import { useCanvasScopedStyle } from '../support/canvas-scoped-styles'
 
 import { BreakpointRegistry, TAILWIND_V4_DEFAULTS } from '../responsive/registry'
 import { emitPositionCss, mergedBreakpointLayers } from './emitter'
@@ -30,6 +35,14 @@ const SAVE_PROPS_HOOK   = 'blocks.getSaveContent.extraProps'
 const SAVE_ELEMENT_HOOK = 'blocks.getSaveElement'
 
 const FILTER_NAMESPACE = 'artisanpack-ui/visual-editor/position-styles'
+
+/**
+ * Shared canvas style host the scoped position rules are published into,
+ * so no `<style>` sibling lands in the block list's layout flow.
+ *
+ * @since 1.13.0
+ */
+export const POSITION_STYLE_CHANNEL = 'position'
 
 const REGISTERED_KEY = Symbol.for(
 	'artisanpack-ui.visual-editor.position-styles.registered',
@@ -220,6 +233,8 @@ export const withPositionStyles = createHigherOrderComponent(
 				return emitCssForBlock( effectiveScopeId, attributes )
 			}, [ supported, effectiveScopeId, attributes ] )
 
+			useCanvasScopedStyle( POSITION_STYLE_CHANNEL, clientId, css )
+
 			const effectiveWrapperProps: Record<string, unknown> = useMemo( () => {
 				if ( ! supported || ! effectiveScopeId ) {
 					return wrapperProps ?? {}
@@ -255,16 +270,7 @@ export const withPositionStyles = createHigherOrderComponent(
 				/>
 			)
 
-			if ( '' === css ) {
-				return wrapped
-			}
-
-			return (
-				<Fragment>
-					<style data-ap-position-scope={ effectiveScopeId }>{ css }</style>
-					{ wrapped }
-				</Fragment>
-			)
+			return wrapped
 		}
 
 		PositionStyledBlock.displayName = 'PositionStyledBlock'

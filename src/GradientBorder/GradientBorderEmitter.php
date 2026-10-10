@@ -70,7 +70,8 @@ class GradientBorderEmitter
 	public function __construct(
 		protected StateRegistry $states,
 		protected BreakpointRegistry $breakpoints,
-	) {}
+	) {
+	}
 
 	/**
 	 * Emit the scoped CSS for a single block's gradient border payload.
@@ -150,7 +151,7 @@ class GradientBorderEmitter
 		$rules[]      = sprintf(
 			'%s::before{%s}',
 			$scope,
-			self::baseBeforeDeclarations( $idleGradient, $width, $payload['radius'] ?? null )
+			self::baseBeforeDeclarations( $idleGradient, $width, $payload['radius'] ?? null ),
 		);
 
 		$hasNonIdle = [] !== $states || [] !== $breakpoints;
@@ -159,7 +160,7 @@ class GradientBorderEmitter
 			$rules[] = sprintf(
 				'%s::before{transition:%s}',
 				$scope,
-				self::DEFAULT_TRANSITION
+				self::DEFAULT_TRANSITION,
 			);
 		}
 
@@ -214,7 +215,7 @@ class GradientBorderEmitter
 				'@media %s{%s::before{background:%s}}',
 				$query,
 				$scope,
-				$gradient
+				$gradient,
 			);
 		}
 
@@ -250,7 +251,7 @@ class GradientBorderEmitter
 			. 'mask-composite:exclude;pointer-events:none',
 			$safeWidth,
 			$radiusDecl,
-			self::sanitizeGradient( $gradient )
+			self::sanitizeGradient( $gradient ),
 		);
 	}
 
@@ -444,5 +445,4 @@ class GradientBorderEmitter
 
 		return $out;
 	}
-
 }

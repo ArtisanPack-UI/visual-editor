@@ -454,9 +454,8 @@ it( 'deletes the previous face file when a re-install changes its container form
 } );
 
 it( 'persists sibling FontFace rows for each server-readable format a provider supplies (#794)', function (): void {
-	$provider = new class implements \ArtisanPackUI\VisualEditor\Fonts\Contracts\FontProvider,
-		\ArtisanPackUI\VisualEditor\Fonts\Contracts\SupportsServerReadableFormats
-	{
+	$provider = new class implements FontProvider,
+		ArtisanPackUI\VisualEditor\Fonts\Contracts\SupportsServerReadableFormats {
 		public function key(): string
 		{
 			return 'multi';
@@ -521,9 +520,8 @@ it( 'persists sibling FontFace rows for each server-readable format a provider s
 } );
 
 it( 'does not fail the install when a supplementary format fetch throws (#794)', function (): void {
-	$provider = new class implements \ArtisanPackUI\VisualEditor\Fonts\Contracts\FontProvider,
-		\ArtisanPackUI\VisualEditor\Fonts\Contracts\SupportsServerReadableFormats
-	{
+	$provider = new class implements FontProvider,
+		ArtisanPackUI\VisualEditor\Fonts\Contracts\SupportsServerReadableFormats {
 		public function key(): string
 		{
 			return 'flaky';
@@ -568,7 +566,7 @@ it( 'does not fail the install when a supplementary format fetch throws (#794)',
 
 		public function fetchFaceInFormat( string $slug, string $weight, string $style, string $format ): string
 		{
-			throw new \ArtisanPackUI\VisualEditor\Fonts\Exceptions\FontProviderException( 'Simulated TTF fetch failure.' );
+			throw new FontProviderException( 'Simulated TTF fetch failure.' );
 		}
 	};
 
@@ -594,9 +592,8 @@ it( 'preserves a previously-installed format row when a supplementary fetch tran
 	// install throws on the TTF fetch. The existing TTF row must survive the
 	// second install intact — the provider still advertises TTF, we just
 	// couldn't reach it right now.
-	$provider = new class implements \ArtisanPackUI\VisualEditor\Fonts\Contracts\FontProvider,
-		\ArtisanPackUI\VisualEditor\Fonts\Contracts\SupportsServerReadableFormats
-	{
+	$provider = new class implements FontProvider,
+		ArtisanPackUI\VisualEditor\Fonts\Contracts\SupportsServerReadableFormats {
 		public bool $failTtfNextTime = false;
 
 		public function key(): string
@@ -644,7 +641,7 @@ it( 'preserves a previously-installed format row when a supplementary fetch tran
 		public function fetchFaceInFormat( string $slug, string $weight, string $style, string $format ): string
 		{
 			if ( $this->failTtfNextTime ) {
-				throw new \ArtisanPackUI\VisualEditor\Fonts\Exceptions\FontProviderException( 'Simulated transient TTF failure.' );
+				throw new FontProviderException( 'Simulated transient TTF failure.' );
 			}
 
 			return "\x00\x01\x00\x00" . str_repeat( "\x00", 32 );
@@ -674,9 +671,8 @@ it( 'preserves a previously-installed format row when a supplementary fetch tran
 } );
 
 it( 'keeps both format rows when a multi-format provider is re-installed (#794)', function (): void {
-	$provider = new class implements \ArtisanPackUI\VisualEditor\Fonts\Contracts\FontProvider,
-		\ArtisanPackUI\VisualEditor\Fonts\Contracts\SupportsServerReadableFormats
-	{
+	$provider = new class implements FontProvider,
+		ArtisanPackUI\VisualEditor\Fonts\Contracts\SupportsServerReadableFormats {
 		public function key(): string
 		{
 			return 'multi-reinstall';

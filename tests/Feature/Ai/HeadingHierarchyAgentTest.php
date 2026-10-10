@@ -318,9 +318,9 @@ it( 'rejects a serialized payload over the byte limit instead of truncating it (
 
 it( 'rejects oversized payloads on the Livewire entry point (#828)', function (): void {
 	config()->set( 'artisanpack.visual-editor.ai.payload_limits.max_blocks', 1 );
-	\Illuminate\Support\Facades\Gate::define( \ArtisanPackUI\VisualEditor\Ai\Support\AiAccess::ABILITY, fn ( $user = null ) => true );
+	Illuminate\Support\Facades\Gate::define( ArtisanPackUI\VisualEditor\Ai\Support\AiAccess::ABILITY, fn ( $user = null ) => true );
 
-	$tools = new class extends \ArtisanPackUI\VisualEditor\Livewire\Ai\AiTools {
+	$tools = new class extends ArtisanPackUI\VisualEditor\Livewire\Ai\AiTools {
 		/** @var array<int, array{0: string, 1: array<string, mixed>}> */
 		public array $events = [];
 

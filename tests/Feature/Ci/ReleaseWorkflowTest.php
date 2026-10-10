@@ -45,9 +45,9 @@ function loadReleaseWorkflow(): array
 	$workflow = Yaml::parseFile( $path );
 
 	return [
-		'workflow' => $workflow,
+		'workflow'    => $workflow,
 		'buildAndTag' => $workflow['jobs']['build-and-tag'] ?? [],
-		'release' => $workflow['jobs']['release'] ?? [],
+		'release'     => $workflow['jobs']['release'] ?? [],
 	];
 }
 
@@ -64,7 +64,7 @@ function releaseWorkflowRunScripts( array $job ): string
 		->implode( "\n" );
 }
 
-test( 'workflow triggers on workflow_dispatch and NEVER on tag push', function () {
+test( 'workflow triggers on workflow_dispatch and NEVER on tag push', function (): void {
 	$w = loadReleaseWorkflow();
 
 	// The YAML `on:` key is parsed to boolean `true` in PHP — access
@@ -81,18 +81,18 @@ test( 'workflow triggers on workflow_dispatch and NEVER on tag push', function (
 	expect( $version['required'] ?? null )->toBeTrue();
 } );
 
-test( 'build-and-tag job exists and depends on both test jobs', function () {
+test( 'build-and-tag job exists and depends on both test jobs', function (): void {
 	$w = loadReleaseWorkflow();
 
 	expect( $w['buildAndTag'] )->not->toBeEmpty(
-		'build-and-tag job missing — dist/ will not be baked into the release tag'
+		'build-and-tag job missing — dist/ will not be baked into the release tag',
 	);
 	expect( $w['buildAndTag']['needs'] )
 		->toContain( 'test-php' )
 		->toContain( 'test-js' );
 } );
 
-test( 'build-and-tag refuses to overwrite an existing tag on origin', function () {
+test( 'build-and-tag refuses to overwrite an existing tag on origin', function (): void {
 	$runs = releaseWorkflowRunScripts( loadReleaseWorkflow()['buildAndTag'] );
 
 	// The guard against re-dispatching for an already-shipped
@@ -103,7 +103,7 @@ test( 'build-and-tag refuses to overwrite an existing tag on origin', function (
 		->toContain( 'already exists on origin' );
 } );
 
-test( 'build-and-tag verifies the version input matches the manifests', function () {
+test( 'build-and-tag verifies the version input matches the manifests', function (): void {
 	$runs = releaseWorkflowRunScripts( loadReleaseWorkflow()['buildAndTag'] );
 
 	// A `-f version=1.5.3` dispatch against a main that still says
@@ -114,14 +114,14 @@ test( 'build-and-tag verifies the version input matches the manifests', function
 		->toContain( 'package.json' );
 } );
 
-test( 'build-and-tag runs both build:lib and build so dist/lib and dist/editor are produced', function () {
+test( 'build-and-tag runs both build:lib and build so dist/lib and dist/editor are produced', function (): void {
 	$runs = releaseWorkflowRunScripts( loadReleaseWorkflow()['buildAndTag'] );
 
 	expect( $runs )->toContain( 'npm run build:lib' );
 	expect( $runs )->toContain( 'npm run build' );
 } );
 
-test( 'build-and-tag strips sourcemaps before committing', function () {
+test( 'build-and-tag strips sourcemaps before committing', function (): void {
 	$runs = releaseWorkflowRunScripts( loadReleaseWorkflow()['buildAndTag'] );
 
 	// Sourcemaps must be found, packaged, and removed. Without this
@@ -132,7 +132,7 @@ test( 'build-and-tag strips sourcemaps before committing', function () {
 		->toContain( 'rm' );
 } );
 
-test( 'build-and-tag verifies the required build outputs exist', function () {
+test( 'build-and-tag verifies the required build outputs exist', function (): void {
 	$runs = releaseWorkflowRunScripts( loadReleaseWorkflow()['buildAndTag'] );
 
 	// The verify step guards against silent build breakage that
@@ -148,7 +148,7 @@ test( 'build-and-tag verifies the required build outputs exist', function () {
 	}
 } );
 
-test( 'build-and-tag force-adds dist/editor and dist/lib onto the release commit', function () {
+test( 'build-and-tag force-adds dist/editor and dist/lib onto the release commit', function (): void {
 	$runs = releaseWorkflowRunScripts( loadReleaseWorkflow()['buildAndTag'] );
 
 	// `dist/` stays .gitignored on every working branch (see the
@@ -160,7 +160,7 @@ test( 'build-and-tag force-adds dist/editor and dist/lib onto the release commit
 		->toContain( 'dist/lib' );
 } );
 
-test( 'build-and-tag pushes the version tag exactly once — no force-push', function () {
+test( 'build-and-tag pushes the version tag exactly once — no force-push', function (): void {
 	$runs = releaseWorkflowRunScripts( loadReleaseWorkflow()['buildAndTag'] );
 
 	// Packagist immutability blocks any subsequent SHA change on a
@@ -174,7 +174,7 @@ test( 'build-and-tag pushes the version tag exactly once — no force-push', fun
 		->not->toContain( 'git push -f' );
 } );
 
-test( 'release job checks out the tag created by build-and-tag', function () {
+test( 'release job checks out the tag created by build-and-tag', function (): void {
 	$release = loadReleaseWorkflow()['release'];
 
 	$checkout = collect( $release['steps'] ?? [] )
@@ -186,15 +186,15 @@ test( 'release job checks out the tag created by build-and-tag', function () {
 		->toContain( 'build-and-tag.outputs.version' );
 } );
 
-test( 'release job downloads the sourcemap artefact and attaches it to the GitHub Release', function () {
+test( 'release job downloads the sourcemap artefact and attaches it to the GitHub Release', function (): void {
 	$release = loadReleaseWorkflow()['release'];
-	$steps = collect( $release['steps'] ?? [] );
+	$steps   = collect( $release['steps'] ?? [] );
 
 	$download = $steps->first(
-		fn ( array $step ) => str_starts_with( (string) ( $step['uses'] ?? '' ), 'actions/download-artifact' )
+		fn ( array $step ) => str_starts_with( (string) ( $step['uses'] ?? '' ), 'actions/download-artifact' ),
 	);
 	expect( $download )->not->toBeNull(
-		'release job must download the sourcemap archive from build-and-tag'
+		'release job must download the sourcemap archive from build-and-tag',
 	);
 
 	// The GitHub Release itself is created by softprops/action-gh-release
@@ -202,7 +202,7 @@ test( 'release job downloads the sourcemap artefact and attaches it to the GitHu
 	// separate step so a transient upload failure doesn't take down the
 	// release or block the Packagist ping.
 	$ghRelease = $steps->first(
-		fn ( array $step ) => str_starts_with( (string) ( $step['uses'] ?? '' ), 'softprops/action-gh-release' )
+		fn ( array $step ) => str_starts_with( (string) ( $step['uses'] ?? '' ), 'softprops/action-gh-release' ),
 	);
 	expect( $ghRelease )->not->toBeNull();
 
@@ -212,7 +212,7 @@ test( 'release job downloads the sourcemap artefact and attaches it to the GitHu
 	$upload = $steps->first( function ( array $step ): bool {
 		$run = (string) ( $step['run'] ?? '' );
 
-		if ( $run === '' ) {
+		if ( '' === $run ) {
 			$run = (string) ( $step['with']['command'] ?? '' );
 		}
 
@@ -220,19 +220,19 @@ test( 'release job downloads the sourcemap artefact and attaches it to the GitHu
 			&& str_contains( $run, 'release-artifacts' );
 	} );
 	expect( $upload )->not->toBeNull(
-		'release job must upload the sourcemap archive via `gh release upload`'
+		'release job must upload the sourcemap archive via `gh release upload`',
 	);
 } );
 
-test( 'release job attaches assets to a draft and publishes it afterwards (immutable releases)', function () {
+test( 'release job attaches assets to a draft and publishes it afterwards (immutable releases)', function (): void {
 	$steps = collect( loadReleaseWorkflow()['release']['steps'] ?? [] )->values();
 
 	$runOf = static fn ( array $step ): string => (string) ( $step['run'] ?? $step['with']['command'] ?? '' );
 
 	$createIndex = $steps->search(
-		fn ( array $step ) => str_starts_with( (string) ( $step['uses'] ?? '' ), 'softprops/action-gh-release' )
+		fn ( array $step ) => str_starts_with( (string) ( $step['uses'] ?? '' ), 'softprops/action-gh-release' ),
 	);
-	$uploadIndex = $steps->search( fn ( array $step ) => str_contains( $runOf( $step ), 'gh release upload' ) );
+	$uploadIndex  = $steps->search( fn ( array $step ) => str_contains( $runOf( $step ), 'gh release upload' ) );
 	$publishIndex = $steps->search( fn ( array $step ) => str_contains( $runOf( $step ), 'gh release edit' ) );
 
 	// GitHub rejects asset uploads once a release is published when
@@ -250,7 +250,7 @@ test( 'release job attaches assets to a draft and publishes it afterwards (immut
 		->toContain( "steps.create-release.outcome == 'success'" );
 } );
 
-test( 'build-and-tag declares contents:write permission (required to push the tag)', function () {
+test( 'build-and-tag declares contents:write permission (required to push the tag)', function (): void {
 	$job = loadReleaseWorkflow()['buildAndTag'];
 
 	expect( $job['permissions']['contents'] ?? '' )->toBe( 'write' );

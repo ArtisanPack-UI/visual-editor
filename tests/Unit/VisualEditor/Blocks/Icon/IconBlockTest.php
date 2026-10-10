@@ -17,7 +17,7 @@ beforeEach( function (): void {
 		'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0"/></svg>',
 	);
 
-	$resolver    = new IconSvgResolver( [ 'fab' => test()->iconBase . '/fab' ] );
+	$resolver     = new IconSvgResolver( [ 'fab' => test()->iconBase . '/fab' ] );
 	test()->block = new IconBlock( new SvgSanitizer(), $resolver );
 } );
 
@@ -34,11 +34,11 @@ afterEach( function (): void {
 	}
 } );
 
-it( 'reports the artisanpack/icon block name', function () {
+it( 'reports the artisanpack/icon block name', function (): void {
 	expect( test()->block->name() )->toBe( 'artisanpack/icon' );
 } );
 
-it( 'renders a placeholder span when no iconRef or customSvg is set', function () {
+it( 'renders a placeholder span when no iconRef or customSvg is set', function (): void {
 	$html = test()->block->render( [] );
 
 	expect( $html )->toContain( 'wp-block-artisanpack-icon__placeholder' )
@@ -46,7 +46,7 @@ it( 'renders a placeholder span when no iconRef or customSvg is set', function (
 		->and( $html )->toContain( 'wp-block-artisanpack-icon' );
 } );
 
-it( 'inlines the resolved SVG when iconRef matches a registered set', function () {
+it( 'inlines the resolved SVG when iconRef matches a registered set', function (): void {
 	$html = test()->block->render( [
 		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
 	] );
@@ -60,7 +60,7 @@ it( 'inlines the resolved SVG when iconRef matches a registered set', function (
 		->and( $html )->toContain( '<path' );
 } );
 
-it( 'falls back to a placeholder when the iconRef cannot be resolved', function () {
+it( 'falls back to a placeholder when the iconRef cannot be resolved', function (): void {
 	$html = test()->block->render( [
 		'iconRef' => [ 'set' => 'fab', 'name' => 'does-not-exist' ],
 	] );
@@ -69,7 +69,7 @@ it( 'falls back to a placeholder when the iconRef cannot be resolved', function 
 		->and( $html )->not->toContain( '<svg' );
 } );
 
-it( 'strips width/height regardless of value quoting style', function () {
+it( 'strips width/height regardless of value quoting style', function (): void {
 	$base = test()->iconBase;
 	file_put_contents(
 		$base . '/fab/mixed-quotes.svg',
@@ -89,11 +89,11 @@ it( 'strips width/height regardless of value quoting style', function () {
 		->and( substr_count( $html, 'height=' ) )->toBe( 1 )
 		->and( $html )->toContain( 'width="100%"' )
 		->and( $html )->toContain( 'height="100%"' )
-		->and( $html )->not->toContain( "width=\"24\"" )
+		->and( $html )->not->toContain( 'width="24"' )
 		->and( $html )->not->toContain( "height='24'" );
 } );
 
-it( 'strips existing width/height from the SVG root before injecting wrapper-fill values', function () {
+it( 'strips existing width/height from the SVG root before injecting wrapper-fill values', function (): void {
 	$base = test()->iconBase;
 	file_put_contents(
 		$base . '/fab/sized.svg',
@@ -117,7 +117,7 @@ it( 'strips existing width/height from the SVG root before injecting wrapper-fil
 		->and( $html )->not->toContain( 'height="24"' );
 } );
 
-it( 'still falls back to a placeholder when no resolver is wired', function () {
+it( 'still falls back to a placeholder when no resolver is wired', function (): void {
 	$block = new IconBlock( new SvgSanitizer() );
 
 	$html = $block->render( [
@@ -128,7 +128,7 @@ it( 'still falls back to a placeholder when no resolver is wired', function () {
 		->and( $html )->not->toContain( '<svg' );
 } );
 
-it( 'rejects iconRef sets with disallowed characters', function () {
+it( 'rejects iconRef sets with disallowed characters', function (): void {
 	$html = test()->block->render( [
 		'iconRef' => [ 'set' => '../etc', 'name' => 'github' ],
 	] );
@@ -137,7 +137,7 @@ it( 'rejects iconRef sets with disallowed characters', function () {
 		->and( $html )->not->toContain( '../etc' );
 } );
 
-it( 'inlines a sanitized customSvg', function () {
+it( 'inlines a sanitized customSvg', function (): void {
 	$html = test()->block->render( [
 		'customSvg' => '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script><path d="M0 0"/></svg>',
 	] );
@@ -147,7 +147,7 @@ it( 'inlines a sanitized customSvg', function () {
 		->and( $html )->not->toContain( 'alert(1)' );
 } );
 
-it( 'never renders local file contents from an external-entity customSvg', function () {
+it( 'never renders local file contents from an external-entity customSvg', function (): void {
 	$secret = tempnam( sys_get_temp_dir(), 've-xxe-' );
 	file_put_contents( $secret, 'VE_XXE_CANARY_SECRET' );
 
@@ -164,7 +164,7 @@ it( 'never renders local file contents from an external-entity customSvg', funct
 		->and( $html )->not->toContain( '<svg' );
 } );
 
-it( 'wraps the icon in an anchor when link is set', function () {
+it( 'wraps the icon in an anchor when link is set', function (): void {
 	$html = test()->block->render( [
 		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
 		'link'    => 'https://example.com',
@@ -173,7 +173,7 @@ it( 'wraps the icon in an anchor when link is set', function () {
 	expect( $html )->toContain( '<a href="https://example.com"' );
 } );
 
-it( 'forces noopener noreferrer when target is _blank', function () {
+it( 'forces noopener noreferrer when target is _blank', function (): void {
 	$html = test()->block->render( [
 		'iconRef'    => [ 'set' => 'fab', 'name' => 'github' ],
 		'link'       => 'https://example.com',
@@ -188,7 +188,7 @@ it( 'forces noopener noreferrer when target is _blank', function () {
 		->and( $html )->toContain( 'nofollow' );
 } );
 
-it( 'drops link wrapping when no icon is selected', function () {
+it( 'drops link wrapping when no icon is selected', function (): void {
 	$html = test()->block->render( [
 		'link' => 'https://example.com',
 	] );
@@ -196,7 +196,7 @@ it( 'drops link wrapping when no icon is selected', function () {
 	expect( $html )->not->toContain( '<a ' );
 } );
 
-it( 'emits aria-hidden when decorative', function () {
+it( 'emits aria-hidden when decorative', function (): void {
 	$html = test()->block->render( [
 		'iconRef'      => [ 'set' => 'fab', 'name' => 'github' ],
 		'isDecorative' => true,
@@ -208,7 +208,7 @@ it( 'emits aria-hidden when decorative', function () {
 		->and( $html )->not->toContain( 'aria-label="GitHub Profile"' );
 } );
 
-it( 'emits aria-label for accessible non-decorative icons', function () {
+it( 'emits aria-label for accessible non-decorative icons', function (): void {
 	$html = test()->block->render( [
 		'iconRef'   => [ 'set' => 'fab', 'name' => 'github' ],
 		'ariaLabel' => 'GitHub Profile',
@@ -217,7 +217,7 @@ it( 'emits aria-label for accessible non-decorative icons', function () {
 	expect( $html )->toContain( 'aria-label="GitHub Profile"' );
 } );
 
-it( 'promotes ariaLabel onto the <a> when the icon is decorative + linked', function () {
+it( 'promotes ariaLabel onto the <a> when the icon is decorative + linked', function (): void {
 	// The body span is `aria-hidden` (decorative), so the supplied
 	// ariaLabel can't live there without contradicting the hide. Pushing
 	// it onto the anchor keeps the link reachable + labeled for screen
@@ -233,7 +233,7 @@ it( 'promotes ariaLabel onto the <a> when the icon is decorative + linked', func
 		->and( $html )->toContain( 'aria-hidden="true"' );
 } );
 
-it( 'treats a whitespace-only ariaLabel as missing on a decorative + linked icon', function () {
+it( 'treats a whitespace-only ariaLabel as missing on a decorative + linked icon', function (): void {
 	// `"   "` and an empty string are equivalently inaccessible — both
 	// leave the anchor unlabeled. Treating them the same way keeps the
 	// editor warning honest: if the author has to put a real label
@@ -249,7 +249,7 @@ it( 'treats a whitespace-only ariaLabel as missing on a decorative + linked icon
 		->and( $html )->not->toContain( 'aria-label=' );
 } );
 
-it( 'leaves the <a> aria-label off when the icon is decorative + linked + has NO ariaLabel', function () {
+it( 'leaves the <a> aria-label off when the icon is decorative + linked + has NO ariaLabel', function (): void {
 	// Without an ariaLabel the editor-side warning still fires;
 	// the server preserves the missing label so the warning state
 	// doesn't silently go away post-render.
@@ -263,7 +263,7 @@ it( 'leaves the <a> aria-label off when the icon is decorative + linked + has NO
 		->and( $html )->not->toContain( 'aria-label=' );
 } );
 
-it( 'leaves the <a> aria-label off when the icon is non-decorative + linked + has ariaLabel', function () {
+it( 'leaves the <a> aria-label off when the icon is non-decorative + linked + has ariaLabel', function (): void {
 	// In the non-decorative branch the body span already carries the
 	// aria-label, so doubling it on the anchor would be redundant.
 	$html = test()->block->render( [
@@ -277,7 +277,7 @@ it( 'leaves the <a> aria-label off when the icon is non-decorative + linked + ha
 		->and( $html )->toMatch( '/<span [^>]*aria-label="GitHub Profile"/' );
 } );
 
-it( 'composes a transform from rotation + flip', function () {
+it( 'composes a transform from rotation + flip', function (): void {
 	$html = test()->block->render( [
 		'iconRef'  => [ 'set' => 'fab', 'name' => 'github' ],
 		'rotation' => 90,
@@ -288,36 +288,36 @@ it( 'composes a transform from rotation + flip', function () {
 		->and( $html )->toContain( 'scaleX(-1)' );
 } );
 
-it( 'rejects out-of-range rotations', function () {
+it( 'rejects out-of-range rotations', function (): void {
 	$normalized = test()->block->validateAttrs( [ 'rotation' => 45 ] );
 
 	expect( $normalized['rotation'] )->toBe( 0 );
 } );
 
-it( 'rejects invalid size units', function () {
+it( 'rejects invalid size units', function (): void {
 	$normalized = test()->block->validateAttrs( [ 'sizeUnit' => 'pt' ] );
 
 	expect( $normalized['sizeUnit'] )->toBe( 'px' );
 } );
 
-it( 'clamps size to a reasonable range', function () {
+it( 'clamps size to a reasonable range', function (): void {
 	expect( test()->block->validateAttrs( [ 'size' => 0 ] )['size'] )->toBe( 1.0 )
 		->and( test()->block->validateAttrs( [ 'size' => 99999 ] )['size'] )->toBe( 1024.0 );
 } );
 
-it( 'rejects invalid link targets', function () {
+it( 'rejects invalid link targets', function (): void {
 	$normalized = test()->block->validateAttrs( [ 'linkTarget' => '_evil' ] );
 
 	expect( $normalized['linkTarget'] )->toBe( '' );
 } );
 
-it( 'rejects malformed colors', function () {
+it( 'rejects malformed colors', function (): void {
 	$normalized = test()->block->validateAttrs( [ 'color' => 'javascript:alert(1)' ] );
 
 	expect( $normalized['color'] )->toBeNull();
 } );
 
-it( 'accepts hex, rgb, hsl, var, and named colors', function () {
+it( 'accepts hex, rgb, hsl, var, and named colors', function (): void {
 	expect( test()->block->validateAttrs( [ 'color' => '#fff' ] )['color'] )->toBe( '#fff' )
 		->and( test()->block->validateAttrs( [ 'color' => 'rgb(0,0,0)' ] )['color'] )->toBe( 'rgb(0,0,0)' )
 		->and( test()->block->validateAttrs( [ 'color' => 'hsl(0,100%,50%)' ] )['color'] )->toBe( 'hsl(0,100%,50%)' )
@@ -325,7 +325,7 @@ it( 'accepts hex, rgb, hsl, var, and named colors', function () {
 		->and( test()->block->validateAttrs( [ 'color' => 'red' ] )['color'] )->toBe( 'red' );
 } );
 
-it( 'rejects javascript: links', function () {
+it( 'rejects javascript: links', function (): void {
 	$html = test()->block->render( [
 		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
 		'link'    => 'javascript:alert(1)',
@@ -335,7 +335,7 @@ it( 'rejects javascript: links', function () {
 		->and( $html )->not->toContain( 'javascript:' );
 } );
 
-it( 'rejects data: links', function () {
+it( 'rejects data: links', function (): void {
 	$html = test()->block->render( [
 		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
 		'link'    => 'data:text/html,<script>alert(1)</script>',
@@ -345,7 +345,7 @@ it( 'rejects data: links', function () {
 		->and( $html )->not->toContain( 'data:' );
 } );
 
-it( 'allows relative links', function () {
+it( 'allows relative links', function (): void {
 	$html = test()->block->render( [
 		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
 		'link'    => '/about',
@@ -354,7 +354,7 @@ it( 'allows relative links', function () {
 	expect( $html )->toContain( '<a href="/about"' );
 } );
 
-it( 'allows mailto and tel links', function () {
+it( 'allows mailto and tel links', function (): void {
 	$mail = test()->block->render( [
 		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
 		'link'    => 'mailto:hello@example.com',
@@ -368,7 +368,7 @@ it( 'allows mailto and tel links', function () {
 		->and( $tel )->toContain( 'href="tel:+15551234567"' );
 } );
 
-it( 'exposes ariaLabel + title via searchableText', function () {
+it( 'exposes ariaLabel + title via searchableText', function (): void {
 	$text = test()->block->searchableText( [
 		'ariaLabel' => 'GitHub Profile',
 		'titleAttr' => 'Visit on GitHub',
@@ -380,7 +380,7 @@ it( 'exposes ariaLabel + title via searchableText', function () {
 
 // --- WP `attributes.style` envelope (color/border/spacing) ---
 
-it( 'applies text color from the WP style envelope', function () {
+it( 'applies text color from the WP style envelope', function (): void {
 	$html = test()->block->render( [
 		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
 		'style'   => [ 'color' => [ 'text' => '#abc123' ] ],
@@ -389,7 +389,7 @@ it( 'applies text color from the WP style envelope', function () {
 	expect( $html )->toContain( 'color: #abc123' );
 } );
 
-it( 'applies background color from the WP style envelope', function () {
+it( 'applies background color from the WP style envelope', function (): void {
 	$html = test()->block->render( [
 		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
 		'style'   => [ 'color' => [ 'background' => '#facade' ] ],
@@ -398,7 +398,7 @@ it( 'applies background color from the WP style envelope', function () {
 	expect( $html )->toContain( 'background-color: #facade' );
 } );
 
-it( 'lets the WP style envelope override the legacy top-level color', function () {
+it( 'lets the WP style envelope override the legacy top-level color', function (): void {
 	$html = test()->block->render( [
 		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
 		'color'   => '#111111',
@@ -409,7 +409,7 @@ it( 'lets the WP style envelope override the legacy top-level color', function (
 		->and( $html )->not->toContain( 'color: #111111' );
 } );
 
-it( 'falls back to the legacy top-level color when WP style is empty', function () {
+it( 'falls back to the legacy top-level color when WP style is empty', function (): void {
 	$html = test()->block->render( [
 		'iconRef'         => [ 'set' => 'fab', 'name' => 'github' ],
 		'color'           => '#cafe00',
@@ -420,7 +420,7 @@ it( 'falls back to the legacy top-level color when WP style is empty', function 
 		->and( $html )->toContain( 'background-color: #beef00' );
 } );
 
-it( 'applies uniform border declarations to the body span', function () {
+it( 'applies uniform border declarations to the body span', function (): void {
 	$html = test()->block->render( [
 		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
 		'style'   => [
@@ -439,7 +439,7 @@ it( 'applies uniform border declarations to the body span', function () {
 		->and( $html )->toContain( 'border-radius: 6px' );
 } );
 
-it( 'applies per-corner radius from a radius object', function () {
+it( 'applies per-corner radius from a radius object', function (): void {
 	$html = test()->block->render( [
 		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
 		'style'   => [
@@ -460,7 +460,7 @@ it( 'applies per-corner radius from a radius object', function () {
 		->and( $html )->toContain( 'border-bottom-left-radius: 4px' );
 } );
 
-it( 'applies padding shorthand on the body span', function () {
+it( 'applies padding shorthand on the body span', function (): void {
 	$html = test()->block->render( [
 		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
 		'style'   => [ 'spacing' => [ 'padding' => '8px' ] ],
@@ -469,7 +469,7 @@ it( 'applies padding shorthand on the body span', function () {
 	expect( $html )->toContain( 'padding: 8px' );
 } );
 
-it( 'applies per-side padding on the body span', function () {
+it( 'applies per-side padding on the body span', function (): void {
 	$html = test()->block->render( [
 		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
 		'style'   => [
@@ -490,7 +490,7 @@ it( 'applies per-side padding on the body span', function () {
 		->and( $html )->toContain( 'padding-left: 4px' );
 } );
 
-it( 'applies margin to the wrapper, not the body span', function () {
+it( 'applies margin to the wrapper, not the body span', function (): void {
 	$html = test()->block->render( [
 		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
 		'style'   => [ 'spacing' => [ 'margin' => '12px' ] ],
@@ -499,7 +499,7 @@ it( 'applies margin to the wrapper, not the body span', function () {
 	expect( $html )->toMatch( '/<div class="wp-block-artisanpack-icon" style="margin: 12px;">/' );
 } );
 
-it( 'omits the wrapper style attribute when no wrapper-level styles apply', function () {
+it( 'omits the wrapper style attribute when no wrapper-level styles apply', function (): void {
 	$html = test()->block->render( [
 		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
 	] );
@@ -507,13 +507,13 @@ it( 'omits the wrapper style attribute when no wrapper-level styles apply', func
 	expect( $html )->toMatch( '/<div class="wp-block-artisanpack-icon">/' );
 } );
 
-it( 'drops style values that fail the safe-CSS allowlist', function () {
+it( 'drops style values that fail the safe-CSS allowlist', function (): void {
 	$html = test()->block->render( [
 		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
 		'style'   => [
-			'color'  => [ 'text' => 'expression(alert(1))' ],
-			'border' => [ 'width' => '2px; background: url(evil)' ],
-			'spacing'=> [ 'padding' => "8px;</style><script>alert('xss')</script>" ],
+			'color'   => [ 'text' => 'expression(alert(1))' ],
+			'border'  => [ 'width' => '2px; background: url(evil)' ],
+			'spacing' => [ 'padding' => "8px;</style><script>alert('xss')</script>" ],
 		],
 	] );
 
@@ -525,7 +525,7 @@ it( 'drops style values that fail the safe-CSS allowlist', function () {
 
 // --- width / height override ---
 
-it( 'uses size for both width and height when no override is set', function () {
+it( 'uses size for both width and height when no override is set', function (): void {
 	$html = test()->block->render( [
 		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
 		'size'    => 48,
@@ -535,7 +535,7 @@ it( 'uses size for both width and height when no override is set', function () {
 		->and( $html )->toContain( 'height: 48px' );
 } );
 
-it( 'overrides the width axis when a width attribute is set', function () {
+it( 'overrides the width axis when a width attribute is set', function (): void {
 	$html = test()->block->render( [
 		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
 		'size'    => 32,
@@ -546,7 +546,7 @@ it( 'overrides the width axis when a width attribute is set', function () {
 		->and( $html )->toContain( 'height: 32px' );
 } );
 
-it( 'inherits sizeUnit for width when widthUnit is null', function () {
+it( 'inherits sizeUnit for width when widthUnit is null', function (): void {
 	$attrs = test()->block->validateAttrs( [
 		'iconRef'  => [ 'set' => 'fab', 'name' => 'github' ],
 		'size'     => 32,
@@ -558,7 +558,7 @@ it( 'inherits sizeUnit for width when widthUnit is null', function () {
 		->and( $attrs['widthUnit'] )->toBe( 'rem' );
 } );
 
-it( 'accepts new sizeUnit values (%, vw, vh)', function () {
+it( 'accepts new sizeUnit values (%, vw, vh)', function (): void {
 	$normalized = test()->block->validateAttrs( [ 'sizeUnit' => 'vh' ] );
 	expect( $normalized['sizeUnit'] )->toBe( 'vh' );
 
@@ -569,13 +569,13 @@ it( 'accepts new sizeUnit values (%, vw, vh)', function () {
 	expect( $normalized['sizeUnit'] )->toBe( '%' );
 } );
 
-it( 'clamps explicit width and height to the 1..1024 range', function () {
+it( 'clamps explicit width and height to the 1..1024 range', function (): void {
 	$normalized = test()->block->validateAttrs( [ 'width' => -10, 'height' => 99999 ] );
 	expect( $normalized['width'] )->toBe( 1.0 )
 		->and( $normalized['height'] )->toBe( 1024.0 );
 } );
 
-it( 'normalizes missing width/height back to null', function () {
+it( 'normalizes missing width/height back to null', function (): void {
 	$normalized = test()->block->validateAttrs( [] );
 	expect( $normalized['width'] )->toBeNull()
 		->and( $normalized['height'] )->toBeNull();
@@ -583,7 +583,7 @@ it( 'normalizes missing width/height back to null', function () {
 
 // --- iconColor + palette-class wiring ---
 
-it( 'applies the explicit iconColor to the body span', function () {
+it( 'applies the explicit iconColor to the body span', function (): void {
 	$html = test()->block->render( [
 		'iconRef'   => [ 'set' => 'fab', 'name' => 'github' ],
 		'iconColor' => '#abc123',
@@ -592,7 +592,7 @@ it( 'applies the explicit iconColor to the body span', function () {
 	expect( $html )->toContain( 'color: #abc123' );
 } );
 
-it( 'lets iconColor override the WP style.color.text fallback', function () {
+it( 'lets iconColor override the WP style.color.text fallback', function (): void {
 	$html = test()->block->render( [
 		'iconRef'   => [ 'set' => 'fab', 'name' => 'github' ],
 		'iconColor' => '#aaaaaa',
@@ -603,7 +603,7 @@ it( 'lets iconColor override the WP style.color.text fallback', function () {
 		->and( $html )->not->toContain( 'color: #bbbbbb' );
 } );
 
-it( 'falls back to style.color.text when iconColor is unset', function () {
+it( 'falls back to style.color.text when iconColor is unset', function (): void {
 	$html = test()->block->render( [
 		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
 		'style'   => [ 'color' => [ 'text' => '#cccccc' ] ],
@@ -612,7 +612,7 @@ it( 'falls back to style.color.text when iconColor is unset', function () {
 	expect( $html )->toContain( 'color: #cccccc' );
 } );
 
-it( 'emits has-X-background-color + has-background for palette background slugs', function () {
+it( 'emits has-X-background-color + has-background for palette background slugs', function (): void {
 	$html = test()->block->render( [
 		'iconRef'         => [ 'set' => 'fab', 'name' => 'github' ],
 		'backgroundColor' => 'primary',
@@ -622,7 +622,7 @@ it( 'emits has-X-background-color + has-background for palette background slugs'
 		->and( $html )->toContain( 'has-background' );
 } );
 
-it( 'emits has-X-border-color + has-border-color for palette border slugs', function () {
+it( 'emits has-X-border-color + has-border-color for palette border slugs', function (): void {
 	$html = test()->block->render( [
 		'iconRef'     => [ 'set' => 'fab', 'name' => 'github' ],
 		'borderColor' => 'accent',
@@ -632,7 +632,7 @@ it( 'emits has-X-border-color + has-border-color for palette border slugs', func
 		->and( $html )->toContain( 'has-border-color' );
 } );
 
-it( 'does NOT emit a has-X class when backgroundColor carries a hex value', function () {
+it( 'does NOT emit a has-X class when backgroundColor carries a hex value', function (): void {
 	$html = test()->block->render( [
 		'iconRef'         => [ 'set' => 'fab', 'name' => 'github' ],
 		'backgroundColor' => '#abc123',
@@ -644,7 +644,7 @@ it( 'does NOT emit a has-X class when backgroundColor carries a hex value', func
 		->and( $html )->toContain( 'background-color: #abc123' );
 } );
 
-it( 'puts WP-managed background/border/padding/margin on the wrapper', function () {
+it( 'puts WP-managed background/border/padding/margin on the wrapper', function (): void {
 	$html = test()->block->render( [
 		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
 		'style'   => [

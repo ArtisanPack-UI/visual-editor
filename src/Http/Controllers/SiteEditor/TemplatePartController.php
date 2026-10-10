@@ -33,6 +33,7 @@ use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\StoreTemplatePartRequest
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\UpdateTemplatePartRequest;
 use ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\SiteEditor\TemplatePartAdapter;
 use ArtisanPackUI\VisualEditor\Rules\TemplateBlockTreeRule;
+use ArtisanPackUI\VisualEditor\SiteEditor\Previews\PatternPreviewCache;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedTemplatePart;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\TemplatePartResolver;
 use ArtisanPackUI\VisualEditor\Support\ThemeBlockMarkup;
@@ -228,6 +229,9 @@ class TemplatePartController extends Controller
 			throw $e;
 		}
 
+		// #832 — previews embedding this template part render stale otherwise.
+		app( PatternPreviewCache::class )->flush();
+
 		$this->refreshResolver();
 
 		$resolved = $this->resolver->find( (string) $part->slug );
@@ -376,6 +380,9 @@ class TemplatePartController extends Controller
 			$resolverKey = $slug;
 		}
 
+		// #832 — previews embedding this template part render stale otherwise.
+		app( PatternPreviewCache::class )->flush();
+
 		$this->refreshResolver();
 
 		$resolved = $this->resolver->find( $resolverKey );
@@ -423,6 +430,9 @@ class TemplatePartController extends Controller
 
 			$existing->delete();
 
+			// #832 — previews embedding this template part render stale otherwise.
+			app( PatternPreviewCache::class )->flush();
+
 			$this->refreshResolver();
 
 			return response()->json( null, Response::HTTP_NO_CONTENT );
@@ -450,6 +460,9 @@ class TemplatePartController extends Controller
 		if ( 0 === $deleted ) {
 			return response()->json( [ 'message' => 'No template-part override to revert.' ], Response::HTTP_NOT_FOUND );
 		}
+
+		// #832 — previews embedding this template part render stale otherwise.
+		app( PatternPreviewCache::class )->flush();
 
 		$this->refreshResolver();
 
@@ -632,7 +645,6 @@ class TemplatePartController extends Controller
 
 	/**
 	 * @since 1.0.0
-	 *
 	 * @see TemplateController::refreshResolver() for the static-config
 	 *      merge rationale.
 	 */

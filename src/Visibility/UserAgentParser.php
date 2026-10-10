@@ -33,13 +33,13 @@ class UserAgentParser
 	public const BROWSER_IE      = 'ie';
 	public const BROWSER_OTHER   = 'other';
 
-	public const OS_WINDOWS = 'windows';
-	public const OS_MACOS   = 'macos';
-	public const OS_IOS     = 'ios';
-	public const OS_ANDROID = 'android';
-	public const OS_LINUX   = 'linux';
+	public const OS_WINDOWS  = 'windows';
+	public const OS_MACOS    = 'macos';
+	public const OS_IOS      = 'ios';
+	public const OS_ANDROID  = 'android';
+	public const OS_LINUX    = 'linux';
 	public const OS_CHROMEOS = 'chromeos';
-	public const OS_OTHER   = 'other';
+	public const OS_OTHER    = 'other';
 
 	public const DEVICE_MOBILE  = 'mobile';
 	public const DEVICE_TABLET  = 'tablet';

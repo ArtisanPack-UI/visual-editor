@@ -28,6 +28,7 @@ namespace ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\StorePatternRequest;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\UpdatePatternRequest;
 use ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\SiteEditor\PatternAdapter;
+use ArtisanPackUI\VisualEditor\SiteEditor\Previews\PatternPreviewCache;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\PatternResolver;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedPattern;
 use Illuminate\Database\QueryException;
@@ -206,6 +207,10 @@ class PatternController extends Controller
 
 		$existing->update( $this->modelAttributesFromRequest( $validated ) );
 
+		// #832 — drop every cached card preview, not just this pattern's:
+		// any other pattern may embed this one as a synced `core/block` ref.
+		app( PatternPreviewCache::class )->flush();
+
 		$this->refreshResolver();
 
 		$resolved = $this->findPatternByIdOrSlug( $slug );
@@ -242,6 +247,10 @@ class PatternController extends Controller
 		}
 
 		$existing->delete();
+
+		// #832 — drop every cached card preview, since other patterns may
+		// embed the deleted one as a synced `core/block` ref.
+		app( PatternPreviewCache::class )->flush();
 
 		$this->refreshResolver();
 
@@ -425,7 +434,6 @@ class PatternController extends Controller
 
 	/**
 	 * @since 1.0.0
-	 *
 	 * @see TemplateController::isUniqueViolation() for the rationale.
 	 */
 	protected function isUniqueViolation( QueryException $e ): bool
@@ -442,7 +450,6 @@ class PatternController extends Controller
 
 	/**
 	 * @since 1.0.0
-	 *
 	 * @see TemplateController::refreshResolver() for the static-config
 	 *      merge rationale.
 	 */

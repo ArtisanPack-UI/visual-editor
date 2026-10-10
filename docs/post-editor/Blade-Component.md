@@ -40,6 +40,7 @@ React editor reads on boot.
 | `:authorOptions` | `?array` | no | `null` | Dropdown options for the author picker. Shape: `[['value' => 1, 'label' => 'Jane'], …]`. |
 | `:supports` | `?array` | no | `null` | Which document-panel fields to render. Keys: `excerpt`, `featuredImage`, `comments` (all `bool`). Omit to show everything the trait supports. |
 | `:previewUrl` | `?string` | no | `null` | Front-end preview URL. Opens in a new tab from the topbar Preview button. |
+| `pattern-post-type` | `?string` | no | `null` | Post-type slug the page-pattern modal fetches patterns for (trimmed, lowercased). Lets a custom content type offer full-page starters; leave unset to keep the modal limited to `pages` / `posts`. See [Patterns](../site-editor/Patterns.md#page-pattern-modal-and-post-types). *Since v1.13.0.* |
 
 The component passes its `$attributes` bag through to the root div, so
 `class`, `id`, `style`, and `wire:ignore` are all forwarded.

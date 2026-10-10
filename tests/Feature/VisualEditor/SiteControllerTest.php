@@ -13,7 +13,7 @@ declare( strict_types=1 );
 
 use Tests\TestUser;
 
-beforeEach( function () {
+beforeEach( function (): void {
 	config()->set( 'artisanpack.visual-editor.api.middleware', [ 'auth' ] );
 
 	$this->actor = TestUser::create( [
@@ -25,7 +25,7 @@ beforeEach( function () {
 	$this->actingAs( $this->actor );
 } );
 
-it( 'returns the configured site-meta envelope', function () {
+it( 'returns the configured site-meta envelope', function (): void {
 	config()->set( 'artisanpack.visual-editor.site_meta', [
 		'title'       => 'ArtisanPack Studios',
 		'description' => 'Crafting beautiful interfaces.',
@@ -47,7 +47,7 @@ it( 'returns the configured site-meta envelope', function () {
 		->assertJsonPath( 'logoUrl', '' );
 } );
 
-it( 'returns empty strings when no source has populated the meta', function () {
+it( 'returns empty strings when no source has populated the meta', function (): void {
 	config()->set( 'artisanpack.visual-editor.site_meta', [
 		'title'       => null,
 		'description' => null,
@@ -65,7 +65,7 @@ it( 'returns empty strings when no source has populated the meta', function () {
 		->assertJsonPath( 'logoUrl', '' );
 } );
 
-it( 'ignores the id segment and always returns the singleton record', function () {
+it( 'ignores the id segment and always returns the singleton record', function (): void {
 	config()->set( 'artisanpack.visual-editor.site_meta', [
 		'title'       => 'Sentinel Test',
 		'description' => null,
@@ -80,7 +80,7 @@ it( 'ignores the id segment and always returns the singleton record', function (
 		->assertJsonPath( 'title.raw', 'Sentinel Test' );
 } );
 
-it( 'rejects unauthenticated requests when the api middleware requires auth', function () {
+it( 'rejects unauthenticated requests when the api middleware requires auth', function (): void {
 	auth()->logout();
 
 	$this->getJson( '/visual-editor/api/site/self' )->assertUnauthorized();

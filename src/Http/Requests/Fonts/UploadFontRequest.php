@@ -70,7 +70,7 @@ class UploadFontRequest extends FormRequest
 	{
 		$maxKilobytes = (int) config(
 			'artisanpack.visual-editor.fonts.upload.max_kilobytes',
-			self::DEFAULT_MAX_KILOBYTES
+			self::DEFAULT_MAX_KILOBYTES,
 		);
 
 		return [
@@ -99,7 +99,7 @@ class UploadFontRequest extends FormRequest
 		$validator->after( function ( Validator $validator ): void {
 			$maxTotalKilobytes = (int) config(
 				'artisanpack.visual-editor.fonts.upload.max_total_kilobytes',
-				self::DEFAULT_MAX_TOTAL_KILOBYTES
+				self::DEFAULT_MAX_TOTAL_KILOBYTES,
 			);
 
 			$totalBytes = 0;
@@ -116,7 +116,7 @@ class UploadFontRequest extends FormRequest
 			if ( $totalBytes > $maxTotalKilobytes * 1024 ) {
 				$validator->errors()->add( 'faces', __(
 					'The uploaded font files together may not exceed :max kilobytes.',
-					[ 'max' => $maxTotalKilobytes ]
+					[ 'max' => $maxTotalKilobytes ],
 				) );
 			}
 		} );
@@ -156,7 +156,7 @@ class UploadFontRequest extends FormRequest
 
 		return array_values( array_map(
 			static fn ( $extension ): string => ltrim( strtolower( (string) $extension ), '.' ),
-			$configured
+			$configured,
 		) );
 	}
 }

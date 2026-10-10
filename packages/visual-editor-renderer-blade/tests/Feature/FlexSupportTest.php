@@ -13,7 +13,7 @@ use ArtisanPackUI\VisualEditorRendererBlade\Support\FlexSupport;
  * serializers in lockstep without a build step.
  */
 
-it( 'matches shared fixtures byte-for-byte', function ( string $name, $input, array $expected ) {
+it( 'matches shared fixtures byte-for-byte', function ( string $name, $input, array $expected ): void {
 	$support = app( FlexSupport::class );
 	$result  = $support->serialize( $input );
 
@@ -45,7 +45,7 @@ it( 'matches shared fixtures byte-for-byte', function ( string $name, $input, ar
 	return $cases;
 } );
 
-it( 'returns empty result for null input', function () {
+it( 'returns empty result for null input', function (): void {
 	$support = app( FlexSupport::class );
 	$result  = $support->serialize( null );
 
@@ -58,7 +58,7 @@ it( 'returns empty result for null input', function () {
  * `buildArbitraryStyles` must drop any value that fails the shared CSS-value
  * whitelist rather than emit a rule that could inject attacker CSS.
  */
-it( 'emits safe arbitrary values verbatim', function () {
+it( 'emits safe arbitrary values verbatim', function (): void {
 	$support = app( FlexSupport::class );
 
 	$css = $support->buildArbitraryStyles( [
@@ -70,7 +70,7 @@ it( 'emits safe arbitrary values verbatim', function () {
 		->and( $css )->toContain( 'column-gap: 1rem;' );
 } );
 
-it( 'drops a hostile arbitrary value so it never reaches the stylesheet', function () {
+it( 'drops a hostile arbitrary value so it never reaches the stylesheet', function (): void {
 	$support = app( FlexSupport::class );
 
 	$css = $support->buildArbitraryStyles( [
@@ -80,7 +80,7 @@ it( 'drops a hostile arbitrary value so it never reaches the stylesheet', functi
 	expect( $css )->toBe( '' );
 } );
 
-it( 'skips a breakpoint whose only rule is hostile, emitting no @media block', function () {
+it( 'skips a breakpoint whose only rule is hostile, emitting no @media block', function (): void {
 	$support = app( FlexSupport::class );
 
 	$css = $support->buildArbitraryStyles( [

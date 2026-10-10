@@ -125,24 +125,24 @@ describe( 'GET /visual-editor/api/patterns', function (): void {
 			$patterns = is_array( $patterns ) ? $patterns : [];
 
 			$patterns['landing-hero'] = [
-				'slug'       => 'landing-hero',
-				'title'      => 'Landing hero',
-				'source'     => 'theme',
-				'synced'     => false,
-				'categories' => [ 'page' ],
-				'post_types' => [ 'page' ],
-				'blocks'     => [],
+				'slug'        => 'landing-hero',
+				'title'       => 'Landing hero',
+				'source'      => 'theme',
+				'synced'      => false,
+				'categories'  => [ 'page' ],
+				'post_types'  => [ 'page' ],
+				'blocks'      => [],
 				'raw_content' => '',
 			];
 
 			$patterns['recipe-intro'] = [
-				'slug'       => 'recipe-intro',
-				'title'      => 'Recipe intro',
-				'source'     => 'theme',
-				'synced'     => false,
-				'categories' => [ 'post' ],
-				'post_types' => [ 'post' ],
-				'blocks'     => [],
+				'slug'        => 'recipe-intro',
+				'title'       => 'Recipe intro',
+				'source'      => 'theme',
+				'synced'      => false,
+				'categories'  => [ 'post' ],
+				'post_types'  => [ 'post' ],
+				'blocks'      => [],
 				'raw_content' => '',
 			];
 

@@ -44,14 +44,6 @@ class ThemeFontBundle extends Model
 		'faces',
 	];
 
-	protected function casts(): array
-	{
-		return [
-			'font_id' => 'integer',
-			'faces'   => 'array',
-		];
-	}
-
 	/**
 	 * The font this bundle references.
 	 *
@@ -62,6 +54,14 @@ class ThemeFontBundle extends Model
 	public function font(): BelongsTo
 	{
 		return $this->belongsTo( Font::class );
+	}
+
+	protected function casts(): array
+	{
+		return [
+			'font_id' => 'integer',
+			'faces'   => 'array',
+		];
 	}
 
 	/**

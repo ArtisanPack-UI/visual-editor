@@ -22,51 +22,10 @@ namespace ArtisanPackUI\VisualEditorRendererBlade\Support;
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use ArtisanPackUI\VisualEditor\Responsive\ResponsiveValueResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
+use Throwable;
 
 class FlexSupport
 {
-	/**
-	 * Convenience used by block partials: serialize the block's
-	 * `artisanpackFlex` attribute, push any arbitrary-value rules into
-	 * the per-request CSS accumulator, and return the classes ready
-	 * for `BlockSupports::wrapperAttrs()`.
-	 *
-	 * @param  array<string, mixed>  $attributes  Block attributes.
-	 *
-	 * @return array<int, string> Class list (possibly empty).
-	 */
-	public static function wrapperForBlock( array $attributes ): array
-	{
-		$flex = $attributes[ 'artisanpackFlex' ] ?? null;
-		if ( ! is_array( $flex ) ) {
-			return [];
-		}
-
-		try {
-			$support = app( self::class );
-		} catch ( \Throwable $e ) {
-			return [];
-		}
-
-		$result = $support->serialize( $flex );
-
-		$css = $support->buildArbitraryStyles( $result[ 'arbitraryRules' ] );
-		if ( '' !== $css ) {
-			try {
-				// Per-block scope keyed by the CSS content so identical
-				// rules dedupe but blocks with different arbitrary values
-				// (e.g. `ap-gap-x-[16px]` vs `ap-gap-x-[24px]`) each land
-				// in the accumulator instead of one overwriting the other.
-				$scope = 'flex-arbitrary-' . substr( sha1( $css ), 0, 12 );
-				app( ResponsiveCssAccumulator::class )->push( $scope, $css );
-			} catch ( \Throwable $e ) {
-				// Accumulator not booted (early or test path) — silently drop.
-			}
-		}
-
-		return $result[ 'classes' ];
-	}
-
 
 	private const JUSTIFY_TOKEN = [
 		'flex-start'    => 'start',
@@ -151,7 +110,50 @@ class FlexSupport
 	public function __construct(
 		protected BreakpointRegistry $registry,
 		protected ResponsiveValueResolver $resolver,
-	) {}
+	) {
+	}
+
+	/**
+	 * Convenience used by block partials: serialize the block's
+	 * `artisanpackFlex` attribute, push any arbitrary-value rules into
+	 * the per-request CSS accumulator, and return the classes ready
+	 * for `BlockSupports::wrapperAttrs()`.
+	 *
+	 * @param  array<string, mixed>  $attributes  Block attributes.
+	 *
+	 * @return array<int, string> Class list (possibly empty).
+	 */
+	public static function wrapperForBlock( array $attributes ): array
+	{
+		$flex = $attributes[ 'artisanpackFlex' ] ?? null;
+		if ( ! is_array( $flex ) ) {
+			return [];
+		}
+
+		try {
+			$support = app( self::class );
+		} catch ( Throwable $e ) {
+			return [];
+		}
+
+		$result = $support->serialize( $flex );
+
+		$css = $support->buildArbitraryStyles( $result[ 'arbitraryRules' ] );
+		if ( '' !== $css ) {
+			try {
+				// Per-block scope keyed by the CSS content so identical
+				// rules dedupe but blocks with different arbitrary values
+				// (e.g. `ap-gap-x-[16px]` vs `ap-gap-x-[24px]`) each land
+				// in the accumulator instead of one overwriting the other.
+				$scope = 'flex-arbitrary-' . substr( sha1( $css ), 0, 12 );
+				app( ResponsiveCssAccumulator::class )->push( $scope, $css );
+			} catch ( Throwable $e ) {
+				// Accumulator not booted (early or test path) — silently drop.
+			}
+		}
+
+		return $result[ 'classes' ];
+	}
 
 	/**
 	 * Serialize a flex container attribute slice.
@@ -216,8 +218,8 @@ class FlexSupport
 		} );
 
 		$this->emitForEachBreakpoint( $container[ 'placeContent' ] ?? null, function ( $value, string $bp ) use ( &$result ): void {
-			$className                 = $this->prefix( $bp ) . 'ap-place-content-' . $this->bracket( (string) $value );
-			$result[ 'classes' ][]     = $className;
+			$className                    = $this->prefix( $bp ) . 'ap-place-content-' . $this->bracket( (string) $value );
+			$result[ 'classes' ][]        = $className;
 			$result[ 'arbitraryRules' ][] = [
 				'className'  => $className,
 				'property'   => 'place-content',
@@ -229,8 +231,8 @@ class FlexSupport
 		$gap = $container[ 'gap' ] ?? null;
 		if ( is_array( $gap ) ) {
 			$this->emitForEachBreakpoint( $gap[ 'row' ] ?? null, function ( $value, string $bp ) use ( &$result ): void {
-				$className                 = $this->prefix( $bp ) . 'ap-gap-y-' . $this->bracket( (string) $value );
-				$result[ 'classes' ][]     = $className;
+				$className                    = $this->prefix( $bp ) . 'ap-gap-y-' . $this->bracket( (string) $value );
+				$result[ 'classes' ][]        = $className;
 				$result[ 'arbitraryRules' ][] = [
 					'className'  => $className,
 					'property'   => 'row-gap',
@@ -240,8 +242,8 @@ class FlexSupport
 			} );
 
 			$this->emitForEachBreakpoint( $gap[ 'column' ] ?? null, function ( $value, string $bp ) use ( &$result ): void {
-				$className                 = $this->prefix( $bp ) . 'ap-gap-x-' . $this->bracket( (string) $value );
-				$result[ 'classes' ][]     = $className;
+				$className                    = $this->prefix( $bp ) . 'ap-gap-x-' . $this->bracket( (string) $value );
+				$result[ 'classes' ][]        = $className;
 				$result[ 'arbitraryRules' ][] = [
 					'className'  => $className,
 					'property'   => 'column-gap',
@@ -291,8 +293,8 @@ class FlexSupport
 				return;
 			}
 
-			$className                 = $this->prefix( $bp ) . 'ap-basis-' . $this->bracket( (string) $value );
-			$result[ 'classes' ][]     = $className;
+			$className                    = $this->prefix( $bp ) . 'ap-basis-' . $this->bracket( (string) $value );
+			$result[ 'classes' ][]        = $className;
 			$result[ 'arbitraryRules' ][] = [
 				'className'  => $className,
 				'property'   => 'flex-basis',
@@ -360,7 +362,7 @@ class FlexSupport
 				}
 
 				$selector = '.' . $this->escapeSelector( $rule[ 'className' ] );
-				$body    .= sprintf( "%s { %s: %s; } ", $selector, $rule[ 'property' ], $value );
+				$body .= sprintf( '%s { %s: %s; } ', $selector, $rule[ 'property' ], $value );
 			}
 
 			// Every rule in the bucket may have been dropped by the
@@ -380,7 +382,7 @@ class FlexSupport
 				continue;
 			}
 
-			$out .= sprintf( "@media %s { %s} ", $query, $body );
+			$out .= sprintf( '@media %s { %s} ', $query, $body );
 		}
 
 		return trim( $out );

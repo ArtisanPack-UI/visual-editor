@@ -31,7 +31,9 @@ class CmsFrameworkQueryResolver implements QueryResolverContract
 	 * statically — that import would soft-couple the package to
 	 * cms-framework on every autoload.
 	 */
-	public function __construct( protected object $runtime ) {}
+	public function __construct( protected object $runtime )
+	{
+	}
 
 	public function resolve( array $attributes ): LengthAwarePaginator
 	{

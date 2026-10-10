@@ -19,7 +19,7 @@ function blockNode( string $name, array $attributes = [], array $innerBlocks = [
 	];
 }
 
-it( 'renders a post-title block at the configured level', function () {
+it( 'renders a post-title block at the configured level', function (): void {
 	$tree = [
 		blockNode( 'core/post-title', [
 			'level'           => 3,
@@ -32,7 +32,7 @@ it( 'renders a post-title block at the configured level', function () {
 	expect( $this->normalizeHtml( $rendered ) )->toContain( '<h3 class="wp-block-post-title">Hello World</h3>' );
 } );
 
-it( 'wraps the post-title in a permalink when isLink is true', function () {
+it( 'wraps the post-title in a permalink when isLink is true', function (): void {
 	$tree = [
 		blockNode( 'core/post-title', [
 			'isLink'              => true,
@@ -46,7 +46,7 @@ it( 'wraps the post-title in a permalink when isLink is true', function () {
 	expect( $rendered )->toContain( '<a href="https://example.test/post">Linked Title</a>' );
 } );
 
-it( 'renders post-content with the resolved HTML body', function () {
+it( 'renders post-content with the resolved HTML body', function (): void {
 	$tree = [
 		blockNode( 'core/post-content', [
 			'_resolvedContent' => '<p>Body</p>',
@@ -58,7 +58,7 @@ it( 'renders post-content with the resolved HTML body', function () {
 	expect( $this->normalizeHtml( $rendered ) )->toContain( '<div class="entry-content wp-block-post-content is-layout-flow wp-block-post-content-is-layout-flow"><p>Body</p></div>' );
 } );
 
-it( 'renders post-content with the layout class pair from its layout attribute (#700)', function () {
+it( 'renders post-content with the layout class pair from its layout attribute (#700)', function (): void {
 	$tree = [
 		blockNode( 'core/post-content', [
 			'_resolvedContent' => '<p>Body</p>',
@@ -71,7 +71,7 @@ it( 'renders post-content with the layout class pair from its layout attribute (
 	expect( $this->normalizeHtml( $rendered ) )->toContain( '<div class="entry-content wp-block-post-content is-layout-constrained wp-block-post-content-is-layout-constrained"><p>Body</p></div>' );
 } );
 
-it( 'renders post-excerpt with a more-text link', function () {
+it( 'renders post-excerpt with a more-text link', function (): void {
 	$tree = [
 		blockNode( 'core/post-excerpt', [
 			'moreText'           => 'Read more',
@@ -86,7 +86,7 @@ it( 'renders post-excerpt with a more-text link', function () {
 	expect( $rendered )->toContain( '<a class="wp-block-post-excerpt__more-link" href="https://example.test/post">Read more</a>' );
 } );
 
-it( 'renders a post-date with a datetime attribute and formatted text', function () {
+it( 'renders a post-date with a datetime attribute and formatted text', function (): void {
 	$tree = [
 		blockNode( 'core/post-date', [
 			'_resolvedDate'           => '2026-04-20T12:00:00+00:00',
@@ -100,7 +100,7 @@ it( 'renders a post-date with a datetime attribute and formatted text', function
 	expect( $rendered )->toContain( 'April 20, 2026' );
 } );
 
-it( 'renders post-author with name, avatar, and bio when shown', function () {
+it( 'renders post-author with name, avatar, and bio when shown', function (): void {
 	$tree = [
 		blockNode( 'core/post-author', [
 			'showAvatar'             => true,
@@ -122,7 +122,7 @@ it( 'renders post-author with name, avatar, and bio when shown', function () {
 	expect( $rendered )->toContain( 'Posted by' );
 } );
 
-it( 'renders post-featured-image with link wrapper when isLink is true', function () {
+it( 'renders post-featured-image with link wrapper when isLink is true', function (): void {
 	$tree = [
 		blockNode( 'core/post-featured-image', [
 			'isLink'                  => true,
@@ -144,7 +144,7 @@ it( 'renders post-featured-image with link wrapper when isLink is true', functio
 	expect( $rendered )->toContain( 'height="600"' );
 } );
 
-it( 'drops javascript: URLs from post-featured-image hrefs', function () {
+it( 'drops javascript: URLs from post-featured-image hrefs', function (): void {
 	$tree = [
 		blockNode( 'core/post-featured-image', [
 			'isLink'              => true,
@@ -159,7 +159,7 @@ it( 'drops javascript: URLs from post-featured-image hrefs', function () {
 	expect( $rendered )->not()->toContain( '<a ' );
 } );
 
-it( 'renders site-title with default link to site URL', function () {
+it( 'renders site-title with default link to site URL', function (): void {
 	$tree = [
 		blockNode( 'core/site-title', [
 			'level'                => 1,
@@ -176,7 +176,7 @@ it( 'renders site-title with default link to site URL', function () {
 	expect( $rendered )->toContain( 'Acme' );
 } );
 
-it( 'renders site-title as a paragraph when level is 0', function () {
+it( 'renders site-title as a paragraph when level is 0', function (): void {
 	$tree = [
 		blockNode( 'core/site-title', [
 			'level'              => 0,
@@ -190,7 +190,7 @@ it( 'renders site-title as a paragraph when level is 0', function () {
 	expect( $this->normalizeHtml( $rendered ) )->toContain( '<p class="wp-block-site-title">Acme</p>' );
 } );
 
-it( 'renders site-tagline', function () {
+it( 'renders site-tagline', function (): void {
 	$tree = [
 		blockNode( 'core/site-tagline', [
 			'_resolvedSiteTagline' => 'A small site',
@@ -202,7 +202,7 @@ it( 'renders site-tagline', function () {
 	expect( $this->normalizeHtml( $rendered ) )->toContain( '<p class="wp-block-site-tagline">A small site</p>' );
 } );
 
-it( 'renders site-logo with link wrapper and image', function () {
+it( 'renders site-logo with link wrapper and image', function (): void {
 	$tree = [
 		blockNode( 'core/site-logo', [
 			'width'              => 120,
@@ -222,7 +222,7 @@ it( 'renders site-logo with link wrapper and image', function () {
 	expect( $rendered )->toContain( 'width="120"' );
 } );
 
-it( 'adds is-default-size to site-logo when no width is set', function () {
+it( 'adds is-default-size to site-logo when no width is set', function (): void {
 	$tree = [
 		blockNode( 'core/site-logo', [
 			'_resolvedLogoUrl'   => 'https://example.test/logo.svg',
@@ -236,7 +236,7 @@ it( 'adds is-default-size to site-logo when no width is set', function () {
 	expect( $rendered )->toContain( 'is-default-size' );
 } );
 
-it( 'renders a navigation block with menu items', function () {
+it( 'renders a navigation block with menu items', function (): void {
 	$tree = [
 		blockNode( 'core/navigation', [ 'ariaLabel' => 'Primary' ], [
 			blockNode( 'core/navigation-link', [
@@ -265,7 +265,7 @@ it( 'renders a navigation block with menu items', function () {
 	expect( $rendered )->toContain( 'href="https://example.test/sub"' );
 } );
 
-it( 'maps a string Block spacing value onto the navigation wrapper (#814)', function () {
+it( 'maps a string Block spacing value onto the navigation wrapper (#814)', function (): void {
 	$tree = [
 		blockNode( 'core/navigation', [ 'style' => [ 'spacing' => [ 'blockGap' => 'var:preset|spacing|40' ] ] ], [
 			blockNode( 'core/navigation-link', [ 'label' => 'About', 'url' => '/about' ], [], 'nl-1' ),
@@ -277,7 +277,7 @@ it( 'maps a string Block spacing value onto the navigation wrapper (#814)', func
 	expect( $rendered )->toMatch( '/<nav class="wp-block-navigation[^"]*" style="--wp--style--block-gap: var\(--wp--preset--spacing--40\);?"/' );
 } );
 
-it( 'normalises underscore and double-dash preset slugs on the navigation wrapper (#814)', function ( string $slug, string $expected ) {
+it( 'normalises underscore and double-dash preset slugs on the navigation wrapper (#814)', function ( string $slug, string $expected ): void {
 	$tree = [
 		blockNode( 'core/navigation', [ 'style' => [ 'spacing' => [ 'blockGap' => 'var:preset|spacing|' . $slug ] ] ], [
 			blockNode( 'core/navigation-link', [ 'label' => 'About', 'url' => '/about' ], [], 'nl-1' ),
@@ -292,7 +292,7 @@ it( 'normalises underscore and double-dash preset slugs on the navigation wrappe
 	'double dash' => [ 'x--y', 'x--y' ],
 ] );
 
-it( 'maps a per-axis Block spacing value to row-gap and column-gap on the navigation wrapper (#814)', function () {
+it( 'maps a per-axis Block spacing value to row-gap and column-gap on the navigation wrapper (#814)', function (): void {
 	$tree = [
 		blockNode( 'core/navigation', [ 'style' => [ 'spacing' => [ 'blockGap' => [ 'top' => '1rem', 'left' => '2rem' ] ] ] ], [
 			blockNode( 'core/navigation-link', [ 'label' => 'About', 'url' => '/about' ], [], 'nl-1' ),
@@ -304,7 +304,7 @@ it( 'maps a per-axis Block spacing value to row-gap and column-gap on the naviga
 	expect( $rendered )->toMatch( '/<nav class="wp-block-navigation[^"]*" style="row-gap: 1rem; column-gap: 2rem;?"/' );
 } );
 
-it( 'forces noopener when a navigation link opens in a new tab', function () {
+it( 'forces noopener when a navigation link opens in a new tab', function (): void {
 	$tree = [
 		blockNode( 'core/navigation', [], [
 			blockNode( 'core/navigation-link', [

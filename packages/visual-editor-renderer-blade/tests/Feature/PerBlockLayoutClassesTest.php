@@ -26,7 +26,7 @@ function renderLayoutPartial( string $partial, array $attributes = [] ): string
 	] )->render();
 }
 
-it( 'pairs the group layout class with its per-block compound', function ( string $type, string $class ) {
+it( 'pairs the group layout class with its per-block compound', function ( string $type, string $class ): void {
 	$html = renderLayoutPartial( 'group', [ 'layout' => [ 'type' => $type ] ] );
 
 	expect( $html )
@@ -39,7 +39,7 @@ it( 'pairs the group layout class with its per-block compound', function ( strin
 	'unset'       => [ '', 'flow' ],
 ] );
 
-it( 'keys the row and stack compounds on group, matching their rendered wrapper', function ( string $partial, string $orientation ) {
+it( 'keys the row and stack compounds on group, matching their rendered wrapper', function ( string $partial, string $orientation ): void {
 	$html = renderLayoutPartial( $partial );
 
 	expect( $html )
@@ -50,19 +50,19 @@ it( 'keys the row and stack compounds on group, matching their rendered wrapper'
 	'stack' => [ 'stack', 'is-vertical' ],
 ] );
 
-it( 'emits the flex layout pair on columns so the flex rules match', function () {
+it( 'emits the flex layout pair on columns so the flex rules match', function (): void {
 	$html = renderLayoutPartial( 'columns' );
 
 	expect( $html )->toContain( 'wp-block-columns is-layout-flex wp-block-columns-is-layout-flex' );
 } );
 
-it( 'pairs the buttons flex layout class', function () {
+it( 'pairs the buttons flex layout class', function (): void {
 	$html = renderLayoutPartial( 'buttons' );
 
 	expect( $html )->toContain( 'wp-block-buttons is-layout-flex wp-block-buttons-is-layout-flex' );
 } );
 
-it( 'pairs the post-content layout class resolved from its layout attribute', function () {
+it( 'pairs the post-content layout class resolved from its layout attribute', function (): void {
 	$html = renderLayoutPartial( 'post-content', [ 'layout' => [ 'type' => 'constrained' ] ] );
 
 	expect( $html )
@@ -70,7 +70,7 @@ it( 'pairs the post-content layout class resolved from its layout attribute', fu
 		->toContain( 'wp-block-post-content-is-layout-constrained' );
 } );
 
-it( 'defaults post-content to the flow pair when no layout is stored', function () {
+it( 'defaults post-content to the flow pair when no layout is stored', function (): void {
 	$html = renderLayoutPartial( 'post-content' );
 
 	expect( $html )
@@ -78,7 +78,7 @@ it( 'defaults post-content to the flow pair when no layout is stored', function 
 		->toContain( 'wp-block-post-content-is-layout-flow' );
 } );
 
-it( 'pairs the post-template layout class without pairing the masonry extension', function ( string $layout, string $class ) {
+it( 'pairs the post-template layout class without pairing the masonry extension', function ( string $layout, string $class ): void {
 	$html = view( 'visual-editor-renderer-blade::blocks.artisanpack.post-template', [
 		'attributes'      => [ 'layout' => $layout, 'columns' => 3 ],
 		'innerBlocksHtml' => '',

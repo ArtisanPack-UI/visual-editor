@@ -6,7 +6,7 @@ use ArtisanPackUI\VisualEditor\Blocks\DynamicBlock;
 use ArtisanPackUI\VisualEditor\Facades\VisualEditor;
 use Tests\Fixtures\TestBlockContentModel;
 
-it( 'merges block content text with a model\'s own searchable fields', function () {
+it( 'merges block content text with a model\'s own searchable fields', function (): void {
 	$searchable = new class extends TestBlockContentModel {
 		protected $table = 'test_block_content_models';
 
@@ -21,7 +21,7 @@ it( 'merges block content text with a model\'s own searchable fields', function 
 		{
 			return array_merge(
 				[ 'title' => $this->title ],
-				$this->toBlockContentSearchableArray()
+				$this->toBlockContentSearchableArray(),
 			);
 		}
 	};
@@ -51,7 +51,7 @@ it( 'merges block content text with a model\'s own searchable fields', function 
 	] );
 } );
 
-it( 'resolves dynamic block data at index time', function () {
+it( 'resolves dynamic block data at index time', function (): void {
 	$products = [
 		1 => 'Eloquent T-Shirt',
 		2 => 'Blade Coffee Mug',
@@ -62,7 +62,9 @@ it( 'resolves dynamic block data at index time', function () {
 		/**
 		 * @param  array<int, string>  $catalog
 		 */
-		public function __construct( protected array $catalog ) {}
+		public function __construct( protected array $catalog )
+		{
+		}
 
 		public function name(): string
 		{
@@ -118,7 +120,7 @@ it( 'resolves dynamic block data at index time', function () {
 		->and( $text )->not->toContain( 'Blade Coffee Mug' );
 } );
 
-it( 'reflects updated dynamic data on the next index call', function () {
+it( 'reflects updated dynamic data on the next index call', function (): void {
 	$products = [
 		1 => 'Original Name',
 	];
@@ -127,7 +129,9 @@ it( 'reflects updated dynamic data on the next index call', function () {
 		/**
 		 * @param  array<int, string>  $catalog
 		 */
-		public function __construct( protected array $catalog ) {}
+		public function __construct( protected array $catalog )
+		{
+		}
 
 		public function name(): string
 		{

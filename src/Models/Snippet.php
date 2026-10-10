@@ -45,14 +45,6 @@ class Snippet extends Model
 		'author_id',
 	];
 
-	protected function casts(): array
-	{
-		return [
-			'blocks'    => 'array',
-			'author_id' => 'integer',
-		];
-	}
-
 	/**
 	 * Slug rule mirrors cms-framework's dynamic-content type slug —
 	 * lowercase letter first, then letters/digits/underscore, max 64.
@@ -62,6 +54,14 @@ class Snippet extends Model
 	public static function slugPattern(): string
 	{
 		return '/^[a-z][a-z0-9_]{0,63}$/';
+	}
+
+	protected function casts(): array
+	{
+		return [
+			'blocks'    => 'array',
+			'author_id' => 'integer',
+		];
 	}
 
 	/**

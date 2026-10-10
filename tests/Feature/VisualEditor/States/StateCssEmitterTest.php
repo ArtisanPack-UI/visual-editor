@@ -14,14 +14,14 @@ function makeEmitter( array $configOverrides = [], array $themeOverrides = [] ):
 	return new StateCssEmitter( $registry, $resolver );
 }
 
-it( 'emits nothing for empty inputs', function () {
+it( 'emits nothing for empty inputs', function (): void {
 	$emitter = makeEmitter();
 
 	expect( $emitter->emit( '.ap-block-abc', [] ) )->toBe( '' );
 	expect( $emitter->emit( '', [ 'color' => 'red' ] ) )->toBe( '' );
 } );
 
-it( 'emits the idle rule only when no per-state overrides exist', function () {
+it( 'emits the idle rule only when no per-state overrides exist', function (): void {
 	$emitter = makeEmitter();
 
 	$css = $emitter->emit( '.ap-block-abc', [
@@ -31,7 +31,7 @@ it( 'emits the idle rule only when no per-state overrides exist', function () {
 	expect( $css )->toBe( '.ap-block-abc { background-color: red !important; }' );
 } );
 
-it( 'emits hover styles inside a hover-media wrap', function () {
+it( 'emits hover styles inside a hover-media wrap', function (): void {
 	$emitter = makeEmitter();
 
 	$css = $emitter->emit( '.ap-block-abc', [
@@ -42,7 +42,7 @@ it( 'emits hover styles inside a hover-media wrap', function () {
 	expect( $css )->toContain( '@media (hover: hover) { .ap-block-abc:hover { background-color: blue !important; }' );
 } );
 
-it( 'adds a default transition to idle when any non-idle state is set', function () {
+it( 'adds a default transition to idle when any non-idle state is set', function (): void {
 	$emitter = makeEmitter();
 
 	$css = $emitter->emit( '.ap-block-abc', [
@@ -52,7 +52,7 @@ it( 'adds a default transition to idle when any non-idle state is set', function
 	expect( $css )->toContain( 'transition: all 150ms ease;' );
 } );
 
-it( 'respects an editor-authored transition value', function () {
+it( 'respects an editor-authored transition value', function (): void {
 	$emitter = makeEmitter();
 
 	$css = $emitter->emit( '.ap-block-abc', [
@@ -67,7 +67,7 @@ it( 'respects an editor-authored transition value', function () {
 	expect( $css )->not->toContain( 'transition: all 150ms ease;' );
 } );
 
-it( 'does not wrap non-hover states in the hover media query', function () {
+it( 'does not wrap non-hover states in the hover media query', function (): void {
 	$emitter = makeEmitter();
 
 	$css = $emitter->emit( '.ap-block-abc', [
@@ -78,7 +78,7 @@ it( 'does not wrap non-hover states in the hover media query', function () {
 	expect( $css )->not->toContain( '@media (hover: hover) { .ap-block-abc:focus-visible' );
 } );
 
-it( 'skips emitting a state rule when the resolved value equals the inheritance parent', function () {
+it( 'skips emitting a state rule when the resolved value equals the inheritance parent', function (): void {
 	$emitter = makeEmitter();
 
 	$css = $emitter->emit( '.ap-block-abc', [
@@ -89,7 +89,7 @@ it( 'skips emitting a state rule when the resolved value equals the inheritance 
 	expect( $css )->not->toContain( ':hover { background-color: red' );
 } );
 
-it( 'supports custom states with attribute selectors', function () {
+it( 'supports custom states with attribute selectors', function (): void {
 	$emitter = makeEmitter( [], [
 		'aria-current' => [
 			'label'        => 'Current',
@@ -105,7 +105,7 @@ it( 'supports custom states with attribute selectors', function () {
 	expect( $css )->toContain( '.ap-block-abc[aria-current="page"] { background-color: navy !important; }' );
 } );
 
-it( 'supports comma-separated selector lists', function () {
+it( 'supports comma-separated selector lists', function (): void {
 	$emitter = makeEmitter();
 
 	$css = $emitter->emit( '.ap-block-abc', [
@@ -115,7 +115,7 @@ it( 'supports comma-separated selector lists', function () {
 	expect( $css )->toContain( '.ap-block-abc:disabled, .ap-block-abc[aria-disabled="true"]' );
 } );
 
-it( 'drops boolean overrides without emitting `0` / `1` declarations', function () {
+it( 'drops boolean overrides without emitting `0` / `1` declarations', function (): void {
 	$emitter = makeEmitter();
 
 	$css = $emitter->emit( '.ap-block-abc', [
@@ -125,7 +125,7 @@ it( 'drops boolean overrides without emitting `0` / `1` declarations', function 
 	expect( $css )->toBe( '' );
 } );
 
-it( 'drops non-scalar overrides instead of casting them to garbage strings', function () {
+it( 'drops non-scalar overrides instead of casting them to garbage strings', function (): void {
 	$emitter = makeEmitter();
 
 	$css = $emitter->emit( '.ap-block-abc', [

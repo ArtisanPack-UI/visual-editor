@@ -2,8 +2,15 @@
 
 declare( strict_types=1 );
 
+use ArtisanPackUI\VisualEditor\Http\Middleware\EnsureContentEditorAccess;
 use ArtisanPackUI\VisualEditor\Services\Icon\IconCatalog;
 use ArtisanPackUI\VisualEditor\Services\Icon\IconSvgResolver;
+use ArtisanPackUI\VisualEditor\Support\ContentAccess;
+use ArtisanPackUI\VisualEditor\VisualEditorServiceProvider;
+use Illuminate\Auth\GenericUser;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Route;
 use Tests\TestUser;
 
 function actingAsIconPickerUser(): TestUser
@@ -37,7 +44,7 @@ function bindIconCatalogFixture(): void
 	);
 }
 
-it( 'returns the registered icon sets', function () {
+it( 'returns the registered icon sets', function (): void {
 	actingAsIconPickerUser();
 	bindIconCatalogFixture();
 
@@ -48,7 +55,7 @@ it( 'returns the registered icon sets', function () {
 		->assertJsonPath( 'data.1.prefix', 'fab' );
 } );
 
-it( 'returns paginated search results matching the query', function () {
+it( 'returns paginated search results matching the query', function (): void {
 	actingAsIconPickerUser();
 	bindIconCatalogFixture();
 
@@ -59,7 +66,7 @@ it( 'returns paginated search results matching the query', function () {
 		->assertJsonPath( 'data.0.set', 'fas' );
 } );
 
-it( 'returns every icon when no query is supplied', function () {
+it( 'returns every icon when no query is supplied', function (): void {
 	actingAsIconPickerUser();
 	bindIconCatalogFixture();
 
@@ -68,7 +75,7 @@ it( 'returns every icon when no query is supplied', function () {
 		->assertJsonPath( 'total', 3 );
 } );
 
-it( 'restricts search results to the requested set', function () {
+it( 'restricts search results to the requested set', function (): void {
 	actingAsIconPickerUser();
 	bindIconCatalogFixture();
 
@@ -79,7 +86,7 @@ it( 'restricts search results to the requested set', function () {
 		->assertJsonPath( 'data.0.name', 'github' );
 } );
 
-it( 'matches against the term aliases shipped with each icon', function () {
+it( 'matches against the term aliases shipped with each icon', function (): void {
 	actingAsIconPickerUser();
 	bindIconCatalogFixture();
 
@@ -89,7 +96,7 @@ it( 'matches against the term aliases shipped with each icon', function () {
 		->assertJsonPath( 'data.0.name', 'github' );
 } );
 
-it( 'decorates search results with inline svg markup', function () {
+it( 'decorates search results with inline svg markup', function (): void {
 	actingAsIconPickerUser();
 	bindIconCatalogFixture();
 
@@ -113,7 +120,7 @@ it( 'decorates search results with inline svg markup', function () {
 	}
 } );
 
-it( 'returns the resolved svg for a known (set, name) via the svg endpoint', function () {
+it( 'returns the resolved svg for a known (set, name) via the svg endpoint', function (): void {
 	actingAsIconPickerUser();
 
 	$base = sys_get_temp_dir() . '/icon-picker-svg-' . bin2hex( random_bytes( 4 ) );
@@ -136,7 +143,7 @@ it( 'returns the resolved svg for a known (set, name) via the svg endpoint', fun
 	}
 } );
 
-it( 'returns 404 from the svg endpoint when the icon is unknown', function () {
+it( 'returns 404 from the svg endpoint when the icon is unknown', function (): void {
 	actingAsIconPickerUser();
 
 	app()->instance( IconSvgResolver::class, new IconSvgResolver( [] ) );
@@ -146,7 +153,7 @@ it( 'returns 404 from the svg endpoint when the icon is unknown', function () {
 		->assertJsonPath( 'svg', null );
 } );
 
-it( 'returns 400 from the svg endpoint when set or name is missing', function () {
+it( 'returns 400 from the svg endpoint when set or name is missing', function (): void {
 	actingAsIconPickerUser();
 
 	$this->getJson( '/visual-editor/api/icons/svg' )
@@ -155,7 +162,7 @@ it( 'returns 400 from the svg endpoint when set or name is missing', function ()
 } );
 
 // Phase 5 (#556) — custom SVG paste/upload sanitize endpoint.
-it( 'strips a malicious svg and reports warnings via the sanitize endpoint', function () {
+it( 'strips a malicious svg and reports warnings via the sanitize endpoint', function (): void {
 	actingAsIconPickerUser();
 
 	$hostile = '<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)">'
@@ -182,7 +189,7 @@ it( 'strips a malicious svg and reports warnings via the sanitize endpoint', fun
 	expect( implode( "\n", $warnings ) )->toContain( '<script>' );
 } );
 
-it( 'refuses an external-entity payload via the sanitize endpoint without leaking file contents', function () {
+it( 'refuses an external-entity payload via the sanitize endpoint without leaking file contents', function (): void {
 	actingAsIconPickerUser();
 
 	$secret = tempnam( sys_get_temp_dir(), 've-xxe-' );
@@ -205,7 +212,7 @@ it( 'refuses an external-entity payload via the sanitize endpoint without leakin
 	expect( $response->json( 'warnings' ) )->toContain( 'svg contains a DOCTYPE or ENTITY declaration' );
 } );
 
-it( 'returns 422 from the sanitize endpoint when svg is not a string', function () {
+it( 'returns 422 from the sanitize endpoint when svg is not a string', function (): void {
 	actingAsIconPickerUser();
 
 	$this->postJson( '/visual-editor/api/icons/svg/sanitize', [ 'svg' => [ 'not', 'a', 'string' ] ] )
@@ -213,7 +220,7 @@ it( 'returns 422 from the sanitize endpoint when svg is not a string', function 
 		->assertJsonPath( 'svg', '' );
 } );
 
-it( 'returns 413 from the sanitize endpoint when the payload exceeds the size limit', function () {
+it( 'returns 413 from the sanitize endpoint when the payload exceeds the size limit', function (): void {
 	actingAsIconPickerUser();
 
 	// 256 KB cap + 1 byte. The endpoint never even calls the parser.
@@ -224,7 +231,7 @@ it( 'returns 413 from the sanitize endpoint when the payload exceeds the size li
 		->assertJsonPath( 'svg', '' );
 } );
 
-it( 'returns 413 when the raw request body exceeds the cap even if `svg` decodes smaller', function () {
+it( 'returns 413 when the raw request body exceeds the cap even if `svg` decodes smaller', function (): void {
 	actingAsIconPickerUser();
 
 	// JSON escaping of a string of double-quotes blows the wire size
@@ -243,4 +250,227 @@ it( 'returns 413 when the raw request body exceeds the cap even if `svg` decodes
 		],
 		'{"svg":"' . $bigField . '"}',
 	)->assertStatus( 413 );
+} );
+
+// #834 — content-authoring access gate on the icon endpoints.
+
+/**
+ * A user whose RBAC grants exactly the given capabilities.
+ *
+ * @param  array<int, string>  $capabilities
+ */
+function iconRbacUser( array $capabilities = [] ): GenericUser
+{
+	return new class( [ 'id' => 1 ], $capabilities ) extends GenericUser {
+		/** @param array<int, string> $capabilities */
+		public function __construct( array $attributes, private array $capabilities )
+		{
+			parent::__construct( $attributes );
+		}
+
+		public function hasCapability( string $capability ): bool
+		{
+			return in_array( $capability, $this->capabilities, true );
+		}
+	};
+}
+
+dataset( 'icon endpoints', [
+	'sets'     => [ 'GET', '/visual-editor/api/icons/sets' ],
+	'search'   => [ 'GET', '/visual-editor/api/icons/search' ],
+	'svg'      => [ 'GET', '/visual-editor/api/icons/svg?set=fas&name=home' ],
+	'sanitize' => [ 'POST', '/visual-editor/api/icons/svg/sanitize' ],
+] );
+
+it( 'gates every icon route on the content-access middleware', function (): void {
+	foreach ( [ 'sets', 'search', 'svg', 'svg.sanitize' ] as $name ) {
+		$middleware = Route::getRoutes()->getByName( 'visual-editor.api.icons.' . $name )->gatherMiddleware();
+
+		expect( $middleware )->toContain( EnsureContentEditorAccess::class );
+	}
+} );
+
+it( 'throttles the sanitize endpoint with the configured limit in its own bucket', function (): void {
+	$middleware = Route::getRoutes()->getByName( 'visual-editor.api.icons.svg.sanitize' )->gatherMiddleware();
+
+	expect( $middleware )->toContain( 'throttle:60,1,ve-icon-sanitize' );
+} );
+
+/**
+ * Re-register the API routes so they read the current config, the way a
+ * fresh boot (or `route:cache`) would.
+ */
+function reloadIconApiRoutes(): void
+{
+	( fn () => $this->registerApiRoutes() )->call( new VisualEditorServiceProvider( app() ) );
+
+	Route::getRoutes()->refreshNameLookups();
+}
+
+it( 'falls back to the default sanitize throttle when the config is empty', function ( mixed $configured ): void {
+	config()->set( 'artisanpack.visual-editor.content_access.sanitize_throttle', $configured );
+	reloadIconApiRoutes();
+
+	$middleware = Route::getRoutes()->getByName( 'visual-editor.api.icons.svg.sanitize' )->gatherMiddleware();
+
+	expect( $middleware )->toContain( 'throttle:60,1,ve-icon-sanitize' );
+
+	actingAsIconPickerUser();
+
+	$this->postJson( '/visual-editor/api/icons/svg/sanitize', [ 'svg' => '<svg xmlns="http://www.w3.org/2000/svg"/>' ] )
+		->assertOk();
+} )->with( [
+	'empty string' => [ '' ],
+	'whitespace'   => [ '   ' ],
+	'null'         => [ null ],
+	'array'        => [ [ '60', '1' ] ],
+] );
+
+it( 'skips the sanitize throttle when the config is false', function (): void {
+	config()->set( 'artisanpack.visual-editor.content_access.sanitize_throttle', false );
+	reloadIconApiRoutes();
+
+	$middleware = Route::getRoutes()->getByName( 'visual-editor.api.icons.svg.sanitize' )->gatherMiddleware();
+
+	expect( implode( ' ', $middleware ) )->not->toContain( 'throttle' )
+		->and( $middleware )->toContain( EnsureContentEditorAccess::class );
+
+	actingAsIconPickerUser();
+
+	$this->postJson( '/visual-editor/api/icons/svg/sanitize', [ 'svg' => '<svg xmlns="http://www.w3.org/2000/svg"/>' ] )
+		->assertOk();
+} );
+
+it( 'keeps the sanitize throttle separate from other throttled routes', function (): void {
+	config()->set( 'artisanpack.visual-editor.content_access.sanitize_throttle', '2,1' );
+	reloadIconApiRoutes();
+
+	actingAsIconPickerUser();
+
+	foreach ( [ 1, 2 ] as $attempt ) {
+		$this->postJson( '/visual-editor/api/icons/svg/sanitize', [ 'svg' => '<svg xmlns="http://www.w3.org/2000/svg"/>' ] )
+			->assertOk();
+	}
+
+	$this->postJson( '/visual-editor/api/icons/svg/sanitize', [ 'svg' => '<svg xmlns="http://www.w3.org/2000/svg"/>' ] )
+		->assertTooManyRequests();
+
+	expect( $this->postJson( '/visual-editor/api/dynamic-content/resolve', [] )->status() )->not->toBe( 429 );
+} );
+
+it( 'treats a non-string capability as unset instead of failing', function (): void {
+	config()->set( 'artisanpack.visual-editor.content_access.capability', [ 'edit_content' ] );
+
+	actingAsIconPickerUser();
+
+	$this->postJson( '/visual-editor/api/icons/svg/sanitize', [ 'svg' => '<svg xmlns="http://www.w3.org/2000/svg"/>' ] )
+		->assertOk();
+
+	expect( ContentAccess::allows( new GenericUser( [ 'id' => 1 ] ) ) )->toBeTrue();
+} );
+
+it( 'denies and logs a warning once when the user model has no RBAC method', function (): void {
+	config()->set( 'artisanpack.visual-editor.content_access.capability', 'edit_content' );
+
+	Log::spy();
+
+	actingAsIconPickerUser();
+
+	$this->postJson( '/visual-editor/api/icons/svg/sanitize', [ 'svg' => '<svg/>' ] )
+		->assertForbidden();
+
+	// A second check in the same request doesn't log again.
+	ContentAccess::allows( auth()->user() );
+
+	Log::shouldHaveReceived( 'warning' )
+		->once()
+		->withArgs( fn ( string $message, array $context ): bool => str_contains( $message, 'content_access.capability' ) && 'edit_content' === $context['capability'] );
+} );
+
+it( 'falls back to the user\'s Gate abilities when the model has no RBAC method', function (): void {
+	config()->set( 'artisanpack.visual-editor.content_access.capability', 'edit_content' );
+	Gate::define( 'edit_content', fn ( $user ) => true );
+
+	actingAsIconPickerUser();
+
+	$this->postJson( '/visual-editor/api/icons/svg/sanitize', [ 'svg' => '<svg xmlns="http://www.w3.org/2000/svg"/>' ] )
+		->assertOk();
+} );
+
+it( 'never recurses when the capability names the content gate itself', function (): void {
+	config()->set( 'artisanpack.visual-editor.content_access.capability', ContentAccess::ABILITY );
+
+	expect( ContentAccess::allows( actingAsIconPickerUser() ) )->toBeFalse();
+} );
+
+it( 'answers 401 to a guest on the icon endpoints', function ( string $method, string $uri ): void {
+	$this->json( $method, $uri, [ 'svg' => '<svg/>' ] )->assertUnauthorized();
+} )->with( 'icon endpoints' );
+
+it( 'answers a JSON 403 when the gate denies the user', function ( string $method, string $uri ): void {
+	actingAsIconPickerUser();
+	Gate::define( ContentAccess::ABILITY, fn ( $user = null ) => false );
+
+	$this->json( $method, $uri, [ 'svg' => '<svg/>' ] )
+		->assertForbidden()
+		->assertJsonPath( 'message', 'You are not allowed to edit content.' );
+} )->with( 'icon endpoints' );
+
+it( 'answers a JSON 403 even when the client does not ask for JSON', function (): void {
+	actingAsIconPickerUser();
+	Gate::define( ContentAccess::ABILITY, fn ( $user = null ) => false );
+
+	$this->post( '/visual-editor/api/icons/svg/sanitize', [ 'svg' => '<svg/>' ] )
+		->assertForbidden()
+		->assertHeader( 'Content-Type', 'application/json' );
+} );
+
+it( 'lets any authenticated user sanitize by default', function (): void {
+	actingAsIconPickerUser();
+
+	$this->postJson( '/visual-editor/api/icons/svg/sanitize', [ 'svg' => '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0"/></svg>' ] )
+		->assertOk()
+		->assertJsonPath( 'warnings', [] );
+} );
+
+it( 'requires the configured capability when one is set', function (): void {
+	config()->set( 'artisanpack.visual-editor.content_access.capability', 'edit_content' );
+
+	$this->actingAs( iconRbacUser() )
+		->postJson( '/visual-editor/api/icons/svg/sanitize', [ 'svg' => '<svg/>' ] )
+		->assertForbidden();
+
+	$this->actingAs( iconRbacUser( [ 'edit_content' ] ) )
+		->postJson( '/visual-editor/api/icons/svg/sanitize', [ 'svg' => '<svg/>' ] )
+		->assertOk();
+} );
+
+it( 'resolves the default gate from the configured capability', function (): void {
+	expect( ContentAccess::allows( null ) )->toBeFalse();
+	expect( ContentAccess::allows( iconRbacUser() ) )->toBeTrue();
+	expect( ContentAccess::allows( new GenericUser( [ 'id' => 1 ] ) ) )->toBeTrue();
+
+	config()->set( 'artisanpack.visual-editor.content_access.capability', 'edit_content' );
+
+	expect( ContentAccess::allows( iconRbacUser() ) )->toBeFalse();
+	expect( ContentAccess::allows( iconRbacUser( [ 'edit_content' ] ) ) )->toBeTrue();
+	expect( ContentAccess::allows( new GenericUser( [ 'id' => 1 ] ) ) )->toBeFalse();
+} );
+
+it( 'lets a host-defined gate allow users the default would deny', function (): void {
+	config()->set( 'artisanpack.visual-editor.content_access.capability', 'edit_content' );
+	Gate::define( ContentAccess::ABILITY, fn ( $user = null ) => null !== $user );
+
+	$this->actingAs( iconRbacUser() )
+		->postJson( '/visual-editor/api/icons/svg/sanitize', [ 'svg' => '<svg/>' ] )
+		->assertOk();
+} );
+
+it( 'does not replace a gate the host already defined', function (): void {
+	Gate::define( ContentAccess::ABILITY, fn ( $user = null ) => false );
+
+	$provider = new VisualEditorServiceProvider( app() );
+	( fn () => $this->registerContentGate() )->call( $provider );
+
+	expect( Gate::forUser( iconRbacUser() )->allows( ContentAccess::ABILITY ) )->toBeFalse();
 } );

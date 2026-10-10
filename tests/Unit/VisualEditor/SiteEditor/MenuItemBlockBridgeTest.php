@@ -252,7 +252,7 @@ describe( 'MenuItemBlockBridge::blocksToRaw (Keystone #48)', function (): void {
 		expect( $raw )->toBe(
 			"<!-- wp:navigation-submenu {\"label\":\"About\"} -->\n"
 				. "<!-- wp:navigation-link {\"label\":\"Team\"} /-->\n"
-				. '<!-- /wp:navigation-submenu -->'
+				. '<!-- /wp:navigation-submenu -->',
 		);
 	} );
 
@@ -263,7 +263,7 @@ describe( 'MenuItemBlockBridge::blocksToRaw (Keystone #48)', function (): void {
 		] );
 
 		expect( $raw )->toBe(
-			"<!-- wp:navigation-link {\"label\":\"A\"} /-->\n<!-- wp:navigation-link {\"label\":\"B\"} /-->"
+			"<!-- wp:navigation-link {\"label\":\"A\"} /-->\n<!-- wp:navigation-link {\"label\":\"B\"} /-->",
 		);
 	} );
 
@@ -300,7 +300,7 @@ describe( 'MenuItemBlockBridge::blocksToRaw (Keystone #48)', function (): void {
 describe( 'MenuItemBlockBridge::rawToBlocks (Keystone #48)', function (): void {
 	it( 'parses a self-closing nav-link with attrs', function (): void {
 		$blocks = ( new MenuItemBlockBridge() )->rawToBlocks(
-			'<!-- wp:navigation-link {"label":"Home","url":"/"} /-->'
+			'<!-- wp:navigation-link {"label":"Home","url":"/"} /-->',
 		);
 
 		expect( $blocks )->toBe( [
@@ -328,7 +328,7 @@ describe( 'MenuItemBlockBridge::rawToBlocks (Keystone #48)', function (): void {
 		$blocks = ( new MenuItemBlockBridge() )->rawToBlocks(
 			"<!-- wp:navigation-submenu {\"label\":\"About\"} -->\n"
 				. "<!-- wp:navigation-link {\"label\":\"Team\"} /-->\n"
-				. '<!-- /wp:navigation-submenu -->'
+				. '<!-- /wp:navigation-submenu -->',
 		);
 
 		expect( $blocks )->toBe( [
@@ -348,7 +348,7 @@ describe( 'MenuItemBlockBridge::rawToBlocks (Keystone #48)', function (): void {
 
 	it( 'parses multiple siblings on separate lines', function (): void {
 		$blocks = ( new MenuItemBlockBridge() )->rawToBlocks(
-			"<!-- wp:navigation-link {\"label\":\"A\"} /-->\n<!-- wp:navigation-link {\"label\":\"B\"} /-->"
+			"<!-- wp:navigation-link {\"label\":\"A\"} /-->\n<!-- wp:navigation-link {\"label\":\"B\"} /-->",
 		);
 
 		expect( $blocks )->toHaveCount( 2 );
@@ -358,7 +358,7 @@ describe( 'MenuItemBlockBridge::rawToBlocks (Keystone #48)', function (): void {
 
 	it( 'drops unknown wp:* blocks at the top level so paragraph leakage cannot smuggle in', function (): void {
 		$blocks = ( new MenuItemBlockBridge() )->rawToBlocks(
-			"<!-- wp:paragraph {\"content\":\"nope\"} /-->\n<!-- wp:navigation-link {\"label\":\"Real\"} /-->"
+			"<!-- wp:paragraph {\"content\":\"nope\"} /-->\n<!-- wp:navigation-link {\"label\":\"Real\"} /-->",
 		);
 
 		expect( $blocks )->toHaveCount( 1 );
@@ -379,7 +379,7 @@ describe( 'MenuItemBlockBridge::rawToBlocks (Keystone #48)', function (): void {
 		// malformed editor save shouldn't crash the controller.
 		$blocks = ( new MenuItemBlockBridge() )->rawToBlocks(
 			"<!-- wp:navigation-submenu {\"label\":\"Orphan\"} -->\n"
-				. '<!-- wp:navigation-link {"label":"Inside"} /-->'
+				. '<!-- wp:navigation-link {"label":"Inside"} /-->',
 		);
 
 		expect( $blocks )->toHaveCount( 1 );
@@ -418,7 +418,7 @@ describe( 'MenuItemBlockBridge::rawToBlocks (Keystone #48)', function (): void {
 				. "<!-- /wp:group -->\n"
 				. "<!-- wp:navigation-link {\"label\":\"Inside\"} /-->\n"
 				. "<!-- /wp:navigation-submenu -->\n"
-				. '<!-- wp:navigation-link {"label":"Sibling"} /-->'
+				. '<!-- wp:navigation-link {"label":"Sibling"} /-->',
 		);
 
 		expect( $blocks )->toHaveCount( 2 );

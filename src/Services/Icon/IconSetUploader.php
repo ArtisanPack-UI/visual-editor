@@ -51,7 +51,7 @@ final class IconSetUploader
 	 * the order of 2k–10k SVG files and the SVG payloads are a few KB
 	 * each; the limits sit comfortably above legitimate uploads.
 	 */
-	private const MAX_ENTRY_COUNT      = 25_000;
+	private const MAX_ENTRY_COUNT       = 25_000;
 	private const MAX_UNCOMPRESSED_SIZE = 256 * 1024 * 1024;
 	private const MAX_FILENAME_LENGTH   = 128;
 

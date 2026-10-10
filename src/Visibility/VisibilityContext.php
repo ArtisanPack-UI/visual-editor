@@ -70,15 +70,15 @@ class VisibilityContext
 	public function with( array $overrides ): self
 	{
 		return new self(
-			queryString:     $overrides['queryString']     ?? $this->queryString,
-			referrer:        $overrides['referrer']        ?? $this->referrer,
-			userAgent:       $overrides['userAgent']       ?? $this->userAgent,
+			queryString:     $overrides['queryString'] ?? $this->queryString,
+			referrer:        $overrides['referrer'] ?? $this->referrer,
+			userAgent:       $overrides['userAgent'] ?? $this->userAgent,
 			isAuthenticated: $overrides['isAuthenticated'] ?? $this->isAuthenticated,
-			userId:          $overrides['userId']          ?? $this->userId,
-			userEmail:       $overrides['userEmail']       ?? $this->userEmail,
-			roles:           $overrides['roles']           ?? $this->roles,
-			now:             $overrides['now']             ?? $this->now,
-			isPreview:       $overrides['isPreview']       ?? $this->isPreview,
+			userId:          $overrides['userId'] ?? $this->userId,
+			userEmail:       $overrides['userEmail'] ?? $this->userEmail,
+			roles:           $overrides['roles'] ?? $this->roles,
+			now:             $overrides['now'] ?? $this->now,
+			isPreview:       $overrides['isPreview'] ?? $this->isPreview,
 		);
 	}
 

@@ -287,6 +287,33 @@ describe('useEntityBlockEditor — wp_navigation save round trip (#808)', () => 
         expect(removed[0]).toBe(home);
         editor.unmount();
     });
+    it('never reuses a clientId twice when the server echo duplicates one (#812)', async () => {
+        const home = link('Home', 'c-home');
+        const about = link('About', 'c-about');
+        let mutate: (sent: Block[]) => unknown[] = (sent) => sent.map(echo as (b: Block) => unknown);
+        const { editor } = await setUpMenu((sent) => mutate(sent));
+
+        editor.set([home, about]);
+        await settle();
+
+        // Server echoes a pasted copy of Home carrying Home's clientId
+        // at About's slot, plus another one past the end of the tree.
+        mutate = () => [
+            echo(home),
+            { ...(echo(home) as object), clientId: 'c-home' },
+            echo(about),
+            { ...(echo(about) as object), clientId: 'c-about' },
+        ];
+        editor.set([home, about]);
+        await settle();
+
+        const ids = editor.read().map((b) => b.clientId);
+        expect(ids).toHaveLength(4);
+        expect(new Set(ids).size).toBe(4);
+        expect(editor.read()[0]).toBe(home);
+        expect(ids[1]).toBe('c-about');
+        editor.unmount();
+    });
 });
 
 describe('useEntityBlockEditor — autosave scope', () => {

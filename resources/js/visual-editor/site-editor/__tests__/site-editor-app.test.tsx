@@ -278,6 +278,10 @@ vi.mock('../../visibility/with-visibility-panel', () => ({
     registerVisibilityPanel: (): void => undefined,
 }));
 
+vi.mock('../../visibility/with-visibility-canvas', () => ({
+    registerVisibilityCanvas: (): void => undefined,
+}));
+
 vi.mock('../../bindings/register-attribute', () => ({
     registerBindingsAttribute: (): void => undefined,
 }));

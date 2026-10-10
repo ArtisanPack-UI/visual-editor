@@ -21,8 +21,7 @@ use ArtisanPackUI\VisualEditor\Support\BlockShape;
  */
 function forkNameInliner( array $parts ): TemplatePartInliner
 {
-	return new class( $parts ) extends TemplatePartInliner
-	{
+	return new class( $parts ) extends TemplatePartInliner {
 		/**
 		 * @param  array<string, array<int, array<string, mixed>>>  $parts
 		 */
@@ -59,13 +58,13 @@ function forkParagraph( string $content ): array
 	return [ 'name' => 'artisanpack/paragraph', 'attributes' => [ 'content' => $content ], 'innerBlocks' => [] ];
 }
 
-it( 'lists both the core and fork template-part names', function () {
+it( 'lists both the core and fork template-part names', function (): void {
 	expect( BlockShape::TEMPLATE_PART_NAMES )
 		->toContain( 'core/template-part' )
 		->toContain( 'artisanpack/template-part' );
 } );
 
-it( 'resolves an artisanpack/template-part block and keeps the fork name', function () {
+it( 'resolves an artisanpack/template-part block and keeps the fork name', function (): void {
 	$tree = forkNameInliner( [ 'header' => [ forkParagraph( 'Site header' ) ] ] )
 		->inline( [ forkPartRef( 'header' ) ] );
 
@@ -76,7 +75,7 @@ it( 'resolves an artisanpack/template-part block and keeps the fork name', funct
 	expect( $tree[0]['innerBlocks'][0]['attributes']['content'] )->toBe( 'Site header' );
 } );
 
-it( 'still resolves a core/template-part block from a theme file', function () {
+it( 'still resolves a core/template-part block from a theme file', function (): void {
 	$tree = forkNameInliner( [ 'header' => [ forkParagraph( 'Site header' ) ] ] )
 		->inline( [ forkPartRef( 'header', 'core/template-part' ) ] );
 
@@ -84,7 +83,7 @@ it( 'still resolves a core/template-part block from a theme file', function () {
 	expect( $tree[0]['innerBlocks'][0]['attributes']['content'] )->toBe( 'Site header' );
 } );
 
-it( 'replaces a saved innerBlocks snapshot with the live part contents', function () {
+it( 'replaces a saved innerBlocks snapshot with the live part contents', function (): void {
 	$stale = forkPartRef( 'header', 'artisanpack/template-part', [ forkParagraph( 'Stale snapshot' ) ] );
 
 	$tree = forkNameInliner( [ 'header' => [ forkParagraph( 'Live header' ) ] ] )->inline( [ $stale ] );
@@ -93,7 +92,7 @@ it( 'replaces a saved innerBlocks snapshot with the live part contents', functio
 	expect( $tree[0]['innerBlocks'][0]['attributes']['content'] )->toBe( 'Live header' );
 } );
 
-it( 'marks an artisanpack/template-part with an unknown slug as not-found', function () {
+it( 'marks an artisanpack/template-part with an unknown slug as not-found', function (): void {
 	$stale = forkPartRef( 'missing', 'artisanpack/template-part', [ forkParagraph( 'Stale snapshot' ) ] );
 
 	$tree = forkNameInliner( [] )->inline( [ $stale ] );
@@ -103,7 +102,7 @@ it( 'marks an artisanpack/template-part with an unknown slug as not-found', func
 	expect( $tree[0]['innerBlocks'] )->toBe( [] );
 } );
 
-it( 'marks an artisanpack/template-part without a slug as missing-slug', function () {
+it( 'marks an artisanpack/template-part without a slug as missing-slug', function (): void {
 	$tree = forkNameInliner( [] )->inline( [
 		[ 'name' => 'artisanpack/template-part', 'attributes' => [], 'innerBlocks' => [] ],
 	] );
@@ -111,7 +110,7 @@ it( 'marks an artisanpack/template-part without a slug as missing-slug', functio
 	expect( $tree[0]['attributes']['_resolutionError'] )->toBe( TemplatePartInliner::ERROR_MISSING_SLUG );
 } );
 
-it( 'catches a cycle across mixed core and fork template-part names', function () {
+it( 'catches a cycle across mixed core and fork template-part names', function (): void {
 	$tree = forkNameInliner( [
 		'a' => [ forkPartRef( 'b', 'core/template-part' ) ],
 		'b' => [ forkPartRef( 'a' ) ],
@@ -124,13 +123,12 @@ it( 'catches a cycle across mixed core and fork template-part names', function (
 	expect( $cycleNode['attributes']['_resolutionError'] )->toBe( TemplatePartInliner::ERROR_CYCLE );
 } );
 
-it( 'applies the depth limit to fork-named part chains', function () {
+it( 'applies the depth limit to fork-named part chains', function (): void {
 	$inliner = new class( [
 		'p0' => [ forkPartRef( 'p1' ) ],
 		'p1' => [ forkPartRef( 'p2', 'core/template-part' ) ],
 		'p2' => [ forkParagraph( 'Too deep' ) ],
-	] ) extends TemplatePartInliner
-	{
+	] ) extends TemplatePartInliner {
 		/**
 		 * @param  array<string, array<int, array<string, mixed>>>  $parts
 		 */
@@ -151,7 +149,7 @@ it( 'applies the depth limit to fork-named part chains', function () {
 		->toBe( TemplatePartInliner::ERROR_DEPTH_LIMIT );
 } );
 
-it( 'resolves fork-named parts nested inside other blocks', function () {
+it( 'resolves fork-named parts nested inside other blocks', function (): void {
 	$tree = forkNameInliner( [ 'footer' => [ forkParagraph( 'Site footer' ) ] ] )->inline( [
 		[
 			'name'        => 'artisanpack/group',

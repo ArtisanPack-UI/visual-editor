@@ -22,7 +22,7 @@ use ArtisanPackUI\VisualEditor\Registries\BlockTypeRegistry;
  * the attribute genuinely would not recover in an install lacking that
  * package. None of them declare one today.
  */
-it( 'registers every bundled block that declares a sourced attribute', function () {
+it( 'registers every bundled block that declares a sourced attribute', function (): void {
 	$blocksDir = __DIR__ . '/../../../resources/js/visual-editor/blocks';
 	$manifests = glob( $blocksDir . '/*/block.json' ) ?: [];
 
@@ -63,11 +63,11 @@ it( 'registers every bundled block that declares a sourced attribute', function 
 
 	expect( $missing )->toBe(
 		[],
-		'Blocks declaring a sourced attribute must be registered in VisualEditorServiceProvider: ' . implode( ', ', $missing )
+		'Blocks declaring a sourced attribute must be registered in VisualEditorServiceProvider: ' . implode( ', ', $missing ),
 	);
 } );
 
-it( 'registers the marquee block from its bundled manifest', function () {
+it( 'registers the marquee block from its bundled manifest', function (): void {
 	$block = app( BlockTypeRegistry::class )->get( 'artisanpack/marquee' );
 
 	expect( $block )->not->toBeNull()

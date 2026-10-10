@@ -22,17 +22,17 @@ function makeBlock( string $name, array $attributes = [], array $innerBlocks = [
 	];
 }
 
-it( 'returns empty string for empty tree', function () {
+it( 'returns empty string for empty tree', function (): void {
 	expect( makeRenderer()->render( [] ) )->toBe( '' );
 } );
 
-it( 'skips non-array entries in the tree', function () {
+it( 'skips non-array entries in the tree', function (): void {
 	$out = makeRenderer()->render( [ 'not-a-block', null, 42 ] );
 
 	expect( $out )->toBe( '' );
 } );
 
-it( 'skips blocks with missing or empty names', function () {
+it( 'skips blocks with missing or empty names', function (): void {
 	$tree = [
 		[ 'clientId' => 'a', 'name' => '', 'attributes' => [], 'innerBlocks' => [] ],
 		[ 'clientId' => 'b', 'attributes' => [], 'innerBlocks' => [] ],
@@ -41,7 +41,7 @@ it( 'skips blocks with missing or empty names', function () {
 	expect( makeRenderer()->render( $tree ) )->toBe( '' );
 } );
 
-it( 'renders a paragraph block from its partial', function () {
+it( 'renders a paragraph block from its partial', function (): void {
 	$tree = [ makeBlock( 'core/paragraph', [ 'content' => 'Hello <strong>world</strong>' ] ) ];
 
 	$html = $this->normalizeHtml( makeRenderer()->render( $tree ) );
@@ -49,7 +49,7 @@ it( 'renders a paragraph block from its partial', function () {
 	expect( $html )->toBe( '<p class="wp-block-paragraph">Hello <strong>world</strong></p>' );
 } );
 
-it( 'renders a heading block with the configured level', function () {
+it( 'renders a heading block with the configured level', function (): void {
 	$tree = [ makeBlock( 'core/heading', [ 'level' => 3, 'content' => 'Section' ] ) ];
 
 	$html = $this->normalizeHtml( makeRenderer()->render( $tree ) );
@@ -57,7 +57,7 @@ it( 'renders a heading block with the configured level', function () {
 	expect( $html )->toBe( '<h3 class="wp-block-heading">Section</h3>' );
 } );
 
-it( 'clamps invalid heading levels to the allowed range', function () {
+it( 'clamps invalid heading levels to the allowed range', function (): void {
 	$tooHigh = [ makeBlock( 'core/heading', [ 'level' => 99, 'content' => 'X' ] ) ];
 	$tooLow  = [ makeBlock( 'core/heading', [ 'level' => 0, 'content' => 'Y' ] ) ];
 
@@ -65,7 +65,7 @@ it( 'clamps invalid heading levels to the allowed range', function () {
 	expect( $this->normalizeHtml( makeRenderer()->render( $tooLow ) ) )->toContain( '<h1' );
 } );
 
-it( 'renders a list block with inner list items', function () {
+it( 'renders a list block with inner list items', function (): void {
 	$tree = [
 		makeBlock( 'core/list', [ 'ordered' => false ], [
 			makeBlock( 'core/list-item', [ 'content' => 'One' ], [], 'li-1' ),
@@ -81,7 +81,7 @@ it( 'renders a list block with inner list items', function () {
 		->toContain( '</ul>' );
 } );
 
-it( 'renders an ordered list with start + reversed attributes', function () {
+it( 'renders an ordered list with start + reversed attributes', function (): void {
 	$tree = [
 		makeBlock( 'core/list', [ 'ordered' => true, 'start' => 5, 'reversed' => true ], [
 			makeBlock( 'core/list-item', [ 'content' => 'A' ], [], 'li-1' ),
@@ -95,7 +95,7 @@ it( 'renders an ordered list with start + reversed attributes', function () {
 		->toContain( 'reversed' );
 } );
 
-it( 'renders a quote block with citation', function () {
+it( 'renders a quote block with citation', function (): void {
 	$tree = [
 		makeBlock( 'core/quote', [ 'citation' => 'Someone Famous' ], [
 			makeBlock( 'core/paragraph', [ 'content' => 'Quoted text' ], [], 'p1' ),
@@ -109,7 +109,7 @@ it( 'renders a quote block with citation', function () {
 		->toContain( '<cite>Someone Famous</cite>' );
 } );
 
-it( 'renders a code block', function () {
+it( 'renders a code block', function (): void {
 	$tree = [ makeBlock( 'core/code', [ 'content' => 'echo 1;' ] ) ];
 
 	$html = $this->normalizeHtml( makeRenderer()->render( $tree ) );
@@ -117,7 +117,7 @@ it( 'renders a code block', function () {
 	expect( $html )->toBe( '<pre class="wp-block-code"><code>echo 1;</code></pre>' );
 } );
 
-it( 'renders a preformatted block', function () {
+it( 'renders a preformatted block', function (): void {
 	$tree = [ makeBlock( 'core/preformatted', [ 'content' => "line 1\nline 2" ] ) ];
 
 	$html = makeRenderer()->render( $tree );
@@ -126,7 +126,7 @@ it( 'renders a preformatted block', function () {
 		->toContain( "line 1\nline 2" );
 } );
 
-it( 'renders a verse block', function () {
+it( 'renders a verse block', function (): void {
 	$tree = [ makeBlock( 'core/verse', [ 'content' => 'Roses are red' ] ) ];
 
 	$html = $this->normalizeHtml( makeRenderer()->render( $tree ) );
@@ -134,7 +134,7 @@ it( 'renders a verse block', function () {
 	expect( $html )->toContain( '<pre class="wp-block-verse">Roses are red</pre>' );
 } );
 
-it( 'renders an image block with caption and link', function () {
+it( 'renders an image block with caption and link', function (): void {
 	$tree = [
 		makeBlock( 'core/image', [
 			'url'     => 'https://example.test/image.jpg',
@@ -155,7 +155,7 @@ it( 'renders an image block with caption and link', function () {
 		->toContain( '<figcaption>A <em>caption</em></figcaption>' );
 } );
 
-it( 'renders a separator block', function () {
+it( 'renders a separator block', function (): void {
 	$tree = [ makeBlock( 'core/separator', [ 'style' => 'wide' ] ) ];
 
 	$html = $this->normalizeHtml( makeRenderer()->render( $tree ) );
@@ -163,7 +163,7 @@ it( 'renders a separator block', function () {
 	expect( $html )->toBe( '<hr class="wp-block-separator has-alpha-channel-opacity is-style-wide"/>' );
 } );
 
-it( 'renders a spacer block with numeric height as px', function () {
+it( 'renders a spacer block with numeric height as px', function (): void {
 	$tree = [ makeBlock( 'core/spacer', [ 'height' => 48 ] ) ];
 
 	$html = $this->normalizeHtml( makeRenderer()->render( $tree ) );
@@ -171,12 +171,12 @@ it( 'renders a spacer block with numeric height as px', function () {
 	expect( $html )->toContain( 'style="height: 48px;"' );
 } );
 
-it( 'renders a table block across head, body, and foot', function () {
+it( 'renders a table block across head, body, and foot', function (): void {
 	$tree = [
 		makeBlock( 'core/table', [
-			'head' => [ [ 'cells' => [ [ 'content' => 'Name', 'tag' => 'th' ] ] ] ],
-			'body' => [ [ 'cells' => [ [ 'content' => 'Ada', 'tag' => 'td' ] ] ] ],
-			'foot' => [ [ 'cells' => [ [ 'content' => 'Totals', 'tag' => 'td' ] ] ] ],
+			'head'    => [ [ 'cells' => [ [ 'content' => 'Name', 'tag' => 'th' ] ] ] ],
+			'body'    => [ [ 'cells' => [ [ 'content' => 'Ada', 'tag' => 'td' ] ] ] ],
+			'foot'    => [ [ 'cells' => [ [ 'content' => 'Totals', 'tag' => 'td' ] ] ] ],
 			'caption' => 'Demo',
 		] ),
 	];
@@ -191,7 +191,7 @@ it( 'renders a table block across head, body, and foot', function () {
 		->toContain( '<figcaption>Demo</figcaption>' );
 } );
 
-it( 'renders nested inner blocks for a group', function () {
+it( 'renders nested inner blocks for a group', function (): void {
 	$tree = [
 		makeBlock( 'core/group', [], [
 			makeBlock( 'core/paragraph', [ 'content' => 'Inner' ], [], 'inner-1' ),
@@ -204,7 +204,7 @@ it( 'renders nested inner blocks for a group', function () {
 		->toContain( '<p class="wp-block-paragraph">Inner</p>' );
 } );
 
-it( 'renders a buttons group with a button inside', function () {
+it( 'renders a buttons group with a button inside', function (): void {
 	$tree = [
 		makeBlock( 'core/buttons', [], [
 			makeBlock( 'core/button', [ 'text' => 'Click me', 'url' => 'https://example.test' ], [], 'b-1' ),
@@ -218,7 +218,7 @@ it( 'renders a buttons group with a button inside', function () {
 		->toContain( 'Click me</a>' );
 } );
 
-it( 'renders columns with inner column blocks', function () {
+it( 'renders columns with inner column blocks', function (): void {
 	$tree = [
 		makeBlock( 'core/columns', [], [
 			makeBlock( 'core/column', [ 'width' => 60 ], [
@@ -238,7 +238,7 @@ it( 'renders columns with inner column blocks', function () {
 		->toContain( '<p class="wp-block-paragraph">Right</p>' );
 } );
 
-it( 'falls back to an unknown-block comment for missing partials', function () {
+it( 'falls back to an unknown-block comment for missing partials', function (): void {
 	$tree = [ makeBlock( 'third-party/unknown-widget' ) ];
 
 	$html = $this->normalizeHtml( makeRenderer()->render( $tree ) );
@@ -247,7 +247,7 @@ it( 'falls back to an unknown-block comment for missing partials', function () {
 		->toContain( 'data-ve-unknown-block="third-party/unknown-widget"' );
 } );
 
-it( 'escapes unknown block names in the fallback marker', function () {
+it( 'escapes unknown block names in the fallback marker', function (): void {
 	$tree = [ makeBlock( 'third-party/"><script>' ) ];
 
 	$html = makeRenderer()->render( $tree );
@@ -256,7 +256,7 @@ it( 'escapes unknown block names in the fallback marker', function () {
 		->toContain( '&quot;' );
 } );
 
-it( 'invokes a registered dynamic block instead of a partial', function () {
+it( 'invokes a registered dynamic block instead of a partial', function (): void {
 	$registry = app( DynamicBlockRegistry::class );
 
 	$registry->register( new class extends DynamicBlock {
@@ -278,7 +278,7 @@ it( 'invokes a registered dynamic block instead of a partial', function () {
 	expect( $html )->toBe( '<section data-latest-posts="true">Recent articles</section>' );
 } );
 
-it( 'passes validated attributes to dynamic blocks', function () {
+it( 'passes validated attributes to dynamic blocks', function (): void {
 	$registry = app( DynamicBlockRegistry::class );
 
 	$registry->register( new class extends DynamicBlock {
@@ -305,7 +305,7 @@ it( 'passes validated attributes to dynamic blocks', function () {
 	expect( makeRenderer()->render( $tree ) )->toBe( '<em>1</em>' );
 } );
 
-it( 'coerces a view returned from a dynamic block into a string', function () {
+it( 'coerces a view returned from a dynamic block into a string', function (): void {
 	$registry = app( DynamicBlockRegistry::class );
 
 	$registry->register( new class extends DynamicBlock {
@@ -327,7 +327,7 @@ it( 'coerces a view returned from a dynamic block into a string', function () {
 	expect( $this->normalizeHtml( makeRenderer()->render( $tree ) ) )->toBe( '<div>from view</div>' );
 } );
 
-it( 'recovers from exceptions thrown by a dynamic block', function () {
+it( 'recovers from exceptions thrown by a dynamic block', function (): void {
 	$registry = app( DynamicBlockRegistry::class );
 
 	$registry->register( new class extends DynamicBlock {
@@ -336,7 +336,7 @@ it( 'recovers from exceptions thrown by a dynamic block', function () {
 			return 'acme/explodes';
 		}
 
-		public function render( array $attrs )
+		public function render( array $attrs ): void
 		{
 			throw new RuntimeException( 'boom' );
 		}
@@ -349,7 +349,7 @@ it( 'recovers from exceptions thrown by a dynamic block', function () {
 	expect( $html )->toContain( 'data-ve-unknown-block="acme/explodes"' );
 } );
 
-it( 'drops unsafe URL schemes from button hrefs', function () {
+it( 'drops unsafe URL schemes from button hrefs', function (): void {
 	$tree = [ makeBlock( 'core/button', [ 'text' => 'Click', 'url' => 'javascript:alert(1)' ] ) ];
 
 	$html = makeRenderer()->render( $tree );
@@ -359,7 +359,7 @@ it( 'drops unsafe URL schemes from button hrefs', function () {
 		->toContain( '<span class="wp-block-button__link' );
 } );
 
-it( 'enforces noopener noreferrer on target=_blank buttons', function () {
+it( 'enforces noopener noreferrer on target=_blank buttons', function (): void {
 	$tree = [
 		makeBlock( 'core/button', [
 			'text'       => 'External',
@@ -374,7 +374,7 @@ it( 'enforces noopener noreferrer on target=_blank buttons', function () {
 		->toContain( 'target="_blank"' );
 } );
 
-it( 'drops unsafe URL schemes from image hrefs and src', function () {
+it( 'drops unsafe URL schemes from image hrefs and src', function (): void {
 	$tree = [
 		makeBlock( 'core/image', [
 			'url'  => 'https://example.test/safe.jpg',
@@ -390,7 +390,7 @@ it( 'drops unsafe URL schemes from image hrefs and src', function () {
 		->not->toContain( '<a ' );
 } );
 
-it( 'places media-text width on the right column when mediaPosition is right', function () {
+it( 'places media-text width on the right column when mediaPosition is right', function (): void {
 	$tree = [
 		makeBlock( 'core/media-text', [
 			'mediaUrl'      => 'https://example.test/photo.jpg',
@@ -404,7 +404,7 @@ it( 'places media-text width on the right column when mediaPosition is right', f
 	expect( $html )->toContain( 'grid-template-columns: auto 30%;' );
 } );
 
-it( 'clamps cover dimRatio to 0-100 and whitelists minHeightUnit', function () {
+it( 'clamps cover dimRatio to 0-100 and whitelists minHeightUnit', function (): void {
 	$tree = [
 		makeBlock( 'core/cover', [
 			'dimRatio'      => 250,
@@ -420,7 +420,7 @@ it( 'clamps cover dimRatio to 0-100 and whitelists minHeightUnit', function () {
 		->not->toContain( 'javascript:' );
 } );
 
-it( 'routes cover palette gradient class to the overlay span, not the wrapper', function () {
+it( 'routes cover palette gradient class to the overlay span, not the wrapper', function (): void {
 	$tree = [
 		makeBlock( 'core/cover', [
 			'gradient' => 'sunset',
@@ -443,7 +443,7 @@ it( 'routes cover palette gradient class to the overlay span, not the wrapper', 
 		->not->toContain( 'has-background' );
 } );
 
-it( 'routes cover custom background-color inline declaration to the overlay span', function () {
+it( 'routes cover custom background-color inline declaration to the overlay span', function (): void {
 	$tree = [
 		makeBlock( 'core/cover', [
 			'style'    => [ 'color' => [ 'background' => '#bada55' ] ],
@@ -466,7 +466,7 @@ it( 'routes cover custom background-color inline declaration to the overlay span
 		->not->toContain( '#bada55' );
 } );
 
-it( 'routes cover overlayColor palette slug to the overlay span', function () {
+it( 'routes cover overlayColor palette slug to the overlay span', function (): void {
 	$tree = [
 		makeBlock( 'core/cover', [
 			'overlayColor' => 'primary',
@@ -489,7 +489,7 @@ it( 'routes cover overlayColor palette slug to the overlay span', function () {
 		->not->toContain( 'has-background' );
 } );
 
-it( 'routes cover customOverlayColor inline declaration to the overlay span', function () {
+it( 'routes cover customOverlayColor inline declaration to the overlay span', function (): void {
 	$tree = [
 		makeBlock( 'core/cover', [
 			'customOverlayColor' => '#eb3824',
@@ -514,7 +514,7 @@ it( 'routes cover customOverlayColor inline declaration to the overlay span', fu
 		->not->toContain( 'has-background' );
 } );
 
-it( 'routes cover customGradient inline declaration to the overlay span', function () {
+it( 'routes cover customGradient inline declaration to the overlay span', function (): void {
 	$tree = [
 		makeBlock( 'core/cover', [
 			'customGradient' => 'linear-gradient(135deg, red, blue)',
@@ -538,7 +538,7 @@ it( 'routes cover customGradient inline declaration to the overlay span', functi
 		->not->toContain( 'has-background' );
 } );
 
-it( 'keeps cover text-color output on the wrapper, not the overlay span', function () {
+it( 'keeps cover text-color output on the wrapper, not the overlay span', function (): void {
 	$tree = [
 		makeBlock( 'core/cover', [
 			'textColor' => 'midnight',
@@ -561,7 +561,7 @@ it( 'keeps cover text-color output on the wrapper, not the overlay span', functi
 		->not->toContain( 'has-text-color' );
 } );
 
-it( 'validates table cell alignment against an allowlist', function () {
+it( 'validates table cell alignment against an allowlist', function (): void {
 	$tree = [
 		makeBlock( 'core/table', [
 			'body' => [ [ 'cells' => [
@@ -577,7 +577,7 @@ it( 'validates table cell alignment against an allowlist', function () {
 		->not->toContain( 'expression' );
 } );
 
-it( 'generates stable unique ids for multiple search blocks on the same page', function () {
+it( 'generates stable unique ids for multiple search blocks on the same page', function (): void {
 	$tree = [
 		makeBlock( 'core/search', [ 'label' => 'First', 'buttonText' => 'Go' ], [], 's-1' ),
 		makeBlock( 'core/search', [ 'label' => 'Second', 'buttonText' => 'Find' ], [], 's-2' ),
@@ -591,7 +591,7 @@ it( 'generates stable unique ids for multiple search blocks on the same page', f
 	expect( $m[1][0] )->not->toBe( $m[1][1] );
 } );
 
-it( 'renders an icon-only submit button with accessible name when buttonUseIcon is true', function () {
+it( 'renders an icon-only submit button with accessible name when buttonUseIcon is true', function (): void {
 	$tree = [ makeBlock( 'core/search', [ 'buttonText' => 'Go', 'buttonUseIcon' => true ] ) ];
 
 	$html = makeRenderer()->render( $tree );
@@ -602,7 +602,7 @@ it( 'renders an icon-only submit button with accessible name when buttonUseIcon 
 		->not->toContain( '<button type="submit" class="wp-block-search__button"></button>' );
 } );
 
-it( 'falls back to label when buttonText is empty and buttonUseIcon is true', function () {
+it( 'falls back to label when buttonText is empty and buttonUseIcon is true', function (): void {
 	$tree = [ makeBlock( 'core/search', [ 'label' => 'Find stuff', 'buttonText' => '', 'buttonUseIcon' => true ] ) ];
 
 	$html = makeRenderer()->render( $tree );
@@ -610,7 +610,7 @@ it( 'falls back to label when buttonText is empty and buttonUseIcon is true', fu
 	expect( $html )->toContain( 'aria-label="Find stuff"' );
 } );
 
-it( 'carries the #338 a11y fix forward to artisanpack/search (I4 fork)', function () {
+it( 'carries the #338 a11y fix forward to artisanpack/search (I4 fork)', function (): void {
 	$tree = [ makeBlock( 'artisanpack/search', [ 'buttonText' => 'Go', 'buttonUseIcon' => true ] ) ];
 
 	$html = makeRenderer()->render( $tree );
@@ -621,7 +621,7 @@ it( 'carries the #338 a11y fix forward to artisanpack/search (I4 fork)', functio
 		->not->toContain( '<button type="submit" class="wp-block-search__button"></button>' );
 } );
 
-it( 'preserves fractional column widths', function () {
+it( 'preserves fractional column widths', function (): void {
 	$tree = [
 		makeBlock( 'core/columns', [], [
 			makeBlock( 'core/column', [ 'width' => 33.33 ], [
@@ -635,7 +635,7 @@ it( 'preserves fractional column widths', function () {
 	expect( $html )->toContain( 'flex-basis: 33.33%;' );
 } );
 
-it( 'renders the artisanpack/callout reference block with severity and icon', function () {
+it( 'renders the artisanpack/callout reference block with severity and icon', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/callout', [
 			'severity' => 'warning',
@@ -652,7 +652,7 @@ it( 'renders the artisanpack/callout reference block with severity and icon', fu
 		->and( $html )->toContain( '<svg' );
 } );
 
-it( 'falls back to safe defaults when callout severity or icon is invalid', function () {
+it( 'falls back to safe defaults when callout severity or icon is invalid', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/callout', [
 			'severity' => 'catastrophic',
@@ -667,7 +667,7 @@ it( 'falls back to safe defaults when callout severity or icon is invalid', func
 		->and( $html )->toContain( 'data-severity="info"' );
 } );
 
-it( 'renders the artisanpack/breadcrumbs block with a resolved trail and schema microdata', function () {
+it( 'renders the artisanpack/breadcrumbs block with a resolved trail and schema microdata', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/breadcrumbs', [
 			'separatorIcon'     => 'chevron-right',
@@ -697,7 +697,7 @@ it( 'renders the artisanpack/breadcrumbs block with a resolved trail and schema 
 		->and( $html )->toContain( 'd="m9 6 6 6-6 6"' );
 } );
 
-it( 'falls back to safe defaults when breadcrumbs separator is invalid and omits schema when disabled', function () {
+it( 'falls back to safe defaults when breadcrumbs separator is invalid and omits schema when disabled', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/breadcrumbs', [
 			'separatorIcon'     => 'spinning-rocket',
@@ -716,7 +716,7 @@ it( 'falls back to safe defaults when breadcrumbs separator is invalid and omits
 		->and( $html )->not->toContain( 'itemprop="position"' );
 } );
 
-it( 'drops unsafe URLs from breadcrumbs trail entries', function () {
+it( 'drops unsafe URLs from breadcrumbs trail entries', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/breadcrumbs', [
 			'_resolvedTrail' => [
@@ -739,7 +739,7 @@ it( 'drops unsafe URLs from breadcrumbs trail entries', function () {
 		->and( substr_count( $html, 'ap-breadcrumbs__current' ) )->toBe( 1 );
 } );
 
-it( 'renders an empty list when breadcrumbs trail is missing', function () {
+it( 'renders an empty list when breadcrumbs trail is missing', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/breadcrumbs', [] ),
 	];
@@ -750,7 +750,7 @@ it( 'renders an empty list when breadcrumbs trail is missing', function () {
 		->and( $html )->not->toContain( '<li class="ap-breadcrumbs__item' );
 } );
 
-it( 'renders the artisanpack/copyright block with the © + text + current year (icon-text default)', function () {
+it( 'renders the artisanpack/copyright block with the © + text + current year (icon-text default)', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/copyright', [
 			'copyrightType' => 'icon-text',
@@ -766,7 +766,7 @@ it( 'renders the artisanpack/copyright block with the © + text + current year (
 		->and( $html )->toContain( '<p' );
 } );
 
-it( 'omits the text when copyright type is icon-only and drops the icon when text-only', function () {
+it( 'omits the text when copyright type is icon-only and drops the icon when text-only', function (): void {
 	$iconOnly = makeRenderer()->render( [
 		makeBlock( 'artisanpack/copyright', [
 			'copyrightType' => 'icon-only',
@@ -789,7 +789,7 @@ it( 'omits the text when copyright type is icon-only and drops the icon when tex
 		->and( $textOnly )->not->toContain( '©' );
 } );
 
-it( 'falls back to icon-text when copyright type is invalid', function () {
+it( 'falls back to icon-text when copyright type is invalid', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/copyright', [
 			'copyrightType' => 'made-up-mode',
@@ -803,7 +803,7 @@ it( 'falls back to icon-text when copyright type is invalid', function () {
 	expect( $html )->toContain( '© Fallback ' . $year );
 } );
 
-it( 'renders the artisanpack/marquee block with width + animation styles applied', function () {
+it( 'renders the artisanpack/marquee block with width + animation styles applied', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/marquee', [
 			'marqueeContent' => 'Breaking news',
@@ -821,7 +821,7 @@ it( 'renders the artisanpack/marquee block with width + animation styles applied
 		->and( $html )->toContain( 'Breaking news' );
 } );
 
-it( 'clamps marquee width and speed to their valid range and falls back on non-numeric input', function () {
+it( 'clamps marquee width and speed to their valid range and falls back on non-numeric input', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/marquee', [
 			'marqueeContent' => 'x',
@@ -836,7 +836,7 @@ it( 'clamps marquee width and speed to their valid range and falls back on non-n
 		->and( $html )->toContain( 'animation: ap-marquee-scroll 5s linear infinite' );
 } );
 
-it( 'renders the artisanpack/comments-number block with the resolved count and plural label', function () {
+it( 'renders the artisanpack/comments-number block with the resolved count and plural label', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/comments-number', [
 			'_resolvedCommentCount' => 5,
@@ -852,7 +852,7 @@ it( 'renders the artisanpack/comments-number block with the resolved count and p
 		->and( $html )->not->toContain( 'Reply<' );
 } );
 
-it( 'uses the singular comments-number label when the resolved count is exactly one', function () {
+it( 'uses the singular comments-number label when the resolved count is exactly one', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/comments-number', [
 			'_resolvedCommentCount' => 1,
@@ -866,7 +866,7 @@ it( 'uses the singular comments-number label when the resolved count is exactly 
 	expect( $html )->toContain( '1 Reply' );
 } );
 
-it( 'falls back to zero comments and default labels when the resolved count is missing', function () {
+it( 'falls back to zero comments and default labels when the resolved count is missing', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/comments-number', [] ),
 	];
@@ -876,7 +876,7 @@ it( 'falls back to zero comments and default labels when the resolved count is m
 	expect( $html )->toContain( '0 Comments' );
 } );
 
-it( 'renders an artisanpack/accordions tree with its nested panel + title/body grandchildren', function () {
+it( 'renders an artisanpack/accordions tree with its nested panel + title/body grandchildren', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/accordions', [], [
 			makeBlock( 'artisanpack/accordion', [
@@ -909,7 +909,7 @@ it( 'renders an artisanpack/accordions tree with its nested panel + title/body g
 		->and( $html )->toContain( '<h3 class="wp-block-heading">Question</h3>' );
 } );
 
-it( 'falls back to safe defaults when accordion panelIcon is invalid', function () {
+it( 'falls back to safe defaults when accordion panelIcon is invalid', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/accordion', [
 			'panelId'   => 'faq-1',
@@ -923,7 +923,7 @@ it( 'falls back to safe defaults when accordion panelIcon is invalid', function 
 		->and( $html )->not->toContain( '<script>' );
 } );
 
-it( 'omits accordion-title aria wiring when the parent panel id is empty', function () {
+it( 'omits accordion-title aria wiring when the parent panel id is empty', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/accordion', [ 'panelId' => '', 'panelIcon' => 'plus-minus' ], [
 			makeBlock( 'artisanpack/accordion-title', [], [], 'title-1' ),
@@ -938,7 +938,7 @@ it( 'omits accordion-title aria wiring when the parent panel id is empty', funct
 		->and( $html )->not->toContain( 'id="-control"' );
 } );
 
-it( 'emits FAQPage JSON-LD from accordion panels when the accordions faqSchema toggle is on (#757)', function () {
+it( 'emits FAQPage JSON-LD from accordion panels when the accordions faqSchema toggle is on (#757)', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/accordions', [ 'faqSchema' => true ], [
 			makeBlock( 'artisanpack/accordion', [ 'panelId' => 'faq-1' ], [
@@ -981,7 +981,7 @@ it( 'emits FAQPage JSON-LD from accordion panels when the accordions faqSchema t
 		->and( $decoded['mainEntity'][1]['acceptedAnswer']['text'] )->toBe( 'Yes, MIT licensed.' );
 } );
 
-it( 'strips renderer wrapper tags and class attributes from the FAQPage answer text', function () {
+it( 'strips renderer wrapper tags and class attributes from the FAQPage answer text', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/accordions', [ 'faqSchema' => true ], [
 			makeBlock( 'artisanpack/accordion', [ 'panelId' => 'faq-1' ], [
@@ -1007,7 +1007,7 @@ it( 'strips renderer wrapper tags and class attributes from the FAQPage answer t
 		->and( $text )->toBe( 'Line one. Line two.' );
 } );
 
-it( 'omits FAQPage JSON-LD when the accordions faqSchema toggle is off (default)', function () {
+it( 'omits FAQPage JSON-LD when the accordions faqSchema toggle is off (default)', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/accordions', [], [
 			makeBlock( 'artisanpack/accordion', [ 'panelId' => 'faq-1' ], [
@@ -1027,7 +1027,7 @@ it( 'omits FAQPage JSON-LD when the accordions faqSchema toggle is off (default)
 		->and( $html )->not->toContain( 'FAQPage' );
 } );
 
-it( 'skips FAQPage entries for panels missing a title or a body', function () {
+it( 'skips FAQPage entries for panels missing a title or a body', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/accordions', [ 'faqSchema' => true ], [
 			// Full pair — should appear.
@@ -1057,7 +1057,7 @@ it( 'skips FAQPage entries for panels missing a title or a body', function () {
 		->and( $decoded['mainEntity'][0]['name'] )->toBe( 'Real question' );
 } );
 
-it( 'ignores non-accordion inner blocks when building FAQPage entries', function () {
+it( 'ignores non-accordion inner blocks when building FAQPage entries', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/accordions', [ 'faqSchema' => true ], [
 			// Stray non-panel child — must be skipped without breaking emission.
@@ -1082,7 +1082,7 @@ it( 'ignores non-accordion inner blocks when building FAQPage entries', function
 		->and( $decoded['mainEntity'][0]['name'] )->toBe( 'Panel question' );
 } );
 
-it( 'omits the FAQPage script when faqSchema is on but no accordion panels are present', function () {
+it( 'omits the FAQPage script when faqSchema is on but no accordion panels are present', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/accordions', [ 'faqSchema' => true ], [] ),
 	];
@@ -1094,7 +1094,7 @@ it( 'omits the FAQPage script when faqSchema is on but no accordion panels are p
 		->and( $html )->not->toContain( 'FAQPage' );
 } );
 
-it( 'hex-encodes tag characters via JSON_HEX_TAG so entity-encoded </script> in content cannot break out of the inline script', function () {
+it( 'hex-encodes tag characters via JSON_HEX_TAG so entity-encoded </script> in content cannot break out of the inline script', function (): void {
 	// Entity-encoded input round-trips: core/paragraph & core/heading
 	// emit the raw `&lt;/script&gt;` markup, strip_tags leaves the
 	// entities alone, and html_entity_decode restores the literal
@@ -1131,7 +1131,7 @@ it( 'hex-encodes tag characters via JSON_HEX_TAG so entity-encoded </script> in 
 		->and( $html )->not->toContain( '<script>alert(1)' );
 } );
 
-it( 'renders an artisanpack/faq block with question/answer pairs (#758)', function () {
+it( 'renders an artisanpack/faq block with question/answer pairs (#758)', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/faq', [
 			'headingLevel' => 3,
@@ -1152,7 +1152,7 @@ it( 'renders an artisanpack/faq block with question/answer pairs (#758)', functi
 		->and( $html )->toContain( '<div class="ap-faq__answer">Yes, MIT licensed.</div>' );
 } );
 
-it( 'renders artisanpack/faq questions with the configured heading level', function () {
+it( 'renders artisanpack/faq questions with the configured heading level', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/faq', [
 			'headingLevel' => 2,
@@ -1167,7 +1167,7 @@ it( 'renders artisanpack/faq questions with the configured heading level', funct
 	expect( $html )->toContain( '<h2 class="ap-faq__question">Q</h2>' );
 } );
 
-it( 'clamps invalid artisanpack/faq heading levels to the 2-6 range', function () {
+it( 'clamps invalid artisanpack/faq heading levels to the 2-6 range', function (): void {
 	$tooHigh = [
 		makeBlock( 'artisanpack/faq', [
 			'headingLevel' => 99,
@@ -1185,7 +1185,7 @@ it( 'clamps invalid artisanpack/faq heading levels to the 2-6 range', function (
 	expect( makeRenderer()->render( $tooLow ) )->toContain( '<h2 class="ap-faq__question">Q</h2>' );
 } );
 
-it( 'emits FAQPage JSON-LD for artisanpack/faq when emitSchema is on', function () {
+it( 'emits FAQPage JSON-LD for artisanpack/faq when emitSchema is on', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/faq', [
 			'emitSchema' => true,
@@ -1215,7 +1215,7 @@ it( 'emits FAQPage JSON-LD for artisanpack/faq when emitSchema is on', function 
 		->and( $decoded['mainEntity'][1]['acceptedAnswer']['text'] )->toBe( 'Yes, MIT licensed.' );
 } );
 
-it( 'defaults artisanpack/faq to emitting FAQPage JSON-LD when emitSchema is absent', function () {
+it( 'defaults artisanpack/faq to emitting FAQPage JSON-LD when emitSchema is absent', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/faq', [
 			'items' => [
@@ -1230,7 +1230,7 @@ it( 'defaults artisanpack/faq to emitting FAQPage JSON-LD when emitSchema is abs
 		->and( $html )->toContain( 'FAQPage' );
 } );
 
-it( 'omits FAQPage JSON-LD for artisanpack/faq when emitSchema is off', function () {
+it( 'omits FAQPage JSON-LD for artisanpack/faq when emitSchema is off', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/faq', [
 			'emitSchema' => false,
@@ -1247,7 +1247,7 @@ it( 'omits FAQPage JSON-LD for artisanpack/faq when emitSchema is off', function
 		->and( $html )->not->toContain( 'FAQPage' );
 } );
 
-it( 'strips answer HTML wrappers from the artisanpack/faq schema text', function () {
+it( 'strips answer HTML wrappers from the artisanpack/faq schema text', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/faq', [
 			'emitSchema' => true,
@@ -1269,7 +1269,7 @@ it( 'strips answer HTML wrappers from the artisanpack/faq schema text', function
 		->and( $decoded['mainEntity'][0]['acceptedAnswer']['text'] )->toBe( 'Line one. Line two.' );
 } );
 
-it( 'rounds fractional artisanpack/faq heading levels to match the React/Vue renderers', function () {
+it( 'rounds fractional artisanpack/faq heading levels to match the React/Vue renderers', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/faq', [
 			'headingLevel' => 2.5,
@@ -1280,7 +1280,7 @@ it( 'rounds fractional artisanpack/faq heading levels to match the React/Vue ren
 	expect( makeRenderer()->render( $tree ) )->toContain( '<h3 class="ap-faq__question">Q</h3>' );
 } );
 
-it( 'accepts numeric-string artisanpack/faq heading levels', function () {
+it( 'accepts numeric-string artisanpack/faq heading levels', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/faq', [
 			'headingLevel' => '4',
@@ -1291,7 +1291,7 @@ it( 'accepts numeric-string artisanpack/faq heading levels', function () {
 	expect( makeRenderer()->render( $tree ) )->toContain( '<h4 class="ap-faq__question">Q</h4>' );
 } );
 
-it( 'skips artisanpack/faq schema entries whose question or answer are empty', function () {
+it( 'skips artisanpack/faq schema entries whose question or answer are empty', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/faq', [
 			'emitSchema' => true,
@@ -1312,7 +1312,7 @@ it( 'skips artisanpack/faq schema entries whose question or answer are empty', f
 		->and( $decoded['mainEntity'][0]['name'] )->toBe( 'Real question' );
 } );
 
-it( 'skips fully-empty artisanpack/faq items from the rendered markup', function () {
+it( 'skips fully-empty artisanpack/faq items from the rendered markup', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/faq', [
 			'emitSchema' => false,
@@ -1329,7 +1329,7 @@ it( 'skips fully-empty artisanpack/faq items from the rendered markup', function
 	expect( substr_count( $html, 'class="ap-faq__item"' ) )->toBe( 1 );
 } );
 
-it( 'omits FAQPage JSON-LD for artisanpack/faq when emitSchema is on but every item is empty', function () {
+it( 'omits FAQPage JSON-LD for artisanpack/faq when emitSchema is on but every item is empty', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/faq', [
 			'emitSchema' => true,
@@ -1346,7 +1346,7 @@ it( 'omits FAQPage JSON-LD for artisanpack/faq when emitSchema is on but every i
 		->and( $html )->not->toContain( 'FAQPage' );
 } );
 
-it( 'hex-encodes tag characters in the artisanpack/faq JSON-LD payload so entity-encoded </script> cannot break out', function () {
+it( 'hex-encodes tag characters in the artisanpack/faq JSON-LD payload so entity-encoded </script> cannot break out', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/faq', [
 			'emitSchema' => true,
@@ -1370,7 +1370,7 @@ it( 'hex-encodes tag characters in the artisanpack/faq JSON-LD payload so entity
 		->and( $html )->not->toContain( '<script>alert(1)' );
 } );
 
-it( 'ignores non-array artisanpack/faq item entries without emitting a container', function () {
+it( 'ignores non-array artisanpack/faq item entries without emitting a container', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/faq', [
 			'emitSchema' => false,
@@ -1384,7 +1384,7 @@ it( 'ignores non-array artisanpack/faq item entries without emitting a container
 		->and( substr_count( $html, 'class="ap-faq__item"' ) )->toBe( 1 );
 } );
 
-it( 'renders an artisanpack/howto block with ordered steps (#759)', function () {
+it( 'renders an artisanpack/howto block with ordered steps (#759)', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/howto', [
 			'name'         => 'Brew Pour-Over Coffee',
@@ -1409,7 +1409,7 @@ it( 'renders an artisanpack/howto block with ordered steps (#759)', function () 
 		->and( $html )->toContain( '<h3 class="ap-howto__step-name">Grind beans</h3>' );
 } );
 
-it( 'renders artisanpack/howto step names with the configured heading level', function () {
+it( 'renders artisanpack/howto step names with the configured heading level', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/howto', [
 			'headingLevel' => 4,
@@ -1424,7 +1424,7 @@ it( 'renders artisanpack/howto step names with the configured heading level', fu
 	expect( $html )->toContain( '<h4 class="ap-howto__step-name">S</h4>' );
 } );
 
-it( 'clamps invalid artisanpack/howto heading levels to the 2-6 range', function () {
+it( 'clamps invalid artisanpack/howto heading levels to the 2-6 range', function (): void {
 	$tooHigh = [
 		makeBlock( 'artisanpack/howto', [
 			'headingLevel' => 99,
@@ -1442,7 +1442,7 @@ it( 'clamps invalid artisanpack/howto heading levels to the 2-6 range', function
 	expect( makeRenderer()->render( $tooLow ) )->toContain( '<h2 class="ap-howto__step-name">S</h2>' );
 } );
 
-it( 'rounds fractional artisanpack/howto heading levels to match the React/Vue renderers', function () {
+it( 'rounds fractional artisanpack/howto heading levels to match the React/Vue renderers', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/howto', [
 			'headingLevel' => 2.5,
@@ -1453,7 +1453,7 @@ it( 'rounds fractional artisanpack/howto heading levels to match the React/Vue r
 	expect( makeRenderer()->render( $tree ) )->toContain( '<h3 class="ap-howto__step-name">S</h3>' );
 } );
 
-it( 'accepts numeric-string artisanpack/howto heading levels', function () {
+it( 'accepts numeric-string artisanpack/howto heading levels', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/howto', [
 			'headingLevel' => '5',
@@ -1464,7 +1464,7 @@ it( 'accepts numeric-string artisanpack/howto heading levels', function () {
 	expect( makeRenderer()->render( $tree ) )->toContain( '<h5 class="ap-howto__step-name">S</h5>' );
 } );
 
-it( 'renders an artisanpack/howto step image when a step imageUrl is set', function () {
+it( 'renders an artisanpack/howto step image when a step imageUrl is set', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/howto', [
 			'emitSchema' => false,
@@ -1484,7 +1484,7 @@ it( 'renders an artisanpack/howto step image when a step imageUrl is set', funct
 	expect( $html )->toContain( '<img class="ap-howto__step-image" src="https://example.test/step.png" alt="A step"/>' );
 } );
 
-it( 'omits the name and description elements from artisanpack/howto when blank', function () {
+it( 'omits the name and description elements from artisanpack/howto when blank', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/howto', [
 			'emitSchema' => false,
@@ -1499,7 +1499,7 @@ it( 'omits the name and description elements from artisanpack/howto when blank',
 		->and( $html )->not->toContain( 'ap-howto__description' );
 } );
 
-it( 'emits HowTo JSON-LD for artisanpack/howto when emitSchema is on', function () {
+it( 'emits HowTo JSON-LD for artisanpack/howto when emitSchema is on', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/howto', [
 			'name'        => 'Brew Pour-Over Coffee',
@@ -1532,10 +1532,10 @@ it( 'emits HowTo JSON-LD for artisanpack/howto when emitSchema is on', function 
 		->and( $decoded['step'][0]['image'] )->toBe( 'https://example.test/boil.png' )
 		->and( $decoded['step'][1]['position'] )->toBe( 2 )
 		->and( $decoded['step'][1]['name'] )->toBe( 'Grind beans' )
-		->and( $decoded['step'][1])->not->toHaveKey( 'image' );
+		->and( $decoded['step'][1] )->not->toHaveKey( 'image' );
 } );
 
-it( 'defaults artisanpack/howto to emitting HowTo JSON-LD when emitSchema is absent', function () {
+it( 'defaults artisanpack/howto to emitting HowTo JSON-LD when emitSchema is absent', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/howto', [
 			'name'  => 'Guide',
@@ -1549,7 +1549,7 @@ it( 'defaults artisanpack/howto to emitting HowTo JSON-LD when emitSchema is abs
 		->and( $html )->toContain( '"HowTo"' );
 } );
 
-it( 'omits HowTo JSON-LD for artisanpack/howto when emitSchema is off', function () {
+it( 'omits HowTo JSON-LD for artisanpack/howto when emitSchema is off', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/howto', [
 			'emitSchema' => false,
@@ -1565,7 +1565,7 @@ it( 'omits HowTo JSON-LD for artisanpack/howto when emitSchema is off', function
 		->and( $html )->not->toContain( '"HowTo"' );
 } );
 
-it( 'falls back to the first step name when artisanpack/howto has no block name', function () {
+it( 'falls back to the first step name when artisanpack/howto has no block name', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/howto', [
 			'emitSchema' => true,
@@ -1582,7 +1582,7 @@ it( 'falls back to the first step name when artisanpack/howto has no block name'
 	expect( $decoded['name'] )->toBe( 'Boil water' );
 } );
 
-it( 'strips HTML wrappers from the artisanpack/howto schema text', function () {
+it( 'strips HTML wrappers from the artisanpack/howto schema text', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/howto', [
 			'emitSchema' => true,
@@ -1606,7 +1606,7 @@ it( 'strips HTML wrappers from the artisanpack/howto schema text', function () {
 		->and( $decoded['step'][0]['text'] )->toBe( 'Line one. Line two.' );
 } );
 
-it( 'falls back to the step name when the step text is blank in artisanpack/howto schema', function () {
+it( 'falls back to the step name when the step text is blank in artisanpack/howto schema', function (): void {
 	// schema.org's HowToStep requires `text`; the renderer copies the
 	// step name into `text` so an author who only entered a title still
 	// produces a Google-valid payload.
@@ -1629,7 +1629,7 @@ it( 'falls back to the step name when the step text is blank in artisanpack/howt
 		->and( $decoded['step'][0]['name'] )->toBe( 'Title only step' );
 } );
 
-it( 'skips artisanpack/howto schema entries whose step is empty', function () {
+it( 'skips artisanpack/howto schema entries whose step is empty', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/howto', [
 			'emitSchema' => true,
@@ -1650,7 +1650,7 @@ it( 'skips artisanpack/howto schema entries whose step is empty', function () {
 		->and( $decoded['step'][0]['name'] )->toBe( 'Real step' );
 } );
 
-it( 'skips fully-empty artisanpack/howto steps from the rendered markup', function () {
+it( 'skips fully-empty artisanpack/howto steps from the rendered markup', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/howto', [
 			'emitSchema' => false,
@@ -1667,7 +1667,7 @@ it( 'skips fully-empty artisanpack/howto steps from the rendered markup', functi
 		->and( substr_count( $html, 'class="ap-howto__step"' ) )->toBe( 1 );
 } );
 
-it( 'omits HowTo JSON-LD for artisanpack/howto when emitSchema is on but every step is empty', function () {
+it( 'omits HowTo JSON-LD for artisanpack/howto when emitSchema is on but every step is empty', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/howto', [
 			'emitSchema' => true,
@@ -1685,7 +1685,7 @@ it( 'omits HowTo JSON-LD for artisanpack/howto when emitSchema is on but every s
 		->and( $html )->not->toContain( '"HowTo"' );
 } );
 
-it( 'ignores non-array artisanpack/howto step entries without emitting the item', function () {
+it( 'ignores non-array artisanpack/howto step entries without emitting the item', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/howto', [
 			'emitSchema' => false,
@@ -1699,7 +1699,7 @@ it( 'ignores non-array artisanpack/howto step entries without emitting the item'
 		->and( substr_count( $html, 'class="ap-howto__step"' ) )->toBe( 1 );
 } );
 
-it( 'hex-encodes tag characters in the artisanpack/howto JSON-LD payload so entity-encoded </script> cannot break out', function () {
+it( 'hex-encodes tag characters in the artisanpack/howto JSON-LD payload so entity-encoded </script> cannot break out', function (): void {
 	// Same shape as the accordions/faq JSON-LD injection tests: the
 	// author-supplied text arrives entity-encoded from the block editor,
 	// so after `strip_tags` + `html_entity_decode` the raw `<>` characters
@@ -1731,7 +1731,7 @@ it( 'hex-encodes tag characters in the artisanpack/howto JSON-LD payload so enti
 		->and( $html )->not->toContain( '<script>alert(1)' );
 } );
 
-it( 'drops unsafe schemes from artisanpack/howto step image URLs (#H-05)', function () {
+it( 'drops unsafe schemes from artisanpack/howto step image URLs (#H-05)', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/howto', [
 			'emitSchema' => true,
@@ -1758,7 +1758,7 @@ it( 'drops unsafe schemes from artisanpack/howto step image URLs (#H-05)', funct
 		->and( $matches[1][0] ?? '' )->not->toContain( '"image"' );
 } );
 
-it( 'renders an artisanpack/tabs tree with triggers derived from tab-section children', function () {
+it( 'renders an artisanpack/tabs tree with triggers derived from tab-section children', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/tabs', [
 			'tabsAlign'   => 'horizontal',
@@ -1796,7 +1796,7 @@ it( 'renders an artisanpack/tabs tree with triggers derived from tab-section chi
 		->and( $html )->toContain( 'Tab body' );
 } );
 
-it( 'falls back to safe defaults when tabsAlign / tabsSpacing are invalid', function () {
+it( 'falls back to safe defaults when tabsAlign / tabsSpacing are invalid', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/tabs', [
 			'tabsAlign'   => 'diagonal',
@@ -1810,7 +1810,7 @@ it( 'falls back to safe defaults when tabsAlign / tabsSpacing are invalid', func
 		->and( $html )->toContain( 'space-tabs-start' );
 } );
 
-it( 'deduplicates tab ids when two sections share the same slug', function () {
+it( 'deduplicates tab ids when two sections share the same slug', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/tabs', [], [
 			makeBlock( 'artisanpack/tab-section', [ 'label' => 'One', 'tabId' => 'overview' ], [], 'sec-1' ),
@@ -1828,7 +1828,7 @@ it( 'deduplicates tab ids when two sections share the same slug', function () {
 		->and( $html )->toContain( 'href="#tabs-panel-overview-3"' );
 } );
 
-it( 'auto-fills tab labels and ids by position when sections leave them blank', function () {
+it( 'auto-fills tab labels and ids by position when sections leave them blank', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/tabs', [], [
 			makeBlock( 'artisanpack/tab-section', [], [], 'sec-1' ),
@@ -1850,7 +1850,7 @@ it( 'auto-fills tab labels and ids by position when sections leave them blank', 
 		->and( $html )->toContain( 'aria-labelledby="tabs-tab-tab-2"' );
 } );
 
-it( 'renders a tab-section without aria wiring when tabId is empty', function () {
+it( 'renders a tab-section without aria wiring when tabId is empty', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/tab-section', [ 'tabId' => '' ], [
 			makeBlock( 'core/paragraph', [ 'content' => 'Naked' ], [], 'p-1' ),
@@ -1864,7 +1864,7 @@ it( 'renders a tab-section without aria wiring when tabId is empty', function ()
 		->and( $html )->toContain( 'Naked' );
 } );
 
-it( 'renders an artisanpack/grid tree with per-breakpoint column + span classes', function () {
+it( 'renders an artisanpack/grid tree with per-breakpoint column + span classes', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/grid', [
 			'numColumns' => 4,
@@ -1890,7 +1890,7 @@ it( 'renders an artisanpack/grid tree with per-breakpoint column + span classes'
 		->and( $html )->toContain( 'Cell content' );
 } );
 
-it( 'emits an `ap-grid-has-N-{bp}-columns` class for every responsive.numColumns override', function () {
+it( 'emits an `ap-grid-has-N-{bp}-columns` class for every responsive.numColumns override', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/grid', [
 			'numColumns' => 1,
@@ -1910,7 +1910,7 @@ it( 'emits an `ap-grid-has-N-{bp}-columns` class for every responsive.numColumns
 		->and( $html )->toContain( 'ap-grid-has-4-lg-columns' );
 } );
 
-it( 'clamps grid column counts outside 1-12 to safe defaults', function () {
+it( 'clamps grid column counts outside 1-12 to safe defaults', function (): void {
 	$tooHigh = [
 		makeBlock( 'artisanpack/grid', [ 'numColumns' => 99 ] ),
 	];
@@ -1922,7 +1922,7 @@ it( 'clamps grid column counts outside 1-12 to safe defaults', function () {
 	expect( makeRenderer()->render( $tooLow ) )->toContain( 'ap-grid-has-1-base-columns' );
 } );
 
-it( 'emits per-breakpoint grid-item span classes for both columns and rows', function () {
+it( 'emits per-breakpoint grid-item span classes for both columns and rows', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/grid-item', [
 			'gridColumnSpan' => 1,
@@ -1943,7 +1943,7 @@ it( 'emits per-breakpoint grid-item span classes for both columns and rows', fun
 		->and( $html )->toContain( 'ap-grid-item-span-2-md-row' );
 } );
 
-it( 'skips numColumns / span overrides at unknown breakpoints', function () {
+it( 'skips numColumns / span overrides at unknown breakpoints', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/grid', [
 			'numColumns' => 2,
@@ -1958,7 +1958,7 @@ it( 'skips numColumns / span overrides at unknown breakpoints', function () {
 		->and( $html )->not->toContain( '-orphan-' );
 } );
 
-it( 'falls back to a safe default when grid-item innerLayout is invalid', function () {
+it( 'falls back to a safe default when grid-item innerLayout is invalid', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/grid-item', [
 			'innerLayout' => 'evil"><script>',
@@ -1972,7 +1972,7 @@ it( 'falls back to a safe default when grid-item innerLayout is invalid', functi
 		->and( $html )->not->toContain( 'ap-grid-item-layout-evil' );
 } );
 
-it( 'compiles spacing.blockGap with horizontal/vertical sides into row-gap + column-gap', function () {
+it( 'compiles spacing.blockGap with horizontal/vertical sides into row-gap + column-gap', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/grid', [
 			'style' => [
@@ -1989,12 +1989,12 @@ it( 'compiles spacing.blockGap with horizontal/vertical sides into row-gap + col
 		->and( $html )->toContain( 'column-gap: 1rem' );
 } );
 
-it( 'renders artisanpack/next-post wrapper around its inner blocks when an adjacent post is resolved', function () {
+it( 'renders artisanpack/next-post wrapper around its inner blocks when an adjacent post is resolved', function (): void {
 	$tree = [
 		makeBlock(
 			'artisanpack/next-post',
 			[ '_resolvedHasAdjacent' => true ],
-			[ makeBlock( 'core/paragraph', [ 'content' => 'Adjacent body' ] ) ]
+			[ makeBlock( 'core/paragraph', [ 'content' => 'Adjacent body' ] ) ],
 		),
 	];
 
@@ -2005,12 +2005,12 @@ it( 'renders artisanpack/next-post wrapper around its inner blocks when an adjac
 		->and( $html )->toContain( 'Adjacent body' );
 } );
 
-it( 'emits nothing for artisanpack/next-post when no adjacent post is resolved', function () {
+it( 'emits nothing for artisanpack/next-post when no adjacent post is resolved', function (): void {
 	$tree = [
 		makeBlock(
 			'artisanpack/next-post',
 			[ '_resolvedHasAdjacent' => false ],
-			[ makeBlock( 'core/paragraph', [ 'content' => 'Hidden' ] ) ]
+			[ makeBlock( 'core/paragraph', [ 'content' => 'Hidden' ] ) ],
 		),
 	];
 
@@ -2019,12 +2019,12 @@ it( 'emits nothing for artisanpack/next-post when no adjacent post is resolved',
 	expect( $html )->toBe( '' );
 } );
 
-it( 'renders artisanpack/previous-post wrapper around its inner blocks when an adjacent post is resolved', function () {
+it( 'renders artisanpack/previous-post wrapper around its inner blocks when an adjacent post is resolved', function (): void {
 	$tree = [
 		makeBlock(
 			'artisanpack/previous-post',
 			[ '_resolvedHasAdjacent' => true ],
-			[ makeBlock( 'core/paragraph', [ 'content' => 'Older neighbor' ] ) ]
+			[ makeBlock( 'core/paragraph', [ 'content' => 'Older neighbor' ] ) ],
 		),
 	];
 
@@ -2035,12 +2035,12 @@ it( 'renders artisanpack/previous-post wrapper around its inner blocks when an a
 		->and( $html )->toContain( 'Older neighbor' );
 } );
 
-it( 'emits nothing for artisanpack/previous-post when no adjacent post is resolved', function () {
+it( 'emits nothing for artisanpack/previous-post when no adjacent post is resolved', function (): void {
 	$tree = [
 		makeBlock(
 			'artisanpack/previous-post',
 			[ '_resolvedHasAdjacent' => false ],
-			[ makeBlock( 'core/paragraph', [ 'content' => 'Hidden' ] ) ]
+			[ makeBlock( 'core/paragraph', [ 'content' => 'Hidden' ] ) ],
 		),
 	];
 

@@ -57,7 +57,7 @@ it( 'collapses sibling format rows down to one per slot when rolled back', funct
 		'disk'      => 'public',
 		'path'      => 'visual-editor/fonts/google/inter/400-normal-alt.ttf',
 		'file_size' => 12,
-	] ) )->toThrow( \Illuminate\Database\UniqueConstraintViolationException::class );
+	] ) )->toThrow( Illuminate\Database\UniqueConstraintViolationException::class );
 
 	// Restore forward state for subsequent tests.
 	$migration->up();

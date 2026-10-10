@@ -11,22 +11,22 @@
 |
 */
 
-pest()->extend(Tests\TestCase::class)
-    ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
-    ->in('Feature/VisualEditor');
+pest()->extend( Tests\TestCase::class )
+    ->use( Illuminate\Foundation\Testing\RefreshDatabase::class )
+    ->in( 'Feature/VisualEditor' );
 
-pest()->extend(Tests\Feature\Ai\AiTestCase::class)
-    ->in('Feature/Ai');
+pest()->extend( Tests\Feature\Ai\AiTestCase::class )
+    ->in( 'Feature/Ai' );
 
-pest()->extend(Tests\TestCase::class)
-    ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
-    ->in('Unit/VisualEditor');
+pest()->extend( Tests\TestCase::class )
+    ->use( Illuminate\Foundation\Testing\RefreshDatabase::class )
+    ->in( 'Unit/VisualEditor' );
 
-pest()->extend(ArtisanPackUI\VisualEditorRendererBlade\Tests\TestCase::class)
-    ->in(__DIR__ . '/../packages/visual-editor-renderer-blade/tests/Unit');
+pest()->extend( ArtisanPackUI\VisualEditorRendererBlade\Tests\TestCase::class )
+    ->in( __DIR__ . '/../packages/visual-editor-renderer-blade/tests/Unit' );
 
-pest()->extend(ArtisanPackUI\VisualEditorRendererBlade\Tests\TestCase::class)
-    ->in(__DIR__ . '/../packages/visual-editor-renderer-blade/tests/Feature');
+pest()->extend( ArtisanPackUI\VisualEditorRendererBlade\Tests\TestCase::class )
+    ->in( __DIR__ . '/../packages/visual-editor-renderer-blade/tests/Feature' );
 
 /*
 |--------------------------------------------------------------------------
@@ -39,9 +39,9 @@ pest()->extend(ArtisanPackUI\VisualEditorRendererBlade\Tests\TestCase::class)
 |
 */
 
-expect()->extend('toBeOne', function () {
-    return $this->toBe(1);
-});
+expect()->extend( 'toBeOne', function () {
+    return $this->toBe( 1 );
+} );
 
 /*
 |--------------------------------------------------------------------------
@@ -72,7 +72,7 @@ function templatePartParserAvailable(): bool
     return class_exists( 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Support\\BlockMarkupParser' );
 }
 
-function something()
+function something(): void
 {
     // ..
 }

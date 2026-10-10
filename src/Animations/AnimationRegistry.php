@@ -249,14 +249,14 @@ class AnimationRegistry
 				throw new InvalidArgumentException( sprintf(
 					'Animation family "%s" is not recognised. Allowed: %s.',
 					(string) $family,
-					implode( ', ', self::FAMILIES )
+					implode( ', ', self::FAMILIES ),
 				) );
 			}
 
 			if ( ! is_array( $items ) ) {
 				throw new InvalidArgumentException( sprintf(
 					'Animation family "%s" must be an associative array.',
-					$family
+					$family,
 				) );
 			}
 
@@ -264,7 +264,7 @@ class AnimationRegistry
 				if ( ! is_string( $key ) || 1 !== preg_match( '/^[a-z0-9][a-z0-9_-]*$/i', $key ) ) {
 					throw new InvalidArgumentException( sprintf(
 						'Animation key "%s" must contain only letters, numbers, hyphens, and underscores.',
-						(string) $key
+						(string) $key,
 					) );
 				}
 
@@ -272,7 +272,7 @@ class AnimationRegistry
 					throw new InvalidArgumentException( sprintf(
 						'Animation "%s.%s" must be defined as an associative array.',
 						$family,
-						$key
+						$key,
 					) );
 				}
 
@@ -281,7 +281,7 @@ class AnimationRegistry
 					throw new InvalidArgumentException( sprintf(
 						'Animation "%s.%s" must declare a non-empty `label`.',
 						$family,
-						$key
+						$key,
 					) );
 				}
 
@@ -290,7 +290,7 @@ class AnimationRegistry
 					throw new InvalidArgumentException( sprintf(
 						'Animation "%s.%s" must declare a positive integer `duration` (ms).',
 						$family,
-						$key
+						$key,
 					) );
 				}
 
@@ -299,7 +299,7 @@ class AnimationRegistry
 					throw new InvalidArgumentException( sprintf(
 						'Animation "%s.%s" must declare a non-empty `easing` string.',
 						$family,
-						$key
+						$key,
 					) );
 				}
 
@@ -308,7 +308,7 @@ class AnimationRegistry
 					if ( ! is_string( $preset ) || '' === trim( $preset ) ) {
 						throw new InvalidArgumentException( sprintf(
 							'Hover animation "%s" must declare a non-empty `preset` slug.',
-							$key
+							$key,
 						) );
 					}
 				} else {
@@ -317,7 +317,7 @@ class AnimationRegistry
 						throw new InvalidArgumentException( sprintf(
 							'Animation "%s.%s" must declare a non-empty `keyframe` name.',
 							$family,
-							$key
+							$key,
 						) );
 					}
 				}
@@ -330,7 +330,7 @@ class AnimationRegistry
 						'label'    => $label,
 						'duration' => $duration,
 						'easing'   => $easing,
-					]
+					],
 				);
 			}
 		}

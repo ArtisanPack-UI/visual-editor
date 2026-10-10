@@ -57,8 +57,14 @@ class PatternInliner
 	public const ERROR_CYCLE       = 'cycle';
 	public const ERROR_DEPTH_LIMIT = 'depth-limit';
 
+	/**
+	 * cms-framework's BlockPattern model. Direct `find()` lookup by id
+	 * matches the visual-editor's `core/block` ref-as-id contract.
+	 */
+	protected const PATTERN_MODEL = '\\ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Models\\BlockPattern';
+
 	public function __construct(
-		protected int $maxDepth = self::DEFAULT_MAX_DEPTH
+		protected int $maxDepth = self::DEFAULT_MAX_DEPTH,
 	) {
 	}
 
@@ -202,12 +208,6 @@ class PatternInliner
 	}
 
 	/**
-	 * cms-framework's BlockPattern model. Direct `find()` lookup by id
-	 * matches the visual-editor's `core/block` ref-as-id contract.
-	 */
-	protected const PATTERN_MODEL = '\\ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Models\\BlockPattern';
-
-	/**
 	 * Looks the pattern up via cms-framework's BlockPattern model and
 	 * returns its block tree. Returns null when cms-framework isn't
 	 * installed, no row matches the ref, or the content envelope is
@@ -231,9 +231,18 @@ class PatternInliner
 			return null;
 		}
 
-		// cms-framework's `BlockPattern` stores `{ raw, blocks }` per the
-		// plan-14 envelope. Read `blocks` defensively — a malformed row
-		// surfaces as a resolution failure rather than a 500.
+		// cms-framework's `BlockPattern` stores its tree as a flat block
+		// list in `block_content`, exposed via `getBlockContent()`. The
+		// legacy `{ raw, blocks }` envelope under `content` is still read
+		// as a fallback so older rows keep resolving.
+		if ( method_exists( $pattern, 'getBlockContent' ) ) {
+			$blocks = $pattern->getBlockContent();
+
+			if ( [] !== $blocks ) {
+				return array_values( $blocks );
+			}
+		}
+
 		$content = $pattern->content ?? null;
 
 		if ( ! is_array( $content ) ) {
