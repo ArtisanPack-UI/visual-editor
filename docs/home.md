@@ -180,4 +180,4 @@ For issues, feature requests, and contributions:
 
 ---
 
-*This documentation covers visual-editor v1.12.1*
+*This documentation covers visual-editor v1.13.0*

@@ -6,6 +6,8 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.13.0] - 2026-10-10
+
 ### Upgrade notes
 
 - **Icon endpoints now check the `visual-editor.edit-content` ability.**
@@ -16,6 +18,35 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   capability, or define your own `visual-editor.edit-content` gate.
   `icons/svg/sanitize` is also throttled per user
   (`content_access.sanitize_throttle`, default `60,1`).
+- **Pattern previews require the same ability.** The new
+  `POST /visual-editor/api/patterns/preview` endpoint is gated on
+  `visual-editor.edit-content` too, so if you set
+  `content_access.capability` or define the gate, users who fail it get
+  a JSON 403 and the pattern cards fall back to the block-name outline.
+- **Rate limits are now counted per route.** Laravel's plain
+  `throttle:max,decay` keys its counter on the user alone, so the
+  package's throttled routes (AI, fonts, dynamic content, SVG sanitize,
+  pattern previews) shared one counter per user, and busy use of one
+  could 429 another. Each now has its own rate-limit bucket. The
+  configured limits are unchanged, but they now apply to each route on
+  its own, so a user can make more requests in total than before.
+  Setting `content_access.sanitize_throttle` or `ai.throttle` to
+  `false` now turns that throttle off; `null` or `''` falls back to the
+  default. Re-run `php artisan route:cache` after changing either value.
+- **React/Vue navigation markup changed.** The React and Vue renderers
+  now render the full navigation overlay for `core/navigation` with the
+  default `overlayMenu: 'mobile'`: a menu button plus a responsive
+  container, so the menu `<ul>` is nested three levels deeper than the
+  plain `<nav><ul>` of 1.12, and `BlockTree` injects a global
+  `<style data-ve-navigation-overlay>`. Update host CSS that targets
+  `.wp-block-navigation > ul`. To use an overlay template part, pass it
+  in `templateParts` with `area: 'navigation-overlay'`.
+- **The React/Vue overlay CSS is in a cascade layer.** The injected
+  overlay styles sit in `@layer ve-navigation`, so any unlayered host or
+  theme rule now wins over them regardless of selector specificity. If
+  your site relied on the overlay defaults beating a broad host rule
+  (for example a global `ul { display: flex }`), scope that host rule
+  or restate the overlay style you need.
 
 ### Security
 
@@ -23,13 +54,41 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   post-editor-level `visual-editor.edit-content` ability, and throttled
   the sanitizer (#834). This is defense in depth recommended by
   [GHSA-r4qj-7p7h-gjxr](https://github.com/ArtisanPack-UI/visual-editor/security/advisories/GHSA-r4qj-7p7h-gjxr).
-- The navigation block's custom overlay colors are now checked against
-  the CSS-value whitelist in all three renderers. Before, a stored value
-  such as `#000; position: fixed` could add declarations to the overlay's
-  inline `style` (#804).
+- The navigation block's custom colors are now checked against the
+  CSS-value whitelist. Before, a stored value such as
+  `#000; position: fixed` could add declarations to the inline `style`.
+  This covers the overlay colors in all three renderers (#804) and the
+  block's own `customTextColor` / `customBackgroundColor` in the Blade
+  renderer.
+- Hardened the navigation overlay color presets: the
+  `overlayBackgroundColor` / `overlayTextColor` slugs are reduced to
+  `[a-z0-9-]` before they become class names in all three renderers, so
+  a stored value can no longer add classes such as `is-menu-open` (which
+  left the drawer stuck open).
+- A navigation overlay template part that contains a navigation pointing
+  back at itself (or an A → B → A cycle) no longer recurses until PHP
+  fails in the Blade renderer, which turned every page using that header
+  into a 500. Overlay nesting is capped and cycles are skipped, as they
+  already were in React and Vue.
 
 ### Added
 
+- **Rendered pattern previews** (#836). Pattern cards in the inserter's
+  Patterns panel, the Site Editor pattern grid and the page-pattern
+  modal show a scaled, non-interactive front-end render of each pattern
+  instead of a block-name outline. Previews come from the new
+  `POST /visual-editor/api/patterns/preview` endpoint (up to 24 patterns
+  per batch, throttled at 120 requests a minute) and are cached per
+  pattern, theme, viewer, locale and host. New config:
+  `pattern_previews.cache_ttl` (default 3600). See
+  `docs/site-editor/Patterns.md`.
+- **Hide blocks by previewed viewport in the editor canvas** (#842).
+  Screen-size visibility rules now hide blocks in the canvas at the
+  previewed viewport, as the front end would. A selected hidden block
+  is shown dimmed so it stays editable. The master Hide setting and
+  server-evaluated rules dim the block at every width. List View labels
+  show "Hidden", "Hidden at some screen sizes" or "Conditionally
+  visible".
 - The React and Vue renderers now render the navigation block's mobile
   overlay: the menu button, the responsive dialog (Escape, backdrop
   click, focus and scroll lock), and the overlay colors. A navigation
@@ -39,6 +98,43 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   per-item visibility rules. Pass the part in `templateParts` with
   `area: 'navigation-overlay'`. `BlockTree` emits the overlay CSS once in
   a `<style data-ve-navigation-overlay>` tag (#804).
+- The React and Vue renderers export `NAVIGATION_OVERLAY_SLOT`
+  (`'overlay'`) and `NAVIGATION_OVERLAY_AREA` (`'navigation-overlay'`),
+  so hosts that override the `core/navigation` renderer don't have to
+  hard-code them. React block renderers receive the overlay content in
+  the new `slots` prop; Vue renderers get it as the `overlay` slot.
+- New `ap.visualEditor.patternPreviewCacheVary` filter. Return an array
+  of scalars (a role, a tenant id) to keep separate cached pattern
+  previews for each value.
+
+### Changed
+
+- A newly inserted navigation block now binds to the menu assigned to
+  the active theme's `primary` location, or, when there is none, to the
+  active theme's most recently updated menu. Before, it took the first
+  menu in the editor's cache. New endpoint
+  `GET /visual-editor/api/menus/fallback`, which returns 204 when there
+  is no menu (#841).
+- If `content_access.capability` is set but the user model has no
+  `hasCapability()`, `hasPermissionTo()` or `hasPermission()` method,
+  the check now falls back to `$user->can( $capability )` and logs a
+  warning once per request, instead of silently denying everyone. A
+  non-string `capability` (such as an array) is ignored rather than
+  causing a 500.
+- Canvas-only block styles (visibility, position, box shadow and
+  gradient border) now go into one shared `<style>` per feature in the
+  canvas document's `<head>`, instead of a `<style>` next to each block.
+  The extra sibling broke `:first-child`, `* + *` and block-gap
+  selectors around styled blocks. Saved markup is unchanged.
+- Pattern previews load more smoothly: iframes mount a few per frame,
+  previews scrolled far out of view are unmounted (keeping their
+  height), prefetching works inside scrolling panels, batches are sent
+  in parallel with a timeout, and failures that can't succeed on retry
+  (403, renderer unavailable, 429) are not refetched on every remount.
+- Updated vulnerable transitive npm dependencies (`@tiptap/core`,
+  `prosemirror-view`, `postcss`, `nanoid`, `source-map-js` and others),
+  which clears every high-severity `npm audit` advisory in the shipped
+  dependency tree.
 
 ### Fixed
 
@@ -49,6 +145,61 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   slot at a time. The block inspector is unmounted while the List View
   tab is active, so navigation menu items no longer risk rendering in
   the wrong place, or nowhere, after switching tabs (#813).
+- The bindings Field picker now lists custom fields for content types
+  registered through the `ap.visualEditor.resources` filter (#837).
+- Duplicate `clientId`s in `content.blocks` now get fresh ids, so
+  selection, List View and move/remove no longer act on the wrong block
+  (#840). The same now applies across entities, for example one
+  navigation menu used in both the header and the footer, or a template
+  and one of its template parts.
+- **Navigation accessibility in all three renderers.** At desktop widths
+  the menu is no longer hidden from screen readers: the responsive
+  container never carries `aria-hidden`, and the dialog role and
+  `aria-modal` are only set while the drawer is open. The open drawer
+  now traps Tab focus, the menu button reports `aria-expanded`, and
+  clicking a link inside the drawer closes it (so same-page anchors and
+  client-side routing don't leave it open with scrolling locked).
+- The Blade renderer falls back to the menu when visibility rules hide
+  every block of a navigation overlay template part, instead of opening
+  a blank drawer.
+- Nested Blade renders (an overlay template part, tabs, accordions) no
+  longer reset the outer render's state, which loosened the nesting
+  depth cap and could repeat search-field and taxonomy-filter ids.
+- The React and Vue renderers now resolve a navigation's overlay
+  template part when the navigation only appears inside a synced
+  pattern or a query loop. A stored
+  `artisanpack/navigation-overlay-content` block is no longer rendered;
+  only the renderer creates that block.
+- Synced pattern references (`core/block`) now resolve in Blade renders
+  of patterns stored by cms-framework, which keeps the tree in
+  `block_content`. The legacy `content.blocks` envelope is still read
+  as a fallback.
+- Pattern preview caching: the cache is now cleared when a template
+  part, menu or menu item is created, updated or deleted, and on any
+  pattern update or delete, so previews that embed those by reference
+  don't show stale content until the TTL expires. Each pattern in a
+  batch renders as its own document, so a second header with a
+  navigation overlay no longer loses its overlay CSS in the cache. A
+  failure building the shared styles no longer turns the whole batch
+  into a 500.
+- Relative `url()` references in the theme's `style.css` now resolve in
+  pattern previews (they used to point at the editor page), so theme
+  backgrounds and fonts show up.
+- Pattern previews measure their height again after fonts and images
+  load, reset when the pattern changes, and no longer collapse to zero
+  height before the first measurement.
+- The editor canvas preview width is reset when the editor unmounts, so
+  a remount no longer briefly hides or shows blocks against the old
+  width.
+
+### CI
+
+- After each release, the docs site imports the package's docs and
+  changelog (#835). The import job now has curl timeouts, reports
+  transport failures, and runs with no `GITHUB_TOKEN` permissions.
+- Added php-cs-fixer and PHP_CodeSniffer with the ArtisanPack UI
+  standard (`composer lint`, `composer fix`) and applied the formatter
+  across the PHP sources.
 
 ## [1.12.2] - 2026-10-08
 
