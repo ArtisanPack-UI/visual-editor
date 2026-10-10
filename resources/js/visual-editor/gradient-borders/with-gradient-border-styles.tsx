@@ -11,7 +11,11 @@
  *
  *  1. **`editor.BlockListBlock`** — runs in the canvas. Computes the
  *     scope class from a stable per-block `_gradientScopeId` and:
- *     - Injects a `<style>` element with the emitted CSS
+ *     - Publishes the emitted CSS into the shared `gradient-border`
+ *       style host in the canvas document's `<head>`
+ *       (`support/canvas-scoped-styles.ts`) rather than a `<style>`
+ *       sibling of the block, which used to break `:first-child` /
+ *       `* + *` selectors in the block list (1.13.0)
  *     - Adds the scope class to the wrapper props so the rules match
  *
  *  2. **`blocks.getSaveContent.extraProps`** — stamps the scope class
@@ -37,6 +41,8 @@ import { addFilter } from '@wordpress/hooks'
 import { Fragment, createElement, useEffect, useMemo, useRef } from 'react'
 import type { ComponentType, ReactNode } from 'react'
 
+import { useCanvasScopedStyle } from '../support/canvas-scoped-styles'
+
 import { TAILWIND_V4_DEFAULTS, BreakpointRegistry } from '../responsive/registry'
 import { DEFAULT_STATES, StateRegistry } from '../states/registry'
 import { emitGradientBorderCss } from './emitter'
@@ -48,6 +54,15 @@ const SAVE_PROPS_HOOK   = 'blocks.getSaveContent.extraProps'
 const SAVE_ELEMENT_HOOK = 'blocks.getSaveElement'
 
 const FILTER_NAMESPACE = 'artisanpack-ui/visual-editor/gradient-border-styles'
+
+/**
+ * Shared canvas style host the scoped gradient-border rules are
+ * published into, so no `<style>` sibling lands in the block list's
+ * layout flow.
+ *
+ * @since 1.13.0
+ */
+export const GRADIENT_BORDER_STYLE_CHANNEL = 'gradient-border'
 
 const REGISTERED_KEY = Symbol.for(
 	'artisanpack-ui.visual-editor.gradient-border-styles.registered',
@@ -261,6 +276,8 @@ export const withGradientBorderStyles = createHigherOrderComponent(
 				)
 			}, [ supported, effectiveScopeId, attributes ] )
 
+			useCanvasScopedStyle( GRADIENT_BORDER_STYLE_CHANNEL, clientId, css )
+
 			const effectiveWrapperProps: Record<string, unknown> = useMemo( () => {
 				if ( ! supported || ! effectiveScopeId ) {
 					return wrapperProps ?? {}
@@ -290,16 +307,7 @@ export const withGradientBorderStyles = createHigherOrderComponent(
 				/>
 			)
 
-			if ( '' === css ) {
-				return wrapped
-			}
-
-			return (
-				<Fragment>
-					<style data-ap-gradient-border-scope={ effectiveScopeId }>{ css }</style>
-					{ wrapped }
-				</Fragment>
-			)
+			return wrapped
 		}
 
 		GradientBorderStyledBlock.displayName = 'GradientBorderStyledBlock'
