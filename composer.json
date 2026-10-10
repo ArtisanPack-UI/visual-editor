@@ -40,7 +40,12 @@
     "artisanpack-ui/ai": "^1.2",
     "artisanpack-ui/cms-framework": "^2.11",
     "artisanpack-ui/icons": "^2.1",
-    "livewire/livewire": "^3.6"
+    "livewire/livewire": "^3.6",
+    "artisanpack-ui/code-style": "^1.1",
+    "artisanpack-ui/code-style-pint": "^1.1",
+    "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+    "friendsofphp/php-cs-fixer": "^3.75",
+    "laravel/pint": "^1.26"
   },
   "repositories": [
     {
@@ -80,11 +85,19 @@
   },
   "scripts": {
     "test": "./vendor/bin/pest",
-    "test:update-markup-goldens": "UPDATE_MARKUP_GOLDENS=1 ./vendor/bin/pest --no-coverage packages/visual-editor-renderer-blade/tests/Feature/RendererMarkupParityTest.php"
+    "test:update-markup-goldens": "UPDATE_MARKUP_GOLDENS=1 ./vendor/bin/pest --no-coverage packages/visual-editor-renderer-blade/tests/Feature/RendererMarkupParityTest.php",
+    "lint": [
+      "./vendor/bin/php-cs-fixer fix --dry-run --diff",
+      "./vendor/bin/phpcs"
+    ],
+    "fix": "./vendor/bin/php-cs-fixer fix",
+    "cs": "./vendor/bin/phpcs",
+    "cs:fix": "./vendor/bin/phpcbf"
   },
   "config": {
     "allow-plugins": {
-      "pestphp/pest-plugin": true
+      "pestphp/pest-plugin": true,
+      "dealerdirect/phpcodesniffer-composer-installer": true
     }
   },
   "extra": {
