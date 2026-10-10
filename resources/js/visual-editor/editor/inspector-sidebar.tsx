@@ -472,6 +472,16 @@ export function InspectorSidebar(props: InspectorSidebarProps): JSX.Element {
                          * `list` slots leave fills flipping between
                          * them or rendering nowhere. Unmount it while
                          * the List View tab owns the slot (#813).
+                         *
+                         * This resets BlockInspector's own tab, panels
+                         * and scroll on each List View round-trip.
+                         * Keeping it mounted would need its inner slot
+                         * suppressed or re-registered: it sits in an
+                         * always-rendered Ariakit tab panel, a slot
+                         * re-registers only on remount or a registry
+                         * change, and the registry (`SlotFillContext`)
+                         * isn't exported by `@wordpress/components`, so
+                         * there's no public hook for either.
                          */}
                         {activeTab !== 'list' && <BlockInspector />}
                     </>

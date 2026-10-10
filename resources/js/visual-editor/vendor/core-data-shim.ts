@@ -3260,13 +3260,14 @@ const lastAuthoritativeBlocks = new Map<
  * whole subtree (visible as focus loss + chrome flicker after every
  * insert). When names diverge, or `prev` runs out (e.g. after an
  * insert), the surplus server blocks fall back to fresh decoration and
- * mint new clientIds. `seenClientIds` is shared across the whole tree so
- * no clientId is handed out twice (#812).
+ * mint new clientIds. `claims` is shared across the whole tree so no
+ * clientId is handed out twice (#812), and names the entity the tree
+ * belongs to so no other entity's ids are reused either (FE-9).
  */
 function decorateReusingClientIds(
     serverBlocks: readonly unknown[],
     prev: readonly DecoratedBlock[],
-    seenClientIds: Set<string> = new Set(),
+    claims: ClientIdClaims = newClientIdClaims(null),
 ): readonly DecoratedBlock[] {
     const out: DecoratedBlock[] = [];
     let allReused = serverBlocks.length === prev.length;
@@ -3275,7 +3276,7 @@ function decorateReusingClientIds(
         const decorated = decorateBlockReusingClientId(
             serverBlocks[i],
             prev[i],
-            seenClientIds,
+            claims,
         );
 
         if (decorated === null) {
@@ -3296,7 +3297,7 @@ function decorateReusingClientIds(
 function decorateBlockReusingClientId(
     block: unknown,
     prev: DecoratedBlock | undefined,
-    seenClientIds: Set<string>,
+    claims: ClientIdClaims,
 ): DecoratedBlock | null {
     if (
         block === null ||
@@ -3311,12 +3312,12 @@ function decorateBlockReusingClientId(
 
     const clientId = claimClientId(
         namesMatch ? prev!.clientId : server.clientId,
-        seenClientIds,
+        claims,
     );
 
     const prevInner = namesMatch ? prev!.innerBlocks : EMPTY_RECORDS;
     const innerBlocks = Array.isArray(server.innerBlocks)
-        ? decorateReusingClientIds(server.innerBlocks, prevInner, seenClientIds)
+        ? decorateReusingClientIds(server.innerBlocks, prevInner, claims)
         : EMPTY_RECORDS;
 
     // Reference-preserve the whole block when nothing changed — see the
@@ -3427,6 +3428,11 @@ function rememberAuthoritativeBlocks(
     blocks: readonly unknown[],
 ): void {
     const cacheKey = `${kind}|${name}|${id}`;
+    // The block editor is authoritative for what it commits: a block
+    // moved here from another entity keeps its clientId, so ownership
+    // moves with it rather than forcing a re-mint (and a remount) on
+    // the next read.
+    takeClientIdOwnership(blocks, cacheKey);
     lastAuthoritativeBlocks.set(
         cacheKey,
         blocks as readonly DecoratedBlock[],
@@ -3479,7 +3485,11 @@ function getDecoratedBlocks(
         // they keep their clientIds, so the change surfaces without a
         // remount. A shape-only comparison here used to return the
         // stale authoritative tree for attribute-only changes.
-        const merged = decorateReusingClientIds(serverBlocks, authoritative);
+        const merged = decorateReusingClientIds(
+            serverBlocks,
+            authoritative,
+            newClientIdClaims(cacheKey),
+        );
         decoratedBlocksCache.set(cacheKey, {
             source: serverBlocks,
             decorated: merged,
@@ -3488,7 +3498,7 @@ function getDecoratedBlocks(
         return merged;
     }
 
-    const decorated = decorateBlockList(serverBlocks);
+    const decorated = decorateBlockList(serverBlocks, newClientIdClaims(cacheKey));
     decoratedBlocksCache.set(cacheKey, { source: serverBlocks, decorated });
     lastAuthoritativeBlocks.set(cacheKey, decorated);
 
@@ -3497,12 +3507,12 @@ function getDecoratedBlocks(
 
 function decorateBlockList(
     blocks: readonly unknown[],
-    seenClientIds: Set<string> = new Set(),
+    claims: ClientIdClaims = newClientIdClaims(null),
 ): readonly DecoratedBlock[] {
     const out: DecoratedBlock[] = [];
 
     for (const block of blocks) {
-        const decorated = decorateBlock(block, seenClientIds);
+        const decorated = decorateBlock(block, claims);
 
         if (decorated !== null) {
             out.push(decorated);
@@ -3514,7 +3524,7 @@ function decorateBlockList(
 
 function decorateBlock(
     block: unknown,
-    seenClientIds: Set<string>,
+    claims: ClientIdClaims,
 ): DecoratedBlock | null {
     if (
         block === null ||
@@ -3535,9 +3545,9 @@ function decorateBlock(
     // tree; re-minting on every read would churn identity and
     // re-mount the subtree. Claimed before recursing so the parent
     // keeps its id over a duplicate in its own subtree.
-    const clientId = claimClientId(server.clientId, seenClientIds);
+    const clientId = claimClientId(server.clientId, claims);
     const innerBlocks = Array.isArray(server.innerBlocks)
-        ? decorateBlockList(server.innerBlocks, seenClientIds)
+        ? decorateBlockList(server.innerBlocks, claims)
         : EMPTY_RECORDS;
 
     return {
@@ -3550,25 +3560,89 @@ function decorateBlock(
 }
 
 /**
- * Returns `candidate` when it is a non-empty string not yet claimed in
- * this tree, otherwise a freshly minted id, and records the result in
- * `seenClientIds`. Persisted `content.blocks` can carry the same
- * `clientId` twice (a pasted or duplicated nav item round-tripped
- * through the REST layer); letting both into the block-editor store
- * corrupts selection, List View, and move / remove, which all look
- * blocks up by `clientId`. The first occurrence keeps its id (#812).
+ * Registry-wide owner of every clientId the shim has handed out: the
+ * `kind|name|id` cache key of the entity whose tree holds it (FE-9).
+ * Two entities can carry the same persisted clientId (a template and a
+ * template part, or two menus built from the same paste); without a
+ * registry-wide check both trees would mount blocks with one id.
  */
-function claimClientId(candidate: unknown, seenClientIds: Set<string>): string {
+const clientIdOwners = new Map<string, string>();
+
+/**
+ * Claim state for decorating one entity tree: the ids already used in
+ * the tree, and the entity's cache key (`null` when there's no entity,
+ * which skips the registry-wide check).
+ */
+interface ClientIdClaims {
+    readonly seen: Set<string>;
+    readonly owner: string | null;
+}
+
+function newClientIdClaims(owner: string | null): ClientIdClaims {
+    return { seen: new Set(), owner };
+}
+
+/**
+ * Records `owner` as the owner of every clientId in `blocks`, taking
+ * them over from any other entity.
+ */
+function takeClientIdOwnership(blocks: readonly unknown[], owner: string): void {
+    for (const block of blocks) {
+        if (block === null || typeof block !== 'object') {
+            continue;
+        }
+
+        const { clientId, innerBlocks } = block as {
+            clientId?: unknown;
+            innerBlocks?: unknown;
+        };
+
+        if (typeof clientId === 'string' && clientId.length > 0) {
+            clientIdOwners.set(clientId, owner);
+        }
+
+        if (Array.isArray(innerBlocks)) {
+            takeClientIdOwnership(innerBlocks, owner);
+        }
+    }
+}
+
+/**
+ * Returns `candidate` when it is a non-empty string not yet claimed in
+ * this tree and not owned by another entity, otherwise a freshly minted
+ * id, and records the result in the claims (and as owned by the claims'
+ * entity). Persisted `content.blocks` can carry the same `clientId`
+ * twice (a pasted or duplicated nav item round-tripped through the REST
+ * layer); letting both into the block-editor store corrupts selection,
+ * List View, and move / remove, which all look blocks up by `clientId`.
+ * The first occurrence keeps its id (#812). Ids stay stable per entity:
+ * an entity re-reading its own tree keeps the ids it already owns.
+ */
+function claimClientId(candidate: unknown, claims: ClientIdClaims): string {
+    const isAvailable = (id: string): boolean => {
+        if (claims.seen.has(id)) {
+            return false;
+        }
+
+        const owner = clientIdOwners.get(id);
+
+        return claims.owner === null || owner === undefined || owner === claims.owner;
+    };
+
     let clientId =
-        typeof candidate === 'string' && candidate.length > 0 && !seenClientIds.has(candidate)
+        typeof candidate === 'string' && candidate.length > 0 && isAvailable(candidate)
             ? candidate
             : createClientId();
 
-    while (seenClientIds.has(clientId)) {
+    while (!isAvailable(clientId)) {
         clientId = createClientId();
     }
 
-    seenClientIds.add(clientId);
+    claims.seen.add(clientId);
+
+    if (claims.owner !== null) {
+        clientIdOwners.set(clientId, claims.owner);
+    }
 
     return clientId;
 }

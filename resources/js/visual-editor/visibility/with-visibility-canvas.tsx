@@ -33,11 +33,12 @@ import { createHigherOrderComponent } from '@wordpress/compose';
 import { select, useSelect } from '@wordpress/data';
 import { addFilter } from '@wordpress/hooks';
 import { __, sprintf } from '@wordpress/i18n';
-import { Fragment, useMemo, useSyncExternalStore } from 'react';
+import { useMemo, useSyncExternalStore } from 'react';
 import type { ComponentType } from 'react';
 
 import { getResponsiveRegistry } from '../responsive/registry';
 import { getCanvasPreviewWidth, subscribeCanvasPreviewWidth } from '../responsive/use-canvas-preview-width';
+import { useCanvasScopedStyle } from '../support/canvas-scoped-styles';
 import {
     hasServerEvaluatedRule,
     rangeMediaQuery,
@@ -61,6 +62,14 @@ const LABEL_FILTER_NAMESPACE = 'artisanpack-ui/visual-editor/visibility-list-vie
 const LABEL_FILTER_PRIORITY = 20;
 
 const REVEALED_CLASS = 'is-ap-vis-revealed';
+
+/**
+ * Shared canvas style host the scoped rules are published into, so no
+ * `<style>` sibling lands in the block list's layout flow.
+ *
+ * @since 1.13.0
+ */
+export const VISIBILITY_STYLE_CHANNEL = 'visibility';
 
 /**
  * Opacity for dimmed blocks — readable, but clearly "not on the page
@@ -184,6 +193,8 @@ export const withVisibilityCanvas = createHigherOrderComponent(
                 [clientId, value, previewWidthPx],
             );
 
+            useCanvasScopedStyle(VISIBILITY_STYLE_CHANNEL, clientId, css);
+
             // Only blocks the canvas can hide subscribe to selection.
             const isRevealed = useSelect(
                 (selectStore) => {
@@ -222,12 +233,7 @@ export const withVisibilityCanvas = createHigherOrderComponent(
                 return <BlockListBlock {...props} />;
             }
 
-            return (
-                <Fragment>
-                    <style data-ap-vis-scope={clientId}>{css}</style>
-                    <BlockListBlock {...props} wrapperProps={nextWrapperProps} />
-                </Fragment>
-            );
+            return <BlockListBlock {...props} wrapperProps={nextWrapperProps} />;
         }
 
         VisibilityCanvasBlock.displayName = 'VisibilityCanvasBlock';

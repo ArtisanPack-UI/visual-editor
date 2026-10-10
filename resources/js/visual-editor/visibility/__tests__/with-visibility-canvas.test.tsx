@@ -32,9 +32,11 @@ vi.mock('@wordpress/data', () => {
 });
 
 import { publishCanvasPreviewWidth } from '../../responsive/use-canvas-preview-width';
+import { getCanvasScopedStyleElement } from '../../support/canvas-scoped-styles';
 import {
     addVisibilityListViewLabel,
     buildVisibilityCanvasCss,
+    VISIBILITY_STYLE_CHANNEL,
     visibilityBreakpoints,
     withVisibilityCanvas,
 } from '../with-visibility-canvas';
@@ -44,6 +46,10 @@ const BlockListBlock = (props: { wrapperProps?: { className?: string } }) => (
     <div data-testid="block" className={props.wrapperProps?.className ?? ''} />
 );
 const Wrapped = withVisibilityCanvas(BlockListBlock);
+
+function hostStyle(): HTMLStyleElement | null {
+    return getCanvasScopedStyleElement(VISIBILITY_STYLE_CHANNEL);
+}
 
 function renderBlock(visibility: VisibilityAttribute | null, clientId = 'abc-123') {
     return render(
@@ -113,6 +119,7 @@ describe('withVisibilityCanvas', () => {
         const { container, getByTestId } = renderBlock(null);
 
         expect(container.querySelector('style')).toBeNull();
+        expect(hostStyle()).toBeNull();
         expect(getByTestId('block').className).toBe('existing');
     });
 
@@ -120,7 +127,74 @@ describe('withVisibilityCanvas', () => {
         const { container, getByTestId } = renderBlock({ screenSize: { direction: 'hide', breakpoints: ['md'] } });
 
         expect(getByTestId('block').className).toBe('existing ap-vis-abc-123');
-        expect(container.querySelector('style')?.textContent).toContain('@media (min-width:768px)');
+        expect(container.querySelector('style')).toBeNull();
+        expect(hostStyle()?.parentElement).toBe(document.head);
+        expect(hostStyle()?.textContent).toContain('@media (min-width:768px)');
+    });
+
+    it('keeps no <style> sibling next to a gated first child (FE-6)', () => {
+        const { getAllByTestId } = render(
+            <div data-testid="list">
+                <Wrapped
+                    name="core/paragraph"
+                    clientId="first"
+                    attributes={{ artisanpackVisibility: { screenSize: { direction: 'hide', breakpoints: ['md'] } } }}
+                />
+                <Wrapped
+                    name="core/paragraph"
+                    clientId="second"
+                    attributes={{ artisanpackVisibility: { hide: { hidden: true } } }}
+                />
+            </div>,
+        );
+
+        const [first, second] = getAllByTestId('block');
+
+        expect(first?.previousElementSibling).toBeNull();
+        expect(second?.previousElementSibling).toBe(first);
+        expect(document.querySelectorAll(`style[data-ap-canvas-styles="${VISIBILITY_STYLE_CHANNEL}"]`)).toHaveLength(1);
+        expect(hostStyle()?.textContent).toContain('.ap-vis-first');
+        expect(hostStyle()?.textContent).toContain('.ap-vis-second');
+    });
+
+    it('removes a block\'s rules on unmount and drops the empty host', () => {
+        const first  = renderBlock({ screenSize: { direction: 'hide', breakpoints: ['md'] } }, 'one');
+        const second = renderBlock({ hide: { hidden: true } }, 'two');
+
+        first.unmount();
+
+        expect(hostStyle()?.textContent).not.toContain('.ap-vis-one');
+        expect(hostStyle()?.textContent).toContain('.ap-vis-two');
+
+        second.unmount();
+
+        expect(hostStyle()).toBeNull();
+        expect(document.querySelector('style[data-ap-canvas-styles]')).toBeNull();
+    });
+
+    it('publishes into the iframe canvas document the block renders in', () => {
+        const frame = document.createElement('iframe');
+        document.body.appendChild(frame);
+        const frameDocument = frame.contentDocument as Document;
+        const mount         = frameDocument.createElement('div');
+        frameDocument.body.appendChild(mount);
+
+        const InFrame = withVisibilityCanvas(() => <div id="block-framed" />);
+        const { unmount } = render(
+            <InFrame
+                name="core/paragraph"
+                clientId="framed"
+                attributes={{ artisanpackVisibility: { hide: { hidden: true } } }}
+            />,
+            { container: mount },
+        );
+
+        expect(getCanvasScopedStyleElement(VISIBILITY_STYLE_CHANNEL, frameDocument)?.parentElement)
+            .toBe(frameDocument.head);
+        expect(hostStyle()).toBeNull();
+
+        unmount();
+        frame.remove();
     });
 
     it('reveals a hidden block while it is selected', () => {
@@ -168,10 +242,11 @@ describe('withVisibilityCanvas', () => {
 
         act(() => publishCanvasPreviewWidth(375));
         expect(container.querySelector('style')).toBeNull();
+        expect(hostStyle()).toBeNull();
 
         act(() => publishCanvasPreviewWidth(768));
-        expect(container.querySelector('style')?.textContent).not.toContain('@media');
-        expect(container.querySelector('style')?.textContent).toContain('display:none');
+        expect(hostStyle()?.textContent).not.toContain('@media');
+        expect(hostStyle()?.textContent).toContain('display:none');
     });
 });
 

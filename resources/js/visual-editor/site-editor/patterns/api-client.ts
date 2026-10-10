@@ -361,13 +361,26 @@ export async function deletePattern(
     }
 }
 
+/** Request options for {@link previewPatterns}. */
+export interface PatternPreviewRequestOptions {
+    /**
+     * Aborts the request (the loader's timeout).
+     *
+     * @since 1.13.0
+     */
+    signal?: AbortSignal;
+}
+
 /**
  * Renders a batch of patterns to front-end HTML for card previews (#832).
  * Takes pattern ids or slugs only — the endpoint never accepts markup.
+ * A non-2xx response rejects with a {@link SiteEditorApiError} carrying
+ * the HTTP `status`.
  */
 export async function previewPatterns(
     config: SiteEditorApiConfig,
-    ids: readonly string[]
+    ids: readonly string[],
+    options: PatternPreviewRequestOptions = {}
 ): Promise<PatternPreviewBatch> {
     try {
         const response = await fetch(buildUrl(config, 'preview'), {
@@ -375,6 +388,7 @@ export async function previewPatterns(
             credentials: 'same-origin',
             headers: mutatingHeaders(),
             body: JSON.stringify({ patterns: ids }),
+            signal: options.signal,
         });
 
         const body = (await requireOk(response)) as Partial<PatternPreviewBatch> | null;

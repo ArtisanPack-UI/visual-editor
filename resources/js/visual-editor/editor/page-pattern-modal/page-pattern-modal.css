@@ -101,7 +101,13 @@
 	color: var(--ap-visual-editor-modal-muted, #6b7280);
 }
 
+/*
+ * The card holds the preview and the button side by side — an iframe
+ * isn't allowed inside a <button>. The button's ::after stretches over
+ * the whole card, so the card still clicks and hovers as one target.
+ */
 .ap-page-pattern-modal__pattern-card {
+	position: relative;
 	display: flex;
 	flex-direction: column;
 	gap: 0.5rem;
@@ -110,15 +116,38 @@
 	padding: 0.75rem;
 	background: inherit;
 	color: inherit;
-	text-align: left;
-	cursor: pointer;
 	transition: border-color 100ms ease, transform 100ms ease;
 }
 
 .ap-page-pattern-modal__pattern-card:hover,
-.ap-page-pattern-modal__pattern-card:focus {
+.ap-page-pattern-modal__pattern-card:focus-within {
 	border-color: var(--ap-visual-editor-modal-accent, #2563eb);
 	transform: translateY(-1px);
+}
+
+.ap-page-pattern-modal__pattern-button {
+	appearance: none;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.ap-page-pattern-modal__pattern-button::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	border-radius: inherit;
+}
+
+.ap-page-pattern-modal__pattern-button:focus {
 	outline: none;
 }
 
@@ -130,12 +159,14 @@
 }
 
 .ap-page-pattern-modal__pattern-title {
+	display: block;
 	font-weight: 600;
 	font-size: 0.875rem;
 	margin: 0;
 }
 
 .ap-page-pattern-modal__pattern-meta {
+	display: block;
 	font-size: 0.75rem;
 	color: var(--ap-visual-editor-modal-muted, #6b7280);
 	margin: 0;

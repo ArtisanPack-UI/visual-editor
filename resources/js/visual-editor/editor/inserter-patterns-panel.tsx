@@ -42,7 +42,10 @@ import {
     SiteEditorApiError,
     type PatternRecord,
 } from '../site-editor/patterns/api-client';
-import { PatternPreview } from '../site-editor/patterns/pattern-preview';
+import {
+    PatternPreview,
+    PatternPreviewScrollRootContext,
+} from '../site-editor/patterns/pattern-preview';
 
 import './inserter-patterns-panel.css';
 
@@ -109,22 +112,18 @@ interface PatternPreviewCardProps {
  * `@wordpress/block-editor` was tried first and dropped: it mounts a
  * `blob:` iframe per card, and the combination of CSP isolation + many
  * iframes broke the editor's render tree under our shim.
+ *
+ * The preview sits beside the button, not inside it — interactive and
+ * embedded content (the iframe) isn't allowed inside a `<button>`. The
+ * button stays the card's only focus and activation target, and its
+ * `::after` stretches over the whole card so clicking the preview still
+ * picks the pattern.
  */
 function PatternPreviewCard(props: PatternPreviewCardProps): JSX.Element {
     const { pattern, apiBase, label, testId, onSelect, onKeyDown } = props;
 
     return (
-        <button
-            type="button"
-            data-ap-inserter-pattern-row=""
-            data-pattern-id={pattern.id}
-            data-synced={pattern.synced}
-            className="ap-inserter-patterns__row"
-            data-testid={testId}
-            aria-label={label}
-            onClick={onSelect}
-            onKeyDown={onKeyDown}
-        >
+        <div className="ap-inserter-patterns__card">
             <div
                 className="ap-inserter-patterns__preview"
                 aria-hidden="true"
@@ -136,18 +135,30 @@ function PatternPreviewCard(props: PatternPreviewCardProps): JSX.Element {
                     apiBase={apiBase}
                 />
             </div>
-            <span className="ap-inserter-patterns__row-title">
-                {patternTitle(pattern)}
-            </span>
-            <span className="ap-inserter-patterns__row-meta">
-                <code>{pattern.slug}</code>
-                {pattern.categories.length > 0 ? (
-                    <span className="ap-inserter-patterns__row-categories">
-                        {pattern.categories.join(', ')}
-                    </span>
-                ) : null}
-            </span>
-        </button>
+            <button
+                type="button"
+                data-ap-inserter-pattern-row=""
+                data-pattern-id={pattern.id}
+                data-synced={pattern.synced}
+                className="ap-inserter-patterns__row"
+                data-testid={testId}
+                aria-label={label}
+                onClick={onSelect}
+                onKeyDown={onKeyDown}
+            >
+                <span className="ap-inserter-patterns__row-title">
+                    {patternTitle(pattern)}
+                </span>
+                <span className="ap-inserter-patterns__row-meta">
+                    <code>{pattern.slug}</code>
+                    {pattern.categories.length > 0 ? (
+                        <span className="ap-inserter-patterns__row-categories">
+                            {pattern.categories.join(', ')}
+                        </span>
+                    ) : null}
+                </span>
+            </button>
+        </div>
     );
 }
 
@@ -249,6 +260,7 @@ export function InserterPatternsPanel(
     const [status, setStatus] = useState<LoadStatus>('idle');
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const requestRef = useRef(0);
+    const scrollRootRef = useRef<HTMLDivElement | null>(null);
 
     const apiConfig = useMemo(() => ({ apiBase }), [apiBase]);
 
@@ -459,128 +471,131 @@ export function InserterPatternsPanel(
         status === 'ready' && synced.length === 0 && unsynced.length === 0;
 
     return (
-        <div
-            className="ap-inserter-patterns"
-            data-testid="ap-inserter-patterns"
-            aria-labelledby={sectionTitleId}
-        >
-            <h3
-                id={sectionTitleId}
-                className="ap-inserter-patterns__heading"
+        <PatternPreviewScrollRootContext.Provider value={scrollRootRef}>
+            <div
+                ref={scrollRootRef}
+                className="ap-inserter-patterns"
+                data-testid="ap-inserter-patterns"
+                aria-labelledby={sectionTitleId}
             >
-                {__('Patterns', TEXT_DOMAIN)}
-            </h3>
-
-            {isLoading ? (
-                <p
-                    role="status"
-                    aria-live="polite"
-                    className="ap-inserter-patterns__status"
-                    data-testid="ap-inserter-patterns-loading"
+                <h3
+                    id={sectionTitleId}
+                    className="ap-inserter-patterns__heading"
                 >
-                    {__('Loading patterns…', TEXT_DOMAIN)}
-                </p>
-            ) : null}
+                    {__('Patterns', TEXT_DOMAIN)}
+                </h3>
 
-            {isError ? (
-                <div
-                    className="ap-inserter-patterns__error"
-                    role="alert"
-                    data-testid="ap-inserter-patterns-error"
-                >
-                    <p>
-                        {errorMessage ??
-                            __('Failed to load patterns.', TEXT_DOMAIN)}
+                {isLoading ? (
+                    <p
+                        role="status"
+                        aria-live="polite"
+                        className="ap-inserter-patterns__status"
+                        data-testid="ap-inserter-patterns-loading"
+                    >
+                        {__('Loading patterns…', TEXT_DOMAIN)}
                     </p>
-                    <button
-                        type="button"
-                        className="ap-inserter-patterns__retry"
-                        onClick={() => void fetchPatterns()}
-                    >
-                        {__('Retry', TEXT_DOMAIN)}
-                    </button>
-                </div>
-            ) : null}
+                ) : null}
 
-            {isEmpty ? (
-                <p
-                    className="ap-inserter-patterns__empty"
-                    data-testid="ap-inserter-patterns-empty"
-                >
-                    {__(
-                        'No patterns yet. Create one from the site editor or by selecting blocks and using "Convert to pattern".',
-                        TEXT_DOMAIN
-                    )}
-                </p>
-            ) : null}
-
-            {status === 'ready' && synced.length > 0 ? (
-                <section className="ap-inserter-patterns__group">
-                    <h4 className="ap-inserter-patterns__group-title">
-                        {__('Synced patterns', TEXT_DOMAIN)}
-                    </h4>
-                    <ul
-                        className="ap-inserter-patterns__list"
-                        data-ap-inserter-pattern-list=""
-                        data-testid="ap-inserter-patterns-list-synced"
+                {isError ? (
+                    <div
+                        className="ap-inserter-patterns__error"
+                        role="alert"
+                        data-testid="ap-inserter-patterns-error"
                     >
-                        {synced.map((pattern) => (
-                            <li key={pattern.id}>
-                                <PatternPreviewCard
-                                    pattern={pattern}
-                                    apiBase={apiBase}
-                                    label={sprintf(
-                                        /* translators: %s: pattern title. */
-                                        __(
-                                            'Insert synced pattern: %s',
-                                            TEXT_DOMAIN
-                                        ),
-                                        patternTitle(pattern)
-                                    )}
-                                    testId={`ap-inserter-patterns-row-synced-${pattern.id}`}
-                                    onSelect={() => handleInsertSynced(pattern)}
-                                    onKeyDown={handleListKey}
-                                />
-                            </li>
-                        ))}
-                    </ul>
-                </section>
-            ) : null}
+                        <p>
+                            {errorMessage ??
+                                __('Failed to load patterns.', TEXT_DOMAIN)}
+                        </p>
+                        <button
+                            type="button"
+                            className="ap-inserter-patterns__retry"
+                            onClick={() => void fetchPatterns()}
+                        >
+                            {__('Retry', TEXT_DOMAIN)}
+                        </button>
+                    </div>
+                ) : null}
 
-            {status === 'ready' && unsynced.length > 0 ? (
-                <section className="ap-inserter-patterns__group">
-                    <h4 className="ap-inserter-patterns__group-title">
-                        {__('Unsynced patterns', TEXT_DOMAIN)}
-                    </h4>
-                    <ul
-                        className="ap-inserter-patterns__list"
-                        data-ap-inserter-pattern-list=""
-                        data-testid="ap-inserter-patterns-list-unsynced"
+                {isEmpty ? (
+                    <p
+                        className="ap-inserter-patterns__empty"
+                        data-testid="ap-inserter-patterns-empty"
                     >
-                        {unsynced.map((pattern) => (
-                            <li key={pattern.id}>
-                                <PatternPreviewCard
-                                    pattern={pattern}
-                                    apiBase={apiBase}
-                                    label={sprintf(
-                                        /* translators: %s: pattern title. */
-                                        __(
-                                            'Insert unsynced pattern: %s',
-                                            TEXT_DOMAIN
-                                        ),
-                                        patternTitle(pattern)
-                                    )}
-                                    testId={`ap-inserter-patterns-row-unsynced-${pattern.id}`}
-                                    onSelect={() =>
-                                        handleInsertUnsynced(pattern)
-                                    }
-                                    onKeyDown={handleListKey}
-                                />
-                            </li>
-                        ))}
-                    </ul>
-                </section>
-            ) : null}
-        </div>
+                        {__(
+                            'No patterns yet. Create one from the site editor or by selecting blocks and using "Convert to pattern".',
+                            TEXT_DOMAIN
+                        )}
+                    </p>
+                ) : null}
+
+                {status === 'ready' && synced.length > 0 ? (
+                    <section className="ap-inserter-patterns__group">
+                        <h4 className="ap-inserter-patterns__group-title">
+                            {__('Synced patterns', TEXT_DOMAIN)}
+                        </h4>
+                        <ul
+                            className="ap-inserter-patterns__list"
+                            data-ap-inserter-pattern-list=""
+                            data-testid="ap-inserter-patterns-list-synced"
+                        >
+                            {synced.map((pattern) => (
+                                <li key={pattern.id}>
+                                    <PatternPreviewCard
+                                        pattern={pattern}
+                                        apiBase={apiBase}
+                                        label={sprintf(
+                                            /* translators: %s: pattern title. */
+                                            __(
+                                                'Insert synced pattern: %s',
+                                                TEXT_DOMAIN
+                                            ),
+                                            patternTitle(pattern)
+                                        )}
+                                        testId={`ap-inserter-patterns-row-synced-${pattern.id}`}
+                                        onSelect={() => handleInsertSynced(pattern)}
+                                        onKeyDown={handleListKey}
+                                    />
+                                </li>
+                            ))}
+                        </ul>
+                    </section>
+                ) : null}
+
+                {status === 'ready' && unsynced.length > 0 ? (
+                    <section className="ap-inserter-patterns__group">
+                        <h4 className="ap-inserter-patterns__group-title">
+                            {__('Unsynced patterns', TEXT_DOMAIN)}
+                        </h4>
+                        <ul
+                            className="ap-inserter-patterns__list"
+                            data-ap-inserter-pattern-list=""
+                            data-testid="ap-inserter-patterns-list-unsynced"
+                        >
+                            {unsynced.map((pattern) => (
+                                <li key={pattern.id}>
+                                    <PatternPreviewCard
+                                        pattern={pattern}
+                                        apiBase={apiBase}
+                                        label={sprintf(
+                                            /* translators: %s: pattern title. */
+                                            __(
+                                                'Insert unsynced pattern: %s',
+                                                TEXT_DOMAIN
+                                            ),
+                                            patternTitle(pattern)
+                                        )}
+                                        testId={`ap-inserter-patterns-row-unsynced-${pattern.id}`}
+                                        onSelect={() =>
+                                            handleInsertUnsynced(pattern)
+                                        }
+                                        onKeyDown={handleListKey}
+                                    />
+                                </li>
+                            ))}
+                        </ul>
+                    </section>
+                ) : null}
+            </div>
+        </PatternPreviewScrollRootContext.Provider>
     );
 }

@@ -34,7 +34,10 @@ import {
 
 import { TEXT_DOMAIN } from '../../vendor/i18n';
 import type { PatternRecord } from '../../site-editor/patterns/api-client';
-import { PatternPreview } from '../../site-editor/patterns/pattern-preview';
+import {
+    PatternPreview,
+    PatternPreviewScrollRootContext,
+} from '../../site-editor/patterns/pattern-preview';
 
 import './page-pattern-modal.css';
 
@@ -209,6 +212,7 @@ export function PagePatternModal(props: PagePatternModalProps): JSX.Element | nu
 
     const titleId = useId();
     const dialogRef = useRef<HTMLDivElement | null>(null);
+    const bodyRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
         if (!open) {
@@ -322,114 +326,124 @@ export function PagePatternModal(props: PagePatternModalProps): JSX.Element | nu
                         {'×'}
                     </button>
                 </header>
-                <div className="ap-page-pattern-modal__body">
-                    {shouldRenderTemplateRow ? (
-                        <div className="ap-page-pattern-modal__template-section">
-                            <label
-                                className="ap-page-pattern-modal__template-label"
-                                htmlFor={`${titleId}-template`}
+                <PatternPreviewScrollRootContext.Provider value={bodyRef}>
+                    <div ref={bodyRef} className="ap-page-pattern-modal__body">
+                        {shouldRenderTemplateRow ? (
+                            <div className="ap-page-pattern-modal__template-section">
+                                <label
+                                    className="ap-page-pattern-modal__template-label"
+                                    htmlFor={`${titleId}-template`}
+                                >
+                                    {__('Template', TEXT_DOMAIN)}
+                                </label>
+                                <select
+                                    id={`${titleId}-template`}
+                                    className="ap-page-pattern-modal__template-select"
+                                    value={initialTemplate ?? ''}
+                                    data-testid="ap-page-pattern-modal-template-select"
+                                    onChange={handleTemplateSelect}
+                                >
+                                    {templateOptions.map((option) => (
+                                        <option key={option.slug} value={option.slug}>
+                                            {option.source
+                                                ? sprintf(
+                                                      /* translators: 1: template label. 2: source (Theme, CMS, etc). */
+                                                      __('%1$s (%2$s)', TEXT_DOMAIN),
+                                                      option.label,
+                                                      option.source
+                                                  )
+                                                : option.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        ) : null}
+
+                        {loading ? (
+                            <p
+                                className="ap-page-pattern-modal__status"
+                                role="status"
+                                aria-live="polite"
+                                data-testid="ap-page-pattern-modal-loading"
                             >
-                                {__('Template', TEXT_DOMAIN)}
-                            </label>
-                            <select
-                                id={`${titleId}-template`}
-                                className="ap-page-pattern-modal__template-select"
-                                value={initialTemplate ?? ''}
-                                data-testid="ap-page-pattern-modal-template-select"
-                                onChange={handleTemplateSelect}
+                                {__('Loading patterns…', TEXT_DOMAIN)}
+                            </p>
+                        ) : null}
+
+                        {errorMessage !== null && !loading ? (
+                            <p
+                                className="ap-page-pattern-modal__status ap-page-pattern-modal__error"
+                                role="alert"
+                                data-testid="ap-page-pattern-modal-error"
                             >
-                                {templateOptions.map((option) => (
-                                    <option key={option.slug} value={option.slug}>
-                                        {option.source
-                                            ? sprintf(
-                                                  /* translators: 1: template label. 2: source (Theme, CMS, etc). */
-                                                  __('%1$s (%2$s)', TEXT_DOMAIN),
-                                                  option.label,
-                                                  option.source
-                                              )
-                                            : option.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    ) : null}
+                                {errorMessage}
+                            </p>
+                        ) : null}
 
-                    {loading ? (
-                        <p
-                            className="ap-page-pattern-modal__status"
-                            role="status"
-                            aria-live="polite"
-                            data-testid="ap-page-pattern-modal-loading"
-                        >
-                            {__('Loading patterns…', TEXT_DOMAIN)}
-                        </p>
-                    ) : null}
+                        {!loading && errorMessage === null && grouped.length === 0 ? (
+                            <p
+                                className="ap-page-pattern-modal__empty"
+                                data-testid="ap-page-pattern-modal-empty"
+                            >
+                                {__(
+                                    'No patterns registered for this content type yet.',
+                                    TEXT_DOMAIN
+                                )}
+                            </p>
+                        ) : null}
 
-                    {errorMessage !== null && !loading ? (
-                        <p
-                            className="ap-page-pattern-modal__status ap-page-pattern-modal__error"
-                            role="alert"
-                            data-testid="ap-page-pattern-modal-error"
-                        >
-                            {errorMessage}
-                        </p>
-                    ) : null}
-
-                    {!loading && errorMessage === null && grouped.length === 0 ? (
-                        <p
-                            className="ap-page-pattern-modal__empty"
-                            data-testid="ap-page-pattern-modal-empty"
-                        >
-                            {__(
-                                'No patterns registered for this content type yet.',
-                                TEXT_DOMAIN
-                            )}
-                        </p>
-                    ) : null}
-
-                    {!loading && errorMessage === null
-                        ? grouped.map(([category, categoryPatterns]) => (
-                              <section
-                                  key={category}
-                                  data-testid={`ap-page-pattern-modal-category-${category}`}
-                              >
-                                  <h3 className="ap-page-pattern-modal__category-heading">
-                                      {category}
-                                  </h3>
-                                  <div className="ap-page-pattern-modal__grid">
-                                      {categoryPatterns.map((pattern) => (
-                                          <button
-                                              key={pattern.id}
-                                              type="button"
-                                              className="ap-page-pattern-modal__pattern-card"
-                                              data-testid={`ap-page-pattern-modal-pattern-${pattern.slug}`}
-                                              onClick={() => handleSelectPattern(pattern)}
-                                              onKeyDown={(event) => handleCardKey(event, pattern)}
-                                          >
+                        {!loading && errorMessage === null
+                            ? grouped.map(([category, categoryPatterns]) => (
+                                  <section
+                                      key={category}
+                                      data-testid={`ap-page-pattern-modal-category-${category}`}
+                                  >
+                                      <h3 className="ap-page-pattern-modal__category-heading">
+                                          {category}
+                                      </h3>
+                                      <div className="ap-page-pattern-modal__grid">
+                                          {categoryPatterns.map((pattern) => (
+                                              // The preview sits beside the button, not inside
+                                              // it — an iframe isn't allowed in a <button>. The
+                                              // button's ::after stretches over the card, so a
+                                              // click anywhere on it still picks the pattern.
                                               <div
-                                                  className="ap-page-pattern-modal__pattern-preview"
-                                                  aria-hidden="true"
-                                                  data-testid={`ap-page-pattern-modal-pattern-preview-${pattern.slug}`}
+                                                  key={pattern.id}
+                                                  className="ap-page-pattern-modal__pattern-card"
                                               >
-                                                  <PatternPreview
-                                                      pattern={pattern}
-                                                      title={patternTitle(pattern)}
-                                                      apiBase={apiBase}
-                                                  />
+                                                  <div
+                                                      className="ap-page-pattern-modal__pattern-preview"
+                                                      aria-hidden="true"
+                                                      data-testid={`ap-page-pattern-modal-pattern-preview-${pattern.slug}`}
+                                                  >
+                                                      <PatternPreview
+                                                          pattern={pattern}
+                                                          title={patternTitle(pattern)}
+                                                          apiBase={apiBase}
+                                                      />
+                                                  </div>
+                                                  <button
+                                                      type="button"
+                                                      className="ap-page-pattern-modal__pattern-button"
+                                                      data-testid={`ap-page-pattern-modal-pattern-${pattern.slug}`}
+                                                      onClick={() => handleSelectPattern(pattern)}
+                                                      onKeyDown={(event) => handleCardKey(event, pattern)}
+                                                  >
+                                                      <span className="ap-page-pattern-modal__pattern-title">
+                                                          {patternTitle(pattern)}
+                                                      </span>
+                                                      <span className="ap-page-pattern-modal__pattern-meta">
+                                                          <code>{pattern.slug}</code>
+                                                      </span>
+                                                  </button>
                                               </div>
-                                              <p className="ap-page-pattern-modal__pattern-title">
-                                                  {patternTitle(pattern)}
-                                              </p>
-                                              <p className="ap-page-pattern-modal__pattern-meta">
-                                                  <code>{pattern.slug}</code>
-                                              </p>
-                                          </button>
-                                      ))}
-                                  </div>
-                              </section>
-                          ))
-                        : null}
-                </div>
+                                          ))}
+                                      </div>
+                                  </section>
+                              ))
+                            : null}
+                    </div>
+                </PatternPreviewScrollRootContext.Provider>
             </div>
         </div>
     );
