@@ -231,9 +231,18 @@ class PatternInliner
 			return null;
 		}
 
-		// cms-framework's `BlockPattern` stores `{ raw, blocks }` per the
-		// plan-14 envelope. Read `blocks` defensively — a malformed row
-		// surfaces as a resolution failure rather than a 500.
+		// cms-framework's `BlockPattern` stores its tree as a flat block
+		// list in `block_content`, exposed via `getBlockContent()`. The
+		// legacy `{ raw, blocks }` envelope under `content` is still read
+		// as a fallback so older rows keep resolving.
+		if ( method_exists( $pattern, 'getBlockContent' ) ) {
+			$blocks = $pattern->getBlockContent();
+
+			if ( [] !== $blocks ) {
+				return array_values( $blocks );
+			}
+		}
+
 		$content = $pattern->content ?? null;
 
 		if ( ! is_array( $content ) ) {
