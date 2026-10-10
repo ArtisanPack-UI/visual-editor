@@ -207,8 +207,9 @@ class PatternController extends Controller
 
 		$existing->update( $this->modelAttributesFromRequest( $validated ) );
 
-		// #832 — drop the cached card preview so the next view re-renders.
-		app( PatternPreviewCache::class )->forgetPattern( (string) $existing->slug );
+		// #832 — drop every cached card preview, not just this pattern's:
+		// any other pattern may embed this one as a synced `core/block` ref.
+		app( PatternPreviewCache::class )->flush();
 
 		$this->refreshResolver();
 
@@ -245,12 +246,11 @@ class PatternController extends Controller
 			return response()->json( [ 'message' => 'Pattern not found.' ], Response::HTTP_NOT_FOUND );
 		}
 
-		$slugToForget = (string) $existing->slug;
-
 		$existing->delete();
 
-		// #832 — drop the cached card preview of the deleted pattern.
-		app( PatternPreviewCache::class )->forgetPattern( $slugToForget );
+		// #832 — drop every cached card preview, since other patterns may
+		// embed the deleted one as a synced `core/block` ref.
+		app( PatternPreviewCache::class )->flush();
 
 		$this->refreshResolver();
 

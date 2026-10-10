@@ -12,17 +12,24 @@
  * - the pattern's slug and renderable content (a hash of the filtered raw
  *   markup and the block tree), so editing a theme pattern file re-renders;
  * - the active theme, so switching themes re-renders;
- * - the viewing user, because block visibility rules (role / user
- *   conditions) and user-aware blocks such as Login/out render per user —
- *   a shared entry would show one user's render to another;
+ * - the viewing user (their user class and identifier), because block
+ *   visibility rules (role / user conditions) and user-aware blocks such
+ *   as Login/out render per user — a shared entry would show one user's
+ *   render to another;
+ * - the app locale and the request's scheme + host, so translated strings
+ *   and absolute URLs aren't shared across locales or domains;
+ * - anything a host adds through the `ap.visualEditor.patternPreviewCacheVary`
+ *   filter (a role, a tenant id, …);
  * - the global-styles version (a hash of the resolved settings + styles);
  * - the renderer version (the installed package reference).
  *
  * Two counters make explicit invalidation cheap without tracking old keys:
- * a per-slug version bumped by {@see forgetPattern()} (pattern update or
- * delete) and a global generation bumped by {@see flush()} (global-styles
- * change). Entries also expire after the configured TTL so dynamic blocks
- * (Query loops, latest posts) pick up new site content.
+ * a per-slug version bumped by {@see forgetPattern()} and a global
+ * generation bumped by {@see flush()}. The site-editor controllers flush
+ * on every pattern, template-part, menu and menu-item write and on a
+ * global-styles change, since a pattern can embed any of those by
+ * reference. Entries also expire after the configured TTL so dynamic
+ * blocks (Query loops, latest posts) pick up new site content.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor
@@ -107,6 +114,9 @@ class PatternPreviewCache
 			sha1( $content ),
 			$theme,
 			$this->viewerIdentity(),
+			app()->getLocale(),
+			$this->requestHost(),
+			$this->hostVary(),
 			$this->globalStylesVersion(),
 			$this->rendererVersion(),
 		] );
@@ -135,7 +145,8 @@ class PatternPreviewCache
 	}
 
 	/**
-	 * Invalidate every cached preview — used when global styles change.
+	 * Invalidate every cached preview — used on global-styles changes and
+	 * on pattern, template-part, menu and menu-item writes.
 	 *
 	 * @since 1.13.0
 	 */
@@ -158,17 +169,62 @@ class PatternPreviewCache
 	}
 
 	/**
-	 * The authenticated user's identifier, or an empty string for guests.
-	 * Keeps cached renders per viewer, since visibility rules and
-	 * user-aware blocks make the HTML user-specific.
+	 * The authenticated user's class and identifier, or an empty string
+	 * for guests. Keeps cached renders per viewer, since visibility rules
+	 * and user-aware blocks make the HTML user-specific. The class keeps
+	 * two user providers with overlapping ids apart.
 	 *
 	 * @since 1.13.0
 	 */
 	protected function viewerIdentity(): string
 	{
-		$id = auth()->id();
+		$user = auth()->user();
 
-		return is_scalar( $id ) ? (string) $id : '';
+		if ( null === $user ) {
+			return '';
+		}
+
+		$id = $user->getAuthIdentifier();
+
+		return get_class( $user ) . ':' . ( is_scalar( $id ) ? (string) $id : '' );
+	}
+
+	/**
+	 * The current request's scheme and host, or an empty string outside
+	 * an HTTP request.
+	 *
+	 * @since 1.13.0
+	 */
+	protected function requestHost(): string
+	{
+		if ( ! app()->bound( 'request' ) ) {
+			return '';
+		}
+
+		return request()->getSchemeAndHttpHost();
+	}
+
+	/**
+	 * Extra cache-key data a host contributes through the
+	 * `ap.visualEditor.patternPreviewCacheVary` filter, such as the
+	 * viewer's role or a tenant id. The filter receives an empty array
+	 * and should return an array of scalars.
+	 *
+	 * @since 1.13.0
+	 */
+	protected function hostVary(): string
+	{
+		if ( ! function_exists( 'applyFilters' ) ) {
+			return '';
+		}
+
+		$vary = applyFilters( 'ap.visualEditor.patternPreviewCacheVary', [] );
+
+		if ( ! is_array( $vary ) || [] === $vary ) {
+			return '';
+		}
+
+		return sha1( (string) json_encode( $vary ) );
 	}
 
 	/**

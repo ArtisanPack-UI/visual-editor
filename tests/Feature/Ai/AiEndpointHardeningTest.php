@@ -63,7 +63,7 @@ describe( 'access', function (): void {
 			$middleware = Route::getRoutes()->getByName( 'visual-editor.api.ai.' . $name )->gatherMiddleware();
 
 			expect( $middleware )->toContain( 'can:' . AiAccess::ABILITY );
-			expect( implode( ' ', $middleware ) )->toContain( 'throttle:' );
+			expect( $middleware )->toContain( 'throttle:20,1,ve-ai' );
 		}
 	} );
 

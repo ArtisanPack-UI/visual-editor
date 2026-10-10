@@ -27,6 +27,7 @@ use ArtisanPackUI\VisualEditor\Resources\ResourceResolver;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BlockBindingSource;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\QueryException;
 
 class CustomFieldSource implements BlockBindingSource
 {
@@ -110,9 +111,14 @@ class CustomFieldSource implements BlockBindingSource
 		foreach ( $this->contentTypeKeys( $resource, $modelClass ) as $contentType ) {
 			try {
 				$rows = app( $manager )->getFieldsForContentType( $contentType );
-			} catch ( \Throwable $e ) {
+			} catch ( QueryException ) {
 				// A missing `custom_fields` table (cms-framework installed
-				// but not migrated) must not 500 the inspector.
+				// but not migrated) must not 500 the inspector. It's an
+				// expected install state, so it isn't reported on every
+				// field-picker open, and the remaining content-type
+				// lookups would hit the same table, so stop here.
+				break;
+			} catch ( \Throwable $e ) {
 				report( $e );
 
 				continue;

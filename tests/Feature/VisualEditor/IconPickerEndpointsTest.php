@@ -9,6 +9,7 @@ use ArtisanPackUI\VisualEditor\Support\ContentAccess;
 use ArtisanPackUI\VisualEditor\VisualEditorServiceProvider;
 use Illuminate\Auth\GenericUser;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Tests\TestUser;
 
@@ -289,10 +290,117 @@ it( 'gates every icon route on the content-access middleware', function () {
 	}
 } );
 
-it( 'throttles the sanitize endpoint with the configured limit', function () {
+it( 'throttles the sanitize endpoint with the configured limit in its own bucket', function () {
 	$middleware = Route::getRoutes()->getByName( 'visual-editor.api.icons.svg.sanitize' )->gatherMiddleware();
 
-	expect( $middleware )->toContain( 'throttle:60,1' );
+	expect( $middleware )->toContain( 'throttle:60,1,ve-icon-sanitize' );
+} );
+
+/**
+ * Re-register the API routes so they read the current config, the way a
+ * fresh boot (or `route:cache`) would.
+ */
+function reloadIconApiRoutes(): void
+{
+	( fn () => $this->registerApiRoutes() )->call( new VisualEditorServiceProvider( app() ) );
+
+	Route::getRoutes()->refreshNameLookups();
+}
+
+it( 'falls back to the default sanitize throttle when the config is empty', function ( mixed $configured ) {
+	config()->set( 'artisanpack.visual-editor.content_access.sanitize_throttle', $configured );
+	reloadIconApiRoutes();
+
+	$middleware = Route::getRoutes()->getByName( 'visual-editor.api.icons.svg.sanitize' )->gatherMiddleware();
+
+	expect( $middleware )->toContain( 'throttle:60,1,ve-icon-sanitize' );
+
+	actingAsIconPickerUser();
+
+	$this->postJson( '/visual-editor/api/icons/svg/sanitize', [ 'svg' => '<svg xmlns="http://www.w3.org/2000/svg"/>' ] )
+		->assertOk();
+} )->with( [
+	'empty string' => [ '' ],
+	'whitespace'   => [ '   ' ],
+	'null'         => [ null ],
+	'array'        => [ [ '60', '1' ] ],
+] );
+
+it( 'skips the sanitize throttle when the config is false', function () {
+	config()->set( 'artisanpack.visual-editor.content_access.sanitize_throttle', false );
+	reloadIconApiRoutes();
+
+	$middleware = Route::getRoutes()->getByName( 'visual-editor.api.icons.svg.sanitize' )->gatherMiddleware();
+
+	expect( implode( ' ', $middleware ) )->not->toContain( 'throttle' )
+		->and( $middleware )->toContain( EnsureContentEditorAccess::class );
+
+	actingAsIconPickerUser();
+
+	$this->postJson( '/visual-editor/api/icons/svg/sanitize', [ 'svg' => '<svg xmlns="http://www.w3.org/2000/svg"/>' ] )
+		->assertOk();
+} );
+
+it( 'keeps the sanitize throttle separate from other throttled routes', function () {
+	config()->set( 'artisanpack.visual-editor.content_access.sanitize_throttle', '2,1' );
+	reloadIconApiRoutes();
+
+	actingAsIconPickerUser();
+
+	foreach ( [ 1, 2 ] as $attempt ) {
+		$this->postJson( '/visual-editor/api/icons/svg/sanitize', [ 'svg' => '<svg xmlns="http://www.w3.org/2000/svg"/>' ] )
+			->assertOk();
+	}
+
+	$this->postJson( '/visual-editor/api/icons/svg/sanitize', [ 'svg' => '<svg xmlns="http://www.w3.org/2000/svg"/>' ] )
+		->assertTooManyRequests();
+
+	expect( $this->postJson( '/visual-editor/api/dynamic-content/resolve', [] )->status() )->not->toBe( 429 );
+} );
+
+it( 'treats a non-string capability as unset instead of failing', function () {
+	config()->set( 'artisanpack.visual-editor.content_access.capability', [ 'edit_content' ] );
+
+	actingAsIconPickerUser();
+
+	$this->postJson( '/visual-editor/api/icons/svg/sanitize', [ 'svg' => '<svg xmlns="http://www.w3.org/2000/svg"/>' ] )
+		->assertOk();
+
+	expect( ContentAccess::allows( new GenericUser( [ 'id' => 1 ] ) ) )->toBeTrue();
+} );
+
+it( 'denies and logs a warning once when the user model has no RBAC method', function () {
+	config()->set( 'artisanpack.visual-editor.content_access.capability', 'edit_content' );
+
+	Log::spy();
+
+	actingAsIconPickerUser();
+
+	$this->postJson( '/visual-editor/api/icons/svg/sanitize', [ 'svg' => '<svg/>' ] )
+		->assertForbidden();
+
+	// A second check in the same request doesn't log again.
+	ContentAccess::allows( auth()->user() );
+
+	Log::shouldHaveReceived( 'warning' )
+		->once()
+		->withArgs( fn ( string $message, array $context ): bool => str_contains( $message, 'content_access.capability' ) && 'edit_content' === $context['capability'] );
+} );
+
+it( 'falls back to the user\'s Gate abilities when the model has no RBAC method', function () {
+	config()->set( 'artisanpack.visual-editor.content_access.capability', 'edit_content' );
+	Gate::define( 'edit_content', fn ( $user ) => true );
+
+	actingAsIconPickerUser();
+
+	$this->postJson( '/visual-editor/api/icons/svg/sanitize', [ 'svg' => '<svg xmlns="http://www.w3.org/2000/svg"/>' ] )
+		->assertOk();
+} );
+
+it( 'never recurses when the capability names the content gate itself', function () {
+	config()->set( 'artisanpack.visual-editor.content_access.capability', ContentAccess::ABILITY );
+
+	expect( ContentAccess::allows( actingAsIconPickerUser() ) )->toBeFalse();
 } );
 
 it( 'answers 401 to a guest on the icon endpoints', function ( string $method, string $uri ) {

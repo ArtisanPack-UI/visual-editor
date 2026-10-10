@@ -31,6 +31,10 @@ return new class extends Migration
 
 	public function up(): void
 	{
+		// The flag is static, so clear it first: a previous run in the same
+		// process may have set it, and a skipped create must not inherit it.
+		self::$tableCreatedByThisMigration = false;
+
 		// cms-framework's own `users` migration may already have run when a
 		// test co-loads it via `Tests\Concerns\WithCmsFramework`.
 		if ( Schema::hasTable( 'users' ) ) {

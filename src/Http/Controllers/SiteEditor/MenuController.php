@@ -36,6 +36,7 @@ use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\MenuContentBlocksRule;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\StoreMenuRequest;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\UpdateMenuRequest;
 use ArtisanPackUI\VisualEditor\SiteEditor\MenuItemBlockBridge;
+use ArtisanPackUI\VisualEditor\SiteEditor\Previews\PatternPreviewCache;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -240,6 +241,9 @@ class MenuController extends Controller
 					return $menu;
 				} );
 
+				// #832 — pattern previews render navigation menus.
+				app( PatternPreviewCache::class )->flush();
+
 				return response()->json( $this->menuToShape( $menu->fresh() ), Response::HTTP_CREATED );
 			} catch ( QueryException $e ) {
 				if ( ! $this->isUniqueViolation( $e ) ) {
@@ -349,6 +353,9 @@ class MenuController extends Controller
 
 			throw $e;
 		}
+
+		// #832 — pattern previews render navigation menus.
+		app( PatternPreviewCache::class )->flush();
 
 		return response()->json( $this->menuToShape( $menu->fresh() ) );
 	}
@@ -537,6 +544,9 @@ class MenuController extends Controller
 		}
 
 		$menu->delete();
+
+		// #832 — pattern previews render navigation menus.
+		app( PatternPreviewCache::class )->flush();
 
 		return response()->json( null, Response::HTTP_NO_CONTENT );
 	}

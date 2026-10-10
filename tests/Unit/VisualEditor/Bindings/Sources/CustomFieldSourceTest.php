@@ -2,8 +2,12 @@
 
 declare( strict_types=1 );
 
+use ArtisanPackUI\CMSFramework\Modules\ContentTypes\Managers\CustomFieldManager;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
 use ArtisanPackUI\VisualEditor\Services\Bindings\Sources\CustomFieldSource;
+use ArtisanPackUI\VisualEditor\VisualEditorServiceProvider;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\Exceptions;
 use Tests\Fixtures\TestBindingsModel;
 
 it( 'returns null when no model is in context', function () {
@@ -81,6 +85,37 @@ it( 'returns null when the column does not exist on the model', function () {
 it( 'returns an empty catalog when cms-framework custom fields are not migrated', function () {
 	// Standalone install: no cms-framework provider or `custom_fields` table.
 	expect( ( new CustomFieldSource() )->availableFields( 'portfolio', TestBindingsModel::class ) )->toBe( [] );
+} );
+
+it( 'does not report a missing custom_fields table on every field-picker open', function () {
+	Exceptions::fake();
+
+	$manager = Mockery::mock();
+	$manager->shouldReceive( 'getFieldsForContentType' )
+		->once()
+		->andThrow( new QueryException( 'testbench', 'select * from "custom_fields"', [], new RuntimeException( 'no such table: custom_fields' ) ) );
+
+	app()->instance( CustomFieldManager::class, $manager );
+
+	config()->set( 'artisanpack.visual-editor.resources', [ 'portfolio' => TestBindingsModel::class ] );
+	( new VisualEditorServiceProvider( app() ) )->registerResourceResolver();
+
+	expect( ( new CustomFieldSource() )->availableFields( 'portfolio', TestBindingsModel::class ) )->toBe( [] );
+
+	Exceptions::assertNothingReported();
+} );
+
+it( 'still reports unexpected field-lookup failures', function () {
+	Exceptions::fake();
+
+	$manager = Mockery::mock();
+	$manager->shouldReceive( 'getFieldsForContentType' )->andThrow( new LogicException( 'Broken contributor.' ) );
+
+	app()->instance( CustomFieldManager::class, $manager );
+
+	expect( ( new CustomFieldSource() )->availableFields( '', TestBindingsModel::class ) )->toBe( [] );
+
+	Exceptions::assertReported( LogicException::class );
 } );
 
 it( 'declares no eager-load relations', function () {
