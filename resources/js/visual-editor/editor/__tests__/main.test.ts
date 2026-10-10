@@ -16,6 +16,7 @@ import {
     normalizeAuthorId,
     parseIdListDataset,
     parseNullableInt,
+    readMountConfig,
 } from '../main';
 
 describe('normalizeAuthorId', () => {
@@ -124,5 +125,37 @@ describe('parseNullableInt', () => {
         expect(parseNullableInt('3.9')).toBeNull();
         expect(parseNullableInt('12abc')).toBeNull();
         expect(parseNullableInt('  4 5  ')).toBeNull();
+    });
+});
+
+describe('readMountConfig patternPostType', () => {
+    function mountElement(attributes: Record<string, string>): HTMLElement {
+        const element = document.createElement('div');
+        element.dataset.apiBase = '/visual-editor/api';
+        element.dataset.resource = 'packages';
+        element.dataset.id = '7';
+
+        for (const [key, value] of Object.entries(attributes)) {
+            element.setAttribute(key, value);
+        }
+
+        return element;
+    }
+
+    it('reads data-pattern-post-type into the mount config', () => {
+        const config = readMountConfig(
+            mountElement({ 'data-pattern-post-type': ' package ' })
+        );
+
+        expect(config?.patternPostType).toBe('package');
+    });
+
+    it('omits patternPostType when the attribute is missing or blank', () => {
+        expect(readMountConfig(mountElement({}))).not.toHaveProperty(
+            'patternPostType'
+        );
+        expect(
+            readMountConfig(mountElement({ 'data-pattern-post-type': '   ' }))
+        ).not.toHaveProperty('patternPostType');
     });
 });
