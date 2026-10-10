@@ -4,13 +4,13 @@ declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\Registries\BlockTypeRegistry;
 
-it( 'starts empty with no seeded blocks', function () {
+it( 'starts empty with no seeded blocks', function (): void {
 	$registry = new BlockTypeRegistry();
 
 	expect( $registry->all() )->toBeEmpty();
 } );
 
-it( 'registers a valid namespaced block name', function () {
+it( 'registers a valid namespaced block name', function (): void {
 	$registry = new BlockTypeRegistry();
 
 	$registry->register( 'acme/callout', ['title' => 'Callout'] );
@@ -20,7 +20,7 @@ it( 'registers a valid namespaced block name', function () {
 	expect( $names )->toContain( 'acme/callout' );
 } );
 
-it( 'retrieves a single block by name', function () {
+it( 'retrieves a single block by name', function (): void {
 	$registry = new BlockTypeRegistry();
 
 	$registry->register( 'acme/callout', ['title' => 'Callout', 'category' => 'text'] );
@@ -32,25 +32,25 @@ it( 'retrieves a single block by name', function () {
 		->and( $block['category'] )->toBe( 'text' );
 } );
 
-it( 'returns null for unregistered block names', function () {
+it( 'returns null for unregistered block names', function (): void {
 	$registry = new BlockTypeRegistry();
 
 	expect( $registry->get( 'acme/missing' ) )->toBeNull();
 } );
 
-it( 'rejects empty block names', function () {
+it( 'rejects empty block names', function (): void {
 	$registry = new BlockTypeRegistry();
 
 	$registry->register( '   ', [] );
 } )->throws( InvalidArgumentException::class );
 
-it( 'rejects malformed block names', function () {
+it( 'rejects malformed block names', function (): void {
 	$registry = new BlockTypeRegistry();
 
 	$registry->register( 'Bad Name!', [] );
 } )->throws( InvalidArgumentException::class );
 
-it( 'rejects block names missing a namespace', function () {
+it( 'rejects block names missing a namespace', function (): void {
 	$registry = new BlockTypeRegistry();
 
 	$registry->register( 'paragraph', [] );

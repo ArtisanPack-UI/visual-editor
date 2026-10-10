@@ -6,7 +6,7 @@ use ArtisanPackUI\VisualEditor\Models\Snippet;
 use ArtisanPackUI\VisualEditor\Services\DynamicContent\SnippetCycleException;
 use ArtisanPackUI\VisualEditor\Services\DynamicContent\SnippetCycleGuard;
 
-it( 'allows a snippet with no snippet references', function () {
+it( 'allows a snippet with no snippet references', function (): void {
 	$guard = new SnippetCycleGuard();
 
 	$guard->assertNoCycle( 'cta', [
@@ -16,7 +16,7 @@ it( 'allows a snippet with no snippet references', function () {
 	expect( true )->toBeTrue();
 } );
 
-it( 'throws when a snippet references itself directly', function () {
+it( 'throws when a snippet references itself directly', function (): void {
 	$guard = new SnippetCycleGuard();
 
 	expect( fn () => $guard->assertNoCycle( 'cta', [
@@ -24,7 +24,7 @@ it( 'throws when a snippet references itself directly', function () {
 	] ) )->toThrow( SnippetCycleException::class );
 } );
 
-it( 'throws when a snippet references itself transitively', function () {
+it( 'throws when a snippet references itself transitively', function (): void {
 	Snippet::factory()->create( [
 		'slug'   => 'inner',
 		'blocks' => [
@@ -39,7 +39,7 @@ it( 'throws when a snippet references itself transitively', function () {
 	] ) )->toThrow( SnippetCycleException::class );
 } );
 
-it( 'catches a self-cycle authored in the editor (Gutenberg attributes shape)', function () {
+it( 'catches a self-cycle authored in the editor (Gutenberg attributes shape)', function (): void {
 	$guard = new SnippetCycleGuard();
 
 	expect( fn () => $guard->assertNoCycle( 'cta', [
@@ -51,7 +51,7 @@ it( 'catches a self-cycle authored in the editor (Gutenberg attributes shape)', 
 	] ) )->toThrow( SnippetCycleException::class );
 } );
 
-it( 'allows a snippet that references a different snippet without cycling back', function () {
+it( 'allows a snippet that references a different snippet without cycling back', function (): void {
 	Snippet::factory()->create( [
 		'slug'   => 'inner',
 		'blocks' => [
@@ -68,7 +68,7 @@ it( 'allows a snippet that references a different snippet without cycling back',
 	expect( true )->toBeTrue();
 } );
 
-it( 'checkPlacement returns null for a visited slug', function () {
+it( 'checkPlacement returns null for a visited slug', function (): void {
 	Snippet::factory()->create( [ 'slug' => 'cta' ] );
 
 	$guard = new SnippetCycleGuard();
@@ -76,7 +76,7 @@ it( 'checkPlacement returns null for a visited slug', function () {
 	expect( $guard->checkPlacement( 'cta', [ 'cta' => true ], 0 ) )->toBeNull();
 } );
 
-it( 'checkPlacement returns the snippet when not visited', function () {
+it( 'checkPlacement returns the snippet when not visited', function (): void {
 	$snippet = Snippet::factory()->create( [ 'slug' => 'cta' ] );
 
 	$guard = new SnippetCycleGuard();

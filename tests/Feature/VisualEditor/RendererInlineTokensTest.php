@@ -24,7 +24,7 @@ class FakeInlineResolver
 				'team[0].role'        => 'CTO',
 				default               => '',
 			},
-			$content
+			$content,
 		) ?? $content;
 	}
 
@@ -34,16 +34,16 @@ class FakeInlineResolver
 	}
 }
 
-beforeEach( function () {
+beforeEach( function (): void {
 	app()->instance(
 		'ArtisanPackUI\\CMSFramework\\Modules\\DynamicContent\\Services\\DynamicContentResolver',
-		new FakeInlineResolver()
+		new FakeInlineResolver(),
 	);
 
 	$this->renderer = app( BlockRenderer::class );
 } );
 
-it( 'resolves inline tokens in string attrs', function () {
+it( 'resolves inline tokens in string attrs', function (): void {
 	$tree = [
 		[
 			'name'  => 'artisanpack/paragraph',
@@ -60,11 +60,11 @@ it( 'resolves inline tokens in string attrs', function () {
 		->toBe( 'Call us at (555) 123-4567 — CTO is CTO.' );
 } );
 
-it( 'leaves attrs without tokens untouched', function () {
+it( 'leaves attrs without tokens untouched', function (): void {
 	$tree = [
 		[
-			'name'  => 'artisanpack/paragraph',
-			'attrs' => [ 'content' => 'Static text only.' ],
+			'name'        => 'artisanpack/paragraph',
+			'attrs'       => [ 'content' => 'Static text only.' ],
 			'innerBlocks' => [],
 		],
 	];
@@ -74,15 +74,15 @@ it( 'leaves attrs without tokens untouched', function () {
 	expect( $resolved[0]['attributes']['content'] )->toBe( 'Static text only.' );
 } );
 
-it( 'recurses into inner blocks', function () {
+it( 'recurses into inner blocks', function (): void {
 	$tree = [
 		[
-			'name'  => 'artisanpack/group',
-			'attrs' => [],
+			'name'        => 'artisanpack/group',
+			'attrs'       => [],
 			'innerBlocks' => [
 				[
-					'name'  => 'artisanpack/paragraph',
-					'attrs' => [ 'content' => 'Email: {{business_info.email}}' ],
+					'name'        => 'artisanpack/paragraph',
+					'attrs'       => [ 'content' => 'Email: {{business_info.email}}' ],
 					'innerBlocks' => [],
 				],
 			],
@@ -97,11 +97,11 @@ it( 'recurses into inner blocks', function () {
 		->toBe( 'Email: hi@example.com' );
 } );
 
-it( 'resolves tokens in Gutenberg-shape blocks (attributes key)', function () {
+it( 'resolves tokens in Gutenberg-shape blocks (attributes key)', function (): void {
 	$tree = [
 		[
-			'name'       => 'artisanpack/paragraph',
-			'attributes' => [ 'content' => 'Phone: {{business_info.phone}}' ],
+			'name'        => 'artisanpack/paragraph',
+			'attributes'  => [ 'content' => 'Phone: {{business_info.phone}}' ],
 			'innerBlocks' => [],
 		],
 	];
@@ -114,7 +114,7 @@ it( 'resolves tokens in Gutenberg-shape blocks (attributes key)', function () {
 	expect( isset( $resolved[0]['attrs'] ) )->toBeFalse();
 } );
 
-it( 'passes through non-string attrs untouched', function () {
+it( 'passes through non-string attrs untouched', function (): void {
 	$tree = [
 		[
 			'name'  => 'artisanpack/heading',

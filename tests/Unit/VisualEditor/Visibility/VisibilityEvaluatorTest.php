@@ -30,7 +30,7 @@ function makeEvaluator( array $overrides = [] ): VisibilityEvaluator
 	);
 }
 
-it( 'returns visible for a block with no visibility slice', function () {
+it( 'returns visible for a block with no visibility slice', function (): void {
 	$evaluator = makeEvaluator();
 
 	$decision = $evaluator->evaluate(
@@ -41,7 +41,7 @@ it( 'returns visible for a block with no visibility slice', function () {
 	expect( $decision->isVisible() )->toBeTrue();
 } );
 
-it( 'hides a block when the Hide rule is toggled on', function () {
+it( 'hides a block when the Hide rule is toggled on', function (): void {
 	$evaluator = makeEvaluator();
 
 	$decision = $evaluator->evaluate(
@@ -58,7 +58,7 @@ it( 'hides a block when the Hide rule is toggled on', function () {
 	expect( $decision->reasons )->toContain( 'hide' );
 } );
 
-it( 'short-circuits when the site-wide kill switch is off', function () {
+it( 'short-circuits when the site-wide kill switch is off', function (): void {
 	$evaluator = makeEvaluator( [
 		'artisanpack.visual-editor.visibility.enabled' => false,
 	] );
@@ -74,7 +74,7 @@ it( 'short-circuits when the site-wide kill switch is off', function () {
 	expect( $decision->isVisible() )->toBeTrue();
 } );
 
-it( 'respects supports.artisanpackVisibility === false via primeSupports()', function () {
+it( 'respects supports.artisanpackVisibility === false via primeSupports()', function (): void {
 	$evaluator = makeEvaluator();
 	$evaluator->primeSupports( [ 'artisanpack/opt-out' => false ] );
 
@@ -89,7 +89,7 @@ it( 'respects supports.artisanpackVisibility === false via primeSupports()', fun
 	expect( $decision->isVisible() )->toBeTrue();
 } );
 
-it( 'combines two hidden decisions into one hidden decision', function () {
+it( 'combines two hidden decisions into one hidden decision', function (): void {
 	$a = VisibilityDecision::hidden( [ 'a' ] );
 	$b = VisibilityDecision::hidden( [ 'b' ] );
 
@@ -99,7 +99,7 @@ it( 'combines two hidden decisions into one hidden decision', function () {
 	expect( $combined->reasons )->toEqualCanonicalizing( [ 'a', 'b' ] );
 } );
 
-it( 'combines visible with cssHidden into cssHidden', function () {
+it( 'combines visible with cssHidden into cssHidden', function (): void {
 	$a = VisibilityDecision::visible();
 	$b = VisibilityDecision::cssHidden( [ 'sm' ], [ 'screenSize' ] );
 
@@ -109,7 +109,7 @@ it( 'combines visible with cssHidden into cssHidden', function () {
 	expect( $combined->hiddenBreakpoints )->toBe( [ 'sm' ] );
 } );
 
-it( 'hidden wins over cssHidden when combined', function () {
+it( 'hidden wins over cssHidden when combined', function (): void {
 	$a = VisibilityDecision::cssHidden( [ 'sm' ] );
 	$b = VisibilityDecision::hidden( [ 'hide' ] );
 

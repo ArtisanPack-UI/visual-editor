@@ -106,7 +106,7 @@ class PatternPreviewController extends Controller
 	 *
 	 * @since 1.13.0
 	 *
-	 * @return array{html: string}|array{error: string}
+	 * @return array{error: string}|array{html: string}
 	 */
 	protected function renderOne( PatternPreviewRenderer $renderer, string $id ): array
 	{

@@ -20,8 +20,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
 	/**
 	 * Whether this migration created the table, so `down()` never drops a
 	 * `users` table owned by cms-framework or the host. Mirrors
@@ -41,7 +40,7 @@ return new class extends Migration
 			return;
 		}
 
-		Schema::create( 'users', function ( Blueprint $table ) {
+		Schema::create( 'users', function ( Blueprint $table ): void {
 			$table->id();
 			$table->string( 'name' );
 			$table->string( 'email' )->unique();

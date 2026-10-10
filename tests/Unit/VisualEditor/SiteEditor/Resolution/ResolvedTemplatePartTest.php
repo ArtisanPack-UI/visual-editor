@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Tests for {@see \ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedTemplatePart}.
+ * Tests for {@see ResolvedTemplatePart}.
  *
  * Focus is on the legacy-area back-compat surface that Keystone #55
  * added. Resolution / coercion of other fields is exercised by the

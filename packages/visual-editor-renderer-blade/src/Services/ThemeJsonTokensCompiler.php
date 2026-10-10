@@ -276,7 +276,7 @@ class ThemeJsonTokensCompiler
 			$lines[] = sprintf(
 				'.has-%s-gradient-background { background: var(--wp--preset--gradient--%s) !important; }',
 				$slug,
-				$slug
+				$slug,
 			);
 		}
 
@@ -315,7 +315,7 @@ class ThemeJsonTokensCompiler
 			$lines[] = sprintf(
 				'.has-%s-font-size { font-size: var(--wp--preset--font-size--%s) !important; }',
 				$slug,
-				$slug
+				$slug,
 			);
 		}
 
@@ -444,7 +444,7 @@ class ThemeJsonTokensCompiler
 			$declarations[] = 'color: ' . $this->expandPresetReference( trim( $color['text'] ) ) . ';';
 		}
 
-		$typography = is_array( $node['typography'] ?? null ) ? $node['typography'] : [];
+		$typography    = is_array( $node['typography'] ?? null ) ? $node['typography'] : [];
 		$typographyMap = [
 			'fontFamily'     => 'font-family',
 			'fontSize'       => 'font-size',
@@ -849,6 +849,7 @@ class ThemeJsonTokensCompiler
 	 *
 	 * @param  array<string, mixed>  $settings
 	 * @param  array{0: string, 1: string}  $path
+	 *
 	 * @return list<string>
 	 */
 	protected function compilePresetList( array $settings, array $path, string $category, string $valueKey ): array
@@ -877,7 +878,7 @@ class ThemeJsonTokensCompiler
 				'--wp--preset--%s--%s: %s;',
 				$this->slug( $category ),
 				$this->slug( $slug ),
-				$value
+				$value,
 			);
 		}
 

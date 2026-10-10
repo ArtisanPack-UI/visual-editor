@@ -418,7 +418,7 @@ describe( 'pattern preview resilience', function (): void {
 				'body{background:url(./assets/bg.png)}'
 				. '.a{background:url("assets/a.png")}'
 				. '.b{background:url(https://cdn.example.com/b.png)}'
-				. '.c{background:url(/root.png)}'
+				. '.c{background:url(/root.png)}',
 			);
 		} );
 

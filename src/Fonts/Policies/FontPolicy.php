@@ -75,7 +75,7 @@ class FontPolicy
 
 		$capability = (string) config(
 			'artisanpack.visual-editor.fonts.capability',
-			self::DEFAULT_CAPABILITY
+			self::DEFAULT_CAPABILITY,
 		);
 
 		if ( '' === $capability ) {

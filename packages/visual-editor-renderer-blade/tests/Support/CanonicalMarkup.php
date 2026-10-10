@@ -31,6 +31,7 @@ use DOMDocument;
 use DOMElement;
 use DOMNode;
 use DOMText;
+use InvalidArgumentException;
 
 final class CanonicalMarkup
 {
@@ -122,7 +123,7 @@ final class CanonicalMarkup
 		$document->loadHTML(
 			'<!DOCTYPE html><html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"></head><body><div id="ve-parity-root">'
 			. $html
-			. '</div></body></html>'
+			. '</div></body></html>',
 		);
 
 		libxml_clear_errors();
@@ -139,6 +140,38 @@ final class CanonicalMarkup
 		self::serializeChildren( $root, 0, $lines );
 
 		return implode( "\n", $lines );
+	}
+
+	/**
+	 * Wraps a declared divergence source (`dropClassTokensMatching`,
+	 * `dropAttributesMatching`, `dropElementsMatching`, `fixturesMatching`)
+	 * in its PCRE delimiter and asserts that the result compiles.
+	 *
+	 * Both steps matter. A pattern containing `#` would otherwise end the
+	 * delimiter early and fail to compile, and `preg_match()` signals that
+	 * with a warning plus a `false` return that reads exactly like "no
+	 * match" — the golden would then be written *with* the token while the
+	 * JS side (where `new RegExp(source)` compiles it fine) drops it, a
+	 * permanent and baffling parity failure. Throwing here turns that into
+	 * an immediate, legible error instead.
+	 *
+	 * @since 1.6.0
+	 *
+	 * @param  string  $pattern  Delimiter-less regex source from fixtures.json.
+	 *
+	 * @return string Delimited pattern safe to hand to `preg_match()`.
+	 */
+	public static function compileDropClassPattern( string $pattern ): string
+	{
+		$delimited = '#' . str_replace( '#', '\\#', $pattern ) . '#';
+
+		if ( false === @preg_match( $delimited, '' ) ) {
+			throw new InvalidArgumentException(
+				'Invalid knownDivergences pattern in fixtures.json: ' . $pattern,
+			);
+		}
+
+		return $delimited;
 	}
 
 	/**
@@ -349,38 +382,6 @@ final class CanonicalMarkup
 		}
 
 		return false;
-	}
-
-	/**
-	 * Wraps a declared divergence source (`dropClassTokensMatching`,
-	 * `dropAttributesMatching`, `dropElementsMatching`, `fixturesMatching`)
-	 * in its PCRE delimiter and asserts that the result compiles.
-	 *
-	 * Both steps matter. A pattern containing `#` would otherwise end the
-	 * delimiter early and fail to compile, and `preg_match()` signals that
-	 * with a warning plus a `false` return that reads exactly like "no
-	 * match" — the golden would then be written *with* the token while the
-	 * JS side (where `new RegExp(source)` compiles it fine) drops it, a
-	 * permanent and baffling parity failure. Throwing here turns that into
-	 * an immediate, legible error instead.
-	 *
-	 * @since 1.6.0
-	 *
-	 * @param  string  $pattern  Delimiter-less regex source from fixtures.json.
-	 *
-	 * @return string Delimited pattern safe to hand to `preg_match()`.
-	 */
-	public static function compileDropClassPattern( string $pattern ): string
-	{
-		$delimited = '#' . str_replace( '#', '\\#', $pattern ) . '#';
-
-		if ( false === @preg_match( $delimited, '' ) ) {
-			throw new \InvalidArgumentException(
-				'Invalid knownDivergences pattern in fixtures.json: ' . $pattern
-			);
-		}
-
-		return $delimited;
 	}
 
 	/**

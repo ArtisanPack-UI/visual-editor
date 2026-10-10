@@ -30,12 +30,15 @@ use Illuminate\Support\Facades\Blade;
  *
  * @param  array<string, array<int, array<string, mixed>>>  $parts  Slug => overlay blocks.
  */
-function bindOverlayResolverBySlug( array $parts ): void {
+function bindOverlayResolverBySlug( array $parts ): void
+{
 	$stub = new class( $parts ) {
 		/**
 		 * @param  array<string, array<int, array<string, mixed>>>  $parts
 		 */
-		public function __construct( private array $parts ) {}
+		public function __construct( private array $parts )
+		{
+		}
 
 		public function resolve( string $slug ): ?object
 		{
@@ -65,7 +68,8 @@ function bindOverlayResolverBySlug( array $parts ): void {
  *
  * @return array<string, mixed>
  */
-function overlayNavBlock( string $overlaySlug, array $innerBlocks = [] ): array {
+function overlayNavBlock( string $overlaySlug, array $innerBlocks = [] ): array
+{
 	return [
 		'clientId'    => 'nav-' . $overlaySlug,
 		'name'        => 'core/navigation',
@@ -83,7 +87,8 @@ function overlayNavBlock( string $overlaySlug, array $innerBlocks = [] ): array 
  *
  * @return array<string, mixed>
  */
-function overlayParagraph( string $content, array $extraAttributes = [] ): array {
+function overlayParagraph( string $content, array $extraAttributes = [] ): array
+{
 	return [
 		'clientId'    => 'p-' . md5( $content ),
 		'name'        => 'core/paragraph',
@@ -92,13 +97,13 @@ function overlayParagraph( string $content, array $extraAttributes = [] ): array
 	];
 }
 
-beforeEach( function () {
+beforeEach( function (): void {
 	app( NavigationOverlayTracker::class )->reset();
 } );
 
 // RN-1 ----------------------------------------------------------------
 
-it( 'never puts aria-hidden or static dialog semantics on a closed default nav (RN-1)', function () {
+it( 'never puts aria-hidden or static dialog semantics on a closed default nav (RN-1)', function (): void {
 	$tree = [
 		[
 			'clientId'    => 'nav-1',
@@ -125,7 +130,7 @@ it( 'never puts aria-hidden or static dialog semantics on a closed default nav (
 		->and( $rendered )->not->toContain( 'aria-modal="true"' );
 } );
 
-it( 'adds the dialog semantics only from the toggle script open/close handlers (RN-1)', function () {
+it( 'adds the dialog semantics only from the toggle script open/close handlers (RN-1)', function (): void {
 	$tree = [ [ 'clientId' => 'nav-1', 'name' => 'core/navigation', 'attributes' => [], 'innerBlocks' => [] ] ];
 
 	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
@@ -142,7 +147,7 @@ it( 'adds the dialog semantics only from the toggle script open/close handlers (
 
 // RN-5 ----------------------------------------------------------------
 
-it( 'renders aria-expanded and aria-controls on the open button (RN-5)', function () {
+it( 'renders aria-expanded and aria-controls on the open button (RN-5)', function (): void {
 	$tree = [ [ 'clientId' => 'nav-1', 'name' => 'core/navigation', 'attributes' => [], 'innerBlocks' => [] ] ];
 
 	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
@@ -153,7 +158,7 @@ it( 'renders aria-expanded and aria-controls on the open button (RN-5)', functio
 		->and( $rendered )->toContain( "t.setAttribute('aria-expanded','false')" );
 } );
 
-it( 'wraps Tab and Shift+Tab focus inside the open dialog (RN-5)', function () {
+it( 'wraps Tab and Shift+Tab focus inside the open dialog (RN-5)', function (): void {
 	$tree = [ [ 'clientId' => 'nav-1', 'name' => 'core/navigation', 'attributes' => [], 'innerBlocks' => [] ] ];
 
 	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
@@ -166,7 +171,7 @@ it( 'wraps Tab and Shift+Tab focus inside the open dialog (RN-5)', function () {
 
 // RN-6 ----------------------------------------------------------------
 
-it( 'closes an open drawer when a link inside it is clicked, without preventDefault or focus stealing (RN-6)', function () {
+it( 'closes an open drawer when a link inside it is clicked, without preventDefault or focus stealing (RN-6)', function (): void {
 	$tree = [ [ 'clientId' => 'nav-1', 'name' => 'core/navigation', 'attributes' => [], 'innerBlocks' => [] ] ];
 
 	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
@@ -178,7 +183,7 @@ it( 'closes an open drawer when a link inside it is clicked, without preventDefa
 
 // RN-2 ----------------------------------------------------------------
 
-it( 'stops a self-referencing overlay part after one level (RN-2)', function () {
+it( 'stops a self-referencing overlay part after one level (RN-2)', function (): void {
 	bindOverlayResolverBySlug( [
 		'mobile-overlay' => [
 			overlayParagraph( 'Self overlay CTA' ),
@@ -192,7 +197,7 @@ it( 'stops a self-referencing overlay part after one level (RN-2)', function () 
 		->and( substr_count( $rendered, 'Self overlay CTA' ) )->toBe( 1 );
 } );
 
-it( 'stops an A -> B -> A overlay cycle (RN-2)', function () {
+it( 'stops an A -> B -> A overlay cycle (RN-2)', function (): void {
 	bindOverlayResolverBySlug( [
 		'overlay-a' => [ overlayParagraph( 'From A' ), overlayNavBlock( 'overlay-b' ) ],
 		'overlay-b' => [ overlayParagraph( 'From B' ), overlayNavBlock( 'overlay-a' ) ],
@@ -205,7 +210,7 @@ it( 'stops an A -> B -> A overlay cycle (RN-2)', function () {
 		->and( substr_count( $rendered, 'From B' ) )->toBe( 1 );
 } );
 
-it( 'still renders the same overlay for sibling navs once the first has unwound (RN-2)', function () {
+it( 'still renders the same overlay for sibling navs once the first has unwound (RN-2)', function (): void {
 	bindOverlayResolverBySlug( [
 		'mobile-overlay' => [ overlayParagraph( 'Shared overlay' ) ],
 	] );
@@ -217,7 +222,7 @@ it( 'still renders the same overlay for sibling navs once the first has unwound 
 	expect( substr_count( $rendered, 'Shared overlay' ) )->toBe( 2 );
 } );
 
-it( 'tracks the overlay stack with cycle detection, a depth cap and reset (RN-2)', function () {
+it( 'tracks the overlay stack with cycle detection, a depth cap and reset (RN-2)', function (): void {
 	$tracker = new NavigationOverlayTracker();
 
 	expect( $tracker->enterOverlay( 'a' ) )->toBeTrue()
@@ -244,7 +249,7 @@ it( 'tracks the overlay stack with cycle detection, a depth cap and reset (RN-2)
 
 // RN-3 ----------------------------------------------------------------
 
-it( 'falls back to the menu when every overlay block is hidden by visibility (RN-3)', function () {
+it( 'falls back to the menu when every overlay block is hidden by visibility (RN-3)', function (): void {
 	bindOverlayResolverBySlug( [
 		'mobile-overlay' => [
 			overlayParagraph( 'Hidden overlay CTA', [ 'artisanpackVisibility' => [ 'hide' => [ 'hidden' => true ] ] ] ),
@@ -274,7 +279,7 @@ it( 'falls back to the menu when every overlay block is hidden by visibility (RN
 
 // RN-4 ----------------------------------------------------------------
 
-it( 'drops nav custom colors that would inject extra declarations (RN-4)', function () {
+it( 'drops nav custom colors that would inject extra declarations (RN-4)', function (): void {
 	$tree = [
 		[
 			'clientId'    => 'nav-1',
@@ -299,7 +304,7 @@ it( 'drops nav custom colors that would inject extra declarations (RN-4)', funct
 		->and( $navTag[0] )->not->toContain( 'style=' );
 } );
 
-it( 'keeps safe nav custom colors (RN-4)', function () {
+it( 'keeps safe nav custom colors (RN-4)', function (): void {
 	$tree = [
 		[
 			'clientId'    => 'nav-1',
@@ -324,7 +329,7 @@ it( 'keeps safe nav custom colors (RN-4)', function () {
 
 // RN-7 ----------------------------------------------------------------
 
-it( 'reduces overlay preset slugs to a single sanitized class each (RN-7)', function () {
+it( 'reduces overlay preset slugs to a single sanitized class each (RN-7)', function (): void {
 	$tree = [
 		[
 			'clientId'    => 'nav-1',
@@ -344,7 +349,7 @@ it( 'reduces overlay preset slugs to a single sanitized class each (RN-7)', func
 		->and( $rendered )->not->toMatch( '/class="(?:[^"]* )?is-menu-open[ "]/' );
 } );
 
-it( 'emits no overlay preset class when the slug sanitizes to empty (RN-7)', function () {
+it( 'emits no overlay preset class when the slug sanitizes to empty (RN-7)', function (): void {
 	$tree = [
 		[
 			'clientId'    => 'nav-1',
@@ -362,7 +367,7 @@ it( 'emits no overlay preset class when the slug sanitizes to empty (RN-7)', fun
 	expect( $rendered )->toContain( '<div class="wp-block-navigation__responsive-container" id="ap-modal-nav-1">' );
 } );
 
-it( 'exposes slugify publicly for partials (RN-7)', function () {
+it( 'exposes slugify publicly for partials (RN-7)', function (): void {
 	expect( BlockSupports::slugify( '  Primary Accent ' ) )->toBe( 'primary-accent' )
 		->and( BlockSupports::slugify( 'x is-menu-open' ) )->toBe( 'x-is-menu-open' )
 		->and( BlockSupports::slugify( '"\';' ) )->toBe( '' );
@@ -370,7 +375,7 @@ it( 'exposes slugify publicly for partials (RN-7)', function () {
 
 // RN-11 ---------------------------------------------------------------
 
-it( 'keeps innerDepth balanced after a nested overlay render (RN-11)', function () {
+it( 'keeps innerDepth balanced after a nested overlay render (RN-11)', function (): void {
 	bindOverlayResolverBySlug( [
 		'mobile-overlay' => [ overlayParagraph( 'Overlay body' ) ],
 	] );
@@ -410,7 +415,7 @@ it( 'keeps innerDepth balanced after a nested overlay render (RN-11)', function 
 		->and( $innerDepth )->toBe( 0 );
 } );
 
-it( 'gives a search field inside the overlay and one on the page distinct ids (RN-11)', function () {
+it( 'gives a search field inside the overlay and one on the page distinct ids (RN-11)', function (): void {
 	$searchField = [
 		'clientId'    => 'sf-1',
 		'name'        => 'artisanpack/search-field',
@@ -430,7 +435,7 @@ it( 'gives a search field inside the overlay and one on the page distinct ids (R
 		->and( array_unique( $matches[1] ) )->toHaveCount( 2 );
 } );
 
-it( 'still applies the whole-content filter exactly once around a nested overlay render (RN-11)', function () {
+it( 'still applies the whole-content filter exactly once around a nested overlay render (RN-11)', function (): void {
 	if ( ! function_exists( 'addFilter' ) ) {
 		$this->markTestSkipped( 'artisanpack-ui/hooks is not installed.' );
 	}

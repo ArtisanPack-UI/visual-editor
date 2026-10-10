@@ -101,7 +101,7 @@ class SnippetCycleGuard
 		if ( $depth >= self::MAX_DEPTH ) {
 			throw new SnippetCycleException( sprintf(
 				'Snippet nesting exceeds the maximum depth of %d.',
-				self::MAX_DEPTH
+				self::MAX_DEPTH,
 			) );
 		}
 
@@ -125,7 +125,7 @@ class SnippetCycleGuard
 				if ( '' !== $targetSlug && isset( $visited[ $targetSlug ] ) ) {
 					throw new SnippetCycleException( sprintf(
 						'Snippet "%s" cycles back on itself.',
-						$targetSlug
+						$targetSlug,
 					) );
 				}
 
@@ -136,7 +136,7 @@ class SnippetCycleGuard
 						$this->walk(
 							$referenced->blocks,
 							$visited + [ $targetSlug => true ],
-							$depth + 1
+							$depth + 1,
 						);
 					}
 				}

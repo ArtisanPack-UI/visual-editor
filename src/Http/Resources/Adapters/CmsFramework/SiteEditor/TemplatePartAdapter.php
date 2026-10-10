@@ -22,6 +22,7 @@ namespace ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\SiteEd
 
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedTemplate;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedTemplatePart;
+use InvalidArgumentException;
 
 class TemplatePartAdapter extends TemplateAdapter
 {
@@ -51,8 +52,8 @@ class TemplatePartAdapter extends TemplateAdapter
 		// Subclass narrows the input contract — see {@see ResolvedTemplatePart}
 		// for the area enum the WP-shape `area` field surfaces.
 		if ( ! $template instanceof ResolvedTemplatePart ) {
-			throw new \InvalidArgumentException(
-				'TemplatePartAdapter expects a ResolvedTemplatePart instance.'
+			throw new InvalidArgumentException(
+				'TemplatePartAdapter expects a ResolvedTemplatePart instance.',
 			);
 		}
 

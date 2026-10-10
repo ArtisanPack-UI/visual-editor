@@ -84,6 +84,72 @@ class PositionResolver
 	}
 
 	/**
+	 * Merge each defined breakpoint layer on top of every smaller layer
+	 * (base included). Produces the fully-resolved per-breakpoint layer
+	 * map the emitter consumes for media-query bodies.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param  array{base: array<string, mixed>|null, breakpoints: array<string, array<string, mixed>>}  $payload
+	 * @param  array<int, string>  $orderedBreakpointKeys  Registry keys of one family in emission order, no `base`.
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	public static function mergedBreakpointLayers( array $payload, array $orderedBreakpointKeys ): array
+	{
+		$out     = [];
+		$running = $payload['base'] ?? null;
+
+		foreach ( $orderedBreakpointKeys as $key ) {
+			$overlay = $payload['breakpoints'][ $key ] ?? null;
+
+			if ( null === $overlay ) {
+				continue;
+			}
+
+			$running     = self::mergeLayers( $running, $overlay );
+			$out[ $key ] = $running;
+		}
+
+		return $out;
+	}
+
+	/**
+	 * Fold an overlay layer on top of a base layer — overlay wins per
+	 * field, base fills any nulls. Single source of truth for the
+	 * merge fallthrough logic; the JS mirror lives at
+	 * `resources/js/visual-editor/positioning/resolver.ts::mergeLayers`.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param  array<string, mixed>|null  $base
+	 * @param  array<string, mixed>|null  $overlay
+	 *
+	 * @return array<string, mixed>|null
+	 */
+	public static function mergeLayers( ?array $base, ?array $overlay ): ?array
+	{
+		if ( null === $overlay ) {
+			return $base;
+		}
+
+		if ( null === $base ) {
+			return $overlay;
+		}
+
+		return [
+			'value'   => $overlay['value'] ?? $base['value'],
+			'offsets' => [
+				'top'    => $overlay['offsets']['top'] ?? $base['offsets']['top'],
+				'right'  => $overlay['offsets']['right'] ?? $base['offsets']['right'],
+				'bottom' => $overlay['offsets']['bottom'] ?? $base['offsets']['bottom'],
+				'left'   => $overlay['offsets']['left'] ?? $base['offsets']['left'],
+			],
+			'zIndex'  => $overlay['zIndex'] ?? $base['zIndex'],
+		];
+	}
+
+	/**
 	 * @param  array<string, mixed>|null  $subtree
 	 *
 	 * @return array{value: string|null, offsets: array<string, array<string, mixed>|null>, zIndex: int|null}|null
@@ -266,71 +332,5 @@ class PositionResolver
 		}
 
 		return $out;
-	}
-
-	/**
-	 * Merge each defined breakpoint layer on top of every smaller layer
-	 * (base included). Produces the fully-resolved per-breakpoint layer
-	 * map the emitter consumes for media-query bodies.
-	 *
-	 * @since 1.4.0
-	 *
-	 * @param  array{base: array<string, mixed>|null, breakpoints: array<string, array<string, mixed>>}  $payload
-	 * @param  array<int, string>  $orderedBreakpointKeys  Registry keys of one family in emission order, no `base`.
-	 *
-	 * @return array<string, array<string, mixed>>
-	 */
-	public static function mergedBreakpointLayers( array $payload, array $orderedBreakpointKeys ): array
-	{
-		$out     = [];
-		$running = $payload['base'] ?? null;
-
-		foreach ( $orderedBreakpointKeys as $key ) {
-			$overlay = $payload['breakpoints'][ $key ] ?? null;
-
-			if ( null === $overlay ) {
-				continue;
-			}
-
-			$running     = self::mergeLayers( $running, $overlay );
-			$out[ $key ] = $running;
-		}
-
-		return $out;
-	}
-
-	/**
-	 * Fold an overlay layer on top of a base layer — overlay wins per
-	 * field, base fills any nulls. Single source of truth for the
-	 * merge fallthrough logic; the JS mirror lives at
-	 * `resources/js/visual-editor/positioning/resolver.ts::mergeLayers`.
-	 *
-	 * @since 1.4.0
-	 *
-	 * @param  array<string, mixed>|null  $base
-	 * @param  array<string, mixed>|null  $overlay
-	 *
-	 * @return array<string, mixed>|null
-	 */
-	public static function mergeLayers( ?array $base, ?array $overlay ): ?array
-	{
-		if ( null === $overlay ) {
-			return $base;
-		}
-
-		if ( null === $base ) {
-			return $overlay;
-		}
-
-		return [
-			'value'   => $overlay['value'] ?? $base['value'],
-			'offsets' => [
-				'top'    => $overlay['offsets']['top']    ?? $base['offsets']['top'],
-				'right'  => $overlay['offsets']['right']  ?? $base['offsets']['right'],
-				'bottom' => $overlay['offsets']['bottom'] ?? $base['offsets']['bottom'],
-				'left'   => $overlay['offsets']['left']   ?? $base['offsets']['left'],
-			],
-			'zIndex'  => $overlay['zIndex'] ?? $base['zIndex'],
-		];
 	}
 }

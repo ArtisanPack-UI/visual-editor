@@ -6,7 +6,7 @@ use ArtisanPackUI\VisualEditor\Facades\VisualEditor;
 use Tests\Fixtures\TestDynamicBlock;
 use Tests\TestUser;
 
-beforeEach( function () {
+beforeEach( function (): void {
 	config()->set( 'artisanpack.visual-editor.api.middleware', [ 'auth' ] );
 
 	$this->actor = TestUser::create( [
@@ -18,7 +18,7 @@ beforeEach( function () {
 	$this->actingAs( $this->actor );
 } );
 
-it( 'renders a registered dynamic block and returns the HTML', function () {
+it( 'renders a registered dynamic block and returns the HTML', function (): void {
 	VisualEditor::registerDynamicBlock( TestDynamicBlock::class );
 
 	$this->postJson( '/visual-editor/api/blocks/preview', [
@@ -30,7 +30,7 @@ it( 'renders a registered dynamic block and returns the HTML', function () {
 		->assertJsonPath( 'html', '<p>Hello, Ada!</p>' );
 } );
 
-it( 'defaults attributes to an empty array when omitted', function () {
+it( 'defaults attributes to an empty array when omitted', function (): void {
 	VisualEditor::registerDynamicBlock( TestDynamicBlock::class );
 
 	$this->postJson( '/visual-editor/api/blocks/preview', [
@@ -40,7 +40,7 @@ it( 'defaults attributes to an empty array when omitted', function () {
 		->assertJsonPath( 'html', '<p>Hello, World!</p>' );
 } );
 
-it( 'returns 404 when the block is not registered', function () {
+it( 'returns 404 when the block is not registered', function (): void {
 	$this->postJson( '/visual-editor/api/blocks/preview', [
 		'name'       => 'acme/missing',
 		'attributes' => [],
@@ -50,7 +50,7 @@ it( 'returns 404 when the block is not registered', function () {
 		->assertJsonPath( 'name', 'acme/missing' );
 } );
 
-it( 'returns 422 when the block name fails format validation', function () {
+it( 'returns 422 when the block name fails format validation', function (): void {
 	$this->postJson( '/visual-editor/api/blocks/preview', [
 		'name'       => 'Not A Valid Name',
 		'attributes' => [],
@@ -59,7 +59,7 @@ it( 'returns 422 when the block name fails format validation', function () {
 		->assertJsonValidationErrors( 'name' );
 } );
 
-it( 'returns 422 when validateAttrs throws', function () {
+it( 'returns 422 when validateAttrs throws', function (): void {
 	VisualEditor::registerDynamicBlock( TestDynamicBlock::class );
 
 	$this->postJson( '/visual-editor/api/blocks/preview', [
@@ -71,7 +71,7 @@ it( 'returns 422 when validateAttrs throws', function () {
 		->assertJsonPath( 'message', 'greeting must be a string.' );
 } );
 
-it( 'returns 403 when the block authorize callback rejects', function () {
+it( 'returns 403 when the block authorize callback rejects', function (): void {
 	VisualEditor::registerDynamicBlock( TestDynamicBlock::class );
 
 	$this->postJson( '/visual-editor/api/blocks/preview', [
@@ -82,7 +82,7 @@ it( 'returns 403 when the block authorize callback rejects', function () {
 		->assertJsonPath( 'error', 'unauthorized' );
 } );
 
-it( 'renders a block registered via the closure style', function () {
+it( 'renders a block registered via the closure style', function (): void {
 	VisualEditor::registerDynamicBlock( 'acme/bold', [
 		'render' => static fn ( array $attrs ): string => '<b>' . ( $attrs['text'] ?? '' ) . '</b>',
 	] );
@@ -95,7 +95,7 @@ it( 'renders a block registered via the closure style', function () {
 		->assertJsonPath( 'html', '<b>hi</b>' );
 } );
 
-it( 'renders a block that returns a Blade view', function () {
+it( 'renders a block that returns a Blade view', function (): void {
 	app( 'view' )->addLocation( __DIR__ . '/../../Fixtures/views' );
 
 	VisualEditor::registerDynamicBlock( 'acme/view', [
@@ -110,7 +110,7 @@ it( 'renders a block that returns a Blade view', function () {
 		->assertJsonPath( 'html', "<em>rendered</em>\n" );
 } );
 
-it( 'returns 401 when the request is not authenticated', function () {
+it( 'returns 401 when the request is not authenticated', function (): void {
 	auth()->logout();
 
 	$this->postJson( '/visual-editor/api/blocks/preview', [
@@ -119,7 +119,7 @@ it( 'returns 401 when the request is not authenticated', function () {
 		->assertUnauthorized();
 } );
 
-it( 'returns a generic message when the block render() throws', function () {
+it( 'returns a generic message when the block render() throws', function (): void {
 	VisualEditor::registerDynamicBlock( 'acme/boom', [
 		'render' => static function (): string {
 			throw new RuntimeException( 'secret internal path /var/www/leak' );

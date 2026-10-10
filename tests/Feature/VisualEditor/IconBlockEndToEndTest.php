@@ -79,8 +79,7 @@ function e2eActAsAdmin(): TestUser
 function e2eBindAllowingGate(): void
 {
 	app()->bind( SiteEditorAccessGate::class, function () {
-		return new class implements SiteEditorAccessGate
-		{
+		return new class implements SiteEditorAccessGate {
 			public function check( Request $request ): ?Response
 			{
 				return null;
@@ -119,7 +118,7 @@ beforeEach( function (): void {
 	$uploadBase = e2eIconBase() . '/uploaded';
 	mkdir( $uploadBase, 0o755, true );
 	app()->instance( UploadedIconSetRegistry::class, new UploadedIconSetRegistry( $uploadBase ) );
-	app()->forgetInstance( \ArtisanPackUI\VisualEditor\Services\Icon\IconSetUploader::class );
+	app()->forgetInstance( ArtisanPackUI\VisualEditor\Services\Icon\IconSetUploader::class );
 
 	e2eBindAllowingGate();
 } );

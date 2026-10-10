@@ -87,7 +87,7 @@ class DynamicContentResolveController extends Controller
 
 		$tokens = array_values( array_unique( array_filter(
 			$tokens,
-			static fn ( $value ): bool => is_string( $value ) && '' !== trim( $value )
+			static fn ( $value ): bool => is_string( $value ) && '' !== trim( $value ),
 		) ) );
 
 		// Per-source memoization: multiple tokens that share the same

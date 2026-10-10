@@ -74,14 +74,14 @@ class TagCloudBlock extends DynamicBlock
 				e( $unit ),
 				$count,
 				e( (string) $tag->name ),
-				$countMarkup
+				$countMarkup,
 			);
 		} )->implode( '' );
 
 		return sprintf(
 			'<p class="%s">%s</p>',
 			e( implode( ' ', $classes ) ),
-			$items
+			$items,
 		);
 	}
 
@@ -102,7 +102,7 @@ class TagCloudBlock extends DynamicBlock
 			->limit( $attrs['numberOfTags'] )
 			->get()
 			->filter(
-				static fn ( object $tag ): bool => (int) ( $tag->posts_count ?? 0 ) > 0
+				static fn ( object $tag ): bool => (int) ( $tag->posts_count ?? 0 ) > 0,
 			)
 			->values();
 	}
@@ -126,7 +126,7 @@ class TagCloudBlock extends DynamicBlock
 	 */
 	protected function parseSize( string $value, float $default, string $defaultUnit ): array
 	{
-		if ( preg_match( '/^\s*([0-9]+(?:\.[0-9]+)?)\s*([a-z%]+)?\s*$/i', $value, $matches ) === 1 ) {
+		if ( 1 === preg_match( '/^\s*([0-9]+(?:\.[0-9]+)?)\s*([a-z%]+)?\s*$/i', $value, $matches ) ) {
 			return [ (float) $matches[1], $matches[2] ?? $defaultUnit ];
 		}
 

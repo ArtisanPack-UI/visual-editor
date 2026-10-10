@@ -4,7 +4,7 @@ declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\Animations\AnimationRegistry;
 
-it( 'falls back to built-in defaults when nothing overrides them', function () {
+it( 'falls back to built-in defaults when nothing overrides them', function (): void {
 	$registry = AnimationRegistry::fromLayers( [], [] );
 
 	expect( $registry->families() )->toEqualCanonicalizing( [ 'entrance', 'hover', 'continuous' ] );
@@ -13,10 +13,10 @@ it( 'falls back to built-in defaults when nothing overrides them', function () {
 	expect( $registry->has( 'hover', 'lift' ) )->toBeTrue();
 } );
 
-it( 'merges config overrides on top of defaults', function () {
+it( 'merges config overrides on top of defaults', function (): void {
 	$registry = AnimationRegistry::fromLayers(
 		[ 'entrance' => [ 'fade-in' => [ 'label' => 'Soft fade' ] ] ],
-		[]
+		[],
 	);
 
 	$def = $registry->get( 'entrance', 'fade-in' );
@@ -28,17 +28,17 @@ it( 'merges config overrides on top of defaults', function () {
 	expect( $def['duration'] )->toBe( 600 );
 } );
 
-it( 'lets a theme override drop a built-in by setting it to null', function () {
+it( 'lets a theme override drop a built-in by setting it to null', function (): void {
 	$registry = AnimationRegistry::fromLayers(
 		[],
-		[ 'entrance' => [ 'flip-x' => null ] ]
+		[ 'entrance' => [ 'flip-x' => null ] ],
 	);
 
 	expect( $registry->has( 'entrance', 'flip-x' ) )->toBeFalse();
 	expect( $registry->has( 'entrance', 'fade-in' ) )->toBeTrue();
 } );
 
-it( 'lets a theme register a new animation in the entrance family', function () {
+it( 'lets a theme register a new animation in the entrance family', function (): void {
 	$registry = AnimationRegistry::fromLayers(
 		[],
 		[ 'entrance' => [ 'fade-in-blur' => [
@@ -46,48 +46,48 @@ it( 'lets a theme register a new animation in the entrance family', function () 
 			'keyframe' => 'apFadeInBlur',
 			'duration' => 700,
 			'easing'   => 'ease-out',
-		] ] ]
+		] ] ],
 	);
 
 	expect( $registry->has( 'entrance', 'fade-in-blur' ) )->toBeTrue();
 	expect( $registry->get( 'entrance', 'fade-in-blur' )['keyframe'] )->toBe( 'apFadeInBlur' );
 } );
 
-it( 'rejects an unknown family slug', function () {
+it( 'rejects an unknown family slug', function (): void {
 	AnimationRegistry::fromLayers(
 		[],
-		[ 'parallax' => [ 'scroll' => [ 'label' => 'Scroll', 'keyframe' => 'x', 'duration' => 1000, 'easing' => 'ease' ] ] ]
+		[ 'parallax' => [ 'scroll' => [ 'label' => 'Scroll', 'keyframe' => 'x', 'duration' => 1000, 'easing' => 'ease' ] ] ],
 	);
 } )->throws( InvalidArgumentException::class, 'family' );
 
-it( 'rejects an entry missing the keyframe', function () {
+it( 'rejects an entry missing the keyframe', function (): void {
 	AnimationRegistry::fromLayers(
 		[],
-		[ 'entrance' => [ 'broken' => [ 'label' => 'Broken', 'duration' => 600, 'easing' => 'ease' ] ] ]
+		[ 'entrance' => [ 'broken' => [ 'label' => 'Broken', 'duration' => 600, 'easing' => 'ease' ] ] ],
 	);
 } )->throws( InvalidArgumentException::class, 'keyframe' );
 
-it( 'rejects a hover entry missing the preset', function () {
+it( 'rejects a hover entry missing the preset', function (): void {
 	AnimationRegistry::fromLayers(
 		[],
-		[ 'hover' => [ 'broken' => [ 'label' => 'Broken', 'duration' => 200, 'easing' => 'ease' ] ] ]
+		[ 'hover' => [ 'broken' => [ 'label' => 'Broken', 'duration' => 200, 'easing' => 'ease' ] ] ],
 	);
 } )->throws( InvalidArgumentException::class, 'preset' );
 
-it( 'rejects a non-positive duration', function () {
+it( 'rejects a non-positive duration', function (): void {
 	AnimationRegistry::fromLayers(
 		[],
 		[ 'entrance' => [ 'broken' => [
 			'label' => 'Broken', 'keyframe' => 'x', 'duration' => 0, 'easing' => 'ease',
-		] ] ]
+		] ] ],
 	);
 } )->throws( InvalidArgumentException::class, 'duration' );
 
-it( 'rejects a key with invalid characters', function () {
+it( 'rejects a key with invalid characters', function (): void {
 	AnimationRegistry::fromLayers(
 		[],
 		[ 'entrance' => [ 'fade in' => [
 			'label' => 'Bad', 'keyframe' => 'x', 'duration' => 100, 'easing' => 'ease',
-		] ] ]
+		] ] ],
 	);
 } )->throws( InvalidArgumentException::class );

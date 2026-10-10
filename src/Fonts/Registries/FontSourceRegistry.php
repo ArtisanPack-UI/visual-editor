@@ -66,7 +66,7 @@ class FontSourceRegistry
 		if ( 1 !== preg_match( self::KEY_PATTERN, $key ) ) {
 			throw new InvalidArgumentException( sprintf(
 				'Font provider key "%s" is invalid. Expected lowercase letters, digits, hyphens, and underscores, starting with a letter.',
-				$provider->key()
+				$provider->key(),
 			) );
 		}
 

@@ -46,6 +46,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
+use stdClass;
 
 class GlobalStylesController extends Controller
 {
@@ -123,9 +124,9 @@ class GlobalStylesController extends Controller
 			return response()->json( [
 				'id'           => self::SINGLETON_ID,
 				'theme'        => '',
-				'settings'     => new \stdClass(),
-				'styles'       => new \stdClass(),
-				'mergedStyles' => new \stdClass(),
+				'settings'     => new stdClass(),
+				'styles'       => new stdClass(),
+				'mergedStyles' => new stdClass(),
 				'variations'   => [],
 			] );
 		}
@@ -144,116 +145,6 @@ class GlobalStylesController extends Controller
 			'mergedStyles' => $mergedStyles,
 			'variations'   => $variations,
 		] );
-	}
-
-	/**
-	 * The active theme's DB global-styles override `styles`, or an empty
-	 * array when no row backs the theme (or cms-framework isn't installed).
-	 * This is the same DB delta the `/css` emitter merges over theme.json;
-	 * {@see base()} applies it structurally to build `mergedStyles`.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return array<string, mixed>
-	 */
-	protected function dbOverrideStyles( string $themeSlug ): array
-	{
-		$model = self::CMS_GLOBAL_STYLES_FQCN;
-
-		if ( '' === $themeSlug || ! class_exists( $model ) ) {
-			return [];
-		}
-
-		$record = $model::query()->where( 'theme', $themeSlug )->first();
-
-		if ( null === $record ) {
-			return [];
-		}
-
-		$styles = $record->styles;
-
-		// The `styles` column is array-cast on the cms-framework model, but
-		// tolerate a raw JSON string in case an older cast shape surfaces one.
-		if ( is_string( $styles ) ) {
-			$decoded = json_decode( $styles, true );
-			$styles  = is_array( $decoded ) ? $decoded : [];
-		}
-
-		return is_array( $styles ) ? $styles : [];
-	}
-
-	/**
-	 * Deep-merge a DB override styles array over the pristine theme.json
-	 * styles: associative sub-objects recurse so an override touching one
-	 * leaf (e.g. `styles.color.background`) leaves its siblings intact, while
-	 * a scalar or list value replaces the base wholesale. An empty override
-	 * returns the base unchanged, so `mergedStyles` deep-equals `styles` when
-	 * no customization exists.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @param  array<string, mixed>  $base      Theme.json styles.
-	 * @param  array<string, mixed>  $override  DB override styles.
-	 *
-	 * @return array<string, mixed>
-	 */
-	protected function deepMergeStyles( array $base, array $override ): array
-	{
-		foreach ( $override as $key => $value ) {
-			if ( is_array( $value )
-				&& isset( $base[ $key ] )
-				&& is_array( $base[ $key ] )
-				&& $this->isAssocArray( $value )
-				&& $this->isAssocArray( $base[ $key ] ) ) {
-				$base[ $key ] = $this->deepMergeStyles( $base[ $key ], $value );
-
-				continue;
-			}
-
-			$base[ $key ] = $value;
-		}
-
-		return $base;
-	}
-
-	/**
-	 * Whether an array is a non-empty associative (string-keyed) map rather
-	 * than a positional list, so the merge recurses objects but replaces
-	 * lists (a palette array, a font-family stack) wholesale.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @param  array<int|string, mixed>  $array
-	 */
-	protected function isAssocArray( array $array ): bool
-	{
-		return [] !== $array && ! array_is_list( $array );
-	}
-
-	/**
-	 * Resolve the active theme manifest through cms-framework's
-	 * `ThemeManager` when available. Returns null when cms-framework
-	 * isn't integrated or no theme is active.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return array<string, mixed>|null
-	 */
-	protected function activeTheme(): ?array
-	{
-		$themeManagerFqcn = 'ArtisanPackUI\\CMSFramework\\Modules\\Themes\\Managers\\ThemeManager';
-
-		if ( ! class_exists( $themeManagerFqcn ) || ! app()->bound( $themeManagerFqcn ) ) {
-			return null;
-		}
-
-		$theme = app( $themeManagerFqcn )->getActiveTheme();
-
-		if ( ! is_array( $theme ) || empty( $theme['slug'] ) ) {
-			return null;
-		}
-
-		return $theme;
 	}
 
 	/**
@@ -350,57 +241,6 @@ class GlobalStylesController extends Controller
 		$body = implode( "\n\n", array_filter( $parts, static fn ( string $part ): bool => '' !== $part ) );
 
 		return response( $body, Response::HTTP_OK, [ 'Content-Type' => 'text/css; charset=utf-8' ] );
-	}
-
-	/**
-	 * Read the active theme's hand-authored `style.css` from disk —
-	 * fallback for cms-framework installs older than 2.5 that don't
-	 * ship the `ThemeStylesheetReader` binding. When the reader is
-	 * available the primary `css()` path uses it instead and this
-	 * method is not invoked.
-	 *
-	 * Returns an empty string when no theme is active, when the file
-	 * doesn't exist, or when the resolved path escapes the configured
-	 * themes directory (path-traversal guard — the theme slug rides in
-	 * from the DB / `theme.json`, but cheap to verify).
-	 *
-	 * @since 1.0.0
-	 */
-	protected function readThemeStylesheet(): string
-	{
-		$theme = $this->activeTheme();
-
-		if ( null === $theme ) {
-			return '';
-		}
-
-		$slug = (string) ( $theme['slug'] ?? '' );
-
-		if ( '' === $slug || ! preg_match( '/^[A-Za-z0-9_-]+$/', $slug ) ) {
-			return '';
-		}
-
-		$configured = (string) config( 'cms.themes.directory', 'themes' );
-		// Honor absolute paths verbatim; otherwise resolve relative to
-		// the app's base. cms-framework's `ThemeManager` follows the same
-		// convention, so themes resolve to the same directory on disk
-		// whether the host app keeps `themes/` inside the project root
-		// or points at an external mount.
-		$themesBase = ( '' !== $configured && ( '/' === $configured[0] || preg_match( '#^[A-Za-z]:[\\\\/]#', $configured ) ) )
-			? $configured
-			: base_path( $configured );
-		$stylesheet = $themesBase . '/' . $slug . '/style.css';
-
-		$resolved   = realpath( $stylesheet );
-		$baseReal   = realpath( $themesBase );
-
-		if ( false === $resolved || false === $baseReal || ! str_starts_with( $resolved, $baseReal . DIRECTORY_SEPARATOR ) ) {
-			return '';
-		}
-
-		$contents = @file_get_contents( $resolved );
-
-		return is_string( $contents ) ? $contents : '';
 	}
 
 	/**
@@ -516,6 +356,167 @@ class GlobalStylesController extends Controller
 		}
 
 		return response()->json( ( new GlobalStylesAdapter() )->toArray( $resolved ) );
+	}
+
+	/**
+	 * The active theme's DB global-styles override `styles`, or an empty
+	 * array when no row backs the theme (or cms-framework isn't installed).
+	 * This is the same DB delta the `/css` emitter merges over theme.json;
+	 * {@see base()} applies it structurally to build `mergedStyles`.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function dbOverrideStyles( string $themeSlug ): array
+	{
+		$model = self::CMS_GLOBAL_STYLES_FQCN;
+
+		if ( '' === $themeSlug || ! class_exists( $model ) ) {
+			return [];
+		}
+
+		$record = $model::query()->where( 'theme', $themeSlug )->first();
+
+		if ( null === $record ) {
+			return [];
+		}
+
+		$styles = $record->styles;
+
+		// The `styles` column is array-cast on the cms-framework model, but
+		// tolerate a raw JSON string in case an older cast shape surfaces one.
+		if ( is_string( $styles ) ) {
+			$decoded = json_decode( $styles, true );
+			$styles  = is_array( $decoded ) ? $decoded : [];
+		}
+
+		return is_array( $styles ) ? $styles : [];
+	}
+
+	/**
+	 * Deep-merge a DB override styles array over the pristine theme.json
+	 * styles: associative sub-objects recurse so an override touching one
+	 * leaf (e.g. `styles.color.background`) leaves its siblings intact, while
+	 * a scalar or list value replaces the base wholesale. An empty override
+	 * returns the base unchanged, so `mergedStyles` deep-equals `styles` when
+	 * no customization exists.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  array<string, mixed>  $base      Theme.json styles.
+	 * @param  array<string, mixed>  $override  DB override styles.
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function deepMergeStyles( array $base, array $override ): array
+	{
+		foreach ( $override as $key => $value ) {
+			if ( is_array( $value )
+				&& isset( $base[ $key ] )
+				&& is_array( $base[ $key ] )
+				&& $this->isAssocArray( $value )
+				&& $this->isAssocArray( $base[ $key ] ) ) {
+				$base[ $key ] = $this->deepMergeStyles( $base[ $key ], $value );
+
+				continue;
+			}
+
+			$base[ $key ] = $value;
+		}
+
+		return $base;
+	}
+
+	/**
+	 * Whether an array is a non-empty associative (string-keyed) map rather
+	 * than a positional list, so the merge recurses objects but replaces
+	 * lists (a palette array, a font-family stack) wholesale.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  array<int|string, mixed>  $array
+	 */
+	protected function isAssocArray( array $array ): bool
+	{
+		return [] !== $array && ! array_is_list( $array );
+	}
+
+	/**
+	 * Resolve the active theme manifest through cms-framework's
+	 * `ThemeManager` when available. Returns null when cms-framework
+	 * isn't integrated or no theme is active.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, mixed>|null
+	 */
+	protected function activeTheme(): ?array
+	{
+		$themeManagerFqcn = 'ArtisanPackUI\\CMSFramework\\Modules\\Themes\\Managers\\ThemeManager';
+
+		if ( ! class_exists( $themeManagerFqcn ) || ! app()->bound( $themeManagerFqcn ) ) {
+			return null;
+		}
+
+		$theme = app( $themeManagerFqcn )->getActiveTheme();
+
+		if ( ! is_array( $theme ) || empty( $theme['slug'] ) ) {
+			return null;
+		}
+
+		return $theme;
+	}
+
+	/**
+	 * Read the active theme's hand-authored `style.css` from disk —
+	 * fallback for cms-framework installs older than 2.5 that don't
+	 * ship the `ThemeStylesheetReader` binding. When the reader is
+	 * available the primary `css()` path uses it instead and this
+	 * method is not invoked.
+	 *
+	 * Returns an empty string when no theme is active, when the file
+	 * doesn't exist, or when the resolved path escapes the configured
+	 * themes directory (path-traversal guard — the theme slug rides in
+	 * from the DB / `theme.json`, but cheap to verify).
+	 *
+	 * @since 1.0.0
+	 */
+	protected function readThemeStylesheet(): string
+	{
+		$theme = $this->activeTheme();
+
+		if ( null === $theme ) {
+			return '';
+		}
+
+		$slug = (string) ( $theme['slug'] ?? '' );
+
+		if ( '' === $slug || ! preg_match( '/^[A-Za-z0-9_-]+$/', $slug ) ) {
+			return '';
+		}
+
+		$configured = (string) config( 'cms.themes.directory', 'themes' );
+		// Honor absolute paths verbatim; otherwise resolve relative to
+		// the app's base. cms-framework's `ThemeManager` follows the same
+		// convention, so themes resolve to the same directory on disk
+		// whether the host app keeps `themes/` inside the project root
+		// or points at an external mount.
+		$themesBase = ( '' !== $configured && ( '/' === $configured[0] || preg_match( '#^[A-Za-z]:[\\\\/]#', $configured ) ) )
+			? $configured
+			: base_path( $configured );
+		$stylesheet = $themesBase . '/' . $slug . '/style.css';
+
+		$resolved   = realpath( $stylesheet );
+		$baseReal   = realpath( $themesBase );
+
+		if ( false === $resolved || false === $baseReal || ! str_starts_with( $resolved, $baseReal . DIRECTORY_SEPARATOR ) ) {
+			return '';
+		}
+
+		$contents = @file_get_contents( $resolved );
+
+		return is_string( $contents ) ? $contents : '';
 	}
 
 	/**

@@ -71,7 +71,7 @@ class BusinessInfoController extends Controller
 		$envelope['mapEmbedUrl']  = $this->resolver->composeMapEmbedUrl( $envelope, $addressAttributes );
 		$envelope['specialHours'] = $this->resolver->filterSpecialHoursWindow(
 			$this->resolver->normalizeSpecialHours( $envelope['specialHours'] ?? [] ),
-			$hoursAttributes
+			$hoursAttributes,
 		);
 
 		// Whitelist to the documented public shape so a host filter that
@@ -125,7 +125,7 @@ class BusinessInfoController extends Controller
 			$parsed = filter_var(
 				$request->query( 'showMap' ),
 				FILTER_VALIDATE_BOOLEAN,
-				FILTER_NULL_ON_FAILURE
+				FILTER_NULL_ON_FAILURE,
 			);
 
 			if ( null !== $parsed ) {

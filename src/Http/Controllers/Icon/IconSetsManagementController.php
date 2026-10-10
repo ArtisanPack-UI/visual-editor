@@ -71,8 +71,8 @@ class IconSetsManagementController extends Controller
 			);
 		} catch ( PrefixCollisionException $e ) {
 			return new JsonResponse( [
-				'error'  => 'prefix_collision',
-				'prefix' => $e->prefix,
+				'error'   => 'prefix_collision',
+				'prefix'  => $e->prefix,
 				'message' => $e->getMessage(),
 			], Response::HTTP_CONFLICT );
 		} catch ( RuntimeException $e ) {

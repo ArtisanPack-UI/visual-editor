@@ -32,7 +32,9 @@ use ArtisanPackUI\VisualEditor\Animations\AnimationCssEmitter;
 
 class AnimationMarkupResolver
 {
-	public function __construct( protected AnimationCssEmitter $emitter ) {}
+	public function __construct( protected AnimationCssEmitter $emitter )
+	{
+	}
 
 	/**
 	 * Resolves the bag for one block scope. Returns the markup pieces a

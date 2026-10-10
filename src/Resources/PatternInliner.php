@@ -57,8 +57,14 @@ class PatternInliner
 	public const ERROR_CYCLE       = 'cycle';
 	public const ERROR_DEPTH_LIMIT = 'depth-limit';
 
+	/**
+	 * cms-framework's BlockPattern model. Direct `find()` lookup by id
+	 * matches the visual-editor's `core/block` ref-as-id contract.
+	 */
+	protected const PATTERN_MODEL = '\\ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Models\\BlockPattern';
+
 	public function __construct(
-		protected int $maxDepth = self::DEFAULT_MAX_DEPTH
+		protected int $maxDepth = self::DEFAULT_MAX_DEPTH,
 	) {
 	}
 
@@ -200,12 +206,6 @@ class PatternInliner
 
 		return null;
 	}
-
-	/**
-	 * cms-framework's BlockPattern model. Direct `find()` lookup by id
-	 * matches the visual-editor's `core/block` ref-as-id contract.
-	 */
-	protected const PATTERN_MODEL = '\\ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Models\\BlockPattern';
 
 	/**
 	 * Looks the pattern up via cms-framework's BlockPattern model and

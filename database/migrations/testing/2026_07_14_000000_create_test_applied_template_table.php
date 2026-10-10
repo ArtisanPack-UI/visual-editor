@@ -20,11 +20,10 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
 	public function up(): void
 	{
-		Schema::create( 'test_applied_template_pages', function ( Blueprint $table ) {
+		Schema::create( 'test_applied_template_pages', function ( Blueprint $table ): void {
 			$table->id();
 			$table->unsignedBigInteger( 'author_id' )->nullable()->index();
 			$table->string( 'title' )->default( '' );

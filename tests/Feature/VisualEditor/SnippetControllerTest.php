@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\TestUser;
 
-beforeEach( function () {
+beforeEach( function (): void {
 	config()->set( 'artisanpack.visual-editor.api.middleware', [ 'auth' ] );
 
 	$this->actor = TestUser::create( [
@@ -24,8 +24,7 @@ beforeEach( function () {
 	// happy path; the gate-denies-anonymous test in this file
 	// re-binds to a denying gate to verify the negative path.
 	app()->bind( SiteEditorAccessGate::class, function () {
-		return new class implements SiteEditorAccessGate
-		{
+		return new class implements SiteEditorAccessGate {
 			public function check( Request $request ): ?Response
 			{
 				return null;
@@ -34,7 +33,7 @@ beforeEach( function () {
 	} );
 } );
 
-it( 'lists snippets', function () {
+it( 'lists snippets', function (): void {
 	Snippet::factory()->create( [ 'slug' => 'cta_banner', 'title' => 'CTA Banner' ] );
 	Snippet::factory()->create( [ 'slug' => 'footer',     'title' => 'Footer' ] );
 
@@ -45,7 +44,7 @@ it( 'lists snippets', function () {
 		->toContain( 'cta_banner', 'footer' );
 } );
 
-it( 'creates a snippet with a valid slug and blocks tree', function () {
+it( 'creates a snippet with a valid slug and blocks tree', function (): void {
 	$response = $this->postJson( '/visual-editor/api/snippets', [
 		'slug'   => 'hero',
 		'title'  => 'Hero',
@@ -61,7 +60,7 @@ it( 'creates a snippet with a valid slug and blocks tree', function () {
 	expect( Snippet::where( 'slug', 'hero' )->exists() )->toBeTrue();
 } );
 
-it( 'rejects a slug that does not match the pattern', function () {
+it( 'rejects a slug that does not match the pattern', function (): void {
 	$response = $this->postJson( '/visual-editor/api/snippets', [
 		'slug'  => 'Bad-Slug',
 		'title' => 'Nope',
@@ -71,7 +70,7 @@ it( 'rejects a slug that does not match the pattern', function () {
 		->assertJsonPath( 'errors.slug.0', fn ( $msg ) => str_contains( strtolower( (string) $msg ), 'lowercase' ) );
 } );
 
-it( 'rejects a duplicate slug', function () {
+it( 'rejects a duplicate slug', function (): void {
 	Snippet::factory()->create( [ 'slug' => 'hero' ] );
 
 	$response = $this->postJson( '/visual-editor/api/snippets', [
@@ -81,7 +80,7 @@ it( 'rejects a duplicate slug', function () {
 	$response->assertStatus( 422 );
 } );
 
-it( 'updates and deletes a snippet', function () {
+it( 'updates and deletes a snippet', function (): void {
 	$snippet = Snippet::factory()->create( [ 'slug' => 'cta', 'title' => 'Old' ] );
 
 	$this->putJson( "/visual-editor/api/snippets/{$snippet->id}", [
@@ -94,10 +93,9 @@ it( 'updates and deletes a snippet', function () {
 	expect( Snippet::find( $snippet->id ) )->toBeNull();
 } );
 
-it( 'refuses every snippet action when the site-editor gate denies access', function () {
+it( 'refuses every snippet action when the site-editor gate denies access', function (): void {
 	app()->bind( SiteEditorAccessGate::class, function () {
-		return new class implements SiteEditorAccessGate
-		{
+		return new class implements SiteEditorAccessGate {
 			public function check( Request $request ): ?Response
 			{
 				return response( 'denied', Response::HTTP_FORBIDDEN );
@@ -116,7 +114,7 @@ it( 'refuses every snippet action when the site-editor gate denies access', func
 	expect( Snippet::find( $snippet->id ) )->not->toBeNull();
 } );
 
-it( 'rejects a snippet that references itself directly', function () {
+it( 'rejects a snippet that references itself directly', function (): void {
 	Snippet::factory()->create( [ 'slug' => 'loop_a' ] );
 
 	$response = $this->postJson( '/visual-editor/api/snippets', [

@@ -40,7 +40,7 @@ class BlockPreviewController extends Controller
 	public function __construct(
 		protected DynamicBlockRegistry $registry,
 		protected BindingResolver $bindingResolver,
-		protected ResourceResolver $resourceResolver
+		protected ResourceResolver $resourceResolver,
 	) {
 	}
 
@@ -148,7 +148,7 @@ class BlockPreviewController extends Controller
 		}
 
 		throw new InvalidArgumentException(
-			'Dynamic block render() must return a View, Stringable, or string.'
+			'Dynamic block render() must return a View, Stringable, or string.',
 		);
 	}
 
@@ -174,7 +174,7 @@ class BlockPreviewController extends Controller
 				'attrs'    => $attributes,
 				'bindings' => $bindings,
 			] ],
-			$context
+			$context,
 		);
 
 		$first    = $resolved[0] ?? [];

@@ -5,7 +5,7 @@ declare( strict_types=1 );
 use ArtisanPackUI\VisualEditor\Animations\AnimationCssEmitter;
 use ArtisanPackUI\VisualEditorRendererBlade\Animations\AnimationMarkupResolver;
 
-it( 'resolves the markup pieces a Blade partial needs for an entrance block', function () {
+it( 'resolves the markup pieces a Blade partial needs for an entrance block', function (): void {
 	$emitter  = $this->app->make( AnimationCssEmitter::class );
 	$resolver = new AnimationMarkupResolver( $emitter );
 
@@ -24,7 +24,7 @@ it( 'resolves the markup pieces a Blade partial needs for an entrance block', fu
 	expect( $markup['noscriptCss'] )->toContain( 'opacity: 1' );
 } );
 
-it( 'returns an empty result for a block without animations', function () {
+it( 'returns an empty result for a block without animations', function (): void {
 	$emitter  = $this->app->make( AnimationCssEmitter::class );
 	$resolver = new AnimationMarkupResolver( $emitter );
 
@@ -36,7 +36,7 @@ it( 'returns an empty result for a block without animations', function () {
 	expect( $markup['css'] )->toBe( '' );
 } );
 
-it( 'escapes attribute values when serialising to a string', function () {
+it( 'escapes attribute values when serialising to a string', function (): void {
 	$emitter  = $this->app->make( AnimationCssEmitter::class );
 	$resolver = new AnimationMarkupResolver( $emitter );
 

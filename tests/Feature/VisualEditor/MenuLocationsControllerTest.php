@@ -28,11 +28,11 @@ function actingAsMenuLocationUser(): TestUser
 	return $user;
 }
 
-it( 'returns 401 when unauthenticated', function () {
+it( 'returns 401 when unauthenticated', function (): void {
 	$this->getJson( '/visual-editor/api/menu-locations' )->assertUnauthorized();
 } );
 
-it( 'returns an empty data array when cms-framework is not installed', function () {
+it( 'returns an empty data array when cms-framework is not installed', function (): void {
 	actingAsMenuLocationUser();
 
 	// In the Testbench environment cms-framework's `ThemeManager` is not

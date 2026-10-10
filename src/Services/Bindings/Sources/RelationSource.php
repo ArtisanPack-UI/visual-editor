@@ -28,9 +28,9 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Services\Bindings\Sources;
 
+use ArrayAccess;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BlockBindingSource;
-use ArrayAccess;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;

@@ -10,7 +10,7 @@ declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\Support\RouteThrottle;
 
-it( 'builds a prefixed throttle from the configured value', function ( mixed $configured, ?string $expected ) {
+it( 'builds a prefixed throttle from the configured value', function ( mixed $configured, ?string $expected ): void {
 	expect( RouteThrottle::middleware( $configured, '60,1', 've-x' ) )->toBe( $expected );
 } )->with( [
 	'max and decay'    => [ '30,5', 'throttle:30,5,ve-x' ],
@@ -27,7 +27,7 @@ it( 'builds a prefixed throttle from the configured value', function ( mixed $co
 	'false (disabled)' => [ false, null ],
 ] );
 
-it( 'returns a middleware list that is empty when throttling is disabled', function () {
+it( 'returns a middleware list that is empty when throttling is disabled', function (): void {
 	expect( RouteThrottle::middlewareList( '10,1', '60,1', 've-x' ) )->toBe( [ 'throttle:10,1,ve-x' ] )
 		->and( RouteThrottle::middlewareList( false, '60,1', 've-x' ) )->toBe( [] );
 } );

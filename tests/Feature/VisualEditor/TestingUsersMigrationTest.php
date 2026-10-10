@@ -11,7 +11,7 @@ declare( strict_types=1 );
 
 use Illuminate\Support\Facades\Schema;
 
-it( 'does not drop a users table it skipped creating, even after an earlier run created one', function () {
+it( 'does not drop a users table it skipped creating, even after an earlier run created one', function (): void {
 	$migration = require __DIR__ . '/../../../database/migrations/testing/2026_04_14_000000_create_users_table.php';
 
 	// Simulate an earlier run in the same process that created the table.

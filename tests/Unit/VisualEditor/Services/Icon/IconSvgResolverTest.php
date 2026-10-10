@@ -25,25 +25,25 @@ afterEach( function (): void {
 	}
 } );
 
-it( 'returns the raw svg markup for a registered (set, name)', function () {
+it( 'returns the raw svg markup for a registered (set, name)', function (): void {
 	expect( test()->resolver->resolve( 'fab', 'github' ) )->toBe( '<svg id="github"/>' );
 } );
 
-it( 'returns null when the set is not registered', function () {
+it( 'returns null when the set is not registered', function (): void {
 	expect( test()->resolver->resolve( 'fas', 'github' ) )->toBeNull();
 } );
 
-it( 'returns null when the icon file is missing', function () {
+it( 'returns null when the icon file is missing', function (): void {
 	expect( test()->resolver->resolve( 'fab', 'does-not-exist' ) )->toBeNull();
 } );
 
-it( 'returns null when no sets are registered at all', function () {
+it( 'returns null when no sets are registered at all', function (): void {
 	$resolver = new IconSvgResolver();
 
 	expect( $resolver->resolve( 'fab', 'github' ) )->toBeNull();
 } );
 
-it( 'rejects a name containing parent-directory hops', function () {
+it( 'rejects a name containing parent-directory hops', function (): void {
 	// Even if a name passes the regex (allows dots), `..` substring must
 	// be refused so a clever (set, name) pair can't escape the set dir.
 	mkdir( test()->base . '/escaped', 0o755, true );
@@ -53,16 +53,16 @@ it( 'rejects a name containing parent-directory hops', function () {
 		->and( test()->resolver->resolve( 'fab', '..escape' ) )->toBeNull();
 } );
 
-it( 'rejects a set that does not match the allowlist', function () {
+it( 'rejects a set that does not match the allowlist', function (): void {
 	expect( test()->resolver->resolve( 'fab/..', 'github' ) )->toBeNull()
 		->and( test()->resolver->resolve( '', 'github' ) )->toBeNull();
 } );
 
-it( 'rejects a name with a path separator', function () {
+it( 'rejects a name with a path separator', function (): void {
 	expect( test()->resolver->resolve( 'fab', 'sub/github' ) )->toBeNull();
 } );
 
-it( 'evaluates a closure source lazily — not at construction time', function () {
+it( 'evaluates a closure source lazily — not at construction time', function (): void {
 	$callCount = 0;
 	$paths     = [ 'fab' => test()->base . '/fab' ];
 

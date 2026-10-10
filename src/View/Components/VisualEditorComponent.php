@@ -151,7 +151,7 @@ class VisualEditorComponent extends Component
 		if ( ! $model->exists || null === $key || '' === (string) $key ) {
 			throw new RuntimeException( sprintf(
 				'Visual editor cannot mount against an unsaved %s. Persist the model before rendering <x-visual-editor>.',
-				$model::class
+				$model::class,
 			) );
 		}
 
@@ -176,6 +176,11 @@ class VisualEditorComponent extends Component
 		$this->presets              = PresetRegistry::fromConfig();
 
 		$this->applyEditorConfigFilter();
+	}
+
+	public function render(): View
+	{
+		return view( 'visual-editor::components.editor' );
 	}
 
 	/**
@@ -244,12 +249,12 @@ class VisualEditorComponent extends Component
 	 */
 	protected function configSchema(): array
 	{
-		$string             = static fn ( mixed $v, mixed $current ) => is_string( $v ) ? $v : $current;
-		$nullableString     = static fn ( mixed $v, mixed $current ) => is_string( $v ) || null === $v ? $v : $current;
-		$nullableArray      = static fn ( mixed $v, mixed $current ) => is_array( $v ) || null === $v ? $v : $current;
-		$nullableBool       = static fn ( mixed $v, mixed $current ) => is_bool( $v ) || null === $v ? $v : $current;
+		$string              = static fn ( mixed $v, mixed $current ) => is_string( $v ) ? $v : $current;
+		$nullableString      = static fn ( mixed $v, mixed $current ) => is_string( $v ) || null === $v ? $v : $current;
+		$nullableArray       = static fn ( mixed $v, mixed $current ) => is_array( $v ) || null === $v ? $v : $current;
+		$nullableBool        = static fn ( mixed $v, mixed $current ) => is_bool( $v ) || null === $v ? $v : $current;
 		$nullableIntOrString = static fn ( mixed $v, mixed $current ) => is_int( $v ) || is_string( $v ) || null === $v ? $v : $current;
-		$array              = static fn ( mixed $v, mixed $current ) => is_array( $v ) ? $v : $current;
+		$array               = static fn ( mixed $v, mixed $current ) => is_array( $v ) ? $v : $current;
 
 		return [
 			'resource'             => $string,
@@ -320,7 +325,7 @@ class VisualEditorComponent extends Component
 	 */
 	protected function resolveContentTypes(): array
 	{
-		$map = (array) config( 'artisanpack.visual-editor.resources', [] );
+		$map   = (array) config( 'artisanpack.visual-editor.resources', [] );
 		$types = [];
 
 		foreach ( $map as $plural => $modelClass ) {
@@ -349,11 +354,6 @@ class VisualEditorComponent extends Component
 		return $types;
 	}
 
-	public function render(): View
-	{
-		return view( 'visual-editor::components.editor' );
-	}
-
 	/**
 	 * Looks up the resource slug for the given model class.
 	 *
@@ -373,7 +373,7 @@ class VisualEditorComponent extends Component
 		throw new RuntimeException( sprintf(
 			'Model %s is not registered in config("artisanpack.visual-editor.resources"). '
 			. 'Add it to the resources map or pass an explicit :resource="..." prop.',
-			$class
+			$class,
 		) );
 	}
 

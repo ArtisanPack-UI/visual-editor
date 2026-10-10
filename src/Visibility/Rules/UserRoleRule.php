@@ -54,8 +54,8 @@ class UserRoleRule implements VisibilityRule
 			return VisibilityDecision::visible();
 		}
 
-		$direction  = ( 'hide' === ( $ruleAttributes['direction']  ?? 'show' ) ) ? 'hide' : 'show';
-		$combinator = ( 'all'  === ( $ruleAttributes['combinator'] ?? 'any'  ) ) ? 'all'  : 'any';
+		$direction  = ( 'hide' === ( $ruleAttributes['direction'] ?? 'show' ) ) ? 'hide' : 'show';
+		$combinator = ( 'all' === ( $ruleAttributes['combinator'] ?? 'any' ) ) ? 'all'  : 'any';
 
 		// Anonymous short-circuit: no user, no roles to match.
 		if ( ! $context->isAuthenticated ) {

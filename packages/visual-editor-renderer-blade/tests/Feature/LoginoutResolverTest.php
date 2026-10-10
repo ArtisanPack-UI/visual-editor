@@ -52,7 +52,7 @@ beforeEach( function (): void {
 	}
 } );
 
-it( 'renders the login link with the "Log in" label for logged-out viewers', function () {
+it( 'renders the login link with the "Log in" label for logged-out viewers', function (): void {
 	Auth::shouldUse( 'web' );
 	expect( Auth::check() )->toBeFalse();
 
@@ -67,7 +67,7 @@ it( 'renders the login link with the "Log in" label for logged-out viewers', fun
 		->toContain( '/login' );
 } );
 
-it( 'renders the logout link with the "Log out" label for logged-in viewers', function () {
+it( 'renders the logout link with the "Log out" label for logged-in viewers', function (): void {
 	$user = new GenericUser( [ 'id' => 42, 'name' => 'Forky', 'remember_token' => null ] );
 	Auth::setUser( $user );
 	expect( Auth::check() )->toBeTrue();
@@ -84,7 +84,7 @@ it( 'renders the logout link with the "Log out" label for logged-in viewers', fu
 	Auth::logout();
 } );
 
-it( 'appends the current URL as a redirect_to query parameter when redirectToCurrent is on', function () {
+it( 'appends the current URL as a redirect_to query parameter when redirectToCurrent is on', function (): void {
 	// `redirectToCurrent` defaults to true, but make it explicit so the
 	// test reads as a statement about the behavior rather than the
 	// default. The resolver should see the in-flight request URL via
@@ -104,7 +104,7 @@ it( 'appends the current URL as a redirect_to query parameter when redirectToCur
 		->toMatch( '/redirect_to=[^"\s&]+/' );
 } );
 
-it( 'honors a configured named login route over the literal path fallback', function () {
+it( 'honors a configured named login route over the literal path fallback', function (): void {
 	Route::get( '/auth/sign-in', fn () => 'ok' )->name( 'login' );
 	// `->name()` mutates the route after it has been added to the
 	// collection, so the collection's name lookup table is stale until
@@ -121,10 +121,10 @@ it( 'honors a configured named login route over the literal path fallback', func
 		->not()->toContain( 'href="http://localhost/login"' );
 } );
 
-it( 'shows the host-supplied login form for logged-out viewers when displayLoginAsForm is on', function () {
+it( 'shows the host-supplied login form for logged-out viewers when displayLoginAsForm is on', function (): void {
 	addFilter(
 		'ap.visualEditor.loginout.loginForm',
-		fn ( string $_, string $current ): string => '<form data-test-form data-redirect="' . htmlspecialchars( $current ) . '"></form>'
+		fn ( string $_, string $current ): string => '<form data-test-form data-redirect="' . htmlspecialchars( $current ) . '"></form>',
 	);
 
 	$rendered = $this->stripGlobalStyles( loginoutRenderTree( [
@@ -140,10 +140,10 @@ it( 'shows the host-supplied login form for logged-out viewers when displayLogin
 		->not()->toContain( '>Log in<' );
 } );
 
-it( 'keeps the logout link for logged-in viewers even when displayLoginAsForm is on', function () {
+it( 'keeps the logout link for logged-in viewers even when displayLoginAsForm is on', function (): void {
 	addFilter(
 		'ap.visualEditor.loginout.loginForm',
-		fn (): string => '<form data-test-form></form>'
+		fn (): string => '<form data-test-form></form>',
 	);
 
 	$user = new GenericUser( [ 'id' => 7, 'name' => 'Tay', 'remember_token' => null ] );
@@ -164,7 +164,7 @@ it( 'keeps the logout link for logged-in viewers even when displayLoginAsForm is
 	Auth::logout();
 } );
 
-it( 'lets host-stamped resolved attributes win over the resolver fallback', function () {
+it( 'lets host-stamped resolved attributes win over the resolver fallback', function (): void {
 	$rendered = $this->stripGlobalStyles( loginoutRenderTree( [
 		loginoutBlockNode( [
 			'redirectToCurrent'        => false,
@@ -181,13 +181,13 @@ it( 'lets host-stamped resolved attributes win over the resolver fallback', func
 		->toContain( 'custom-class' );
 } );
 
-it( 'lets a host filter rewrite the resolved envelope through ap.visualEditor.loginout.envelope', function () {
+it( 'lets a host filter rewrite the resolved envelope through ap.visualEditor.loginout.envelope', function (): void {
 	addFilter(
 		'ap.visualEditor.loginout.envelope',
 		fn ( array $envelope ): array => array_merge( $envelope, [
 			'url'   => 'https://sso.example/login',
 			'label' => 'Continue with SSO',
-		] )
+		] ),
 	);
 
 	$rendered = $this->stripGlobalStyles( loginoutRenderTree( [
@@ -199,7 +199,7 @@ it( 'lets a host filter rewrite the resolved envelope through ap.visualEditor.lo
 		->toContain( '>Continue with SSO<' );
 } );
 
-it( 'returns false for the loggedIn flag when no auth guard is available', function () {
+it( 'returns false for the loggedIn flag when no auth guard is available', function (): void {
 	// Direct resolver call — proves the {@see LoginoutResolver::isUserLoggedIn}
 	// catch path returns false rather than bubbling the exception. The
 	// renderer path always has a guard so this is a defensive case.
@@ -210,7 +210,7 @@ it( 'returns false for the loggedIn flag when no auth guard is available', funct
 	expect( $envelope['label'] )->toBe( 'Log in' );
 } );
 
-it( 'falls back to a plain label (no anchor) when the resolved URL is empty', function () {
+it( 'falls back to a plain label (no anchor) when the resolved URL is empty', function (): void {
 	// Matches the React + Vue renderers' empty-URL guard: when the
 	// resolver is bypassed (or the host stamps a disallowed scheme that
 	// the sanitizer strips), the wrapper should still describe the link
@@ -238,7 +238,7 @@ it( 'falls back to a plain label (no anchor) when the resolved URL is empty', fu
 	Auth::logout();
 } );
 
-it( 'omits the has-login-form class when displayLoginAsForm is on but no host form was registered', function () {
+it( 'omits the has-login-form class when displayLoginAsForm is on but no host form was registered', function (): void {
 	// Matches the Blade partial's $showForm gate: the modifier class
 	// should only appear when a form will actually render. The resolver
 	// returns an empty loginFormHtml when the host hasn't wired the
@@ -257,7 +257,7 @@ it( 'omits the has-login-form class when displayLoginAsForm is on but no host fo
 		->not()->toContain( 'has-login-form' );
 } );
 
-it( 'leaves non-loginout blocks untouched even when an auth user is set', function () {
+it( 'leaves non-loginout blocks untouched even when an auth user is set', function (): void {
 	Auth::setUser( new GenericUser( [ 'id' => 1, 'name' => 'x', 'remember_token' => null ] ) );
 
 	$rendered = $this->stripGlobalStyles( loginoutRenderTree( [

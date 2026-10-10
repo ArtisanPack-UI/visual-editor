@@ -31,7 +31,6 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditor\Blocks\DynamicContent;
 
 use ArtisanPackUI\VisualEditor\Blocks\DynamicBlock;
-use ArtisanPackUI\VisualEditor\Models\Snippet;
 use ArtisanPackUI\VisualEditor\Services\DynamicContent\SnippetCycleGuard;
 use Throwable;
 
@@ -168,7 +167,7 @@ class SnippetBlock extends DynamicBlock
 		return sprintf(
 			'<div class="ve-snippet-cycle" role="note" aria-label="Snippet cycle">'
 				. '<strong>Snippet cycle detected:</strong> "%s" cannot reference itself.</div>',
-			$safe
+			$safe,
 		);
 	}
 

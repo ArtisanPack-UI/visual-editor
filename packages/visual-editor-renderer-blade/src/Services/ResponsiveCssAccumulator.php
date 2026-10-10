@@ -90,7 +90,7 @@ class ResponsiveCssAccumulator
 			return '';
 		}
 
-		$body = implode( '', array_values( $this->rules ) );
+		$body        = implode( '', array_values( $this->rules ) );
 		$this->rules = [];
 
 		return '<style data-ve-responsive>' . $body . '</style>';

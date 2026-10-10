@@ -169,7 +169,7 @@ class LoginoutResolver
 	{
 		$base = $this->resolveRoutedUrl(
 			$this->configString( 'login_route', 'login' ),
-			$this->configString( 'login_path', '/login' )
+			$this->configString( 'login_path', '/login' ),
 		);
 
 		return '' === $currentUrl
@@ -187,7 +187,7 @@ class LoginoutResolver
 	{
 		$base = $this->resolveRoutedUrl(
 			$this->configString( 'logout_route', 'logout' ),
-			$this->configString( 'logout_path', '/logout' )
+			$this->configString( 'logout_path', '/logout' ),
 		);
 
 		return '' === $currentUrl

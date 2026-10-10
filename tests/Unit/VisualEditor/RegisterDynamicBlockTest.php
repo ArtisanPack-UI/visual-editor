@@ -8,7 +8,7 @@ use ArtisanPackUI\VisualEditor\Facades\VisualEditor;
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
 use Tests\Fixtures\TestDynamicBlock;
 
-it( 'registers a class-style dynamic block via the container', function () {
+it( 'registers a class-style dynamic block via the container', function (): void {
 	VisualEditor::registerDynamicBlock( TestDynamicBlock::class );
 
 	$block = app( DynamicBlockRegistry::class )->get( 'tests/hello' );
@@ -16,7 +16,7 @@ it( 'registers a class-style dynamic block via the container', function () {
 	expect( $block )->toBeInstanceOf( TestDynamicBlock::class );
 } );
 
-it( 'registers a closure-style dynamic block with just a render callback', function () {
+it( 'registers a closure-style dynamic block with just a render callback', function (): void {
 	VisualEditor::registerDynamicBlock( 'acme/badge', [
 		'render' => static fn ( array $attrs ): string => '<span>' . $attrs['text'] . '</span>',
 	] );
@@ -28,7 +28,7 @@ it( 'registers a closure-style dynamic block with just a render callback', funct
 		->and( $block->render( [ 'text' => 'new' ] ) )->toBe( '<span>new</span>' );
 } );
 
-it( 'wires optional closure callbacks for search, validate, and authorize', function () {
+it( 'wires optional closure callbacks for search, validate, and authorize', function (): void {
 	VisualEditor::registerDynamicBlock( 'acme/callout', [
 		'render'         => static fn ( array $attrs ): string => '<b>' . ( $attrs['text'] ?? '' ) . '</b>',
 		'searchableText' => static fn ( array $attrs ): string => 'search:' . ( $attrs['text'] ?? '' ),
@@ -44,7 +44,7 @@ it( 'wires optional closure callbacks for search, validate, and authorize', func
 		->and( $block->authorize( null, [ 'text' => 'no' ] ) )->toBeFalse();
 } );
 
-it( 'accepts a pre-built DynamicBlock instance', function () {
+it( 'accepts a pre-built DynamicBlock instance', function (): void {
 	$instance = new TestDynamicBlock();
 
 	VisualEditor::registerDynamicBlock( $instance );
@@ -52,42 +52,42 @@ it( 'accepts a pre-built DynamicBlock instance', function () {
 	expect( app( DynamicBlockRegistry::class )->get( 'tests/hello' ) )->toBe( $instance );
 } );
 
-it( 'rejects a closure config without a render callback', function () {
+it( 'rejects a closure config without a render callback', function (): void {
 	VisualEditor::registerDynamicBlock( 'acme/bad', [
 		'searchableText' => static fn () => '',
 	] );
 } )->throws( InvalidArgumentException::class, 'render' );
 
-it( 'rejects a closure config with a non-callable searchableText entry', function () {
+it( 'rejects a closure config with a non-callable searchableText entry', function (): void {
 	VisualEditor::registerDynamicBlock( 'acme/bad', [
 		'render'         => static fn (): string => '<p></p>',
 		'searchableText' => 'not a callable',
 	] );
 } )->throws( InvalidArgumentException::class, 'searchableText' );
 
-it( 'rejects a closure config with a non-callable validateAttrs entry', function () {
+it( 'rejects a closure config with a non-callable validateAttrs entry', function (): void {
 	VisualEditor::registerDynamicBlock( 'acme/bad', [
 		'render'        => static fn (): string => '<p></p>',
 		'validateAttrs' => 'not a callable',
 	] );
 } )->throws( InvalidArgumentException::class, 'validateAttrs' );
 
-it( 'rejects a closure config with a non-callable authorize entry', function () {
+it( 'rejects a closure config with a non-callable authorize entry', function (): void {
 	VisualEditor::registerDynamicBlock( 'acme/bad', [
 		'render'    => static fn (): string => '<p></p>',
 		'authorize' => 'not a callable',
 	] );
 } )->throws( InvalidArgumentException::class, 'authorize' );
 
-it( 'rejects a non-existent class name', function () {
+it( 'rejects a non-existent class name', function (): void {
 	VisualEditor::registerDynamicBlock( 'Tests\\Fixtures\\NoSuchBlock' );
 } )->throws( InvalidArgumentException::class, 'does not exist' );
 
-it( 'rejects a class that does not extend DynamicBlock', function () {
-	VisualEditor::registerDynamicBlock( \stdClass::class );
+it( 'rejects a class that does not extend DynamicBlock', function (): void {
+	VisualEditor::registerDynamicBlock( stdClass::class );
 } )->throws( InvalidArgumentException::class, 'must extend' );
 
-it( 'returns an empty string from the default searchableText()', function () {
+it( 'returns an empty string from the default searchableText()', function (): void {
 	$block = new class extends DynamicBlock {
 		public function name(): string
 		{

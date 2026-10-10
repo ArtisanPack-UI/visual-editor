@@ -34,7 +34,7 @@ class BindingSourcesController extends Controller
 {
 	public function __construct(
 		protected BlockBindingSourceRegistry $registry,
-		protected ResourceResolver $resources
+		protected ResourceResolver $resources,
 	) {
 	}
 
@@ -49,7 +49,7 @@ class BindingSourcesController extends Controller
 			static fn ( BlockBindingSource $source ): array => [
 				'name' => $source->name(),
 			],
-			array_values( $this->registry->all() )
+			array_values( $this->registry->all() ),
 		);
 
 		return response()->json( [
@@ -103,7 +103,7 @@ class BindingSourcesController extends Controller
 	 *
 	 * @since 1.1.0
 	 *
-	 * @return class-string<\Illuminate\Database\Eloquent\Model>|null
+	 * @return class-string<Model>|null
 	 */
 	protected function resolveModelClass( string $resource ): ?string
 	{

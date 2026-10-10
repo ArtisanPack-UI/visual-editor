@@ -54,7 +54,7 @@ class DynamicBlockRegistry
 		if ( 1 !== preg_match( self::NAME_PATTERN, $name ) ) {
 			throw new InvalidArgumentException( sprintf(
 				'Dynamic block name "%s" is invalid. Expected format: "namespace/name" using lowercase letters, numbers, and hyphens.',
-				$name
+				$name,
 			) );
 		}
 

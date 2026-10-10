@@ -36,7 +36,8 @@ class PositionEmitter
 {
 	public function __construct(
 		protected BreakpointRegistry $breakpoints,
-	) {}
+	) {
+	}
 
 	/**
 	 * Emit scoped CSS. Returns an empty string when nothing meaningful

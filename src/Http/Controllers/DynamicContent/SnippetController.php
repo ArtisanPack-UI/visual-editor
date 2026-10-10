@@ -107,7 +107,7 @@ class SnippetController extends Controller
 
 		$this->cycleGuard->assertNoCycle(
 			(string) ( $data['slug'] ?? $snippet->slug ),
-			(array) ( $data['blocks'] ?? $snippet->blocks ?? [] )
+			(array) ( $data['blocks'] ?? $snippet->blocks ?? [] ),
 		);
 
 		$snippet->fill( $data )->save();

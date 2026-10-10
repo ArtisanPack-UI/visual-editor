@@ -4,7 +4,7 @@ declare( strict_types=1 );
 
 use Illuminate\Support\Facades\Blade;
 
-it( 'wires the block-animations bag into the cover blade partial', function () {
+it( 'wires the block-animations bag into the cover blade partial', function (): void {
 	$tree = [
 		[
 			'clientId'    => 'cover-1',
@@ -46,7 +46,7 @@ it( 'wires the block-animations bag into the cover blade partial', function () {
 	expect( $rendered )->toContain( 'IntersectionObserver' );
 } );
 
-it( 'wires the block-animations bag into the image blade partial via wrapperAttrs', function () {
+it( 'wires the block-animations bag into the image blade partial via wrapperAttrs', function (): void {
 	$tree = [
 		[
 			'clientId'    => 'image-1',
@@ -73,7 +73,7 @@ it( 'wires the block-animations bag into the image blade partial via wrapperAttr
 	expect( $rendered )->toContain( 'IntersectionObserver' );
 } );
 
-it( 'inlines the runtime with the reduced-motion check before the no-IO branch', function () {
+it( 'inlines the runtime with the reduced-motion check before the no-IO branch', function (): void {
 	// Regression for the CodeRabbit critical finding: the inline
 	// runtime must respect `prefers-reduced-motion: reduce` in
 	// no-IntersectionObserver browsers too. Verifying the source
@@ -91,7 +91,7 @@ it( 'inlines the runtime with the reduced-motion check before the no-IO branch',
 		],
 	];
 
-	$rendered = \Illuminate\Support\Facades\Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
 
 	// Find the `observeEntry` body specifically — `! hasIO` also
 	// appears earlier as part of the comment / variable declaration,
@@ -108,7 +108,7 @@ it( 'inlines the runtime with the reduced-motion check before the no-IO branch',
 	expect( $reducedAt < $hasIoAt )->toBeTrue();
 } );
 
-it( 'omits the animation infrastructure entirely when no block opts in', function () {
+it( 'omits the animation infrastructure entirely when no block opts in', function (): void {
 	$tree = [
 		[
 			'clientId'    => 'cover-1',

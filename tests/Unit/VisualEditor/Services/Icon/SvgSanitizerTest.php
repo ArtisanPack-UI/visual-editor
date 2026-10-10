@@ -8,14 +8,14 @@ beforeEach( function (): void {
 	test()->sanitizer = new SvgSanitizer();
 } );
 
-it( 'returns empty result for empty input', function () {
+it( 'returns empty result for empty input', function (): void {
 	$result = test()->sanitizer->sanitize( '' );
 
 	expect( $result->isEmpty() )->toBeTrue()
 		->and( $result->hasWarnings() )->toBeFalse();
 } );
 
-it( 'passes a clean svg through', function () {
+it( 'passes a clean svg through', function (): void {
 	$svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z"/></svg>';
 
 	$result = test()->sanitizer->sanitize( $svg );
@@ -26,7 +26,7 @@ it( 'passes a clean svg through', function () {
 		->and( $result->hasWarnings() )->toBeFalse();
 } );
 
-it( 'strips <script> elements', function () {
+it( 'strips <script> elements', function (): void {
 	$svg = '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script><path d="M0 0"/></svg>';
 
 	$result = test()->sanitizer->sanitize( $svg );
@@ -37,7 +37,7 @@ it( 'strips <script> elements', function () {
 		->and( $result->warnings )->toContain( 'removed <script> element' );
 } );
 
-it( 'strips on* event handler attributes', function () {
+it( 'strips on* event handler attributes', function (): void {
 	$svg = '<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"><path onclick="alert(2)" d="M0 0"/></svg>';
 
 	$result = test()->sanitizer->sanitize( $svg );
@@ -47,7 +47,7 @@ it( 'strips on* event handler attributes', function () {
 		->and( $result->warnings )->not->toBeEmpty();
 } );
 
-it( 'strips javascript: URIs from xlink:href', function () {
+it( 'strips javascript: URIs from xlink:href', function (): void {
 	$svg = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
 		. '<use xlink:href="javascript:alert(1)"/></svg>';
 
@@ -57,7 +57,7 @@ it( 'strips javascript: URIs from xlink:href', function () {
 		->and( $result->warnings )->not->toBeEmpty();
 } );
 
-it( 'preserves internal anchor references', function () {
+it( 'preserves internal anchor references', function (): void {
 	$svg = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
 		. '<defs><linearGradient id="g1"><stop offset="0" stop-color="red"/></linearGradient></defs>'
 		. '<rect fill="url(#g1)" width="10" height="10"/></svg>';
@@ -69,20 +69,20 @@ it( 'preserves internal anchor references', function () {
 		->and( $result->sanitized )->toContain( '<rect' );
 } );
 
-it( 'rejects markup whose root is not <svg>', function () {
+it( 'rejects markup whose root is not <svg>', function (): void {
 	$result = test()->sanitizer->sanitize( '<div><script>x</script></div>' );
 
 	expect( $result->isEmpty() )->toBeTrue()
 		->and( $result->warnings )->not->toBeEmpty();
 } );
 
-it( 'rejects unparseable input', function () {
+it( 'rejects unparseable input', function (): void {
 	$result = test()->sanitizer->sanitize( '<svg><not closed' );
 
 	expect( $result->isEmpty() )->toBeTrue();
 } );
 
-it( 'preserves inline style declarations carrying inert presentation rules', function () {
+it( 'preserves inline style declarations carrying inert presentation rules', function (): void {
 	$svg = '<svg xmlns="http://www.w3.org/2000/svg" style="fill:#abc">'
 		. '<path d="M0 0" style="fill:#123;opacity:0.5"/>'
 		. '</svg>';
@@ -95,7 +95,7 @@ it( 'preserves inline style declarations carrying inert presentation rules', fun
 		->and( $result->hasWarnings() )->toBeFalse();
 } );
 
-it( 'strips javascript:, expression(), and external url() from style', function () {
+it( 'strips javascript:, expression(), and external url() from style', function (): void {
 	$svg = '<svg xmlns="http://www.w3.org/2000/svg">'
 		. '<path d="M0 0" style="fill:#abc;background:expression(alert(1))"/>'
 		. '<path d="M0 0" style="fill:url(http://evil.example/x.png)"/>'
@@ -111,7 +111,7 @@ it( 'strips javascript:, expression(), and external url() from style', function 
 		->and( $result->warnings )->not->toBeEmpty();
 } );
 
-it( 'strips relative-path url() references from style (any non-fragment target)', function () {
+it( 'strips relative-path url() references from style (any non-fragment target)', function (): void {
 	$svg = '<svg xmlns="http://www.w3.org/2000/svg">'
 		. '<path d="M0 0" style="fill:url(/asset.svg)"/>'
 		. '<path d="M0 0" style="fill:url(icon.svg)"/>'
@@ -124,7 +124,7 @@ it( 'strips relative-path url() references from style (any non-fragment target)'
 		->and( $result->warnings )->not->toBeEmpty();
 } );
 
-it( 'keeps internal url(#…) references inside style', function () {
+it( 'keeps internal url(#…) references inside style', function (): void {
 	$svg = '<svg xmlns="http://www.w3.org/2000/svg">'
 		. '<defs><linearGradient id="g1"/></defs>'
 		. '<rect style="fill:url(#g1)" width="10" height="10"/>'
@@ -136,7 +136,7 @@ it( 'keeps internal url(#…) references inside style', function () {
 		->and( $result->hasWarnings() )->toBeFalse();
 } );
 
-it( 'allows harmless version and xml:space root attributes', function () {
+it( 'allows harmless version and xml:space root attributes', function (): void {
 	$svg = '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xml:space="preserve">'
 		. '<path d="M0 0"/></svg>';
 
@@ -147,7 +147,7 @@ it( 'allows harmless version and xml:space root attributes', function () {
 		->and( $result->hasWarnings() )->toBeFalse();
 } );
 
-it( 'refuses DOCTYPEs carrying entity declarations instead of stripping them', function () {
+it( 'refuses DOCTYPEs carrying entity declarations instead of stripping them', function (): void {
 	$svg = '<!DOCTYPE svg [<!ENTITY xxe SYSTEM "file:///etc/passwd">]>'
 		. '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0"/></svg>';
 

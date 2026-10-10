@@ -54,25 +54,6 @@ abstract class WpEntityController extends Controller
 	}
 
 	/**
-	 * The slug this controller serves — fixed to `posts` / `pages` on
-	 * concrete subclasses. Used to look up the model class through
-	 * `ResourceResolver` at request time.
-	 *
-	 * @since 1.0.0
-	 */
-	abstract protected function slug(): string;
-
-	/**
-	 * FQCN of the {@see WpEntityResource} subclass used to shape
-	 * responses for this controller's entity.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return class-string<WpEntityResource>
-	 */
-	abstract protected function resourceClass(): string;
-
-	/**
 	 * Lists records with a paginated `{ data, meta, links }` envelope.
 	 *
 	 * @since 1.0.0
@@ -136,6 +117,25 @@ abstract class WpEntityController extends Controller
 
 		return response()->json( null, Response::HTTP_NO_CONTENT );
 	}
+
+	/**
+	 * The slug this controller serves — fixed to `posts` / `pages` on
+	 * concrete subclasses. Used to look up the model class through
+	 * `ResourceResolver` at request time.
+	 *
+	 * @since 1.0.0
+	 */
+	abstract protected function slug(): string;
+
+	/**
+	 * FQCN of the {@see WpEntityResource} subclass used to shape
+	 * responses for this controller's entity.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return class-string<WpEntityResource>
+	 */
+	abstract protected function resourceClass(): string;
 
 	/**
 	 * Persists a new record from validated WP-shape data. Concrete
@@ -236,7 +236,7 @@ abstract class WpEntityController extends Controller
 
 		return response()->json(
 			( new $resourceClass( $model ) )->toArray( $request ),
-			$status
+			$status,
 		);
 	}
 
@@ -276,7 +276,7 @@ abstract class WpEntityController extends Controller
 		if ( array_key_exists( 'featured_media', $data ) ) {
 			$model->setAttribute(
 				$this->columnFor( $model, [ 'featured_media', 'featured_image_id' ] ),
-				$data['featured_media']
+				$data['featured_media'],
 			);
 		}
 

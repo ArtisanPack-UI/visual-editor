@@ -136,7 +136,7 @@ class AuditScheduledBlocksCommand extends Command
 	{
 		if ( 'dateTimeWindow' === $rule ) {
 			$start = isset( $attrs['start'] ) && is_string( $attrs['start'] ) ? $attrs['start'] : '—';
-			$end   = isset( $attrs['end'] )   && is_string( $attrs['end'] )   ? $attrs['end']   : '—';
+			$end   = isset( $attrs['end'] ) && is_string( $attrs['end'] )   ? $attrs['end']   : '—';
 			$tz    = isset( $attrs['timezone'] ) && is_string( $attrs['timezone'] ) ? $attrs['timezone'] : 'app';
 			return sprintf( '%s → %s (%s)', $start, $end, $tz );
 		}

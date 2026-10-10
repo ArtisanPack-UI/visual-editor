@@ -5,31 +5,31 @@ declare( strict_types=1 );
 use Tests\Fixtures\TestBlockContentModel;
 use Tests\Fixtures\TestBlockContentPageModel;
 
-it( 'defaults the block content column to "content"', function () {
+it( 'defaults the block content column to "content"', function (): void {
 	$model = new TestBlockContentModel();
 
 	expect( $model->getBlockContentColumn() )->toBe( 'content' );
 } );
 
-it( 'honors a custom block content column override', function () {
+it( 'honors a custom block content column override', function (): void {
 	$model = new TestBlockContentPageModel();
 
 	expect( $model->getBlockContentColumn() )->toBe( 'body' );
 } );
 
-it( 'returns null scope when none is configured', function () {
+it( 'returns null scope when none is configured', function (): void {
 	$model = new TestBlockContentPageModel();
 
 	expect( $model->getBlockContentScope() )->toBeNull();
 } );
 
-it( 'exposes the configured block content scope', function () {
+it( 'exposes the configured block content scope', function (): void {
 	$model = new TestBlockContentModel();
 
 	expect( $model->getBlockContentScope() )->toBe( 'published' );
 } );
 
-it( 'reads and writes block content through the trait', function () {
+it( 'reads and writes block content through the trait', function (): void {
 	$model = TestBlockContentModel::create( [
 		'title'   => 'Draft Post',
 		'status'  => 'published',
@@ -52,7 +52,7 @@ it( 'reads and writes block content through the trait', function () {
 	] );
 } );
 
-it( 'casts the content column to array on retrieval', function () {
+it( 'casts the content column to array on retrieval', function (): void {
 	$model = TestBlockContentModel::create( [
 		'title'   => 'Cast Check',
 		'status'  => 'published',
@@ -64,7 +64,7 @@ it( 'casts the content column to array on retrieval', function () {
 	expect( $fetched->content )->toBeArray();
 } );
 
-it( 'returns empty array when block content column is null', function () {
+it( 'returns empty array when block content column is null', function (): void {
 	$model = TestBlockContentModel::create( [
 		'title'   => 'Empty',
 		'status'  => 'published',
@@ -74,7 +74,7 @@ it( 'returns empty array when block content column is null', function () {
 	expect( $model->getBlockContent() )->toBe( [] );
 } );
 
-it( 'applies the configured scope in forVisualEditor()', function () {
+it( 'applies the configured scope in forVisualEditor()', function (): void {
 	TestBlockContentModel::create( [ 'title' => 'Draft',     'status' => 'draft' ] );
 	TestBlockContentModel::create( [ 'title' => 'Live Post', 'status' => 'published' ] );
 
@@ -84,7 +84,7 @@ it( 'applies the configured scope in forVisualEditor()', function () {
 		->and( $results->first()->title )->toBe( 'Live Post' );
 } );
 
-it( 'leaves the query untouched when no scope is configured', function () {
+it( 'leaves the query untouched when no scope is configured', function (): void {
 	TestBlockContentPageModel::create( [ 'title' => 'A', 'body' => [] ] );
 	TestBlockContentPageModel::create( [ 'title' => 'B', 'body' => [] ] );
 
@@ -93,9 +93,9 @@ it( 'leaves the query untouched when no scope is configured', function () {
 	expect( $results )->toHaveCount( 2 );
 } );
 
-it( 'falls back to defaults when override properties are declared but uninitialized', function () {
-	$model = new class extends \Illuminate\Database\Eloquent\Model {
-		use \ArtisanPackUI\VisualEditor\Concerns\HasBlockContent;
+it( 'falls back to defaults when override properties are declared but uninitialized', function (): void {
+	$model = new class extends Illuminate\Database\Eloquent\Model {
+		use ArtisanPackUI\VisualEditor\Concerns\HasBlockContent;
 
 		protected $table = 'test_block_content_models';
 
@@ -110,9 +110,9 @@ it( 'falls back to defaults when override properties are declared but uninitiali
 		->and( $model->getBlockContentScope() )->toBeNull();
 } );
 
-it( 'preserves Arrayable casts on read (e.g. AsCollection)', function () {
-	$model = new class extends \Illuminate\Database\Eloquent\Model {
-		use \ArtisanPackUI\VisualEditor\Concerns\HasBlockContent;
+it( 'preserves Arrayable casts on read (e.g. AsCollection)', function (): void {
+	$model = new class extends Illuminate\Database\Eloquent\Model {
+		use ArtisanPackUI\VisualEditor\Concerns\HasBlockContent;
 
 		protected $table = 'test_block_content_models';
 
@@ -120,7 +120,7 @@ it( 'preserves Arrayable casts on read (e.g. AsCollection)', function () {
 
 		protected function casts(): array
 		{
-			return [ 'content' => \Illuminate\Database\Eloquent\Casts\AsCollection::class ];
+			return [ 'content' => Illuminate\Database\Eloquent\Casts\AsCollection::class ];
 		}
 	};
 
@@ -138,9 +138,9 @@ it( 'preserves Arrayable casts on read (e.g. AsCollection)', function () {
 		->and( $result[0]['clientId'] )->toBe( 'c' );
 } );
 
-it( 'throws when the configured scope method does not exist on the model', function () {
-	$model = new class extends \Illuminate\Database\Eloquent\Model {
-		use \ArtisanPackUI\VisualEditor\Concerns\HasBlockContent;
+it( 'throws when the configured scope method does not exist on the model', function (): void {
+	$model = new class extends Illuminate\Database\Eloquent\Model {
+		use ArtisanPackUI\VisualEditor\Concerns\HasBlockContent;
 
 		protected $table = 'test_block_content_models';
 
@@ -153,7 +153,7 @@ it( 'throws when the configured scope method does not exist on the model', funct
 		->toThrow( InvalidArgumentException::class );
 } );
 
-it( 'emits extracted searchable text in the Scout integration array', function () {
+it( 'emits extracted searchable text in the Scout integration array', function (): void {
 	$model = TestBlockContentModel::create( [
 		'title'   => 'Searchable',
 		'status'  => 'published',

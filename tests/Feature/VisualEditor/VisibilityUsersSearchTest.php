@@ -14,8 +14,7 @@ use Tests\TestUser;
 function bindAllowAllVisibilityGate(): void
 {
 	app()->bind( SiteEditorAccessGate::class, function () {
-		return new class implements SiteEditorAccessGate
-		{
+		return new class implements SiteEditorAccessGate {
 			public function check( Request $request ): ?Response
 			{
 				return null;
@@ -24,7 +23,7 @@ function bindAllowAllVisibilityGate(): void
 	} );
 }
 
-it( 'returns 403 when the site-editor access gate denies the request', function () {
+it( 'returns 403 when the site-editor access gate denies the request', function (): void {
 	// Default binding is `DenyByDefaultGate` — no rebinding needed.
 	$user = TestUser::create( [ 'name' => 'Ada', 'email' => 'ada@example.com', 'password' => bcrypt( 'x' ) ] );
 
@@ -33,7 +32,7 @@ it( 'returns 403 when the site-editor access gate denies the request', function 
 		->assertStatus( 403 );
 } );
 
-it( 'returns an empty result for an empty search term', function () {
+it( 'returns an empty result for an empty search term', function (): void {
 	bindAllowAllVisibilityGate();
 
 	$user = TestUser::create( [ 'name' => 'Ada', 'email' => 'ada@example.com', 'password' => bcrypt( 'x' ) ] );
@@ -44,7 +43,7 @@ it( 'returns an empty result for an empty search term', function () {
 		->assertJson( [ 'data' => [] ] );
 } );
 
-it( 'returns matching users by email substring', function () {
+it( 'returns matching users by email substring', function (): void {
 	bindAllowAllVisibilityGate();
 
 	TestUser::create( [ 'name' => 'Ada Lovelace',    'email' => 'ada@example.com',    'password' => bcrypt( 'x' ) ] );
@@ -62,7 +61,7 @@ it( 'returns matching users by email substring', function () {
 	expect( collect( $response )->pluck( 'email' )->all() )->toContain( 'ada@example.com' );
 } );
 
-it( 'respects the limit query parameter', function () {
+it( 'respects the limit query parameter', function (): void {
 	bindAllowAllVisibilityGate();
 
 	for ( $i = 1; $i <= 5; $i++ ) {
@@ -79,7 +78,7 @@ it( 'respects the limit query parameter', function () {
 	expect( $response )->toHaveCount( 2 );
 } );
 
-it( 'escapes LIKE metacharacters so ?q=% cannot dump the table', function () {
+it( 'escapes LIKE metacharacters so ?q=% cannot dump the table', function (): void {
 	bindAllowAllVisibilityGate();
 
 	// Populate distinct users so a naive `%%%` LIKE would match all

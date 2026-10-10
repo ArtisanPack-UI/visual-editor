@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\Http\Requests\Icon\UploadIconSetRequest;
 use ArtisanPackUI\VisualEditor\Services\Icon\UploadedIconSetRegistry;
@@ -17,38 +17,38 @@ use Illuminate\Support\Str;
 // editor against placeholder data attributes; without a backing host
 // resource the editor will surface API errors, which is acceptable for
 // the fallback / sample URL.
-Route::get('/editor', function () {
-    $resources = (array) config('artisanpack.visual-editor.resources', []);
+Route::get( '/editor', function () {
+    $resources    = (array) config( 'artisanpack.visual-editor.resources', [] );
     $contentTypes = [];
 
-    foreach ($resources as $plural => $modelClass) {
-        if (! is_string($plural) || $plural === '') {
+    foreach ( $resources as $plural => $modelClass ) {
+        if ( ! is_string( $plural ) || '' === $plural ) {
             continue;
         }
 
-        $singular = Str::singular($plural);
+        $singular = Str::singular( $plural );
 
         $contentTypes[] = [
             'slug'   => $singular,
             'plural' => $plural,
-            'label'  => ucwords(str_replace(['-', '_'], ' ', $singular)),
+            'label'  => ucwords( str_replace( ['-', '_'], ' ', $singular ) ),
         ];
     }
 
-    return view('visual-editor::editor.mount', [
-        'resource' => 'pages',
-        'modelId' => '1',
-        'apiBase' => '/visual-editor/api',
+    return view( 'visual-editor::editor.mount', [
+        'resource'     => 'pages',
+        'modelId'      => '1',
+        'apiBase'      => '/visual-editor/api',
         'contentTypes' => $contentTypes,
-    ]);
-})->name('visual-editor.editor');
+    ] );
+} )->name( 'visual-editor.editor' );
 
 // Temporary sandbox route for M1 (#311). Mounts an empty BlockEditorProvider
 // to prove @wordpress/* packages import cleanly and the Gutenberg canvas
 // renders. Removed once the real editor shell ships (M3+).
-Route::get('/ve-sandbox', function () {
-    return view('visual-editor::sandbox.index');
-})->name('visual-editor.sandbox');
+Route::get( '/ve-sandbox', function () {
+    return view( 'visual-editor::sandbox.index' );
+} )->name( 'visual-editor.sandbox' );
 
 // Icon Block Phase 6 (#557) — admin icon-sets settings page.
 //
@@ -59,35 +59,35 @@ Route::get('/ve-sandbox', function () {
 // surface, so this is "the existing visual-editor management policy".
 // Inline-styled like the install-gate page so it stands alone without
 // the SPA's Vite bundle.
-Route::middleware('web')
-    ->group(function (): void {
-        Route::get('/visual-editor/admin/icon-sets', function (Request $request, SiteEditorAccessGate $gate) {
-            if ($denial = $gate->check($request)) {
+Route::middleware( 'web' )
+    ->group( function (): void {
+        Route::get( '/visual-editor/admin/icon-sets', function ( Request $request, SiteEditorAccessGate $gate ) {
+            if ( $denial = $gate->check( $request ) ) {
                 return $denial;
             }
 
-            $registry = app(UploadedIconSetRegistry::class);
+            $registry = app( UploadedIconSetRegistry::class );
 
-            return view('visual-editor::admin.icon-sets', [
+            return view( 'visual-editor::admin.icon-sets', [
                 'sets'         => $registry->all(),
                 'apiBase'      => '/visual-editor/api/admin/icon-sets',
                 'maxKilobytes' => UploadIconSetRequest::MAX_ZIP_KILOBYTES,
-            ]);
-        })->name('visual-editor.admin.icon-sets');
+            ] );
+        } )->name( 'visual-editor.admin.icon-sets' );
 
         // #650 — Snippets admin page. Same access model as icon-sets:
         // static Blade shell, actions POST to the JSON API, gated by
         // SiteEditorAccessGate.
-        Route::get('/visual-editor/admin/snippets', function (Request $request, SiteEditorAccessGate $gate) {
-            if ($denial = $gate->check($request)) {
+        Route::get( '/visual-editor/admin/snippets', function ( Request $request, SiteEditorAccessGate $gate ) {
+            if ( $denial = $gate->check( $request ) ) {
                 return $denial;
             }
 
-            return view('visual-editor::admin.snippets', [
+            return view( 'visual-editor::admin.snippets', [
                 'apiBase' => '/visual-editor/api/snippets',
-            ]);
-        })->name('visual-editor.admin.snippets');
-    });
+            ] );
+        } )->name( 'visual-editor.admin.snippets' );
+    } );
 
 // D1 (#368). Site-editor shell. A single catch-all entry mounts the SPA and
 // hands routing inside the shell to the React app via `history.pushState`.
@@ -105,15 +105,15 @@ Route::middleware('web')
 // override the binding with `CmsFrameworkInstallGate` or their own
 // implementation that composes role / auth checks with the install
 // probe. See `docs/site-editor-access-gate.md`.
-Route::middleware('web')
-    ->group(function (): void {
-        Route::get('/visual-editor/site/{path?}', function (Request $request, SiteEditorAccessGate $gate) {
-            if ($denial = $gate->check($request)) {
+Route::middleware( 'web' )
+    ->group( function (): void {
+        Route::get( '/visual-editor/site/{path?}', function ( Request $request, SiteEditorAccessGate $gate ) {
+            if ( $denial = $gate->check( $request ) ) {
                 return $denial;
             }
 
-            return view('visual-editor::site-editor.index');
-        })
-            ->where('path', '.*')
-            ->name('visual-editor.site-editor');
-    });
+            return view( 'visual-editor::site-editor.index' );
+        } )
+            ->where( 'path', '.*' )
+            ->name( 'visual-editor.site-editor' );
+    } );

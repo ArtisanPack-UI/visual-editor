@@ -34,7 +34,7 @@ beforeEach( function (): void {
 	test()->block->tags = new Collection();
 } );
 
-it( 'renders a paragraph with tag links', function () {
+it( 'renders a paragraph with tag links', function (): void {
 	test()->block->tags = new Collection( [
 		fakeTag( 1, 'Laravel', 'laravel', 10 ),
 		fakeTag( 2, 'PHP', 'php', 5 ),
@@ -48,7 +48,7 @@ it( 'renders a paragraph with tag links', function () {
 		->and( $html )->toContain( 'data-wp-tag-count="10"' );
 } );
 
-it( 'scales font sizes between smallest and largest', function () {
+it( 'scales font sizes between smallest and largest', function (): void {
 	test()->block->tags = new Collection( [
 		fakeTag( 1, 'Big', 'big', 100 ),
 		fakeTag( 2, 'Small', 'small', 1 ),
@@ -64,7 +64,7 @@ it( 'scales font sizes between smallest and largest', function () {
 		->and( $html )->toContain( 'style="font-size: 10pt"' );
 } );
 
-it( 'collapses to smallest size when all tags have the same count', function () {
+it( 'collapses to smallest size when all tags have the same count', function (): void {
 	test()->block->tags = new Collection( [
 		fakeTag( 1, 'A', 'a', 5 ),
 		fakeTag( 2, 'B', 'b', 5 ),
@@ -80,7 +80,7 @@ it( 'collapses to smallest size when all tags have the same count', function () 
 		->and( $html )->not->toContain( 'font-size: 22pt' );
 } );
 
-it( 'omits empty tags', function () {
+it( 'omits empty tags', function (): void {
 	test()->block->tags = new Collection( [
 		fakeTag( 1, 'A', 'a', 5 ),
 		fakeTag( 2, 'Empty', 'empty', 0 ),
@@ -92,7 +92,7 @@ it( 'omits empty tags', function () {
 		->and( $html )->not->toContain( '>Empty</a>' );
 } );
 
-it( 'shows tag counts when showTagCounts is set', function () {
+it( 'shows tag counts when showTagCounts is set', function (): void {
 	test()->block->tags = new Collection( [
 		fakeTag( 1, 'Laravel', 'laravel', 7 ),
 	] );
@@ -102,7 +102,7 @@ it( 'shows tag counts when showTagCounts is set', function () {
 	expect( $html )->toContain( '<span class="tag-link-count">(7)</span>' );
 } );
 
-it( 'caps numberOfTags between 1 and 100', function () {
+it( 'caps numberOfTags between 1 and 100', function (): void {
 	$normalised = test()->block->validateAttrs( [ 'numberOfTags' => 1000 ] );
 	expect( $normalised['numberOfTags'] )->toBe( 100 );
 
@@ -110,13 +110,13 @@ it( 'caps numberOfTags between 1 and 100', function () {
 	expect( $normalised['numberOfTags'] )->toBe( 1 );
 } );
 
-it( 'renders an empty paragraph when no tags exist', function () {
+it( 'renders an empty paragraph when no tags exist', function (): void {
 	$html = test()->block->render( test()->block->validateAttrs( [] ) );
 
 	expect( $html )->toBe( '<p class="wp-block-tag-cloud"></p>' );
 } );
 
-it( 'escapes attacker-controlled tag names', function () {
+it( 'escapes attacker-controlled tag names', function (): void {
 	test()->block->tags = new Collection( [
 		fakeTag( 1, '<script>alert(1)</script>', 'evil', 3 ),
 	] );

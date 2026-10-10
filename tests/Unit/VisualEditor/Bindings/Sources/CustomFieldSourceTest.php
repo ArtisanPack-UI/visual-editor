@@ -10,13 +10,13 @@ use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Exceptions;
 use Tests\Fixtures\TestBindingsModel;
 
-it( 'returns null when no model is in context', function () {
+it( 'returns null when no model is in context', function (): void {
 	$source = new CustomFieldSource();
 
 	expect( $source->resolve( new BindingContext(), [ 'key' => 'featured_icon' ] ) )->toBeNull();
 } );
 
-it( 'returns null when the args key is missing or blank', function () {
+it( 'returns null when the args key is missing or blank', function (): void {
 	$source = new CustomFieldSource();
 	$model  = new TestBindingsModel( [ 'title' => 'X' ] );
 	$ctx    = new BindingContext( $model );
@@ -25,7 +25,7 @@ it( 'returns null when the args key is missing or blank', function () {
 		->and( $source->resolve( $ctx, [ 'key' => '' ] ) )->toBeNull();
 } );
 
-it( 'reads a column off the parent model', function () {
+it( 'reads a column off the parent model', function (): void {
 	$model = TestBindingsModel::query()->create( [
 		'title'   => 'Hello',
 		'status'  => 'published',
@@ -39,7 +39,7 @@ it( 'reads a column off the parent model', function () {
 		->toBe( 'Short summary' );
 } );
 
-it( 'prefers the draft value over the saved column', function () {
+it( 'prefers the draft value over the saved column', function (): void {
 	$model = TestBindingsModel::query()->create( [
 		'title'   => 'Saved',
 		'status'  => 'published',
@@ -53,7 +53,7 @@ it( 'prefers the draft value over the saved column', function () {
 	expect( $source->resolve( $ctx, [ 'key' => 'title' ] ) )->toBe( 'Unsaved Draft' );
 } );
 
-it( 'honors an explicit empty draft entry instead of falling through to saved value', function () {
+it( 'honors an explicit empty draft entry instead of falling through to saved value', function (): void {
 	$model = TestBindingsModel::query()->create( [
 		'title'   => 'Saved',
 		'status'  => 'published',
@@ -70,7 +70,7 @@ it( 'honors an explicit empty draft entry instead of falling through to saved va
 	expect( $source->resolve( $ctx, [ 'key' => 'title' ] ) )->toBeNull();
 } );
 
-it( 'returns null when the column does not exist on the model', function () {
+it( 'returns null when the column does not exist on the model', function (): void {
 	$model = TestBindingsModel::query()->create( [
 		'title'   => 'X',
 		'status'  => 'published',
@@ -82,12 +82,12 @@ it( 'returns null when the column does not exist on the model', function () {
 	expect( $source->resolve( new BindingContext( $model ), [ 'key' => 'no_such_column' ] ) )->toBeNull();
 } );
 
-it( 'returns an empty catalog when cms-framework custom fields are not migrated', function () {
+it( 'returns an empty catalog when cms-framework custom fields are not migrated', function (): void {
 	// Standalone install: no cms-framework provider or `custom_fields` table.
 	expect( ( new CustomFieldSource() )->availableFields( 'portfolio', TestBindingsModel::class ) )->toBe( [] );
 } );
 
-it( 'does not report a missing custom_fields table on every field-picker open', function () {
+it( 'does not report a missing custom_fields table on every field-picker open', function (): void {
 	Exceptions::fake();
 
 	$manager = Mockery::mock();
@@ -105,7 +105,7 @@ it( 'does not report a missing custom_fields table on every field-picker open', 
 	Exceptions::assertNothingReported();
 } );
 
-it( 'still reports unexpected field-lookup failures', function () {
+it( 'still reports unexpected field-lookup failures', function (): void {
 	Exceptions::fake();
 
 	$manager = Mockery::mock();
@@ -118,6 +118,6 @@ it( 'still reports unexpected field-lookup failures', function () {
 	Exceptions::assertReported( LogicException::class );
 } );
 
-it( 'declares no eager-load relations', function () {
+it( 'declares no eager-load relations', function (): void {
 	expect( ( new CustomFieldSource() )->eagerLoadRelations( [ [ 'key' => 'whatever' ] ] ) )->toBe( [] );
 } );

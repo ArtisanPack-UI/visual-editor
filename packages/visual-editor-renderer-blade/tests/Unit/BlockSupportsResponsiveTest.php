@@ -169,7 +169,7 @@ it( 'wrapperAttrs() includes the responsive class in the class attribute', funct
 				'style.spacing.padding' => [ 'md' => '2rem' ],
 			],
 		],
-		[ 'wp-block-columns' ]
+		[ 'wp-block-columns' ],
 	);
 
 	expect( $html )->toMatch( '/class="wp-block-columns ve-r-[a-f0-9]+"/' );

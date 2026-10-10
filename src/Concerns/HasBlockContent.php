@@ -133,9 +133,9 @@ trait HasBlockContent
 	 *
 	 * @param  Builder<\Illuminate\Database\Eloquent\Model>  $query
 	 *
-	 * @return Builder<\Illuminate\Database\Eloquent\Model>
-	 *
 	 * @throws InvalidArgumentException When the configured scope method doesn't exist on the model.
+	 *
+	 * @return Builder<\Illuminate\Database\Eloquent\Model>
 	 */
 	public function scopeForVisualEditor( Builder $query ): Builder
 	{
@@ -152,7 +152,7 @@ trait HasBlockContent
 				'HasBlockContent: scope "%s" (expected method %s::%s) is not defined on the model.',
 				$scope,
 				static::class,
-				$method
+				$method,
 			) );
 		}
 

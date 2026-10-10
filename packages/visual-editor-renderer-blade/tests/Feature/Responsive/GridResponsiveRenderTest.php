@@ -9,7 +9,7 @@ beforeEach( function (): void {
 	app( ResponsiveCssAccumulator::class )->reset();
 } );
 
-it( 'emits per-breakpoint grid column classes on the wrapper from attributes.responsive.numColumns', function () {
+it( 'emits per-breakpoint grid column classes on the wrapper from attributes.responsive.numColumns', function (): void {
 	$tree = [
 		[
 			'clientId'   => 'grid-1',
@@ -37,7 +37,7 @@ it( 'emits per-breakpoint grid column classes on the wrapper from attributes.res
 		->and( $rendered )->not->toContain( '<style data-ve-responsive>' );
 } );
 
-it( 'emits per-breakpoint span classes on grid-item from responsive.gridColumnSpan and gridRowSpan', function () {
+it( 'emits per-breakpoint span classes on grid-item from responsive.gridColumnSpan and gridRowSpan', function (): void {
 	$tree = [
 		[
 			'clientId'   => 'item-1',
@@ -63,7 +63,7 @@ it( 'emits per-breakpoint span classes on grid-item from responsive.gridColumnSp
 		->and( $rendered )->toContain( 'ap-grid-item-span-2-md-row' );
 } );
 
-it( 'skips overrides at unknown breakpoints', function () {
+it( 'skips overrides at unknown breakpoints', function (): void {
 	$tree = [
 		[
 			'clientId'   => 'grid-1',

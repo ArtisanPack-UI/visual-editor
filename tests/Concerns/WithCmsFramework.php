@@ -66,7 +66,7 @@ trait WithCmsFramework
 		parent::defineDatabaseMigrations();
 
 		$this->loadMigrationsFrom(
-			dirname( __DIR__, 2 ) . '/vendor/artisanpack-ui/cms-framework/database/migrations'
+			dirname( __DIR__, 2 ) . '/vendor/artisanpack-ui/cms-framework/database/migrations',
 		);
 	}
 }

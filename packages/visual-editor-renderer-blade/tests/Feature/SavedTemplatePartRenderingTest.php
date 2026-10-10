@@ -24,7 +24,9 @@ function bindSavedTemplatePartStub( array $parts ): void
 		/**
 		 * @param  array<string, array<int, array<string, mixed>>>  $parts
 		 */
-		public function __construct( private array $parts ) {}
+		public function __construct( private array $parts )
+		{
+		}
 
 		public function resolve( string $slug ): ?object
 		{
@@ -77,7 +79,7 @@ beforeEach( function (): void {
 	] );
 } );
 
-it( 'renders fork-named template parts from a saved template through x-ve-blocks', function () {
+it( 'renders fork-named template parts from a saved template through x-ve-blocks', function (): void {
 	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" default-theme="artisanpack-ui" />', [ 'tree' => savedTemplateTree() ] );
 
 	expect( $rendered )
@@ -91,7 +93,7 @@ it( 'renders fork-named template parts from a saved template through x-ve-blocks
 	expect( $rendered )->toMatch( '/<header[^>]*data-ve-template-part="header"[^>]*>\s*<p class="wp-block-paragraph">Live header<\/p>\s*<\/header>/' );
 } );
 
-it( 'still renders core/template-part references from a theme-file template', function () {
+it( 'still renders core/template-part references from a theme-file template', function (): void {
 	$tree = [
 		[ 'name' => 'core/template-part', 'attributes' => [ 'slug' => 'header', 'tagName' => 'header' ], 'innerBlocks' => [] ],
 	];
@@ -101,7 +103,7 @@ it( 'still renders core/template-part references from a theme-file template', fu
 	expect( $rendered )->toContain( '<p class="wp-block-paragraph">Live header</p>' );
 } );
 
-it( 'emits the dev-mode warning for a fork-named part with an unknown slug', function () {
+it( 'emits the dev-mode warning for a fork-named part with an unknown slug', function (): void {
 	$tree = [
 		[ 'name' => 'artisanpack/template-part', 'attributes' => [ 'slug' => 'sidebar', 'tagName' => 'aside' ], 'innerBlocks' => [ savedPartParagraph( 'Stale sidebar' ) ] ],
 	];
@@ -113,12 +115,14 @@ it( 'emits the dev-mode warning for a fork-named part with an unknown slug', fun
 		->not->toContain( 'Stale sidebar' );
 } );
 
-it( 'renders fork-named template parts from a saved template through x-ve-template', function () {
+it( 'renders fork-named template parts from a saved template through x-ve-template', function (): void {
 	$template = new class( savedTemplateTree() ) {
 		/**
 		 * @param  array<int, array<string, mixed>>  $blocks
 		 */
-		public function __construct( private array $blocks ) {}
+		public function __construct( private array $blocks )
+		{
+		}
 
 		public function resolve( string $slug ): ?object
 		{

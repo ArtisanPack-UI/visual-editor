@@ -78,7 +78,7 @@ class BreakpointRegistry
 	protected array $breakpoints;
 
 	/**
-	 * @param  array<string, int|string|array<string, mixed>>  $raw  Pre-resolved breakpoints.
+	 * @param  array<string, array<string, mixed>|int|string>  $raw  Pre-resolved breakpoints.
 	 */
 	public function __construct( array $raw = [] )
 	{
@@ -99,9 +99,9 @@ class BreakpointRegistry
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param  array<string, int|string|array<string, mixed>>|null  $configOverrides  Defaults to
+	 * @param  array<string, array<string, mixed>|int|string>|null  $configOverrides  Defaults to
 	 *                                                                                `config('artisanpack.visual-editor.breakpoints')`.
-	 * @param  array<string, int|string|array<string, mixed>>       $themeOverrides   Theme-level overrides.
+	 * @param  array<string, array<string, mixed>|int|string>       $themeOverrides   Theme-level overrides.
 	 */
 	public static function fromLayers( ?array $configOverrides = null, array $themeOverrides = [] ): self
 	{
@@ -398,7 +398,7 @@ class BreakpointRegistry
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param  array<string, int|string|array<string, mixed>>  $raw
+	 * @param  array<string, array<string, mixed>|int|string>  $raw
 	 *
 	 * @return array<string, array{minWidthPx: int|null, maxWidthPx: int|null, previewWidthPx: int, label: string}>
 	 */
@@ -416,14 +416,14 @@ class BreakpointRegistry
 			if ( self::BASE_KEY === $key ) {
 				throw new InvalidArgumentException( sprintf(
 					'Breakpoint key "%s" is reserved for the implicit base slot.',
-					self::BASE_KEY
+					self::BASE_KEY,
 				) );
 			}
 
 			if ( 1 !== preg_match( '/^[a-z0-9][a-z0-9_-]*$/i', $key ) ) {
 				throw new InvalidArgumentException( sprintf(
 					'Breakpoint key "%s" must contain only letters, numbers, hyphens, and underscores.',
-					$key
+					$key,
 				) );
 			}
 
@@ -434,7 +434,7 @@ class BreakpointRegistry
 					throw new InvalidArgumentException( sprintf(
 						'Breakpoint key "%s" has the same min-width (%dpx) as another breakpoint.',
 						$key,
-						$spec['minWidthPx']
+						$spec['minWidthPx'],
 					) );
 				}
 
@@ -444,7 +444,7 @@ class BreakpointRegistry
 					throw new InvalidArgumentException( sprintf(
 						'Breakpoint key "%s" has the same max-width (%dpx) as another breakpoint.',
 						$key,
-						$spec['maxWidthPx']
+						$spec['maxWidthPx'],
 					) );
 				}
 
@@ -578,14 +578,14 @@ class BreakpointRegistry
 		if ( $hasMin && $hasMax ) {
 			throw new InvalidArgumentException( sprintf(
 				'Breakpoint "%s" declares both `minWidthPx` and `maxWidthPx`; use one.',
-				$key
+				$key,
 			) );
 		}
 
 		if ( ! $hasMin && ! $hasMax ) {
 			throw new InvalidArgumentException( sprintf(
 				'Breakpoint "%s" is missing the required `maxWidthPx` (or legacy `minWidthPx`) field.',
-				$key
+				$key,
 			) );
 		}
 
@@ -602,7 +602,7 @@ class BreakpointRegistry
 				'Breakpoint "%s" `previewWidthPx` (%dpx) must not exceed its `maxWidthPx` (%dpx), or the editor preview would not match the front end.',
 				$key,
 				$previewWidthPx,
-				$maxWidthPx
+				$maxWidthPx,
 			) );
 		}
 
@@ -611,7 +611,7 @@ class BreakpointRegistry
 			if ( ! is_string( $entry['label'] ) ) {
 				throw new InvalidArgumentException( sprintf(
 					'Breakpoint "%s" label must be a string.',
-					$key
+					$key,
 				) );
 			}
 
@@ -619,7 +619,7 @@ class BreakpointRegistry
 			if ( '' === $trimmed ) {
 				throw new InvalidArgumentException( sprintf(
 					'Breakpoint "%s" label must not be empty.',
-					$key
+					$key,
 				) );
 			}
 
@@ -649,7 +649,7 @@ class BreakpointRegistry
 				throw new InvalidArgumentException( sprintf(
 					'Breakpoint "%s" has invalid value "%s". Expected an integer or a `Npx` string.',
 					$key,
-					$value
+					$value,
 				) );
 			}
 
@@ -657,7 +657,7 @@ class BreakpointRegistry
 		} else {
 			throw new InvalidArgumentException( sprintf(
 				'Breakpoint "%s" must be an integer or a `Npx` string.',
-				$key
+				$key,
 			) );
 		}
 
@@ -665,7 +665,7 @@ class BreakpointRegistry
 			throw new InvalidArgumentException( sprintf(
 				'Breakpoint "%s" must be a positive pixel value, got %d.',
 				$key,
-				$pixels
+				$pixels,
 			) );
 		}
 
@@ -691,7 +691,7 @@ class BreakpointRegistry
 				throw new InvalidArgumentException( sprintf(
 					'Breakpoint "%s" `previewWidthPx` has invalid value "%s". Expected an integer or a `Npx` string.',
 					$key,
-					is_scalar( $value ) ? (string) $value : gettype( $value )
+					is_scalar( $value ) ? (string) $value : gettype( $value ),
 				) );
 			}
 
@@ -699,7 +699,7 @@ class BreakpointRegistry
 		} else {
 			throw new InvalidArgumentException( sprintf(
 				'Breakpoint "%s" `previewWidthPx` must be an integer or a `Npx` string.',
-				$key
+				$key,
 			) );
 		}
 
@@ -707,7 +707,7 @@ class BreakpointRegistry
 			throw new InvalidArgumentException( sprintf(
 				'Breakpoint "%s" `previewWidthPx` must be a positive pixel value, got %d.',
 				$key,
-				$pixels
+				$pixels,
 			) );
 		}
 

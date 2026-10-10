@@ -8,12 +8,11 @@ use ArtisanPackUI\VisualEditor\Services\Bindings\BlockBindingSource;
 
 function makeStubSource( string $name, mixed $value = null, array $eager = [] ): BlockBindingSource
 {
-	return new class( $name, $value, $eager ) implements BlockBindingSource
-	{
+	return new class( $name, $value, $eager ) implements BlockBindingSource {
 		public function __construct(
 			protected string $sourceName,
 			protected mixed $value,
-			protected array $eager
+			protected array $eager,
 		) {
 		}
 
@@ -39,13 +38,13 @@ function makeStubSource( string $name, mixed $value = null, array $eager = [] ):
 	};
 }
 
-it( 'starts empty', function () {
+it( 'starts empty', function (): void {
 	$registry = new BlockBindingSourceRegistry();
 
 	expect( $registry->all() )->toBeEmpty();
 } );
 
-it( 'registers a source by its declared name', function () {
+it( 'registers a source by its declared name', function (): void {
 	$registry = new BlockBindingSourceRegistry();
 	$source   = makeStubSource( 'acme_field' );
 
@@ -55,14 +54,14 @@ it( 'registers a source by its declared name', function () {
 		->and( $registry->get( 'acme_field' ) )->toBe( $source );
 } );
 
-it( 'returns null for unregistered names', function () {
+it( 'returns null for unregistered names', function (): void {
 	$registry = new BlockBindingSourceRegistry();
 
 	expect( $registry->get( 'missing' ) )->toBeNull()
 		->and( $registry->has( 'missing' ) )->toBeFalse();
 } );
 
-it( 'unregisters a source by name', function () {
+it( 'unregisters a source by name', function (): void {
 	$registry = new BlockBindingSourceRegistry();
 	$registry->register( makeStubSource( 'temp_source' ) );
 
@@ -71,7 +70,7 @@ it( 'unregisters a source by name', function () {
 	expect( $registry->has( 'temp_source' ) )->toBeFalse();
 } );
 
-it( 'overwrites the previous registration when the same name is reused', function () {
+it( 'overwrites the previous registration when the same name is reused', function (): void {
 	$registry = new BlockBindingSourceRegistry();
 	$first    = makeStubSource( 'shared' );
 	$second   = makeStubSource( 'shared' );
@@ -82,19 +81,19 @@ it( 'overwrites the previous registration when the same name is reused', functio
 	expect( $registry->get( 'shared' ) )->toBe( $second );
 } );
 
-it( 'rejects an empty source name', function () {
+it( 'rejects an empty source name', function (): void {
 	$registry = new BlockBindingSourceRegistry();
 
 	$registry->register( makeStubSource( '   ' ) );
 } )->throws( InvalidArgumentException::class, 'cannot be empty' );
 
-it( 'rejects a source name with invalid characters', function () {
+it( 'rejects a source name with invalid characters', function (): void {
 	$registry = new BlockBindingSourceRegistry();
 
 	$registry->register( makeStubSource( 'Bad-Name!' ) );
 } )->throws( InvalidArgumentException::class, 'snake_case' );
 
-it( 'rejects a source name that uses a slash like a block name', function () {
+it( 'rejects a source name that uses a slash like a block name', function (): void {
 	$registry = new BlockBindingSourceRegistry();
 
 	$registry->register( makeStubSource( 'acme/source' ) );

@@ -8,7 +8,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Tests\Support\FakeDynamicContentAccessor;
 use Tests\TestUser;
 
-beforeEach( function () {
+beforeEach( function (): void {
 	config()->set( 'artisanpack.visual-editor.api.middleware', [ 'auth' ] );
 
 	$this->actor = TestUser::create( [
@@ -21,8 +21,7 @@ beforeEach( function () {
 
 	// Gate is required to reach the endpoint post-review-hardening.
 	app()->bind( SiteEditorAccessGate::class, function () {
-		return new class implements SiteEditorAccessGate
-		{
+		return new class implements SiteEditorAccessGate {
 			public function check( Request $request ): ?Response
 			{
 				return null;
@@ -43,16 +42,16 @@ beforeEach( function () {
 
 	app()->instance(
 		'ArtisanPackUI\\CMSFramework\\Modules\\DynamicContent\\Services\\DynamicContentAccessor',
-		$fake
+		$fake,
 	);
 
 	app()->bind(
 		'ArtisanPackUI\\CMSFramework\\Modules\\DynamicContent\\Services\\DynamicContentAccessor',
-		fn () => $fake
+		fn () => $fake,
 	);
 } );
 
-it( 'resolves a batch of tokens', function () {
+it( 'resolves a batch of tokens', function (): void {
 	$response = $this->postJson( '/visual-editor/api/dynamic-content/resolve', [
 		'tokens' => [
 			'business_info.phone',
@@ -72,7 +71,7 @@ it( 'resolves a batch of tokens', function () {
 	expect( $values['unknown.field'] )->toBeNull();
 } );
 
-it( 'rejects a non-array tokens payload', function () {
+it( 'rejects a non-array tokens payload', function (): void {
 	$response = $this->postJson( '/visual-editor/api/dynamic-content/resolve', [
 		'tokens' => 'not-an-array',
 	] );
@@ -81,7 +80,7 @@ it( 'rejects a non-array tokens payload', function () {
 		->assertJsonPath( 'error', 'invalid_payload' );
 } );
 
-it( 'rejects a payload above the token cap', function () {
+it( 'rejects a payload above the token cap', function (): void {
 	$response = $this->postJson( '/visual-editor/api/dynamic-content/resolve', [
 		'tokens' => array_fill( 0, 201, 'business_info.phone' ),
 	] );
@@ -90,7 +89,7 @@ it( 'rejects a payload above the token cap', function () {
 		->assertJsonPath( 'error', 'too_many_tokens' );
 } );
 
-it( 'returns an empty values object for an empty token list', function () {
+it( 'returns an empty values object for an empty token list', function (): void {
 	$response = $this->postJson( '/visual-editor/api/dynamic-content/resolve', [
 		'tokens' => [],
 	] );

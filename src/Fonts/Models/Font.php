@@ -53,14 +53,6 @@ class Font extends Model
 		'installed_at',
 	];
 
-	protected function casts(): array
-	{
-		return [
-			'is_variable'  => 'boolean',
-			'installed_at' => 'datetime',
-		];
-	}
-
 	/**
 	 * The weight/style faces belonging to this font.
 	 *
@@ -83,6 +75,14 @@ class Font extends Model
 	public function themeBundles(): HasMany
 	{
 		return $this->hasMany( ThemeFontBundle::class );
+	}
+
+	protected function casts(): array
+	{
+		return [
+			'is_variable'  => 'boolean',
+			'installed_at' => 'datetime',
+		];
 	}
 
 	/**

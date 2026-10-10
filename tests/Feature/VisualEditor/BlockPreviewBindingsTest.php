@@ -11,7 +11,7 @@ use Tests\Fixtures\TestBindingsModel;
 use Tests\Fixtures\TestDynamicBlock;
 use Tests\TestUser;
 
-beforeEach( function () {
+beforeEach( function (): void {
 	config()->set( 'artisanpack.visual-editor.api.middleware', [ 'auth' ] );
 
 	config()->set( 'artisanpack.visual-editor.resources', [
@@ -29,7 +29,7 @@ beforeEach( function () {
 	$this->actingAs( $this->actor );
 } );
 
-it( 'resolves a bound attribute against the parent model when context is supplied', function () {
+it( 'resolves a bound attribute against the parent model when context is supplied', function (): void {
 	VisualEditor::registerDynamicBlock( TestDynamicBlock::class );
 
 	$model = TestBindingsModel::query()->create( [
@@ -57,7 +57,7 @@ it( 'resolves a bound attribute against the parent model when context is supplie
 		->assertJsonPath( 'html', '<p>Hi, Bound Title!</p>' );
 } );
 
-it( 'falls back to the static value when the bound field is empty', function () {
+it( 'falls back to the static value when the bound field is empty', function (): void {
 	VisualEditor::registerDynamicBlock( TestDynamicBlock::class );
 
 	$model = TestBindingsModel::query()->create( [
@@ -86,7 +86,7 @@ it( 'falls back to the static value when the bound field is empty', function () 
 		->assertJsonPath( 'html', '<p>Hi, Fallback!</p>' );
 } );
 
-it( 'falls back when no context is supplied', function () {
+it( 'falls back when no context is supplied', function (): void {
 	VisualEditor::registerDynamicBlock( TestDynamicBlock::class );
 
 	$response = $this->postJson( '/visual-editor/api/blocks/preview', [
@@ -104,7 +104,7 @@ it( 'falls back when no context is supplied', function () {
 		->assertJsonPath( 'html', '<p>Hi, Solo!</p>' );
 } );
 
-it( 'falls back silently when the resource is unknown', function () {
+it( 'falls back silently when the resource is unknown', function (): void {
 	VisualEditor::registerDynamicBlock( TestDynamicBlock::class );
 
 	$response = $this->postJson( '/visual-editor/api/blocks/preview', [
@@ -126,7 +126,7 @@ it( 'falls back silently when the resource is unknown', function () {
 		->assertJsonPath( 'html', '<p>Hi, Static!</p>' );
 } );
 
-it( 'reflects unsaved draft overrides in the bound attribute', function () {
+it( 'reflects unsaved draft overrides in the bound attribute', function (): void {
 	VisualEditor::registerDynamicBlock( TestDynamicBlock::class );
 
 	$model = TestBindingsModel::query()->create( [
@@ -155,11 +155,10 @@ it( 'reflects unsaved draft overrides in the bound attribute', function () {
 		->assertJsonPath( 'html', '<p>Hi, Editor Draft!</p>' );
 } );
 
-it( 'lets a host application register a custom source driver', function () {
+it( 'lets a host application register a custom source driver', function (): void {
 	$registry = app( BlockBindingSourceRegistry::class );
 
-	$registry->register( new class implements BlockBindingSource
-	{
+	$registry->register( new class implements BlockBindingSource {
 		public function name(): string
 		{
 			return 'site_settings';
@@ -202,7 +201,7 @@ it( 'lets a host application register a custom source driver', function () {
 		->assertJsonPath( 'html', '<p>Hi, Custom Site!</p>' );
 } );
 
-it( 'leaves a preview without a bindings payload unchanged (BC regression)', function () {
+it( 'leaves a preview without a bindings payload unchanged (BC regression)', function (): void {
 	VisualEditor::registerDynamicBlock( TestDynamicBlock::class );
 
 	$response = $this->postJson( '/visual-editor/api/blocks/preview', [

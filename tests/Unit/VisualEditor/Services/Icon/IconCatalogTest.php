@@ -26,7 +26,7 @@ function makeCatalog(): IconCatalog
 	return new IconCatalog( static fn (): array => makeManifest() );
 }
 
-it( 'lists registered sets in declared order', function () {
+it( 'lists registered sets in declared order', function (): void {
 	$sets = makeCatalog()->sets();
 
 	expect( $sets )->toHaveCount( 2 );
@@ -34,28 +34,28 @@ it( 'lists registered sets in declared order', function () {
 	expect( $sets[1] )->toBe( [ 'prefix' => 'fab', 'label' => 'Brands' ] );
 } );
 
-it( 'returns all icons when query is empty', function () {
+it( 'returns all icons when query is empty', function (): void {
 	$result = makeCatalog()->search( '' );
 
 	expect( $result['total'] )->toBe( 4 );
 	expect( $result['data'] )->toHaveCount( 4 );
 } );
 
-it( 'matches against the name field', function () {
+it( 'matches against the name field', function (): void {
 	$result = makeCatalog()->search( 'home' );
 
 	expect( $result['total'] )->toBe( 1 );
 	expect( $result['data'][0]['name'] )->toBe( 'home' );
 } );
 
-it( 'matches against the term aliases', function () {
+it( 'matches against the term aliases', function (): void {
 	$result = makeCatalog()->search( 'octocat' );
 
 	expect( $result['total'] )->toBe( 1 );
 	expect( $result['data'][0]['name'] )->toBe( 'github' );
 } );
 
-it( 'filters by set when a prefix is provided', function () {
+it( 'filters by set when a prefix is provided', function (): void {
 	$result = makeCatalog()->search( 'git', 'fab' );
 
 	expect( $result['total'] )->toBe( 2 );
@@ -63,7 +63,7 @@ it( 'filters by set when a prefix is provided', function () {
 	expect( $names )->toContain( 'github' )->toContain( 'gitlab' );
 } );
 
-it( 'paginates the result set', function () {
+it( 'paginates the result set', function (): void {
 	$page1 = makeCatalog()->search( '', null, 1, 2 );
 	$page2 = makeCatalog()->search( '', null, 2, 2 );
 
@@ -73,13 +73,13 @@ it( 'paginates the result set', function () {
 	expect( $page1['data'][0]['name'] )->not->toBe( $page2['data'][0]['name'] );
 } );
 
-it( 'clamps per_page to the documented maximum', function () {
+it( 'clamps per_page to the documented maximum', function (): void {
 	$result = makeCatalog()->search( '', null, 1, IconCatalog::MAX_PER_PAGE + 50 );
 
 	expect( $result['per_page'] )->toBe( IconCatalog::MAX_PER_PAGE );
 } );
 
-it( 'returns empty data when the manifest source is missing', function () {
+it( 'returns empty data when the manifest source is missing', function (): void {
 	$catalog = new IconCatalog( '/nonexistent/index.json' );
 
 	expect( $catalog->sets() )->toBe( [] );

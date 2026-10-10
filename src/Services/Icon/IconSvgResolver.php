@@ -103,6 +103,19 @@ final class IconSvgResolver
 		return false === $contents ? null : $contents;
 	}
 
+	/**
+	 * @return array<string, string>
+	 */
+	public function setPaths(): array
+	{
+		if ( null === $this->resolvedPaths ) {
+			$loaded              = null !== $this->loader ? ( $this->loader )() : [];
+			$this->resolvedPaths = is_array( $loaded ) ? $loaded : [];
+		}
+
+		return $this->resolvedPaths;
+	}
+
 	private function isValidSet( string $set ): bool
 	{
 		return 1 === preg_match( '/^[a-z0-9][a-z0-9_-]*$/i', $set );
@@ -115,18 +128,5 @@ final class IconSvgResolver
 		}
 
 		return 1 === preg_match( '/^[a-z0-9][a-z0-9_.-]*$/i', $name );
-	}
-
-	/**
-	 * @return array<string, string>
-	 */
-	public function setPaths(): array
-	{
-		if ( null === $this->resolvedPaths ) {
-			$loaded              = null !== $this->loader ? ( $this->loader )() : [];
-			$this->resolvedPaths = is_array( $loaded ) ? $loaded : [];
-		}
-
-		return $this->resolvedPaths;
 	}
 }

@@ -126,7 +126,7 @@ describe( 'alt-text image guard', function (): void {
 	] );
 
 	it( 'does not trust the request Host header', function (): void {
-		$this->app->instance( 'request', \Illuminate\Http\Request::create( 'http://169.254.169.254/' ) );
+		$this->app->instance( 'request', Illuminate\Http\Request::create( 'http://169.254.169.254/' ) );
 
 		expect( AltTextImageGuard::violation( 'http://169.254.169.254/latest/meta-data' ) )->not->toBeNull();
 	} );
@@ -168,10 +168,10 @@ describe( 'size caps', function (): void {
 	it( 'rejects an oversized next-block suggestion payload instead of sending it', function (): void {
 		config()->set( 'artisanpack.visual-editor.ai.payload_limits.max_bytes', 100 );
 
-		expect( fn () => \ArtisanPackUI\VisualEditor\Ai\Agents\ContentBlockSuggestionAgent::for( [
+		expect( fn () => ArtisanPackUI\VisualEditor\Ai\Agents\ContentBlockSuggestionAgent::for( [
 			'existing_blocks' => [ [ 'type' => 'core/paragraph', 'attrs' => [ 'content' => str_repeat( 'x', 500 ) ] ] ],
 			'cursor_position' => 0,
-		] )->run() )->toThrow( \ArtisanPackUI\Ai\Exceptions\FeatureError::class, 'too large' );
+		] )->run() )->toThrow( ArtisanPackUI\Ai\Exceptions\FeatureError::class, 'too large' );
 
 		expect( $this->prompter->calls )->toBeEmpty();
 	} );
@@ -185,10 +185,10 @@ describe( 'second-pass hardening', function (): void {
 		);
 		expect( $validator->fails() )->toBeTrue();
 
-		expect( fn () => \ArtisanPackUI\VisualEditor\Ai\Agents\LayoutSuggestionAgent::for( [
+		expect( fn () => ArtisanPackUI\VisualEditor\Ai\Agents\LayoutSuggestionAgent::for( [
 			'section_content'    => [ [ 'type' => 'a' ] ],
 			'available_patterns' => array_map( static fn ( int $i ): string => "p{$i}", range( 1, 201 ) ),
-		] )->run() )->toThrow( \ArtisanPackUI\Ai\Exceptions\FeatureError::class );
+		] )->run() )->toThrow( ArtisanPackUI\Ai\Exceptions\FeatureError::class );
 
 		expect( $this->prompter->calls )->toBeEmpty();
 	} );
@@ -196,16 +196,16 @@ describe( 'second-pass hardening', function (): void {
 	it( 'counts pattern slugs toward the byte cap', function (): void {
 		config()->set( 'artisanpack.visual-editor.ai.payload_limits.max_bytes', 200 );
 
-		expect( fn () => \ArtisanPackUI\VisualEditor\Ai\Agents\LayoutSuggestionAgent::for( [
+		expect( fn () => ArtisanPackUI\VisualEditor\Ai\Agents\LayoutSuggestionAgent::for( [
 			'section_content'    => [ [ 'type' => 'a' ] ],
 			'available_patterns' => array_map( static fn ( int $i ): string => str_repeat( 'x', 100 ) . $i, range( 1, 5 ) ),
-		] )->run() )->toThrow( \ArtisanPackUI\Ai\Exceptions\FeatureError::class, 'too large' );
+		] )->run() )->toThrow( ArtisanPackUI\Ai\Exceptions\FeatureError::class, 'too large' );
 	} );
 
 	it( 'rate-limits the Livewire listeners', function (): void {
 		config()->set( 'artisanpack.visual-editor.ai.throttle', '1,1' );
 		Gate::define( AiAccess::ABILITY, fn ( $user = null ) => true );
-		\Illuminate\Support\Facades\RateLimiter::clear( 've-ai-livewire:' . request()->ip() );
+		Illuminate\Support\Facades\RateLimiter::clear( 've-ai-livewire:' . request()->ip() );
 		$this->prompter->queue( [ 'issues' => [] ] );
 
 		$tools = new class extends AiTools {
@@ -240,7 +240,7 @@ describe( 'second-pass hardening', function (): void {
 
 	it( 'caps the Livewire rewrite intent', function (): void {
 		Gate::define( AiAccess::ABILITY, fn ( $user = null ) => true );
-		\Illuminate\Support\Facades\RateLimiter::clear( 've-ai-livewire:' . request()->ip() );
+		Illuminate\Support\Facades\RateLimiter::clear( 've-ai-livewire:' . request()->ip() );
 
 		$tools = new class extends AiTools {
 			/** @var array<int, string> */

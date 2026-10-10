@@ -135,7 +135,7 @@ class ReviewsBlock extends DynamicBlock
 		return sprintf(
 			'<div%s><div class="wp-block-artisanpack-reviews__list">%s</div></div>',
 			BlockSupports::wrapperAttrs( $attrs, $this->wrapperClasses( $attrs ) ),
-			$cards
+			$cards,
 		);
 	}
 
@@ -203,7 +203,7 @@ class ReviewsBlock extends DynamicBlock
 				continue;
 			}
 
-			if ( '' !== $attrs['source'] && strcasecmp( $review['source'], $attrs['source'] ) !== 0 ) {
+			if ( '' !== $attrs['source'] && 0 !== strcasecmp( $review['source'], $attrs['source'] ) ) {
 				continue;
 			}
 
@@ -336,7 +336,7 @@ class ReviewsBlock extends DynamicBlock
 
 		$parts[] = sprintf(
 			'<blockquote class="wp-block-artisanpack-reviews__quote">%s</blockquote>',
-			e( $review['quote'] )
+			e( $review['quote'] ),
 		);
 
 		$byline = $this->renderByline( $review, $attrs );
@@ -347,7 +347,7 @@ class ReviewsBlock extends DynamicBlock
 
 		return sprintf(
 			'<article class="wp-block-artisanpack-reviews__card">%s</article>',
-			implode( '', $parts )
+			implode( '', $parts ),
 		);
 	}
 
@@ -359,7 +359,7 @@ class ReviewsBlock extends DynamicBlock
 			$stars .= sprintf(
 				'<span class="wp-block-artisanpack-reviews__star%s" aria-hidden="true">%s</span>',
 				$i <= $rating ? ' is-filled' : '',
-				$i <= $rating ? '★' : '☆'
+				$i <= $rating ? '★' : '☆',
 			);
 		}
 
@@ -367,13 +367,13 @@ class ReviewsBlock extends DynamicBlock
 			/* translators: 1: rating value, 2: rating scale maximum. */
 			__( 'Rated %1$d out of %2$d' ),
 			$rating,
-			self::MAX_RATING
+			self::MAX_RATING,
 		);
 
 		return sprintf(
 			'<div class="wp-block-artisanpack-reviews__rating" role="img" aria-label="%s">%s</div>',
 			e( $label ),
-			$stars
+			$stars,
 		);
 	}
 
@@ -389,14 +389,14 @@ class ReviewsBlock extends DynamicBlock
 			$avatar = '' !== $review['avatar_url']
 				? sprintf(
 					'<img class="wp-block-artisanpack-reviews__avatar" src="%s" alt=""/>',
-					e( $review['avatar_url'] )
+					e( $review['avatar_url'] ),
 				)
 				: '';
 
 			$bits[] = sprintf(
 				'<span class="wp-block-artisanpack-reviews__reviewer">%s%s</span>',
 				$avatar,
-				e( $review['reviewer'] )
+				e( $review['reviewer'] ),
 			);
 		}
 
@@ -404,7 +404,7 @@ class ReviewsBlock extends DynamicBlock
 			$bits[] = sprintf(
 				'<time class="wp-block-artisanpack-reviews__date" datetime="%s">%s</time>',
 				e( $review['date'] ),
-				e( $review['date'] )
+				e( $review['date'] ),
 			);
 		}
 
@@ -413,11 +413,11 @@ class ReviewsBlock extends DynamicBlock
 				? sprintf(
 					'<a class="wp-block-artisanpack-reviews__source" href="%s" rel="noopener nofollow" target="_blank">%s</a>',
 					e( $review['url'] ),
-					e( $review['source'] )
+					e( $review['source'] ),
 				)
 				: sprintf(
 					'<span class="wp-block-artisanpack-reviews__source">%s</span>',
-					e( $review['source'] )
+					e( $review['source'] ),
 				);
 		}
 
@@ -436,7 +436,7 @@ class ReviewsBlock extends DynamicBlock
 		return sprintf(
 			'<div%s><p class="wp-block-artisanpack-reviews__empty">%s</p></div>',
 			BlockSupports::wrapperAttrs( $attrs, array_merge( $this->wrapperClasses( $attrs ), [ 'wp-block-artisanpack-reviews--empty' ] ) ),
-			e( __( 'Connect a review source to display customer reviews here.' ) )
+			e( __( 'Connect a review source to display customer reviews here.' ) ),
 		);
 	}
 

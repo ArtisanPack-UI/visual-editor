@@ -79,7 +79,7 @@ class HostDynamicContentSource
 		if ( 1 !== preg_match( self::SLUG_PATTERN, $slug ) ) {
 			throw new InvalidArgumentException( sprintf(
 				'Dynamic content source slug "%s" is invalid. Expected lowercase snake_case (letters, digits, underscores).',
-				$slug
+				$slug,
 			) );
 		}
 
@@ -89,7 +89,7 @@ class HostDynamicContentSource
 			throw new InvalidArgumentException( sprintf(
 				'Dynamic content source "%s" has invalid cardinality "%s". Expected "singleton" or "collection".',
 				$slug,
-				$cardinality
+				$cardinality,
 			) );
 		}
 
@@ -98,7 +98,7 @@ class HostDynamicContentSource
 		if ( ! is_callable( $resolver ) ) {
 			throw new InvalidArgumentException( sprintf(
 				'Dynamic content source "%s" must supply a callable "resolver".',
-				$slug
+				$slug,
 			) );
 		}
 
@@ -215,7 +215,7 @@ class HostDynamicContentSource
 					'label' => $field['label'],
 					'type'  => $field['type'],
 				],
-				$this->fields
+				$this->fields,
 			),
 		];
 	}
@@ -232,7 +232,7 @@ class HostDynamicContentSource
 		if ( ! is_string( $value ) || '' === trim( $value ) ) {
 			throw new InvalidArgumentException( sprintf(
 				'Dynamic content source definition is missing required string "%s".',
-				$key
+				$key,
 			) );
 		}
 
@@ -265,7 +265,7 @@ class HostDynamicContentSource
 		if ( ! is_array( $fields ) ) {
 			throw new InvalidArgumentException( sprintf(
 				'Dynamic content source "%s" fields must be an array.',
-				$sourceSlug
+				$sourceSlug,
 			) );
 		}
 

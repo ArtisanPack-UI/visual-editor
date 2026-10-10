@@ -645,7 +645,6 @@ class TemplatePartController extends Controller
 
 	/**
 	 * @since 1.0.0
-	 *
 	 * @see TemplateController::refreshResolver() for the static-config
 	 *      merge rationale.
 	 */

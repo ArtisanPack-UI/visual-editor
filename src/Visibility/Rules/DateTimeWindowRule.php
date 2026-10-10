@@ -39,6 +39,7 @@ use ArtisanPackUI\VisualEditor\Visibility\VisibilityContext;
 use ArtisanPackUI\VisualEditor\Visibility\VisibilityDecision;
 use ArtisanPackUI\VisualEditor\Visibility\VisibilityRule;
 use Carbon\CarbonImmutable;
+use DateTimeZone;
 use Throwable;
 
 class DateTimeWindowRule implements VisibilityRule
@@ -51,7 +52,7 @@ class DateTimeWindowRule implements VisibilityRule
 	public function evaluate( array $ruleAttributes, VisibilityContext $context ): VisibilityDecision
 	{
 		$start = $this->parse( $ruleAttributes['start'] ?? null, $this->timezoneFor( $ruleAttributes ) );
-		$end   = $this->parse( $ruleAttributes['end']   ?? null, $this->timezoneFor( $ruleAttributes ) );
+		$end   = $this->parse( $ruleAttributes['end'] ?? null, $this->timezoneFor( $ruleAttributes ) );
 
 		if ( null === $start && null === $end ) {
 			return VisibilityDecision::visible();
@@ -66,7 +67,7 @@ class DateTimeWindowRule implements VisibilityRule
 		$now = $context->nowIn( $this->timezoneFor( $ruleAttributes ) );
 
 		$visible = ( null === $start || $now->greaterThanOrEqualTo( $start ) )
-			&& ( null === $end   || $now->lessThanOrEqualTo( $end ) );
+			&& ( null === $end || $now->lessThanOrEqualTo( $end ) );
 
 		return $visible
 			? VisibilityDecision::visible()
@@ -95,7 +96,7 @@ class DateTimeWindowRule implements VisibilityRule
 	protected function isValidTimezone( string $tz ): bool
 	{
 		try {
-			new \DateTimeZone( $tz );
+			new DateTimeZone( $tz );
 			return true;
 		} catch ( Throwable $e ) {
 			return false;

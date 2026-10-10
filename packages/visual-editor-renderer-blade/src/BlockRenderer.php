@@ -24,6 +24,7 @@ namespace ArtisanPackUI\VisualEditorRendererBlade;
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
 use ArtisanPackUI\VisualEditor\Resources\PatternInliner;
 use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
+use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingResolver;
 use ArtisanPackUI\VisualEditor\Support\BlockMarkupHydrator;
@@ -31,7 +32,6 @@ use ArtisanPackUI\VisualEditor\Support\BlockShape;
 use ArtisanPackUI\VisualEditor\Visibility\VisibilityContext;
 use ArtisanPackUI\VisualEditor\Visibility\VisibilityDecision;
 use ArtisanPackUI\VisualEditor\Visibility\VisibilityEvaluator;
-use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\LoginoutResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\SiteMetaResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
@@ -39,6 +39,7 @@ use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use Illuminate\Contracts\View\View;
+use RuntimeException;
 use Stringable;
 use Throwable;
 
@@ -189,46 +190,8 @@ class BlockRenderer
 
 		return array_values( array_map(
 			fn ( $block ) => is_array( $block ) ? $this->resolveInlineTokensInBlock( $block, $resolver ) : $block,
-			$tree
+			$tree,
 		) );
-	}
-
-	/**
-	 * @param  array<string, mixed>  $block
-	 *
-	 * @return array<string, mixed>
-	 *
-	 * @since 1.4.0
-	 */
-	protected function resolveInlineTokensInBlock( array $block, object $resolver ): array
-	{
-		// Tree has already been normalized to Gutenberg shape at the top
-		// of render(), so `attributes` is the canonical key. Reading
-		// through BlockShape keeps this call site robust when the
-		// method is invoked from a caller that skipped normalization
-		// (e.g. via public resolveInlineTokens on a raw tree).
-		[ $attrKey, $attrs ] = BlockShape::readAttrs( $block );
-
-		foreach ( $attrs as $key => $value ) {
-			if ( is_string( $value ) && str_contains( $value, '{{' ) ) {
-				try {
-					$attrs[ $key ] = (string) $resolver->render( $value );
-				} catch ( Throwable $e ) {
-					report( $e );
-				}
-			}
-		}
-
-		$block[ $attrKey ] = $attrs;
-
-		if ( isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) && [] !== $block['innerBlocks'] ) {
-			$block['innerBlocks'] = array_values( array_map(
-				fn ( $inner ) => is_array( $inner ) ? $this->resolveInlineTokensInBlock( $inner, $resolver ) : $inner,
-				$block['innerBlocks']
-			) );
-		}
-
-		return $block;
 	}
 
 	/**
@@ -395,36 +358,6 @@ class BlockRenderer
 	}
 
 	/**
-	 * Run the fully assembled document through the
-	 * `ap.visualEditor.renderedContent` filter.
-	 *
-	 * This is the one seam every document-level render funnels through
-	 * ({@see \ArtisanPackUI\VisualEditorRendererBlade\View\Components\BlocksComponent},
-	 * {@see \ArtisanPackUI\VisualEditorRendererBlade\View\Components\TemplateComponent},
-	 * and {@see self::renderMarkup}), so whole-content passes — most
-	 * notably the inline-icon hydrator (#717) that resolves
-	 * `span.ap-inline-icon` reference spans into SVG — run over the
-	 * complete markup, after every block has emitted its HTML. Because a
-	 * few partials (tabs, accordion, navigation-overlay) re-enter
-	 * {@see self::render} on inner sub-trees, the caller gates this on
-	 * `renderDepth === 0` so it runs exactly once per document.
-	 *
-	 * No-ops cleanly when `artisanpack-ui/hooks` isn't installed.
-	 *
-	 * @since 1.7.0
-	 */
-	protected function applyRenderedContentFilter( string $html ): string
-	{
-		if ( ! function_exists( 'applyFilters' ) ) {
-			return $html;
-		}
-
-		$filtered = applyFilters( 'ap.visualEditor.renderedContent', $html );
-
-		return is_string( $filtered ) ? $filtered : $html;
-	}
-
-	/**
 	 * Render a single block, recursing through `innerBlocks` as needed.
 	 *
 	 * @since 1.0.0
@@ -542,6 +475,74 @@ class BlockRenderer
 	}
 
 	/**
+	 * @param  array<string, mixed>  $block
+	 *
+	 * @return array<string, mixed>
+	 *
+	 * @since 1.4.0
+	 */
+	protected function resolveInlineTokensInBlock( array $block, object $resolver ): array
+	{
+		// Tree has already been normalized to Gutenberg shape at the top
+		// of render(), so `attributes` is the canonical key. Reading
+		// through BlockShape keeps this call site robust when the
+		// method is invoked from a caller that skipped normalization
+		// (e.g. via public resolveInlineTokens on a raw tree).
+		[ $attrKey, $attrs ] = BlockShape::readAttrs( $block );
+
+		foreach ( $attrs as $key => $value ) {
+			if ( is_string( $value ) && str_contains( $value, '{{' ) ) {
+				try {
+					$attrs[ $key ] = (string) $resolver->render( $value );
+				} catch ( Throwable $e ) {
+					report( $e );
+				}
+			}
+		}
+
+		$block[ $attrKey ] = $attrs;
+
+		if ( isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) && [] !== $block['innerBlocks'] ) {
+			$block['innerBlocks'] = array_values( array_map(
+				fn ( $inner ) => is_array( $inner ) ? $this->resolveInlineTokensInBlock( $inner, $resolver ) : $inner,
+				$block['innerBlocks'],
+			) );
+		}
+
+		return $block;
+	}
+
+	/**
+	 * Run the fully assembled document through the
+	 * `ap.visualEditor.renderedContent` filter.
+	 *
+	 * This is the one seam every document-level render funnels through
+	 * ({@see \ArtisanPackUI\VisualEditorRendererBlade\View\Components\BlocksComponent},
+	 * {@see \ArtisanPackUI\VisualEditorRendererBlade\View\Components\TemplateComponent},
+	 * and {@see self::renderMarkup}), so whole-content passes — most
+	 * notably the inline-icon hydrator (#717) that resolves
+	 * `span.ap-inline-icon` reference spans into SVG — run over the
+	 * complete markup, after every block has emitted its HTML. Because a
+	 * few partials (tabs, accordion, navigation-overlay) re-enter
+	 * {@see self::render} on inner sub-trees, the caller gates this on
+	 * `renderDepth === 0` so it runs exactly once per document.
+	 *
+	 * No-ops cleanly when `artisanpack-ui/hooks` isn't installed.
+	 *
+	 * @since 1.7.0
+	 */
+	protected function applyRenderedContentFilter( string $html ): string
+	{
+		if ( ! function_exists( 'applyFilters' ) ) {
+			return $html;
+		}
+
+		$filtered = applyFilters( 'ap.visualEditor.renderedContent', $html );
+
+		return is_string( $filtered ) ? $filtered : $html;
+	}
+
+	/**
 	 * Recursive sibling of {@see render} that walks `innerBlocks`
 	 * without resetting the per-tree {@see $renderIndex} counter.
 	 *
@@ -552,7 +553,7 @@ class BlockRenderer
 	protected function renderInner( array $tree ): string
 	{
 		if ( $this->innerDepth >= self::MAX_INNER_DEPTH ) {
-			report( new \RuntimeException( sprintf(
+			report( new RuntimeException( sprintf(
 				'BlockRenderer inner-block depth cap (%d) exceeded — skipping remaining subtree. Likely a malformed or attacker-crafted block payload.',
 				self::MAX_INNER_DEPTH,
 			) ) );
@@ -787,7 +788,7 @@ class BlockRenderer
 		return sprintf(
 			'<!-- visual-editor: no partial for %1$s --><div data-ve-unknown-block="%1$s">%2$s</div>',
 			$safeName,
-			$innerBlocksHtml
+			$innerBlocksHtml,
 		);
 	}
 
@@ -853,12 +854,12 @@ class BlockRenderer
 					'@media (min-width:%dpx) and (max-width:%dpx){.%s{display:none !important;}}',
 					$min,
 					$nextMin - 1,
-					$scopeClass
+					$scopeClass,
 				)
 				: sprintf(
 					'@media (min-width:%dpx){.%s{display:none !important;}}',
 					$min,
-					$scopeClass
+					$scopeClass,
 				);
 		}
 
@@ -876,7 +877,7 @@ class BlockRenderer
 			'<div class="%s" data-ve-vis-scope>%s<style>%s</style></div>',
 			$scopeClass,
 			$html,
-			$css
+			$css,
 		);
 	}
 
@@ -947,7 +948,7 @@ class BlockRenderer
 				$classFound  = true;
 				$attributes .= sprintf(
 					' class="%s"',
-					str_replace( '"', '&quot;', trim( $attribute['value'] . ' ' . $scopeClass ) )
+					str_replace( '"', '&quot;', trim( $attribute['value'] . ' ' . $scopeClass ) ),
 				);
 
 				continue;
@@ -967,7 +968,7 @@ class BlockRenderer
 			$attributes,
 			$inner,
 			$css,
-			$closeTag[0]
+			$closeTag[0],
 		);
 	}
 
@@ -1009,7 +1010,7 @@ class BlockRenderer
 				$html,
 				$match,
 				0,
-				$position
+				$position,
 			);
 
 			if ( 1 !== $matched ) {

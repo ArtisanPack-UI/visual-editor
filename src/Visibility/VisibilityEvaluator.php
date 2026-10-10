@@ -156,14 +156,30 @@ class VisibilityEvaluator
 		$base = $this->contextFromRequest();
 
 		$overrides = [];
-		if ( null !== $preview->queryString )    { $overrides['queryString']     = $preview->queryString; }
-		if ( null !== $preview->referrer )       { $overrides['referrer']        = $preview->referrer; }
-		if ( null !== $preview->userAgent )      { $overrides['userAgent']       = $preview->userAgent; }
-		if ( null !== $preview->isAuthenticated ){ $overrides['isAuthenticated'] = $preview->isAuthenticated; }
-		if ( null !== $preview->userId )         { $overrides['userId']          = $preview->userId; }
-		if ( null !== $preview->userEmail )      { $overrides['userEmail']       = $preview->userEmail; }
-		if ( null !== $preview->roles )          { $overrides['roles']           = $preview->roles; }
-		if ( null !== $preview->now )            { $overrides['now']             = $preview->now; }
+		if ( null !== $preview->queryString ) {
+		$overrides['queryString']     = $preview->queryString;
+		}
+		if ( null !== $preview->referrer ) {
+		$overrides['referrer']        = $preview->referrer;
+		}
+		if ( null !== $preview->userAgent ) {
+		$overrides['userAgent']       = $preview->userAgent;
+		}
+		if ( null !== $preview->isAuthenticated ) {
+		$overrides['isAuthenticated'] = $preview->isAuthenticated;
+		}
+		if ( null !== $preview->userId ) {
+		$overrides['userId']          = $preview->userId;
+		}
+		if ( null !== $preview->userEmail ) {
+		$overrides['userEmail']       = $preview->userEmail;
+		}
+		if ( null !== $preview->roles ) {
+		$overrides['roles']           = $preview->roles;
+		}
+		if ( null !== $preview->now ) {
+		$overrides['now']             = $preview->now;
+		}
 
 		$overrides['isPreview'] = true;
 

@@ -178,7 +178,7 @@ class ThemeFontBundleResolver
 				$font = $this->installer->install(
 					$declaration['provider'],
 					$declaration['slug'],
-					$declaration['faces']
+					$declaration['faces'],
 				);
 			} catch ( Throwable $e ) {
 				Log::warning( 'Failed to install a theme font bundle entry during activation.', [

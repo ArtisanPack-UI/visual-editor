@@ -19,8 +19,7 @@ use ArtisanPackUI\VisualEditor\Support\BlockMarkupHydrator;
  */
 function bindPartResolver( ?ResolvedEntity $entity ): void
 {
-	app()->instance( TemplatePartResolver::class, new class( $entity ) extends TemplatePartResolver
-	{
+	app()->instance( TemplatePartResolver::class, new class( $entity ) extends TemplatePartResolver {
 		public function __construct( private readonly ?ResolvedEntity $entity )
 		{
 		}
@@ -54,9 +53,9 @@ function themeFilePart( string $raw, array $blocks = [] ): ResolvedEntity
 	);
 }
 
-it( 'hydrates a theme-file part whose resolved blocks are empty', function () {
+it( 'hydrates a theme-file part whose resolved blocks are empty', function (): void {
 	bindPartResolver( themeFilePart(
-		'<!-- wp:artisanpack/paragraph --><p>Site header</p><!-- /wp:artisanpack/paragraph -->'
+		'<!-- wp:artisanpack/paragraph --><p>Site header</p><!-- /wp:artisanpack/paragraph -->',
 	) );
 
 	$tree = ( new TemplatePartInliner() )->inline( [
@@ -68,7 +67,7 @@ it( 'hydrates a theme-file part whose resolved blocks are empty', function () {
 	expect( $tree[0]['innerBlocks'][0]['attributes']['content'] )->toBe( 'Site header' );
 } )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
 
-it( 'prefers already-parsed blocks over the raw fallback', function () {
+it( 'prefers already-parsed blocks over the raw fallback', function (): void {
 	bindPartResolver( themeFilePart(
 		'<!-- wp:artisanpack/paragraph --><p>From raw</p><!-- /wp:artisanpack/paragraph -->',
 		[ [ 'name' => 'artisanpack/paragraph', 'attributes' => [ 'content' => 'From blocks' ], 'innerBlocks' => [] ] ],
@@ -81,7 +80,7 @@ it( 'prefers already-parsed blocks over the raw fallback', function () {
 	expect( $tree[0]['innerBlocks'][0]['attributes']['content'] )->toBe( 'From blocks' );
 } );
 
-it( 'still marks the part unresolved when nothing resolves at all', function () {
+it( 'still marks the part unresolved when nothing resolves at all', function (): void {
 	bindPartResolver( null );
 
 	$tree = ( new TemplatePartInliner() )->inline( [
@@ -91,7 +90,7 @@ it( 'still marks the part unresolved when nothing resolves at all', function () 
 	expect( $tree[0]['attributes']['_resolutionError'] )->toBe( TemplatePartInliner::ERROR_NOT_FOUND );
 } );
 
-it( 'marks the part unresolved when the raw markup hydrates to nothing', function () {
+it( 'marks the part unresolved when the raw markup hydrates to nothing', function (): void {
 	bindPartResolver( themeFilePart( '   ' ) );
 
 	$tree = ( new TemplatePartInliner() )->inline( [

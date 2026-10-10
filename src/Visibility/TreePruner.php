@@ -32,6 +32,7 @@
 declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Visibility;
+use RuntimeException;
 
 class TreePruner
 {
@@ -79,7 +80,7 @@ class TreePruner
 	protected function walk( array $tree, VisibilityContext $context, int $depth ): array
 	{
 		if ( $depth > self::MAX_DEPTH ) {
-			report( new \RuntimeException( sprintf(
+			report( new RuntimeException( sprintf(
 				'TreePruner recursion cap (%d) exceeded — passing subtree through without pruning. Likely a malformed or attacker-crafted block payload.',
 				self::MAX_DEPTH,
 			) ) );

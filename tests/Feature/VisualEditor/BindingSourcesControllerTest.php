@@ -9,7 +9,7 @@ use ArtisanPackUI\VisualEditor\VisualEditorServiceProvider;
 use Tests\Fixtures\TestBindingsModel;
 use Tests\TestUser;
 
-beforeEach( function () {
+beforeEach( function (): void {
 	config()->set( 'artisanpack.visual-editor.api.middleware', [ 'auth' ] );
 
 	config()->set( 'artisanpack.visual-editor.resources', [
@@ -27,7 +27,7 @@ beforeEach( function () {
 	$this->actingAs( $this->actor );
 } );
 
-it( 'lists the built-in registered sources', function () {
+it( 'lists the built-in registered sources', function (): void {
 	$response = $this->getJson( '/visual-editor/api/bindings/sources' );
 
 	$response->assertOk();
@@ -37,7 +37,7 @@ it( 'lists the built-in registered sources', function () {
 	expect( $names )->toContain( 'custom_field', 'post_core', 'relation' );
 } );
 
-it( 'returns the post_core field catalog for a known resource', function () {
+it( 'returns the post_core field catalog for a known resource', function (): void {
 	$response = $this->getJson( '/visual-editor/api/bindings/sources/post_core/fields?resource=bindings' );
 
 	$response->assertOk()
@@ -49,7 +49,7 @@ it( 'returns the post_core field catalog for a known resource', function () {
 	expect( $keys )->toContain( 'title', 'excerpt', 'author_name' );
 } );
 
-it( 'returns the post_core catalog even when no resource is supplied', function () {
+it( 'returns the post_core catalog even when no resource is supplied', function (): void {
 	$response = $this->getJson( '/visual-editor/api/bindings/sources/post_core/fields' );
 
 	$response->assertOk();
@@ -59,14 +59,14 @@ it( 'returns the post_core catalog even when no resource is supplied', function 
 	expect( $keys )->toContain( 'title' );
 } );
 
-it( 'returns an empty field catalog for the relation source', function () {
+it( 'returns an empty field catalog for the relation source', function (): void {
 	$response = $this->getJson( '/visual-editor/api/bindings/sources/relation/fields?resource=bindings' );
 
 	$response->assertOk()
 		->assertJsonPath( 'fields', [] );
 } );
 
-it( 'returns 404 for an unknown source', function () {
+it( 'returns 404 for an unknown source', function (): void {
 	$response = $this->getJson( '/visual-editor/api/bindings/sources/imaginary/fields?resource=bindings' );
 
 	$response->assertNotFound()
@@ -74,15 +74,14 @@ it( 'returns 404 for an unknown source', function () {
 		->assertJsonPath( 'source', 'imaginary' );
 } );
 
-it( 'rejects a source name that does not match the snake_case pattern at route level', function () {
+it( 'rejects a source name that does not match the snake_case pattern at route level', function (): void {
 	$response = $this->getJson( '/visual-editor/api/bindings/sources/BAD-NAME/fields' );
 
 	$response->assertNotFound();
 } );
 
-it( 'reflects host-registered custom sources in the listing and field endpoints', function () {
-	app( BlockBindingSourceRegistry::class )->register( new class implements BlockBindingSource
-	{
+it( 'reflects host-registered custom sources in the listing and field endpoints', function (): void {
+	app( BlockBindingSourceRegistry::class )->register( new class implements BlockBindingSource {
 		public function name(): string
 		{
 			return 'site_settings';
@@ -106,7 +105,7 @@ it( 'reflects host-registered custom sources in the listing and field endpoints'
 		}
 	} );
 
-	$list = $this->getJson( '/visual-editor/api/bindings/sources' );
+	$list  = $this->getJson( '/visual-editor/api/bindings/sources' );
 	$names = collect( $list->json( 'sources' ) )->pluck( 'name' )->all();
 	expect( $names )->toContain( 'site_settings' );
 

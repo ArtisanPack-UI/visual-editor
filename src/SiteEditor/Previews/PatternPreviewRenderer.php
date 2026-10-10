@@ -62,7 +62,7 @@ class PatternPreviewRenderer
 	/**
 	 * Memoized active theme manifest; `false` until first read.
 	 *
-	 * @var array<string, mixed>|null|false
+	 * @var array<string, mixed>|false|null
 	 */
 	protected array|null|false $activeTheme = false;
 

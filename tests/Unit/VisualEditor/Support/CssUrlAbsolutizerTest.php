@@ -13,7 +13,7 @@ use ArtisanPackUI\VisualEditor\Support\CssUrlAbsolutizer;
 
 const CSS_URL_BASE = 'https://example.com/themes/acme/';
 
-it( 'absolutizes relative urls', function ( string $css, string $expected ) {
+it( 'absolutizes relative urls', function ( string $css, string $expected ): void {
 	expect( CssUrlAbsolutizer::absolutize( $css, CSS_URL_BASE ) )->toBe( $expected );
 } )->with( [
 	'dot slash'       => [ 'a{background:url(./x.png)}', 'a{background:url(https://example.com/themes/acme/x.png)}' ],
@@ -27,7 +27,7 @@ it( 'absolutizes relative urls', function ( string $css, string $expected ) {
 	'uppercase URL('  => [ 'a{background:URL(x.png)}', 'a{background:url(https://example.com/themes/acme/x.png)}' ],
 ] );
 
-it( 'leaves non-relative urls untouched', function ( string $css ) {
+it( 'leaves non-relative urls untouched', function ( string $css ): void {
 	expect( CssUrlAbsolutizer::absolutize( $css, CSS_URL_BASE ) )->toBe( $css );
 } )->with( [
 	'https'             => [ 'a{background:url(https://cdn.example.com/a.png)}' ],
@@ -40,13 +40,13 @@ it( 'leaves non-relative urls untouched', function ( string $css ) {
 	'no urls'           => [ 'a{color:red}' ],
 ] );
 
-it( 'keeps the base port and rewrites every occurrence', function () {
+it( 'keeps the base port and rewrites every occurrence', function (): void {
 	$css = 'a{background:url(a.png)}b{background:url("b.png")}';
 
 	expect( CssUrlAbsolutizer::absolutize( $css, 'http://localhost:8000/themes/acme' ) )
 		->toBe( 'a{background:url(http://localhost:8000/themes/acme/a.png)}b{background:url("http://localhost:8000/themes/acme/b.png")}' );
 } );
 
-it( 'returns the css unchanged without a usable base url', function ( string $base ) {
+it( 'returns the css unchanged without a usable base url', function ( string $base ): void {
 	expect( CssUrlAbsolutizer::absolutize( 'a{background:url(a.png)}', $base ) )->toBe( 'a{background:url(a.png)}' );
 } )->with( [ '', '/themes/acme/', 'not a url' ] );

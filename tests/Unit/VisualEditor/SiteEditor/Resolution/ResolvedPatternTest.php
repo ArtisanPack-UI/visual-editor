@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Tests for {@see \ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedPattern}.
+ * Tests for {@see ResolvedPattern}.
  *
  * Focus is on the `post_types` scoping surface introduced by #639.
  * General resolution / coercion of the other fields is exercised by

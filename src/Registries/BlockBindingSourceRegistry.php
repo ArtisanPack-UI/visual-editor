@@ -58,7 +58,7 @@ class BlockBindingSourceRegistry
 		if ( 1 !== preg_match( self::NAME_PATTERN, $name ) ) {
 			throw new InvalidArgumentException( sprintf(
 				'Block binding source name "%s" is invalid. Expected lowercase snake_case (letters, digits, underscores).',
-				$name
+				$name,
 			) );
 		}
 

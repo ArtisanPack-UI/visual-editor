@@ -10,7 +10,7 @@ function makeAnimAccumulator(): AnimationCssAccumulator
 	return new AnimationCssAccumulator( new KeyframeRegistry() );
 }
 
-it( 'emits an empty result when nothing is pushed', function () {
+it( 'emits an empty result when nothing is pushed', function (): void {
 	$flushed = makeAnimAccumulator()->flush();
 
 	expect( $flushed['styleTag'] )->toBe( '' );
@@ -18,7 +18,7 @@ it( 'emits an empty result when nothing is pushed', function () {
 	expect( $flushed['runtimeNeeded'] )->toBeFalse();
 } );
 
-it( 'wraps accumulated rules in a single <style> tag with built-in keyframes', function () {
+it( 'wraps accumulated rules in a single <style> tag with built-in keyframes', function (): void {
 	$accumulator = makeAnimAccumulator();
 	$accumulator->push( '.ap-block-a', '.ap-block-a { animation: apFadeIn 600ms; }', '', false );
 	$accumulator->push( '.ap-block-b', '.ap-block-b { animation: apPulse 2s infinite; }', '', false );
@@ -32,7 +32,7 @@ it( 'wraps accumulated rules in a single <style> tag with built-in keyframes', f
 	expect( $flushed['styleTag'] )->toContain( '.ap-block-b' );
 } );
 
-it( 'collects noscript fallbacks only for entrance blocks', function () {
+it( 'collects noscript fallbacks only for entrance blocks', function (): void {
 	$accumulator = makeAnimAccumulator();
 	$accumulator->push(
 		'.ap-block-a',
@@ -48,7 +48,7 @@ it( 'collects noscript fallbacks only for entrance blocks', function () {
 	expect( $flushed['runtimeNeeded'] )->toBeTrue();
 } );
 
-it( 'deduplicates pushes for the same scope', function () {
+it( 'deduplicates pushes for the same scope', function (): void {
 	$accumulator = makeAnimAccumulator();
 	$accumulator->push( '.ap-block-a', '.ap-block-a { animation: apFadeIn; }', '', false );
 	$accumulator->push( '.ap-block-a', '.ap-block-a { animation: apPulse; }', '', false );
@@ -58,7 +58,7 @@ it( 'deduplicates pushes for the same scope', function () {
 	expect( count( $state['rules'] ) )->toBe( 1 );
 } );
 
-it( 'resets after flushing', function () {
+it( 'resets after flushing', function (): void {
 	$accumulator = makeAnimAccumulator();
 	$accumulator->push( '.ap-block-a', '.ap-block-a { x: y; }', '', false );
 	$accumulator->flush();

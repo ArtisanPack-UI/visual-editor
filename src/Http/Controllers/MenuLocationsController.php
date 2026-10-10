@@ -99,8 +99,8 @@ class MenuLocationsController extends Controller
 		$data = [];
 
 		foreach ( $declaredLocations as $slug => $label ) {
-			$slug  = (string) $slug;
-			$menu  = $assignmentsByLocation[ $slug ] ?? null;
+			$slug   = (string) $slug;
+			$menu   = $assignmentsByLocation[ $slug ] ?? null;
 			$data[] = [
 				'slug'        => $slug,
 				'label'       => (string) $label,

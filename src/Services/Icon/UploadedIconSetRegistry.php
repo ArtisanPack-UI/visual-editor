@@ -21,6 +21,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Services\Icon;
 
+use InvalidArgumentException;
 use RuntimeException;
 
 /**
@@ -95,7 +96,7 @@ final class UploadedIconSetRegistry
 		foreach ( $manifest['sets'] ?? [] as $row ) {
 			try {
 				$out[] = UploadedIconSet::fromArray( $row );
-			} catch ( \InvalidArgumentException $e ) {
+			} catch ( InvalidArgumentException $e ) {
 				// A corrupt row should not take the whole registry
 				// down — boot is supposed to be resilient to a
 				// hand-edited manifest, and the settings screen is

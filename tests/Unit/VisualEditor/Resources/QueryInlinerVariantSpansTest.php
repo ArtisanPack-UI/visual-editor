@@ -24,7 +24,7 @@ function variantBlockWithSpans(
 	?int $columnSpan = null,
 	?int $rowSpan = null,
 	?array $responsive = null,
-	int $priority = 10
+	int $priority = 10,
 ): array {
 	$attributes = [
 		'matcher'  => $matcher,
@@ -110,7 +110,7 @@ beforeEach( function (): void {
 	$this->inliner = new QueryInliner( $this->app, new PostResolver() );
 } );
 
-it( 'stamps _resolvedGridSpan on the iteration wrapper when the variant matched and the layout is grid', function () {
+it( 'stamps _resolvedGridSpan on the iteration wrapper when the variant matched and the layout is grid', function (): void {
 	$this->fake->setItems( [
 		variantSpanPostFixture( 1, 'Hero' ),
 		variantSpanPostFixture( 2, 'Listed' ),
@@ -121,7 +121,7 @@ it( 'stamps _resolvedGridSpan on the iteration wrapper when the variant matched 
 		[ 'kind' => 'position', 'value' => 'first' ],
 		[ [ 'name' => 'core/post-excerpt', 'attributes' => [], 'innerBlocks' => [] ] ],
 		2,
-		2
+		2,
 	);
 
 	$inlined = $this->inliner->inline( [ queryWithLayout( $base, [ $variant ], 'grid' ) ] );
@@ -136,7 +136,7 @@ it( 'stamps _resolvedGridSpan on the iteration wrapper when the variant matched 
 	expect( array_key_exists( '_resolvedGridSpan', $items[1]['attributes'] ) )->toBeFalse();
 } );
 
-it( 'does not stamp _resolvedGridSpan when the parent post-template layout is not grid', function () {
+it( 'does not stamp _resolvedGridSpan when the parent post-template layout is not grid', function (): void {
 	$this->fake->setItems( [
 		variantSpanPostFixture( 1, 'Hero' ),
 	] );
@@ -146,7 +146,7 @@ it( 'does not stamp _resolvedGridSpan when the parent post-template layout is no
 		[ 'kind' => 'position', 'value' => 'first' ],
 		[ [ 'name' => 'core/post-excerpt', 'attributes' => [], 'innerBlocks' => [] ] ],
 		2,
-		2
+		2,
 	);
 
 	foreach ( [ 'list', 'flex', 'stack' ] as $layout ) {
@@ -158,7 +158,7 @@ it( 'does not stamp _resolvedGridSpan when the parent post-template layout is no
 	}
 } );
 
-it( 'omits _resolvedGridSpan when the variant has the default 1x1 span and no breakpoint overrides', function () {
+it( 'omits _resolvedGridSpan when the variant has the default 1x1 span and no breakpoint overrides', function (): void {
 	$this->fake->setItems( [
 		variantSpanPostFixture( 1, 'Hero' ),
 	] );
@@ -168,7 +168,7 @@ it( 'omits _resolvedGridSpan when the variant has the default 1x1 span and no br
 		[ 'kind' => 'position', 'value' => 'first' ],
 		[ [ 'name' => 'core/post-excerpt', 'attributes' => [], 'innerBlocks' => [] ] ],
 		1,
-		1
+		1,
 	);
 
 	$inlined = $this->inliner->inline( [ queryWithLayout( $base, [ $variant ], 'grid' ) ] );
@@ -179,7 +179,7 @@ it( 'omits _resolvedGridSpan when the variant has the default 1x1 span and no br
 	expect( array_key_exists( '_resolvedGridSpan', $items[0]['attributes'] ) )->toBeFalse();
 } );
 
-it( 'merges base and per-breakpoint responsive overrides into the resolved span shape', function () {
+it( 'merges base and per-breakpoint responsive overrides into the resolved span shape', function (): void {
 	$this->fake->setItems( [
 		variantSpanPostFixture( 1, 'Hero' ),
 	] );
@@ -193,7 +193,7 @@ it( 'merges base and per-breakpoint responsive overrides into the resolved span 
 		[
 			'gridColumnSpan' => [ 'md' => 3, 'lg' => 4 ],
 			'gridRowSpan'    => [ 'md' => 1 ],
-		]
+		],
 	);
 
 	$inlined = $this->inliner->inline( [ queryWithLayout( $base, [ $variant ], 'grid' ) ] );
@@ -205,7 +205,7 @@ it( 'merges base and per-breakpoint responsive overrides into the resolved span 
 	] );
 } );
 
-it( 'clamps span values into the renderer-supported 1..12 range', function () {
+it( 'clamps span values into the renderer-supported 1..12 range', function (): void {
 	$this->fake->setItems( [
 		variantSpanPostFixture( 1, 'Hero' ),
 	] );
@@ -216,7 +216,7 @@ it( 'clamps span values into the renderer-supported 1..12 range', function () {
 		[ [ 'name' => 'core/post-excerpt', 'attributes' => [], 'innerBlocks' => [] ] ],
 		// 0 -> 1, 99 -> 12 via clampSpanValue().
 		0,
-		99
+		99,
 	);
 
 	$inlined = $this->inliner->inline( [ queryWithLayout( $base, [ $variant ], 'grid' ) ] );
@@ -231,7 +231,7 @@ it( 'clamps span values into the renderer-supported 1..12 range', function () {
 	] );
 } );
 
-it( 'detects grid layout from the object-form layout attribute and the layoutType sibling', function () {
+it( 'detects grid layout from the object-form layout attribute and the layoutType sibling', function (): void {
 	$this->fake->setItems( [
 		variantSpanPostFixture( 1, 'Hero' ),
 	] );
@@ -241,7 +241,7 @@ it( 'detects grid layout from the object-form layout attribute and the layoutTyp
 		[ 'kind' => 'position', 'value' => 'first' ],
 		[ [ 'name' => 'core/post-excerpt', 'attributes' => [], 'innerBlocks' => [] ] ],
 		2,
-		2
+		2,
 	);
 
 	// Hosts that wire the post-template through Gutenberg's
@@ -252,7 +252,7 @@ it( 'detects grid layout from the object-form layout attribute and the layoutTyp
 	$objectFormTree = queryWithPostTemplateAttrs(
 		$base,
 		[ $variant ],
-		[ 'layout' => [ 'type' => 'grid', 'columns' => 3 ] ]
+		[ 'layout' => [ 'type' => 'grid', 'columns' => 3 ] ],
 	);
 
 	$objectFormItems = $this->inliner->inline( [ $objectFormTree ] )[0]['innerBlocks'][0]['innerBlocks'];
@@ -264,7 +264,7 @@ it( 'detects grid layout from the object-form layout attribute and the layoutTyp
 	$layoutTypeTree = queryWithPostTemplateAttrs(
 		$base,
 		[ $variant ],
-		[ 'layoutType' => 'grid' ]
+		[ 'layoutType' => 'grid' ],
 	);
 
 	$layoutTypeItems = $this->inliner->inline( [ $layoutTypeTree ] )[0]['innerBlocks'][0]['innerBlocks'];
@@ -274,7 +274,7 @@ it( 'detects grid layout from the object-form layout attribute and the layoutTyp
 	] );
 } );
 
-it( 'honors the variant precedence cascade when two variants compete on spans', function () {
+it( 'honors the variant precedence cascade when two variants compete on spans', function (): void {
 	$this->fake->setItems( [
 		variantSpanPostFixture( 1, 'Sticky Top', [ 'sticky' => true ] ),
 	] );
@@ -285,13 +285,13 @@ it( 'honors the variant precedence cascade when two variants compete on spans', 
 		[ 'kind' => 'position', 'value' => 'first' ],
 		[ [ 'name' => 'core/post-excerpt', 'attributes' => [], 'innerBlocks' => [] ] ],
 		4,
-		2
+		2,
 	);
 	$metaVariant = variantBlockWithSpans(
 		[ 'kind' => 'meta', 'value' => 'sticky' ],
 		[ [ 'name' => 'core/post-content', 'attributes' => [], 'innerBlocks' => [] ] ],
 		2,
-		1
+		1,
 	);
 
 	// Both variants match the first post. Position outranks meta, so

@@ -434,7 +434,6 @@ class PatternController extends Controller
 
 	/**
 	 * @since 1.0.0
-	 *
 	 * @see TemplateController::isUniqueViolation() for the rationale.
 	 */
 	protected function isUniqueViolation( QueryException $e ): bool
@@ -451,7 +450,6 @@ class PatternController extends Controller
 
 	/**
 	 * @since 1.0.0
-	 *
 	 * @see TemplateController::refreshResolver() for the static-config
 	 *      merge rationale.
 	 */

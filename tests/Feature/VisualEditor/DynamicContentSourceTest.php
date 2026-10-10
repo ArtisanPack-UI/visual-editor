@@ -7,7 +7,7 @@ use ArtisanPackUI\VisualEditor\Services\Bindings\Sources\DynamicContentSource;
 use Tests\Support\FakeDynamicContentAccessor;
 use Tests\Support\FakeDynamicContentTypeRegistry;
 
-beforeEach( function () {
+beforeEach( function (): void {
 	$this->source = new DynamicContentSource();
 
 	app()->instance(
@@ -22,36 +22,36 @@ beforeEach( function () {
 				[ 'name' => 'Alice', 'role' => 'CTO' ],
 				[ 'name' => 'Bob',   'role' => 'Ops' ],
 			],
-		] )
+		] ),
 	);
 } );
 
-it( 'reports its canonical name', function () {
+it( 'reports its canonical name', function (): void {
 	expect( $this->source->name() )->toBe( 'dynamic_content' );
 } );
 
-it( 'returns null for an empty or missing token arg', function () {
+it( 'returns null for an empty or missing token arg', function (): void {
 	$ctx = new BindingContext();
 
 	expect( $this->source->resolve( $ctx, [] ) )->toBeNull();
 	expect( $this->source->resolve( $ctx, [ 'token' => '' ] ) )->toBeNull();
 } );
 
-it( 'resolves a singleton field token', function () {
+it( 'resolves a singleton field token', function (): void {
 	$ctx = new BindingContext();
 
 	expect( $this->source->resolve( $ctx, [ 'token' => 'business_info.phone' ] ) )->toBe( '(555) 123-4567' );
 	expect( $this->source->resolve( $ctx, [ 'token' => 'business_info.logo' ] ) )->toBe( 42 );
 } );
 
-it( 'resolves an explicit collection index', function () {
+it( 'resolves an explicit collection index', function (): void {
 	$ctx = new BindingContext();
 
 	expect( $this->source->resolve( $ctx, [ 'token' => 'team[0].name' ] ) )->toBe( 'Alice' );
 	expect( $this->source->resolve( $ctx, [ 'token' => 'team[1].role' ] ) )->toBe( 'Ops' );
 } );
 
-it( 'returns null for a missing token', function () {
+it( 'returns null for a missing token', function (): void {
 	$ctx = new BindingContext();
 
 	expect( $this->source->resolve( $ctx, [ 'token' => 'business_info.nope' ] ) )->toBeNull();
@@ -59,7 +59,7 @@ it( 'returns null for a missing token', function () {
 	expect( $this->source->resolve( $ctx, [ 'token' => 'team[42].name' ] ) )->toBeNull();
 } );
 
-it( 'applies the loop-index scope from extras', function () {
+it( 'applies the loop-index scope from extras', function (): void {
 	$ctx = new BindingContext( null, [], [ DynamicContentSource::EXTRAS_INDEX_KEY => [ 'team' => 1 ] ] );
 
 	// Bare `team.name` should resolve as team[1].name because the loop
@@ -67,14 +67,14 @@ it( 'applies the loop-index scope from extras', function () {
 	expect( $this->source->resolve( $ctx, [ 'token' => 'team.name' ] ) )->toBe( 'Bob' );
 } );
 
-it( 'ignores the loop-index scope when the token has an explicit index', function () {
+it( 'ignores the loop-index scope when the token has an explicit index', function (): void {
 	$ctx = new BindingContext( null, [], [ DynamicContentSource::EXTRAS_INDEX_KEY => [ 'team' => 1 ] ] );
 
 	// Explicit `team[0].name` wins over the loop scope's index=1.
 	expect( $this->source->resolve( $ctx, [ 'token' => 'team[0].name' ] ) )->toBe( 'Alice' );
 } );
 
-it( 'applies the mailto: scheme when args.scheme is email', function () {
+it( 'applies the mailto: scheme when args.scheme is email', function (): void {
 	$ctx = new BindingContext();
 
 	expect( $this->source->resolve( $ctx, [
@@ -83,7 +83,7 @@ it( 'applies the mailto: scheme when args.scheme is email', function () {
 	] ) )->toBe( 'mailto:hi@example.com' );
 } );
 
-it( 'applies the tel: scheme when args.scheme is tel and strips formatting', function () {
+it( 'applies the tel: scheme when args.scheme is tel and strips formatting', function (): void {
 	$ctx = new BindingContext();
 
 	expect( $this->source->resolve( $ctx, [
@@ -92,12 +92,12 @@ it( 'applies the tel: scheme when args.scheme is tel and strips formatting', fun
 	] ) )->toBe( 'tel:5551234567' );
 } );
 
-it( 'does not double-prefix an already-schemed value', function () {
+it( 'does not double-prefix an already-schemed value', function (): void {
 	app()->instance(
 		'ArtisanPackUI\\CMSFramework\\Modules\\DynamicContent\\Services\\DynamicContentAccessor',
 		new FakeDynamicContentAccessor( [
 			'business_info' => [ 'email' => 'mailto:already@example.com' ],
-		] )
+		] ),
 	);
 
 	$ctx = new BindingContext();
@@ -108,7 +108,7 @@ it( 'does not double-prefix an already-schemed value', function () {
 	] ) )->toBe( 'mailto:already@example.com' );
 } );
 
-it( 'nulls out unsafe URL schemes so javascript:/data: values never leak to href', function () {
+it( 'nulls out unsafe URL schemes so javascript:/data: values never leak to href', function (): void {
 	app()->instance(
 		'ArtisanPackUI\\CMSFramework\\Modules\\DynamicContent\\Services\\DynamicContentAccessor',
 		new FakeDynamicContentAccessor( [
@@ -117,7 +117,7 @@ it( 'nulls out unsafe URL schemes so javascript:/data: values never leak to href
 				'evil_data' => 'data:text/html,<script>alert(1)</script>',
 				'evil_file' => 'file:///etc/passwd',
 			],
-		] )
+		] ),
 	);
 
 	$ctx = new BindingContext();
@@ -137,7 +137,7 @@ it( 'nulls out unsafe URL schemes so javascript:/data: values never leak to href
 	] ) )->toBeNull();
 } );
 
-it( 'returns null for an unschemed value bound with an unrecognized scheme', function () {
+it( 'returns null for an unschemed value bound with an unrecognized scheme', function (): void {
 	$ctx = new BindingContext();
 
 	// scheme='url' isn't one of the concrete prefixers — the value has
@@ -149,7 +149,7 @@ it( 'returns null for an unschemed value bound with an unrecognized scheme', fun
 	] ) )->toBeNull();
 } );
 
-it( 'enumerates fields from the registered types', function () {
+it( 'enumerates fields from the registered types', function (): void {
 	app()->instance(
 		'ArtisanPackUI\\CMSFramework\\Modules\\DynamicContent\\Managers\\DynamicContentTypeRegistry',
 		new FakeDynamicContentTypeRegistry( [
@@ -169,7 +169,7 @@ it( 'enumerates fields from the registered types', function () {
 					[ 'slug' => 'role', 'label' => 'Role', 'type' => 'text' ],
 				],
 			],
-		] )
+		] ),
 	);
 
 	$fields = $this->source->availableFields( '' );

@@ -13,8 +13,7 @@ use Tests\TestUser;
 function bindAllowingGate(): void
 {
 	app()->bind( SiteEditorAccessGate::class, function () {
-		return new class implements SiteEditorAccessGate
-		{
+		return new class implements SiteEditorAccessGate {
 			public function check( Request $request ): ?Response
 			{
 				return null;
@@ -26,8 +25,7 @@ function bindAllowingGate(): void
 function bindDenyingGate(): void
 {
 	app()->bind( SiteEditorAccessGate::class, function () {
-		return new class implements SiteEditorAccessGate
-		{
+		return new class implements SiteEditorAccessGate {
 			public function check( Request $request ): ?Response
 			{
 				return response( 'denied', Response::HTTP_FORBIDDEN );
@@ -90,7 +88,7 @@ beforeEach( function (): void {
 	$paths           = & managementZipPaths();
 	$paths           = [];
 	// Force the uploader to pick up the rebound registry.
-	app()->forgetInstance( \ArtisanPackUI\VisualEditor\Services\Icon\IconSetUploader::class );
+	app()->forgetInstance( ArtisanPackUI\VisualEditor\Services\Icon\IconSetUploader::class );
 } );
 
 afterEach( function (): void {

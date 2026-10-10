@@ -35,10 +35,10 @@ use Illuminate\Support\Facades\View;
  * the goldens lock in markup the package no longer emits, so prepend the
  * source directory for this suite.
  */
-beforeEach( function () {
+beforeEach( function (): void {
 	View::getFinder()->prependNamespace(
 		'visual-editor-renderer-blade',
-		dirname( __DIR__, 2 ) . '/resources/views'
+		dirname( __DIR__, 2 ) . '/resources/views',
 	);
 
 	View::getFinder()->flush();
@@ -65,7 +65,7 @@ function markupParityManifest(): array
 		(string) file_get_contents( markupParityPath( 'fixtures.json' ) ),
 		true,
 		512,
-		JSON_THROW_ON_ERROR
+		JSON_THROW_ON_ERROR,
 	);
 }
 
@@ -174,7 +174,9 @@ function markupParityBindTemplateParts( array $templateParts ): void
 		/**
 		 * @param  array<string, array<string, mixed>>  $parts  Slug => template-part record.
 		 */
-		public function __construct( private array $parts ) {}
+		public function __construct( private array $parts )
+		{
+		}
 
 		public function resolve( string $slug ): ?object
 		{
@@ -259,7 +261,7 @@ function markupParityExtractCss( string $html, array $droppedStyleTags = [] ): a
 
 			return '';
 		},
-		$html
+		$html,
 	);
 
 	$markup = (string) preg_replace( '#<link\b[^>]*\sdata-ve-[a-z-]+[^>]*>#', '', $markup );
@@ -318,7 +320,7 @@ function markupParityCanonicalCss( string $css ): string
 {
 	$rules = array_map(
 		static fn ( string $rule ): string => trim( (string) preg_replace( '/[ \t\r\n\f\x0B]+/', ' ', $rule ) ),
-		markupParitySplitCssRules( $css )
+		markupParitySplitCssRules( $css ),
 	);
 
 	$rules = array_values( array_filter( $rules, static fn ( string $rule ): bool => '' !== $rule ) );
@@ -328,7 +330,7 @@ function markupParityCanonicalCss( string $css ): string
 	return implode( "\n", $rules );
 }
 
-it( 'matches the golden markup shared with the React and Vue renderers', function ( string $name, array $tree, array $templateParts ) {
+it( 'matches the golden markup shared with the React and Vue renderers', function ( string $name, array $tree, array $templateParts ): void {
 	if ( [] !== $templateParts ) {
 		markupParityBindTemplateParts( $templateParts );
 	}
@@ -363,7 +365,7 @@ it( 'matches the golden markup shared with the React and Vue renderers', functio
 	}
 
 	expect( file_exists( $goldenPath ) )->toBeTrue(
-		'Missing golden for fixture "' . $name . '". Run: composer test:update-markup-goldens'
+		'Missing golden for fixture "' . $name . '". Run: composer test:update-markup-goldens',
 	);
 
 	// `\r\n` guard: the goldens are compared as exact strings, so a CRLF
@@ -373,12 +375,12 @@ it( 'matches the golden markup shared with the React and Vue renderers', functio
 	expect( $canonical )->toBe( rtrim( $golden, "\n" ) );
 } )->with( markupParityFixtures() );
 
-it( 'has a golden for every fixture and no orphaned goldens', function () {
+it( 'has a golden for every fixture and no orphaned goldens', function (): void {
 	$expected = array_keys( markupParityFixtures() );
 
 	$actual = array_map(
 		static fn ( string $path ): string => basename( $path, '.txt' ),
-		glob( markupParityPath( 'goldens/*.txt' ) ) ?: []
+		glob( markupParityPath( 'goldens/*.txt' ) ) ?: [],
 	);
 
 	sort( $expected );
@@ -396,7 +398,7 @@ it( 'has a golden for every fixture and no orphaned goldens', function () {
  * renderer has converged (as it is after #714), so this asserts "every
  * declared pattern compiles", not that any are declared.
  */
-it( 'compiles every declared divergence pattern', function () {
+it( 'compiles every declared divergence pattern', function (): void {
 	$divergences = markupParityDivergences();
 
 	expect( $divergences )->toBeArray();
@@ -414,7 +416,7 @@ it( 'compiles every declared divergence pattern', function () {
  * A malformed entry would otherwise silently drop nothing (or everything)
  * on one side only. Mirrors the vitest twin.
  */
-it( 'declares every divergence with a reason and exactly one drop rule', function () {
+it( 'declares every divergence with a reason and exactly one drop rule', function (): void {
 	foreach ( markupParityDivergences() as $divergence ) {
 		expect( $divergence['id'] ?? null )->toBeString()
 			->and( $divergence['issue'] ?? '' )->not->toBe( '' )
@@ -427,7 +429,7 @@ it( 'declares every divergence with a reason and exactly one drop rule', functio
  * A `fixturesMatching` scope that matches no fixture is a stale entry: the
  * divergence it documents is no longer exercised. Mirrors the vitest twin.
  */
-it( 'scopes every divergence to at least one fixture', function () {
+it( 'scopes every divergence to at least one fixture', function (): void {
 	$names = array_keys( markupParityFixtures() );
 
 	foreach ( markupParityDivergences() as $divergence ) {

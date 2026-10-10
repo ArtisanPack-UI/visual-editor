@@ -368,7 +368,7 @@ return [
 
 	'media' => [
 		'bridge'  => 'artisanpack-ui/media-library',
-		'adapter' => \ArtisanPackUI\VisualEditor\MediaBridge\GutenbergAttachmentAdapter::class,
+		'adapter' => ArtisanPackUI\VisualEditor\MediaBridge\GutenbergAttachmentAdapter::class,
 	],
 
 	/*

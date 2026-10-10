@@ -118,7 +118,7 @@ class AuditBreakpointsCommand extends Command
 					'scanned' => $scanned,
 					'records' => $report,
 				],
-				JSON_PRETTY_PRINT
+				JSON_PRETTY_PRINT,
 			);
 
 			if ( false === $encoded ) {
@@ -249,14 +249,14 @@ class AuditBreakpointsCommand extends Command
 					$filtered = array_values( array_filter(
 						$discovered,
 						static fn ( string $k ): bool => ! is_array( $value[ $k ] ?? null )
-							&& ! isset( $known[ $k ] )
+							&& ! isset( $known[ $k ] ),
 					) );
 
 					if ( [] !== $filtered ) {
 						$bucket             = $blockName . '@' . $childPath;
 						$orphans[ $bucket ] = array_values( array_unique( array_merge(
 							$orphans[ $bucket ] ?? [],
-							$filtered
+							$filtered,
 						) ) );
 					}
 				}

@@ -13,7 +13,7 @@ beforeEach( function (): void {
 	file_put_contents( test()->base . '/fab/github.svg', '<svg id="github"><path d="M0 0"/></svg>' );
 
 	test()->hydrator = new InlineIconContentHydrator(
-		new IconSvgResolver( [ 'fab' => test()->base . '/fab' ] )
+		new IconSvgResolver( [ 'fab' => test()->base . '/fab' ] ),
 	);
 } );
 
@@ -30,7 +30,7 @@ afterEach( function (): void {
 	}
 } );
 
-it( 'hydrates a registered-set reference span with the resolved, sized svg', function () {
+it( 'hydrates a registered-set reference span with the resolved, sized svg', function (): void {
 	$html = '<p>Read more <span class="ap-inline-icon" data-icon-set="fab" data-icon-name="github" aria-hidden="true"></span></p>';
 
 	$result = test()->hydrator->hydrate( $html );
@@ -42,7 +42,7 @@ it( 'hydrates a registered-set reference span with the resolved, sized svg', fun
 		->toContain( 'style="' . INLINE_ICON_SVG_STYLE . '"' );
 } );
 
-it( 'replaces a stale preview body with the freshly resolved svg', function () {
+it( 'replaces a stale preview body with the freshly resolved svg', function (): void {
 	// The editor embeds a preview SVG so the icon is visible while
 	// authoring; the render pass re-resolves from the data-* reference so
 	// the icon auto-updates if the underlying set changes.
@@ -55,23 +55,23 @@ it( 'replaces a stale preview body with the freshly resolved svg', function () {
 		->not->toContain( 'id="stale"' );
 } );
 
-it( 'empties the span when the set is unknown or removed', function () {
+it( 'empties the span when the set is unknown or removed', function (): void {
 	$html = '<span class="ap-inline-icon" data-icon-set="gone" data-icon-name="github"><svg id="stale"/></span>';
 
 	expect( test()->hydrator->hydrate( $html ) )->toBe(
-		'<span class="ap-inline-icon" data-icon-set="gone" data-icon-name="github"></span>'
+		'<span class="ap-inline-icon" data-icon-set="gone" data-icon-name="github"></span>',
 	);
 } );
 
-it( 'empties the span when the icon file is missing', function () {
+it( 'empties the span when the icon file is missing', function (): void {
 	$html = '<span class="ap-inline-icon" data-icon-set="fab" data-icon-name="does-not-exist"></span>';
 
 	expect( test()->hydrator->hydrate( $html ) )->toBe(
-		'<span class="ap-inline-icon" data-icon-set="fab" data-icon-name="does-not-exist"></span>'
+		'<span class="ap-inline-icon" data-icon-set="fab" data-icon-name="does-not-exist"></span>',
 	);
 } );
 
-it( 'leaves a custom-svg inline icon untouched', function () {
+it( 'leaves a custom-svg inline icon untouched', function (): void {
 	// Custom SVG carries no data-icon-set / data-icon-name — its sanitized
 	// markup is embedded directly and must pass through verbatim.
 	$html = '<span class="ap-inline-icon" aria-hidden="true"><svg viewBox="0 0 1 1"><path d="M0 0"/></svg></span>';
@@ -79,7 +79,7 @@ it( 'leaves a custom-svg inline icon untouched', function () {
 	expect( test()->hydrator->hydrate( $html ) )->toBe( $html );
 } );
 
-it( 'hydrates multiple reference spans in one pass', function () {
+it( 'hydrates multiple reference spans in one pass', function (): void {
 	file_put_contents( test()->base . '/fab/gitlab.svg', '<svg id="gitlab"><path d="M1 1"/></svg>' );
 
 	$html = '<span class="ap-inline-icon" data-icon-set="fab" data-icon-name="github"></span>'
@@ -94,7 +94,7 @@ it( 'hydrates multiple reference spans in one pass', function () {
 		->and( substr_count( $result, 'style="' . INLINE_ICON_SVG_STYLE . '"' ) )->toBe( 2 );
 } );
 
-it( 'appends the enforced style after an existing style so 1em sizing wins', function () {
+it( 'appends the enforced style after an existing style so 1em sizing wins', function (): void {
 	// A source width in the existing style must not override the enforced
 	// 1em, so the enforced declarations go LAST.
 	file_put_contents( test()->base . '/fab/styled.svg', '<svg id="styled" style="width:512px;color:red"><path d="M0 0"/></svg>' );
@@ -105,7 +105,7 @@ it( 'appends the enforced style after an existing style so 1em sizing wins', fun
 		->toContain( 'style="width:512px;color:red;' . INLINE_ICON_SVG_STYLE . '"' );
 } );
 
-it( 'merges a single-quoted style attribute without creating a duplicate', function () {
+it( 'merges a single-quoted style attribute without creating a duplicate', function (): void {
 	file_put_contents( test()->base . '/fab/singlequote.svg', "<svg id=\"sq\" style='color:red'><path d=\"M0 0\"/></svg>" );
 
 	$html   = '<span class="ap-inline-icon" data-icon-set="fab" data-icon-name="singlequote"></span>';
@@ -116,17 +116,17 @@ it( 'merges a single-quoted style attribute without creating a duplicate', funct
 		->and( substr_count( $result, 'style=' ) )->toBe( 1 );
 } );
 
-it( 'normalizes a self-closing resolved svg without corrupting the tag', function () {
+it( 'normalizes a self-closing resolved svg without corrupting the tag', function (): void {
 	file_put_contents( test()->base . '/fab/selfclose.svg', '<svg id="sc" viewBox="0 0 1 1"/>' );
 
 	$html = '<span class="ap-inline-icon" data-icon-set="fab" data-icon-name="selfclose"></span>';
 
 	expect( test()->hydrator->hydrate( $html ) )->toBe(
-		'<span class="ap-inline-icon" data-icon-set="fab" data-icon-name="selfclose"><svg id="sc" viewBox="0 0 1 1" style="' . INLINE_ICON_SVG_STYLE . '"/></span>'
+		'<span class="ap-inline-icon" data-icon-set="fab" data-icon-name="selfclose"><svg id="sc" viewBox="0 0 1 1" style="' . INLINE_ICON_SVG_STYLE . '"/></span>',
 	);
 } );
 
-it( 'does not match data-icon-set inside a longer prefixed attribute name', function () {
+it( 'does not match data-icon-set inside a longer prefixed attribute name', function (): void {
 	// A custom-svg span whose only "data-icon-set"-like token is part of a
 	// longer attribute must not be treated as a registered-set reference.
 	$html = '<span class="ap-inline-icon" x-data-icon-set="fab"><svg viewBox="0 0 1 1"><path d="M0 0"/></svg></span>';
@@ -134,7 +134,7 @@ it( 'does not match data-icon-set inside a longer prefixed attribute name', func
 	expect( test()->hydrator->hydrate( $html ) )->toBe( $html );
 } );
 
-it( 'is idempotent — re-hydrating already-resolved content is a no-op', function () {
+it( 'is idempotent — re-hydrating already-resolved content is a no-op', function (): void {
 	$html  = '<span class="ap-inline-icon" data-icon-set="fab" data-icon-name="github"></span>';
 	$once  = test()->hydrator->hydrate( $html );
 	$twice = test()->hydrator->hydrate( $once );
@@ -142,7 +142,7 @@ it( 'is idempotent — re-hydrating already-resolved content is a no-op', functi
 	expect( $twice )->toBe( $once );
 } );
 
-it( 'resolves the data-* reference regardless of attribute order', function () {
+it( 'resolves the data-* reference regardless of attribute order', function (): void {
 	$html = '<span data-icon-name="github" class="ap-inline-icon" data-icon-set="fab"></span>';
 
 	$result = test()->hydrator->hydrate( $html );
@@ -152,7 +152,7 @@ it( 'resolves the data-* reference regardless of attribute order', function () {
 		->toContain( 'style="' . INLINE_ICON_SVG_STYLE . '"' );
 } );
 
-it( 'leaves content with no inline icons untouched', function () {
+it( 'leaves content with no inline icons untouched', function (): void {
 	$html = '<p>Just a paragraph <span class="badge">no icon</span> here.</p>';
 
 	expect( test()->hydrator->hydrate( $html ) )->toBe( $html );

@@ -25,6 +25,7 @@ namespace ArtisanPackUI\VisualEditor\Visibility;
 
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
+use Throwable;
 
 class PreviewContext
 {
@@ -80,7 +81,7 @@ class PreviewContext
 		if ( isset( $payload['now'] ) && is_string( $payload['now'] ) && '' !== $payload['now'] ) {
 			try {
 				$now = CarbonImmutable::parse( $payload['now'] );
-			} catch ( \Throwable $e ) {
+			} catch ( Throwable $e ) {
 				$now = null;
 			}
 		}

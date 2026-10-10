@@ -65,7 +65,7 @@ beforeEach( function (): void {
 	$this->inliner = new QueryInliner( $this->app, new PostResolver() );
 } );
 
-it( 'expands artisanpack/single-content by stamping the resolved post against the inner tree', function () {
+it( 'expands artisanpack/single-content by stamping the resolved post against the inner tree', function (): void {
 	$this->fake->setItems( [ singlePostFixture( 42, 'Resolved' ) ] );
 
 	$tree = [ makeSingleContentBlock( 42, 'post', [
@@ -87,7 +87,7 @@ it( 'expands artisanpack/single-content by stamping the resolved post against th
 	] );
 } );
 
-it( 'returns artisanpack/single-content with _resolvedHasPost true and untouched inner when postId is 0 + host post exists', function () {
+it( 'returns artisanpack/single-content with _resolvedHasPost true and untouched inner when postId is 0 + host post exists', function (): void {
 	$tree = [ makeSingleContentBlock( 0, 'post', [
 		[ 'name' => 'core/post-title', 'attributes' => [], 'innerBlocks' => [] ],
 	] ) ];
@@ -104,7 +104,7 @@ it( 'returns artisanpack/single-content with _resolvedHasPost true and untouched
 		->and( $this->fake->lastAttributes )->toBeNull();
 } );
 
-it( 'returns artisanpack/single-content with _resolvedHasPost false when the resolver returns no rows', function () {
+it( 'returns artisanpack/single-content with _resolvedHasPost false when the resolver returns no rows', function (): void {
 	$this->fake->setItems( [] );
 
 	$tree    = [ makeSingleContentBlock( 99 ) ];
@@ -114,7 +114,7 @@ it( 'returns artisanpack/single-content with _resolvedHasPost false when the res
 		->and( $inlined[0]['innerBlocks'] )->toBe( [] );
 } );
 
-it( 'marks artisanpack/single-content with _resolutionError when no resolver is bound', function () {
+it( 'marks artisanpack/single-content with _resolutionError when no resolver is bound', function (): void {
 	$this->app->forgetInstance( QueryResolverContract::class );
 	$this->app->offsetUnset( QueryResolverContract::class );
 
@@ -125,13 +125,13 @@ it( 'marks artisanpack/single-content with _resolutionError when no resolver is 
 		->and( $inlined[0]['innerBlocks'] )->toBe( [] );
 } );
 
-it( 'expands artisanpack/related-posts into one core/post-template-item per resolved post', function () {
+it( 'expands artisanpack/related-posts into one core/post-template-item per resolved post', function (): void {
 	$this->fake->setItems( [
 		singlePostFixture( 11, 'Alpha' ),
 		singlePostFixture( 12, 'Beta' ),
 	] );
 
-	$host          = singlePostFixture( 1, 'Host' );
+	$host            = singlePostFixture( 1, 'Host' );
 	$host->post_type = 'post';
 
 	$tree = [ makeRelatedPostsBlock( 2, [
@@ -154,7 +154,7 @@ it( 'expands artisanpack/related-posts into one core/post-template-item per reso
 		->and( $this->fake->lastAttributes['exclude'] )->toBe( [ 1 ] );
 } );
 
-it( 'returns artisanpack/related-posts with zero items when no host post is in scope', function () {
+it( 'returns artisanpack/related-posts with zero items when no host post is in scope', function (): void {
 	$this->fake->setItems( [ singlePostFixture( 99, 'Unused' ) ] );
 
 	$tree    = [ makeRelatedPostsBlock( 3 ) ];
@@ -165,7 +165,7 @@ it( 'returns artisanpack/related-posts with zero items when no host post is in s
 		->and( $this->fake->lastAttributes )->toBeNull();
 } );
 
-it( 'marks artisanpack/related-posts with _resolutionError when no resolver is bound', function () {
+it( 'marks artisanpack/related-posts with _resolutionError when no resolver is bound', function (): void {
 	$this->app->forgetInstance( QueryResolverContract::class );
 	$this->app->offsetUnset( QueryResolverContract::class );
 

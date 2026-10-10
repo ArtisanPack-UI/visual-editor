@@ -9,7 +9,7 @@ beforeEach( function (): void {
 	app( ResponsiveCssAccumulator::class )->reset();
 } );
 
-it( 'emits a flex-basis @media rule (not width) with gap-aware calc for responsive column width', function () {
+it( 'emits a flex-basis @media rule (not width) with gap-aware calc for responsive column width', function (): void {
 	$tree = [
 		[
 			'clientId'   => 'col-1',
@@ -33,12 +33,12 @@ it( 'emits a flex-basis @media rule (not width) with gap-aware calc for responsi
 	expect( $rendered )->not->toContain( 'width:25%' );
 } );
 
-it( 'promotes legacy width attribute into a gap-aware base !important rule', function () {
+it( 'promotes legacy width attribute into a gap-aware base !important rule', function (): void {
 	$tree = [
 		[
-			'clientId'   => 'col-1',
-			'name'       => 'artisanpack/column',
-			'attributes' => [ 'width' => '50%' ],
+			'clientId'    => 'col-1',
+			'name'        => 'artisanpack/column',
+			'attributes'  => [ 'width' => '50%' ],
 			'innerBlocks' => [],
 		],
 	];
@@ -56,7 +56,7 @@ it( 'promotes legacy width attribute into a gap-aware base !important rule', fun
 	expect( $rendered )->toMatch( '/\.ve-w-[a-f0-9]+\.ve-w-[a-f0-9]+\.ve-w-[a-f0-9]+\{flex-basis:calc\(50% - var\(--wp--style--block-gap, 0\.5em\) \* 0\.5\)!important;flex-grow:0!important\}/' );
 } );
 
-it( 'merges legacy base width with responsive overrides into one rule set', function () {
+it( 'merges legacy base width with responsive overrides into one rule set', function (): void {
 	$tree = [
 		[
 			'clientId'   => 'col-1',
@@ -80,7 +80,7 @@ it( 'merges legacy base width with responsive overrides into one rule set', func
 	expect( $rendered )->toContain( '@media (min-width:768px)' );
 } );
 
-it( 'prefers an explicit responsive.base over the legacy width attribute', function () {
+it( 'prefers an explicit responsive.base over the legacy width attribute', function (): void {
 	$tree = [
 		[
 			'clientId'   => 'col-1',
@@ -101,7 +101,7 @@ it( 'prefers an explicit responsive.base over the legacy width attribute', funct
 	expect( $rendered )->not->toContain( 'flex-basis:calc(50%' );
 } );
 
-it( 'tripled selector specificity beats WP core stacking rule', function () {
+it( 'tripled selector specificity beats WP core stacking rule', function (): void {
 	$tree = [
 		[
 			'clientId'   => 'col-1',
@@ -121,7 +121,7 @@ it( 'tripled selector specificity beats WP core stacking rule', function () {
 	expect( $rendered )->toMatch( '/\.ve-w-[a-f0-9]+\.ve-w-[a-f0-9]+\.ve-w-[a-f0-9]+\{flex-basis:calc\(25% - var\(--wp--style--block-gap, 0\.5em\) \* 0\.75\)!important;flex-grow:0!important\}/' );
 } );
 
-it( 'passes string percentage values through with gap-aware calc', function () {
+it( 'passes string percentage values through with gap-aware calc', function (): void {
 	$tree = [
 		[
 			'clientId'   => 'col-1',
@@ -140,7 +140,7 @@ it( 'passes string percentage values through with gap-aware calc', function () {
 	expect( $rendered )->toContain( 'flex-basis:calc(33.33% - var(--wp--style--block-gap, 0.5em) * 0.6667)!important' );
 } );
 
-it( 'emits absolute units (e.g. 200px) without the calc wrapper', function () {
+it( 'emits absolute units (e.g. 200px) without the calc wrapper', function (): void {
 	$tree = [
 		[
 			'clientId'   => 'col-1',
@@ -160,7 +160,7 @@ it( 'emits absolute units (e.g. 200px) without the calc wrapper', function () {
 	expect( $rendered )->not->toContain( 'calc(200px' );
 } );
 
-it( 'emits 100% width without the calc wrapper (factor would be 0)', function () {
+it( 'emits 100% width without the calc wrapper (factor would be 0)', function (): void {
 	$tree = [
 		[
 			'clientId'   => 'col-1',
@@ -180,7 +180,7 @@ it( 'emits 100% width without the calc wrapper (factor would be 0)', function ()
 	expect( $rendered )->not->toContain( 'calc(100%' );
 } );
 
-it( 'skips the consolidated style block when no width overrides are present', function () {
+it( 'skips the consolidated style block when no width overrides are present', function (): void {
 	$tree = [
 		[
 			'clientId'    => 'col-1',
@@ -195,12 +195,12 @@ it( 'skips the consolidated style block when no width overrides are present', fu
 	expect( $rendered )->not->toContain( '<style data-ve-responsive>' );
 } );
 
-it( 'multiple columns with the same width payload only emit one rule set', function () {
+it( 'multiple columns with the same width payload only emit one rule set', function (): void {
 	$tree = [
 		[
-			'clientId'   => 'cols-1',
-			'name'       => 'artisanpack/columns',
-			'attributes' => [],
+			'clientId'    => 'cols-1',
+			'name'        => 'artisanpack/columns',
+			'attributes'  => [],
 			'innerBlocks' => [
 				[
 					'clientId'   => 'col-1',
@@ -234,7 +234,7 @@ it( 'multiple columns with the same width payload only emit one rule set', funct
  * the raw `<style data-ve-responsive>` block. With no surviving rule the
  * `ve-w-<hash>` scope class is not attached to the wrapper either.
  */
-it( 'drops a hostile column width so it never reaches the stylesheet', function () {
+it( 'drops a hostile column width so it never reaches the stylesheet', function (): void {
 	$tree = [
 		[
 			'clientId'    => 'col-1',
@@ -256,7 +256,7 @@ it( 'drops a hostile column width so it never reaches the stylesheet', function 
 	expect( $rendered )->not->toContain( '<style data-ve-responsive>' );
 } );
 
-it( 'keeps a safe base width while dropping a hostile per-breakpoint override', function () {
+it( 'keeps a safe base width while dropping a hostile per-breakpoint override', function (): void {
 	$tree = [
 		[
 			'clientId'    => 'col-1',
@@ -286,7 +286,7 @@ it( 'keeps a safe base width while dropping a hostile per-breakpoint override', 
 } );
 
 describe( 'desktop-first Mobile override (#820)', function (): void {
-	it( 'stacks 50/50 columns set to 100% under Mobile only at the mobile width', function () {
+	it( 'stacks 50/50 columns set to 100% under Mobile only at the mobile width', function (): void {
 		$column = static fn ( string $id ): array => [
 			'clientId'    => $id,
 			'name'        => 'artisanpack/column',
@@ -312,7 +312,7 @@ describe( 'desktop-first Mobile override (#820)', function (): void {
 			->not->toContain( '@media (min-width:640px)' );
 	} );
 
-	it( 'emits tablet before mobile regardless of stored order', function () {
+	it( 'emits tablet before mobile regardless of stored order', function (): void {
 		$tree = [
 			[
 				'clientId'    => 'col',

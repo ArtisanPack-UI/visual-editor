@@ -22,6 +22,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditor\Http\Controllers\DynamicContent;
 
 use ArtisanPackUI\VisualEditor\Registries\DynamicContentSourceRegistry;
+use BackedEnum;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use Throwable;
@@ -148,7 +149,7 @@ class DynamicContentSourcesController extends Controller
 	 */
 	protected function enumString( mixed $value, string $default ): string
 	{
-		if ( $value instanceof \BackedEnum ) {
+		if ( $value instanceof BackedEnum ) {
 			return (string) $value->value;
 		}
 

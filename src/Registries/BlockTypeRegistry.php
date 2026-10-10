@@ -53,7 +53,7 @@ class BlockTypeRegistry
 		if ( 1 !== preg_match( self::NAME_PATTERN, $normalized ) ) {
 			throw new InvalidArgumentException( sprintf(
 				'Block type name "%s" is invalid. Expected format: "namespace/name" using lowercase letters, numbers, and hyphens.',
-				$name
+				$name,
 			) );
 		}
 

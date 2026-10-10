@@ -17,14 +17,14 @@
 
 declare( strict_types=1 );
 
-use ArtisanPackUI\VisualEditor\Http\Controllers\Ai\AiController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Adapters\CmsFramework\PageController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Adapters\CmsFramework\PostController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\Ai\AiController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\AttachmentController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\BindingResolveController;
-use ArtisanPackUI\VisualEditor\Http\Controllers\BusinessInfoController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\BindingSourcesController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\BlockPreviewController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\BusinessInfoController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\DynamicContent\DynamicContentResolveController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\DynamicContent\DynamicContentSourcesController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\DynamicContent\SnippetController;
@@ -38,13 +38,13 @@ use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSvgSanitizeController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\MenuLocationsController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\QueryResolveController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\ResourceAppliedTemplateController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\ResourceContentController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\GlobalStylesController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\MenuController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\MenuItemController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\PatternController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\PatternPreviewController;
-use ArtisanPackUI\VisualEditor\Http\Controllers\ResourceContentController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\TemplateController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\TemplatePartController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Visibility\UsersSearchController;
@@ -514,12 +514,12 @@ Route::get( 'business-info', [ BusinessInfoController::class, 'show' ] )
 // interface, so this must be `interface_exists()` — `class_exists()`
 // returns false for interfaces and left every `/ai/*` route
 // unregistered.
-if ( interface_exists( \ArtisanPackUI\Ai\Contracts\FeatureRegistry::class ) ) {
+if ( interface_exists( ArtisanPackUI\Ai\Contracts\FeatureRegistry::class ) ) {
 	// Every call spends the site's AI credentials, so the group is gated
 	// on the `visual-editor.use-ai` ability (deny by default) and
 	// throttled per user in its own rate-limit bucket (#828 hardening).
 	Route::middleware( [
-		'can:' . \ArtisanPackUI\VisualEditor\Ai\Support\AiAccess::ABILITY,
+		'can:' . ArtisanPackUI\VisualEditor\Ai\Support\AiAccess::ABILITY,
 		...RouteThrottle::middlewareList( config( 'artisanpack.visual-editor.ai.throttle', '20,1' ), '20,1', 've-ai' ),
 	] )->group( function (): void {
 		Route::get( 'ai/features', [ AiController::class, 'features' ] )

@@ -4,7 +4,7 @@ declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\Animations\KeyframeRegistry;
 
-it( 'exposes built-in keyframe names', function () {
+it( 'exposes built-in keyframe names', function (): void {
 	$registry = new KeyframeRegistry();
 
 	expect( $registry->isBuiltIn( 'apFadeIn' ) )->toBeTrue();
@@ -13,7 +13,7 @@ it( 'exposes built-in keyframe names', function () {
 	expect( $registry->has( 'apFadeIn' ) )->toBeTrue();
 } );
 
-it( 'emits CSS for every built-in keyframe', function () {
+it( 'emits CSS for every built-in keyframe', function (): void {
 	$registry = new KeyframeRegistry();
 	$css      = $registry->emitCss();
 
@@ -22,7 +22,7 @@ it( 'emits CSS for every built-in keyframe', function () {
 	expect( $css )->toContain( '@keyframes apSpin' );
 } );
 
-it( 'accepts and emits a custom keyframe', function () {
+it( 'accepts and emits a custom keyframe', function (): void {
 	$registry = new KeyframeRegistry( [
 		[
 			'name'  => 'confetti',
@@ -39,7 +39,7 @@ it( 'accepts and emits a custom keyframe', function () {
 	expect( $registry->emitOne( 'confetti' ) )->toContain( 'translateY(-12px)' );
 } );
 
-it( 'fromLayers skips and logs invalid entries instead of throwing', function () {
+it( 'fromLayers skips and logs invalid entries instead of throwing', function (): void {
 	// Mixed: one valid + two invalid. Boot must never crash on a
 	// malformed host config — the scoped service-provider binding
 	// resolves on every request, so a throw here would 500 the editor.
@@ -55,13 +55,13 @@ it( 'fromLayers skips and logs invalid entries instead of throwing', function ()
 			[ 'stops' => [] ],
 			[ 'name' => 'broken', 'stops' => [ [ 'at' => '0%', 'opacity' => '0' ] ] ],
 		],
-		[]
+		[],
 	);
 
 	expect( $registry->customNames() )->toBe( [ 'confetti' ] );
 } );
 
-it( 'does not let an invalid global-styles entry overwrite a valid theme entry of the same name', function () {
+it( 'does not let an invalid global-styles entry overwrite a valid theme entry of the same name', function (): void {
 	// Regression for the validate-then-merge fix: if global-styles
 	// stomps the merge dict pre-validation, the (valid) theme entry
 	// vanishes because the (invalid) global entry replaces it and is
@@ -81,14 +81,14 @@ it( 'does not let an invalid global-styles entry overwrite a valid theme entry o
 			// Invalid: only one stop. Must NOT overwrite the theme
 			// entry above.
 			[ 'name' => 'confetti', 'stops' => [ [ 'at' => '0%', 'opacity' => '0' ] ] ],
-		]
+		],
 	);
 
 	expect( $registry->customNames() )->toBe( [ 'confetti' ] );
 	expect( $registry->emitOne( 'confetti' ) )->toContain( 'translateY(0)' );
 } );
 
-it( 'global-styles wins over theme when both layers are valid', function () {
+it( 'global-styles wins over theme when both layers are valid', function (): void {
 	$registry = KeyframeRegistry::fromLayers(
 		[
 			[
@@ -107,7 +107,7 @@ it( 'global-styles wins over theme when both layers are valid', function () {
 					[ 'at' => '100%', 'transform' => 'translateY(-12px)' ],
 				],
 			],
-		]
+		],
 	);
 
 	$emitted = $registry->emitOne( 'confetti' );
@@ -117,7 +117,7 @@ it( 'global-styles wins over theme when both layers are valid', function () {
 	expect( $emitted )->not->toContain( 'opacity' );
 } );
 
-it( 'rejects a custom keyframe whose name collides with a built-in', function () {
+it( 'rejects a custom keyframe whose name collides with a built-in', function (): void {
 	new KeyframeRegistry( [
 		[
 			'name'  => 'apFadeIn',
@@ -129,7 +129,7 @@ it( 'rejects a custom keyframe whose name collides with a built-in', function ()
 	] );
 } )->throws( InvalidArgumentException::class, 'reserved' );
 
-it( 'rejects case-variant collisions with a built-in keyframe name', function () {
+it( 'rejects case-variant collisions with a built-in keyframe name', function (): void {
 	new KeyframeRegistry( [
 		[
 			'name'  => 'apfadein',
@@ -141,13 +141,13 @@ it( 'rejects case-variant collisions with a built-in keyframe name', function ()
 	] );
 } )->throws( InvalidArgumentException::class, 'reserved' );
 
-it( 'rejects fewer than two stops', function () {
+it( 'rejects fewer than two stops', function (): void {
 	new KeyframeRegistry( [
 		[ 'name' => 'oneStop', 'stops' => [ [ 'at' => '0%', 'opacity' => '0' ] ] ],
 	] );
 } )->throws( InvalidArgumentException::class, 'two' );
 
-it( 'rejects an unsupported stop property', function () {
+it( 'rejects an unsupported stop property', function (): void {
 	new KeyframeRegistry( [
 		[
 			'name'  => 'bad',
@@ -159,7 +159,7 @@ it( 'rejects an unsupported stop property', function () {
 	] );
 } )->throws( InvalidArgumentException::class, 'property' );
 
-it( 'rejects an at value outside 0-100 percent', function () {
+it( 'rejects an at value outside 0-100 percent', function (): void {
 	new KeyframeRegistry( [
 		[
 			'name'  => 'bad',
@@ -171,7 +171,7 @@ it( 'rejects an at value outside 0-100 percent', function () {
 	] );
 } )->throws( InvalidArgumentException::class );
 
-it( 'rejects a CSS-injection attempt in a value', function () {
+it( 'rejects a CSS-injection attempt in a value', function (): void {
 	new KeyframeRegistry( [
 		[
 			'name'  => 'bad',

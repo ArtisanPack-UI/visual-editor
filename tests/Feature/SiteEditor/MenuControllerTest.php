@@ -421,7 +421,7 @@ describe( 'POST /visual-editor/api/menus', function (): void {
 	} );
 
 	it( 'returns 422 when theme is missing and no active theme is bound', function (): void {
-		$this->mock( \ArtisanPackUI\CMSFramework\Modules\Themes\Managers\ThemeManager::class, function ( $mock ): void {
+		$this->mock( ThemeManager::class, function ( $mock ): void {
 			$mock->shouldReceive( 'getActiveTheme' )->andReturn( null );
 		} );
 

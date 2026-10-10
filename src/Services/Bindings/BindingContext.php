@@ -43,7 +43,7 @@ class BindingContext
 	public function __construct(
 		protected ?Model $model = null,
 		protected array $draft = [],
-		protected array $extras = []
+		protected array $extras = [],
 	) {
 	}
 

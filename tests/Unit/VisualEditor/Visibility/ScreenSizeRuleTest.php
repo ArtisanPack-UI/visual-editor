@@ -11,11 +11,11 @@ function screenRule(): ScreenSizeRule
 	return new ScreenSizeRule( BreakpointRegistry::fromLayers( [] ) );
 }
 
-it( 'is visible with no breakpoints configured', function () {
+it( 'is visible with no breakpoints configured', function (): void {
 	expect( screenRule()->evaluate( [], new VisibilityContext() )->isVisible() )->toBeTrue();
 } );
 
-it( 'emits CSS-hidden decision with the configured hide list', function () {
+it( 'emits CSS-hidden decision with the configured hide list', function (): void {
 	$decision = screenRule()->evaluate(
 		[ 'direction' => 'hide', 'breakpoints' => [ 'sm', 'md' ] ],
 		new VisibilityContext(),
@@ -25,7 +25,7 @@ it( 'emits CSS-hidden decision with the configured hide list', function () {
 	expect( $decision->hiddenBreakpoints )->toEqualCanonicalizing( [ 'sm', 'md' ] );
 } );
 
-it( 'inverts to hidden everywhere else when direction=show', function () {
+it( 'inverts to hidden everywhere else when direction=show', function (): void {
 	// direction=show + [sm, md] means "visible at sm and md, hidden elsewhere".
 	// The default registry has sm, md, lg, xl, 2xl — so lg, xl, 2xl should hide.
 	$decision = screenRule()->evaluate(
@@ -38,7 +38,7 @@ it( 'inverts to hidden everywhere else when direction=show', function () {
 	expect( $decision->hiddenBreakpoints )->toEqualCanonicalizing( [ '2xl', 'lg', 'xl' ] );
 } );
 
-it( 'is visible when direction=show covers every registered breakpoint', function () {
+it( 'is visible when direction=show covers every registered breakpoint', function (): void {
 	$decision = screenRule()->evaluate(
 		[ 'direction' => 'show', 'breakpoints' => [ 'sm', 'md', 'lg', 'xl', '2xl' ] ],
 		new VisibilityContext(),

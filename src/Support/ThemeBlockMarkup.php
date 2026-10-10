@@ -38,6 +38,42 @@ class ThemeBlockMarkup
 	public const PARSER_FQCN = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Support\\BlockMarkupParser';
 
 	/**
+	 * `core/*` blocks that must NOT be rewritten to `artisanpack/*` on
+	 * read. `core/navigation` was forked in I5 (#413) and reverted in
+	 * #808 — the editor now registers it directly, and its parent-
+	 * locked inner-block family (`core/navigation-link`,
+	 * `core/navigation-submenu`, `core/page-list`, `core/home-link`,
+	 * `core/loginout`) was never forked. `core/block` (synced-pattern
+	 * references, #824) was never forked either — the editor's pattern
+	 * code creates and checks `core/block` by name. Rewriting any of them
+	 * would send the editor a name it doesn't have a block-type for and
+	 * render nothing.
+	 */
+	protected const CORE_NAMES_NOT_TO_FORK = [
+		'core/block'              => true,
+		'core/navigation'         => true,
+		'core/navigation-link'    => true,
+		'core/navigation-submenu' => true,
+		'core/page-list'          => true,
+		'core/page-list-item'     => true,
+		'core/home-link'          => true,
+		'core/loginout'           => true,
+	];
+
+	/**
+	 * Fork names the editor has no block-type for, mapped back to the
+	 * `core/*` name it does register. Before #824 the blanket rewrite
+	 * turned theme `wp:block` refs into `artisanpack/block`, and a save
+	 * wrote that into `templates.block_content`; translating it back on
+	 * read heals the stored rows without a data migration.
+	 *
+	 * @since 1.12.1
+	 */
+	protected const LEGACY_FORK_NAMES_TO_CORE = [
+		'artisanpack/block' => 'core/block',
+	];
+
+	/**
 	 * Parse raw block markup into the editor-shape block tree the shim's
 	 * `BlockEditorProvider` expects.
 	 *
@@ -108,42 +144,6 @@ class ThemeBlockMarkup
 
 		return $out;
 	}
-
-	/**
-	 * `core/*` blocks that must NOT be rewritten to `artisanpack/*` on
-	 * read. `core/navigation` was forked in I5 (#413) and reverted in
-	 * #808 — the editor now registers it directly, and its parent-
-	 * locked inner-block family (`core/navigation-link`,
-	 * `core/navigation-submenu`, `core/page-list`, `core/home-link`,
-	 * `core/loginout`) was never forked. `core/block` (synced-pattern
-	 * references, #824) was never forked either — the editor's pattern
-	 * code creates and checks `core/block` by name. Rewriting any of them
-	 * would send the editor a name it doesn't have a block-type for and
-	 * render nothing.
-	 */
-	protected const CORE_NAMES_NOT_TO_FORK = [
-		'core/block'              => true,
-		'core/navigation'         => true,
-		'core/navigation-link'    => true,
-		'core/navigation-submenu' => true,
-		'core/page-list'          => true,
-		'core/page-list-item'     => true,
-		'core/home-link'          => true,
-		'core/loginout'           => true,
-	];
-
-	/**
-	 * Fork names the editor has no block-type for, mapped back to the
-	 * `core/*` name it does register. Before #824 the blanket rewrite
-	 * turned theme `wp:block` refs into `artisanpack/block`, and a save
-	 * wrote that into `templates.block_content`; translating it back on
-	 * read heals the stored rows without a data migration.
-	 *
-	 * @since 1.12.1
-	 */
-	protected const LEGACY_FORK_NAMES_TO_CORE = [
-		'artisanpack/block' => 'core/block',
-	];
 
 	/**
 	 * Rewrite every `core/x` block name to its `artisanpack/x` fork,

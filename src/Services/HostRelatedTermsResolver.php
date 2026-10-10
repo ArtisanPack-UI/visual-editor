@@ -26,7 +26,9 @@ use Throwable;
 
 class HostRelatedTermsResolver
 {
-	public function __construct( protected QueryResolverContract $resolver ) {}
+	public function __construct( protected QueryResolverContract $resolver )
+	{
+	}
 
 	/**
 	 * Load a single host post by id via the bound resolver. Returns

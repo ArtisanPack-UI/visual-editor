@@ -438,7 +438,7 @@ class VariantResolver
 			'apve_query_variant_match_' . $name,
 			false,
 			$post,
-			$context
+			$context,
 		);
 
 		return true === $result;

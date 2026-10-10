@@ -11,11 +11,11 @@ declare( strict_types=1 );
  */
 
 use ArtisanPackUI\VisualEditor\Services\QueryResolverContract;
+use Illuminate\Support\Facades\Gate;
 use Tests\Fixtures\FakeQueryResolver;
 use Tests\Fixtures\TestBlockContentModel;
 use Tests\Fixtures\TestG3Policy;
 use Tests\TestUser;
-use Illuminate\Support\Facades\Gate;
 
 beforeEach( function (): void {
 	test()->fake = new FakeQueryResolver();
@@ -38,12 +38,12 @@ function actingResolver(): TestUser
 	return $user;
 }
 
-it( 'rejects unauthenticated requests', function () {
+it( 'rejects unauthenticated requests', function (): void {
 	$this->postJson( '/visual-editor/api/query/resolve', [ 'postType' => 'post' ] )
 		->assertUnauthorized();
 } );
 
-it( 'returns 503 when no resolver is bound', function () {
+it( 'returns 503 when no resolver is bound', function (): void {
 	$this->app->forgetInstance( QueryResolverContract::class );
 	$this->app->offsetUnset( QueryResolverContract::class );
 
@@ -54,7 +54,7 @@ it( 'returns 503 when no resolver is bound', function () {
 		->assertJsonPath( 'message', 'Query runtime is not available. Install artisanpack-ui/cms-framework or bind a custom resolver to QueryResolverContract.' );
 } );
 
-it( 'returns paginated WP-shape results when the resolver succeeds', function () {
+it( 'returns paginated WP-shape results when the resolver succeeds', function (): void {
 	actingResolver();
 
 	$post = TestBlockContentModel::create( [
@@ -81,7 +81,7 @@ it( 'returns paginated WP-shape results when the resolver succeeds', function ()
 		->assertJsonPath( 'meta.last_page', 5 );
 } );
 
-it( 'forwards the validated payload to the resolver', function () {
+it( 'forwards the validated payload to the resolver', function (): void {
 	actingResolver();
 
 	$this->postJson( '/visual-editor/api/query/resolve', [
@@ -101,7 +101,7 @@ it( 'forwards the validated payload to the resolver', function () {
 	expect( test()->fake->lastAttributes['taxQuery']['terms'] )->toBe( [ 3, 4 ] );
 } );
 
-it( 'rejects an invalid orderBy value', function () {
+it( 'rejects an invalid orderBy value', function (): void {
 	actingResolver();
 
 	$this->postJson( '/visual-editor/api/query/resolve', [
@@ -110,7 +110,7 @@ it( 'rejects an invalid orderBy value', function () {
 	] )->assertUnprocessable();
 } );
 
-it( 'rejects perPage above the documented cap', function () {
+it( 'rejects perPage above the documented cap', function (): void {
 	actingResolver();
 
 	$this->postJson( '/visual-editor/api/query/resolve', [
@@ -119,7 +119,7 @@ it( 'rejects perPage above the documented cap', function () {
 	] )->assertUnprocessable();
 } );
 
-it( 'includes the editor-preview envelope on resolved posts (#483)', function () {
+it( 'includes the editor-preview envelope on resolved posts (#483)', function (): void {
 	actingResolver();
 
 	$post = TestBlockContentModel::create( [
@@ -149,13 +149,13 @@ it( 'includes the editor-preview envelope on resolved posts (#483)', function ()
 	$response->assertJsonPath( 'data.0._preview.featuredImage', null );
 } );
 
-it( 'returns 400 when the resolver throws', function () {
+it( 'returns 400 when the resolver throws', function (): void {
 	actingResolver();
 
 	$throwingFake = new class extends FakeQueryResolver {
-		public function resolve( array $attributes ): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+		public function resolve( array $attributes ): Illuminate\Contracts\Pagination\LengthAwarePaginator
 		{
-			throw new \InvalidArgumentException( 'unknown post type' );
+			throw new InvalidArgumentException( 'unknown post type' );
 		}
 	};
 
@@ -168,7 +168,7 @@ it( 'returns 400 when the resolver throws', function () {
 		->assertJsonPath( 'message', 'Failed to resolve the query payload.' );
 } );
 
-it( 'returns an empty paginator for relatedTo when the host post cannot be loaded (#601)', function () {
+it( 'returns an empty paginator for relatedTo when the host post cannot be loaded (#601)', function (): void {
 	actingResolver();
 
 	test()->fake->setItems( [] );
@@ -183,7 +183,7 @@ it( 'returns an empty paginator for relatedTo when the host post cannot be loade
 		->assertJsonPath( 'data', [] );
 } );
 
-it( 'rejects relatedTo paired with taxQuery (#601)', function () {
+it( 'rejects relatedTo paired with taxQuery (#601)', function (): void {
 	actingResolver();
 
 	$this->postJson( '/visual-editor/api/query/resolve', [
@@ -193,7 +193,7 @@ it( 'rejects relatedTo paired with taxQuery (#601)', function () {
 		->assertStatus( 422 );
 } );
 
-it( 'expands relatedTo into a taxonomy query against the host post (#601)', function () {
+it( 'expands relatedTo into a taxonomy query against the host post (#601)', function (): void {
 	actingResolver();
 
 	$related = TestBlockContentModel::create( [
@@ -202,10 +202,10 @@ it( 'expands relatedTo into a taxonomy query against the host post (#601)', func
 		'content' => [],
 	] );
 
-	$term      = new \stdClass();
+	$term      = new stdClass();
 	$term->id  = 7;
 
-	$host             = new \stdClass();
+	$host             = new stdClass();
 	$host->id         = 5;
 	$host->title      = 'Host';
 	$host->post_type  = 'post';
@@ -219,26 +219,28 @@ it( 'expands relatedTo into a taxonomy query against the host post (#601)', func
 		public array $callLog = [];
 
 		// phpcs:ignore
-		public function __construct( private object $hostPost, private mixed $relatedPost ) {}
+		public function __construct( private object $hostPost, private mixed $relatedPost )
+		{
+		}
 
-		public function resolve( array $attributes ): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+		public function resolve( array $attributes ): Illuminate\Contracts\Pagination\LengthAwarePaginator
 		{
 			$this->callLog[] = $attributes;
 
 			if ( isset( $attributes['include'] ) ) {
-				return new \Illuminate\Pagination\LengthAwarePaginator(
+				return new Illuminate\Pagination\LengthAwarePaginator(
 					[ $this->hostPost ],
 					1,
 					1,
-					1
+					1,
 				);
 			}
 
-			return new \Illuminate\Pagination\LengthAwarePaginator(
+			return new Illuminate\Pagination\LengthAwarePaginator(
 				[ $this->relatedPost ],
 				1,
 				isset( $attributes['perPage'] ) ? (int) $attributes['perPage'] : 3,
-				1
+				1,
 			);
 		}
 	};

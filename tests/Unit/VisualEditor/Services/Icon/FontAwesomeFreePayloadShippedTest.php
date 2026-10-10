@@ -11,7 +11,7 @@ declare( strict_types=1 );
 
 $payloadRoot = dirname( __DIR__, 5 ) . '/resources/icons/font-awesome';
 
-it( 'ships the FA index manifest in the package tree', function () use ( $payloadRoot ) {
+it( 'ships the FA index manifest in the package tree', function () use ( $payloadRoot ): void {
 	$manifestPath = $payloadRoot . '/index.json';
 
 	expect( is_file( $manifestPath ) )->toBeTrue(
@@ -25,7 +25,7 @@ it( 'ships the FA index manifest in the package tree', function () use ( $payloa
 		->and( $manifest['icons'] ?? [] )->not->toBeEmpty();
 } );
 
-it( 'ships at least one SVG per registered FA set', function () use ( $payloadRoot ) {
+it( 'ships at least one SVG per registered FA set', function () use ( $payloadRoot ): void {
 	foreach ( [ 'fas', 'far', 'fab' ] as $prefix ) {
 		$dir = $payloadRoot . '/' . $prefix;
 

@@ -5,7 +5,7 @@ declare( strict_types=1 );
 use Tests\Support\FakeDynamicContentTypeRegistry;
 use Tests\TestUser;
 
-beforeEach( function () {
+beforeEach( function (): void {
 	config()->set( 'artisanpack.visual-editor.api.middleware', [ 'auth' ] );
 
 	$this->actor = TestUser::create( [
@@ -17,11 +17,11 @@ beforeEach( function () {
 	$this->actingAs( $this->actor );
 } );
 
-it( 'returns an empty list when cms-framework is unbound', function () {
+it( 'returns an empty list when cms-framework is unbound', function (): void {
 	// Rebind to a registry with zero types.
 	app()->instance(
 		'ArtisanPackUI\\CMSFramework\\Modules\\DynamicContent\\Managers\\DynamicContentTypeRegistry',
-		new FakeDynamicContentTypeRegistry( [] )
+		new FakeDynamicContentTypeRegistry( [] ),
 	);
 
 	$response = $this->getJson( '/visual-editor/api/dynamic-content/sources' );
@@ -29,7 +29,7 @@ it( 'returns an empty list when cms-framework is unbound', function () {
 	$response->assertOk()->assertJsonPath( 'sources', [] );
 } );
 
-it( 'lists sources with their fields', function () {
+it( 'lists sources with their fields', function (): void {
 	app()->instance(
 		'ArtisanPackUI\\CMSFramework\\Modules\\DynamicContent\\Managers\\DynamicContentTypeRegistry',
 		new FakeDynamicContentTypeRegistry( [
@@ -50,7 +50,7 @@ it( 'lists sources with their fields', function () {
 					[ 'slug' => 'name', 'label' => 'Name', 'type' => 'text' ],
 				],
 			],
-		] )
+		] ),
 	);
 
 	$response = $this->getJson( '/visual-editor/api/dynamic-content/sources' );

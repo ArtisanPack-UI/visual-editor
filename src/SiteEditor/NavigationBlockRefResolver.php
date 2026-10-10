@@ -36,6 +36,7 @@ namespace ArtisanPackUI\VisualEditor\SiteEditor;
 
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Throwable;
 
 class NavigationBlockRefResolver
 {
@@ -162,7 +163,7 @@ class NavigationBlockRefResolver
 
 		try {
 			$menu = $model::query()->with( 'items' )->find( $menuId );
-		} catch ( \Throwable $e ) {
+		} catch ( Throwable $e ) {
 			// Same partial-install / missing-table defense as
 			// `lookupMenuIdForLocation` — Keystone #51. Log the
 			// failure so a real DB problem (lost connection,
@@ -304,7 +305,7 @@ class NavigationBlockRefResolver
 					->where( 'theme', $theme )
 					->where( 'location', $location )
 					->first();
-			} catch ( \Throwable $e ) {
+			} catch ( Throwable $e ) {
 				// cms-framework is autoloaded but the migrations have
 				// not run yet (fresh install, test environment without
 				// the menus tables, partial deploy). Treat as

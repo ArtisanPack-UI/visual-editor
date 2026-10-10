@@ -47,9 +47,9 @@ class BrowserOsDeviceRule implements VisibilityRule
 
 	public function evaluate( array $ruleAttributes, VisibilityContext $context ): VisibilityDecision
 	{
-		$browsers = $this->stringList( $ruleAttributes['browsers']         ?? [] );
+		$browsers = $this->stringList( $ruleAttributes['browsers'] ?? [] );
 		$os       = $this->stringList( $ruleAttributes['operatingSystems'] ?? [] );
-		$devices  = $this->stringList( $ruleAttributes['deviceTypes']      ?? [] );
+		$devices  = $this->stringList( $ruleAttributes['deviceTypes'] ?? [] );
 
 		if ( [] === $browsers && [] === $os && [] === $devices ) {
 			return VisibilityDecision::visible();
@@ -62,8 +62,8 @@ class BrowserOsDeviceRule implements VisibilityRule
 		$deviceSlug  = $this->parser->device( $context->userAgent );
 
 		$matches = ( [] === $browsers || in_array( $browserSlug, $browsers, true ) )
-			&& ( [] === $os       || in_array( $osSlug,      $os,       true ) )
-			&& ( [] === $devices  || in_array( $deviceSlug,  $devices,  true ) );
+			&& ( [] === $os || in_array( $osSlug,      $os,       true ) )
+			&& ( [] === $devices || in_array( $deviceSlug,  $devices,  true ) );
 
 		$visible = 'show' === $direction ? $matches : ! $matches;
 

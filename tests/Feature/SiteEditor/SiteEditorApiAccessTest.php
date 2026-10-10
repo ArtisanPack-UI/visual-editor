@@ -87,8 +87,7 @@ it( 'does not create a menu when a plain user is denied', function (): void {
 } );
 
 it( 'passes a JSON denial from the gate through verbatim', function (): void {
-	$this->app->bind( SiteEditorAccessGate::class, fn (): SiteEditorAccessGate => new class implements SiteEditorAccessGate
-	{
+	$this->app->bind( SiteEditorAccessGate::class, fn (): SiteEditorAccessGate => new class implements SiteEditorAccessGate {
 		public function check( Request $request ): ?Response
 		{
 			return response()->json( [ 'error' => 'host-shaped' ], Response::HTTP_UNAUTHORIZED );

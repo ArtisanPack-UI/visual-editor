@@ -108,11 +108,11 @@ class UsersSearchController
 			$escaped = str_replace(
 				[ '|', '%', '_' ],
 				[ '||', '|%', '|_' ],
-				$term
+				$term,
 			);
 			$needle  = '%' . $escaped . '%';
 
-			$query->where( function ( $inner ) use ( $searchable, $needle ) {
+			$query->where( function ( $inner ) use ( $searchable, $needle ): void {
 				foreach ( $searchable as $column ) {
 					$inner->orWhereRaw( $column . " LIKE ? ESCAPE '|'", [ $needle ] );
 				}
@@ -124,7 +124,7 @@ class UsersSearchController
 			foreach ( $results as $user ) {
 				$id    = $user->getAuthIdentifier();
 				$email = is_string( $user->email ?? null ) ? $user->email : '';
-				$name  = is_string( $user->name  ?? null ) ? $user->name  : $email;
+				$name  = is_string( $user->name ?? null ) ? $user->name  : $email;
 
 				// Accept both integer keys and non-numeric string keys
 				// (UUIDs from `HasUuids`) so hosts on either model
@@ -173,8 +173,12 @@ class UsersSearchController
 
 		$candidates = [];
 
-		if ( property_exists( $user, 'email' )   || isset( $user->email ) )   { $candidates[] = 'email'; }
-		if ( property_exists( $user, 'name' )    || isset( $user->name ) )    { $candidates[] = 'name'; }
+		if ( property_exists( $user, 'email' ) || isset( $user->email ) ) {
+		$candidates[] = 'email';
+		}
+		if ( property_exists( $user, 'name' ) || isset( $user->name ) ) {
+		$candidates[] = 'name';
+		}
 
 		return [] === $candidates ? [ 'email' ] : $candidates;
 	}

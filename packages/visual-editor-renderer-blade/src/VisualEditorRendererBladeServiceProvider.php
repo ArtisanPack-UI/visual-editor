@@ -19,24 +19,24 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditorRendererBlade;
 
+use ArtisanPackUI\VisualEditor\Animations\AnimationCssEmitter;
+use ArtisanPackUI\VisualEditor\Animations\KeyframeRegistry;
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
 use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use ArtisanPackUI\VisualEditor\Responsive\ResponsiveValueResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Animations\AnimationMarkupResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\BreadcrumbsResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\BusinessInfoResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\LoginoutResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\SiteMetaResolver;
-use ArtisanPackUI\VisualEditor\Animations\AnimationCssEmitter;
-use ArtisanPackUI\VisualEditor\Animations\KeyframeRegistry;
-use ArtisanPackUI\VisualEditorRendererBlade\Animations\AnimationMarkupResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Responsive\ResponsiveClassResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
-use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\BoxShadowCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
-use ArtisanPackUI\VisualEditorRendererBlade\Services\PositionCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\PositionCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\StateCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ThemeJsonTokensCompiler;
@@ -46,6 +46,7 @@ use ArtisanPackUI\VisualEditorRendererBlade\View\Components\TemplateComponent;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
+use Throwable;
 
 class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 {
@@ -98,7 +99,7 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 			$visibility = null;
 			try {
 				$visibility = $app->make( \ArtisanPackUI\VisualEditor\Visibility\VisibilityEvaluator::class );
-			} catch ( \Throwable $e ) {
+			} catch ( Throwable $e ) {
 				// Container binding missing — render without the gate.
 			}
 
@@ -108,7 +109,7 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 			$bindingResolver = null;
 			try {
 				$bindingResolver = $app->make( \ArtisanPackUI\VisualEditor\Services\Bindings\BindingResolver::class );
-			} catch ( \Throwable $e ) {
+			} catch ( Throwable $e ) {
 				// Ignore — bindings layer absent.
 			}
 
@@ -153,8 +154,8 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 
 		// #595 — flex layout serializer. Scoped so it shares lifetime
 		// with the responsive registry / resolver it depends on.
-		$this->app->scoped( \ArtisanPackUI\VisualEditorRendererBlade\Support\FlexSupport::class, function ( $app ) {
-			return new \ArtisanPackUI\VisualEditorRendererBlade\Support\FlexSupport(
+		$this->app->scoped( Support\FlexSupport::class, function ( $app ) {
+			return new Support\FlexSupport(
 				$app->make( BreakpointRegistry::class ),
 				$app->make( ResponsiveValueResolver::class ),
 			);

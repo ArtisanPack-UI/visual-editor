@@ -9,17 +9,17 @@ function makeStateMigrator(): StateAttributeMigrator
 	return new StateAttributeMigrator();
 }
 
-it( 'returns the scalar unchanged when promoting to idle on a scalar', function () {
+it( 'returns the scalar unchanged when promoting to idle on a scalar', function (): void {
 	expect( makeStateMigrator()->promote( 'red', 'idle', 'blue' ) )->toBe( 'blue' );
 } );
 
-it( 'promotes a scalar to a stateful object on first non-idle override', function () {
+it( 'promotes a scalar to a stateful object on first non-idle override', function (): void {
 	$result = makeStateMigrator()->promote( 'red', 'hover', 'blue' );
 
 	expect( $result )->toBe( [ 'idle' => 'red', 'hover' => 'blue' ] );
 } );
 
-it( 'merges the new override into an existing stateful object', function () {
+it( 'merges the new override into an existing stateful object', function (): void {
 	$result = makeStateMigrator()->promote(
 		[ 'idle' => 'red', 'hover' => 'blue' ],
 		'focus',
@@ -29,7 +29,7 @@ it( 'merges the new override into an existing stateful object', function () {
 	expect( $result )->toBe( [ 'idle' => 'red', 'hover' => 'blue', 'focus' => 'green' ] );
 } );
 
-it( 'overwrites an existing slot at the same state', function () {
+it( 'overwrites an existing slot at the same state', function (): void {
 	$result = makeStateMigrator()->promote(
 		[ 'idle' => 'red', 'hover' => 'blue' ],
 		'hover',
@@ -39,19 +39,19 @@ it( 'overwrites an existing slot at the same state', function () {
 	expect( $result )->toBe( [ 'idle' => 'red', 'hover' => 'orange' ] );
 } );
 
-it( 'demotes a stateful object back to scalar when only idle is set', function () {
+it( 'demotes a stateful object back to scalar when only idle is set', function (): void {
 	$result = makeStateMigrator()->demote( [ 'idle' => 'red', 'hover' => null ] );
 
 	expect( $result )->toBe( 'red' );
 } );
 
-it( 'leaves stateful objects with multiple defined slots untouched', function () {
+it( 'leaves stateful objects with multiple defined slots untouched', function (): void {
 	$attribute = [ 'idle' => 'red', 'hover' => 'blue' ];
 
 	expect( makeStateMigrator()->demote( $attribute ) )->toBe( $attribute );
 } );
 
-it( 'clears a single state and demotes if it was the last override', function () {
+it( 'clears a single state and demotes if it was the last override', function (): void {
 	$result = makeStateMigrator()->clear(
 		[ 'idle' => 'red', 'hover' => 'blue' ],
 		'hover',
@@ -60,7 +60,7 @@ it( 'clears a single state and demotes if it was the last override', function ()
 	expect( $result )->toBe( 'red' );
 } );
 
-it( 'clears a state without demoting when other overrides remain', function () {
+it( 'clears a state without demoting when other overrides remain', function (): void {
 	$result = makeStateMigrator()->clear(
 		[ 'idle' => 'red', 'hover' => 'blue', 'focus' => 'green' ],
 		'hover',

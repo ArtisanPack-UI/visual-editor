@@ -42,6 +42,7 @@ namespace ArtisanPackUI\VisualEditor\Visibility\Rules;
 use ArtisanPackUI\VisualEditor\Visibility\VisibilityContext;
 use ArtisanPackUI\VisualEditor\Visibility\VisibilityDecision;
 use ArtisanPackUI\VisualEditor\Visibility\VisibilityRule;
+use DateTimeZone;
 use Throwable;
 
 class RecurringScheduleRule implements VisibilityRule
@@ -98,7 +99,7 @@ class RecurringScheduleRule implements VisibilityRule
 		}
 
 		$start = $this->minutesFromClock( $window['start'] ?? null );
-		$end   = $this->minutesFromClock( $window['end']   ?? null );
+		$end   = $this->minutesFromClock( $window['end'] ?? null );
 
 		if ( null === $start || null === $end ) {
 			return false;
@@ -175,7 +176,7 @@ class RecurringScheduleRule implements VisibilityRule
 	protected function isValidTimezone( string $tz ): bool
 	{
 		try {
-			new \DateTimeZone( $tz );
+			new DateTimeZone( $tz );
 			return true;
 		} catch ( Throwable $e ) {
 			return false;

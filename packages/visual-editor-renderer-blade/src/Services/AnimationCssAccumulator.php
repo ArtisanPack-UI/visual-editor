@@ -51,7 +51,9 @@ class AnimationCssAccumulator
 	 */
 	protected bool $hasEntrance = false;
 
-	public function __construct( protected KeyframeRegistry $keyframes ) {}
+	public function __construct( protected KeyframeRegistry $keyframes )
+	{
+	}
 
 	/**
 	 * Records a block scope's animation CSS plus the noscript fallback

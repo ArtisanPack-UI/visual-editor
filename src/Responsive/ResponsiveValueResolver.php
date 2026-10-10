@@ -40,7 +40,9 @@ namespace ArtisanPackUI\VisualEditor\Responsive;
 
 class ResponsiveValueResolver
 {
-	public function __construct( protected BreakpointRegistry $registry ) {}
+	public function __construct( protected BreakpointRegistry $registry )
+	{
+	}
 
 	/**
 	 * Resolves the value for a single attribute at the given active
@@ -65,27 +67,6 @@ class ResponsiveValueResolver
 		}
 
 		return $this->resolveIn( $attribute, $this->cascadeKeys( $activeBreakpoint ) );
-	}
-
-	/**
-	 * First non-null value along the given cascade.
-	 *
-	 * @since 1.12.1
-	 *
-	 * @param  array<string, mixed>  $attribute
-	 * @param  array<int, string>    $cascade
-	 *
-	 * @return mixed
-	 */
-	protected function resolveIn( array $attribute, array $cascade )
-	{
-		foreach ( $cascade as $key ) {
-			if ( array_key_exists( $key, $attribute ) && null !== $attribute[ $key ] ) {
-				return $attribute[ $key ];
-			}
-		}
-
-		return null;
 	}
 
 	/**
@@ -177,24 +158,6 @@ class ResponsiveValueResolver
 	}
 
 	/**
-	 * Whether any legacy mobile-first key carries a value.
-	 *
-	 * @since 1.12.1
-	 *
-	 * @param  array<string, mixed>  $attribute
-	 */
-	protected function hasLegacyValue( array $attribute ): bool
-	{
-		foreach ( $this->registry->legacyPrefixes() as $key ) {
-			if ( null !== ( $attribute[ $key ] ?? null ) ) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	/**
 	 * Returns true when an attribute is shaped like the responsive
 	 * discriminated object: an associative array containing at least
 	 * `base` OR at least one registered breakpoint key.
@@ -261,6 +224,45 @@ class ResponsiveValueResolver
 		}
 
 		return $orphans;
+	}
+
+	/**
+	 * First non-null value along the given cascade.
+	 *
+	 * @since 1.12.1
+	 *
+	 * @param  array<string, mixed>  $attribute
+	 * @param  array<int, string>    $cascade
+	 *
+	 * @return mixed
+	 */
+	protected function resolveIn( array $attribute, array $cascade )
+	{
+		foreach ( $cascade as $key ) {
+			if ( array_key_exists( $key, $attribute ) && null !== $attribute[ $key ] ) {
+				return $attribute[ $key ];
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Whether any legacy mobile-first key carries a value.
+	 *
+	 * @since 1.12.1
+	 *
+	 * @param  array<string, mixed>  $attribute
+	 */
+	protected function hasLegacyValue( array $attribute ): bool
+	{
+		foreach ( $this->registry->legacyPrefixes() as $key ) {
+			if ( null !== ( $attribute[ $key ] ?? null ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
