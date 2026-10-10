@@ -374,9 +374,12 @@ it( 'renders the overlay container + hamburger toggle by default (Keystone #54)'
 		->and( $rendered )->toContain( 'wp-block-navigation__responsive-container-close' )
 		->and( $rendered )->toContain( 'data-ap-nav-overlay-open="ap-modal-nav-1"' )
 		->and( $rendered )->toContain( 'id="ap-modal-nav-1"' )
-		->and( $rendered )->toContain( 'aria-hidden="true"' )
-		->and( $rendered )->toContain( 'aria-modal="true"' )
-		->and( $rendered )->toContain( 'role="dialog"' )
+		->and( $rendered )->toContain( 'aria-expanded="false"' )
+		->and( $rendered )->toContain( 'aria-controls="ap-modal-nav-1"' )
+		// RN-1 — no static `aria-hidden` / dialog semantics; the toggle
+		// script adds `role="dialog"` + `aria-modal` only while open.
+		->and( $rendered )->not->toContain( 'aria-modal="true"' )
+		->and( $rendered )->not->toContain( 'role="dialog"' )
 		// Inline toggle script emitted once.
 		->and( $rendered )->toContain( '__apNavOverlayInit' );
 } );
@@ -473,7 +476,7 @@ it( 'drops custom overlay colors that would inject extra declarations (#804)', f
 	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
 
 	expect( $rendered )
-		->toContain( '<div class="wp-block-navigation__responsive-container" id="ap-modal-nav-1" aria-hidden="true">' )
+		->toContain( '<div class="wp-block-navigation__responsive-container" id="ap-modal-nav-1">' )
 		->and( $rendered )->not->toContain( 'position: fixed' )
 		->and( $rendered )->not->toContain( 'background-image' );
 } );
@@ -492,7 +495,7 @@ it( 'keeps a safe custom overlay color (#804)', function () {
 
 	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
 
-	expect( $rendered )->toContain( 'class="wp-block-navigation__responsive-container has-background" id="ap-modal-nav-1" aria-hidden="true" style="background-color: #111111"' );
+	expect( $rendered )->toContain( 'class="wp-block-navigation__responsive-container has-background" id="ap-modal-nav-1" style="background-color: #111111"' );
 } );
 
 it( 'ignores the overlay template part when overlayMenu is "never" (#804)', function () {

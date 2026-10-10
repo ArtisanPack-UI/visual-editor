@@ -2157,11 +2157,14 @@ class BlockSupports
 	/**
 	 * Slugify the user-supplied palette slug so a custom slug like
 	 * `Primary Accent` lands as `primary-accent` in the class list.
-	 * Mirrors WP core's behavior for class generation.
+	 * Mirrors WP core's behavior for class generation. Public since
+	 * 1.13.0 so block partials (e.g. the navigation overlay colors) can
+	 * reduce stored slugs to `[a-z0-9-]` before building class names.
 	 *
 	 * @since 1.0.0
+	 * @since 1.13.0 Visibility widened to public.
 	 */
-	protected static function slugify( string $value ): string
+	public static function slugify( string $value ): string
 	{
 		$value = strtolower( trim( $value ) );
 		$value = preg_replace( '/[^a-z0-9]+/', '-', $value );

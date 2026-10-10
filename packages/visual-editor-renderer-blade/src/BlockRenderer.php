@@ -88,8 +88,9 @@ class BlockRenderer
 	 * `search-filters-taxonomy`) can stay unique even when two
 	 * instances carry identical attributes.
 	 *
-	 * Resets on every public {@see render} call so each request gets a
-	 * stable, monotonically-increasing per-tree sequence.
+	 * Resets on every outermost {@see render} call so each request gets a
+	 * stable, monotonically-increasing per-tree sequence. Nested
+	 * `render()` calls continue the outer sequence.
 	 *
 	 * @since 1.1.0
 	 */
@@ -97,7 +98,7 @@ class BlockRenderer
 
 	/**
 	 * Current depth into `innerBlocks` for the ongoing render call.
-	 * Incremented by {@see renderInner()}, reset to 0 by {@see render()}.
+	 * Incremented by {@see renderInner()}, reset to 0 by the outermost {@see render()}.
 	 * Read by {@see renderInner()} to short-circuit past {@see MAX_INNER_DEPTH}.
 	 */
 	protected int $innerDepth = 0;
@@ -337,12 +338,19 @@ class BlockRenderer
 		$this->renderDepth++;
 
 		try {
-			$this->renderIndex       = 0;
-			$this->innerDepth        = 0;
-			$this->visibilityContext = null;
+			// Only the outermost call starts a fresh document. A nested
+			// `render()` (navigation overlay, tabs, accordion) continues
+			// the outer call's sequence so `renderIndex` keeps minting
+			// unique ids and `innerDepth` stays balanced, which keeps the
+			// MAX_INNER_DEPTH cap in force across nested renders (RN-11).
+			if ( 1 === $this->renderDepth ) {
+				$this->renderIndex       = 0;
+				$this->innerDepth        = 0;
+				$this->visibilityContext = null;
 
-			if ( null !== $this->visibility && $this->visibility->enabled() ) {
-				$this->visibilityContext = $this->visibility->contextFromRequest();
+				if ( null !== $this->visibility && $this->visibility->enabled() ) {
+					$this->visibilityContext = $this->visibility->contextFromRequest();
+				}
 			}
 
 			// #650 — normalize the tree to Gutenberg's canonical shape
