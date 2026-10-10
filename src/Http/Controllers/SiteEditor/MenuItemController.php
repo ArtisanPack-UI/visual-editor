@@ -28,6 +28,7 @@ namespace ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor;
 
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\StoreMenuItemRequest;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\UpdateMenuItemRequest;
+use ArtisanPackUI\VisualEditor\SiteEditor\Previews\PatternPreviewCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -115,6 +116,9 @@ class MenuItemController extends Controller
 		/** @var object $item */
 		$item = $model::create( $validated );
 
+		// #832 — pattern previews render navigation menus.
+		app( PatternPreviewCache::class )->flush();
+
 		return response()->json( $this->itemToShape( $item ), Response::HTTP_CREATED );
 	}
 
@@ -137,6 +141,9 @@ class MenuItemController extends Controller
 
 		$item->update( $request->validated() );
 
+		// #832 — pattern previews render navigation menus.
+		app( PatternPreviewCache::class )->flush();
+
 		return response()->json( $this->itemToShape( $item->fresh() ) );
 	}
 
@@ -158,6 +165,9 @@ class MenuItemController extends Controller
 		}
 
 		$item->delete();
+
+		// #832 — pattern previews render navigation menus.
+		app( PatternPreviewCache::class )->flush();
 
 		return response()->json( null, Response::HTTP_NO_CONTENT );
 	}

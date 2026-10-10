@@ -54,16 +54,6 @@ class FontFace extends Model
 		'axes',
 	];
 
-	protected function casts(): array
-	{
-		return [
-			'font_id'   => 'integer',
-			'weight'    => 'integer',
-			'file_size' => 'integer',
-			'axes'      => 'array',
-		];
-	}
-
 	/**
 	 * The font this face belongs to.
 	 *
@@ -74,6 +64,16 @@ class FontFace extends Model
 	public function font(): BelongsTo
 	{
 		return $this->belongsTo( Font::class );
+	}
+
+	protected function casts(): array
+	{
+		return [
+			'font_id'   => 'integer',
+			'weight'    => 'integer',
+			'file_size' => 'integer',
+			'axes'      => 'array',
+		];
 	}
 
 	/**

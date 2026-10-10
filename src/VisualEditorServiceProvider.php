@@ -3,28 +3,26 @@
 namespace ArtisanPackUI\VisualEditor;
 
 use ArtisanPackUI\CMSFramework\Modules\Blog\Managers\BlogManager;
+use ArtisanPackUI\Icons\Registries\IconSetRegistration;
+use ArtisanPackUI\VisualEditor\Ai\Agents\ContentBlockSuggestionAgent;
+use ArtisanPackUI\VisualEditor\Ai\Agents\HeadingHierarchyAgent;
+use ArtisanPackUI\VisualEditor\Ai\Agents\LayoutSuggestionAgent;
+use ArtisanPackUI\VisualEditor\Animations\AnimationAttributeResolver;
+use ArtisanPackUI\VisualEditor\Animations\AnimationCssEmitter;
+use ArtisanPackUI\VisualEditor\Animations\AnimationRegistry;
+use ArtisanPackUI\VisualEditor\Animations\KeyframeRegistry;
 use ArtisanPackUI\VisualEditor\Blocks\Core\ArchivesBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Core\CategoriesBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Core\LatestPostsBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Core\ReviewsBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Core\TagCloudBlock;
+use ArtisanPackUI\VisualEditor\Blocks\DynamicContent\DynamicLoopBlock;
+use ArtisanPackUI\VisualEditor\Blocks\DynamicContent\SnippetBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Forms\FormBlock;
-use ArtisanPackUI\Icons\Registries\IconSetRegistration;
 use ArtisanPackUI\VisualEditor\Blocks\Icon\IconBlock;
-use ArtisanPackUI\VisualEditor\Services\Icon\FontAwesomeFreeIconSets;
-use ArtisanPackUI\VisualEditor\Services\Icon\IconCatalog;
-use ArtisanPackUI\VisualEditor\Services\Icon\IconSetUploader;
-use ArtisanPackUI\VisualEditor\Services\Icon\IconSvgResolver;
-use ArtisanPackUI\VisualEditor\Services\Icon\InlineIconContentHydrator;
-use ArtisanPackUI\VisualEditor\Services\Icon\SvgSanitizer;
-use ArtisanPackUI\VisualEditor\Services\Icon\UploadedIconSetRegistry;
-use ArtisanPackUI\VisualEditor\MediaBridge\GutenbergAttachmentAdapter;
-use ArtisanPackUI\VisualEditor\Services\Adapters\CmsFramework\CmsFrameworkQueryResolver;
-use ArtisanPackUI\VisualEditor\Services\QueryResolverContract;
-use ArtisanPackUI\VisualEditor\SiteEditor\Gates\DenyByDefaultGate;
-use ArtisanPackUI\VisualEditor\SiteEditor\Gates\SiteEditorAccessGate;
-use ArtisanPackUI\VisualEditor\Models\VisualEditorPost;
-use ArtisanPackUI\VisualEditor\Policies\VisualEditorPostPolicy;
+use ArtisanPackUI\VisualEditor\BoxShadow\BoxShadowEmitter;
+use ArtisanPackUI\VisualEditor\Console\AuditBreakpointsCommand;
+use ArtisanPackUI\VisualEditor\Console\AuditScheduledBlocksCommand;
 use ArtisanPackUI\VisualEditor\Fonts\Models\Font;
 use ArtisanPackUI\VisualEditor\Fonts\Policies\FontPolicy;
 use ArtisanPackUI\VisualEditor\Fonts\Providers\BunnyFontsProvider;
@@ -36,49 +34,52 @@ use ArtisanPackUI\VisualEditor\Fonts\Services\FontInstaller;
 use ArtisanPackUI\VisualEditor\Fonts\Services\FontsCssGenerator;
 use ArtisanPackUI\VisualEditor\Fonts\Services\ThemeFontBundleResolver;
 use ArtisanPackUI\VisualEditor\Fonts\Support\FontStylesheetEnqueuer;
+use ArtisanPackUI\VisualEditor\MediaBridge\GutenbergAttachmentAdapter;
+use ArtisanPackUI\VisualEditor\Models\VisualEditorPost;
+use ArtisanPackUI\VisualEditor\Policies\VisualEditorPostPolicy;
 use ArtisanPackUI\VisualEditor\Registries\BlockBindingSourceRegistry;
 use ArtisanPackUI\VisualEditor\Registries\BlockTypeRegistry;
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
 use ArtisanPackUI\VisualEditor\Registries\DynamicContentSourceRegistry;
+use ArtisanPackUI\VisualEditor\Resources\CommentInliner;
+use ArtisanPackUI\VisualEditor\Resources\CommentResolver;
+use ArtisanPackUI\VisualEditor\Resources\PostResolver;
+use ArtisanPackUI\VisualEditor\Resources\QueryInliner;
+use ArtisanPackUI\VisualEditor\Resources\ResourceResolver;
+use ArtisanPackUI\VisualEditor\Resources\TocResolver;
+use ArtisanPackUI\VisualEditor\Responsive\AttributeMigrator;
+use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
+use ArtisanPackUI\VisualEditor\Responsive\ResponsiveValueResolver;
+use ArtisanPackUI\VisualEditor\Search\BlockTreeSearchExtractor;
+use ArtisanPackUI\VisualEditor\Services\Adapters\CmsFramework\CmsFrameworkQueryResolver;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingResolver;
 use ArtisanPackUI\VisualEditor\Services\Bindings\Sources\CustomFieldSource;
 use ArtisanPackUI\VisualEditor\Services\Bindings\Sources\DynamicContentSource;
 use ArtisanPackUI\VisualEditor\Services\Bindings\Sources\PostCoreSource;
 use ArtisanPackUI\VisualEditor\Services\Bindings\Sources\RelationSource;
-use ArtisanPackUI\VisualEditor\Blocks\DynamicContent\DynamicLoopBlock;
-use ArtisanPackUI\VisualEditor\Blocks\DynamicContent\SnippetBlock;
 use ArtisanPackUI\VisualEditor\Services\DynamicContent\SnippetCycleGuard;
-use ArtisanPackUI\VisualEditor\Console\AuditBreakpointsCommand;
-use ArtisanPackUI\VisualEditor\Resources\PostResolver;
-use ArtisanPackUI\VisualEditor\Resources\CommentInliner;
-use ArtisanPackUI\VisualEditor\Resources\CommentResolver;
-use ArtisanPackUI\VisualEditor\Resources\QueryInliner;
-use ArtisanPackUI\VisualEditor\Resources\TocResolver;
-use ArtisanPackUI\VisualEditor\Resources\ResourceResolver;
-use ArtisanPackUI\VisualEditor\Ai\Agents\ContentBlockSuggestionAgent;
-use ArtisanPackUI\VisualEditor\Ai\Agents\HeadingHierarchyAgent;
-use ArtisanPackUI\VisualEditor\Ai\Agents\LayoutSuggestionAgent;
-use ArtisanPackUI\VisualEditor\Animations\AnimationAttributeResolver;
-use ArtisanPackUI\VisualEditor\Animations\AnimationCssEmitter;
-use ArtisanPackUI\VisualEditor\Animations\AnimationRegistry;
-use ArtisanPackUI\VisualEditor\Animations\KeyframeRegistry;
-use ArtisanPackUI\VisualEditor\Responsive\AttributeMigrator;
-use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
-use ArtisanPackUI\VisualEditor\Responsive\ResponsiveValueResolver;
-use ArtisanPackUI\VisualEditor\States\StateAttributeMigrator;
-use ArtisanPackUI\VisualEditor\BoxShadow\BoxShadowEmitter;
-use ArtisanPackUI\VisualEditor\States\StateCssEmitter;
-use ArtisanPackUI\VisualEditor\States\StateRegistry;
-use ArtisanPackUI\VisualEditor\States\StateValueResolver;
-use ArtisanPackUI\VisualEditor\Search\BlockTreeSearchExtractor;
-use ArtisanPackUI\VisualEditor\Support\BlockMarkupHydrator;
-use ArtisanPackUI\VisualEditor\Support\HookAliases;
+use ArtisanPackUI\VisualEditor\Services\GlobalStylesEmissionTracker;
+use ArtisanPackUI\VisualEditor\Services\Icon\FontAwesomeFreeIconSets;
+use ArtisanPackUI\VisualEditor\Services\Icon\IconCatalog;
+use ArtisanPackUI\VisualEditor\Services\Icon\IconSetUploader;
+use ArtisanPackUI\VisualEditor\Services\Icon\IconSvgResolver;
+use ArtisanPackUI\VisualEditor\Services\Icon\InlineIconContentHydrator;
+use ArtisanPackUI\VisualEditor\Services\Icon\SvgSanitizer;
+use ArtisanPackUI\VisualEditor\Services\Icon\UploadedIconSetRegistry;
+use ArtisanPackUI\VisualEditor\Services\QueryResolverContract;
+use ArtisanPackUI\VisualEditor\SiteEditor\Gates\DenyByDefaultGate;
+use ArtisanPackUI\VisualEditor\SiteEditor\Gates\SiteEditorAccessGate;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\GlobalStylesResolver as SiteEditorGlobalStylesResolver;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\MenuResolver as SiteEditorMenuResolver;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\PatternResolver as SiteEditorPatternResolver;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\TemplatePartResolver as SiteEditorTemplatePartResolver;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\TemplateResolver as SiteEditorTemplateResolver;
-use ArtisanPackUI\VisualEditor\Services\GlobalStylesEmissionTracker;
+use ArtisanPackUI\VisualEditor\States\StateAttributeMigrator;
+use ArtisanPackUI\VisualEditor\States\StateCssEmitter;
+use ArtisanPackUI\VisualEditor\States\StateRegistry;
+use ArtisanPackUI\VisualEditor\States\StateValueResolver;
+use ArtisanPackUI\VisualEditor\Support\BlockMarkupHydrator;
+use ArtisanPackUI\VisualEditor\Support\HookAliases;
 use ArtisanPackUI\VisualEditor\View\Components\VisualEditorComponent;
 use ArtisanPackUI\VisualEditor\Visibility\RuleRegistry as VisibilityRuleRegistry;
 use ArtisanPackUI\VisualEditor\Visibility\Rules\BrowserOsDeviceRule;
@@ -95,14 +96,13 @@ use ArtisanPackUI\VisualEditor\Visibility\ScheduledBlockCollector;
 use ArtisanPackUI\VisualEditor\Visibility\TreePruner as VisibilityTreePruner;
 use ArtisanPackUI\VisualEditor\Visibility\UserAgentParser;
 use ArtisanPackUI\VisualEditor\Visibility\VisibilityEvaluator;
-use ArtisanPackUI\VisualEditor\Console\AuditScheduledBlocksCommand;
-use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use InvalidArgumentException;
 use Throwable;
 
 class VisualEditorServiceProvider extends ServiceProvider
@@ -425,7 +425,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		$this->app->singleton( BlockTreeSearchExtractor::class, function ( $app ) {
 			return new BlockTreeSearchExtractor(
-				$app->make( DynamicBlockRegistry::class )
+				$app->make( DynamicBlockRegistry::class ),
 			);
 		} );
 
@@ -524,7 +524,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 			try {
 				$resolver     = $app->make( SiteEditorGlobalStylesResolver::class );
 				$globalStyles = $resolver->raw();
-			} catch ( \Throwable $e ) {
+			} catch ( Throwable $e ) {
 				$globalStyles = null;
 			}
 
@@ -651,221 +651,16 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->app->bindIf( SiteEditorAccessGate::class, DenyByDefaultGate::class );
 
 		$this->mergeConfigFrom(
-			__DIR__ . '/../config/visual-editor.php', 'artisanpack-visual-editor-temp'
+			__DIR__ . '/../config/visual-editor.php', 'artisanpack-visual-editor-temp',
 		);
 
-	}
-
-	/**
-	 * Register the cms-framework adapter for {@see QueryResolverContract}
-	 * when the upstream class is autoloadable.
-	 *
-	 * @since 1.0.0
-	 */
-	protected function registerQueryResolverBinding(): void
-	{
-		$cmsRuntime = 'ArtisanPackUI\\CMSFramework\\Modules\\Blog\\Services\\QueryRuntime';
-
-		if ( ! class_exists( $cmsRuntime ) ) {
-			return;
-		}
-
-		$this->app->singleton( QueryResolverContract::class, function ( $app ) use ( $cmsRuntime ): QueryResolverContract {
-			return new CmsFrameworkQueryResolver( $app->make( $cmsRuntime ) );
-		} );
-	}
-
-	/**
-	 * Layer the `ap.visualEditor.visibility.registerRules` filter
-	 * over every fresh {@see VisibilityRuleRegistry} instance.
-	 *
-	 * Registered in `boot()` via {@see \Illuminate\Container\Container::extend()}
-	 * so the filter chain is guaranteed complete by the time the
-	 * registry is resolved — third-party packages can hook their
-	 * custom rules from their own `boot()` regardless of provider
-	 * order. Firing the filter inside the scoped closure would freeze
-	 * the chain state at first-resolve, breaking any late-boot
-	 * registration.
-	 *
-	 * @since 1.4.0
-	 */
-	protected function applyVisibilityRulesFilter(): void
-	{
-		if ( ! function_exists( 'applyFilters' ) ) {
-			return;
-		}
-
-		$this->app->extend(
-			VisibilityRuleRegistry::class,
-			static function ( VisibilityRuleRegistry $registry ): VisibilityRuleRegistry {
-				$filtered = applyFilters( 'ap.visualEditor.visibility.registerRules', $registry );
-				return $filtered instanceof VisibilityRuleRegistry ? $filtered : $registry;
-			},
-		);
-	}
-
-	/**
-	 * Layer the `ap.visualEditor.registerFontSources` filter over the
-	 * {@see FontSourceRegistry} singleton.
-	 *
-	 * Registered in `boot()` via {@see \Illuminate\Container\Container::extend()}
-	 * so the filter chain is complete by the time the registry is first
-	 * resolved — a package can register its own
-	 * {@see \ArtisanPackUI\VisualEditor\Fonts\Contracts\FontProvider} from its
-	 * own `boot()` regardless of provider order. The filter receives the
-	 * registry instance and must return it; a non-registry return is ignored
-	 * so a misbehaving hook cannot break font sources.
-	 *
-	 * @since 1.7.0
-	 */
-	protected function applyFontSourcesFilter(): void
-	{
-		if ( ! function_exists( 'applyFilters' ) ) {
-			return;
-		}
-
-		$this->app->extend(
-			FontSourceRegistry::class,
-			static function ( FontSourceRegistry $registry ): FontSourceRegistry {
-				$filtered = applyFilters( 'ap.visualEditor.registerFontSources', $registry );
-				return $filtered instanceof FontSourceRegistry ? $filtered : $registry;
-			},
-		);
-	}
-
-	/**
-	 * Register the first-party Font Library providers on the
-	 * `ap.visualEditor.registerFontSources` filter.
-	 *
-	 * Each provider is gated on its `fonts.providers.*.enabled` config flag so
-	 * a host can drop a source in one line; the callback runs at
-	 * registry-resolve time (behind {@see applyFontSourcesFilter()}), by which
-	 * point configuration is merged and the credential is readable. Gated on
-	 * `addFilter` so visual-editor stays bootable when `artisanpack-ui/hooks`
-	 * isn't on the classpath.
-	 *
-	 * @since 1.7.0
-	 */
-	protected function registerBuiltInFontProviders(): void
-	{
-		if ( ! function_exists( 'addFilter' ) ) {
-			return;
-		}
-
-		addFilter(
-			'ap.visualEditor.registerFontSources',
-			static function ( FontSourceRegistry $registry ): FontSourceRegistry {
-				$google = config( 'artisanpack.visual-editor.fonts.providers.google', [] );
-
-				if ( true === ( $google['enabled'] ?? false ) ) {
-					$registry->register( new GoogleFontsProvider(
-						(string) ( $google['metadata_url'] ?? 'https://fonts.google.com/metadata/fonts' ),
-						(string) ( $google['css_url'] ?? 'https://fonts.googleapis.com/css2' ),
-						(string) ( $google['user_agent'] ?? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' ),
-						(int) ( $google['per_page'] ?? 24 ),
-						(int) ( $google['cache_ttl'] ?? 86400 ),
-						(int) ( $google['timeout'] ?? 10 ),
-						(string) ( $google['subset'] ?? 'latin' ),
-						(int) ( $google['max_bytes'] ?? 15_728_640 ),
-					) );
-				}
-
-				$bunny = config( 'artisanpack.visual-editor.fonts.providers.bunny', [] );
-
-				if ( true === ( $bunny['enabled'] ?? false ) ) {
-					$registry->register( new BunnyFontsProvider(
-						(string) ( $bunny['list_url'] ?? 'https://fonts.bunny.net/list' ),
-						(string) ( $bunny['css_url'] ?? 'https://fonts.bunny.net/css' ),
-						(string) ( $bunny['user_agent'] ?? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' ),
-						(int) ( $bunny['per_page'] ?? 24 ),
-						(int) ( $bunny['cache_ttl'] ?? 86400 ),
-						(int) ( $bunny['timeout'] ?? 10 ),
-						(string) ( $bunny['subset'] ?? 'latin' ),
-						(int) ( $bunny['max_bytes'] ?? 15_728_640 ),
-					) );
-				}
-
-				$custom = config( 'artisanpack.visual-editor.fonts.providers.custom', [] );
-
-				if ( true === ( $custom['enabled'] ?? false ) ) {
-					$registry->register( new CustomUploadProvider() );
-				}
-
-				return $registry;
-			}
-		);
-	}
-
-	/**
-	 * Hook the generated `fonts.css` bundle onto cms-framework's front-end
-	 * theme stylesheet list.
-	 *
-	 * The filter fires per public request with the active theme's stylesheet
-	 * entries; {@see FontStylesheetEnqueuer::appendTo()} appends the bundle
-	 * when it has been generated and leaves the list untouched otherwise. No-op
-	 * when the hooks package isn't installed.
-	 *
-	 * @since 1.7.0
-	 */
-	protected function registerFontStylesheetEnqueue(): void
-	{
-		if ( ! function_exists( 'addFilter' ) ) {
-			return;
-		}
-
-		addFilter(
-			'ap.themes.frontendStyles',
-			function ( $entries ) {
-				return $this->app->make( FontStylesheetEnqueuer::class )->appendTo( $entries );
-			}
-		);
-	}
-
-	/**
-	 * Resolve a theme's declared font bundle when cms-framework activates it.
-	 *
-	 * Listens on the `ap.cmsFramework.theme.activated` action, which fires with
-	 * the theme slug and its decoded `theme.json` manifest. The manifest's
-	 * top-level `fonts` block is handed to {@see ThemeFontBundleResolver}, which
-	 * links already-installed families into `ve_theme_font_bundles` and — only
-	 * when `fonts.bundles.auto_install` is enabled — fetches missing families
-	 * from their provider. Gated on `addAction` so visual-editor stays bootable
-	 * without `artisanpack-ui/hooks`, and wrapped so a resolver failure never
-	 * aborts the host's theme activation.
-	 *
-	 * @since 1.7.0
-	 */
-	protected function registerThemeFontBundleResolver(): void
-	{
-		if ( ! function_exists( 'addAction' ) ) {
-			return;
-		}
-
-		addAction(
-			'ap.cmsFramework.theme.activated',
-			function ( string $slug, mixed $theme = [] ): void {
-				if ( ! is_array( $theme ) ) {
-					return;
-				}
-
-				$autoInstall = (bool) config( 'artisanpack.visual-editor.fonts.bundles.auto_install', false );
-
-				try {
-					$this->app->make( ThemeFontBundleResolver::class )->resolve( $slug, $theme, $autoInstall );
-				} catch ( Throwable $e ) {
-					Log::error( 'Failed to resolve theme font bundles on activation.', [
-						'theme'     => $slug,
-						'exception' => $e,
-					] );
-				}
-			}
-		);
 	}
 
 	/**
 	 * Perform post-registration booting of services.
 	 *
 	 * @since 1.0.0
+	 *
 	 * @return void
 	 */
 	public function boot(): void
@@ -1030,6 +825,321 @@ class VisualEditorServiceProvider extends ServiceProvider
 				AuditScheduledBlocksCommand::class,
 			] );
 		}
+	}
+
+	/**
+	 * Builds the slug → model class map for ResourceResolver.
+	 *
+	 * Pipes the static config through the `ap.visualEditor.resources` filter
+	 * (so packages like cms-framework can register their models at runtime),
+	 * then merges static config back on top so host-app entries always win on
+	 * key collision. ResourceResolver itself does not validate at construction
+	 * — invalid classes only surface on first resolve, which keeps a
+	 * standalone install of a contributor (cms-framework without visual-editor
+	 * loaded) from tripping host boot.
+	 *
+	 * Public so tests (and edge cases that mutate config or hook callbacks at
+	 * runtime) can re-trigger the rebind without going through reflection.
+	 *
+	 * @since 1.0.0
+	 */
+	public function registerResourceResolver(): void
+	{
+		$staticConfig = (array) config( 'artisanpack.visual-editor.resources', [] );
+		$filtered     = applyFilters( 'ap.visualEditor.resources', $staticConfig );
+		$filtered     = is_array( $filtered ) ? $filtered : [];
+
+		// Static config wins on key collision: host app entries take
+		// precedence over filter contributions.
+		$resources = array_merge( $filtered, $staticConfig );
+
+		$this->app->instance( ResourceResolver::class, new ResourceResolver( $resources ) );
+	}
+
+	/**
+	 * Builds the five site-editor resolvers from filter-merged data.
+	 *
+	 * Mirrors {@see self::registerResourceResolver()}: each filter receives the
+	 * static config, contributors (cms-framework H1–H4) merge their data in,
+	 * static config wins on key collision. Resolvers store the merged shape
+	 * verbatim — validation is deferred to first read so a misconfigured
+	 * contributor surfaces an exception on the editor's first request, not at
+	 * boot.
+	 *
+	 * Standalone visual-editor (no cms-framework, no host registrations) ends
+	 * up with empty resolvers — the editor's site-editor surface boots clean
+	 * and the editor renders with zero entities until something registers.
+	 *
+	 * Public so tests (and edge cases that mutate config or hook callbacks at
+	 * runtime) can re-trigger the rebind without going through reflection.
+	 *
+	 * @since 1.0.0
+	 */
+	public function registerSiteEditorResolvers(): void
+	{
+		// Templates ─ array<string, array> keyed by slug.
+		$templatesStatic = (array) config( 'artisanpack.visual-editor.site-editor.templates', [] );
+		$templatesMerged = applyFilters( 'ap.visualEditor.templates', $templatesStatic );
+		$templatesMerged = is_array( $templatesMerged ) ? $templatesMerged : [];
+		$templatesMerged = array_merge( $templatesMerged, $templatesStatic );
+
+		$this->app->instance(
+			SiteEditorTemplateResolver::class,
+			new SiteEditorTemplateResolver( $templatesMerged ),
+		);
+
+		// Template parts ─ array<string, array> keyed by slug.
+		$partsStatic = (array) config( 'artisanpack.visual-editor.site-editor.template-parts', [] );
+		$partsMerged = applyFilters( 'ap.visualEditor.templateParts', $partsStatic );
+		$partsMerged = is_array( $partsMerged ) ? $partsMerged : [];
+		$partsMerged = array_merge( $partsMerged, $partsStatic );
+
+		$this->app->instance(
+			SiteEditorTemplatePartResolver::class,
+			new SiteEditorTemplatePartResolver( $partsMerged ),
+		);
+
+		// Patterns ─ array<string, array> keyed by slug.
+		$patternsStatic = (array) config( 'artisanpack.visual-editor.site-editor.patterns', [] );
+		$patternsMerged = applyFilters( 'ap.visualEditor.patterns', $patternsStatic );
+		$patternsMerged = is_array( $patternsMerged ) ? $patternsMerged : [];
+		$patternsMerged = array_merge( $patternsMerged, $patternsStatic );
+
+		$this->app->instance(
+			SiteEditorPatternResolver::class,
+			new SiteEditorPatternResolver( $patternsMerged ),
+		);
+
+		// Global styles ─ singleton (?array). Static-config null-coalesces over
+		// filter return so a host that sets static config wins outright; with no
+		// static config, the filter result is authoritative.
+		$globalStylesStatic = config( 'artisanpack.visual-editor.site-editor.global-styles', null );
+		$globalStylesStatic = is_array( $globalStylesStatic ) ? $globalStylesStatic : null;
+		$globalStylesMerged = applyFilters( 'ap.visualEditor.globalStyles', $globalStylesStatic );
+		$globalStylesMerged = is_array( $globalStylesMerged ) ? $globalStylesMerged : null;
+		$globalStylesMerged = $globalStylesStatic ?? $globalStylesMerged;
+
+		$this->app->instance(
+			SiteEditorGlobalStylesResolver::class,
+			new SiteEditorGlobalStylesResolver( $globalStylesMerged ),
+		);
+
+		// Navigation ─ array<string, array> keyed by location.
+		$menusStatic = (array) config( 'artisanpack.visual-editor.site-editor.navigation', [] );
+		$menusMerged = applyFilters( 'ap.visualEditor.navigation', $menusStatic );
+		$menusMerged = is_array( $menusMerged ) ? $menusMerged : [];
+		$menusMerged = array_merge( $menusMerged, $menusStatic );
+
+		$this->app->instance(
+			SiteEditorMenuResolver::class,
+			new SiteEditorMenuResolver( $menusMerged ),
+		);
+	}
+
+	/**
+	 * Register the cms-framework adapter for {@see QueryResolverContract}
+	 * when the upstream class is autoloadable.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function registerQueryResolverBinding(): void
+	{
+		$cmsRuntime = 'ArtisanPackUI\\CMSFramework\\Modules\\Blog\\Services\\QueryRuntime';
+
+		if ( ! class_exists( $cmsRuntime ) ) {
+			return;
+		}
+
+		$this->app->singleton( QueryResolverContract::class, function ( $app ) use ( $cmsRuntime ): QueryResolverContract {
+			return new CmsFrameworkQueryResolver( $app->make( $cmsRuntime ) );
+		} );
+	}
+
+	/**
+	 * Layer the `ap.visualEditor.visibility.registerRules` filter
+	 * over every fresh {@see VisibilityRuleRegistry} instance.
+	 *
+	 * Registered in `boot()` via {@see \Illuminate\Container\Container::extend()}
+	 * so the filter chain is guaranteed complete by the time the
+	 * registry is resolved — third-party packages can hook their
+	 * custom rules from their own `boot()` regardless of provider
+	 * order. Firing the filter inside the scoped closure would freeze
+	 * the chain state at first-resolve, breaking any late-boot
+	 * registration.
+	 *
+	 * @since 1.4.0
+	 */
+	protected function applyVisibilityRulesFilter(): void
+	{
+		if ( ! function_exists( 'applyFilters' ) ) {
+			return;
+		}
+
+		$this->app->extend(
+			VisibilityRuleRegistry::class,
+			static function ( VisibilityRuleRegistry $registry ): VisibilityRuleRegistry {
+				$filtered = applyFilters( 'ap.visualEditor.visibility.registerRules', $registry );
+				return $filtered instanceof VisibilityRuleRegistry ? $filtered : $registry;
+			},
+		);
+	}
+
+	/**
+	 * Layer the `ap.visualEditor.registerFontSources` filter over the
+	 * {@see FontSourceRegistry} singleton.
+	 *
+	 * Registered in `boot()` via {@see \Illuminate\Container\Container::extend()}
+	 * so the filter chain is complete by the time the registry is first
+	 * resolved — a package can register its own
+	 * {@see Fonts\Contracts\FontProvider} from its
+	 * own `boot()` regardless of provider order. The filter receives the
+	 * registry instance and must return it; a non-registry return is ignored
+	 * so a misbehaving hook cannot break font sources.
+	 *
+	 * @since 1.7.0
+	 */
+	protected function applyFontSourcesFilter(): void
+	{
+		if ( ! function_exists( 'applyFilters' ) ) {
+			return;
+		}
+
+		$this->app->extend(
+			FontSourceRegistry::class,
+			static function ( FontSourceRegistry $registry ): FontSourceRegistry {
+				$filtered = applyFilters( 'ap.visualEditor.registerFontSources', $registry );
+				return $filtered instanceof FontSourceRegistry ? $filtered : $registry;
+			},
+		);
+	}
+
+	/**
+	 * Register the first-party Font Library providers on the
+	 * `ap.visualEditor.registerFontSources` filter.
+	 *
+	 * Each provider is gated on its `fonts.providers.*.enabled` config flag so
+	 * a host can drop a source in one line; the callback runs at
+	 * registry-resolve time (behind {@see applyFontSourcesFilter()}), by which
+	 * point configuration is merged and the credential is readable. Gated on
+	 * `addFilter` so visual-editor stays bootable when `artisanpack-ui/hooks`
+	 * isn't on the classpath.
+	 *
+	 * @since 1.7.0
+	 */
+	protected function registerBuiltInFontProviders(): void
+	{
+		if ( ! function_exists( 'addFilter' ) ) {
+			return;
+		}
+
+		addFilter(
+			'ap.visualEditor.registerFontSources',
+			static function ( FontSourceRegistry $registry ): FontSourceRegistry {
+				$google = config( 'artisanpack.visual-editor.fonts.providers.google', [] );
+
+				if ( true === ( $google['enabled'] ?? false ) ) {
+					$registry->register( new GoogleFontsProvider(
+						(string) ( $google['metadata_url'] ?? 'https://fonts.google.com/metadata/fonts' ),
+						(string) ( $google['css_url'] ?? 'https://fonts.googleapis.com/css2' ),
+						(string) ( $google['user_agent'] ?? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' ),
+						(int) ( $google['per_page'] ?? 24 ),
+						(int) ( $google['cache_ttl'] ?? 86400 ),
+						(int) ( $google['timeout'] ?? 10 ),
+						(string) ( $google['subset'] ?? 'latin' ),
+						(int) ( $google['max_bytes'] ?? 15_728_640 ),
+					) );
+				}
+
+				$bunny = config( 'artisanpack.visual-editor.fonts.providers.bunny', [] );
+
+				if ( true === ( $bunny['enabled'] ?? false ) ) {
+					$registry->register( new BunnyFontsProvider(
+						(string) ( $bunny['list_url'] ?? 'https://fonts.bunny.net/list' ),
+						(string) ( $bunny['css_url'] ?? 'https://fonts.bunny.net/css' ),
+						(string) ( $bunny['user_agent'] ?? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' ),
+						(int) ( $bunny['per_page'] ?? 24 ),
+						(int) ( $bunny['cache_ttl'] ?? 86400 ),
+						(int) ( $bunny['timeout'] ?? 10 ),
+						(string) ( $bunny['subset'] ?? 'latin' ),
+						(int) ( $bunny['max_bytes'] ?? 15_728_640 ),
+					) );
+				}
+
+				$custom = config( 'artisanpack.visual-editor.fonts.providers.custom', [] );
+
+				if ( true === ( $custom['enabled'] ?? false ) ) {
+					$registry->register( new CustomUploadProvider() );
+				}
+
+				return $registry;
+			},
+		);
+	}
+
+	/**
+	 * Hook the generated `fonts.css` bundle onto cms-framework's front-end
+	 * theme stylesheet list.
+	 *
+	 * The filter fires per public request with the active theme's stylesheet
+	 * entries; {@see FontStylesheetEnqueuer::appendTo()} appends the bundle
+	 * when it has been generated and leaves the list untouched otherwise. No-op
+	 * when the hooks package isn't installed.
+	 *
+	 * @since 1.7.0
+	 */
+	protected function registerFontStylesheetEnqueue(): void
+	{
+		if ( ! function_exists( 'addFilter' ) ) {
+			return;
+		}
+
+		addFilter(
+			'ap.themes.frontendStyles',
+			function ( $entries ) {
+				return $this->app->make( FontStylesheetEnqueuer::class )->appendTo( $entries );
+			},
+		);
+	}
+
+	/**
+	 * Resolve a theme's declared font bundle when cms-framework activates it.
+	 *
+	 * Listens on the `ap.cmsFramework.theme.activated` action, which fires with
+	 * the theme slug and its decoded `theme.json` manifest. The manifest's
+	 * top-level `fonts` block is handed to {@see ThemeFontBundleResolver}, which
+	 * links already-installed families into `ve_theme_font_bundles` and — only
+	 * when `fonts.bundles.auto_install` is enabled — fetches missing families
+	 * from their provider. Gated on `addAction` so visual-editor stays bootable
+	 * without `artisanpack-ui/hooks`, and wrapped so a resolver failure never
+	 * aborts the host's theme activation.
+	 *
+	 * @since 1.7.0
+	 */
+	protected function registerThemeFontBundleResolver(): void
+	{
+		if ( ! function_exists( 'addAction' ) ) {
+			return;
+		}
+
+		addAction(
+			'ap.cmsFramework.theme.activated',
+			function ( string $slug, mixed $theme = [] ): void {
+				if ( ! is_array( $theme ) ) {
+					return;
+				}
+
+				$autoInstall = (bool) config( 'artisanpack.visual-editor.fonts.bundles.auto_install', false );
+
+				try {
+					$this->app->make( ThemeFontBundleResolver::class )->resolve( $slug, $theme, $autoInstall );
+				} catch ( Throwable $e ) {
+					Log::error( 'Failed to resolve theme font bundles on activation.', [
+						'theme'     => $slug,
+						'exception' => $e,
+					] );
+				}
+			},
+		);
 	}
 
 	/**
@@ -1225,7 +1335,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 			'ap.icons.registerIconSets',
 			static function ( IconSetRegistration $registry ) use ( $baseDir ): IconSetRegistration {
 				return FontAwesomeFreeIconSets::register( $registry, $baseDir );
-			}
+			},
 		);
 	}
 
@@ -1261,7 +1371,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 				}
 
 				return $this->app->make( InlineIconContentHydrator::class )->hydrate( $html );
-			}
+			},
 		);
 	}
 
@@ -1300,14 +1410,14 @@ class VisualEditorServiceProvider extends ServiceProvider
 				// no entry exists for the slug.
 				if ( ! array_key_exists( 'page/blank', $patterns ) ) {
 					$patterns['page/blank'] = [
-						'slug'       => 'page/blank',
-						'title'      => __( 'Blank' ),
-						'source'     => 'theme',
-						'synced'     => false,
-						'categories' => [ 'page' ],
-						'blocks'     => [],
+						'slug'        => 'page/blank',
+						'title'       => __( 'Blank' ),
+						'source'      => 'theme',
+						'synced'      => false,
+						'categories'  => [ 'page' ],
+						'blocks'      => [],
 						'raw_content' => '',
-						'post_types' => null,
+						'post_types'  => null,
 					];
 				}
 
@@ -1495,7 +1605,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 	{
 		$middleware = (array) config(
 			'artisanpack.visual-editor.api.middleware',
-			['api', 'auth']
+			['api', 'auth'],
 		);
 
 		Route::middleware( $middleware )
@@ -1534,26 +1644,26 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		\Livewire\Livewire::component(
 			'artisanpack-visual-editor.ai.tools',
-			\ArtisanPackUI\VisualEditor\Livewire\Ai\AiTools::class,
+			Livewire\Ai\AiTools::class,
 		);
 	}
 
 	/**
 	 * Define the default `visual-editor.use-ai` gate unless the host
 	 * already has (#828 hardening). Denies by default; see
-	 * {@see \ArtisanPackUI\VisualEditor\Ai\Support\AiAccess}.
+	 * {@see Ai\Support\AiAccess}.
 	 *
 	 * @since 1.12.1
 	 */
 	protected function registerAiGate(): void
 	{
-		if ( Gate::has( \ArtisanPackUI\VisualEditor\Ai\Support\AiAccess::ABILITY ) ) {
+		if ( Gate::has( Ai\Support\AiAccess::ABILITY ) ) {
 			return;
 		}
 
 		Gate::define(
-			\ArtisanPackUI\VisualEditor\Ai\Support\AiAccess::ABILITY,
-			static fn ( ?\Illuminate\Contracts\Auth\Authenticatable $user ): bool => \ArtisanPackUI\VisualEditor\Ai\Support\AiAccess::allows( $user ),
+			Ai\Support\AiAccess::ABILITY,
+			static fn ( ?\Illuminate\Contracts\Auth\Authenticatable $user ): bool => Ai\Support\AiAccess::allows( $user ),
 		);
 	}
 
@@ -1561,129 +1671,19 @@ class VisualEditorServiceProvider extends ServiceProvider
 	 * Define the default `visual-editor.edit-content` gate unless the
 	 * host already has (#834). Allows any authenticated user unless a
 	 * capability is configured; see
-	 * {@see \ArtisanPackUI\VisualEditor\Support\ContentAccess}.
+	 * {@see Support\ContentAccess}.
 	 *
 	 * @since 1.13.0
 	 */
 	protected function registerContentGate(): void
 	{
-		if ( Gate::has( \ArtisanPackUI\VisualEditor\Support\ContentAccess::ABILITY ) ) {
+		if ( Gate::has( Support\ContentAccess::ABILITY ) ) {
 			return;
 		}
 
 		Gate::define(
-			\ArtisanPackUI\VisualEditor\Support\ContentAccess::ABILITY,
-			static fn ( ?\Illuminate\Contracts\Auth\Authenticatable $user ): bool => \ArtisanPackUI\VisualEditor\Support\ContentAccess::allows( $user ),
-		);
-	}
-
-
-	/**
-	 * Builds the slug → model class map for ResourceResolver.
-	 *
-	 * Pipes the static config through the `ap.visualEditor.resources` filter
-	 * (so packages like cms-framework can register their models at runtime),
-	 * then merges static config back on top so host-app entries always win on
-	 * key collision. ResourceResolver itself does not validate at construction
-	 * — invalid classes only surface on first resolve, which keeps a
-	 * standalone install of a contributor (cms-framework without visual-editor
-	 * loaded) from tripping host boot.
-	 *
-	 * Public so tests (and edge cases that mutate config or hook callbacks at
-	 * runtime) can re-trigger the rebind without going through reflection.
-	 *
-	 * @since 1.0.0
-	 */
-	public function registerResourceResolver(): void
-	{
-		$staticConfig = (array) config( 'artisanpack.visual-editor.resources', [] );
-		$filtered     = applyFilters( 'ap.visualEditor.resources', $staticConfig );
-		$filtered     = is_array( $filtered ) ? $filtered : [];
-
-		// Static config wins on key collision: host app entries take
-		// precedence over filter contributions.
-		$resources = array_merge( $filtered, $staticConfig );
-
-		$this->app->instance( ResourceResolver::class, new ResourceResolver( $resources ) );
-	}
-
-	/**
-	 * Builds the five site-editor resolvers from filter-merged data.
-	 *
-	 * Mirrors {@see self::registerResourceResolver()}: each filter receives the
-	 * static config, contributors (cms-framework H1–H4) merge their data in,
-	 * static config wins on key collision. Resolvers store the merged shape
-	 * verbatim — validation is deferred to first read so a misconfigured
-	 * contributor surfaces an exception on the editor's first request, not at
-	 * boot.
-	 *
-	 * Standalone visual-editor (no cms-framework, no host registrations) ends
-	 * up with empty resolvers — the editor's site-editor surface boots clean
-	 * and the editor renders with zero entities until something registers.
-	 *
-	 * Public so tests (and edge cases that mutate config or hook callbacks at
-	 * runtime) can re-trigger the rebind without going through reflection.
-	 *
-	 * @since 1.0.0
-	 */
-	public function registerSiteEditorResolvers(): void
-	{
-		// Templates ─ array<string, array> keyed by slug.
-		$templatesStatic = (array) config( 'artisanpack.visual-editor.site-editor.templates', [] );
-		$templatesMerged = applyFilters( 'ap.visualEditor.templates', $templatesStatic );
-		$templatesMerged = is_array( $templatesMerged ) ? $templatesMerged : [];
-		$templatesMerged = array_merge( $templatesMerged, $templatesStatic );
-
-		$this->app->instance(
-			SiteEditorTemplateResolver::class,
-			new SiteEditorTemplateResolver( $templatesMerged ),
-		);
-
-		// Template parts ─ array<string, array> keyed by slug.
-		$partsStatic = (array) config( 'artisanpack.visual-editor.site-editor.template-parts', [] );
-		$partsMerged = applyFilters( 'ap.visualEditor.templateParts', $partsStatic );
-		$partsMerged = is_array( $partsMerged ) ? $partsMerged : [];
-		$partsMerged = array_merge( $partsMerged, $partsStatic );
-
-		$this->app->instance(
-			SiteEditorTemplatePartResolver::class,
-			new SiteEditorTemplatePartResolver( $partsMerged ),
-		);
-
-		// Patterns ─ array<string, array> keyed by slug.
-		$patternsStatic = (array) config( 'artisanpack.visual-editor.site-editor.patterns', [] );
-		$patternsMerged = applyFilters( 'ap.visualEditor.patterns', $patternsStatic );
-		$patternsMerged = is_array( $patternsMerged ) ? $patternsMerged : [];
-		$patternsMerged = array_merge( $patternsMerged, $patternsStatic );
-
-		$this->app->instance(
-			SiteEditorPatternResolver::class,
-			new SiteEditorPatternResolver( $patternsMerged ),
-		);
-
-		// Global styles ─ singleton (?array). Static-config null-coalesces over
-		// filter return so a host that sets static config wins outright; with no
-		// static config, the filter result is authoritative.
-		$globalStylesStatic = config( 'artisanpack.visual-editor.site-editor.global-styles', null );
-		$globalStylesStatic = is_array( $globalStylesStatic ) ? $globalStylesStatic : null;
-		$globalStylesMerged = applyFilters( 'ap.visualEditor.globalStyles', $globalStylesStatic );
-		$globalStylesMerged = is_array( $globalStylesMerged ) ? $globalStylesMerged : null;
-		$globalStylesMerged = $globalStylesStatic ?? $globalStylesMerged;
-
-		$this->app->instance(
-			SiteEditorGlobalStylesResolver::class,
-			new SiteEditorGlobalStylesResolver( $globalStylesMerged ),
-		);
-
-		// Navigation ─ array<string, array> keyed by location.
-		$menusStatic = (array) config( 'artisanpack.visual-editor.site-editor.navigation', [] );
-		$menusMerged = applyFilters( 'ap.visualEditor.navigation', $menusStatic );
-		$menusMerged = is_array( $menusMerged ) ? $menusMerged : [];
-		$menusMerged = array_merge( $menusMerged, $menusStatic );
-
-		$this->app->instance(
-			SiteEditorMenuResolver::class,
-			new SiteEditorMenuResolver( $menusMerged ),
+			Support\ContentAccess::ABILITY,
+			static fn ( ?\Illuminate\Contracts\Auth\Authenticatable $user ): bool => Support\ContentAccess::allows( $user ),
 		);
 	}
 
@@ -1694,6 +1694,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 	 * take precedence over the package's default values.
 	 *
 	 * @since 1.0.0
+	 *
 	 * @return void
 	 */
 	protected function mergeConfiguration(): void
@@ -1751,7 +1752,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 					try {
 						$registry->addSet( $path, $set->prefix );
-					} catch ( \InvalidArgumentException $e ) {
+					} catch ( InvalidArgumentException $e ) {
 						// Mirrors the bundled FA registration loop: keep
 						// boot resilient to bad rows. The settings UI is
 						// the place to surface the underlying conflict.
@@ -1760,7 +1761,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 				}
 
 				return $registry;
-			}
+			},
 		);
 	}
 
@@ -1830,7 +1831,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		try {
 			$persisted = $app->make( UploadedIconSetRegistry::class );
-		} catch ( \Throwable $e ) {
+		} catch ( Throwable $e ) {
 			return $bundled;
 		}
 
@@ -1915,11 +1916,10 @@ class VisualEditorServiceProvider extends ServiceProvider
 	 *
 	 * @since 1.1.0
 	 */
-	protected function humanizeIconName( string $name ): string
+	protected function humanizeIconName( string $name): string
 	{
 		$spaced = preg_replace( '/[-_]+/', ' ', $name ) ?? $name;
 
 		return ucwords( trim( $spaced ) );
 	}
-
 }

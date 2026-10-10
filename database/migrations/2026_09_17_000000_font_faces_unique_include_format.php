@@ -33,8 +33,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
 	public function up(): void
 	{
 		// Add the four-column unique index *before* dropping the
@@ -43,11 +42,11 @@ return new class extends Migration
 		// error with "needed in a foreign key constraint" on MySQL
 		// (SQLite/Postgres don't care about the order, but the
 		// portable path is add-then-drop).
-		Schema::table( 've_font_faces', function ( Blueprint $table ) {
+		Schema::table( 've_font_faces', function ( Blueprint $table ): void {
 			$table->unique( [ 'font_id', 'weight', 'style', 'format' ] );
 		} );
 
-		Schema::table( 've_font_faces', function ( Blueprint $table ) {
+		Schema::table( 've_font_faces', function ( Blueprint $table ): void {
 			$table->dropUnique( [ 'font_id', 'weight', 'style' ] );
 		} );
 	}
@@ -68,11 +67,11 @@ return new class extends Migration
 		// (CodeRabbit).
 		$this->collapseSiblingFormatRows();
 
-		Schema::table( 've_font_faces', function ( Blueprint $table ) {
+		Schema::table( 've_font_faces', function ( Blueprint $table ): void {
 			$table->unique( [ 'font_id', 'weight', 'style' ] );
 		} );
 
-		Schema::table( 've_font_faces', function ( Blueprint $table ) {
+		Schema::table( 've_font_faces', function ( Blueprint $table ): void {
 			$table->dropUnique( [ 'font_id', 'weight', 'style', 'format' ] );
 		} );
 	}

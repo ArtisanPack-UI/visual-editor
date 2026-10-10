@@ -59,7 +59,7 @@ class ArchivesBlock extends DynamicBlock
 			return sprintf(
 				'<div class="%s">%s</div>',
 				e( implode( ' ', $classes ) ),
-				e( __( 'No archives to show.' ) )
+				e( __( 'No archives to show.' ) ),
 			);
 		}
 
@@ -156,14 +156,14 @@ class ArchivesBlock extends DynamicBlock
 				'<li><a href="%s">%s</a>%s</li>',
 				e( $bucket['url'] ),
 				e( $bucket['label'] ),
-				$count
+				$count,
 			);
 		} )->implode( '' );
 
 		return sprintf(
 			'<ul class="%s">%s</ul>',
 			e( implode( ' ', $classes ) ),
-			$items
+			$items,
 		);
 	}
 
@@ -194,7 +194,7 @@ class ArchivesBlock extends DynamicBlock
 				'<option value="%s">%s%s</option>',
 				e( $bucket['url'] ),
 				e( $bucket['label'] ),
-				$count
+				$count,
 			);
 		} )->implode( '' );
 
@@ -209,7 +209,7 @@ class ArchivesBlock extends DynamicBlock
 			$labelMarkup,
 			e( $dropdownId ),
 			e( __( 'Select Archive' ) ),
-			$options
+			$options,
 		);
 	}
 

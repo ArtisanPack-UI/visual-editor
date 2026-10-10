@@ -32,16 +32,6 @@ use Illuminate\Http\Response;
 
 class PageController extends WpEntityController
 {
-	protected function slug(): string
-	{
-		return 'pages';
-	}
-
-	protected function resourceClass(): string
-	{
-		return PageResource::class;
-	}
-
 	public function store( StorePageRequest $request ): JsonResponse
 	{
 		$model = $this->persistNew( $request->validated() );
@@ -54,6 +44,16 @@ class PageController extends WpEntityController
 		$model = $this->persistUpdate( $id, $request->validated() );
 
 		return $this->toResponse( $request, $model );
+	}
+
+	protected function slug(): string
+	{
+		return 'pages';
+	}
+
+	protected function resourceClass(): string
+	{
+		return PageResource::class;
 	}
 
 	/**
@@ -73,7 +73,7 @@ class PageController extends WpEntityController
 		if ( array_key_exists( 'parent', $data ) ) {
 			$model->setAttribute(
 				$this->columnFor( $model, [ 'parent', 'parent_id' ] ),
-				$data['parent']
+				$data['parent'],
 			);
 		}
 

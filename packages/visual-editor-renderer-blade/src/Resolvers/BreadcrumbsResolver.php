@@ -33,6 +33,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditorRendererBlade\Resolvers;
 
+use stdClass;
 use Throwable;
 
 class BreadcrumbsResolver
@@ -277,7 +278,7 @@ class BreadcrumbsResolver
 		$current   = $this->parentPost( $post );
 		$depth     = 0;
 
-		while ( $current instanceof \stdClass || is_object( $current ) ) {
+		while ( $current instanceof stdClass || is_object( $current ) ) {
 			$id = $this->postIdentity( $current );
 
 			if ( null !== $id && isset( $seen[ $id ] ) ) {

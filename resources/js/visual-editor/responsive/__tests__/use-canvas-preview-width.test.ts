@@ -9,6 +9,7 @@ import { act, renderHook } from '@testing-library/react';
 import {
 	getCanvasPreviewWidth,
 	publishCanvasPreviewWidth,
+	resetCanvasPreviewWidth,
 	subscribeCanvasPreviewWidth,
 	useCanvasPreviewWidth,
 } from '../use-canvas-preview-width';
@@ -38,6 +39,53 @@ describe( 'useCanvasPreviewWidth', () => {
 		renderHook( () => useCanvasPreviewWidth() );
 
 		expect( getCanvasPreviewWidth() ).toBeNull();
+	} );
+
+	it( 'clears the published width when the shell unmounts (FE-7)', () => {
+		const { result, unmount } = renderHook( () => useCanvasPreviewWidth() );
+
+		act( () => result.current.handleViewportChange( 'md', 768 ) );
+		expect( getCanvasPreviewWidth() ).toBe( 768 );
+
+		unmount();
+
+		expect( getCanvasPreviewWidth() ).toBeNull();
+	} );
+
+	it( 'notifies subscribers when the shell unmounts', () => {
+		const listener            = vi.fn();
+		const { result, unmount } = renderHook( () => useCanvasPreviewWidth() );
+		const unsubscribe         = subscribeCanvasPreviewWidth( listener );
+
+		act( () => result.current.handleViewportChange( 'md', 768 ) );
+		unmount();
+
+		expect( listener ).toHaveBeenLastCalledWith( null );
+		unsubscribe();
+	} );
+
+	it( 'does not clear a width published by another mounted shell', () => {
+		const first  = renderHook( () => useCanvasPreviewWidth() );
+		const second = renderHook( () => useCanvasPreviewWidth() );
+
+		act( () => second.result.current.handleViewportChange( 'md', 768 ) );
+		first.unmount();
+
+		expect( getCanvasPreviewWidth() ).toBe( 768 );
+		second.unmount();
+	} );
+
+	it( 'resetCanvasPreviewWidth() silently resets the published width', () => {
+		const listener    = vi.fn();
+		const unsubscribe = subscribeCanvasPreviewWidth( listener );
+
+		publishCanvasPreviewWidth( 640 );
+		listener.mockClear();
+		resetCanvasPreviewWidth();
+
+		expect( getCanvasPreviewWidth() ).toBeNull();
+		expect( listener ).not.toHaveBeenCalled();
+		unsubscribe();
 	} );
 } );
 

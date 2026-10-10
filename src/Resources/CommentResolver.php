@@ -35,6 +35,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditor\Resources;
 
 use Illuminate\Support\Carbon;
+use Throwable;
 
 class CommentResolver
 {
@@ -59,6 +60,15 @@ class CommentResolver
 		'artisanpack/comment-edit-link',
 		'artisanpack/comment-reply-link',
 	];
+
+	/**
+	 * Safe inline tags retained when sanitizing comment content. Mirrors
+	 * the conservative subset WordPress allows for unauthenticated
+	 * commenters, dropping structural / scripted tags entirely.
+	 *
+	 * @var string
+	 */
+	protected const COMMENT_CONTENT_ALLOWED_TAGS = '<a><abbr><acronym><b><blockquote><br><cite><code><del><em><i><p><q><s><strike><strong>';
 
 	/**
 	 * Recursively walk a block subtree and stamp every supported
@@ -174,15 +184,6 @@ class CommentResolver
 			'_resolvedAuthorUrl'  => $this->authorUrl( $comment ),
 		];
 	}
-
-	/**
-	 * Safe inline tags retained when sanitizing comment content. Mirrors
-	 * the conservative subset WordPress allows for unauthenticated
-	 * commenters, dropping structural / scripted tags entirely.
-	 *
-	 * @var string
-	 */
-	protected const COMMENT_CONTENT_ALLOWED_TAGS = '<a><abbr><acronym><b><blockquote><br><cite><code><del><em><i><p><q><s><strike><strong>';
 
 	/**
 	 * @return array<string, mixed>
@@ -308,7 +309,7 @@ class CommentResolver
 
 		try {
 			return Carbon::parse( $value );
-		} catch ( \Throwable ) {
+		} catch ( Throwable ) {
 			return null;
 		}
 	}

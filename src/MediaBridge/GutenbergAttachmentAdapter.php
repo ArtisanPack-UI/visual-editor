@@ -371,11 +371,11 @@ class GutenbergAttachmentAdapter
 	protected function isPositiveInt( $value ): bool
 	{
 		if ( is_int( $value ) ) {
-			return 0 < $value;
+			return $value > 0;
 		}
 
 		if ( is_string( $value ) && ctype_digit( $value ) ) {
-			return 0 < (int) $value;
+			return (int) $value > 0;
 		}
 
 		return false;

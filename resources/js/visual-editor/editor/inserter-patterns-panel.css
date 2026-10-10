@@ -68,17 +68,17 @@
     gap: 4px;
 }
 
-.ap-inserter-patterns__row {
-    appearance: none;
+/*
+ * The card holds the preview and the button side by side — an iframe
+ * isn't allowed inside a <button>. The button's ::after stretches over
+ * the whole card, so the card still clicks and hovers as one target.
+ */
+.ap-inserter-patterns__card {
+    position: relative;
     background: #fff;
     border: 1px solid var(--ap-site-editor-border, #e5e7eb);
     border-radius: 8px;
     padding: 8px;
-    text-align: left;
-    cursor: pointer;
-    width: 100%;
-    color: inherit;
-    font: inherit;
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -86,14 +86,50 @@
     transition: border-color 120ms ease, box-shadow 120ms ease;
 }
 
-.ap-inserter-patterns__row:hover {
+.ap-inserter-patterns__card:hover {
     border-color: var(--ap-site-editor-accent, #1d4ed8);
     box-shadow: 0 2px 8px rgba(29, 78, 216, 0.08);
 }
 
-.ap-inserter-patterns__row:focus-visible {
+.ap-inserter-patterns__card:has(> .ap-inserter-patterns__row:focus-visible) {
     outline: 2px solid var(--ap-site-editor-accent, #1d4ed8);
     outline-offset: 2px;
+}
+
+.ap-inserter-patterns__row {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    text-align: left;
+    cursor: pointer;
+    width: 100%;
+    min-width: 0;
+    color: inherit;
+    font: inherit;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.ap-inserter-patterns__row::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+}
+
+.ap-inserter-patterns__row:focus-visible {
+    outline: none;
+}
+
+/* Browsers without :has() keep a visible focus ring on the button. */
+@supports not selector(:has(*)) {
+    .ap-inserter-patterns__row:focus-visible {
+        outline: 2px solid var(--ap-site-editor-accent, #1d4ed8);
+        outline-offset: 2px;
+    }
 }
 
 .ap-inserter-patterns__preview {

@@ -7,13 +7,13 @@ use ArtisanPackUI\VisualEditor\Services\Bindings\Sources\RelationSource;
 use Tests\Fixtures\TestBindingsModel;
 use Tests\TestUser;
 
-it( 'returns null when no model is in scope', function () {
+it( 'returns null when no model is in scope', function (): void {
 	$source = new RelationSource();
 
 	expect( $source->resolve( new BindingContext(), [ 'path' => 'author.name' ] ) )->toBeNull();
 } );
 
-it( 'returns null when path is missing or empty', function () {
+it( 'returns null when path is missing or empty', function (): void {
 	$source = new RelationSource();
 	$model  = new TestBindingsModel( [ 'title' => 'X' ] );
 
@@ -21,7 +21,7 @@ it( 'returns null when path is missing or empty', function () {
 		->and( $source->resolve( new BindingContext( $model ), [ 'path' => '   ' ] ) )->toBeNull();
 } );
 
-it( 'walks a single-segment path to a column', function () {
+it( 'walks a single-segment path to a column', function (): void {
 	$model = TestBindingsModel::query()->create( [
 		'title'   => 'Welcome',
 		'status'  => 'published',
@@ -33,7 +33,7 @@ it( 'walks a single-segment path to a column', function () {
 	expect( $source->resolve( new BindingContext( $model ), [ 'path' => 'title' ] ) )->toBe( 'Welcome' );
 } );
 
-it( 'walks a two-segment path across a belongsTo relation', function () {
+it( 'walks a two-segment path across a belongsTo relation', function (): void {
 	$author = TestUser::query()->create( [
 		'name'     => 'Grace Hopper',
 		'email'    => 'grace+' . uniqid() . '@example.com',
@@ -53,7 +53,7 @@ it( 'walks a two-segment path across a belongsTo relation', function () {
 		->toBe( 'Grace Hopper' );
 } );
 
-it( 'returns null when a non-leaf segment dead-ends', function () {
+it( 'returns null when a non-leaf segment dead-ends', function (): void {
 	$model = TestBindingsModel::query()->create( [
 		'title'     => 'Orphan',
 		'status'    => 'published',
@@ -66,33 +66,33 @@ it( 'returns null when a non-leaf segment dead-ends', function () {
 	expect( $source->resolve( new BindingContext( $model ), [ 'path' => 'author.name' ] ) )->toBeNull();
 } );
 
-it( 'declares the relation chain for eager-loading (drops the leaf segment)', function () {
+it( 'declares the relation chain for eager-loading (drops the leaf segment)', function (): void {
 	$source = new RelationSource();
 
 	expect( $source->eagerLoadRelations( [ [ 'path' => 'author.name' ] ] ) )->toBe( [ 'author' ] );
 } );
 
-it( 'declares the nested relation chain', function () {
+it( 'declares the nested relation chain', function (): void {
 	$source = new RelationSource();
 
 	expect( $source->eagerLoadRelations( [ [ 'path' => 'author.profile.display_name' ] ] ) )
 		->toBe( [ 'author.profile' ] );
 } );
 
-it( 'declares no relation when the path has only one segment', function () {
+it( 'declares no relation when the path has only one segment', function (): void {
 	$source = new RelationSource();
 
 	expect( $source->eagerLoadRelations( [ [ 'path' => 'title' ] ] ) )->toBe( [] );
 } );
 
-it( 'stops at a numeric segment when computing eager-loads', function () {
+it( 'stops at a numeric segment when computing eager-loads', function (): void {
 	$source = new RelationSource();
 
 	expect( $source->eagerLoadRelations( [ [ 'path' => 'categories.0.name' ] ] ) )
 		->toBe( [ 'categories' ] );
 } );
 
-it( 'returns a value from an array on the model', function () {
+it( 'returns a value from an array on the model', function (): void {
 	$model = TestBindingsModel::query()->create( [
 		'title'   => 'Y',
 		'status'  => 'published',
@@ -105,7 +105,7 @@ it( 'returns a value from an array on the model', function () {
 		->toBe( [ 'tone' => 'casual' ] );
 } );
 
-it( 'deduplicates eager-load entries across many bindings on the same chain', function () {
+it( 'deduplicates eager-load entries across many bindings on the same chain', function (): void {
 	$source = new RelationSource();
 
 	$paths = [

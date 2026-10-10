@@ -13,7 +13,7 @@ function fakeLatestPost(
 	?string $excerpt = null,
 	?Carbon $publishedAt = null,
 	?string $authorName = null,
-	?string $featuredImageUrl = null
+	?string $featuredImageUrl = null,
 ): object {
 	$post                     = new stdClass();
 	$post->id                 = $id;
@@ -41,7 +41,7 @@ beforeEach( function (): void {
 	test()->block->posts = new Collection();
 } );
 
-it( 'renders a list of post titles linked to their permalinks', function () {
+it( 'renders a list of post titles linked to their permalinks', function (): void {
 	test()->block->posts = new Collection( [
 		fakeLatestPost( 1, 'Hello Laravel', 'hello-laravel' ),
 		fakeLatestPost( 2, 'On Livewire', 'on-livewire' ),
@@ -54,7 +54,7 @@ it( 'renders a list of post titles linked to their permalinks', function () {
 		->and( $html )->toContain( '<a class="wp-block-latest-posts__post-title" href="/blog/on-livewire">On Livewire</a>' );
 } );
 
-it( 'limits the list to postsToShow', function () {
+it( 'limits the list to postsToShow', function (): void {
 	test()->block->posts = new Collection( [
 		fakeLatestPost( 1, 'One', 'one' ),
 		fakeLatestPost( 2, 'Two', 'two' ),
@@ -67,7 +67,7 @@ it( 'limits the list to postsToShow', function () {
 		->and( $html )->not->toContain( '>Three<' );
 } );
 
-it( 'shows the post date when displayPostDate is set', function () {
+it( 'shows the post date when displayPostDate is set', function (): void {
 	test()->block->posts = new Collection( [
 		fakeLatestPost( 1, 'Dated', 'dated', null, Carbon::create( 2026, 4, 19 ) ),
 	] );
@@ -80,7 +80,7 @@ it( 'shows the post date when displayPostDate is set', function () {
 		->and( $html )->toContain( 'has-dates' );
 } );
 
-it( 'shows the author name when displayAuthor is set', function () {
+it( 'shows the author name when displayAuthor is set', function (): void {
 	test()->block->posts = new Collection( [
 		fakeLatestPost( 1, 'Byline', 'byline', null, null, 'Jacob Martella' ),
 	] );
@@ -92,8 +92,8 @@ it( 'shows the author name when displayAuthor is set', function () {
 		->and( $html )->toContain( 'has-author' );
 } );
 
-it( 'renders a trimmed excerpt when displayPostContent shows the excerpt', function () {
-	$longExcerpt = implode( ' ', array_fill( 0, 60, 'token' ) );
+it( 'renders a trimmed excerpt when displayPostContent shows the excerpt', function (): void {
+	$longExcerpt         = implode( ' ', array_fill( 0, 60, 'token' ) );
 	test()->block->posts = new Collection( [
 		fakeLatestPost( 1, 'Lengthy', 'lengthy-post', $longExcerpt ),
 	] );
@@ -108,7 +108,7 @@ it( 'renders a trimmed excerpt when displayPostContent shows the excerpt', funct
 		->and( substr_count( $html, 'token' ) )->toBe( 12 );
 } );
 
-it( 'renders the featured image with an optional link', function () {
+it( 'renders the featured image with an optional link', function (): void {
 	test()->block->posts = new Collection( [
 		fakeLatestPost( 1, 'Pictured', 'pictured', null, null, null, 'https://example.test/img.jpg' ),
 	] );
@@ -125,7 +125,7 @@ it( 'renders the featured image with an optional link', function () {
 		->and( $withLink )->toContain( '<img src="https://example.test/img.jpg"' );
 } );
 
-it( 'renders the featured image from the media relation when no direct url is set', function () {
+it( 'renders the featured image from the media relation when no direct url is set', function (): void {
 	$post                     = fakeLatestPost( 1, 'Relational', 'relational' );
 	$post->featuredImageMedia = (object) [ 'url' => 'https://example.test/from-relation.jpg' ];
 	test()->block->posts      = new Collection( [ $post ] );
@@ -135,7 +135,7 @@ it( 'renders the featured image from the media relation when no direct url is se
 	expect( $html )->toContain( '<img src="https://example.test/from-relation.jpg"' );
 } );
 
-it( 'treats an empty featured image media url as no image (no src="")', function () {
+it( 'treats an empty featured image media url as no image (no src="")', function (): void {
 	$post                     = fakeLatestPost( 1, 'Blank media', 'blank-media' );
 	$post->featuredImageMedia = (object) [ 'url' => '   ' ];
 	test()->block->posts      = new Collection( [ $post ] );
@@ -146,7 +146,7 @@ it( 'treats an empty featured image media url as no image (no src="")', function
 		->and( $html )->not->toContain( 'src=""' );
 } );
 
-it( 'adds grid layout classes with a clamped column count', function () {
+it( 'adds grid layout classes with a clamped column count', function (): void {
 	test()->block->posts = new Collection( [ fakeLatestPost( 1, 'Grid', 'grid' ) ] );
 
 	$html = test()->block->render( test()->block->validateAttrs( [
@@ -158,14 +158,14 @@ it( 'adds grid layout classes with a clamped column count', function () {
 		->and( $html )->toContain( 'columns-6' );
 } );
 
-it( 'renders an empty shell when there are no posts', function () {
+it( 'renders an empty shell when there are no posts', function (): void {
 	$html = test()->block->render( test()->block->validateAttrs( [] ) );
 
 	expect( $html )->toContain( '<ul class="wp-block-latest-posts__list wp-block-latest-posts">' )
 		->and( $html )->toContain( 'No posts to show.' );
 } );
 
-it( 'escapes attacker-controlled title and permalink', function () {
+it( 'escapes attacker-controlled title and permalink', function (): void {
 	test()->block->posts = new Collection( [
 		fakeLatestPost( 9, '<img src=x onerror=alert(1)>', '"><script>alert(1)</script>' ),
 	] );
@@ -177,7 +177,7 @@ it( 'escapes attacker-controlled title and permalink', function () {
 		->and( $html )->toContain( '&lt;img' );
 } );
 
-it( 'clamps postsToShow and excerptLength in validateAttrs', function () {
+it( 'clamps postsToShow and excerptLength in validateAttrs', function (): void {
 	$attrs = test()->block->validateAttrs( [
 		'postsToShow'   => 5000,
 		'excerptLength' => 5000,
@@ -189,7 +189,7 @@ it( 'clamps postsToShow and excerptLength in validateAttrs', function () {
 		->and( $attrs['columns'] )->toBe( 1 );
 } );
 
-it( 'normalizes categories to a list of integer ids', function () {
+it( 'normalizes categories to a list of integer ids', function (): void {
 	$attrs = test()->block->validateAttrs( [
 		'categories' => [ [ 'id' => '3' ], [ 'id' => 5 ], 7 ],
 	] );
@@ -197,7 +197,7 @@ it( 'normalizes categories to a list of integer ids', function () {
 	expect( $attrs['categories'] )->toBe( [ 3, 5, 7 ] );
 } );
 
-it( 'collects post titles for searchableText', function () {
+it( 'collects post titles for searchableText', function (): void {
 	test()->block->posts = new Collection( [
 		fakeLatestPost( 1, 'First', 'first' ),
 		fakeLatestPost( 2, 'Second', 'second' ),

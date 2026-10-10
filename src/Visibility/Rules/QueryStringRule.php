@@ -51,7 +51,7 @@ class QueryStringRule implements VisibilityRule
 		}
 
 		$direction  = ( 'hide' === ( $ruleAttributes['direction'] ?? 'show' ) ) ? 'hide' : 'show';
-		$combinator = ( 'all'  === ( $ruleAttributes['combinator'] ?? 'any' ) ) ? 'all'  : 'any';
+		$combinator = ( 'all' === ( $ruleAttributes['combinator'] ?? 'any' ) ) ? 'all'  : 'any';
 
 		$matches = 'all' === $combinator ? $this->matchesAll( $clauses, $context ) : $this->matchesAny( $clauses, $context );
 

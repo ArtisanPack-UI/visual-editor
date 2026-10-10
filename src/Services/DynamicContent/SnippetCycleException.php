@@ -16,7 +16,6 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Services\DynamicContent;
 
-use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use RuntimeException;

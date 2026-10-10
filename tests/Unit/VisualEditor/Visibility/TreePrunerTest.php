@@ -15,7 +15,7 @@ function prunerWith( array $rules ): TreePruner
 	return new TreePruner( new VisibilityEvaluator( new RuleRegistry( $rules ), $config ) );
 }
 
-it( 'drops hidden blocks from the top-level tree', function () {
+it( 'drops hidden blocks from the top-level tree', function (): void {
 	$pruner = prunerWith( [ new HideRule() ] );
 
 	$tree = [
@@ -31,7 +31,7 @@ it( 'drops hidden blocks from the top-level tree', function () {
 	expect( $result[1]['name'] )->toBe( 'artisanpack/heading' );
 } );
 
-it( 'drops hidden inner blocks and preserves surviving parent + siblings', function () {
+it( 'drops hidden inner blocks and preserves surviving parent + siblings', function (): void {
 	$pruner = prunerWith( [ new HideRule() ] );
 
 	$tree = [

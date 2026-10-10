@@ -6,7 +6,6 @@ use ArtisanPackUI\VisualEditor\Fonts\Exceptions\FontFileWriteException;
 use ArtisanPackUI\VisualEditor\Fonts\Exceptions\FontInstallationException;
 use ArtisanPackUI\VisualEditor\Fonts\Models\Font;
 use ArtisanPackUI\VisualEditor\Fonts\Models\FontFace;
-use ArtisanPackUI\VisualEditor\Fonts\Registries\FontSourceRegistry;
 use ArtisanPackUI\VisualEditor\Fonts\Services\FontFileWriter;
 use ArtisanPackUI\VisualEditor\Fonts\Services\FontInstaller;
 use ArtisanPackUI\VisualEditor\Fonts\Services\FontsCssGenerator;

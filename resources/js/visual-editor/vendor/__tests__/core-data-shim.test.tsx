@@ -2159,6 +2159,62 @@ describe('core-data-shim hooks', () => {
         expect(blocks[2].innerBlocks[1].clientId).not.toBe('sub');
     });
 
+    it('useEntityBlockEditor re-mints a clientId another entity already owns (FE-9)', () => {
+        const navRecord = (id: number, label: string) => ({
+            id,
+            slug: `menu-${id}`,
+            title: { raw: label, rendered: label },
+            status: 'publish',
+            type: 'wp_navigation',
+            content: {
+                raw: '',
+                blocks: [
+                    { name: 'core/navigation-link', clientId: 'fe9-shared', attributes: { label }, innerBlocks: [] },
+                    { name: 'core/navigation-link', clientId: `fe9-own-${id}`, attributes: { label: 'Own' }, innerBlocks: [] },
+                ],
+            },
+        });
+
+        coreDispatch().receiveEntityRecords('postType', 'wp_navigation', [
+            navRecord(9101, 'Header'),
+            navRecord(9102, 'Footer'),
+        ]);
+
+        type Decorated = { clientId: string };
+        const read = (id: number): readonly Decorated[] =>
+            renderHook(() =>
+                useEntityBlockEditor('postType', 'wp_navigation', { id }),
+            )[0] as readonly Decorated[];
+
+        const header = read(9101);
+        const footer = read(9102);
+
+        // The first entity to claim the id keeps it; the second gets a
+        // fresh one, and ids it alone carries are preserved.
+        expect(header[0]?.clientId).toBe('fe9-shared');
+        expect(footer[0]?.clientId).not.toBe('fe9-shared');
+        expect(header[1]?.clientId).toBe('fe9-own-9101');
+        expect(footer[1]?.clientId).toBe('fe9-own-9102');
+
+        // Re-reading either entity keeps its ids stable — no churn.
+        expect(read(9101).map((block) => block.clientId)).toEqual(
+            header.map((block) => block.clientId),
+        );
+        expect(read(9102).map((block) => block.clientId)).toEqual(
+            footer.map((block) => block.clientId),
+        );
+
+        // A fresh server echo (new source array) still resolves to the
+        // same ids for both entities.
+        coreDispatch().receiveEntityRecords('postType', 'wp_navigation', [
+            navRecord(9101, 'Header'),
+            navRecord(9102, 'Footer'),
+        ]);
+
+        expect(read(9101)[0]?.clientId).toBe('fe9-shared');
+        expect(read(9102)[0]?.clientId).toBe(footer[0]?.clientId);
+    });
+
     it('useEntityBlockEditor parses a flattened string `content` payload (Keystone #48)', () => {
         // `getEditedEntityRecord` runs `flattenRawProperties` over
         // the cached record, so a server envelope of

@@ -8,7 +8,9 @@ use ArtisanPackUI\VisualEditor\Fonts\Registries\FontSourceRegistry;
 function makeRegistrationTestProvider( string $key ): FontProvider
 {
 	return new class( $key ) implements FontProvider {
-		public function __construct( private string $key ) {}
+		public function __construct( private string $key )
+		{
+		}
 
 		public function key(): string
 		{
@@ -42,7 +44,7 @@ function makeRegistrationTestProvider( string $key ): FontProvider
 	};
 }
 
-it( 'binds the font source registry as a singleton', function () {
+it( 'binds the font source registry as a singleton', function (): void {
 	$first  = app( FontSourceRegistry::class );
 	$second = app( FontSourceRegistry::class );
 
@@ -50,7 +52,7 @@ it( 'binds the font source registry as a singleton', function () {
 		->and( $first )->toBe( $second );
 } );
 
-it( 'seeds providers registered via the ap.visualEditor.registerFontSources filter', function () {
+it( 'seeds providers registered via the ap.visualEditor.registerFontSources filter', function (): void {
 	$provider = makeRegistrationTestProvider( 'acme' );
 
 	addFilter(
@@ -59,7 +61,7 @@ it( 'seeds providers registered via the ap.visualEditor.registerFontSources filt
 			$registry->register( $provider );
 
 			return $registry;
-		}
+		},
 	);
 
 	$registry = app( FontSourceRegistry::class );

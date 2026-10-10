@@ -41,7 +41,8 @@ class ResponsiveClassResolver
 	public function __construct(
 		protected BreakpointRegistry $registry,
 		protected ResponsiveValueResolver $resolver,
-	) {}
+	) {
+	}
 
 	/**
 	 * Emit class string + CSS for a single attribute.
@@ -173,7 +174,7 @@ class ResponsiveClassResolver
 				'@media %s{.%s{%s}}',
 				$query,
 				$scope,
-				$declaration
+				$declaration,
 			);
 		}
 
@@ -243,7 +244,7 @@ class ResponsiveClassResolver
 		$hash = substr(
 			hash( 'xxh3', $property . '|' . json_encode( $attribute ) ),
 			0,
-			10
+			10,
 		);
 
 		return 've-r-' . $hash;

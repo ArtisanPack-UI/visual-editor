@@ -19,11 +19,16 @@
  * @since 1.0.0
  */
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 type PreviewWidthListener = ( width: number | null ) => void
 
 let publishedPreviewWidthPx: number | null = null
+/**
+ * Token of the hook instance that last published, so an unmounting
+ * shell only clears the width it owns.
+ */
+let previewWidthOwner: object | null = null
 const previewWidthListeners: Set<PreviewWidthListener> = new Set()
 
 /**
@@ -57,6 +62,17 @@ export function publishCanvasPreviewWidth( width: number | null ): void {
 
 	publishedPreviewWidthPx = width
 	previewWidthListeners.forEach( ( listener ) => listener( width ) )
+}
+
+/**
+ * Silently resets the published width to `null` without notifying
+ * listeners. For tests, so one test's width can't leak into the next.
+ *
+ * @since 1.13.0
+ */
+export function resetCanvasPreviewWidth(): void {
+	publishedPreviewWidthPx = null
+	previewWidthOwner       = null
 }
 
 export interface CanvasPreviewWidthApi {
@@ -106,7 +122,25 @@ export function useCanvasPreviewWidth( { measureBase = false }: CanvasPreviewWid
 
 	const [ canvasElement, canvasRef ] = useState<HTMLElement | null>( null )
 
+	const ownerToken = useRef<object>( {} )
+
+	// Clear the published width when the owning shell unmounts, so a
+	// remount (HMR, switching site-editor sections) doesn't render gated
+	// blocks against a stale width for a frame.
 	useEffect( () => {
+		const token = ownerToken.current
+
+		return () => {
+			if ( previewWidthOwner === token ) {
+				publishCanvasPreviewWidth( null )
+				previewWidthOwner = null
+			}
+		}
+	}, [] )
+
+	useEffect( () => {
+		previewWidthOwner = ownerToken.current
+
 		if (
 			canvasPreviewWidthPx !== null
 			|| ! measureBase

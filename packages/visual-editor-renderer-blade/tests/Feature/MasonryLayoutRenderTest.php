@@ -16,7 +16,7 @@ declare( strict_types=1 );
 
 use Illuminate\Support\Facades\Blade;
 
-it( 'renders the post-template wrapper with is-layout-masonry when layout is masonry', function () {
+it( 'renders the post-template wrapper with is-layout-masonry when layout is masonry', function (): void {
 	$attrs = [ 'layout' => 'masonry', 'columns' => 4 ];
 
 	$html = view( 'visual-editor-renderer-blade::blocks.artisanpack.post-template', [
@@ -36,7 +36,7 @@ it( 'renders the post-template wrapper with is-layout-masonry when layout is mas
 		->not->toContain( 'is-layout-flow' );
 } );
 
-it( 'keeps the existing is-layout-grid path for layout: grid', function () {
+it( 'keeps the existing is-layout-grid path for layout: grid', function (): void {
 	$attrs = [ 'layout' => 'grid', 'columns' => 3 ];
 
 	$html = view( 'visual-editor-renderer-blade::blocks.artisanpack.post-template', [
@@ -51,7 +51,7 @@ it( 'keeps the existing is-layout-grid path for layout: grid', function () {
 		->not->toContain( 'data-ap-cols' );
 } );
 
-it( 'defaults the post-template wrapper to is-layout-flow without columns-N', function () {
+it( 'defaults the post-template wrapper to is-layout-flow without columns-N', function (): void {
 	$html = view( 'visual-editor-renderer-blade::blocks.artisanpack.post-template', [
 		'attributes'      => [],
 		'innerBlocksHtml' => '<li>x</li>',
@@ -64,7 +64,7 @@ it( 'defaults the post-template wrapper to is-layout-flow without columns-N', fu
 		->not->toContain( 'data-ap-cols' );
 } );
 
-it( 'falls back to list when the layout value is not in the enum', function () {
+it( 'falls back to list when the layout value is not in the enum', function (): void {
 	$html = view( 'visual-editor-renderer-blade::blocks.artisanpack.post-template', [
 		'attributes'      => [ 'layout' => 'evil"><script>' ],
 		'innerBlocksHtml' => '<li>x</li>',
@@ -76,7 +76,7 @@ it( 'falls back to list when the layout value is not in the enum', function () {
 		->not->toContain( '<script>' );
 } );
 
-it( 'emits the masonry layout-mode class + data-ap-cols on the grid wrapper when layoutMode is masonry', function () {
+it( 'emits the masonry layout-mode class + data-ap-cols on the grid wrapper when layoutMode is masonry', function (): void {
 	$html = view( 'visual-editor-renderer-blade::blocks.artisanpack.grid', [
 		'attributes' => [
 			'numColumns' => 3,
@@ -91,7 +91,7 @@ it( 'emits the masonry layout-mode class + data-ap-cols on the grid wrapper when
 		->not->toContain( 'ap-grid-layout-fixed' );
 } );
 
-it( 'emits per-breakpoint data-ap-cols-{bp} attributes when the grid carries responsive numColumns overrides in masonry mode', function () {
+it( 'emits per-breakpoint data-ap-cols-{bp} attributes when the grid carries responsive numColumns overrides in masonry mode', function (): void {
 	$html = view( 'visual-editor-renderer-blade::blocks.artisanpack.grid', [
 		'attributes' => [
 			'numColumns' => 2,
@@ -107,7 +107,7 @@ it( 'emits per-breakpoint data-ap-cols-{bp} attributes when the grid carries res
 		->toContain( 'data-ap-cols-lg="6"' );
 } );
 
-it( 'skips responsive data attributes when the grid is in fixed mode', function () {
+it( 'skips responsive data attributes when the grid is in fixed mode', function (): void {
 	$html = view( 'visual-editor-renderer-blade::blocks.artisanpack.grid', [
 		'attributes' => [
 			'numColumns' => 2,
@@ -120,9 +120,9 @@ it( 'skips responsive data attributes when the grid is in fixed mode', function 
 		->not->toContain( 'data-ap-cols' );
 } );
 
-it( 'emits the fixed layout-mode class on the grid wrapper by default', function () {
+it( 'emits the fixed layout-mode class on the grid wrapper by default', function (): void {
 	$html = view( 'visual-editor-renderer-blade::blocks.artisanpack.grid', [
-		'attributes' => [ 'numColumns' => 3 ],
+		'attributes'      => [ 'numColumns' => 3 ],
 		'innerBlocksHtml' => '',
 	] )->render();
 
@@ -132,7 +132,7 @@ it( 'emits the fixed layout-mode class on the grid wrapper by default', function
 		->not->toContain( 'data-ap-cols' );
 } );
 
-it( 'wires the shared masonry stylesheet and fallback script through <x-ve-blocks-styles />', function () {
+it( 'wires the shared masonry stylesheet and fallback script through <x-ve-blocks-styles />', function (): void {
 	$rendered = Blade::render( '<x-ve-blocks-styles />' );
 
 	expect( $rendered )

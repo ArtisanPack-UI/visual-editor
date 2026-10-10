@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Gate;
 use Tests\Fixtures\TestAppliedTemplateModel;
 use Tests\TestUser;
 
-beforeEach( function () {
+beforeEach( function (): void {
 	config()->set( 'artisanpack.visual-editor.resources', [
 		'pages' => TestAppliedTemplateModel::class,
 	] );
@@ -82,7 +82,7 @@ function registerHeaderPart(): void
 	( new VisualEditorServiceProvider( app() ) )->registerSiteEditorResolvers();
 }
 
-it( 'returns 401 for an unauthenticated request', function () {
+it( 'returns 401 for an unauthenticated request', function (): void {
 	$page = TestAppliedTemplateModel::create( [
 		'title'    => 'Anon',
 		'template' => 'single-post',
@@ -93,7 +93,7 @@ it( 'returns 401 for an unauthenticated request', function () {
 		->assertUnauthorized();
 } );
 
-it( 'returns 200 with status=missing/reason=empty when the model has no template set', function () {
+it( 'returns 200 with status=missing/reason=empty when the model has no template set', function (): void {
 	actingAsAppliedTemplateUser();
 	registerSingleTemplate( 'single-post' );
 
@@ -108,7 +108,7 @@ it( 'returns 200 with status=missing/reason=empty when the model has no template
 		->assertJson( [ 'status' => 'missing', 'reason' => 'empty' ] );
 } );
 
-it( 'returns 200 with status=missing/reason=unknown-slug when the template does not resolve', function () {
+it( 'returns 200 with status=missing/reason=unknown-slug when the template does not resolve', function (): void {
 	actingAsAppliedTemplateUser();
 	registerSingleTemplate( 'single-post' );
 
@@ -125,18 +125,18 @@ it( 'returns 200 with status=missing/reason=unknown-slug when the template does 
 		->assertJsonPath( 'slug', 'does-not-exist' );
 } );
 
-it( 'returns the resolved template with referenced template-parts', function () {
+it( 'returns the resolved template with referenced template-parts', function (): void {
 	actingAsAppliedTemplateUser();
 	registerHeaderPart();
 	registerSingleTemplate( 'single-post', [
 		[
-			'name'       => 'core/template-part',
-			'attributes' => [ 'slug' => 'header', 'theme' => 'test-theme' ],
+			'name'        => 'core/template-part',
+			'attributes'  => [ 'slug' => 'header', 'theme' => 'test-theme' ],
 			'innerBlocks' => [],
 		],
 		[
-			'name'       => 'core/post-content',
-			'attributes' => [],
+			'name'        => 'core/post-content',
+			'attributes'  => [],
 			'innerBlocks' => [],
 		],
 	], 'Single Post' );
@@ -162,7 +162,7 @@ it( 'returns the resolved template with referenced template-parts', function () 
 		->assertJsonPath( 'template_parts.header.blocks.0.name', 'artisanpack/site-title' );
 } );
 
-it( 'rewrites nested core block names to their artisanpack forks', function () {
+it( 'rewrites nested core block names to their artisanpack forks', function (): void {
 	actingAsAppliedTemplateUser();
 	registerSingleTemplate( 'single-post', [
 		[
@@ -196,7 +196,7 @@ it( 'rewrites nested core block names to their artisanpack forks', function () {
 		->assertJsonPath( 'blocks.0.innerBlocks.1.name', 'artisanpack/post-content' );
 } );
 
-it( 'leaves already-forked and third-party block names untouched', function () {
+it( 'leaves already-forked and third-party block names untouched', function (): void {
 	actingAsAppliedTemplateUser();
 	registerSingleTemplate( 'single-post', [
 		[
@@ -223,7 +223,7 @@ it( 'leaves already-forked and third-party block names untouched', function () {
 		->assertJsonPath( 'blocks.1.name', 'acme/widget' );
 } );
 
-it( 'treats whitespace-only template values as empty', function () {
+it( 'treats whitespace-only template values as empty', function (): void {
 	actingAsAppliedTemplateUser();
 	registerSingleTemplate( 'single-post' );
 
@@ -238,12 +238,12 @@ it( 'treats whitespace-only template values as empty', function () {
 		->assertJsonPath( 'reason', 'empty' );
 } );
 
-it( 'skips template-parts that cannot be resolved rather than failing', function () {
+it( 'skips template-parts that cannot be resolved rather than failing', function (): void {
 	actingAsAppliedTemplateUser();
 	registerSingleTemplate( 'single-post', [
 		[
-			'name'       => 'core/template-part',
-			'attributes' => [ 'slug' => 'missing-part' ],
+			'name'        => 'core/template-part',
+			'attributes'  => [ 'slug' => 'missing-part' ],
 			'innerBlocks' => [],
 		],
 	] );
@@ -259,7 +259,7 @@ it( 'skips template-parts that cannot be resolved rather than failing', function
 		->assertJsonPath( 'template_parts', [] );
 } );
 
-it( 'resolves the ?template= override instead of the slug stored on the model', function () {
+it( 'resolves the ?template= override instead of the slug stored on the model', function (): void {
 	actingAsAppliedTemplateUser();
 	registerSingleTemplate( 'full-width', [], 'Full Width' );
 
@@ -278,7 +278,7 @@ it( 'resolves the ?template= override instead of the slug stored on the model', 
 		->assertJsonPath( 'name', 'Full Width' );
 } );
 
-it( 'reports unknown-slug for an override that does not resolve', function () {
+it( 'reports unknown-slug for an override that does not resolve', function (): void {
 	actingAsAppliedTemplateUser();
 	registerSingleTemplate( 'single-post' );
 
@@ -295,7 +295,7 @@ it( 'reports unknown-slug for an override that does not resolve', function () {
 		->assertJsonPath( 'slug', 'nope' );
 } );
 
-it( 'treats a blank ?template= override as a deliberate no-template selection', function () {
+it( 'treats a blank ?template= override as a deliberate no-template selection', function (): void {
 	actingAsAppliedTemplateUser();
 	registerSingleTemplate( 'single-post' );
 
@@ -311,7 +311,7 @@ it( 'treats a blank ?template= override as a deliberate no-template selection', 
 		->assertJsonPath( 'reason', 'empty' );
 } );
 
-it( 'falls back to the model template when no override is supplied', function () {
+it( 'falls back to the model template when no override is supplied', function (): void {
 	actingAsAppliedTemplateUser();
 	registerSingleTemplate( 'single-post', [], 'Single Post' );
 
@@ -326,7 +326,7 @@ it( 'falls back to the model template when no override is supplied', function ()
 		->assertJsonPath( 'slug', 'single-post' );
 } );
 
-it( 'still authorizes the override path against the view gate', function () {
+it( 'still authorizes the override path against the view gate', function (): void {
 	registerSingleTemplate( 'full-width', [], 'Full Width' );
 
 	$page = TestAppliedTemplateModel::create( [
@@ -339,7 +339,7 @@ it( 'still authorizes the override path against the view gate', function () {
 		->assertUnauthorized();
 } );
 
-it( 'parses raw block markup when the resolved template ships no parsed blocks', function () {
+it( 'parses raw block markup when the resolved template ships no parsed blocks', function (): void {
 	actingAsAppliedTemplateUser();
 
 	// Theme-file templates carry markup in `raw_content` and leave
@@ -374,11 +374,11 @@ it( 'parses raw block markup when the resolved template ships no parsed blocks',
 		->assertJsonPath( 'blocks.1.name', 'artisanpack/group' )
 		->assertJsonPath( 'blocks.1.innerBlocks.0.name', 'artisanpack/post-content' );
 } )->skip(
-	fn () => ! class_exists( \ArtisanPackUI\VisualEditor\Support\ThemeBlockMarkup::PARSER_FQCN ),
-	'requires cms-framework 2.5+ (PHP 8.3+)'
+	fn () => ! class_exists( ArtisanPackUI\VisualEditor\Support\ThemeBlockMarkup::PARSER_FQCN ),
+	'requires cms-framework 2.5+ (PHP 8.3+)',
 );
 
-it( 'returns 403 when the view gate denies the actor', function () {
+it( 'returns 403 when the view gate denies the actor', function (): void {
 	actingAsAppliedTemplateUser();
 	Gate::define( 'view', fn () => false );
 	registerSingleTemplate( 'single-post' );
@@ -393,21 +393,21 @@ it( 'returns 403 when the view gate denies the actor', function () {
 		->assertForbidden();
 } );
 
-it( 'returns 404 for an unregistered resource slug', function () {
+it( 'returns 404 for an unregistered resource slug', function (): void {
 	actingAsAppliedTemplateUser();
 
 	test()->getJson( '/visual-editor/api/orders/1/applied-template' )
 		->assertNotFound();
 } );
 
-it( 'returns 404 when the record does not exist', function () {
+it( 'returns 404 when the record does not exist', function (): void {
 	actingAsAppliedTemplateUser();
 
 	test()->getJson( '/visual-editor/api/pages/999999/applied-template' )
 		->assertNotFound();
 } );
 
-it( 'ignores a non-scalar ?template= and falls back to the model attribute', function () {
+it( 'ignores a non-scalar ?template= and falls back to the model attribute', function (): void {
 	actingAsAppliedTemplateUser();
 	registerSingleTemplate( 'single-post', [], 'Single Post' );
 
@@ -425,7 +425,7 @@ it( 'ignores a non-scalar ?template= and falls back to the model attribute', fun
 		->assertJsonPath( 'slug', 'single-post' );
 } );
 
-it( 'treats a whitespace-only ?template= override as a cleared selection', function () {
+it( 'treats a whitespace-only ?template= override as a cleared selection', function (): void {
 	actingAsAppliedTemplateUser();
 	registerSingleTemplate( 'single-post' );
 
@@ -441,7 +441,7 @@ it( 'treats a whitespace-only ?template= override as a cleared selection', funct
 		->assertJsonPath( 'reason', 'empty' );
 } );
 
-it( 'resolves template-part refs saved in the artisanpack fork namespace', function () {
+it( 'resolves template-part refs saved in the artisanpack fork namespace', function (): void {
 	actingAsAppliedTemplateUser();
 	registerHeaderPart();
 
@@ -469,7 +469,7 @@ it( 'resolves template-part refs saved in the artisanpack fork namespace', funct
 		->assertJsonPath( 'template_parts.header.blocks.0.name', 'artisanpack/site-title' );
 } );
 
-it( 'parses raw block markup for template-parts that ship no parsed blocks', function () {
+it( 'parses raw block markup for template-parts that ship no parsed blocks', function (): void {
 	actingAsAppliedTemplateUser();
 
 	// On-disk theme parts carry markup in `raw_content` with an empty
@@ -507,11 +507,11 @@ it( 'parses raw block markup for template-parts that ship no parsed blocks', fun
 		->assertJsonPath( 'template_parts.header.slug', 'header' )
 		->assertJsonPath( 'template_parts.header.blocks.0.name', 'artisanpack/site-title' );
 } )->skip(
-	fn () => ! class_exists( \ArtisanPackUI\VisualEditor\Support\ThemeBlockMarkup::PARSER_FQCN ),
-	'requires cms-framework 2.5+ (PHP 8.3+)'
+	fn () => ! class_exists( ArtisanPackUI\VisualEditor\Support\ThemeBlockMarkup::PARSER_FQCN ),
+	'requires cms-framework 2.5+ (PHP 8.3+)',
 );
 
-it( 'discovers nested part refs inside a raw-only template-part', function () {
+it( 'discovers nested part refs inside a raw-only template-part', function (): void {
 	actingAsAppliedTemplateUser();
 
 	addFilter( 'ap.visual-editor.template-parts', function ( array $existing ): array {
@@ -559,11 +559,11 @@ it( 'discovers nested part refs inside a raw-only template-part', function () {
 		// registered directly in the editor.
 		->assertJsonPath( 'template_parts.nav.blocks.0.name', 'core/navigation' );
 } )->skip(
-	fn () => ! class_exists( \ArtisanPackUI\VisualEditor\Support\ThemeBlockMarkup::PARSER_FQCN ),
-	'requires cms-framework 2.5+ (PHP 8.3+)'
+	fn () => ! class_exists( ArtisanPackUI\VisualEditor\Support\ThemeBlockMarkup::PARSER_FQCN ),
+	'requires cms-framework 2.5+ (PHP 8.3+)',
 );
 
-it( 'prefers already-parsed blocks over the raw markup', function () {
+it( 'prefers already-parsed blocks over the raw markup', function (): void {
 	actingAsAppliedTemplateUser();
 
 	addFilter( 'ap.visual-editor.templates', function ( array $existing ): array {

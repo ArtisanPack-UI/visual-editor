@@ -73,7 +73,7 @@ class ResourceResolver
 		} catch ( ModelNotFoundException $exception ) {
 			throw new NotFoundHttpException(
 				sprintf( 'No %s with id %s.', $resource, (string) $id ),
-				$exception
+				$exception,
 			);
 		}
 	}
@@ -114,7 +114,7 @@ class ResourceResolver
 	{
 		if ( ! isset( $this->resources[ $resource ] ) ) {
 			throw new NotFoundHttpException(
-				sprintf( 'Unknown visual-editor resource "%s".', $resource )
+				sprintf( 'Unknown visual-editor resource "%s".', $resource ),
 			);
 		}
 
@@ -122,7 +122,7 @@ class ResourceResolver
 
 		if ( ! is_string( $modelClass ) || ! class_exists( $modelClass ) ) {
 			throw new RuntimeException(
-				sprintf( 'Visual-editor resource "%s" must point to a valid model class.', $resource )
+				sprintf( 'Visual-editor resource "%s" must point to a valid model class.', $resource ),
 			);
 		}
 
@@ -147,7 +147,7 @@ class ResourceResolver
 
 		if ( ! $model instanceof Model ) {
 			throw new RuntimeException(
-				sprintf( 'Visual-editor resource "%s" must extend Eloquent Model.', $modelClass )
+				sprintf( 'Visual-editor resource "%s" must extend Eloquent Model.', $modelClass ),
 			);
 		}
 
@@ -155,7 +155,7 @@ class ResourceResolver
 			throw new InvalidArgumentException( sprintf(
 				'Resource [%s] resolves to [%s] which does not use HasBlockContent.',
 				$resource,
-				$modelClass
+				$modelClass,
 			) );
 		}
 

@@ -95,7 +95,7 @@ class KeyframeRegistry
 	public function __construct( array $rawCustom = [] )
 	{
 		foreach ( $rawCustom as $entry ) {
-			$normalised = $this->validateOne( $entry );
+			$normalised                          = $this->validateOne( $entry );
 			$this->custom[ $normalised['name'] ] = $normalised['stops'];
 		}
 	}
@@ -128,7 +128,7 @@ class KeyframeRegistry
 				}
 
 				try {
-					$normalised = $registry->validateOne( $entry );
+					$normalised                              = $registry->validateOne( $entry );
 					$registry->custom[ $normalised['name'] ] = $normalised['stops'];
 				} catch ( InvalidArgumentException $e ) {
 					if ( function_exists( 'logger' ) ) {
@@ -152,7 +152,7 @@ class KeyframeRegistry
 	{
 		return array_values( array_unique( array_merge(
 			array_keys( self::BUILT_INS ),
-			array_keys( $this->custom )
+			array_keys( $this->custom ),
 		) ) );
 	}
 
@@ -287,7 +287,7 @@ class KeyframeRegistry
 		if ( 1 !== preg_match( '/^[a-z][a-z0-9_-]*$/i', $name ) ) {
 			throw new InvalidArgumentException( sprintf(
 				'Custom keyframe name "%s" must start with a letter and contain only letters, numbers, hyphens, and underscores.',
-				$name
+				$name,
 			) );
 		}
 
@@ -299,7 +299,7 @@ class KeyframeRegistry
 			if ( strtolower( $builtIn ) === $nameLower ) {
 				throw new InvalidArgumentException( sprintf(
 					'Custom keyframe name "%s" collides with a built-in. Built-in names are reserved.',
-					$name
+					$name,
 				) );
 			}
 		}
@@ -308,7 +308,7 @@ class KeyframeRegistry
 		if ( ! is_array( $stops ) || count( $stops ) < 2 ) {
 			throw new InvalidArgumentException( sprintf(
 				'Custom keyframe "%s" must declare at least two `stops`.',
-				$name
+				$name,
 			) );
 		}
 
@@ -318,7 +318,7 @@ class KeyframeRegistry
 			if ( ! is_array( $stop ) ) {
 				throw new InvalidArgumentException( sprintf(
 					'Custom keyframe "%s" has a non-array stop.',
-					$name
+					$name,
 				) );
 			}
 
@@ -327,7 +327,7 @@ class KeyframeRegistry
 				throw new InvalidArgumentException( sprintf(
 					'Custom keyframe "%s" stop has invalid `at` value "%s". Expected a percentage 0%%–100%%.',
 					$name,
-					(string) $at
+					(string) $at,
 				) );
 			}
 
@@ -343,7 +343,7 @@ class KeyframeRegistry
 						'Custom keyframe "%s" stop has unsupported property "%s". Allowed: %s.',
 						$name,
 						(string) $property,
-						implode( ', ', self::ALLOWED_STOP_PROPERTIES )
+						implode( ', ', self::ALLOWED_STOP_PROPERTIES ),
 					) );
 				}
 
@@ -351,7 +351,7 @@ class KeyframeRegistry
 					throw new InvalidArgumentException( sprintf(
 						'Custom keyframe "%s" stop property "%s" must be a non-empty string.',
 						$name,
-						$property
+						$property,
 					) );
 				}
 
@@ -362,7 +362,7 @@ class KeyframeRegistry
 					throw new InvalidArgumentException( sprintf(
 						'Custom keyframe "%s" stop property "%s" contains disallowed characters.',
 						$name,
-						$property
+						$property,
 					) );
 				}
 

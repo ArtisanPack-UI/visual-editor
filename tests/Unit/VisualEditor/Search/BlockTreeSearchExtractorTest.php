@@ -6,7 +6,7 @@ use ArtisanPackUI\VisualEditor\Blocks\DynamicBlock;
 use ArtisanPackUI\VisualEditor\Facades\VisualEditor;
 use ArtisanPackUI\VisualEditor\Search\BlockTreeSearchExtractor;
 
-it( 'extracts text from known static attribute keys only', function () {
+it( 'extracts text from known static attribute keys only', function (): void {
 	$tree = [
 		[
 			'clientId'    => 'a',
@@ -26,7 +26,7 @@ it( 'extracts text from known static attribute keys only', function () {
 	expect( $extracted )->toBe( 'Hello world' );
 } );
 
-it( 'extracts caption, alt, and title on an image block', function () {
+it( 'extracts caption, alt, and title on an image block', function (): void {
 	$tree = [
 		[
 			'clientId'    => 'img',
@@ -46,7 +46,7 @@ it( 'extracts caption, alt, and title on an image block', function () {
 	expect( $extracted )->toBe( 'Our cat Felix napping A sleeping cat Felix' );
 } );
 
-it( 'strips HTML tags from RichText content', function () {
+it( 'strips HTML tags from RichText content', function (): void {
 	$tree = [
 		[
 			'clientId'    => 'p',
@@ -61,7 +61,7 @@ it( 'strips HTML tags from RichText content', function () {
 	expect( $extracted )->toBe( 'Hello brave world' );
 } );
 
-it( 'recurses into innerBlocks', function () {
+it( 'recurses into innerBlocks', function (): void {
 	$tree = [
 		[
 			'clientId'    => 'group',
@@ -89,7 +89,7 @@ it( 'recurses into innerBlocks', function () {
 	expect( $extracted )->toBe( 'A Heading A paragraph.' );
 } );
 
-it( 'delegates to DynamicBlock::searchableText() for registered dynamic blocks', function () {
+it( 'delegates to DynamicBlock::searchableText() for registered dynamic blocks', function (): void {
 	$block = new class extends DynamicBlock {
 		public function name(): string
 		{
@@ -123,7 +123,7 @@ it( 'delegates to DynamicBlock::searchableText() for registered dynamic blocks',
 	expect( $extracted )->toBe( 'Product Alpha Product Beta' );
 } );
 
-it( 'returns empty string for a dynamic block that has not overridden searchableText()', function () {
+it( 'returns empty string for a dynamic block that has not overridden searchableText()', function (): void {
 	$block = new class extends DynamicBlock {
 		public function name(): string
 		{
@@ -152,7 +152,7 @@ it( 'returns empty string for a dynamic block that has not overridden searchable
 	expect( $extracted )->toBe( '' );
 } );
 
-it( 'combines static and dynamic block contributions in tree order', function () {
+it( 'combines static and dynamic block contributions in tree order', function (): void {
 	VisualEditor::registerDynamicBlock( 'acme/shoutout', [
 		'render'         => static fn ( array $attrs ): string => '',
 		'searchableText' => static fn ( array $attrs ): string => 'Partner spotlight',
@@ -184,7 +184,7 @@ it( 'combines static and dynamic block contributions in tree order', function ()
 	expect( $extracted )->toBe( 'Intro copy. Partner spotlight Outro copy.' );
 } );
 
-it( 'walks innerBlocks even when the parent is a dynamic block', function () {
+it( 'walks innerBlocks even when the parent is a dynamic block', function (): void {
 	VisualEditor::registerDynamicBlock( 'acme/wrapper', [
 		'render'         => static fn ( array $attrs ): string => '',
 		'searchableText' => static fn ( array $attrs ): string => 'Wrapper label',
@@ -211,13 +211,13 @@ it( 'walks innerBlocks even when the parent is a dynamic block', function () {
 	expect( $extracted )->toBe( 'Wrapper label Inner paragraph text.' );
 } );
 
-it( 'returns an empty string for an empty tree', function () {
+it( 'returns an empty string for an empty tree', function (): void {
 	$extracted = app( BlockTreeSearchExtractor::class )->extract( [] );
 
 	expect( $extracted )->toBe( '' );
 } );
 
-it( 'skips malformed entries instead of throwing', function () {
+it( 'skips malformed entries instead of throwing', function (): void {
 	$tree = [
 		'not-an-array',
 		[
@@ -234,7 +234,7 @@ it( 'skips malformed entries instead of throwing', function () {
 	expect( $extracted )->toBe( 'Valid text.' );
 } );
 
-it( 'swallows exceptions thrown by a dynamic block extractor', function () {
+it( 'swallows exceptions thrown by a dynamic block extractor', function (): void {
 	VisualEditor::registerDynamicBlock( 'acme/broken', [
 		'render'         => static fn ( array $attrs ): string => '',
 		'searchableText' => static function ( array $attrs ): string {

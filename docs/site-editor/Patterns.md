@@ -80,6 +80,81 @@ Filtering: the inserter filters by category and by the pattern's
 `blockTypes` restriction. A pattern with `blockTypes: ['core/group']`
 only appears when a group is selected.
 
+### Pattern previews
+
+*Since v1.13.0 (#832).* Pattern cards show a scaled, non-interactive
+render of the pattern as it looks on the front end. Previews appear in:
+
+- the inserter's **Patterns** panel,
+- the site editor's pattern grid,
+- the page-pattern modal (the "choose a pattern" prompt for new pages).
+
+**How a preview is built.** The server renders the pattern with the
+Blade renderer (the same output `<x-ve-blocks>` produces) and returns
+the HTML plus one shared stylesheet bundle for the batch: the
+`<x-ve-blocks-styles>` output for the active theme, global styles, the
+installed font faces and the theme's `style.css`. The editor drops each
+pattern into an `<iframe srcdoc>` with `sandbox="allow-same-origin"` and
+no `allow-scripts`, so block JavaScript (carousels, animations) never
+runs in a preview. The frame is `aria-hidden`, `inert` and out of the tab
+order, so the card's own button stays the only focus target. Relative
+`url()` references in the theme's `style.css` are rewritten to absolute
+theme-asset URLs, because a `srcdoc` document's base URL is the editor
+page.
+
+**Viewport width.** Each pattern is laid out at its viewport width and
+then scaled down to the card's width, with the height capped at 0.75 ×
+the card's width. The width comes from the pattern's `viewport_width`
+(the theme pattern file's `Viewport Width` header, or the
+`viewport_width` key of a pattern registered through config or the
+`ap.visualEditor.patterns` filter). It is clamped to 320–2560 px, and a
+missing or invalid value uses 1200 px, WordPress's default.
+
+**Loading.** Nothing is fetched until a card scrolls within 200 px of
+its scroll container. Cards that come into view together share one
+batched request of up to 24 patterns. Iframes mount a few per frame, and
+a card scrolled far out of view unmounts its iframe (keeping its height)
+until it scrolls back. While a preview loads, or when it fails, the card
+shows the block-name outline instead. After a 403 or a
+`renderer_unavailable` result the editor stops requesting previews for
+the page, and after a 429 it pauses briefly.
+
+**Caching.** Rendered HTML is cached per pattern and per:
+
+- the pattern's renderable content (its markup and block tree),
+- the active theme,
+- the viewer (user class and id), the locale and the request host,
+- the global-styles version and the installed package version,
+- anything a host adds through the `ap.visualEditor.patternPreviewCacheVary`
+  filter.
+
+The whole preview cache is cleared when a pattern is updated or deleted,
+when a template part, menu or menu item is created, updated or deleted
+through the site-editor API, and when global styles are saved, since a
+pattern can embed any of those by reference. Changes made outside those
+endpoints (posts behind a Query loop, a direct model write) appear once
+entries expire after `pattern_previews.cache_ttl` seconds (default 3600;
+see [Configuration](../Configuration.md#pattern_previews)). Failed renders
+are never cached.
+
+Add your own vary data when previews depend on something the key
+doesn't cover, such as a role or a tenant. The filter receives an empty
+array and should return an array of scalars:
+
+```php
+addFilter( 'ap.visualEditor.patternPreviewCacheVary', function ( array $vary ): array {
+    $vary['tenant'] = tenant()?->id;
+
+    return $vary;
+} );
+```
+
+**Access and throttling.** The endpoint requires an authenticated user
+who passes the `visual-editor.edit-content` ability (see
+[Access Gate](Access-Gate.md#content-authoring-ability-visual-editoredit-content))
+and is throttled at 120 requests per minute per user, in its own
+rate-limit bucket.
+
 ---
 
 ## 4. The `core/block` block (pattern reference)
@@ -158,9 +233,14 @@ override (same fallback-chain pattern as templates).
 | `GET` | `/visual-editor/api/patterns/{slug}` | Fetch a pattern. |
 | `PUT` | `/visual-editor/api/patterns/{slug}` | Update a pattern. |
 | `DELETE` | `/visual-editor/api/patterns/{slug}` | Delete a user pattern. |
+| `POST` | `/visual-editor/api/patterns/preview` | Render a batch of up to 24 patterns for card previews. Body: `{ "patterns": ["<id or slug>", …] }`. Returns `{ "styles": "…", "patterns": { "<id>": { "html": "…" } \| { "error": "not_found" \| "render_failed" \| "renderer_unavailable" } } }`. Requires `visual-editor.edit-content`; throttled at 120/min. *Since v1.13.0.* |
 
 The slug regex allows `user/<slug>` segments — cms-framework's user-source
 patterns are namespaced this way to keep them distinct from theme patterns.
+
+The preview endpoint takes ids as the pattern API returns them: the
+numeric id for user patterns and the slug for theme patterns. It renders
+existing patterns only and never accepts markup.
 
 ---
 
@@ -189,6 +269,11 @@ which splices pre-fetched pattern records (for example from
 renderers the resolved reference is output as `core/block`. Cycles and
 chains deeper than 10 levels render as an empty block in production and a
 visible warning in development.
+
+*Since v1.13.0.* In Blade renders, a reference to a pattern stored by
+cms-framework resolves from the pattern's `block_content` tree. The
+legacy `{ raw, blocks }` envelope under `content` is still read as a
+fallback for older rows.
 
 Performance: synced patterns are cached per request — a page that
 references the same pattern five times only fetches once. For long-term

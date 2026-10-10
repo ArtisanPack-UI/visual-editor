@@ -72,7 +72,7 @@ class UploadIconSetRequest extends FormRequest
 	public function messages(): array
 	{
 		return [
-			'prefix.regex' => 'Prefix must be 2–32 chars of lowercase letters, digits, dashes or underscores.',
+			'prefix.regex'  => 'Prefix must be 2–32 chars of lowercase letters, digits, dashes or underscores.',
 			'zip.mimetypes' => 'Uploaded file must be a zip archive.',
 		];
 	}

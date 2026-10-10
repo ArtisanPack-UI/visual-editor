@@ -1,4 +1,5 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { createRef } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const PREVIEW_MOCK = vi.fn();
@@ -22,27 +23,53 @@ import {
     DEFAULT_PATTERN_VIEWPORT_WIDTH,
     MAX_PATTERN_VIEWPORT_WIDTH,
     MIN_PATTERN_VIEWPORT_WIDTH,
+    PATTERN_PREVIEW_IN_VIEW_ROOT_MARGIN,
+    PATTERN_PREVIEW_KEEP_MOUNTED_ROOT_MARGIN,
     PatternPreview,
+    PatternPreviewScrollRootContext,
+    inertProps,
+    measurePreviewDocument,
     patternViewportWidth,
 } from '../pattern-preview';
 import {
     PATTERN_PREVIEW_BATCH_DELAY,
     resetPatternPreviewLoaders,
 } from '../pattern-preview-loader';
+import {
+    PATTERN_PREVIEW_MOUNTS_PER_FRAME,
+    resetPreviewMountQueue,
+} from '../pattern-preview-mount-queue';
 
 type ObserverCallback = (entries: Array<{ isIntersecting: boolean }>) => void;
 
+interface ObserverRecord {
+    readonly callback: ObserverCallback;
+    readonly options: IntersectionObserverInit | undefined;
+    readonly targets: Element[];
+}
+
 let observerCallbacks: ObserverCallback[] = [];
+let observers: ObserverRecord[] = [];
 
 class FakeIntersectionObserver {
-    constructor(private readonly callback: ObserverCallback) {
+    private readonly record: ObserverRecord;
+
+    constructor(
+        private readonly callback: ObserverCallback,
+        options?: IntersectionObserverInit
+    ) {
         observerCallbacks.push(callback);
+        this.record = { callback, options, targets: [] };
+        observers.push(this.record);
     }
 
-    observe(): void {}
+    observe(target: Element): void {
+        this.record.targets.push(target);
+    }
 
     disconnect(): void {
         observerCallbacks = observerCallbacks.filter((cb) => cb !== this.callback);
+        observers = observers.filter((record) => record !== this.record);
     }
 }
 
@@ -51,6 +78,21 @@ function scrollAllIntoView(): void {
         callback([{ isIntersecting: true }]);
     }
 }
+
+/** Reports every keep-mounted observer for `target` as (not) intersecting. */
+function reportNear(target: Element, isIntersecting: boolean): void {
+    for (const record of [...observers]) {
+        if (
+            record.options?.rootMargin === PATTERN_PREVIEW_KEEP_MOUNTED_ROOT_MARGIN &&
+            record.targets.some((observed) => observed === target || target.contains(observed))
+        ) {
+            record.callback([{ isIntersecting }]);
+        }
+    }
+}
+
+/** One animation frame of the stubbed `requestAnimationFrame`. */
+const FRAME_MS = 16;
 
 function makePattern(overrides: Partial<PatternRecord> = {}): PatternRecord {
     return {
@@ -73,18 +115,33 @@ async function flushBatch(): Promise<void> {
     await act(async () => {
         await vi.advanceTimersByTimeAsync(PATTERN_PREVIEW_BATCH_DELAY);
     });
+    // Let the mount queue hand out a frame.
+    await advanceFrames(1);
+}
+
+async function advanceFrames(count: number): Promise<void> {
+    await act(async () => {
+        await vi.advanceTimersByTimeAsync(FRAME_MS * count);
+    });
 }
 
 describe('PatternPreview', () => {
     beforeEach(() => {
         vi.useFakeTimers();
         observerCallbacks = [];
+        observers = [];
         resetPatternPreviewLoaders();
+        resetPreviewMountQueue();
         PREVIEW_MOCK.mockReset();
         vi.stubGlobal('IntersectionObserver', FakeIntersectionObserver);
+        vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) =>
+            setTimeout(() => callback(performance.now()), FRAME_MS)
+        );
+        vi.stubGlobal('cancelAnimationFrame', (handle: number) => clearTimeout(handle));
     });
 
     afterEach(() => {
+        resetPreviewMountQueue();
         vi.useRealTimers();
         vi.unstubAllGlobals();
     });
@@ -122,7 +179,11 @@ describe('PatternPreview', () => {
         expect(iframe?.getAttribute('src')).toBeNull();
         expect(iframe?.getAttribute('srcdoc')).toContain('<section>Rendered hero</section>');
         expect(iframe?.getAttribute('srcdoc')).toContain('<style>.x{}</style>');
-        expect(PREVIEW_MOCK).toHaveBeenCalledWith({ apiBase: '/api' }, ['7']);
+        expect(PREVIEW_MOCK).toHaveBeenCalledWith(
+            { apiBase: '/api' },
+            ['7'],
+            expect.objectContaining({ signal: expect.anything() })
+        );
     });
 
     it('batches every card that comes into view into one request', async () => {
@@ -232,6 +293,272 @@ describe('PatternPreview', () => {
             '1400'
         );
         expect(document.querySelector('iframe')?.style.width).toBe('1400px');
+    });
+});
+
+describe('PatternPreview performance and sizing (FE-1 · FE-2 · FE-3)', () => {
+    let resizeObservers: Array<{ target: Element | null; disconnected: boolean; callback: () => void }> = [];
+
+    class FakeResizeObserver {
+        private readonly record: { target: Element | null; disconnected: boolean; callback: () => void };
+
+        constructor(callback: () => void) {
+            this.record = { target: null, disconnected: false, callback };
+            resizeObservers.push(this.record);
+        }
+
+        observe(target: Element): void {
+            this.record.target = target;
+        }
+
+        disconnect(): void {
+            this.record.disconnected = true;
+        }
+    }
+
+    beforeEach(() => {
+        vi.useFakeTimers();
+        observerCallbacks = [];
+        observers = [];
+        resizeObservers = [];
+        resetPatternPreviewLoaders();
+        resetPreviewMountQueue();
+        PREVIEW_MOCK.mockReset();
+        vi.stubGlobal('IntersectionObserver', FakeIntersectionObserver);
+        vi.stubGlobal('ResizeObserver', FakeResizeObserver);
+        vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) =>
+            setTimeout(() => callback(performance.now()), FRAME_MS)
+        );
+        vi.stubGlobal('cancelAnimationFrame', (handle: number) => clearTimeout(handle));
+    });
+
+    afterEach(() => {
+        resetPreviewMountQueue();
+        vi.restoreAllMocks();
+        vi.useRealTimers();
+        vi.unstubAllGlobals();
+    });
+
+    function batchFor(count: number): { styles: string; patterns: Record<string, { html: string }> } {
+        return {
+            styles: '',
+            patterns: Object.fromEntries(
+                Array.from({ length: count }, (_, i) => [String(i + 1), { html: `<p>${i + 1}</p>` }])
+            ),
+        };
+    }
+
+    it('mounts at most N iframes per frame', async () => {
+        PREVIEW_MOCK.mockResolvedValue(batchFor(30));
+
+        render(
+            <>
+                {Array.from({ length: 30 }, (_, i) => (
+                    <PatternPreview
+                        key={i}
+                        pattern={makePattern({ id: i + 1 })}
+                        title={`P${i + 1}`}
+                        apiBase="/api"
+                    />
+                ))}
+            </>
+        );
+
+        act(() => scrollAllIntoView());
+
+        await act(async () => {
+            await vi.advanceTimersByTimeAsync(PATTERN_PREVIEW_BATCH_DELAY);
+        });
+
+        // Two chunks (24 + 6) resolved, but nothing mounted yet.
+        expect(document.querySelectorAll('iframe')).toHaveLength(0);
+
+        await advanceFrames(1);
+        expect(document.querySelectorAll('iframe')).toHaveLength(PATTERN_PREVIEW_MOUNTS_PER_FRAME);
+
+        await advanceFrames(1);
+        expect(document.querySelectorAll('iframe')).toHaveLength(PATTERN_PREVIEW_MOUNTS_PER_FRAME * 2);
+
+        await advanceFrames(10);
+        expect(document.querySelectorAll('iframe')).toHaveLength(30);
+    });
+
+    it('unmounts the iframe when the card scrolls far away and keeps its height', async () => {
+        PREVIEW_MOCK.mockResolvedValue({ styles: '', patterns: { '7': { html: '<p>Far</p>' } } });
+
+        // jsdom lays everything out at 0px; give the card a width so it
+        // has a height to preserve.
+        vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(300);
+
+        render(<PatternPreview pattern={makePattern()} title="Hero" apiBase="/api" />);
+
+        act(() => scrollAllIntoView());
+        await flushBatch();
+
+        const slot = screen.getByTestId('ap-pattern-preview-slot');
+
+        expect(slot.querySelector('iframe')).not.toBeNull();
+
+        const heightWhileMounted = screen.getByTestId('ap-pattern-preview').style.height;
+
+        expect(heightWhileMounted).toBe('225px');
+
+        act(() => reportNear(slot, false));
+
+        expect(slot.querySelector('iframe')).toBeNull();
+        expect(slot).toHaveAttribute('data-preview-state', 'parked');
+        expect(screen.getByTestId('ap-pattern-preview-parked').style.height).toBe(heightWhileMounted);
+
+        act(() => reportNear(slot, true));
+        await advanceFrames(1);
+
+        expect(slot.querySelector('iframe')).not.toBeNull();
+        expect(slot).toHaveAttribute('data-preview-state', 'rendered');
+        // Remounting reuses the cached preview — no new request.
+        expect(PREVIEW_MOCK).toHaveBeenCalledTimes(1);
+        vi.restoreAllMocks();
+    });
+
+    it('observes against the scroll root from context', async () => {
+        const rootRef = createRef<HTMLDivElement>();
+
+        render(
+            <div ref={rootRef}>
+                <PatternPreviewScrollRootContext.Provider value={rootRef}>
+                    <PatternPreview pattern={makePattern()} title="Hero" apiBase="/api" />
+                </PatternPreviewScrollRootContext.Provider>
+            </div>
+        );
+
+        expect(observers).toHaveLength(1);
+        expect(observers[0]?.options?.root).toBe(rootRef.current);
+        expect(observers[0]?.options?.rootMargin).toBe(PATTERN_PREVIEW_IN_VIEW_ROOT_MARGIN);
+    });
+
+    it('prefers an explicit scrollRoot prop', () => {
+        const root = document.createElement('div');
+
+        render(<PatternPreview pattern={makePattern()} title="Hero" apiBase="/api" scrollRoot={root} />);
+
+        expect(observers[0]?.options?.root).toBe(root);
+    });
+
+    it('observes against the viewport without a scroll root', () => {
+        render(<PatternPreview pattern={makePattern()} title="Hero" apiBase="/api" />);
+
+        expect(observers[0]?.options?.root).toBeNull();
+    });
+
+    async function renderLoadedPreview(documentHeight: { current: number }) {
+        // jsdom lays everything out at 0px; a 300px card scales the
+        // 1200px layout by 0.25 and caps the preview at 225px.
+        vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(300);
+
+        const view = render(<PatternPreview pattern={makePattern()} title="Hero" apiBase="/api" />);
+
+        act(() => scrollAllIntoView());
+        await flushBatch();
+
+        const iframe = document.querySelector('iframe') as HTMLIFrameElement;
+        const doc = iframe.contentDocument as Document;
+
+        Object.defineProperty(doc.documentElement, 'scrollHeight', {
+            configurable: true,
+            get: () => documentHeight.current,
+        });
+        Object.defineProperty(doc.body, 'scrollHeight', { configurable: true, value: 100 });
+
+        act(() => {
+            fireEvent.load(iframe);
+        });
+
+        return { ...view, iframe, doc };
+    }
+
+    it('measures with documentElement and re-measures through a ResizeObserver', async () => {
+        PREVIEW_MOCK.mockResolvedValue({ styles: '', patterns: { '7': { html: '<p>Tall</p>' } } });
+
+        const documentHeight = { current: 600 };
+        const { doc } = await renderLoadedPreview(documentHeight);
+
+        // documentElement (600) wins over body (100): 600 × 0.25.
+        expect(screen.getByTestId('ap-pattern-preview').style.height).toBe('150px');
+        expect(measurePreviewDocument(doc)).toBe(600);
+
+        const contentObserver = resizeObservers.filter((record) => record.target === doc.documentElement).pop();
+
+        expect(contentObserver).toBeDefined();
+
+        documentHeight.current = 800;
+        act(() => contentObserver?.callback());
+
+        expect(screen.getByTestId('ap-pattern-preview').style.height).toBe('200px');
+    });
+
+    it('resets the height to the cap when a new result arrives, until it loads', async () => {
+        PREVIEW_MOCK.mockResolvedValueOnce({ styles: '', patterns: { '7': { html: '<p>v1</p>' } } });
+
+        const documentHeight = { current: 600 };
+        const { rerender } = await renderLoadedPreview(documentHeight);
+
+        expect(screen.getByTestId('ap-pattern-preview').style.height).toBe('150px');
+
+        PREVIEW_MOCK.mockResolvedValueOnce({ styles: '', patterns: { '7': { html: '<p>v2</p>' } } });
+
+        rerender(
+            <PatternPreview
+                pattern={makePattern({ content: { raw: '<p>edited</p>', blocks: [] } })}
+                title="Hero"
+                apiBase="/api"
+            />
+        );
+
+        await flushBatch();
+
+        const iframe = document.querySelector('iframe') as HTMLIFrameElement;
+
+        expect(iframe.getAttribute('srcdoc')).toContain('<p>v2</p>');
+        expect(screen.getByTestId('ap-pattern-preview').style.height).toBe('225px');
+    });
+
+    it('disconnects the content observer on unmount', async () => {
+        PREVIEW_MOCK.mockResolvedValue({ styles: '', patterns: { '7': { html: '<p>x</p>' } } });
+
+        const { unmount } = render(<PatternPreview pattern={makePattern()} title="Hero" apiBase="/api" />);
+
+        act(() => scrollAllIntoView());
+        await flushBatch();
+
+        const iframe = document.querySelector('iframe') as HTMLIFrameElement;
+        const doc = iframe.contentDocument as Document;
+
+        Object.defineProperty(doc.documentElement, 'scrollHeight', { configurable: true, value: 400 });
+        act(() => {
+            fireEvent.load(iframe);
+        });
+
+        const contentObserver = resizeObservers.filter((record) => record.target === doc.documentElement).pop();
+
+        expect(contentObserver?.disconnected).toBe(false);
+
+        unmount();
+
+        expect(contentObserver?.disconnected).toBe(true);
+    });
+});
+
+describe('inertProps (FE-10a)', () => {
+    it('uses the string form React 18 needs to render the attribute', () => {
+        expect(inertProps('18.3.1')).toEqual({ inert: '' });
+    });
+
+    it('uses the boolean form React 19 expects', () => {
+        expect(inertProps('19.0.0')).toEqual({ inert: true });
+        expect(inertProps('20.1.0')).toEqual({ inert: true });
+    });
+
+    it('falls back to the string form for an unparseable version', () => {
+        expect(inertProps('canary')).toEqual({ inert: '' });
     });
 });
 

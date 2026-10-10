@@ -10,7 +10,7 @@
 
 declare( strict_types=1 );
 
-it( 'serves the bundled block-library stylesheet', function () {
+it( 'serves the bundled block-library stylesheet', function (): void {
 	$response = $this->get( '/vendor/visual-editor-renderer-blade/style.css' );
 
 	$response->assertOk();
@@ -19,7 +19,7 @@ it( 'serves the bundled block-library stylesheet', function () {
 	expect( $response->streamedContent() )->toContain( '.wp-block-columns' );
 } );
 
-it( 'emits a blockGap-driven gap rule for columns so they never render flush (#748)', function () {
+it( 'emits a blockGap-driven gap rule for columns so they never render flush (#748)', function (): void {
 	$response = $this->get( '/vendor/visual-editor-renderer-blade/style.css' );
 
 	$response->assertOk();
@@ -29,7 +29,7 @@ it( 'emits a blockGap-driven gap rule for columns so they never render flush (#7
 		->toContain( 'gap: var(--wp--style--block-gap, 2em)' );
 } );
 
-it( 'emits a blockGap-driven gap rule for the grid so items never render flush (#748)', function () {
+it( 'emits a blockGap-driven gap rule for the grid so items never render flush (#748)', function (): void {
 	$response = $this->get( '/vendor/visual-editor-renderer-blade/frontend/grid.css' );
 
 	$response->assertOk();
@@ -39,7 +39,7 @@ it( 'emits a blockGap-driven gap rule for the grid so items never render flush (
 		->toContain( 'gap: var(--wp--style--block-gap, 1.5rem)' );
 } );
 
-it( 'emits a blockGap-driven gap rule for navigation so items never render flush (#814)', function () {
+it( 'emits a blockGap-driven gap rule for navigation so items never render flush (#814)', function (): void {
 	$response = $this->get( '/vendor/visual-editor-renderer-blade/style.css' );
 
 	$response->assertOk();
@@ -48,7 +48,7 @@ it( 'emits a blockGap-driven gap rule for navigation so items never render flush
 		->toContain( ":where(.wp-block-navigation) {\n  gap: var(--wp--style--block-gap, 0.5em);" );
 } );
 
-it( 'serves the bundled theme stylesheet', function () {
+it( 'serves the bundled theme stylesheet', function (): void {
 	$response = $this->get( '/vendor/visual-editor-renderer-blade/theme.css' );
 
 	$response->assertOk();
@@ -56,7 +56,7 @@ it( 'serves the bundled theme stylesheet', function () {
 	expect( (string) $response->headers->get( 'Content-Type' ) )->toStartWith( 'text/css' );
 } );
 
-it( 'serves the frontend stylesheets linked by the styles component', function ( string $file ) {
+it( 'serves the frontend stylesheets linked by the styles component', function ( string $file ): void {
 	$response = $this->get( '/vendor/visual-editor-renderer-blade/frontend/' . $file );
 
 	$response->assertOk();
@@ -77,7 +77,7 @@ it( 'serves the frontend stylesheets linked by the styles component', function (
 	'social-icons.css',
 ] );
 
-it( 'serves the frontend scripts with a javascript content type', function ( string $file ) {
+it( 'serves the frontend scripts with a javascript content type', function ( string $file ): void {
 	$response = $this->get( '/vendor/visual-editor-renderer-blade/frontend/' . $file );
 
 	$response->assertOk();
@@ -88,13 +88,13 @@ it( 'serves the frontend scripts with a javascript content type', function ( str
 	'masonry-fallback.js',
 ] );
 
-it( 'marks served assets nosniff so a mistyped response cannot be re-interpreted', function () {
+it( 'marks served assets nosniff so a mistyped response cannot be re-interpreted', function (): void {
 	$this->get( '/vendor/visual-editor-renderer-blade/style.css' )
 		->assertOk()
 		->assertHeader( 'X-Content-Type-Options', 'nosniff' );
 } );
 
-it( 'revalidates rather than pinning browsers to pre-upgrade CSS', function () {
+it( 'revalidates rather than pinning browsers to pre-upgrade CSS', function (): void {
 	$response = $this->get( '/vendor/visual-editor-renderer-blade/style.css' );
 
 	$response->assertOk();
@@ -106,7 +106,7 @@ it( 'revalidates rather than pinning browsers to pre-upgrade CSS', function () {
 	expect( $response->headers->get( 'ETag' ) )->not->toBeNull();
 } );
 
-it( 'answers a matching If-None-Match with a 304', function () {
+it( 'answers a matching If-None-Match with a 304', function (): void {
 	$etag = $this->get( '/vendor/visual-editor-renderer-blade/style.css' )
 		->headers->get( 'ETag' );
 
@@ -117,12 +117,12 @@ it( 'answers a matching If-None-Match with a 304', function () {
 		->assertStatus( 304 );
 } );
 
-it( '404s for a missing asset', function () {
+it( '404s for a missing asset', function (): void {
 	$this->get( '/vendor/visual-editor-renderer-blade/does-not-exist.css' )
 		->assertNotFound();
 } );
 
-it( '404s for a non-allow-listed extension inside the assets directory', function ( string $path ) {
+it( '404s for a non-allow-listed extension inside the assets directory', function ( string $path ): void {
 	$this->get( '/vendor/visual-editor-renderer-blade/' . $path )
 		->assertNotFound();
 } )->with( [
@@ -131,7 +131,7 @@ it( '404s for a non-allow-listed extension inside the assets directory', functio
 	'style.css.php',
 ] );
 
-it( 'refuses to traverse outside the bundled assets directory', function ( string $path ) {
+it( 'refuses to traverse outside the bundled assets directory', function ( string $path ): void {
 	$this->get( '/vendor/visual-editor-renderer-blade/' . $path )
 		->assertNotFound();
 } )->with( [
@@ -156,8 +156,8 @@ it( 'refuses to traverse outside the bundled assets directory', function ( strin
  * check is provably the only thing left standing between the request and a
  * file outside the package's asset directory.
  */
-describe( 'realpath containment', function () {
-	beforeEach( function () {
+describe( 'realpath containment', function (): void {
+	beforeEach( function (): void {
 		$packageRoot = dirname( __DIR__, 2 );
 
 		$this->outsideFile = $packageRoot . '/resources/ve-outside-fixture.css';
@@ -172,7 +172,7 @@ describe( 'realpath containment', function () {
 		symlink( $this->outsideFile, $this->plantedLink );
 	} );
 
-	afterEach( function () {
+	afterEach( function (): void {
 		if ( is_link( $this->plantedLink ) || file_exists( $this->plantedLink ) ) {
 			unlink( $this->plantedLink );
 		}
@@ -182,7 +182,7 @@ describe( 'realpath containment', function () {
 		}
 	} );
 
-	it( '404s a .css symlink that resolves outside the bundled assets directory', function () {
+	it( '404s a .css symlink that resolves outside the bundled assets directory', function (): void {
 		// Guards the guard: if this is false the request never reaches the
 		// containment check and the test proves nothing.
 		expect( is_file( $this->plantedLink ) )->toBeTrue();
@@ -191,7 +191,7 @@ describe( 'realpath containment', function () {
 			->assertNotFound();
 	} );
 
-	it( '404s a .css dot-segment path that resolves above the assets directory', function () {
+	it( '404s a .css dot-segment path that resolves above the assets directory', function (): void {
 		$this->get( '/vendor/visual-editor-renderer-blade/frontend/../../ve-outside-fixture.css' )
 			->assertNotFound();
 	} );
@@ -203,7 +203,7 @@ describe( 'realpath containment', function () {
  * CR / LF / TAB never get this far: Symfony's `Request` rejects those URIs
  * outright with a 400.
  */
-it( '404s on a null byte instead of surfacing a realpath ValueError', function ( string $path ) {
+it( '404s on a null byte instead of surfacing a realpath ValueError', function ( string $path ): void {
 	$this->get( '/vendor/visual-editor-renderer-blade/' . $path )
 		->assertNotFound();
 } )->with( [

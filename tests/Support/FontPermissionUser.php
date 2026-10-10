@@ -26,14 +26,14 @@ use Tests\TestUser;
 
 class FontPermissionUser extends TestUser
 {
-	protected $table = 'users';
-
 	/**
 	 * The permissions this user has been granted.
 	 *
 	 * @var array<int, string>
 	 */
 	public array $grantedPermissions = [];
+
+	protected $table = 'users';
 
 	/**
 	 * Whether this user holds the given permission — the rbac primary API.

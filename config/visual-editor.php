@@ -368,7 +368,7 @@ return [
 
 	'media' => [
 		'bridge'  => 'artisanpack-ui/media-library',
-		'adapter' => \ArtisanPackUI\VisualEditor\MediaBridge\GutenbergAttachmentAdapter::class,
+		'adapter' => ArtisanPackUI\VisualEditor\MediaBridge\GutenbergAttachmentAdapter::class,
 	],
 
 	/*
@@ -406,19 +406,28 @@ return [
 	| Content-authoring access (#834)
 	|--------------------------------------------------------------------------
 	|
-	| The icon picker endpoints (`icons/sets`, `icons/search`, `icons/svg`)
-	| and the custom SVG sanitizer (`icons/svg/sanitize`) require the
-	| `visual-editor.edit-content` ability. It's a post-editor-level check:
-	| authors who can't reach the site editor still pass it.
+	| The icon picker endpoints (`icons/sets`, `icons/search`, `icons/svg`),
+	| the custom SVG sanitizer (`icons/svg/sanitize`) and the pattern card
+	| previews (`patterns/preview`) require the `visual-editor.edit-content`
+	| ability. It's a post-editor-level check: authors who can't reach the
+	| site editor still pass it.
 	|
-	|   - capability         Left null, any authenticated user passes. Set a
-	|                        capability (e.g. 'edit_content') to require it
-	|                        through the user's hasCapability() /
-	|                        hasPermissionTo() / hasPermission(). Or define
-	|                        the `visual-editor.edit-content` gate yourself.
+	|   - capability         Left null (or any non-string), any authenticated
+	|                        user passes. Set a capability string (e.g.
+	|                        'edit_content') to require it through the
+	|                        user's hasCapability() / hasPermissionTo() /
+	|                        hasPermission(). A user model with none of those
+	|                        falls back to `$user->can( $capability )` and
+	|                        logs a warning. Or define the
+	|                        `visual-editor.edit-content` gate yourself.
 	|   - sanitize_throttle  Per-user rate limit for `icons/svg/sanitize`, as
 	|                        Laravel's `throttle` middleware arguments
-	|                        ("max attempts,minutes").
+	|                        ("max attempts,minutes"). It has its own
+	|                        rate-limit bucket. Null or '' uses the default
+	|                        '60,1'; `false` turns the throttle off. Routes
+	|                        read this when they're registered, so run
+	|                        `php artisan route:cache` again after changing
+	|                        it on a cached-routes install.
 	|
 	*/
 
@@ -746,9 +755,16 @@ return [
 	| page pattern modal show a scaled front-end render of each pattern.
 	| The server renders it with the Blade renderer and caches the HTML.
 	|
-	| The cache is cleared when a pattern is updated or deleted and when
-	| global styles change. `cache_ttl` (seconds) also expires entries so
-	| dynamic blocks such as Query loops pick up new site content.
+	| The whole cache is cleared when a pattern is updated or deleted, when
+	| a template part, menu or menu item is created, updated or deleted
+	| through the site-editor API, and when global styles change, since a
+	| pattern can embed any of those by reference. Content changed outside
+	| those endpoints (posts behind a Query loop, a direct model write) is
+	| picked up when entries expire after `cache_ttl` seconds.
+	|
+	| Entries are kept per viewer (user class + id), locale and host. Add
+	| more vary data (a role, a tenant id) through the
+	| `ap.visualEditor.patternPreviewCacheVary` filter.
 	|
 	*/
 
@@ -816,7 +832,9 @@ return [
 		'capability' => 'use_ai_features',
 
 		// Per-user rate limit for the `/ai/*` endpoints, as Laravel's
-		// `throttle` middleware arguments ("max attempts,minutes").
+		// `throttle` middleware arguments ("max attempts,minutes"), in its
+		// own rate-limit bucket. Null or '' uses '20,1'; `false` turns the
+		// throttle off. Re-run `route:cache` after changing it.
 		'throttle' => '20,1',
 
 		'alt_text' => [

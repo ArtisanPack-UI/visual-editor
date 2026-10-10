@@ -14,7 +14,7 @@ function tocBlock( string $name, array $attributes = [], array $innerBlocks = []
 	];
 }
 
-it( 'stamps auto-generated anchors on headings that have no anchor attribute (#760)', function () {
+it( 'stamps auto-generated anchors on headings that have no anchor attribute (#760)', function (): void {
 	$resolver = new TocResolver();
 
 	$tree = [
@@ -30,7 +30,7 @@ it( 'stamps auto-generated anchors on headings that have no anchor attribute (#7
 		->and( $resolved[2]['attributes']['anchor'] )->toBe( 'faq-support' );
 } );
 
-it( 'preserves author-set anchors and never overwrites them', function () {
+it( 'preserves author-set anchors and never overwrites them', function (): void {
 	$resolver = new TocResolver();
 
 	$tree = [
@@ -46,7 +46,7 @@ it( 'preserves author-set anchors and never overwrites them', function () {
 	expect( $resolved[0]['attributes']['anchor'] )->toBe( 'my-custom-anchor' );
 } );
 
-it( 'suffixes duplicate slugs so anchors are unique across the tree', function () {
+it( 'suffixes duplicate slugs so anchors are unique across the tree', function (): void {
 	$resolver = new TocResolver();
 
 	$tree = [
@@ -62,7 +62,7 @@ it( 'suffixes duplicate slugs so anchors are unique across the tree', function (
 		->and( $resolved[2]['attributes']['anchor'] )->toBe( 'overview-2' );
 } );
 
-it( 'suffixes an auto-anchor that collides with a later author-set anchor', function () {
+it( 'suffixes an auto-anchor that collides with a later author-set anchor', function (): void {
 	$resolver = new TocResolver();
 
 	// The author-set anchor gets claimed BEFORE anchors are auto-
@@ -83,7 +83,7 @@ it( 'suffixes an auto-anchor that collides with a later author-set anchor', func
 		->and( $resolved[1]['attributes']['anchor'] )->toBe( 'setup-1' );
 } );
 
-it( 'walks inner blocks so nested headings also get anchors', function () {
+it( 'walks inner blocks so nested headings also get anchors', function (): void {
 	$resolver = new TocResolver();
 
 	$tree = [
@@ -106,7 +106,7 @@ it( 'walks inner blocks so nested headings also get anchors', function () {
 		->and( $innerHeading['attributes']['anchor'] )->toBe( 'deeply-nested' );
 } );
 
-it( 'leaves non-heading blocks untouched', function () {
+it( 'leaves non-heading blocks untouched', function (): void {
 	$resolver = new TocResolver();
 
 	$tree = [
@@ -120,7 +120,7 @@ it( 'leaves non-heading blocks untouched', function () {
 		->and( $resolved[1]['attributes'] )->not->toHaveKey( 'anchor' );
 } );
 
-it( 'skips headings whose slug would be empty (e.g. punctuation-only content)', function () {
+it( 'skips headings whose slug would be empty (e.g. punctuation-only content)', function (): void {
 	$resolver = new TocResolver();
 
 	$tree = [
@@ -132,7 +132,7 @@ it( 'skips headings whose slug would be empty (e.g. punctuation-only content)', 
 	expect( $resolved[0]['attributes'] )->not->toHaveKey( 'anchor' );
 } );
 
-it( 'stamps _resolvedItems on artisanpack/toc blocks with every heading in document order', function () {
+it( 'stamps _resolvedItems on artisanpack/toc blocks with every heading in document order', function (): void {
 	$resolver = new TocResolver();
 
 	$tree = [
@@ -152,7 +152,7 @@ it( 'stamps _resolvedItems on artisanpack/toc blocks with every heading in docum
 		->and( $items[2] )->toBe( [ 'level' => 2, 'text' => 'Three', 'anchor' => 'three' ] );
 } );
 
-it( 'filters _resolvedItems on artisanpack/toc by the block minLevel and maxLevel', function () {
+it( 'filters _resolvedItems on artisanpack/toc by the block minLevel and maxLevel', function (): void {
 	$resolver = new TocResolver();
 
 	$tree = [
@@ -172,7 +172,7 @@ it( 'filters _resolvedItems on artisanpack/toc by the block minLevel and maxLeve
 		->and( $items[1]['text'] )->toBe( 'Kept (H3)' );
 } );
 
-it( 'swaps min/max on artisanpack/toc when the range is inverted so the output is still populated', function () {
+it( 'swaps min/max on artisanpack/toc when the range is inverted so the output is still populated', function (): void {
 	$resolver = new TocResolver();
 
 	$tree = [
@@ -188,7 +188,7 @@ it( 'swaps min/max on artisanpack/toc when the range is inverted so the output i
 		->and( $items[0]['text'] )->toBe( 'Middle' );
 } );
 
-it( 'clamps out-of-range min/max attributes on artisanpack/toc into 1-6', function () {
+it( 'clamps out-of-range min/max attributes on artisanpack/toc into 1-6', function (): void {
 	$resolver = new TocResolver();
 
 	$tree = [
@@ -204,7 +204,7 @@ it( 'clamps out-of-range min/max attributes on artisanpack/toc into 1-6', functi
 	expect( $items )->toHaveCount( 2 );
 } );
 
-it( 'stamps an empty _resolvedItems array when the tree has no headings', function () {
+it( 'stamps an empty _resolvedItems array when the tree has no headings', function (): void {
 	$resolver = new TocResolver();
 
 	$tree = [
@@ -217,7 +217,7 @@ it( 'stamps an empty _resolvedItems array when the tree has no headings', functi
 	expect( $resolved[0]['attributes']['_resolvedItems'] )->toBe( [] );
 } );
 
-it( 'strips HTML from heading content when building anchors and TOC labels', function () {
+it( 'strips HTML from heading content when building anchors and TOC labels', function (): void {
 	$resolver = new TocResolver();
 
 	$tree = [
@@ -236,7 +236,7 @@ it( 'strips HTML from heading content when building anchors and TOC labels', fun
 		->and( $items[0]['anchor'] )->toBe( 'bold-heading-with-emphasis' );
 } );
 
-it( 'stamps _resolvedItems on multiple TOC blocks on the same page with their own filters', function () {
+it( 'stamps _resolvedItems on multiple TOC blocks on the same page with their own filters', function (): void {
 	$resolver = new TocResolver();
 
 	$tree = [
@@ -254,7 +254,7 @@ it( 'stamps _resolvedItems on multiple TOC blocks on the same page with their ow
 		->and( $resolved[3]['attributes']['_resolvedItems'][0]['text'] )->toBe( 'Beta' );
 } );
 
-it( 'parses <h1>-<h6> tags out of core/post-content _resolvedContent and folds them into the TOC', function () {
+it( 'parses <h1>-<h6> tags out of core/post-content _resolvedContent and folds them into the TOC', function (): void {
 	$resolver = new TocResolver();
 
 	$tree = [
@@ -273,7 +273,7 @@ it( 'parses <h1>-<h6> tags out of core/post-content _resolvedContent and folds t
 		->and( $items[1] )->toBe( [ 'level' => 3, 'text' => 'Details', 'anchor' => 'details' ] );
 } );
 
-it( 'injects id attributes back into the rewritten post-content HTML for TOC anchors to land on', function () {
+it( 'injects id attributes back into the rewritten post-content HTML for TOC anchors to land on', function (): void {
 	$resolver = new TocResolver();
 
 	$tree = [
@@ -289,7 +289,7 @@ it( 'injects id attributes back into the rewritten post-content HTML for TOC anc
 		->toContain( '<h2 id="intro">Intro</h2>' );
 } );
 
-it( 'preserves existing id attributes on post-content headings without rewriting them', function () {
+it( 'preserves existing id attributes on post-content headings without rewriting them', function (): void {
 	$resolver = new TocResolver();
 
 	$tree = [
@@ -307,7 +307,7 @@ it( 'preserves existing id attributes on post-content headings without rewriting
 		->toBe( [ 'level' => 2, 'text' => 'Intro', 'anchor' => 'custom-slug' ] );
 } );
 
-it( 'suffixes a post-content heading whose slug already exists in the template tree', function () {
+it( 'suffixes a post-content heading whose slug already exists in the template tree', function (): void {
 	$resolver = new TocResolver();
 
 	$tree = [
@@ -329,7 +329,7 @@ it( 'suffixes a post-content heading whose slug already exists in the template t
 			->toContain( '<h2 id="intro-1">Intro</h2>' );
 } );
 
-it( 'strips inline HTML from post-content heading text for TOC labels', function () {
+it( 'strips inline HTML from post-content heading text for TOC labels', function (): void {
 	$resolver = new TocResolver();
 
 	$tree = [
@@ -345,7 +345,7 @@ it( 'strips inline HTML from post-content heading text for TOC labels', function
 		->and( $resolved[0]['attributes']['_resolvedItems'][0]['anchor'] )->toBe( 'bold-intro' );
 } );
 
-it( 'skips post-content headings whose text is empty', function () {
+it( 'skips post-content headings whose text is empty', function (): void {
 	$resolver = new TocResolver();
 
 	$tree = [
@@ -363,7 +363,7 @@ it( 'skips post-content headings whose text is empty', function () {
 		->and( $items[0]['text'] )->toBe( 'Kept' );
 } );
 
-it( 'leaves post-content _resolvedContent untouched when it has no headings', function () {
+it( 'leaves post-content _resolvedContent untouched when it has no headings', function (): void {
 	$resolver = new TocResolver();
 
 	$original = '<p>Just a paragraph.</p>';
@@ -379,7 +379,7 @@ it( 'leaves post-content _resolvedContent untouched when it has no headings', fu
 		->and( $resolved[0]['attributes']['_resolvedItems'] )->toBe( [] );
 } );
 
-it( 'folds diacritics when slugging headings so accented uppercase text matches the editor', function () {
+it( 'folds diacritics when slugging headings so accented uppercase text matches the editor', function (): void {
 	// Editor parity: the JS `remove-accents` package + toLowerCase()
 	// turns "Café" into "cafe"; TocResolver must match so a document
 	// with the same heading anchors the same on both sides.
@@ -396,7 +396,7 @@ it( 'folds diacritics when slugging headings so accented uppercase text matches 
 		->and( $resolved[1]['attributes']['anchor'] )->toBe( 'uber-uns' );
 } );
 
-it( 'preserves upstream-resolved _resolvedItems on TOC blocks without overwriting them', function () {
+it( 'preserves upstream-resolved _resolvedItems on TOC blocks without overwriting them', function (): void {
 	// A host app may layer its own extractor in front of TocResolver
 	// (e.g. stamping items from a search index) — the resolver must
 	// respect a pre-populated list instead of clobbering it with its
@@ -417,7 +417,7 @@ it( 'preserves upstream-resolved _resolvedItems on TOC blocks without overwritin
 	expect( $resolved[0]['attributes']['_resolvedItems'] )->toBe( $upstream );
 } );
 
-it( 'ignores non-array top-level entries without dropping the good ones', function () {
+it( 'ignores non-array top-level entries without dropping the good ones', function (): void {
 	$resolver = new TocResolver();
 
 	$tree = [

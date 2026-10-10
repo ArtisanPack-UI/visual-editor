@@ -72,7 +72,7 @@ class BindingResolver
 
 		return array_values( array_map(
 			fn ( $block ) => $this->resolveBlock( $block, $context ),
-			$blocks
+			$blocks,
 		) );
 	}
 
@@ -112,7 +112,7 @@ class BindingResolver
 		if ( isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) && [] !== $block['innerBlocks'] ) {
 			$block['innerBlocks'] = array_values( array_map(
 				fn ( $inner ) => is_array( $inner ) ? $this->resolveBlock( $inner, $context ) : $inner,
-				$block['innerBlocks']
+				$block['innerBlocks'],
 			) );
 		}
 
@@ -290,7 +290,7 @@ class BindingResolver
 
 		$missing = array_filter(
 			array_keys( $relations ),
-			static fn ( string $relation ): bool => ! $model->relationLoaded( $relation )
+			static fn ( string $relation ): bool => ! $model->relationLoaded( $relation ),
 		);
 
 		if ( [] !== $missing ) {
@@ -360,7 +360,7 @@ class BindingResolver
 	{
 		report( new BindingException( sprintf(
 			'Block binding source "%s" is not registered. Falling back.',
-			'' === $sourceName ? '(empty)' : $sourceName
+			'' === $sourceName ? '(empty)' : $sourceName,
 		) ) );
 	}
 }

@@ -44,14 +44,14 @@ dataset( 'entityForkParity', [
 	'post-author'  => [ 'post-author', [ '_resolvedAuthorName' => 'Jane Doe' ] ],
 ] );
 
-it( 'renders the artisanpack fork identically to its core counterpart', function ( string $slug, array $attributes ) {
+it( 'renders the artisanpack fork identically to its core counterpart', function ( string $slug, array $attributes ): void {
 	$core = $this->stripGlobalStyles( forkRenderTree( [ forkBlockNode( "core/$slug", $attributes ) ] ) );
 	$fork = $this->stripGlobalStyles( forkRenderTree( [ forkBlockNode( "artisanpack/$slug", $attributes ) ] ) );
 
 	expect( $this->normalizeHtml( $fork ) )->toBe( $this->normalizeHtml( $core ) );
 } )->with( 'entityForkParity' );
 
-it( 'renders artisanpack/post-title at the configured level via the core partial', function () {
+it( 'renders artisanpack/post-title at the configured level via the core partial', function (): void {
 	$rendered = $this->stripGlobalStyles( forkRenderTree( [
 		forkBlockNode( 'artisanpack/post-title', [ 'level' => 3, '_resolvedTitle' => 'Hello World' ] ),
 	] ) );
@@ -59,7 +59,7 @@ it( 'renders artisanpack/post-title at the configured level via the core partial
 	expect( $this->normalizeHtml( $rendered ) )->toContain( '<h3 class="wp-block-post-title">Hello World</h3>' );
 } );
 
-it( 'stamps _resolvedSite* onto artisanpack/site-* blocks from config defaults', function () {
+it( 'stamps _resolvedSite* onto artisanpack/site-* blocks from config defaults', function (): void {
 	config()->set( 'artisanpack.visual-editor.site_meta', [
 		'title'       => 'Config Title',
 		'description' => 'Config Tagline',
@@ -81,7 +81,7 @@ it( 'stamps _resolvedSite* onto artisanpack/site-* blocks from config defaults',
 		->toContain( '<p class="wp-block-site-tagline">Config Tagline</p>' );
 } );
 
-it( 'renders artisanpack/navigation inner blocks through the core partial', function () {
+it( 'renders artisanpack/navigation inner blocks through the core partial', function (): void {
 	$rendered = $this->stripGlobalStyles( forkRenderTree( [
 		forkBlockNode( 'artisanpack/navigation', [], [
 			forkBlockNode( 'core/navigation-link', [ 'label' => 'Home', 'url' => 'https://example.test' ] ),

@@ -47,6 +47,22 @@ class SocialIconRegistry
 	private const PINTEREST_PATH = 'M12 0a12 12 0 0 0-4.373 23.178c-.105-.985-.2-2.499.041-3.574.218-.97 1.41-6.182 1.41-6.182s-.359-.722-.359-1.787c0-1.677.973-2.928 2.182-2.928 1.029 0 1.526.773 1.526 1.7 0 1.034-.66 2.583-1 4.018-.285 1.197.6 2.174 1.785 2.174 2.143 0 3.789-2.26 3.789-5.522 0-2.886-2.074-4.905-5.035-4.905-3.43 0-5.444 2.572-5.444 5.232 0 1.036.4 2.146.898 2.751.099.12.114.224.085.346-.09.371-.288 1.176-.327 1.341-.052.215-.172.261-.397.157-1.48-.69-2.404-2.851-2.404-4.587 0-3.732 2.71-7.156 7.815-7.156 4.106 0 7.296 2.927 7.296 6.836 0 4.078-2.572 7.358-6.142 7.358-1.198 0-2.324-.622-2.708-1.357l-.737 2.809c-.267 1.027-.989 2.314-1.474 3.097A12 12 0 1 0 12 0Z';
 
 	/**
+	 * @return array{label: string, path: string}|null
+	 */
+	public static function author( string $slug ): ?array
+	{
+		return self::authorPlatforms()[ $slug ] ?? null;
+	}
+
+	/**
+	 * @return array{label: string, path: string}|null
+	 */
+	public static function share( string $slug ): ?array
+	{
+		return self::sharePlatforms()[ $slug ] ?? null;
+	}
+
+	/**
 	 * Author-profile platforms — slug => { label, path }.
 	 *
 	 * @return array<string, array{label: string, path: string}>
@@ -79,21 +95,5 @@ class SocialIconRegistry
 			'pinterest' => [ 'label' => 'Pinterest', 'path' => self::PINTEREST_PATH ],
 			'email'     => [ 'label' => 'Email',     'path' => self::EMAIL_PATH ],
 		];
-	}
-
-	/**
-	 * @return array{label: string, path: string}|null
-	 */
-	public static function author( string $slug ): ?array
-	{
-		return self::authorPlatforms()[ $slug ] ?? null;
-	}
-
-	/**
-	 * @return array{label: string, path: string}|null
-	 */
-	public static function share( string $slug ): ?array
-	{
-		return self::sharePlatforms()[ $slug ] ?? null;
 	}
 }

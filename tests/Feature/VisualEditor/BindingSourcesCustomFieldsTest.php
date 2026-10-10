@@ -38,7 +38,7 @@ function createBindingCustomField( string $key, array $contentTypes, string $typ
 	] );
 }
 
-beforeEach( function () {
+beforeEach( function (): void {
 	config()->set( 'artisanpack.visual-editor.api.middleware', [ 'auth' ] );
 	config()->set( 'artisanpack.visual-editor.resources', [] );
 
@@ -49,7 +49,7 @@ beforeEach( function () {
 	] ) );
 } );
 
-it( 'lists custom fields for a resource registered only through the filter', function () {
+it( 'lists custom fields for a resource registered only through the filter', function (): void {
 	registerFilterResources( [ 'portfolio' => TestBindingsModel::class ] );
 
 	createBindingCustomField( 'client_url', [ 'portfolio' ], 'url' );
@@ -64,32 +64,32 @@ it( 'lists custom fields for a resource registered only through the filter', fun
 		] );
 } );
 
-it( 'matches content types by slug when the table name differs', function () {
+it( 'matches content types by slug when the table name differs', function (): void {
 	// TestBindingsModel's table is `test_block_content_models`, not `portfolio`.
 	registerFilterResources( [ 'portfolio' => TestBindingsModel::class ] );
 
 	createBindingCustomField( 'year', [ 'portfolio' ], 'number' );
 
 	$keys = collect(
-		$this->getJson( '/visual-editor/api/bindings/sources/custom_field/fields?resource=portfolio' )->json( 'fields' )
+		$this->getJson( '/visual-editor/api/bindings/sources/custom_field/fields?resource=portfolio' )->json( 'fields' ),
 	)->pluck( 'key' )->all();
 
 	expect( $keys )->toBe( [ 'year' ] );
 } );
 
-it( 'lists fields for a shared generic model class without its own table', function () {
+it( 'lists fields for a shared generic model class without its own table', function (): void {
 	registerFilterResources( [ 'case_study' => TestGenericContentModel::class ] );
 
 	createBindingCustomField( 'outcome', [ 'case_study' ] );
 
 	$keys = collect(
-		$this->getJson( '/visual-editor/api/bindings/sources/custom_field/fields?resource=case_study' )->json( 'fields' )
+		$this->getJson( '/visual-editor/api/bindings/sources/custom_field/fields?resource=case_study' )->json( 'fields' ),
 	)->pluck( 'key' )->all();
 
 	expect( $keys )->toBe( [ 'outcome' ] );
 } );
 
-it( 'includes fields contributed through the cms-framework custom-field filter', function () {
+it( 'includes fields contributed through the cms-framework custom-field filter', function (): void {
 	registerFilterResources( [ 'portfolio' => TestBindingsModel::class ] );
 
 	createBindingCustomField( 'client_url', [ 'portfolio' ], 'url' );
@@ -102,14 +102,14 @@ it( 'includes fields contributed through the cms-framework custom-field filter',
 	] );
 
 	$fields = collect(
-		$this->getJson( '/visual-editor/api/bindings/sources/custom_field/fields?resource=portfolio' )->json( 'fields' )
+		$this->getJson( '/visual-editor/api/bindings/sources/custom_field/fields?resource=portfolio' )->json( 'fields' ),
 	)->keyBy( 'key' );
 
 	expect( $fields->keys()->all() )->toEqualCanonicalizing( [ 'client_url', 'launch_date' ] )
 		->and( $fields['launch_date'] )->toBe( [ 'key' => 'launch_date', 'label' => 'Launch date', 'type' => 'date' ] );
 } );
 
-it( 'keeps config entries winning over filter entries on key collision', function () {
+it( 'keeps config entries winning over filter entries on key collision', function (): void {
 	config()->set( 'artisanpack.visual-editor.resources', [ 'portfolio' => TestBindingsModel::class ] );
 	registerFilterResources( [ 'portfolio' => TestGenericContentModel::class ] );
 
@@ -118,13 +118,13 @@ it( 'keeps config entries winning over filter entries on key collision', functio
 	createBindingCustomField( 'generic_field', [ 'test_generic_content_models' ] );
 
 	$keys = collect(
-		$this->getJson( '/visual-editor/api/bindings/sources/custom_field/fields?resource=portfolio' )->json( 'fields' )
+		$this->getJson( '/visual-editor/api/bindings/sources/custom_field/fields?resource=portfolio' )->json( 'fields' ),
 	)->pluck( 'key' )->all();
 
 	expect( $keys )->toBe( [ 'legacy_field' ] );
 } );
 
-it( 'returns an empty catalog with a 200 for an unknown resource', function () {
+it( 'returns an empty catalog with a 200 for an unknown resource', function (): void {
 	registerFilterResources( [ 'portfolio' => TestBindingsModel::class ] );
 
 	createBindingCustomField( 'client_url', [ 'portfolio' ] );
@@ -134,7 +134,7 @@ it( 'returns an empty catalog with a 200 for an unknown resource', function () {
 		->assertJsonPath( 'fields', [] );
 } );
 
-it( 'does not expose fields of a content type that is not a registered resource', function () {
+it( 'does not expose fields of a content type that is not a registered resource', function (): void {
 	registerFilterResources( [ 'portfolio' => TestBindingsModel::class ] );
 
 	createBindingCustomField( 'secret_note', [ 'internal_memo' ] );
@@ -144,7 +144,7 @@ it( 'does not expose fields of a content type that is not a registered resource'
 		->assertJsonPath( 'fields', [] );
 } );
 
-it( 'returns an empty catalog when the resource points at a non-Eloquent class', function () {
+it( 'returns an empty catalog when the resource points at a non-Eloquent class', function (): void {
 	registerFilterResources( [ 'broken' => stdClass::class ] );
 
 	$this->getJson( '/visual-editor/api/bindings/sources/custom_field/fields?resource=broken' )

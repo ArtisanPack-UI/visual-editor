@@ -128,30 +128,30 @@ class BlocksStylesComponent extends Component
 	) {
 		$base = $this->normaliseBase( $assetBase ?? self::DEFAULT_ASSET_BASE );
 
-		$this->styleHref              = $base . '/style.css';
-		$this->themeHref              = $base . '/theme.css';
-		$this->accordionStyleHref     = $base . '/frontend/accordion.css';
-		$this->tabsStyleHref          = $base . '/frontend/tabs.css';
-		$this->gridStyleHref          = $base . '/frontend/grid.css';
-		$this->marqueeStyleHref       = $base . '/frontend/marquee.css';
-		$this->socialIconsStyleHref   = $base . '/frontend/social-icons.css';
-		$this->inlineIconStyleHref    = $base . '/frontend/inline-icon.css';
-		$this->breadcrumbsStyleHref   = $base . '/frontend/breadcrumbs.css';
+		$this->styleHref                = $base . '/style.css';
+		$this->themeHref                = $base . '/theme.css';
+		$this->accordionStyleHref       = $base . '/frontend/accordion.css';
+		$this->tabsStyleHref            = $base . '/frontend/tabs.css';
+		$this->gridStyleHref            = $base . '/frontend/grid.css';
+		$this->marqueeStyleHref         = $base . '/frontend/marquee.css';
+		$this->socialIconsStyleHref     = $base . '/frontend/social-icons.css';
+		$this->inlineIconStyleHref      = $base . '/frontend/inline-icon.css';
+		$this->breadcrumbsStyleHref     = $base . '/frontend/breadcrumbs.css';
 		$this->queryPaginationStyleHref = $base . '/frontend/query-pagination.css';
-		$this->flexLayoutStyleHref    = $base . '/frontend/flex-layout.css';
-		$this->photoGridStyleHref     = $base . '/frontend/photo-grid.css';
-		$this->postTemplateStyleHref  = $base . '/frontend/post-template.css';
-		$this->postVariantStyleHref   = $base . '/frontend/post-variant.css';
-		$this->masonryStyleHref       = $base . '/frontend/masonry.css';
-		$this->masonryScriptSrc       = $base . '/frontend/masonry-fallback.js';
-		$this->interactivityScriptSrc = $base . '/frontend/interactivity.js';
-		$this->emitBlockLibrary       = $bundle;
-		$this->emitInteractive        = $interactive;
-		$this->themeTokensCss         = null === $themeJson ? '' : $this->compiler->compile( $themeJson );
-		$this->spacingPresetsCss      = $this->compiler->compileSpacingPresets( $themeJson );
-		$this->defaultTokensCss       = $this->compiler->compileDefaults( $themeJson );
-		$this->defaultStylesCss       = DefaultStyles::enabled( $themeJson ) ? DefaultStyles::CSS : '';
-		$this->stackingCss            = StackingStyles::css( app( BreakpointRegistry::class ) );
+		$this->flexLayoutStyleHref      = $base . '/frontend/flex-layout.css';
+		$this->photoGridStyleHref       = $base . '/frontend/photo-grid.css';
+		$this->postTemplateStyleHref    = $base . '/frontend/post-template.css';
+		$this->postVariantStyleHref     = $base . '/frontend/post-variant.css';
+		$this->masonryStyleHref         = $base . '/frontend/masonry.css';
+		$this->masonryScriptSrc         = $base . '/frontend/masonry-fallback.js';
+		$this->interactivityScriptSrc   = $base . '/frontend/interactivity.js';
+		$this->emitBlockLibrary         = $bundle;
+		$this->emitInteractive          = $interactive;
+		$this->themeTokensCss           = null === $themeJson ? '' : $this->compiler->compile( $themeJson );
+		$this->spacingPresetsCss        = $this->compiler->compileSpacingPresets( $themeJson );
+		$this->defaultTokensCss         = $this->compiler->compileDefaults( $themeJson );
+		$this->defaultStylesCss         = DefaultStyles::enabled( $themeJson ) ? DefaultStyles::CSS : '';
+		$this->stackingCss              = StackingStyles::css( app( BreakpointRegistry::class ) );
 	}
 
 	public function render(): View

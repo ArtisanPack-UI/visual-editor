@@ -295,9 +295,9 @@ describe( 'NavigationBlockRefResolver — menu item extension attributes (#806)'
 		expect( $items[0]['attributes'] )->not->toHaveKey( 'artisanpackVisibility' )
 			->and( $items[1]['attributes']['artisanpackVisibility']['screenSize']['breakpoints'] )->toBe( [ 'md' ] );
 
-		$this->app->register( \ArtisanPackUI\VisualEditorRendererBlade\VisualEditorRendererBladeServiceProvider::class );
+		$this->app->register( ArtisanPackUI\VisualEditorRendererBlade\VisualEditorRendererBladeServiceProvider::class );
 
-		$html = app( \ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer::class )->render( $resolved );
+		$html = app( ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer::class )->render( $resolved );
 
 		expect( $html )
 			->toMatch( '/<li class="[^"]*wp-block-navigation-link[^"]*\bve-vis-\d+"[^>]*data-ve-vis-scope>.*Contact/s' )

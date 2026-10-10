@@ -17,11 +17,10 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
 	public function up(): void
 	{
-		Schema::create( 'test_block_content_models', function ( Blueprint $table ) {
+		Schema::create( 'test_block_content_models', function ( Blueprint $table ): void {
 			$table->id();
 			$table->unsignedBigInteger( 'author_id' )->nullable()->index();
 			$table->string( 'title' )->default( '' );
@@ -37,7 +36,7 @@ return new class extends Migration
 		// asserts that page-only fields (parent / menu_order / template)
 		// stay absent from the response when the model doesn't declare
 		// them. Don't add those columns here.
-		Schema::create( 'test_block_content_pages', function ( Blueprint $table ) {
+		Schema::create( 'test_block_content_pages', function ( Blueprint $table ): void {
 			$table->id();
 			$table->unsignedBigInteger( 'author_id' )->nullable()->index();
 			$table->string( 'title' )->default( '' );

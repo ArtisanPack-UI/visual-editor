@@ -10,24 +10,24 @@ function makeAnimResolver(): AnimationAttributeResolver
 	return new AnimationAttributeResolver( BreakpointRegistry::fromLayers( [], [] ) );
 }
 
-it( 'returns a scalar value unchanged at base', function () {
+it( 'returns a scalar value unchanged at base', function (): void {
 	expect( makeAnimResolver()->resolve( 'fade-in', 'base' ) )->toBe( 'fade-in' );
 } );
 
-it( 'treats a scalar value as the base shape at every breakpoint', function () {
+it( 'treats a scalar value as the base shape at every breakpoint', function (): void {
 	// Mirrors `ResponsiveValueResolver::resolve()`: a scalar applies
 	// uniformly across the cascade.
 	expect( makeAnimResolver()->resolve( 'fade-in', 'md' ) )->toBe( 'fade-in' );
 	expect( makeAnimResolver()->resolve( 'fade-in', 'xl' ) )->toBe( 'fade-in' );
 } );
 
-it( 'returns the base value when no breakpoint overrides exist', function () {
+it( 'returns the base value when no breakpoint overrides exist', function (): void {
 	$value = [ 'base' => 'fade-in' ];
 
 	expect( makeAnimResolver()->resolve( $value, 'lg' ) )->toBe( 'fade-in' );
 } );
 
-it( 'returns null when the breakpoint explicitly disables the animation', function () {
+it( 'returns null when the breakpoint explicitly disables the animation', function (): void {
 	$value = [ 'base' => 'fade-in', 'md' => null ];
 
 	expect( makeAnimResolver()->resolve( $value, 'md' ) )->toBeNull();
@@ -35,13 +35,13 @@ it( 'returns null when the breakpoint explicitly disables the animation', functi
 	expect( makeAnimResolver()->resolve( $value, 'sm' ) )->toBe( 'fade-in' );
 } );
 
-it( 'returns the override at the requested breakpoint', function () {
+it( 'returns the override at the requested breakpoint', function (): void {
 	$value = [ 'base' => 'fade-in', 'md' => 'zoom-in' ];
 
 	expect( makeAnimResolver()->resolve( $value, 'md' ) )->toBe( 'zoom-in' );
 } );
 
-it( 'resolves the full cascade at once', function () {
+it( 'resolves the full cascade at once', function (): void {
 	$value = [ 'base' => 'fade-in', 'md' => 'zoom-in', 'xl' => null ];
 	$all   = makeAnimResolver()->resolveAll( $value );
 

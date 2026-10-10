@@ -48,7 +48,7 @@ class DenyByDefaultGate implements SiteEditorAccessGate
 		return response()->view(
 			'visual-editor::site-editor.deny-by-default',
 			[],
-			Response::HTTP_SERVICE_UNAVAILABLE
+			Response::HTTP_SERVICE_UNAVAILABLE,
 		);
 	}
 }

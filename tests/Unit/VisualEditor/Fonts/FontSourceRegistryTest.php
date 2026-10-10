@@ -11,7 +11,8 @@ function makeFontProvider( string $key, string $label = 'Test Fonts' ): FontProv
 		public function __construct(
 			private string $key,
 			private string $label,
-		) {}
+		) {
+		}
 
 		public function key(): string
 		{
@@ -45,13 +46,13 @@ function makeFontProvider( string $key, string $label = 'Test Fonts' ): FontProv
 	};
 }
 
-it( 'starts empty', function () {
+it( 'starts empty', function (): void {
 	$registry = new FontSourceRegistry();
 
 	expect( $registry->all() )->toBeEmpty();
 } );
 
-it( 'registers a provider under its declared key', function () {
+it( 'registers a provider under its declared key', function (): void {
 	$registry = new FontSourceRegistry();
 	$provider = makeFontProvider( 'google' );
 
@@ -61,14 +62,14 @@ it( 'registers a provider under its declared key', function () {
 		->and( $registry->get( 'google' ) )->toBe( $provider );
 } );
 
-it( 'returns null and false for unregistered keys', function () {
+it( 'returns null and false for unregistered keys', function (): void {
 	$registry = new FontSourceRegistry();
 
 	expect( $registry->get( 'missing' ) )->toBeNull()
 		->and( $registry->has( 'missing' ) )->toBeFalse();
 } );
 
-it( 'returns every provider keyed by provider key', function () {
+it( 'returns every provider keyed by provider key', function (): void {
 	$registry = new FontSourceRegistry();
 	$registry->register( makeFontProvider( 'google' ) );
 	$registry->register( makeFontProvider( 'bunny' ) );
@@ -77,7 +78,7 @@ it( 'returns every provider keyed by provider key', function () {
 		->and( array_keys( $registry->all() ) )->toEqual( ['google', 'bunny'] );
 } );
 
-it( 'overwrites the previous provider when the same key is reused', function () {
+it( 'overwrites the previous provider when the same key is reused', function (): void {
 	$registry = new FontSourceRegistry();
 	$first    = makeFontProvider( 'google', 'First' );
 	$second   = makeFontProvider( 'google', 'Second' );
@@ -89,7 +90,7 @@ it( 'overwrites the previous provider when the same key is reused', function () 
 		->and( $registry->get( 'google' ) )->toBe( $second );
 } );
 
-it( 'unregisters a provider by key', function () {
+it( 'unregisters a provider by key', function (): void {
 	$registry = new FontSourceRegistry();
 	$registry->register( makeFontProvider( 'google' ) );
 
@@ -98,7 +99,7 @@ it( 'unregisters a provider by key', function () {
 	expect( $registry->has( 'google' ) )->toBeFalse();
 } );
 
-it( 'unregistering an unknown key is a no-op', function () {
+it( 'unregistering an unknown key is a no-op', function (): void {
 	$registry = new FontSourceRegistry();
 
 	$registry->unregister( 'missing' );
@@ -106,13 +107,13 @@ it( 'unregistering an unknown key is a no-op', function () {
 	expect( $registry->all() )->toBeEmpty();
 } );
 
-it( 'rejects a provider whose key is empty', function () {
+it( 'rejects a provider whose key is empty', function (): void {
 	$registry = new FontSourceRegistry();
 
 	$registry->register( makeFontProvider( '   ' ) );
 } )->throws( InvalidArgumentException::class, 'cannot be empty' );
 
-it( 'rejects a provider whose key does not match the key pattern', function ( string $key ) {
+it( 'rejects a provider whose key does not match the key pattern', function ( string $key ): void {
 	$registry = new FontSourceRegistry();
 
 	$registry->register( makeFontProvider( $key ) );

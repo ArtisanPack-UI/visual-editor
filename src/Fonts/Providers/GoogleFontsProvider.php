@@ -187,7 +187,7 @@ class GoogleFontsProvider implements FontProvider, SupportsServerReadableFormats
 		if ( '' !== $query ) {
 			$families = array_values( array_filter(
 				$families,
-				static fn ( array $family ): bool => str_contains( strtolower( $family['family'] ), $query )
+				static fn ( array $family ): bool => str_contains( strtolower( $family['family'] ), $query ),
 			) );
 		}
 
@@ -203,7 +203,7 @@ class GoogleFontsProvider implements FontProvider, SupportsServerReadableFormats
 				'variants'    => $family['variants'],
 				'is_variable' => $family['is_variable'],
 			],
-			$window
+			$window,
 		);
 
 		return [
@@ -283,7 +283,7 @@ class GoogleFontsProvider implements FontProvider, SupportsServerReadableFormats
 		if ( ! in_array( $format, self::SUPPORTED_FORMATS, true ) ) {
 			throw new FontProviderException( __(
 				'Google Fonts cannot serve the ":format" format.',
-				[ 'format' => $format ]
+				[ 'format' => $format ],
 			) );
 		}
 
@@ -292,7 +292,7 @@ class GoogleFontsProvider implements FontProvider, SupportsServerReadableFormats
 		if ( null === $family ) {
 			throw new FontProviderException( __(
 				'Google Fonts has no family for slug ":slug".',
-				[ 'slug' => $slug ]
+				[ 'slug' => $slug ],
 			) );
 		}
 
@@ -305,7 +305,7 @@ class GoogleFontsProvider implements FontProvider, SupportsServerReadableFormats
 		if ( ! in_array( $style, [ 'normal', 'italic' ], true ) ) {
 			throw new FontProviderException( __(
 				'Google Fonts does not support the ":style" style.',
-				[ 'style' => $style ]
+				[ 'style' => $style ],
 			) );
 		}
 
@@ -314,7 +314,7 @@ class GoogleFontsProvider implements FontProvider, SupportsServerReadableFormats
 		if ( ! ctype_digit( $weight ) ) {
 			throw new FontProviderException( __(
 				'Google Fonts weight ":weight" is not a numeric weight.',
-				[ 'weight' => $weight ]
+				[ 'weight' => $weight ],
 			) );
 		}
 
@@ -324,7 +324,7 @@ class GoogleFontsProvider implements FontProvider, SupportsServerReadableFormats
 		if ( ! in_array( $variant, $family['variants'], true ) ) {
 			throw new FontProviderException( __(
 				'Google Fonts family ":family" has no :weight :style face.',
-				[ 'family' => $family['family'], 'weight' => $weight, 'style' => $style ]
+				[ 'family' => $family['family'], 'weight' => $weight, 'style' => $style ],
 			) );
 		}
 
@@ -334,7 +334,7 @@ class GoogleFontsProvider implements FontProvider, SupportsServerReadableFormats
 		if ( null === $fileUrl ) {
 			throw new FontProviderException( __(
 				'Google Fonts returned no :format URL for ":family" :weight :style.',
-				[ 'format' => strtoupper( $format ), 'family' => $family['family'], 'weight' => $weight, 'style' => $style ]
+				[ 'format' => strtoupper( $format ), 'family' => $family['family'], 'weight' => $weight, 'style' => $style ],
 			) );
 		}
 
@@ -389,25 +389,25 @@ class GoogleFontsProvider implements FontProvider, SupportsServerReadableFormats
 			throw new FontProviderException(
 				'Failed to reach the Google Fonts metadata endpoint.',
 				0,
-				$e
+				$e,
 			);
 		}
 
 		if ( ! $response->successful() ) {
 			throw new FontProviderException( sprintf(
 				'The Google Fonts metadata endpoint returned HTTP %d.',
-				$response->status()
+				$response->status(),
 			) );
 		}
 
 		$payload = $this->decodeMetadata(
-			$this->readBounded( $response, 'the Google Fonts metadata endpoint' )
+			$this->readBounded( $response, 'the Google Fonts metadata endpoint' ),
 		);
 		$list    = $payload['familyMetadataList'] ?? null;
 
 		if ( ! is_array( $list ) || [] === $list ) {
 			throw new FontProviderException(
-				'The Google Fonts metadata response did not contain a font list.'
+				'The Google Fonts metadata response did not contain a font list.',
 			);
 		}
 
@@ -427,7 +427,7 @@ class GoogleFontsProvider implements FontProvider, SupportsServerReadableFormats
 		// otherwise blank the Font Library for the full cache_ttl.
 		if ( [] === $catalog ) {
 			throw new FontProviderException(
-				'The Google Fonts metadata response contained no usable fonts.'
+				'The Google Fonts metadata response contained no usable fonts.',
 			);
 		}
 
@@ -456,7 +456,7 @@ class GoogleFontsProvider implements FontProvider, SupportsServerReadableFormats
 
 		if ( ! is_array( $decoded ) ) {
 			throw new FontProviderException(
-				'The Google Fonts metadata response was not valid JSON.'
+				'The Google Fonts metadata response was not valid JSON.',
 			);
 		}
 
@@ -479,7 +479,7 @@ class GoogleFontsProvider implements FontProvider, SupportsServerReadableFormats
 		// every `fonts` key back to a string token ('400', '400i').
 		$variants = array_map(
 			'strval',
-			array_keys( is_array( $item['fonts'] ?? null ) ? $item['fonts'] : [] )
+			array_keys( is_array( $item['fonts'] ?? null ) ? $item['fonts'] : [] ),
 		);
 
 		$faces = [];
@@ -587,14 +587,14 @@ class GoogleFontsProvider implements FontProvider, SupportsServerReadableFormats
 			throw new FontProviderException(
 				__( 'Failed to resolve the Google Fonts face CSS for ":family".', [ 'family' => $family ] ),
 				0,
-				$e
+				$e,
 			);
 		}
 
 		if ( ! $response->successful() ) {
 			throw new FontProviderException( __(
 				'Google Fonts returned HTTP :status resolving the face CSS for ":family".',
-				[ 'status' => $response->status(), 'family' => $family ]
+				[ 'status' => $response->status(), 'family' => $family ],
 			) );
 		}
 
@@ -622,7 +622,7 @@ class GoogleFontsProvider implements FontProvider, SupportsServerReadableFormats
 			'#/\*\s*(?<subset>[^*]{1,64}?)\s*\*/\s*@font-face\s*\{(?<body>[^}]*)\}#s',
 			$css,
 			$blocks,
-			PREG_SET_ORDER
+			PREG_SET_ORDER,
 		);
 
 		$urls = [];
@@ -671,7 +671,7 @@ class GoogleFontsProvider implements FontProvider, SupportsServerReadableFormats
 		if ( 'https' !== $scheme || ! is_string( $host ) || ! $this->isAllowedFileHost( $host ) ) {
 			throw new FontProviderException( sprintf(
 				'Refusing to download a Google Fonts face from the untrusted URL "%s".',
-				$fileUrl
+				$fileUrl,
 			) );
 		}
 	}
@@ -720,14 +720,14 @@ class GoogleFontsProvider implements FontProvider, SupportsServerReadableFormats
 			throw new FontProviderException(
 				__( 'Failed to download the Google Fonts face at ":url".', [ 'url' => $fileUrl ] ),
 				0,
-				$e
+				$e,
 			);
 		}
 
 		if ( ! $response->successful() ) {
 			throw new FontProviderException( __(
 				'Google Fonts returned HTTP :status downloading the face at ":url".',
-				[ 'status' => $response->status(), 'url' => $fileUrl ]
+				[ 'status' => $response->status(), 'url' => $fileUrl ],
 			) );
 		}
 
@@ -737,7 +737,7 @@ class GoogleFontsProvider implements FontProvider, SupportsServerReadableFormats
 		if ( null !== $signature && ! str_starts_with( $body, $signature ) ) {
 			throw new FontProviderException( __(
 				'The file downloaded from ":url" is not a :format font.',
-				[ 'url' => $fileUrl, 'format' => strtoupper( $format ) ]
+				[ 'url' => $fileUrl, 'format' => strtoupper( $format ) ],
 			) );
 		}
 
@@ -764,7 +764,7 @@ class GoogleFontsProvider implements FontProvider, SupportsServerReadableFormats
 				throw new FontProviderException( sprintf(
 					'The response from %s exceeded the maximum allowed size of %d bytes.',
 					$context,
-					$this->maxBytes
+					$this->maxBytes,
 				) );
 			}
 		}

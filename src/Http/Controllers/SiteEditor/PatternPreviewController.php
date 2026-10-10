@@ -76,10 +76,28 @@ class PatternPreviewController extends Controller
 		}
 
 		return response()->json( [
-			'styles'   => $available ? $renderer->styles() : '',
+			'styles'   => $available ? $this->sharedStyles( $renderer ) : '',
 			// Force an object so a single numeric id doesn't serialize as a list.
 			'patterns' => (object) $results,
 		] );
+	}
+
+	/**
+	 * The batch's shared stylesheet markup. A failure here (a bad theme
+	 * manifest, unmigrated fonts) is reported and degrades to no shared
+	 * styles, so it can't turn the whole batch into a 500.
+	 *
+	 * @since 1.13.0
+	 */
+	protected function sharedStyles( PatternPreviewRenderer $renderer ): string
+	{
+		try {
+			return $renderer->styles();
+		} catch ( Throwable $e ) {
+			report( $e );
+
+			return '';
+		}
 	}
 
 	/**
@@ -88,7 +106,7 @@ class PatternPreviewController extends Controller
 	 *
 	 * @since 1.13.0
 	 *
-	 * @return array{html: string}|array{error: string}
+	 * @return array{error: string}|array{html: string}
 	 */
 	protected function renderOne( PatternPreviewRenderer $renderer, string $id ): array
 	{

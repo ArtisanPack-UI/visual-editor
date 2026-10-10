@@ -66,7 +66,9 @@ final class InlineIconContentHydrator
 	 */
 	private const SVG_STYLE = 'display:inline-block;width:1em;height:1em;fill:currentColor;vertical-align:-0.125em';
 
-	public function __construct( private readonly IconSvgResolver $resolver ) {}
+	public function __construct( private readonly IconSvgResolver $resolver )
+	{
+	}
 
 	/**
 	 * Hydrate every registered-set inline-icon reference span in the
@@ -89,7 +91,7 @@ final class InlineIconContentHydrator
 		$replaced = preg_replace_callback(
 			self::SPAN_PATTERN,
 			fn ( array $match ): string => $this->hydrateSpan( $match ),
-			$html
+			$html,
 		);
 
 		// `preg_replace_callback` returns null only on a PCRE failure
@@ -153,7 +155,7 @@ final class InlineIconContentHydrator
 				$attributes = preg_replace(
 					[ '/\s(?:width|height)\s*=\s*"[^"]*"/i', "/\\s(?:width|height)\\s*=\\s*'[^']*'/i" ],
 					'',
-					$match[1]
+					$match[1],
 				);
 				$attributes = is_string( $attributes ) ? $attributes : $match[1];
 
@@ -181,7 +183,7 @@ final class InlineIconContentHydrator
 							return ' style="' . $declarations . '"';
 						},
 						$attributes,
-						1
+						1,
 					);
 					$attributes = is_string( $merged ) ? $merged : $attributes;
 				} else {
@@ -191,7 +193,7 @@ final class InlineIconContentHydrator
 				return '<svg' . $attributes . $match[2] . '>';
 			},
 			$trimmed,
-			1
+			1,
 		);
 
 		return is_string( $replaced ) ? $replaced : $trimmed;

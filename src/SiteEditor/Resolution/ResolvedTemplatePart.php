@@ -23,10 +23,6 @@ use ArtisanPackUI\VisualEditor\SiteEditor\Exceptions\SiteEditorRegistrationExcep
 
 class ResolvedTemplatePart extends ResolvedTemplate
 {
-	/**
-	 * @since 1.0.0
-	 */
-	protected const FILTER_NAME = 'ap.visualEditor.templateParts';
 
 	/**
 	 * V1 closed list of valid template-part areas. Mirrored from
@@ -35,6 +31,10 @@ class ResolvedTemplatePart extends ResolvedTemplate
 	 * @since 1.0.0
 	 */
 	public const AREAS = [ 'header', 'footer', 'sidebar', 'uncategorized', 'navigation-overlay' ];
+	/**
+	 * @since 1.0.0
+	 */
+	protected const FILTER_NAME = 'ap.visualEditor.templateParts';
 
 	/**
 	 * @since 1.0.0

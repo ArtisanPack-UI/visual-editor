@@ -85,18 +85,18 @@ class LatestPostsBlock extends DynamicBlock
 			return sprintf(
 				'<ul class="%s"><li>%s</li></ul>',
 				e( implode( ' ', $classes ) ),
-				e( __( 'No posts to show.' ) )
+				e( __( 'No posts to show.' ) ),
 			);
 		}
 
 		$items = $posts->map(
-			fn ( object $post ): string => $this->renderItem( $post, $attrs )
+			fn ( object $post ): string => $this->renderItem( $post, $attrs ),
 		)->implode( '' );
 
 		return sprintf(
 			'<ul class="%s">%s</ul>',
 			e( implode( ' ', $classes ) ),
-			$items
+			$items,
 		);
 	}
 
@@ -126,14 +126,14 @@ class LatestPostsBlock extends DynamicBlock
 		if ( [] !== $attrs['categories'] ) {
 			$query->whereHas(
 				'categories',
-				static fn ( $relation ) => $relation->whereIn( 'id', $attrs['categories'] )
+				static fn ( $relation ) => $relation->whereIn( 'id', $attrs['categories'] ),
 			);
 		}
 
 		if ( null !== $attrs['selectedAuthor'] ) {
 			$query->whereHas(
 				'author',
-				static fn ( $relation ) => $relation->whereKey( $attrs['selectedAuthor'] )
+				static fn ( $relation ) => $relation->whereKey( $attrs['selectedAuthor'] ),
 			);
 		}
 
@@ -164,7 +164,7 @@ class LatestPostsBlock extends DynamicBlock
 		$parts[] = sprintf(
 			'<a class="wp-block-latest-posts__post-title" href="%s">%s</a>',
 			e( $permalink ),
-			e( $title )
+			e( $title ),
 		);
 
 		if ( $attrs['displayPostDate'] && isset( $post->published_at ) ) {
@@ -174,14 +174,14 @@ class LatestPostsBlock extends DynamicBlock
 			$parts[] = sprintf(
 				'<time datetime="%s" class="wp-block-latest-posts__post-date">%s</time>',
 				e( $date->toIso8601String() ),
-				e( $date->translatedFormat( 'F j, Y' ) )
+				e( $date->translatedFormat( 'F j, Y' ) ),
 			);
 		}
 
 		if ( $attrs['displayAuthor'] && isset( $post->author->name ) ) {
 			$parts[] = sprintf(
 				'<div class="wp-block-latest-posts__post-author">%s</div>',
-				e( sprintf( /* translators: %s: author name. */ __( 'by %s' ), (string) $post->author->name ) )
+				e( sprintf( /* translators: %s: author name. */ __( 'by %s' ), (string) $post->author->name ) ),
 			);
 		}
 
@@ -206,7 +206,7 @@ class LatestPostsBlock extends DynamicBlock
 		$image = sprintf(
 			'<img src="%s" alt="%s" class="wp-block-latest-posts__featured-image"/>',
 			e( $url ),
-			e( $title )
+			e( $title ),
 		);
 
 		if ( $attrs['addLinkToFeaturedImage'] ) {
@@ -214,7 +214,7 @@ class LatestPostsBlock extends DynamicBlock
 				'<div class="wp-block-latest-posts__featured-image"><a href="%s" aria-label="%s">%s</a></div>',
 				e( $permalink ),
 				e( $title ),
-				$image
+				$image,
 			);
 		}
 
@@ -229,7 +229,7 @@ class LatestPostsBlock extends DynamicBlock
 		if ( 'full_post' === $attrs['displayPostContentRadio'] && isset( $post->content ) ) {
 			return sprintf(
 				'<div class="wp-block-latest-posts__post-full-content">%s</div>',
-				e( strip_tags( (string) $post->content ) )
+				e( strip_tags( (string) $post->content ) ),
 			);
 		}
 
@@ -244,7 +244,7 @@ class LatestPostsBlock extends DynamicBlock
 
 		return sprintf(
 			'<div class="wp-block-latest-posts__post-excerpt">%s</div>',
-			e( $excerpt )
+			e( $excerpt ),
 		);
 	}
 
@@ -275,6 +275,35 @@ class LatestPostsBlock extends DynamicBlock
 		}
 
 		return null;
+	}
+
+	/**
+	 * @param  array<string, mixed>  $attrs
+	 *
+	 * @return array<int, string>
+	 */
+	protected function wrapperClasses( array $attrs ): array
+	{
+		$classes = [ 'wp-block-latest-posts__list', 'wp-block-latest-posts' ];
+
+		if ( 'grid' === $attrs['postLayout'] ) {
+			$classes[] = 'is-grid';
+			$classes[] = 'columns-' . $attrs['columns'];
+		}
+
+		if ( $attrs['displayPostDate'] ) {
+			$classes[] = 'has-dates';
+		}
+
+		if ( $attrs['displayAuthor'] ) {
+			$classes[] = 'has-author';
+		}
+
+		if ( '' !== $attrs['className'] ) {
+			$classes[] = $attrs['className'];
+		}
+
+		return $classes;
 	}
 
 	private function trimWords( string $text, int $words ): string
@@ -314,34 +343,5 @@ class LatestPostsBlock extends DynamicBlock
 		}
 
 		return array_values( array_unique( $ids ) );
-	}
-
-	/**
-	 * @param  array<string, mixed>  $attrs
-	 *
-	 * @return array<int, string>
-	 */
-	protected function wrapperClasses( array $attrs ): array
-	{
-		$classes = [ 'wp-block-latest-posts__list', 'wp-block-latest-posts' ];
-
-		if ( 'grid' === $attrs['postLayout'] ) {
-			$classes[] = 'is-grid';
-			$classes[] = 'columns-' . $attrs['columns'];
-		}
-
-		if ( $attrs['displayPostDate'] ) {
-			$classes[] = 'has-dates';
-		}
-
-		if ( $attrs['displayAuthor'] ) {
-			$classes[] = 'has-author';
-		}
-
-		if ( '' !== $attrs['className'] ) {
-			$classes[] = $attrs['className'];
-		}
-
-		return $classes;
 	}
 }

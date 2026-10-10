@@ -34,7 +34,7 @@ it( 'preserves existing entries when appending the bundle', function (): void {
 	$entries = applyFilters(
 		'ap.themes.frontendStyles',
 		[ 'theme-main' => [ 'src' => '/themes/x/style.css' ] ],
-		'my-theme'
+		'my-theme',
 	);
 
 	expect( $entries )->toHaveKey( 'theme-main' )

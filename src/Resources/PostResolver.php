@@ -30,6 +30,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditor\Resources;
 
 use Illuminate\Support\Carbon;
+use Throwable;
 
 class PostResolver
 {
@@ -117,6 +118,53 @@ class PostResolver
 	];
 
 	/**
+	 * Allow-list for HTML tags surviving the term-description sanitizer.
+	 * Mirrors {@see CommentResolver::COMMENT_CONTENT_ALLOWED_TAGS} so
+	 * descriptions can carry basic formatting (paragraphs, emphasis,
+	 * inline code, anchors) without giving the host an unsanitized
+	 * `dangerouslySetInnerHTML` injection vector on the editor and
+	 * front-end renderers.
+	 */
+	protected const TERM_DESCRIPTION_ALLOWED_TAGS = '<a><abbr><b><blockquote><br><cite><code><em><i><p><q><s><strong>';
+
+	/**
+	 * Author social profile slugs the resolver knows how to pull from a
+	 * post's author relation. The author-social-icons renderer trims
+	 * `_resolvedAuthorSocialLinks` to whatever slugs the author has
+	 * filled in; the block's own `socialIcons` attribute is the
+	 * intersection picker applied at render time.
+	 *
+	 * @var array<int, string>
+	 */
+	protected const AUTHOR_SOCIAL_SLUGS = [
+		'facebook',
+		'twitter',
+		'mastodon',
+		'instagram',
+		'tumblr',
+		'email',
+		'website',
+	];
+
+	/**
+	 * Share-platform slugs the resolver knows how to build share URLs for.
+	 * The social-share-content renderer respects the block's own
+	 * `socialIcons` attribute as the visibility picker; the stamp here
+	 * just provides the canonical `{slug, url}` pair for every platform
+	 * so the renderer never has to know about share-URL syntax.
+	 *
+	 * @var array<int, string>
+	 */
+	protected const SHARE_PLATFORM_SLUGS = [
+		'facebook',
+		'twitter',
+		'mastodon',
+		'reddit',
+		'pinterest',
+		'email',
+	];
+
+	/**
 	 * Recursively walk a block subtree and stamp every supported
 	 * `core/post-*` block against the given post.
 	 *
@@ -175,7 +223,7 @@ class PostResolver
 
 			$attributes = array_merge(
 				[ '_resolvedHasAdjacent' => null !== $adjacent ],
-				$attributes
+				$attributes,
 			);
 
 			return array_merge( $block, [
@@ -399,7 +447,7 @@ class PostResolver
 			'_resolvedCommentsLabel'  => trans_choice(
 				'{0} :count Comments|{1} :count Comment|[2,*] :count Comments',
 				$count,
-				[ 'count' => $count ]
+				[ 'count' => $count ],
 			),
 		];
 	}
@@ -416,7 +464,7 @@ class PostResolver
 			'_resolvedCommentsTitle'  => trans_choice(
 				'{0} No Comments|{1} 1 Comment|[2,*] :count Comments',
 				$count,
-				[ 'count' => $count ]
+				[ 'count' => $count ],
 			),
 		];
 	}
@@ -497,16 +545,6 @@ class PostResolver
 			'_resolvedPermalink' => $this->permalink( $post ),
 		];
 	}
-
-	/**
-	 * Allow-list for HTML tags surviving the term-description sanitizer.
-	 * Mirrors {@see CommentResolver::COMMENT_CONTENT_ALLOWED_TAGS} so
-	 * descriptions can carry basic formatting (paragraphs, emphasis,
-	 * inline code, anchors) without giving the host an unsanitized
-	 * `dangerouslySetInnerHTML` injection vector on the editor and
-	 * front-end renderers.
-	 */
-	protected const TERM_DESCRIPTION_ALLOWED_TAGS = '<a><abbr><b><blockquote><br><cite><code><em><i><p><q><s><strong>';
 
 	/**
 	 * Stamp the post's primary-term description onto a `term-description`
@@ -659,7 +697,7 @@ class PostResolver
 			}
 
 			$result = $query->first();
-		} catch ( \Throwable ) {
+		} catch ( Throwable ) {
 			return null;
 		}
 
@@ -833,43 +871,6 @@ class PostResolver
 
 		return is_string( $permalink ) ? $permalink : '';
 	}
-
-	/**
-	 * Author social profile slugs the resolver knows how to pull from a
-	 * post's author relation. The author-social-icons renderer trims
-	 * `_resolvedAuthorSocialLinks` to whatever slugs the author has
-	 * filled in; the block's own `socialIcons` attribute is the
-	 * intersection picker applied at render time.
-	 *
-	 * @var array<int, string>
-	 */
-	protected const AUTHOR_SOCIAL_SLUGS = [
-		'facebook',
-		'twitter',
-		'mastodon',
-		'instagram',
-		'tumblr',
-		'email',
-		'website',
-	];
-
-	/**
-	 * Share-platform slugs the resolver knows how to build share URLs for.
-	 * The social-share-content renderer respects the block's own
-	 * `socialIcons` attribute as the visibility picker; the stamp here
-	 * just provides the canonical `{slug, url}` pair for every platform
-	 * so the renderer never has to know about share-URL syntax.
-	 *
-	 * @var array<int, string>
-	 */
-	protected const SHARE_PLATFORM_SLUGS = [
-		'facebook',
-		'twitter',
-		'mastodon',
-		'reddit',
-		'pinterest',
-		'email',
-	];
 
 	/**
 	 * Stamp the post author's social profile URLs onto the
@@ -1047,7 +1048,7 @@ class PostResolver
 		string $slug,
 		string $encodedUrl,
 		string $encodedTitle,
-		string $encodedImage
+		string $encodedImage,
 	): string {
 		return match ( $slug ) {
 			'facebook'  => '' === $encodedUrl
@@ -1089,7 +1090,7 @@ class PostResolver
 
 		try {
 			return Carbon::parse( $value );
-		} catch ( \Throwable ) {
+		} catch ( Throwable ) {
 			return null;
 		}
 	}

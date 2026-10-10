@@ -48,7 +48,8 @@ class BoxShadowEmitter
 	public function __construct(
 		protected StateRegistry $states,
 		protected BreakpointRegistry $breakpoints,
-	) {}
+	) {
+	}
 
 	/**
 	 * Emit the scoped CSS for a single block's box-shadow payload.
@@ -184,7 +185,7 @@ class BoxShadowEmitter
 				'%s%s{%s}',
 				$scope,
 				self::pseudoForLayer( $layer ),
-				self::gradientPseudoDeclarations( $layer )
+				self::gradientPseudoDeclarations( $layer ),
 			);
 		}
 
@@ -208,7 +209,7 @@ class BoxShadowEmitter
 			return sprintf(
 				'%s{%s}',
 				self::appendPseudoToList( $selector, self::pseudoForLayer( $layer ) ),
-				self::gradientPseudoDeclarations( $layer )
+				self::gradientPseudoDeclarations( $layer ),
 			);
 		}
 
@@ -289,7 +290,7 @@ class BoxShadowEmitter
 				$fill,
 				$blur,
 				$offsetX,
-				$offsetY
+				$offsetY,
 			);
 		}
 
@@ -309,7 +310,7 @@ class BoxShadowEmitter
 			$fill,
 			$blur,
 			$offsetX,
-			$offsetY
+			$offsetY,
 		);
 	}
 

@@ -69,7 +69,7 @@ beforeEach( function (): void {
 	$this->inliner = new QueryInliner( $this->app, new PostResolver() );
 } );
 
-it( 'renders identically when no variants are declared (backwards compat)', function () {
+it( 'renders identically when no variants are declared (backwards compat)', function (): void {
 	$this->fake->setItems( [
 		variantPostFixture( 1, 'First' ),
 		variantPostFixture( 2, 'Second' ),
@@ -93,7 +93,7 @@ it( 'renders identically when no variants are declared (backwards compat)', func
 		->and( str_contains( $items[1]['attributes']['className'], 'is-variant' ) )->toBeFalse();
 } );
 
-it( 'swaps the first post template via a position:first variant', function () {
+it( 'swaps the first post template via a position:first variant', function (): void {
 	$this->fake->setItems( [
 		variantPostFixture( 1, 'Hero' ),
 		variantPostFixture( 2, 'Listed' ),
@@ -102,7 +102,7 @@ it( 'swaps the first post template via a position:first variant', function () {
 	$base    = [ [ 'name' => 'core/post-title', 'attributes' => [], 'innerBlocks' => [] ] ];
 	$variant = variantBlock(
 		[ 'kind' => 'position', 'value' => 'first' ],
-		[ [ 'name' => 'core/post-excerpt', 'attributes' => [], 'innerBlocks' => [] ] ]
+		[ [ 'name' => 'core/post-excerpt', 'attributes' => [], 'innerBlocks' => [] ] ],
 	);
 
 	$tree    = [ queryWithVariants( $base, [ $variant ] ) ];
@@ -120,7 +120,7 @@ it( 'swaps the first post template via a position:first variant', function () {
 		->and( str_contains( $items[1]['attributes']['className'], 'is-variant' ) )->toBeFalse();
 } );
 
-it( 'matches odd / even pattern variants', function () {
+it( 'matches odd / even pattern variants', function (): void {
 	$this->fake->setItems( [
 		variantPostFixture( 1, 'A' ),
 		variantPostFixture( 2, 'B' ),
@@ -130,7 +130,7 @@ it( 'matches odd / even pattern variants', function () {
 	$base       = [ [ 'name' => 'core/post-title', 'attributes' => [], 'innerBlocks' => [] ] ];
 	$oddVariant = variantBlock(
 		[ 'kind' => 'pattern', 'value' => 'odd' ],
-		[ [ 'name' => 'core/post-content', 'attributes' => [], 'innerBlocks' => [] ] ]
+		[ [ 'name' => 'core/post-content', 'attributes' => [], 'innerBlocks' => [] ] ],
 	);
 
 	$inlined = $this->inliner->inline( [ queryWithVariants( $base, [ $oddVariant ] ) ] );
@@ -141,7 +141,7 @@ it( 'matches odd / even pattern variants', function () {
 		->and( $items[2]['innerBlocks'][0]['name'] )->toBe( 'core/post-content' ); // pos 3 odd
 } );
 
-it( 'matches meta:sticky variants by walking the variant list at render time', function () {
+it( 'matches meta:sticky variants by walking the variant list at render time', function (): void {
 	$this->fake->setItems( [
 		variantPostFixture( 1, 'Pinned', [ 'sticky' => true ] ),
 		variantPostFixture( 2, 'Normal' ),
@@ -150,7 +150,7 @@ it( 'matches meta:sticky variants by walking the variant list at render time', f
 	$base    = [ [ 'name' => 'core/post-title', 'attributes' => [], 'innerBlocks' => [] ] ];
 	$variant = variantBlock(
 		[ 'kind' => 'meta', 'value' => 'sticky' ],
-		[ [ 'name' => 'core/post-content', 'attributes' => [], 'innerBlocks' => [] ] ]
+		[ [ 'name' => 'core/post-content', 'attributes' => [], 'innerBlocks' => [] ] ],
 	);
 
 	$inlined = $this->inliner->inline( [ queryWithVariants( $base, [ $variant ] ) ] );
@@ -160,7 +160,7 @@ it( 'matches meta:sticky variants by walking the variant list at render time', f
 		->and( $items[1]['innerBlocks'][0]['name'] )->toBe( 'core/post-title' );
 } );
 
-it( 'resolves custom matchers via the apve_query_variant_match_<name> filter hook', function () {
+it( 'resolves custom matchers via the apve_query_variant_match_<name> filter hook', function (): void {
 	if ( ! function_exists( 'ArtisanPackUI\\Hooks\\applyFilters' ) ) {
 		test()->markTestSkipped( 'artisanpack-ui/hooks not loaded.' );
 		return;
@@ -174,14 +174,14 @@ it( 'resolves custom matchers via the apve_query_variant_match_<name> filter hoo
 	\ArtisanPackUI\Hooks\addFilter(
 		'apve_query_variant_match_premium',
 		fn ( $matches, $post ) => true === ( $post->is_promo ?? false ),
-		10
+		10,
 	);
 
 	try {
 		$base    = [ [ 'name' => 'core/post-title', 'attributes' => [], 'innerBlocks' => [] ] ];
 		$variant = variantBlock(
 			[ 'kind' => 'custom', 'value' => 'callback:premium' ],
-			[ [ 'name' => 'core/post-content', 'attributes' => [], 'innerBlocks' => [] ] ]
+			[ [ 'name' => 'core/post-content', 'attributes' => [], 'innerBlocks' => [] ] ],
 		);
 
 		$inlined = $this->inliner->inline( [ queryWithVariants( $base, [ $variant ] ) ] );
@@ -194,7 +194,7 @@ it( 'resolves custom matchers via the apve_query_variant_match_<name> filter hoo
 	}
 } );
 
-it( 'honors the precedence cascade: position > pattern > meta > custom', function () {
+it( 'honors the precedence cascade: position > pattern > meta > custom', function (): void {
 	$this->fake->setItems( [
 		variantPostFixture( 1, 'First', [ 'sticky' => true ] ),
 		variantPostFixture( 2, 'Second' ),
@@ -204,11 +204,11 @@ it( 'honors the precedence cascade: position > pattern > meta > custom', functio
 
 	$positionVariant = variantBlock(
 		[ 'kind' => 'position', 'value' => 'first' ],
-		[ [ 'name' => 'core/post-excerpt', 'attributes' => [], 'innerBlocks' => [] ] ]
+		[ [ 'name' => 'core/post-excerpt', 'attributes' => [], 'innerBlocks' => [] ] ],
 	);
 	$metaVariant = variantBlock(
 		[ 'kind' => 'meta', 'value' => 'sticky' ],
-		[ [ 'name' => 'core/post-content', 'attributes' => [], 'innerBlocks' => [] ] ]
+		[ [ 'name' => 'core/post-content', 'attributes' => [], 'innerBlocks' => [] ] ],
 	);
 
 	// First post matches BOTH position:first AND meta:sticky.
@@ -222,7 +222,7 @@ it( 'honors the precedence cascade: position > pattern > meta > custom', functio
 	expect( $items[0]['innerBlocks'][0]['name'] )->toBe( 'core/post-excerpt' );
 } );
 
-it( 'uses the precompiled _compiledVariantMap as the fast path for static matchers', function () {
+it( 'uses the precompiled _compiledVariantMap as the fast path for static matchers', function (): void {
 	$this->fake->setItems( [
 		variantPostFixture( 1, 'A' ),
 		variantPostFixture( 2, 'B' ),
@@ -232,7 +232,7 @@ it( 'uses the precompiled _compiledVariantMap as the fast path for static matche
 	$base    = [ [ 'name' => 'core/post-title', 'attributes' => [], 'innerBlocks' => [] ] ];
 	$variant = variantBlock(
 		[ 'kind' => 'position', 'value' => 'first' ],
-		[ [ 'name' => 'core/post-content', 'attributes' => [], 'innerBlocks' => [] ] ]
+		[ [ 'name' => 'core/post-content', 'attributes' => [], 'innerBlocks' => [] ] ],
 	);
 
 	// Map says: at loop index 2, use variant #0. Without the map,
@@ -249,7 +249,7 @@ it( 'uses the precompiled _compiledVariantMap as the fast path for static matche
 		->and( $items[2]['innerBlocks'][0]['name'] )->toBe( 'core/post-content' ); // matched via map
 } );
 
-it( 'breaks ties between same-tier variants on priority ascending then document order', function () {
+it( 'breaks ties between same-tier variants on priority ascending then document order', function (): void {
 	$this->fake->setItems( [
 		variantPostFixture( 1, 'A' ),
 	] );
@@ -259,12 +259,12 @@ it( 'breaks ties between same-tier variants on priority ascending then document 
 	$higherPriority = variantBlock(
 		[ 'kind' => 'position', 'value' => 'first' ],
 		[ [ 'name' => 'core/post-excerpt', 'attributes' => [], 'innerBlocks' => [] ] ],
-		20
+		20,
 	);
 	$lowerPriority = variantBlock(
 		[ 'kind' => 'position', 'value' => 'first' ],
 		[ [ 'name' => 'core/post-content', 'attributes' => [], 'innerBlocks' => [] ] ],
-		5
+		5,
 	);
 
 	// Both match index 0; lowerPriority (priority=5) wins.

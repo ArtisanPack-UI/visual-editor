@@ -9,7 +9,7 @@ beforeEach( function (): void {
 	app( ResponsiveCssAccumulator::class )->reset();
 } );
 
-it( 'consolidates spacing overrides into a single <style data-ve-responsive> block at the top', function () {
+it( 'consolidates spacing overrides into a single <style data-ve-responsive> block at the top', function (): void {
 	$tree = [
 		[
 			'clientId'   => 'cols-1',
@@ -42,7 +42,7 @@ it( 'consolidates spacing overrides into a single <style data-ve-responsive> blo
 	expect( $rendered )->not->toContain( '<style data-ve-r=' );
 } );
 
-it( 'consolidates columnCount overrides through the same accumulator', function () {
+it( 'consolidates columnCount overrides through the same accumulator', function (): void {
 	$tree = [
 		[
 			'clientId'   => 'cols-1',
@@ -63,7 +63,7 @@ it( 'consolidates columnCount overrides through the same accumulator', function 
 	expect( $rendered )->toMatch( '/class="wp-block-columns is-layout-flex wp-block-columns-is-layout-flex is-stacked-on-mobile ve-cols-[a-f0-9]+"/' );
 } );
 
-it( 'merges spacing + columnCount + multiple blocks into one style block', function () {
+it( 'merges spacing + columnCount + multiple blocks into one style block', function (): void {
 	$tree = [
 		[
 			'clientId'   => 'cols-1',
@@ -98,7 +98,7 @@ it( 'merges spacing + columnCount + multiple blocks into one style block', funct
 	expect( $rendered )->toContain( 'grid-template-columns:repeat(4' );
 } );
 
-it( 'skips the consolidated style block when no responsive overrides are present', function () {
+it( 'skips the consolidated style block when no responsive overrides are present', function (): void {
 	$tree = [
 		[
 			'clientId'    => 'cols-1',
@@ -114,7 +114,7 @@ it( 'skips the consolidated style block when no responsive overrides are present
 	expect( $rendered )->not->toContain( '<style data-ve-r=' );
 } );
 
-it( 'skips invalid columnCount overrides (zero / negative)', function () {
+it( 'skips invalid columnCount overrides (zero / negative)', function (): void {
 	$tree = [
 		[
 			'clientId'   => 'cols-1',

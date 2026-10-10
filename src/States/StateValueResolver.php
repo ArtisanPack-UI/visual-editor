@@ -36,7 +36,9 @@ namespace ArtisanPackUI\VisualEditor\States;
 
 class StateValueResolver
 {
-	public function __construct( protected StateRegistry $registry ) {}
+	public function __construct( protected StateRegistry $registry )
+	{
+	}
 
 	/**
 	 * Resolves the value for a single attribute at the given active

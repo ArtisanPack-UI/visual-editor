@@ -41,7 +41,7 @@ it( 'stamps _resolvedHasAdjacent=true on next-post when the host has a next neig
 			'attributes'  => [],
 			'innerBlocks' => [],
 		],
-		adjacencyHostPost()
+		adjacencyHostPost(),
 	);
 
 	expect( $resolved['attributes']['_resolvedHasAdjacent'] )->toBeTrue();
@@ -54,19 +54,19 @@ it( 'stamps _resolvedHasAdjacent=true on previous-post when the host has a previ
 			'attributes'  => [],
 			'innerBlocks' => [],
 		],
-		adjacencyHostPost()
+		adjacencyHostPost(),
 	);
 
 	expect( $resolved['attributes']['_resolvedHasAdjacent'] )->toBeTrue();
 } );
 
 it( 'stamps _resolvedHasAdjacent=false when no neighbor is available in the chosen direction', function ( string $name ): void {
-	$post = new stdClass();
+	$post        = new stdClass();
 	$post->title = 'Solo';
 
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => $name, 'attributes' => [], 'innerBlocks' => [] ],
-		$post
+		$post,
 	);
 
 	expect( $resolved['attributes']['_resolvedHasAdjacent'] )->toBeFalse();
@@ -122,7 +122,7 @@ it( 'rewrites inner post-title against the previous post for previous-post wrapp
 } );
 
 it( 'leaves inner blocks untouched when no neighbor exists so renderers emit empty markup', function (): void {
-	$post = new stdClass();
+	$post        = new stdClass();
 	$post->title = 'Solo';
 
 	$tree = [
@@ -150,7 +150,7 @@ it( 'leaves inner blocks untouched when no neighbor exists so renderers emit emp
 } );
 
 it( 'lets a pre-existing _resolvedHasAdjacent flag win over the resolver default', function (): void {
-	$post = new stdClass();
+	$post        = new stdClass();
 	$post->title = 'Solo';
 
 	$resolved = ( new PostResolver() )->stampBlock(
@@ -159,7 +159,7 @@ it( 'lets a pre-existing _resolvedHasAdjacent flag win over the resolver default
 			'attributes'  => [ '_resolvedHasAdjacent' => true ],
 			'innerBlocks' => [],
 		],
-		$post
+		$post,
 	);
 
 	// Host-supplied resolved values must always win on merge so hosts

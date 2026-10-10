@@ -42,7 +42,7 @@ beforeEach( function (): void {
 	test()->block->categories = new Collection();
 } );
 
-it( 'renders a flat list with post counts', function () {
+it( 'renders a flat list with post counts', function (): void {
 	test()->block->categories = new Collection( [
 		fakeCategory( 1, 'Laravel', 'laravel', 7 ),
 		fakeCategory( 2, 'PHP', 'php', 3 ),
@@ -58,7 +58,7 @@ it( 'renders a flat list with post counts', function () {
 		->and( $html )->toContain( '<li class="cat-item cat-item-2"><a href="/blog/category/php">PHP</a> (3)</li>' );
 } );
 
-it( 'omits post counts by default', function () {
+it( 'omits post counts by default', function (): void {
 	test()->block->categories = new Collection( [
 		fakeCategory( 1, 'Laravel', 'laravel', 7 ),
 	] );
@@ -69,7 +69,7 @@ it( 'omits post counts by default', function () {
 		->and( $html )->not->toContain( '(7)' );
 } );
 
-it( 'filters empty categories unless showEmpty is true', function () {
+it( 'filters empty categories unless showEmpty is true', function (): void {
 	test()->block->categories = new Collection( [
 		fakeCategory( 1, 'Laravel', 'laravel', 7 ),
 		fakeCategory( 2, 'Empty', 'empty', 0 ),
@@ -86,7 +86,7 @@ it( 'filters empty categories unless showEmpty is true', function () {
 		->and( $withEmpty )->toContain( 'cat-item-2' );
 } );
 
-it( 'restricts to top-level categories when showOnlyTopLevel is set', function () {
+it( 'restricts to top-level categories when showOnlyTopLevel is set', function (): void {
 	test()->block->categories = new Collection( [
 		fakeCategory( 1, 'Frameworks', 'frameworks', 5 ),
 		fakeCategory( 2, 'Laravel', 'laravel', 3, 1 ),
@@ -98,7 +98,7 @@ it( 'restricts to top-level categories when showOnlyTopLevel is set', function (
 		->and( $html )->not->toContain( 'cat-item-2' );
 } );
 
-it( 'nests children when showHierarchy is set', function () {
+it( 'nests children when showHierarchy is set', function (): void {
 	test()->block->categories = new Collection( [
 		fakeCategory( 1, 'Frameworks', 'frameworks', 5 ),
 		fakeCategory( 2, 'Laravel', 'laravel', 3, 1 ),
@@ -111,7 +111,7 @@ it( 'nests children when showHierarchy is set', function () {
 		->and( $html )->toContain( '<ul class="children">' );
 } );
 
-it( 'renders an empty shell when no categories survive filters', function () {
+it( 'renders an empty shell when no categories survive filters', function (): void {
 	test()->block->categories = new Collection( [
 		fakeCategory( 2, 'Empty', 'empty', 0 ),
 	] );
@@ -121,7 +121,7 @@ it( 'renders an empty shell when no categories survive filters', function () {
 	expect( $html )->toContain( 'cat-item-empty' );
 } );
 
-it( 'escapes attacker-controlled name and permalink', function () {
+it( 'escapes attacker-controlled name and permalink', function (): void {
 	test()->block->categories = new Collection( [
 		fakeCategory( 9, '<img src=x onerror=alert(1)>', 'evil', 1 ),
 	] );

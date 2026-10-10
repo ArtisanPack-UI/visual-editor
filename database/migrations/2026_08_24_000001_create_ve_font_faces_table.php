@@ -21,11 +21,10 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
 	public function up(): void
 	{
-		Schema::create( 've_font_faces', function ( Blueprint $table ) {
+		Schema::create( 've_font_faces', function ( Blueprint $table ): void {
 			$table->id();
 			$table->foreignId( 'font_id' )->constrained( 've_fonts' )->cascadeOnDelete();
 			$table->unsignedSmallInteger( 'weight' )->default( 400 );

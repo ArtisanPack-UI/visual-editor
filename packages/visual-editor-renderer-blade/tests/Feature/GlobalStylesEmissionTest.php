@@ -24,13 +24,13 @@ beforeEach( function (): void {
  * `global_styles` record are all available.
  */
 
-it( 'does not emit a global-styles <style> block without cms-framework', function () {
+it( 'does not emit a global-styles <style> block without cms-framework', function (): void {
 	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => [] ] );
 
 	expect( $rendered )->not->toContain( '<style data-ve-global-styles>' );
 } );
 
-it( 'still tracks emission state so the dedupe path works once cms-framework lands', function () {
+it( 'still tracks emission state so the dedupe path works once cms-framework lands', function (): void {
 	$tracker = $this->app->make( GlobalStylesEmissionTracker::class );
 
 	expect( $tracker->hasEmitted() )->toBeFalse();

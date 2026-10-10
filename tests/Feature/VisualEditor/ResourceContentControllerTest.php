@@ -10,7 +10,7 @@ use Tests\Fixtures\TestBlockContentPagePolicy;
 use Tests\Fixtures\TestBlockContentPolicy;
 use Tests\TestUser;
 
-beforeEach( function () {
+beforeEach( function (): void {
 	config()->set( 'artisanpack.visual-editor.resources', [
 		'posts' => TestBlockContentModel::class,
 		'pages' => TestBlockContentPageModel::class,
@@ -49,7 +49,7 @@ function validBlockTree(): array
 	];
 }
 
-it( 'returns 401 for unauthenticated GET', function () {
+it( 'returns 401 for unauthenticated GET', function (): void {
 	$model = TestBlockContentModel::create( [
 		'title'   => 'Unauthed',
 		'status'  => 'published',
@@ -60,19 +60,19 @@ it( 'returns 401 for unauthenticated GET', function () {
 		->assertUnauthorized();
 } );
 
-it( 'returns 404 for an unregistered resource slug', function () {
+it( 'returns 404 for an unregistered resource slug', function (): void {
 	makeActor();
 
 	$this->getJson( '/visual-editor/api/orders/1/content' )->assertNotFound();
 } );
 
-it( 'returns 404 when the record does not exist', function () {
+it( 'returns 404 when the record does not exist', function (): void {
 	makeActor();
 
 	$this->getJson( '/visual-editor/api/posts/999/content' )->assertNotFound();
 } );
 
-it( 'returns the block tree for an authorized GET', function () {
+it( 'returns the block tree for an authorized GET', function (): void {
 	makeActor();
 
 	$model = TestBlockContentModel::create( [
@@ -89,7 +89,7 @@ it( 'returns the block tree for an authorized GET', function () {
 		->assertJsonPath( 'blocks.0.name', 'core/paragraph' );
 } );
 
-it( 'applies the configured query scope when resolving resources', function () {
+it( 'applies the configured query scope when resolving resources', function (): void {
 	makeActor();
 
 	$draft = TestBlockContentModel::create( [
@@ -102,7 +102,7 @@ it( 'applies the configured query scope when resolving resources', function () {
 		->assertNotFound();
 } );
 
-it( 'honors the custom block content column on PUT', function () {
+it( 'honors the custom block content column on PUT', function (): void {
 	$user = makeActor();
 
 	$page = TestBlockContentPageModel::create( [
@@ -121,7 +121,7 @@ it( 'honors the custom block content column on PUT', function () {
 	expect( $page->fresh()->body )->toEqual( $blocks );
 } );
 
-it( 'forbids PUT when the policy denies update', function () {
+it( 'forbids PUT when the policy denies update', function (): void {
 	$owner = TestUser::create( [
 		'name'     => 'Owner',
 		'email'    => 'owner@example.com',
@@ -142,7 +142,7 @@ it( 'forbids PUT when the policy denies update', function () {
 	expect( $page->fresh()->body )->toEqual( [] );
 } );
 
-it( 'validates the block tree shape on PUT', function () {
+it( 'validates the block tree shape on PUT', function (): void {
 	makeActor();
 
 	$model = TestBlockContentModel::create( [
@@ -158,7 +158,7 @@ it( 'validates the block tree shape on PUT', function () {
 		->assertJsonValidationErrors( 'blocks' );
 } );
 
-it( 'persists a valid block tree on PUT', function () {
+it( 'persists a valid block tree on PUT', function (): void {
 	makeActor();
 
 	$model = TestBlockContentModel::create( [
@@ -191,7 +191,7 @@ it( 'persists a valid block tree on PUT', function () {
 	expect( $model->fresh()->content )->toEqual( $next );
 } );
 
-it( 'surfaces a HasBlockContent validation error on first resolve', function () {
+it( 'surfaces a HasBlockContent validation error on first resolve', function (): void {
 	config()->set( 'artisanpack.visual-editor.resources.broken', TestUser::class );
 
 	// Re-bind so the new config entry lands in the resolver.

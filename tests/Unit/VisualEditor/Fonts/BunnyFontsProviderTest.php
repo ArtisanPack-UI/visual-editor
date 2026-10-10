@@ -82,17 +82,17 @@ function fakeBunnyFonts(): void
 	] );
 }
 
-beforeEach( function () {
+beforeEach( function (): void {
 	$this->provider = new BunnyFontsProvider();
 } );
 
-it( 'reports its key, label, and self-hostability', function () {
+it( 'reports its key, label, and self-hostability', function (): void {
 	expect( $this->provider->key() )->toBe( 'bunny' )
 		->and( $this->provider->label() )->toBeString()->not->toBeEmpty()
 		->and( $this->provider->isSelfHostable() )->toBeTrue();
 } );
 
-it( 'browses the catalog and reports the second page as the last', function () {
+it( 'browses the catalog and reports the second page as the last', function (): void {
 	fakeBunnyFonts();
 	$provider = new BunnyFontsProvider( perPage: 1 );
 
@@ -111,7 +111,7 @@ it( 'browses the catalog and reports the second page as the last', function () {
 		->and( $second['has_more'] )->toBeFalse();
 } );
 
-it( 'clamps a non-positive page size so it never serves empty pages', function () {
+it( 'clamps a non-positive page size so it never serves empty pages', function (): void {
 	fakeBunnyFonts();
 	$provider = new BunnyFontsProvider( perPage: 0 );
 
@@ -121,7 +121,7 @@ it( 'clamps a non-positive page size so it never serves empty pages', function (
 		->and( $result['families'] )->toHaveCount( 1 );
 } );
 
-it( 'filters the catalog by a case-insensitive query', function () {
+it( 'filters the catalog by a case-insensitive query', function (): void {
 	fakeBunnyFonts();
 
 	$result = $this->provider->searchCatalog( 'INTER' );
@@ -131,7 +131,7 @@ it( 'filters the catalog by a case-insensitive query', function () {
 		->and( $result['families'][0]['is_variable'] )->toBeTrue();
 } );
 
-it( 'resolves a static family with the product of its weights and styles', function () {
+it( 'resolves a static family with the product of its weights and styles', function (): void {
 	fakeBunnyFonts();
 
 	$family = $this->provider->getFamily( 'abeezee' );
@@ -146,7 +146,7 @@ it( 'resolves a static family with the product of its weights and styles', funct
 		] );
 } );
 
-it( 'marks a variable family without exposing axis ranges', function () {
+it( 'marks a variable family without exposing axis ranges', function (): void {
 	fakeBunnyFonts();
 
 	$family = $this->provider->getFamily( 'inter' );
@@ -159,13 +159,13 @@ it( 'marks a variable family without exposing axis ranges', function () {
 		] );
 } );
 
-it( 'returns null for an unknown family slug', function () {
+it( 'returns null for an unknown family slug', function (): void {
 	fakeBunnyFonts();
 
 	expect( $this->provider->getFamily( 'does-not-exist' ) )->toBeNull();
 } );
 
-it( 'fetches the latin woff2 bytes and requests the right face', function () {
+it( 'fetches the latin woff2 bytes and requests the right face', function (): void {
 	fakeBunnyFonts();
 
 	$bytes = $this->provider->fetchFace( 'abeezee', '400', 'normal' );
@@ -173,10 +173,10 @@ it( 'fetches the latin woff2 bytes and requests the right face', function () {
 	expect( $bytes )->toBe( fakeBunnyWoff2Bytes() );
 
 	Http::assertSent( fn ( $request ) => str_contains( $request->url(), 'family=abeezee%3A400&display=swap' ) );
-	Http::assertSent( fn ( $request ) => $request->url() === 'https://fonts.bunny.net/abeezee/files/abeezee-latin-400-normal.woff2' );
+	Http::assertSent( fn ( $request ) => 'https://fonts.bunny.net/abeezee/files/abeezee-latin-400-normal.woff2' === $request->url() );
 } );
 
-it( 'denotes italic faces with a trailing i on the weight', function () {
+it( 'denotes italic faces with a trailing i on the weight', function (): void {
 	fakeBunnyFonts();
 
 	$this->provider->fetchFace( 'abeezee', '400', 'italic' );
@@ -184,7 +184,7 @@ it( 'denotes italic faces with a trailing i on the weight', function () {
 	Http::assertSent( fn ( $request ) => str_contains( $request->url(), 'family=abeezee%3A400i' ) );
 } );
 
-it( 'aborts a download whose body exceeds the configured size cap', function () {
+it( 'aborts a download whose body exceeds the configured size cap', function (): void {
 	Http::fake( [
 		'fonts.bunny.net/list*'     => Http::response( bunnyListFixture(), 200 ),
 		'fonts.bunny.net/css*'      => Http::response( bunnyCssFixture(), 200 ),
@@ -198,7 +198,7 @@ it( 'aborts a download whose body exceeds the configured size cap', function () 
 		->toThrow( FontProviderException::class, 'exceeded the maximum allowed size' );
 } );
 
-it( 'sends a browser user-agent when resolving face css', function () {
+it( 'sends a browser user-agent when resolving face css', function (): void {
 	fakeBunnyFonts();
 
 	$this->provider->fetchFace( 'abeezee', '400', 'normal' );
@@ -207,7 +207,7 @@ it( 'sends a browser user-agent when resolving face css', function () {
 		&& str_contains( $request->header( 'User-Agent' )[0] ?? '', 'Chrome' ) );
 } );
 
-it( 'caches the catalog so browsing hits the list endpoint once', function () {
+it( 'caches the catalog so browsing hits the list endpoint once', function (): void {
 	fakeBunnyFonts();
 
 	$this->provider->searchCatalog( '' );
@@ -217,7 +217,7 @@ it( 'caches the catalog so browsing hits the list endpoint once', function () {
 	Http::assertSentCount( 1 );
 } );
 
-it( 'throws when the list endpoint responds with an error', function () {
+it( 'throws when the list endpoint responds with an error', function (): void {
 	Http::fake( [
 		'fonts.bunny.net/list*' => Http::response( 'nope', 500 ),
 	] );
@@ -226,7 +226,7 @@ it( 'throws when the list endpoint responds with an error', function () {
 		->toThrow( FontProviderException::class );
 } );
 
-it( 'throws rather than caching an empty font list', function () {
+it( 'throws rather than caching an empty font list', function (): void {
 	Http::fake( [
 		'fonts.bunny.net/list*' => Http::response( [], 200 ),
 	] );
@@ -235,11 +235,11 @@ it( 'throws rather than caching an empty font list', function () {
 		->toThrow( FontProviderException::class );
 } );
 
-it( 'throws when no list entry yields a usable family', function () {
+it( 'throws when no list entry yields a usable family', function (): void {
 	Http::fake( [
 		'fonts.bunny.net/list*' => Http::response(
 			[ 'ghost' => [ 'category' => 'sans-serif' ], 'blank' => [ 'familyName' => '' ] ],
-			200
+			200,
 		),
 	] );
 
@@ -247,14 +247,14 @@ it( 'throws when no list entry yields a usable family', function () {
 		->toThrow( FontProviderException::class );
 } );
 
-it( 'throws when a requested face is not in the family', function () {
+it( 'throws when a requested face is not in the family', function (): void {
 	fakeBunnyFonts();
 
 	expect( fn () => $this->provider->fetchFace( 'abeezee', '900', 'normal' ) )
 		->toThrow( FontProviderException::class );
 } );
 
-it( 'rejects an unsupported style instead of falling back to normal', function () {
+it( 'rejects an unsupported style instead of falling back to normal', function (): void {
 	fakeBunnyFonts();
 
 	expect( fn () => $this->provider->fetchFace( 'abeezee', '400', 'oblique' ) )
@@ -265,7 +265,7 @@ it( 'rejects an unsupported style instead of falling back to normal', function (
 	Http::assertNotSent( fn ( $request ) => str_contains( $request->url(), '/css' ) );
 } );
 
-it( 'rejects a non-numeric weight token instead of coercing it', function () {
+it( 'rejects a non-numeric weight token instead of coercing it', function (): void {
 	fakeBunnyFonts();
 
 	expect( fn () => $this->provider->fetchFace( 'abeezee', '400junk', 'normal' ) )
@@ -274,7 +274,7 @@ it( 'rejects a non-numeric weight token instead of coercing it', function () {
 	Http::assertNotSent( fn ( $request ) => str_contains( $request->url(), '/css' ) );
 } );
 
-it( 'throws when the css endpoint yields no woff2 url', function () {
+it( 'throws when the css endpoint yields no woff2 url', function (): void {
 	Http::fake( [
 		'fonts.bunny.net/list*' => Http::response( bunnyListFixture(), 200 ),
 		'fonts.bunny.net/css*'  => Http::response( '/* nothing here */', 200 ),
@@ -284,7 +284,7 @@ it( 'throws when the css endpoint yields no woff2 url', function () {
 		->toThrow( FontProviderException::class );
 } );
 
-it( 'throws when the face file download fails', function () {
+it( 'throws when the face file download fails', function (): void {
 	Http::fake( [
 		'fonts.bunny.net/list*'     => Http::response( bunnyListFixture(), 200 ),
 		'fonts.bunny.net/css*'      => Http::response( bunnyCssFixture(), 200 ),
@@ -295,12 +295,12 @@ it( 'throws when the face file download fails', function () {
 		->toThrow( FontProviderException::class );
 } );
 
-it( 'refuses to download a face URL pointing off the bunny allowlist', function () {
+it( 'refuses to download a face URL pointing off the bunny allowlist', function (): void {
 	Http::fake( [
 		'fonts.bunny.net/list*' => Http::response( bunnyListFixture(), 200 ),
 		'fonts.bunny.net/css*'  => Http::response(
 			"/* latin */\n@font-face { src: url(http://169.254.169.254/latest/meta-data/x.woff2) format('woff2'); }",
-			200
+			200,
 		),
 	] );
 
@@ -310,7 +310,7 @@ it( 'refuses to download a face URL pointing off the bunny allowlist', function 
 	Http::assertNotSent( fn ( $request ) => str_contains( $request->url(), '169.254.169.254' ) );
 } );
 
-it( 'rejects a downloaded body that is not a WOFF2 font', function () {
+it( 'rejects a downloaded body that is not a WOFF2 font', function (): void {
 	Http::fake( [
 		'fonts.bunny.net/list*'     => Http::response( bunnyListFixture(), 200 ),
 		'fonts.bunny.net/css*'      => Http::response( bunnyCssFixture(), 200 ),

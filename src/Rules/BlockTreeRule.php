@@ -70,13 +70,13 @@ class BlockTreeRule implements ValidationRule
 		string $path,
 		int $currentDepth,
 		int &$nodeCount,
-		array &$seenClients
+		array &$seenClients,
 	): ?string {
 		if ( $currentDepth >= self::MAX_DEPTH ) {
 			return sprintf(
 				'The %s exceeds the maximum block tree depth of %d.',
 				$path,
-				self::MAX_DEPTH
+				self::MAX_DEPTH,
 			);
 		}
 
@@ -92,7 +92,7 @@ class BlockTreeRule implements ValidationRule
 			if ( $nodeCount > self::MAX_NODES ) {
 				return sprintf(
 					'The block tree exceeds the maximum of %d nodes.',
-					self::MAX_NODES
+					self::MAX_NODES,
 				);
 			}
 
@@ -127,7 +127,7 @@ class BlockTreeRule implements ValidationRule
 				"{$blockPath}.innerBlocks",
 				$currentDepth + 1,
 				$nodeCount,
-				$seenClients
+				$seenClients,
 			);
 
 			if ( null !== $childError ) {

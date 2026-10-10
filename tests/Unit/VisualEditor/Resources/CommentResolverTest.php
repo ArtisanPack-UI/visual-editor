@@ -35,64 +35,64 @@ function fakeComment( array $overrides = [] ): object
 	return $comment;
 }
 
-it( 'stamps comment-author-name attributes', function () {
+it( 'stamps comment-author-name attributes', function (): void {
 	$resolved = ( new CommentResolver() )->stampBlock(
 		[ 'name' => 'core/comment-author-name', 'attributes' => [], 'innerBlocks' => [] ],
-		fakeComment()
+		fakeComment(),
 	);
 
 	expect( $resolved['attributes']['_resolvedAuthorName'] )->toBe( 'Jane Doe' )
 		->and( $resolved['attributes']['_resolvedAuthorUrl'] )->toBe( 'https://example.test/jane' );
 } );
 
-it( 'stamps comment-author-avatar attributes', function () {
+it( 'stamps comment-author-avatar attributes', function (): void {
 	$resolved = ( new CommentResolver() )->stampBlock(
 		[ 'name' => 'artisanpack/comment-author-avatar', 'attributes' => [], 'innerBlocks' => [] ],
-		fakeComment()
+		fakeComment(),
 	);
 
 	expect( $resolved['attributes']['_resolvedAvatarUrl'] )->toBe( 'https://example.test/avatar.jpg' )
 		->and( $resolved['attributes']['_resolvedAvatarAlt'] )->toBe( 'Jane Doe' );
 } );
 
-it( 'stamps comment-content attributes', function () {
+it( 'stamps comment-content attributes', function (): void {
 	$resolved = ( new CommentResolver() )->stampBlock(
 		[ 'name' => 'core/comment-content', 'attributes' => [], 'innerBlocks' => [] ],
-		fakeComment()
+		fakeComment(),
 	);
 
 	expect( $resolved['attributes']['_resolvedContent'] )->toBe( '<p>Great post!</p>' );
 } );
 
-it( 'sanitizes comment-content against stored XSS payloads', function () {
+it( 'sanitizes comment-content against stored XSS payloads', function (): void {
 	$resolver = new CommentResolver();
 
 	// Script tags and disallowed structural tags are stripped wholesale.
 	$scripted = $resolver->stampBlock(
 		[ 'name' => 'artisanpack/comment-content', 'attributes' => [], 'innerBlocks' => [] ],
-		fakeComment( [ 'content' => '<p>Hi</p><script>alert(1)</script><iframe src="https://evil"></iframe>' ] )
+		fakeComment( [ 'content' => '<p>Hi</p><script>alert(1)</script><iframe src="https://evil"></iframe>' ] ),
 	);
 	expect( $scripted['attributes']['_resolvedContent'] )->toBe( '<p>Hi</p>alert(1)' );
 
 	// Inline event handlers on otherwise-safe tags are stripped.
 	$handler = $resolver->stampBlock(
 		[ 'name' => 'artisanpack/comment-content', 'attributes' => [], 'innerBlocks' => [] ],
-		fakeComment( [ 'content' => '<a href="https://example.test" onclick="alert(1)">link</a>' ] )
+		fakeComment( [ 'content' => '<a href="https://example.test" onclick="alert(1)">link</a>' ] ),
 	);
 	expect( $handler['attributes']['_resolvedContent'] )->toBe( '<a href="https://example.test">link</a>' );
 
 	// `javascript:` URLs on safe tags are neutralized to a harmless anchor.
 	$jsUrl = $resolver->stampBlock(
 		[ 'name' => 'artisanpack/comment-content', 'attributes' => [], 'innerBlocks' => [] ],
-		fakeComment( [ 'content' => '<a href="javascript:alert(1)">click</a>' ] )
+		fakeComment( [ 'content' => '<a href="javascript:alert(1)">click</a>' ] ),
 	);
 	expect( $jsUrl['attributes']['_resolvedContent'] )->toBe( '<a href="#">click</a>' );
 } );
 
-it( 'stamps comment-date attributes', function () {
+it( 'stamps comment-date attributes', function (): void {
 	$resolved = ( new CommentResolver() )->stampBlock(
 		[ 'name' => 'core/comment-date', 'attributes' => [], 'innerBlocks' => [] ],
-		fakeComment()
+		fakeComment(),
 	);
 
 	expect( $resolved['attributes']['_resolvedDate'] )->toBe( '2026-04-20T12:00:00+00:00' )
@@ -100,42 +100,42 @@ it( 'stamps comment-date attributes', function () {
 		->and( $resolved['attributes']['_resolvedPermalink'] )->toBe( 'https://example.test/posts/hello#comment-7' );
 } );
 
-it( 'stamps comment-edit-link attributes', function () {
+it( 'stamps comment-edit-link attributes', function (): void {
 	$resolved = ( new CommentResolver() )->stampBlock(
 		[ 'name' => 'core/comment-edit-link', 'attributes' => [], 'innerBlocks' => [] ],
-		fakeComment()
+		fakeComment(),
 	);
 
 	expect( $resolved['attributes']['_resolvedEditLinkUrl'] )->toBe( 'https://example.test/wp-admin/edit-comment.php?id=7' )
 		->and( $resolved['attributes']['_resolvedEditLinkLabel'] )->toBe( 'Edit' );
 } );
 
-it( 'stamps comment-reply-link attributes', function () {
+it( 'stamps comment-reply-link attributes', function (): void {
 	$resolved = ( new CommentResolver() )->stampBlock(
 		[ 'name' => 'core/comment-reply-link', 'attributes' => [], 'innerBlocks' => [] ],
-		fakeComment()
+		fakeComment(),
 	);
 
 	expect( $resolved['attributes']['_resolvedReplyLinkUrl'] )->toBe( 'https://example.test/posts/hello?replytocom=7' )
 		->and( $resolved['attributes']['_resolvedReplyLinkLabel'] )->toBe( 'Reply' );
 } );
 
-it( 'resolves artisanpack/* forks through the same branches', function () {
+it( 'resolves artisanpack/* forks through the same branches', function (): void {
 	$resolver = new CommentResolver();
 
 	$core      = $resolver->stampBlock(
 		[ 'name' => 'core/comment-author-name', 'attributes' => [], 'innerBlocks' => [] ],
-		fakeComment()
+		fakeComment(),
 	);
 	$forked    = $resolver->stampBlock(
 		[ 'name' => 'artisanpack/comment-author-name', 'attributes' => [], 'innerBlocks' => [] ],
-		fakeComment()
+		fakeComment(),
 	);
 
 	expect( $forked['attributes'] )->toEqual( $core['attributes'] );
 } );
 
-it( 'recursively stamps inner blocks', function () {
+it( 'recursively stamps inner blocks', function (): void {
 	$tree = [
 		[
 			'name'        => 'core/comment-template',
@@ -153,29 +153,29 @@ it( 'recursively stamps inner blocks', function () {
 		->and( $stamped[0]['innerBlocks'][1]['attributes']['_resolvedContent'] )->toBe( '<p>Great post!</p>' );
 } );
 
-it( 'leaves pre-existing _resolved* keys intact', function () {
+it( 'leaves pre-existing _resolved* keys intact', function (): void {
 	$resolved = ( new CommentResolver() )->stampBlock(
 		[
 			'name'        => 'core/comment-author-name',
 			'attributes'  => [ '_resolvedAuthorName' => 'Existing' ],
 			'innerBlocks' => [],
 		],
-		fakeComment()
+		fakeComment(),
 	);
 
 	expect( $resolved['attributes']['_resolvedAuthorName'] )->toBe( 'Existing' );
 } );
 
-it( 'returns unchanged blocks for unsupported names', function () {
+it( 'returns unchanged blocks for unsupported names', function (): void {
 	$resolved = ( new CommentResolver() )->stampBlock(
 		[ 'name' => 'core/paragraph', 'attributes' => [ 'content' => 'x' ], 'innerBlocks' => [] ],
-		fakeComment()
+		fakeComment(),
 	);
 
 	expect( $resolved['attributes'] )->toBe( [ 'content' => 'x' ] );
 } );
 
-it( 'is tolerant of missing fields', function () {
+it( 'is tolerant of missing fields', function (): void {
 	$bareComment             = new stdClass();
 	$bareComment->author     = null;
 	$bareComment->content    = null;
@@ -183,7 +183,7 @@ it( 'is tolerant of missing fields', function () {
 
 	$resolved = ( new CommentResolver() )->stampBlock(
 		[ 'name' => 'core/comment-author-name', 'attributes' => [], 'innerBlocks' => [] ],
-		$bareComment
+		$bareComment,
 	);
 
 	expect( $resolved['attributes']['_resolvedAuthorName'] )->toBe( '' )

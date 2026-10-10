@@ -123,6 +123,26 @@ Controls how the default policy for the legacy `VisualEditorPost` model gates ac
 
 ---
 
+## `content_access`
+
+**Since v1.13 (#834).** Who may call the post-editor content-authoring endpoints that sit outside any model policy: the icon picker (`icons/sets`, `icons/search`, `icons/svg`), the custom SVG sanitizer (`icons/svg/sanitize`) and the pattern card previews (`patterns/preview`). They check the `visual-editor.edit-content` ability and return a JSON `403` when it fails.
+
+```php
+'content_access' => [
+    'capability'        => null,
+    'sanitize_throttle' => '60,1',
+],
+```
+
+- `capability` — left `null` (or any non-string value), any authenticated user passes. Set a capability string (e.g. `'edit_content'`) to require it through the user's `hasCapability()` / `hasPermissionTo()` / `hasPermission()`. A user model with none of those falls back to `$user->can( $capability )` and logs a warning. Or define the `visual-editor.edit-content` gate yourself.
+- `sanitize_throttle` — per-user rate limit for `icons/svg/sanitize`, as Laravel `throttle` middleware arguments (`"max attempts,minutes"`), counted in its own rate-limit bucket. `null` or `''` uses the default `'60,1'`; `false` turns the throttle off.
+
+The throttle is read when routes are registered, so after changing `sanitize_throttle` on an install with cached routes, run `php artisan route:cache` again.
+
+See [Access Gate](site-editor/Access-Gate.md#content-authoring-ability-visual-editoredit-content).
+
+---
+
 ## `loginout`
 
 Configures the `artisanpack/loginout` block's server-side renderer. The package does not ship login / logout routes of its own — the resolver looks up the configured named routes first, falling back to the literal paths when the names are not registered.
@@ -259,6 +279,22 @@ Static-config entry points for the five site-editor entity types. Each key is al
 Standalone visual-editor installs (no cms-framework, no host registrations) leave these empty and the editor's site-editor surface boots cleanly with no entities.
 
 Full shape contracts for each entity are commented inline in the config file. See [[Site Editor]] for the surface tour.
+
+---
+
+## `pattern_previews`
+
+**Since v1.13 (#832).** Rendered pattern card previews in the inserter, the site editor's pattern grid and the page-pattern modal.
+
+```php
+'pattern_previews' => [
+    'cache_ttl' => 3600,
+],
+```
+
+- `cache_ttl` — seconds a rendered preview stays cached. The whole cache is also cleared when a pattern is updated or deleted, when a template part, menu or menu item is written through the site-editor API, and when global styles change. The TTL is what picks up other content changes, such as new posts behind a Query loop.
+
+Entries vary by viewer, locale and host. Add more vary data with the `ap.visualEditor.patternPreviewCacheVary` filter. See [Patterns](site-editor/Patterns.md#pattern-previews).
 
 ---
 
@@ -422,7 +458,7 @@ The preset and layout token defaults (font sizes, palette, content and wide size
 
 - `payload_limits` — a request over any limit is rejected rather than truncated.
 - `capability` — what the default `visual-editor.use-ai` gate requires (checked through the user's `hasCapability()` / `hasPermissionTo()` / `hasPermission()`). Set to `''` to deny everyone, or redefine the gate for your own rule.
-- `throttle` — per-user rate limit for the `/ai/*` endpoints, as Laravel `throttle` middleware arguments (`"max attempts,minutes"`).
+- `throttle` — per-user rate limit for the `/ai/*` endpoints, as Laravel `throttle` middleware arguments (`"max attempts,minutes"`). Since v1.13 it's counted in its own rate-limit bucket, so it doesn't share a counter with the font, dynamic-content, SVG-sanitize or pattern-preview throttles. `null` or `''` uses the default; `false` turns the throttle off. Re-run `php artisan route:cache` after changing it.
 - `alt_text.allowed_hosts` — extra hosts alt-text image URLs may point at (e.g. a CDN). The `app.url` host is always allowed and server file paths are never accepted. Don't list a host with an open redirect.
 
 See [[AI Features]] for the full feature and access guide.

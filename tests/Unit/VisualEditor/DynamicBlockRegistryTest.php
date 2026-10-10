@@ -13,13 +13,13 @@ function makeClosureBlock( string $name ): ClosureDynamicBlock
 	);
 }
 
-it( 'starts empty', function () {
+it( 'starts empty', function (): void {
 	$registry = new DynamicBlockRegistry();
 
 	expect( $registry->all() )->toBeEmpty();
 } );
 
-it( 'registers a dynamic block by its declared name', function () {
+it( 'registers a dynamic block by its declared name', function (): void {
 	$registry = new DynamicBlockRegistry();
 
 	$registry->register( makeClosureBlock( 'acme/thing' ) );
@@ -28,14 +28,14 @@ it( 'registers a dynamic block by its declared name', function () {
 		->and( $registry->get( 'acme/thing' ) )->not->toBeNull();
 } );
 
-it( 'returns null for unregistered names', function () {
+it( 'returns null for unregistered names', function (): void {
 	$registry = new DynamicBlockRegistry();
 
 	expect( $registry->get( 'acme/missing' ) )->toBeNull()
 		->and( $registry->has( 'acme/missing' ) )->toBeFalse();
 } );
 
-it( 'unregisters a block by name', function () {
+it( 'unregisters a block by name', function (): void {
 	$registry = new DynamicBlockRegistry();
 	$registry->register( makeClosureBlock( 'acme/thing' ) );
 
@@ -44,7 +44,7 @@ it( 'unregisters a block by name', function () {
 	expect( $registry->has( 'acme/thing' ) )->toBeFalse();
 } );
 
-it( 'overwrites the previous registration when the same name is reused', function () {
+it( 'overwrites the previous registration when the same name is reused', function (): void {
 	$registry = new DynamicBlockRegistry();
 	$first    = makeClosureBlock( 'acme/thing' );
 	$second   = makeClosureBlock( 'acme/thing' );
@@ -55,19 +55,19 @@ it( 'overwrites the previous registration when the same name is reused', functio
 	expect( $registry->get( 'acme/thing' ) )->toBe( $second );
 } );
 
-it( 'rejects a block whose name is empty', function () {
+it( 'rejects a block whose name is empty', function (): void {
 	$registry = new DynamicBlockRegistry();
 
 	$registry->register( makeClosureBlock( '   ' ) );
 } )->throws( InvalidArgumentException::class, 'cannot be empty' );
 
-it( 'rejects a block whose name does not match the preview-endpoint format', function () {
+it( 'rejects a block whose name does not match the preview-endpoint format', function (): void {
 	$registry = new DynamicBlockRegistry();
 
 	$registry->register( makeClosureBlock( 'Bad Name!' ) );
 } )->throws( InvalidArgumentException::class, 'Expected format' );
 
-it( 'rejects a block name missing a namespace', function () {
+it( 'rejects a block name missing a namespace', function (): void {
 	$registry = new DynamicBlockRegistry();
 
 	$registry->register( makeClosureBlock( 'paragraph' ) );

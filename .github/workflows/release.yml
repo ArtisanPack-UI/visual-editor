@@ -467,6 +467,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     name: Import docs on docs site
+    # Only calls an external API with its own token; needs no
+    # GITHUB_TOKEN scopes.
+    permissions: {}
 
     steps:
       - name: Queue documentation and changelog imports
@@ -483,11 +486,16 @@ jobs:
             echo "Triggering $IMPORT for $DOCS_PACKAGE_SLUG"
             # Only a 202 means the import was queued — `--fail-with-body`
             # would also accept a 200/204, so check the status explicitly.
-            STATUS=$(curl -sS --retry 3 -o response.json -w '%{http_code}' -X POST \
+            # Timeouts keep a hung connection from eating the job timeout,
+            # and `|| STATUS="000"` keeps `bash -e` from exiting on a
+            # transport failure before the ::error:: annotation prints.
+            rm -f response.json
+            STATUS=$(curl -sS --retry 3 --connect-timeout 10 --max-time 30 \
+              -o response.json -w '%{http_code}' -X POST \
               "https://docs.artisanpackui.dev/api/v1/packages/${DOCS_PACKAGE_SLUG}/${IMPORT}" \
               -H "Authorization: Bearer ${DOCS_API_TOKEN}" \
-              -H "Accept: application/json")
-            cat response.json
+              -H "Accept: application/json") || STATUS="000"
+            cat response.json 2>/dev/null || true
             echo
             if [ "$STATUS" != "202" ]; then
               echo "::error::$IMPORT returned HTTP $STATUS (expected 202)."

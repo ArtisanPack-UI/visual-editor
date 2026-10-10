@@ -26,6 +26,7 @@ import '../../visual-editor-renderer-vue/src/index';
 import { BlockTree as VueBlockTree } from '../../visual-editor-renderer-vue/src/BlockTree';
 import '../../visual-editor-renderer-react/src/index';
 import { BlockTree as ReactBlockTree } from '../../visual-editor-renderer-react/src/BlockTree';
+import type { TemplatePartRecord } from '../../visual-editor-renderer-react/src/templateParts';
 import type { Block } from '../../visual-editor-renderer-react/src/types';
 import { canonicalizeHtml } from '../canonicalize';
 
@@ -34,14 +35,43 @@ const parityDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 interface Fixture {
     name: string;
     tree: Block[];
+    /**
+     * Optional template-part records, handed to `BlockTree`'s
+     * `templateParts` prop. The Pest suite serves the same records through
+     * a TemplatePartResolver stub (`markupParityBindTemplateParts()`).
+     */
+    templateParts?: TemplatePartRecord[];
 }
 
+/**
+ * One declared, documented renderer divergence. Every entry carries
+ * exactly one of the `drop*` keys; `fixturesMatching` (a regex source
+ * tested against the fixture name) narrows it to the fixtures it applies
+ * to, so a divergence declared for the navigation overlay cannot mask the
+ * same drift anywhere else. Mirrors the Pest suite's reading of the
+ * manifest.
+ */
 interface KnownDivergence {
     id: string;
     issue: string;
     reason: string;
-    dropClassTokensMatching: string;
+    fixturesMatching?: string;
+    /** Class tokens matching this regex are dropped from every `class`. */
+    dropClassTokensMatching?: string;
+    /** Attributes whose (lowercased) name matches this regex are dropped. */
+    dropAttributesMatching?: string;
+    /** Elements whose canonical open tag matches this regex are dropped, subtree included. */
+    dropElementsMatching?: string;
+    /** A renderer `<style data-ve-*>` tag (exact attribute name) dropped rather than compared. */
+    dropRendererStyleTag?: string;
 }
+
+const DROP_KEYS = [
+    'dropClassTokensMatching',
+    'dropAttributesMatching',
+    'dropElementsMatching',
+    'dropRendererStyleTag',
+] as const;
 
 const MANIFEST: {
     fixtures: Fixture[];
@@ -54,9 +84,38 @@ const FIXTURES = MANIFEST.fixtures;
  * Declared, documented divergences — see the `knownDivergences` block in
  * fixtures.json for the reason and tracking issue behind each one.
  */
-const DROP_CLASS_PATTERNS = (MANIFEST.knownDivergences ?? []).map(
-    (divergence) => divergence.dropClassTokensMatching
-);
+const DIVERGENCES: KnownDivergence[] = MANIFEST.knownDivergences ?? [];
+
+interface FixtureDivergences {
+    classes: string[];
+    attributes: string[];
+    elements: string[];
+    styleTags: string[];
+}
+
+/**
+ * The declared divergences that apply to one fixture, grouped by kind.
+ * Mirrors `markupParityDivergencesFor()` in the Pest suite.
+ */
+function divergencesFor(name: string): FixtureDivergences {
+    const applicable = DIVERGENCES.filter(
+        (divergence) =>
+            divergence.fixturesMatching === undefined ||
+            new RegExp(divergence.fixturesMatching).test(name)
+    );
+
+    const pick = (key: (typeof DROP_KEYS)[number]): string[] =>
+        applicable
+            .map((divergence) => divergence[key])
+            .filter((value): value is string => typeof value === 'string');
+
+    return {
+        classes: pick('dropClassTokensMatching'),
+        attributes: pick('dropAttributesMatching'),
+        elements: pick('dropElementsMatching'),
+        styleTags: pick('dropRendererStyleTag'),
+    };
+}
 
 function readGolden(name: string): string {
     // `\r\n` guard: the goldens are compared as exact strings, so a
@@ -105,13 +164,16 @@ function collapseWhitespace(value: string): string {
  * compared regardless of which tag each renderer delivers them in. Mirrors
  * `markupParityExtractCss()` in the Pest suite.
  */
-function extractRendererCss(html: string): { markup: string; css: string } {
+function extractRendererCss(
+    html: string,
+    droppedStyleTags: string[] = []
+): { markup: string; css: string } {
     const captured: string[] = [];
 
     let markup = html.replace(
         /<style\s+(data-ve-[a-z-]+)(?:="[^"]*")?\s*>([\s\S]*?)<\/style>/g,
         (_full, attr: string, body: string) => {
-            if (!GLOBAL_STYLE_ATTRS.includes(attr)) {
+            if (!GLOBAL_STYLE_ATTRS.includes(attr) && !droppedStyleTags.includes(attr)) {
                 captured.push(body);
             }
 
@@ -176,9 +238,13 @@ function canonicalRendererCss(css: string): string {
         .join('\n');
 }
 
-function canonicalOutput(html: string): string {
-    const { markup, css } = extractRendererCss(html);
-    const canonicalMarkup = canonicalizeHtml(markup, DROP_CLASS_PATTERNS);
+function canonicalOutput(html: string, name: string): string {
+    const divergences = divergencesFor(name);
+    const { markup, css } = extractRendererCss(html, divergences.styleTags);
+    const canonicalMarkup = canonicalizeHtml(markup, divergences.classes, {
+        dropAttributes: divergences.attributes,
+        dropElements: divergences.elements,
+    });
     const canonicalCss = canonicalRendererCss(css);
 
     return canonicalCss === ''
@@ -186,16 +252,19 @@ function canonicalOutput(html: string): string {
         : `${canonicalMarkup}\n${CSS_SECTION_DELIMITER}\n${canonicalCss}`;
 }
 
-function renderReact(tree: Block[]): string {
-    return canonicalOutput(renderToStaticMarkup(createElement(ReactBlockTree, { tree })));
+function renderReact({ name, tree, templateParts }: Fixture): string {
+    return canonicalOutput(
+        renderToStaticMarkup(createElement(ReactBlockTree, { tree, templateParts })),
+        name
+    );
 }
 
-async function renderVue(tree: Block[]): Promise<string> {
+async function renderVue({ name, tree, templateParts }: Fixture): Promise<string> {
     const app = createSSRApp({
-        render: () => vueH(VueBlockTree, { tree }),
+        render: () => vueH(VueBlockTree, { tree, templateParts }),
     });
 
-    return canonicalOutput(await vueRenderToString(app));
+    return canonicalOutput(await vueRenderToString(app), name);
 }
 
 describe('declared divergences', () => {
@@ -208,20 +277,60 @@ describe('declared divergences', () => {
     // every renderer has converged (as it is after #714), so this asserts
     // "all declared patterns compile", not that any are declared.
     it('compiles every declared divergence pattern', () => {
-        expect(Array.isArray(DROP_CLASS_PATTERNS)).toBe(true);
+        expect(Array.isArray(DIVERGENCES)).toBe(true);
 
-        for (const source of DROP_CLASS_PATTERNS) {
-            expect(() => new RegExp(source)).not.toThrow();
+        for (const divergence of DIVERGENCES) {
+            for (const key of [
+                'dropClassTokensMatching',
+                'dropAttributesMatching',
+                'dropElementsMatching',
+                'fixturesMatching',
+            ] as const) {
+                const source = divergence[key];
+
+                if (source !== undefined) {
+                    expect(() => new RegExp(source)).not.toThrow();
+                }
+            }
+        }
+    });
+
+    // Mirror of the Pest `declares every divergence with a reason and one
+    // drop rule` test: a malformed entry would otherwise silently drop
+    // nothing (or everything) on one side only.
+    it('declares every divergence with a reason and exactly one drop rule', () => {
+        for (const divergence of DIVERGENCES) {
+            expect(typeof divergence.id).toBe('string');
+            expect(divergence.issue).toBeTruthy();
+            expect(divergence.reason).toBeTruthy();
+            expect(DROP_KEYS.filter((key) => divergence[key] !== undefined)).toHaveLength(1);
+        }
+    });
+
+    // A `fixturesMatching` scope that matches nothing is a stale entry: the
+    // divergence it documents is no longer exercised by any fixture.
+    it('scopes every divergence to at least one fixture', () => {
+        for (const divergence of DIVERGENCES) {
+            if (divergence.fixturesMatching === undefined) {
+                continue;
+            }
+
+            const scope = new RegExp(divergence.fixturesMatching);
+
+            expect(
+                FIXTURES.some(({ name }) => scope.test(name)),
+                `${divergence.id} matches no fixture`
+            ).toBe(true);
         }
     });
 });
 
 describe('Blade/React/Vue markup parity', () => {
-    it.each(FIXTURES)('React matches the Blade golden for $name', ({ name, tree }) => {
-        expect(renderReact(tree)).toBe(readGolden(name));
+    it.each(FIXTURES)('React matches the Blade golden for $name', (fixture) => {
+        expect(renderReact(fixture)).toBe(readGolden(fixture.name));
     });
 
-    it.each(FIXTURES)('Vue matches the Blade golden for $name', async ({ name, tree }) => {
-        expect(await renderVue(tree)).toBe(readGolden(name));
+    it.each(FIXTURES)('Vue matches the Blade golden for $name', async (fixture) => {
+        expect(await renderVue(fixture)).toBe(readGolden(fixture.name));
     });
 });

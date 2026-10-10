@@ -559,7 +559,7 @@ describe( 'lazy validation on first read', function (): void {
 
 		rebuildSiteEditorResolvers();
 
-		$notFound = app( TemplateResolver::class )->find( '404' );
+		$notFound    = app( TemplateResolver::class )->find( '404' );
 		$serverError = app( TemplateResolver::class )->find( '500' );
 
 		expect( $notFound )->not->toBeNull();

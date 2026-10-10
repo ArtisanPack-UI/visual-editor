@@ -5,7 +5,7 @@ declare( strict_types=1 );
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
 use Tests\Fixtures\TestBlockContentModel;
 
-it( 'defaults to a model-less, draftless context', function () {
+it( 'defaults to a model-less, draftless context', function (): void {
 	$context = new BindingContext();
 
 	expect( $context->model() )->toBeNull()
@@ -13,7 +13,7 @@ it( 'defaults to a model-less, draftless context', function () {
 		->and( $context->extras() )->toBe( [] );
 } );
 
-it( 'returns the supplied draft snapshot verbatim', function () {
+it( 'returns the supplied draft snapshot verbatim', function (): void {
 	$context = new BindingContext( null, [ 'title' => 'Draft Title', 'meta' => [ 'tone' => 'casual' ] ] );
 
 	expect( $context->draft() )->toBe( [ 'title' => 'Draft Title', 'meta' => [ 'tone' => 'casual' ] ] )
@@ -21,7 +21,7 @@ it( 'returns the supplied draft snapshot verbatim', function () {
 		->and( $context->draftValue( 'missing' ) )->toBeNull();
 } );
 
-it( 'distinguishes "no draft entry" from "draft entry set to null / empty"', function () {
+it( 'distinguishes "no draft entry" from "draft entry set to null / empty"', function (): void {
 	$context = new BindingContext( null, [
 		'title'   => null,
 		'excerpt' => '',
@@ -36,7 +36,7 @@ it( 'distinguishes "no draft entry" from "draft entry set to null / empty"', fun
 		->and( $context->draftValue( 'excerpt' ) )->toBe( '' );
 } );
 
-it( 'is immutable — withModel returns a new instance', function () {
+it( 'is immutable — withModel returns a new instance', function (): void {
 	$original = new BindingContext( null, [ 'a' => 1 ], [ 'b' => 2 ] );
 	$model    = new TestBlockContentModel( [ 'title' => 'X' ] );
 
@@ -49,7 +49,7 @@ it( 'is immutable — withModel returns a new instance', function () {
 		->and( $next->extras() )->toBe( [ 'b' => 2 ] );
 } );
 
-it( 'withDraft replaces only the draft', function () {
+it( 'withDraft replaces only the draft', function (): void {
 	$model    = new TestBlockContentModel( [ 'title' => 'Y' ] );
 	$original = new BindingContext( $model, [ 'a' => 1 ], [ 'b' => 2 ] );
 
@@ -61,7 +61,7 @@ it( 'withDraft replaces only the draft', function () {
 		->and( $original->draft() )->toBe( [ 'a' => 1 ] );
 } );
 
-it( 'withExtras replaces only the extras bag', function () {
+it( 'withExtras replaces only the extras bag', function (): void {
 	$original = new BindingContext( null, [ 'a' => 1 ], [ 'b' => 2 ] );
 
 	$next = $original->withExtras( [ 'siteId' => 4 ] );

@@ -24,10 +24,6 @@ use ArtisanPackUI\VisualEditor\SiteEditor\Exceptions\SiteEditorRegistrationExcep
 
 class ResolvedPattern
 {
-	/**
-	 * @since 1.0.0
-	 */
-	protected const FILTER_NAME = 'ap.visualEditor.patterns';
 
 	/**
 	 * Width in pixels a pattern preview lays the pattern out at when the
@@ -50,6 +46,10 @@ class ResolvedPattern
 	 * @since 1.13.0
 	 */
 	public const MAX_VIEWPORT_WIDTH = 2560;
+	/**
+	 * @since 1.0.0
+	 */
+	protected const FILTER_NAME = 'ap.visualEditor.patterns';
 
 	/**
 	 * @since 1.0.0
@@ -245,7 +245,7 @@ class ResolvedPattern
 			$raw = (int) trim( $raw );
 		}
 
-		if ( ! is_int( $raw ) || 0 >= $raw ) {
+		if ( ! is_int( $raw ) || $raw <= 0 ) {
 			return null;
 		}
 

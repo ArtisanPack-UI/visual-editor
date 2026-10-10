@@ -6,14 +6,14 @@ use Illuminate\Support\Facades\Blade;
 use Tests\Fixtures\TestBlockContentModel;
 use Tests\Fixtures\TestBlockContentPageModel;
 
-beforeEach( function () {
+beforeEach( function (): void {
 	config()->set( 'artisanpack.visual-editor.resources', [
 		'posts' => TestBlockContentModel::class,
 		'pages' => TestBlockContentPageModel::class,
 	] );
 } );
 
-it( 'renders the data attributes the React bootstrap needs', function () {
+it( 'renders the data attributes the React bootstrap needs', function (): void {
 	$model = TestBlockContentModel::create( [
 		'title'   => 'Rendered',
 		'status'  => 'published',
@@ -22,7 +22,7 @@ it( 'renders the data attributes the React bootstrap needs', function () {
 
 	$html = Blade::render(
 		'<x-visual-editor :model="$model" />',
-		[ 'model' => $model ]
+		[ 'model' => $model ],
 	);
 
 	expect( $html )->toContain( 'data-ap-visual-editor' )
@@ -31,7 +31,7 @@ it( 'renders the data attributes the React bootstrap needs', function () {
 		->and( $html )->toContain( 'data-api-base="/visual-editor/api"' );
 } );
 
-it( 'stamps the configured taxonomies for the post-terms block (#771)', function () {
+it( 'stamps the configured taxonomies for the post-terms block (#771)', function (): void {
 	config()->set( 'artisanpack.visual-editor.taxonomies', [
 		'category' => 'Category',
 		'genre'    => 'Genre',
@@ -45,7 +45,7 @@ it( 'stamps the configured taxonomies for the post-terms block (#771)', function
 
 	$html = Blade::render(
 		'<x-visual-editor :model="$model" />',
-		[ 'model' => $model ]
+		[ 'model' => $model ],
 	);
 
 	expect( $html )->toContain( 'data-taxonomies=' )
@@ -53,7 +53,7 @@ it( 'stamps the configured taxonomies for the post-terms block (#771)', function
 		->and( $html )->toContain( 'Genre' );
 } );
 
-it( 'falls back to the default taxonomies when none are configured (#771)', function () {
+it( 'falls back to the default taxonomies when none are configured (#771)', function (): void {
 	config()->set( 'artisanpack.visual-editor.taxonomies', [] );
 
 	$model = TestBlockContentModel::create( [
@@ -64,13 +64,13 @@ it( 'falls back to the default taxonomies when none are configured (#771)', func
 
 	$html = Blade::render(
 		'<x-visual-editor :model="$model" />',
-		[ 'model' => $model ]
+		[ 'model' => $model ],
 	);
 
 	expect( $html )->toContain( 'post_tag' );
 } );
 
-it( 'stamps the configured host presets on the mount (#773)', function () {
+it( 'stamps the configured host presets on the mount (#773)', function (): void {
 	config()->set( 'artisanpack.visual-editor.presets.palette', [
 		[ 'slug' => 'brand-navy', 'name' => 'Brand Navy', 'color' => '#0a2540' ],
 	] );
@@ -83,7 +83,7 @@ it( 'stamps the configured host presets on the mount (#773)', function () {
 
 	$html = Blade::render(
 		'<x-visual-editor :model="$model" />',
-		[ 'model' => $model ]
+		[ 'model' => $model ],
 	);
 
 	expect( $html )->toContain( 'data-presets=' )
@@ -91,7 +91,7 @@ it( 'stamps the configured host presets on the mount (#773)', function () {
 		->and( $html )->toContain( 'Brand Navy' );
 } );
 
-it( 'always emits data-presets even when no host presets are configured (#773)', function () {
+it( 'always emits data-presets even when no host presets are configured (#773)', function (): void {
 	config()->set( 'artisanpack.visual-editor.presets', [] );
 
 	$model = TestBlockContentModel::create( [
@@ -102,7 +102,7 @@ it( 'always emits data-presets even when no host presets are configured (#773)',
 
 	$html = Blade::render(
 		'<x-visual-editor :model="$model" />',
-		[ 'model' => $model ]
+		[ 'model' => $model ],
 	);
 
 	// Empty lists still ship so the JS side has a stable shape to
@@ -112,7 +112,7 @@ it( 'always emits data-presets even when no host presets are configured (#773)',
 		->and( $html )->toContain( '&quot;palette&quot;' );
 } );
 
-it( 'infers the resource slug from the page fixture', function () {
+it( 'infers the resource slug from the page fixture', function (): void {
 	$page = TestBlockContentPageModel::create( [
 		'title' => 'A page',
 		'body'  => [],
@@ -120,13 +120,13 @@ it( 'infers the resource slug from the page fixture', function () {
 
 	$html = Blade::render(
 		'<x-visual-editor :model="$model" />',
-		[ 'model' => $page ]
+		[ 'model' => $page ],
 	);
 
 	expect( $html )->toContain( 'data-resource="pages"' );
 } );
 
-it( 'throws when the model is not registered as a resource', function () {
+it( 'throws when the model is not registered as a resource', function (): void {
 	config()->set( 'artisanpack.visual-editor.resources', [] );
 
 	$model = TestBlockContentModel::create( [
@@ -138,7 +138,7 @@ it( 'throws when the model is not registered as a resource', function () {
 	try {
 		Blade::render( '<x-visual-editor :model="$model" />', [ 'model' => $model ] );
 		test()->fail( 'Expected a RuntimeException to be thrown.' );
-	} catch ( \Throwable $e ) {
+	} catch ( Throwable $e ) {
 		$root = $e;
 
 		while ( $root->getPrevious() && ! $root instanceof RuntimeException ) {
@@ -149,7 +149,7 @@ it( 'throws when the model is not registered as a resource', function () {
 	}
 } );
 
-it( 'honors an explicit resource override prop', function () {
+it( 'honors an explicit resource override prop', function (): void {
 	$model = TestBlockContentModel::create( [
 		'title'   => 'Override',
 		'status'  => 'published',
@@ -158,13 +158,13 @@ it( 'honors an explicit resource override prop', function () {
 
 	$html = Blade::render(
 		'<x-visual-editor :model="$model" resource="custom-slug" />',
-		[ 'model' => $model ]
+		[ 'model' => $model ],
 	);
 
 	expect( $html )->toContain( 'data-resource="custom-slug"' );
 } );
 
-it( 'throws when mounted against an unsaved model', function () {
+it( 'throws when mounted against an unsaved model', function (): void {
 	$model = new TestBlockContentModel( [
 		'title'   => 'Unsaved',
 		'status'  => 'published',
@@ -174,7 +174,7 @@ it( 'throws when mounted against an unsaved model', function () {
 	try {
 		Blade::render( '<x-visual-editor :model="$model" />', [ 'model' => $model ] );
 		test()->fail( 'Expected a RuntimeException to be thrown.' );
-	} catch ( \Throwable $e ) {
+	} catch ( Throwable $e ) {
 		$root = $e;
 
 		while ( $root->getPrevious() && ! $root instanceof RuntimeException ) {
@@ -186,7 +186,7 @@ it( 'throws when mounted against an unsaved model', function () {
 	}
 } );
 
-it( 'honors an explicit api-base override prop', function () {
+it( 'honors an explicit api-base override prop', function (): void {
 	$model = TestBlockContentModel::create( [
 		'title'   => 'Api override',
 		'status'  => 'published',
@@ -195,13 +195,13 @@ it( 'honors an explicit api-base override prop', function () {
 
 	$html = Blade::render(
 		'<x-visual-editor :model="$model" api-base="/custom/api" />',
-		[ 'model' => $model ]
+		[ 'model' => $model ],
 	);
 
 	expect( $html )->toContain( 'data-api-base="/custom/api"' );
 } );
 
-it( 'emits document-panel data attributes for the inspector sidebar', function () {
+it( 'emits document-panel data attributes for the inspector sidebar', function (): void {
 	$model = TestBlockContentModel::create( [
 		'title'   => 'With sidebar data',
 		'status'  => 'published',
@@ -221,7 +221,7 @@ it( 'emits document-panel data attributes for the inspector sidebar', function (
 			'featuredImage'   => [ 'id' => 7, 'url' => 'https://example.test/x.jpg' ],
 			'authorOptions'   => [ [ 'value' => 42, 'label' => 'Alice' ] ],
 			'supports'        => [ 'comments' => true, 'excerpt' => true ],
-		]
+		],
 	);
 
 	expect( $html )->toContain( 'data-title="Rendered title"' )
@@ -235,7 +235,7 @@ it( 'emits document-panel data attributes for the inspector sidebar', function (
 		->and( $html )->toContain( 'data-supports=' );
 } );
 
-it( 'omits optional data attributes when the matching props are not supplied', function () {
+it( 'omits optional data attributes when the matching props are not supplied', function (): void {
 	$model = TestBlockContentModel::create( [
 		'title'   => 'Minimal',
 		'status'  => 'published',
@@ -244,7 +244,7 @@ it( 'omits optional data attributes when the matching props are not supplied', f
 
 	$html = Blade::render(
 		'<x-visual-editor :model="$model" />',
-		[ 'model' => $model ]
+		[ 'model' => $model ],
 	);
 
 	expect( $html )->not->toContain( 'data-excerpt=' )
@@ -276,7 +276,7 @@ describe( 'ap.visualEditor.editorConfig filter', function (): void {
 
 		$html = Blade::render(
 			'<x-visual-editor :model="$model" :initial-title="\'Base\'" />',
-			[ 'model' => $model ]
+			[ 'model' => $model ],
 		);
 
 		expect( $html )->toContain( 'data-api-base="/custom/api"' )
@@ -299,7 +299,7 @@ describe( 'ap.visualEditor.editorConfig filter', function (): void {
 
 		Blade::render(
 			'<x-visual-editor :model="$model" />',
-			[ 'model' => $model ]
+			[ 'model' => $model ],
 		);
 
 		expect( $screensSeen )->toBe( [ 'post' ] );
@@ -318,7 +318,7 @@ describe( 'ap.visualEditor.editorConfig filter', function (): void {
 
 		$html = Blade::render(
 			'<x-visual-editor :model="$model" />',
-			[ 'model' => $model ]
+			[ 'model' => $model ],
 		);
 
 		expect( $html )->toContain( 'data-resource="posts"' )
@@ -346,7 +346,7 @@ describe( 'ap.visualEditor.editorConfig filter', function (): void {
 
 		$html = Blade::render(
 			'<x-visual-editor :model="$model" :initial-title="\'Kept\'" />',
-			[ 'model' => $model ]
+			[ 'model' => $model ],
 		);
 
 		expect( $html )->toContain( 'data-api-base="/visual-editor/api"' )
@@ -369,7 +369,7 @@ describe( 'ap.visualEditor.editorConfig filter', function (): void {
 
 		$html = Blade::render(
 			'<x-visual-editor :model="$model" :initial-title="\'Untouched\'" />',
-			[ 'model' => $model ]
+			[ 'model' => $model ],
 		);
 
 		expect( $html )->toContain( 'data-api-base="/only-this"' )

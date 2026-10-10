@@ -39,10 +39,15 @@ vi.mock('../../../site-editor/patterns/api-client', async () => {
     };
 });
 
+const observerRoots: Array<Element | Document | null | undefined> = [];
+
 class ImmediateIntersectionObserver {
     constructor(
-        private readonly callback: (entries: Array<{ isIntersecting: boolean }>) => void
-    ) {}
+        private readonly callback: (entries: Array<{ isIntersecting: boolean }>) => void,
+        options?: IntersectionObserverInit
+    ) {
+        observerRoots.push(options?.root);
+    }
 
     observe(): void {
         this.callback([{ isIntersecting: true }]);
@@ -78,6 +83,7 @@ beforeEach(() => {
     NOOP_CLOSE.mockReset();
     PREVIEW_MOCK.mockReset();
     resetPatternPreviewLoaders();
+    observerRoots.length = 0;
 });
 
 afterEach(() => {
@@ -406,7 +412,11 @@ describe('<PagePatternModal />', () => {
 
         await waitFor(() => expect(preview.querySelector('iframe')).not.toBeNull());
         expect(preview).toHaveAttribute('aria-hidden', 'true');
-        expect(PREVIEW_MOCK).toHaveBeenCalledWith({ apiBase: '/visual-editor/api' }, ['1']);
+        expect(PREVIEW_MOCK).toHaveBeenCalledWith(
+            { apiBase: '/visual-editor/api' },
+            ['1'],
+            expect.objectContaining({ signal: expect.anything() })
+        );
     });
 
     it('keeps the block-name tree on cards when no API base is given (#832)', () => {
@@ -430,5 +440,63 @@ describe('<PagePatternModal />', () => {
         expect(preview.querySelector('[data-preview-state="fallback"]')).not.toBeNull();
         expect(preview.querySelector('iframe')).toBeNull();
         expect(PREVIEW_MOCK).not.toHaveBeenCalled();
+    });
+
+    it('keeps the preview iframe out of the card button and observes the modal body (FE-3 · FE-10b)', async () => {
+        vi.stubGlobal('IntersectionObserver', ImmediateIntersectionObserver);
+        PREVIEW_MOCK.mockResolvedValue({
+            styles: '',
+            patterns: { '1': { html: '<p>Rendered landing hero</p>' } },
+        });
+
+        render(
+            <PagePatternModal
+                open
+                onClose={NOOP_CLOSE}
+                patterns={[
+                    makePattern({
+                        content: { raw: '<!-- wp:paragraph --><p>Hi</p><!-- /wp:paragraph -->', blocks: [] },
+                    }),
+                ]}
+                onInsertBlocks={NOOP_INSERT}
+                apiBase="/visual-editor/api"
+            />
+        );
+
+        const preview = screen.getByTestId('ap-page-pattern-modal-pattern-preview-landing-hero');
+        const button = screen.getByTestId('ap-page-pattern-modal-pattern-landing-hero');
+
+        await waitFor(() => expect(preview.querySelector('iframe')).not.toBeNull());
+
+        expect(button.tagName).toBe('BUTTON');
+        expect(button.querySelector('iframe, div, p')).toBeNull();
+        expect(preview.closest('button')).toBeNull();
+        expect(button).toHaveAccessibleName('Landing Hero landing-hero');
+        expect(observerRoots[0]).toBe(
+            document.querySelector('.ap-page-pattern-modal__body')
+        );
+    });
+
+    it('still selects a pattern from the keyboard (FE-10b)', async () => {
+        const user = userEvent.setup();
+
+        render(
+            <PagePatternModal
+                open
+                onClose={NOOP_CLOSE}
+                patterns={[
+                    makePattern({
+                        slug: 'hero',
+                        content: { raw: '<!-- wp:core/paragraph /-->', blocks: [] },
+                    }),
+                ]}
+                onInsertBlocks={NOOP_INSERT}
+            />
+        );
+
+        screen.getByTestId('ap-page-pattern-modal-pattern-hero').focus();
+        await user.keyboard('{Enter}');
+
+        expect(NOOP_INSERT).toHaveBeenCalledTimes(1);
     });
 });

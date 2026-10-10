@@ -47,7 +47,7 @@ final class IconCatalog
 	public const DEFAULT_PER_PAGE = 30;
 
 	/**
-	 * @var string|Closure|null
+	 * @var Closure|string|null
 	 */
 	private $source;
 
@@ -61,7 +61,7 @@ final class IconCatalog
 	private ?array $manifest = null;
 
 	/**
-	 * @param  string|Closure|null $source  Absolute path to an `index.json`,
+	 * @param  Closure|string|null $source  Absolute path to an `index.json`,
 	 *         a `Closure(): array` that returns the manifest shape, or null
 	 *         to fall back to the bundled FA Free manifest.
 	 */

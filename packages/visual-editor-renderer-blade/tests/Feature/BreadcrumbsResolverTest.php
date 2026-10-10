@@ -44,7 +44,7 @@ function breadcrumbsRenderTreeWithPost( array $tree, ?object $post = null ): str
 {
 	return Blade::render(
 		'<x-ve-blocks :tree="$tree" :post="$post" />',
-		[ 'tree' => $tree, 'post' => $post ]
+		[ 'tree' => $tree, 'post' => $post ],
 	);
 }
 
@@ -69,7 +69,7 @@ beforeEach( function (): void {
 	config()->set( 'artisanpack.visual-editor.breadcrumbs.home_label', null );
 } );
 
-it( 'stamps a Home-only trail when no post is supplied', function () {
+it( 'stamps a Home-only trail when no post is supplied', function (): void {
 	$resolver = $this->app->make( BreadcrumbsResolver::class );
 
 	$tree = [ breadcrumbsBlockNode() ];
@@ -84,7 +84,7 @@ it( 'stamps a Home-only trail when no post is supplied', function () {
 	expect( $trail[0]['url'] )->toBeNull();
 } );
 
-it( 'renders a single Home entry as the current page on the homepage shell', function () {
+it( 'renders a single Home entry as the current page on the homepage shell', function (): void {
 	$rendered = $this->stripGlobalStyles( breadcrumbsRenderTreeWithPost( [
 		breadcrumbsBlockNode(),
 	], null ) );
@@ -99,7 +99,7 @@ it( 'renders a single Home entry as the current page on the homepage shell', fun
 	expect( $rendered )->not->toContain( 'ap-breadcrumbs__separator' );
 } );
 
-it( 'stamps Home + post title for a single-post context', function () {
+it( 'stamps Home + post title for a single-post context', function (): void {
 	$post = breadcrumbsFakePost( 7, 'My First Post', '/blog/my-first-post' );
 
 	$resolver = $this->app->make( BreadcrumbsResolver::class );
@@ -117,12 +117,12 @@ it( 'stamps Home + post title for a single-post context', function () {
 	expect( $trail[1]['url'] )->toBeNull();
 } );
 
-it( 'renders the populated trail end-to-end via x-ve-blocks for a single post', function () {
+it( 'renders the populated trail end-to-end via x-ve-blocks for a single post', function (): void {
 	$post = breadcrumbsFakePost( 7, 'My First Post', '/blog/my-first-post' );
 
 	$rendered = $this->stripGlobalStyles( breadcrumbsRenderTreeWithPost(
 		[ breadcrumbsBlockNode() ],
-		$post
+		$post,
 	) );
 
 	expect( $rendered )
@@ -133,7 +133,7 @@ it( 'renders the populated trail end-to-end via x-ve-blocks for a single post', 
 		->toContain( 'ap-breadcrumbs__separator' );
 } );
 
-it( 'walks the parent chain top-down for a nested page hierarchy', function () {
+it( 'walks the parent chain top-down for a nested page hierarchy', function (): void {
 	$grandparent = breadcrumbsFakePost( 1, 'About', '/about' );
 	$parent      = breadcrumbsFakePost( 2, 'Team', '/about/team', $grandparent );
 	$page        = breadcrumbsFakePost( 3, 'Engineering', '/about/team/engineering', $parent );
@@ -154,7 +154,7 @@ it( 'walks the parent chain top-down for a nested page hierarchy', function () {
 	expect( $trail[3]['url'] )->toBeNull();
 } );
 
-it( 'guards against a parent-chain cycle without infinite recursion', function () {
+it( 'guards against a parent-chain cycle without infinite recursion', function (): void {
 	$a = breadcrumbsFakePost( 1, 'A', '/a' );
 	$b = breadcrumbsFakePost( 2, 'B', '/b' );
 
@@ -176,12 +176,12 @@ it( 'guards against a parent-chain cycle without infinite recursion', function (
 	expect( $trail[ count( $trail ) - 1 ]['current'] )->toBeTrue();
 } );
 
-it( 'honors the breadcrumbsSchema attribute in the rendered markup', function () {
+it( 'honors the breadcrumbsSchema attribute in the rendered markup', function (): void {
 	$post = breadcrumbsFakePost( 7, 'My Post', '/posts/7' );
 
 	$withSchema = $this->stripGlobalStyles( breadcrumbsRenderTreeWithPost(
 		[ breadcrumbsBlockNode( [ 'breadcrumbsSchema' => true ] ) ],
-		$post
+		$post,
 	) );
 
 	expect( $withSchema )
@@ -191,7 +191,7 @@ it( 'honors the breadcrumbsSchema attribute in the rendered markup', function ()
 
 	$withoutSchema = $this->stripGlobalStyles( breadcrumbsRenderTreeWithPost(
 		[ breadcrumbsBlockNode( [ 'breadcrumbsSchema' => false ] ) ],
-		$post
+		$post,
 	) );
 
 	expect( $withoutSchema )
@@ -203,7 +203,7 @@ it( 'honors the breadcrumbsSchema attribute in the rendered markup', function ()
 	expect( $withoutSchema )->toContain( '>My Post<' );
 } );
 
-it( 'allows hosts to override the trail through the filter hook', function () {
+it( 'allows hosts to override the trail through the filter hook', function (): void {
 	if ( ! function_exists( 'addFilter' ) ) {
 		expect( true )->toBeTrue();
 
@@ -222,7 +222,7 @@ it( 'allows hosts to override the trail through the filter hook', function () {
 
 	$rendered = $this->stripGlobalStyles( breadcrumbsRenderTreeWithPost(
 		[ breadcrumbsBlockNode() ],
-		$post
+		$post,
 	) );
 
 	expect( $rendered )
@@ -232,7 +232,7 @@ it( 'allows hosts to override the trail through the filter hook', function () {
 		->toContain( 'aria-current="page"' );
 } );
 
-it( 'passes the block attributes to the filter so hosts can branch on them', function () {
+it( 'passes the block attributes to the filter so hosts can branch on them', function (): void {
 	if ( ! function_exists( 'addFilter' ) ) {
 		expect( true )->toBeTrue();
 
@@ -251,7 +251,7 @@ it( 'passes the block attributes to the filter so hosts can branch on them', fun
 
 	$resolver->stampTree(
 		[ breadcrumbsBlockNode( [ 'separatorIcon' => 'arrow-right', 'breadcrumbsSchema' => false ] ) ],
-		null
+		null,
 	);
 
 	expect( $capturedAttrs )->toBeArray();
@@ -259,7 +259,7 @@ it( 'passes the block attributes to the filter so hosts can branch on them', fun
 	expect( $capturedAttrs['breadcrumbsSchema'] ?? null )->toBeFalse();
 } );
 
-it( 'respects a pre-stamped _resolvedTrail on the saved tree', function () {
+it( 'respects a pre-stamped _resolvedTrail on the saved tree', function (): void {
 	$resolver = $this->app->make( BreadcrumbsResolver::class );
 
 	$preStamped = [
@@ -271,7 +271,7 @@ it( 'respects a pre-stamped _resolvedTrail on the saved tree', function () {
 
 	$stamped = $resolver->stampTree(
 		[ breadcrumbsBlockNode( [ '_resolvedTrail' => $preStamped ] ) ],
-		$post
+		$post,
 	);
 
 	// The resolver leaves the pre-stamped trail completely alone — no
@@ -279,7 +279,7 @@ it( 'respects a pre-stamped _resolvedTrail on the saved tree', function () {
 	expect( $stamped[0]['attributes']['_resolvedTrail'] )->toBe( $preStamped );
 } );
 
-it( 'honors a configured custom home URL and home label', function () {
+it( 'honors a configured custom home URL and home label', function (): void {
 	config()->set( 'artisanpack.visual-editor.breadcrumbs.home_url', 'https://example.test/start' );
 	config()->set( 'artisanpack.visual-editor.breadcrumbs.home_label', 'Start' );
 
@@ -294,7 +294,7 @@ it( 'honors a configured custom home URL and home label', function () {
 	expect( $trail[0]['url'] )->toBe( 'https://example.test/start' );
 } );
 
-it( 'walks nested breadcrumbs blocks inside container blocks', function () {
+it( 'walks nested breadcrumbs blocks inside container blocks', function (): void {
 	$post = breadcrumbsFakePost( 7, 'Nested Post', '/posts/7' );
 
 	$resolver = $this->app->make( BreadcrumbsResolver::class );
@@ -318,7 +318,7 @@ it( 'walks nested breadcrumbs blocks inside container blocks', function () {
 	expect( $innerBlock['attributes']['_resolvedTrail'] )->toHaveCount( 2 );
 } );
 
-it( 'tolerates posts with no parent accessor and only parent_id (no newQuery)', function () {
+it( 'tolerates posts with no parent accessor and only parent_id (no newQuery)', function (): void {
 	$post            = new stdClass();
 	$post->id        = 5;
 	$post->title     = 'Orphan Page';
@@ -337,7 +337,7 @@ it( 'tolerates posts with no parent accessor and only parent_id (no newQuery)', 
 	expect( $trail[1]['current'] )->toBeTrue();
 } );
 
-it( 'drops trail entries with blank labels through the filter', function () {
+it( 'drops trail entries with blank labels through the filter', function (): void {
 	if ( ! function_exists( 'addFilter' ) ) {
 		expect( true )->toBeTrue();
 

@@ -226,5 +226,5 @@ describe( 'parseToEditorBlocks on malformed markup', function (): void {
 	} );
 } )->skip(
 	fn () => ! class_exists( ThemeBlockMarkup::PARSER_FQCN ),
-	'requires cms-framework 2.5+ (PHP 8.3+)'
+	'requires cms-framework 2.5+ (PHP 8.3+)',
 );

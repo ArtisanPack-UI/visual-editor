@@ -182,6 +182,7 @@ class EntitySearchController extends Controller
 	 * @since 1.0.0
 	 *
 	 * @param  class-string<Model>  $modelClass
+	 *
 	 * @return list<array{type: string, id: int|string, title: string, url: ?string}>
 	 */
 	protected function searchResourceModel( string $modelClass, string $type, string $needle ): array
@@ -204,12 +205,12 @@ class EntitySearchController extends Controller
 			$escaped = str_replace(
 				[ '|', '%', '_' ],
 				[ '||', '|%', '|_' ],
-				$needle
+				$needle,
 			);
 
 			$query->whereRaw(
 				$searchColumn . " LIKE ? ESCAPE '|'",
-				[ '%' . $escaped . '%' ]
+				[ '%' . $escaped . '%' ],
 			);
 		}
 

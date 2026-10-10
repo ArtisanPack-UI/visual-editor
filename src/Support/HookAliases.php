@@ -51,22 +51,22 @@ class HookAliases
 	 * @var array<string, string>
 	 */
 	private const RENAMES = [
-		'ap.visual-editor.resources'                    => 'ap.visualEditor.resources',
-		'ap.visual-editor.templates'                    => 'ap.visualEditor.templates',
-		'ap.visual-editor.template-parts'               => 'ap.visualEditor.templateParts',
-		'ap.visual-editor.patterns'                     => 'ap.visualEditor.patterns',
-		'ap.visual-editor.global-styles'                => 'ap.visualEditor.globalStyles',
-		'ap.visual-editor.navigation'                   => 'ap.visualEditor.navigation',
-		'ap.visual-editor.visibility.register-rules'    => 'ap.visualEditor.visibility.registerRules',
-		'ap.visual-editor.visibility.evaluated'         => 'ap.visualEditor.visibility.evaluated',
+		'ap.visual-editor.resources'                      => 'ap.visualEditor.resources',
+		'ap.visual-editor.templates'                      => 'ap.visualEditor.templates',
+		'ap.visual-editor.template-parts'                 => 'ap.visualEditor.templateParts',
+		'ap.visual-editor.patterns'                       => 'ap.visualEditor.patterns',
+		'ap.visual-editor.global-styles'                  => 'ap.visualEditor.globalStyles',
+		'ap.visual-editor.navigation'                     => 'ap.visualEditor.navigation',
+		'ap.visual-editor.visibility.register-rules'      => 'ap.visualEditor.visibility.registerRules',
+		'ap.visual-editor.visibility.evaluated'           => 'ap.visualEditor.visibility.evaluated',
 		'ap.visual-editor.visibility.user-search-results' => 'ap.visualEditor.visibility.userSearchResults',
-		'ap.visual-editor.rendered-block'               => 'ap.visualEditor.renderedBlock',
-		'ap.visual-editor.breadcrumbs.trail'            => 'ap.visualEditor.breadcrumbs.trail',
-		'ap.visual-editor.loginout.envelope'            => 'ap.visualEditor.loginout.envelope',
-		'ap.visual-editor.loginout.login-form'          => 'ap.visualEditor.loginout.loginForm',
-		'visual_editor.pre_publish_checks'              => 'ap.visualEditor.prePublishChecks',
-		'ap.icons.register-icon-sets'                   => 'ap.icons.registerIconSets',
-		'comments.form.action'                          => 'ap.cmsFramework.comments.form.action',
+		'ap.visual-editor.rendered-block'                 => 'ap.visualEditor.renderedBlock',
+		'ap.visual-editor.breadcrumbs.trail'              => 'ap.visualEditor.breadcrumbs.trail',
+		'ap.visual-editor.loginout.envelope'              => 'ap.visualEditor.loginout.envelope',
+		'ap.visual-editor.loginout.login-form'            => 'ap.visualEditor.loginout.loginForm',
+		'visual_editor.pre_publish_checks'                => 'ap.visualEditor.prePublishChecks',
+		'ap.icons.register-icon-sets'                     => 'ap.icons.registerIconSets',
+		'comments.form.action'                            => 'ap.cmsFramework.comments.form.action',
 	];
 
 	/**

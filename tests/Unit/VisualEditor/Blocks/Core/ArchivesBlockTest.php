@@ -31,7 +31,7 @@ beforeEach( function (): void {
 	test()->block->buckets = new Collection();
 } );
 
-it( 'renders a list of monthly archive links', function () {
+it( 'renders a list of monthly archive links', function (): void {
 	test()->block->buckets = new Collection( [
 		[ 'year' => 2026, 'month' => 4, 'count' => 5 ],
 		[ 'year' => 2026, 'month' => 3, 'count' => 7 ],
@@ -47,7 +47,7 @@ it( 'renders a list of monthly archive links', function () {
 		->and( $html )->toContain( 'March 2026' );
 } );
 
-it( 'shows post counts when showPostCounts is set', function () {
+it( 'shows post counts when showPostCounts is set', function (): void {
 	test()->block->buckets = new Collection( [
 		[ 'year' => 2026, 'month' => 4, 'count' => 5 ],
 	] );
@@ -57,7 +57,7 @@ it( 'shows post counts when showPostCounts is set', function () {
 	expect( $html )->toContain( '&nbsp;(5)' );
 } );
 
-it( 'collapses months into years when type is yearly', function () {
+it( 'collapses months into years when type is yearly', function (): void {
 	test()->block->buckets = new Collection( [
 		[ 'year' => 2026, 'month' => 4, 'count' => 5 ],
 		[ 'year' => 2026, 'month' => 3, 'count' => 7 ],
@@ -75,7 +75,7 @@ it( 'collapses months into years when type is yearly', function () {
 		->and( $html )->toContain( '&nbsp;(2)' );
 } );
 
-it( 'renders a dropdown when displayAsDropdown is set', function () {
+it( 'renders a dropdown when displayAsDropdown is set', function (): void {
 	test()->block->buckets = new Collection( [
 		[ 'year' => 2026, 'month' => 4, 'count' => 5 ],
 	] );
@@ -88,7 +88,7 @@ it( 'renders a dropdown when displayAsDropdown is set', function () {
 		->and( $html )->toContain( 'April 2026' );
 } );
 
-it( 'attaches an inline onchange handler so the dropdown navigates on select', function () {
+it( 'attaches an inline onchange handler so the dropdown navigates on select', function (): void {
 	test()->block->buckets = new Collection( [
 		[ 'year' => 2026, 'month' => 4, 'count' => 5 ],
 	] );
@@ -98,12 +98,12 @@ it( 'attaches an inline onchange handler so the dropdown navigates on select', f
 	expect( $html )->toContain( 'onchange="if(this.value)document.location.href=this.value"' );
 } );
 
-it( 'gives multiple dropdowns unique ids on the same render pass', function () {
+it( 'gives multiple dropdowns unique ids on the same render pass', function (): void {
 	test()->block->buckets = new Collection( [
 		[ 'year' => 2026, 'month' => 4, 'count' => 5 ],
 	] );
 
-	$first = test()->block->render( test()->block->validateAttrs( [ 'displayAsDropdown' => true ] ) );
+	$first  = test()->block->render( test()->block->validateAttrs( [ 'displayAsDropdown' => true ] ) );
 	$second = test()->block->render( test()->block->validateAttrs( [ 'displayAsDropdown' => true ] ) );
 
 	preg_match( '/id="(wp-block-archives-dropdown-[a-f0-9.]+)"/', $first, $firstMatch );
@@ -114,7 +114,7 @@ it( 'gives multiple dropdowns unique ids on the same render pass', function () {
 		->and( $firstMatch[1] )->not->toBe( $secondMatch[1] );
 } );
 
-it( 'renders an empty-state notice when no buckets exist', function () {
+it( 'renders an empty-state notice when no buckets exist', function (): void {
 	$html = test()->block->render( test()->block->validateAttrs( [] ) );
 
 	expect( $html )->toContain( '<div class="wp-block-archives">' )

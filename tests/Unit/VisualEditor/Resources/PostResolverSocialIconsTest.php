@@ -33,7 +33,7 @@ function fakeSocialPost( array $authorAttrs = [], string $permalink = 'https://e
 	return $post;
 }
 
-it( 'stamps the post author social links for artisanpack/author-social-icons', function () {
+it( 'stamps the post author social links for artisanpack/author-social-icons', function (): void {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[
 			'name'        => 'artisanpack/author-social-icons',
@@ -43,7 +43,7 @@ it( 'stamps the post author social links for artisanpack/author-social-icons', f
 		fakeSocialPost( [
 			'facebook' => 'https://example.test/jane-fb',
 			'email'    => 'jane@example.test',
-		] )
+		] ),
 	);
 
 	$links = $resolved['attributes']['_resolvedAuthorSocialLinks'];
@@ -56,7 +56,7 @@ it( 'stamps the post author social links for artisanpack/author-social-icons', f
 		->and( $links[1]['url'] )->toBe( 'mailto:jane@example.test' );
 } );
 
-it( 'omits social links the author has not filled in', function () {
+it( 'omits social links the author has not filled in', function (): void {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[
 			'name'        => 'artisanpack/author-social-icons',
@@ -65,7 +65,7 @@ it( 'omits social links the author has not filled in', function () {
 		],
 		fakeSocialPost( [
 			'facebook' => 'https://example.test/jane-fb',
-		] )
+		] ),
 	);
 
 	$links = $resolved['attributes']['_resolvedAuthorSocialLinks'];
@@ -75,9 +75,9 @@ it( 'omits social links the author has not filled in', function () {
 		->and( $links[0]['slug'] )->toBe( 'facebook' );
 } );
 
-it( 'stamps a generic `social` map on the author when individual properties are absent', function () {
-	$author       = new stdClass();
-	$author->name = 'Jane Doe';
+it( 'stamps a generic `social` map on the author when individual properties are absent', function (): void {
+	$author         = new stdClass();
+	$author->name   = 'Jane Doe';
 	$author->social = [
 		'twitter' => 'https://example.test/jane-tw',
 	];
@@ -95,7 +95,7 @@ it( 'stamps a generic `social` map on the author when individual properties are 
 			'attributes'  => [],
 			'innerBlocks' => [],
 		],
-		$post
+		$post,
 	);
 
 	$links = $resolved['attributes']['_resolvedAuthorSocialLinks'];
@@ -106,7 +106,7 @@ it( 'stamps a generic `social` map on the author when individual properties are 
 		->and( $links[0]['url'] )->toBe( 'https://example.test/jane-tw' );
 } );
 
-it( 'returns an empty social-link list when the post has no author', function () {
+it( 'returns an empty social-link list when the post has no author', function (): void {
 	$post                    = new stdClass();
 	$post->id                = 1;
 	$post->title             = 'Hello';
@@ -120,20 +120,20 @@ it( 'returns an empty social-link list when the post has no author', function ()
 			'attributes'  => [],
 			'innerBlocks' => [],
 		],
-		$post
+		$post,
 	);
 
 	expect( $resolved['attributes']['_resolvedAuthorSocialLinks'] )->toBe( [] );
 } );
 
-it( 'stamps share URLs for artisanpack/social-share-content from the post permalink + title', function () {
+it( 'stamps share URLs for artisanpack/social-share-content from the post permalink + title', function (): void {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[
 			'name'        => 'artisanpack/social-share-content',
 			'attributes'  => [],
 			'innerBlocks' => [],
 		],
-		fakeSocialPost()
+		fakeSocialPost(),
 	);
 
 	$links = $resolved['attributes']['_resolvedShareLinks'];
@@ -153,7 +153,7 @@ it( 'stamps share URLs for artisanpack/social-share-content from the post permal
 		->and( $bySlug['email'] )->toStartWith( 'mailto:' );
 } );
 
-it( 'returns an empty share-link list when the post has no permalink', function () {
+it( 'returns an empty share-link list when the post has no permalink', function (): void {
 	$post                    = new stdClass();
 	$post->id                = 1;
 	$post->title             = 'Hello';
@@ -167,7 +167,7 @@ it( 'returns an empty share-link list when the post has no permalink', function 
 			'attributes'  => [],
 			'innerBlocks' => [],
 		],
-		$post
+		$post,
 	);
 
 	expect( $resolved['attributes']['_resolvedShareLinks'] )->toBe( [] );

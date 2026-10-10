@@ -32,7 +32,7 @@ declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
 
-it( 'CSS-hides a nested core/buttons CTA at the non-sm breakpoints via screen-size visibility on the nav tree', function () {
+it( 'CSS-hides a nested core/buttons CTA at the non-sm breakpoints via screen-size visibility on the nav tree', function (): void {
 	$renderer = app( BlockRenderer::class );
 
 	$tree = [
@@ -94,7 +94,7 @@ it( 'CSS-hides a nested core/buttons CTA at the non-sm breakpoints via screen-si
 		->and( $html )->toContain( '@media (min-width:1536px)' );
 } );
 
-it( 'CSS-hides a core/navigation-link at a chosen breakpoint via the screen-size rule', function () {
+it( 'CSS-hides a core/navigation-link at a chosen breakpoint via the screen-size rule', function (): void {
 	$renderer = app( BlockRenderer::class );
 
 	$tree = [
@@ -129,7 +129,7 @@ it( 'CSS-hides a core/navigation-link at a chosen breakpoint via the screen-size
 		->and( $html )->toContain( '@media (min-width:768px) and (max-width:1023px)' );
 } );
 
-it( 'drops a fully-hidden nav child from output while preserving its siblings and the nav wrapper', function () {
+it( 'drops a fully-hidden nav child from output while preserving its siblings and the nav wrapper', function (): void {
 	$renderer = app( BlockRenderer::class );
 
 	$tree = [
@@ -170,7 +170,7 @@ it( 'drops a fully-hidden nav child from output while preserving its siblings an
 		->and( $html )->toContain( '<ul class="wp-block-navigation__container">' );
 } );
 
-it( 'defaults every nav child to visible when no visibility slice is set', function () {
+it( 'defaults every nav child to visible when no visibility slice is set', function (): void {
 	$renderer = app( BlockRenderer::class );
 
 	$tree = [

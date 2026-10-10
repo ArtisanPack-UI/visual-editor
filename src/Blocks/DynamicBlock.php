@@ -48,7 +48,7 @@ abstract class DynamicBlock
 	 *
 	 * @param  array<string, mixed>  $attrs  Normalized block attributes.
 	 *
-	 * @return View|Stringable|string
+	 * @return string|Stringable|View
 	 */
 	abstract public function render( array $attrs );
 

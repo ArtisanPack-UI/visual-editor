@@ -14,13 +14,13 @@ function makeBladeResponsiveResolver( array $configOverrides = [] ): ResponsiveC
 	return new ResponsiveClassResolver( $registry, $resolver );
 }
 
-it( 'returns empty class+css when given a null attribute', function () {
+it( 'returns empty class+css when given a null attribute', function (): void {
 	$resolver = makeBladeResponsiveResolver();
 
 	expect( $resolver->emit( null, 'padding' ) )->toBe( [ 'class' => '', 'css' => '' ] );
 } );
 
-it( 'emits Tailwind class strings when every value maps to a token', function () {
+it( 'emits Tailwind class strings when every value maps to a token', function (): void {
 	$resolver = makeBladeResponsiveResolver();
 
 	$attribute = [ 'base' => 4, 'sm' => 1, 'md' => 2 ];
@@ -36,7 +36,7 @@ it( 'emits Tailwind class strings when every value maps to a token', function ()
 	expect( $result['class'] )->toBe( 'grid-cols-4 sm:grid-cols-1 md:grid-cols-2' );
 } );
 
-it( 'skips redundant inherited values when tokenizing', function () {
+it( 'skips redundant inherited values when tokenizing', function (): void {
 	$resolver = makeBladeResponsiveResolver();
 
 	$attribute = [ 'base' => 4, 'sm' => 4, 'md' => 6, 'lg' => 6 ];
@@ -50,7 +50,7 @@ it( 'skips redundant inherited values when tokenizing', function () {
 	expect( $result['class'] )->toBe( 'px-4 md:px-6' );
 } );
 
-it( 'falls back to @media rules when a value cannot be tokenized', function () {
+it( 'falls back to @media rules when a value cannot be tokenized', function (): void {
 	$resolver = makeBladeResponsiveResolver();
 
 	$attribute = [ 'base' => '13px', 'md' => '18px' ];
@@ -63,7 +63,7 @@ it( 'falls back to @media rules when a value cannot be tokenized', function () {
 	expect( $result['css'] )->toContain( 'font-size:18px' );
 } );
 
-it( 'accepts a callable token map', function () {
+it( 'accepts a callable token map', function (): void {
 	$resolver = makeBladeResponsiveResolver();
 
 	$attribute = [ 'base' => 1, 'md' => 3 ];
@@ -78,7 +78,7 @@ it( 'accepts a callable token map', function () {
 	expect( $result['css'] )->toBe( '' );
 } );
 
-it( 'uses the active registry prefixes for class output', function () {
+it( 'uses the active registry prefixes for class output', function (): void {
 	// Adding a `3xl` breakpoint via config should make `3xl:` show up
 	// in the emitted class string.
 	$resolver = makeBladeResponsiveResolver( [ '3xl' => 1920 ] );

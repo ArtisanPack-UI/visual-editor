@@ -91,7 +91,7 @@ abstract class TestCase extends BaseTestCase
 		return (string) preg_replace(
 			'#<style data-ve-global-styles>.*?</style>#s',
 			'',
-			$html
+			$html,
 		);
 	}
 }

@@ -31,16 +31,6 @@ use Illuminate\Http\Response;
 
 class PostController extends WpEntityController
 {
-	protected function slug(): string
-	{
-		return 'posts';
-	}
-
-	protected function resourceClass(): string
-	{
-		return PostResource::class;
-	}
-
 	/**
 	 * Creates a new post.
 	 *
@@ -63,6 +53,16 @@ class PostController extends WpEntityController
 		$model = $this->persistUpdate( $id, $request->validated() );
 
 		return $this->toResponse( $request, $model );
+	}
+
+	protected function slug(): string
+	{
+		return 'posts';
+	}
+
+	protected function resourceClass(): string
+	{
+		return PostResource::class;
 	}
 
 	/**

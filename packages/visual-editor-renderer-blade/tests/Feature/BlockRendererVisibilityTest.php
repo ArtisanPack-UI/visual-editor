@@ -4,7 +4,7 @@ declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
 
-it( 'drops a hidden top-level block from rendered output', function () {
+it( 'drops a hidden top-level block from rendered output', function (): void {
 	$renderer = app( BlockRenderer::class );
 
 	$tree = [
@@ -22,7 +22,7 @@ it( 'drops a hidden top-level block from rendered output', function () {
 	expect( substr_count( $html, '<p' ) )->toBeLessThanOrEqual( 1 );
 } );
 
-it( 'drops a hidden inner block while preserving surrounding siblings + the parent wrapper', function () {
+it( 'drops a hidden inner block while preserving surrounding siblings + the parent wrapper', function (): void {
 	$renderer = app( BlockRenderer::class );
 
 	$tree = [
@@ -50,7 +50,7 @@ it( 'drops a hidden inner block while preserving surrounding siblings + the pare
 	expect( $html )->not->toContain( 'second-should-be-hidden' );
 } );
 
-it( 'CSS-hides a screen-sized block without dropping it', function () {
+it( 'CSS-hides a screen-sized block without dropping it', function (): void {
 	$renderer = app( BlockRenderer::class );
 
 	$tree = [
@@ -72,7 +72,7 @@ it( 'CSS-hides a screen-sized block without dropping it', function () {
 	expect( $html )->toContain( '@media (min-width:768px) and (max-width:1023px)' );
 } );
 
-it( 'preserves the parent block CSS wrapping when the parent itself has a screen-size rule and children do not', function () {
+it( 'preserves the parent block CSS wrapping when the parent itself has a screen-size rule and children do not', function (): void {
 	// Regression guard for the recursion bug: children walked via
 	// renderInner must not clobber the parent's CSS-hidden decision
 	// before the outer wrapper is applied.

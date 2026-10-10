@@ -26,7 +26,10 @@ namespace ArtisanPackUI\VisualEditor\Services\Bindings\Sources;
 use ArtisanPackUI\VisualEditor\Resources\ResourceResolver;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BlockBindingSource;
+use BackedEnum;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\QueryException;
+use Throwable;
 
 class CustomFieldSource implements BlockBindingSource
 {
@@ -93,7 +96,7 @@ class CustomFieldSource implements BlockBindingSource
 	 * @since 1.1.0
 	 *
 	 * @param  string                                                 $resource    The resource / content-type slug.
-	 * @param  class-string<\Illuminate\Database\Eloquent\Model>|null  $modelClass  The model registered for the resource, if any.
+	 * @param  class-string<Model>|null  $modelClass  The model registered for the resource, if any.
 	 *
 	 * @return array<int, array{key: string, label: string, type: string}>
 	 */
@@ -110,9 +113,14 @@ class CustomFieldSource implements BlockBindingSource
 		foreach ( $this->contentTypeKeys( $resource, $modelClass ) as $contentType ) {
 			try {
 				$rows = app( $manager )->getFieldsForContentType( $contentType );
-			} catch ( \Throwable $e ) {
+			} catch ( QueryException ) {
 				// A missing `custom_fields` table (cms-framework installed
-				// but not migrated) must not 500 the inspector.
+				// but not migrated) must not 500 the inspector. It's an
+				// expected install state, so it isn't reported on every
+				// field-picker open, and the remaining content-type
+				// lookups would hit the same table, so stop here.
+				break;
+			} catch ( Throwable $e ) {
 				report( $e );
 
 				continue;
@@ -161,7 +169,7 @@ class CustomFieldSource implements BlockBindingSource
 		try {
 			$instance = new $modelClass();
 			$table    = $instance instanceof Model ? $instance->getTable() : '';
-		} catch ( \Throwable ) {
+		} catch ( Throwable ) {
 			return $keys;
 		}
 
@@ -179,16 +187,16 @@ class CustomFieldSource implements BlockBindingSource
 	 */
 	protected function mapFieldType( mixed $fieldType ): string
 	{
-		$value = $fieldType instanceof \BackedEnum ? $fieldType->value : (string) $fieldType;
+		$value = $fieldType instanceof BackedEnum ? $fieldType->value : (string) $fieldType;
 
 		return match ( $value ) {
-			'number'             => 'number',
+			'number'              => 'number',
 			'boolean', 'checkbox' => 'boolean',
-			'date'               => 'date',
-			'datetime'           => 'datetime',
-			'url'                => 'url',
-			'image', 'file'      => 'image',
-			default              => 'string',
+			'date'                => 'date',
+			'datetime'            => 'datetime',
+			'url'                 => 'url',
+			'image', 'file'       => 'image',
+			default               => 'string',
 		};
 	}
 }

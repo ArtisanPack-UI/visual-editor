@@ -14,21 +14,21 @@ function nowIs( string $iso, string $tz = 'UTC' ): VisibilityContext
 
 // DateTimeWindowRule
 
-it( 'date-time window: visible with no start/end', function () {
+it( 'date-time window: visible with no start/end', function (): void {
 	$rule = new DateTimeWindowRule();
 	expect( $rule->evaluate( [], nowIs( '2026-07-15T12:00:00' ) )->isVisible() )->toBeTrue();
 } );
 
-it( 'date-time window: visible when now is between start and end', function () {
-	$rule = new DateTimeWindowRule();
+it( 'date-time window: visible when now is between start and end', function (): void {
+	$rule  = new DateTimeWindowRule();
 	$attrs = [ 'start' => '2026-11-24T09:00:00', 'end' => '2026-11-28T23:59:00', 'timezone' => 'UTC' ];
 	expect( $rule->evaluate( $attrs, nowIs( '2026-11-25T10:00:00', 'UTC' ) )->isVisible() )->toBeTrue();
 	expect( $rule->evaluate( $attrs, nowIs( '2026-11-23T10:00:00', 'UTC' ) )->isHidden() )->toBeTrue();
 	expect( $rule->evaluate( $attrs, nowIs( '2026-11-29T10:00:00', 'UTC' ) )->isHidden() )->toBeTrue();
 } );
 
-it( 'date-time window: honors per-rule timezone override', function () {
-	$rule = new DateTimeWindowRule();
+it( 'date-time window: honors per-rule timezone override', function (): void {
+	$rule  = new DateTimeWindowRule();
 	$attrs = [ 'start' => '2026-11-24T09:00:00', 'end' => '2026-11-28T23:59:00', 'timezone' => 'America/Chicago' ];
 	// At 2026-11-24 14:00 UTC == 08:00 Chicago, still before the start.
 	expect( $rule->evaluate( $attrs, nowIs( '2026-11-24T14:00:00', 'UTC' ) )->isHidden() )->toBeTrue();
@@ -36,35 +36,35 @@ it( 'date-time window: honors per-rule timezone override', function () {
 	expect( $rule->evaluate( $attrs, nowIs( '2026-11-24T15:00:00', 'UTC' ) )->isVisible() )->toBeTrue();
 } );
 
-it( 'date-time window: start-only means "show forever after start"', function () {
-	$rule = new DateTimeWindowRule();
+it( 'date-time window: start-only means "show forever after start"', function (): void {
+	$rule  = new DateTimeWindowRule();
 	$attrs = [ 'start' => '2026-01-01T00:00:00' ];
 	expect( $rule->evaluate( $attrs, nowIs( '2027-06-01T00:00:00' ) )->isVisible() )->toBeTrue();
 	expect( $rule->evaluate( $attrs, nowIs( '2025-06-01T00:00:00' ) )->isHidden() )->toBeTrue();
 } );
 
-it( 'date-time window: end-only means "show forever until end"', function () {
-	$rule = new DateTimeWindowRule();
+it( 'date-time window: end-only means "show forever until end"', function (): void {
+	$rule  = new DateTimeWindowRule();
 	$attrs = [ 'end' => '2026-12-31T23:59:59' ];
 	expect( $rule->evaluate( $attrs, nowIs( '2026-06-01T00:00:00' ) )->isVisible() )->toBeTrue();
 	expect( $rule->evaluate( $attrs, nowIs( '2027-01-01T00:00:00' ) )->isHidden() )->toBeTrue();
 } );
 
-it( 'date-time window: malformed range (end before start) treats block as visible', function () {
-	$rule = new DateTimeWindowRule();
+it( 'date-time window: malformed range (end before start) treats block as visible', function (): void {
+	$rule  = new DateTimeWindowRule();
 	$attrs = [ 'start' => '2026-12-31', 'end' => '2026-01-01' ];
 	expect( $rule->evaluate( $attrs, nowIs( '2026-06-01' ) )->isVisible() )->toBeTrue();
 } );
 
 // RecurringScheduleRule
 
-it( 'recurring: visible with no windows', function () {
+it( 'recurring: visible with no windows', function (): void {
 	$rule = new RecurringScheduleRule();
 	expect( $rule->evaluate( [], nowIs( '2026-07-15T12:00:00' ) )->isVisible() )->toBeTrue();
 } );
 
-it( 'recurring: visible inside a matching weekly window', function () {
-	$rule = new RecurringScheduleRule();
+it( 'recurring: visible inside a matching weekly window', function (): void {
+	$rule  = new RecurringScheduleRule();
 	$attrs = [
 		'timezone' => 'UTC',
 		'windows'  => [
@@ -80,22 +80,22 @@ it( 'recurring: visible inside a matching weekly window', function () {
 	expect( $rule->evaluate( $attrs, nowIs( '2026-07-16T12:00:00' ) )->isHidden() )->toBeTrue();
 } );
 
-it( 'recurring: caps at 14 windows', function () {
-	$rule = new RecurringScheduleRule();
+it( 'recurring: caps at 14 windows', function (): void {
+	$rule           = new RecurringScheduleRule();
 	$fifteenWindows = array_fill( 0, 15, [ 'day' => 3, 'start' => '10:00', 'end' => '14:00' ] );
-	$attrs = [ 'timezone' => 'UTC', 'windows' => $fifteenWindows ];
+	$attrs          = [ 'timezone' => 'UTC', 'windows' => $fifteenWindows ];
 	// Not testing the trimming per-se, but making sure the rule doesn't
 	// blow up on a large input.
 	expect( $rule->evaluate( $attrs, nowIs( '2026-07-15T12:00:00' ) )->isVisible() )->toBeTrue();
 } );
 
-it( 'recurring: rejects malformed HH:MM values', function () {
-	$rule = new RecurringScheduleRule();
+it( 'recurring: rejects malformed HH:MM values', function (): void {
+	$rule  = new RecurringScheduleRule();
 	$attrs = [ 'timezone' => 'UTC', 'windows' => [ [ 'day' => 3, 'start' => '25:99', 'end' => '10:00' ] ] ];
 	expect( $rule->evaluate( $attrs, nowIs( '2026-07-15T12:00:00' ) )->isHidden() )->toBeTrue();
 } );
 
-it( 'recurring: overnight windows (end < start) match both the start-day tail and the following-day head', function () {
+it( 'recurring: overnight windows (end < start) match both the start-day tail and the following-day head', function (): void {
 	$rule = new RecurringScheduleRule();
 	// Saturday 22:00 → Sunday 02:00 promo window.
 	$attrs = [
@@ -115,8 +115,8 @@ it( 'recurring: overnight windows (end < start) match both the start-day tail an
 	expect( $rule->evaluate( $attrs, nowIs( '2026-07-15T23:00:00' ) )->isHidden() )->toBeTrue();
 } );
 
-it( 'recurring: DST transition — a "10:00 America/Chicago" window is at 10:00 wall-clock regardless of season', function () {
-	$rule = new RecurringScheduleRule();
+it( 'recurring: DST transition — a "10:00 America/Chicago" window is at 10:00 wall-clock regardless of season', function (): void {
+	$rule  = new RecurringScheduleRule();
 	$attrs = [
 		'timezone' => 'America/Chicago',
 		'windows'  => [ [ 'day' => 0, 'start' => '10:00', 'end' => '11:00' ] ], // Sunday

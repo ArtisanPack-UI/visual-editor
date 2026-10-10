@@ -78,17 +78,17 @@ function fakeGoogleFonts(): void
 	] );
 }
 
-beforeEach( function () {
+beforeEach( function (): void {
 	$this->provider = new GoogleFontsProvider();
 } );
 
-it( 'reports its key, label, and self-hostability', function () {
+it( 'reports its key, label, and self-hostability', function (): void {
 	expect( $this->provider->key() )->toBe( 'google' )
 		->and( $this->provider->label() )->toBeString()->not->toBeEmpty()
 		->and( $this->provider->isSelfHostable() )->toBeTrue();
 } );
 
-it( 'browses the catalog and reports the second page as the last', function () {
+it( 'browses the catalog and reports the second page as the last', function (): void {
 	fakeGoogleFonts();
 	$provider = new GoogleFontsProvider( perPage: 1 );
 
@@ -107,7 +107,7 @@ it( 'browses the catalog and reports the second page as the last', function () {
 		->and( $second['has_more'] )->toBeFalse();
 } );
 
-it( 'clamps a non-positive page size so it never serves empty pages', function () {
+it( 'clamps a non-positive page size so it never serves empty pages', function (): void {
 	fakeGoogleFonts();
 	$provider = new GoogleFontsProvider( perPage: 0 );
 
@@ -117,7 +117,7 @@ it( 'clamps a non-positive page size so it never serves empty pages', function (
 		->and( $result['families'] )->toHaveCount( 1 );
 } );
 
-it( 'filters the catalog by a case-insensitive query', function () {
+it( 'filters the catalog by a case-insensitive query', function (): void {
 	fakeGoogleFonts();
 
 	$result = $this->provider->searchCatalog( 'INTER' );
@@ -127,7 +127,7 @@ it( 'filters the catalog by a case-insensitive query', function () {
 		->and( $result['families'][0]['is_variable'] )->toBeTrue();
 } );
 
-it( 'resolves a static family with its weight/style faces', function () {
+it( 'resolves a static family with its weight/style faces', function (): void {
 	fakeGoogleFonts();
 
 	$family = $this->provider->getFamily( 'roboto' );
@@ -143,7 +143,7 @@ it( 'resolves a static family with its weight/style faces', function () {
 		] );
 } );
 
-it( 'exposes variable axis ranges for a variable family', function () {
+it( 'exposes variable axis ranges for a variable family', function (): void {
 	fakeGoogleFonts();
 
 	$family = $this->provider->getFamily( 'inter' );
@@ -155,13 +155,13 @@ it( 'exposes variable axis ranges for a variable family', function () {
 		] );
 } );
 
-it( 'returns null for an unknown family slug', function () {
+it( 'returns null for an unknown family slug', function (): void {
 	fakeGoogleFonts();
 
 	expect( $this->provider->getFamily( 'does-not-exist' ) )->toBeNull();
 } );
 
-it( 'fetches the latin woff2 bytes and requests the right face', function () {
+it( 'fetches the latin woff2 bytes and requests the right face', function (): void {
 	fakeGoogleFonts();
 
 	$bytes = $this->provider->fetchFace( 'roboto', '700', 'normal' );
@@ -169,10 +169,10 @@ it( 'fetches the latin woff2 bytes and requests the right face', function () {
 	expect( $bytes )->toBe( fakeWoff2Bytes() );
 
 	Http::assertSent( fn ( $request ) => str_contains( $request->url(), 'family=Roboto%3Aital%2Cwght%400%2C700' ) );
-	Http::assertSent( fn ( $request ) => $request->url() === 'https://fonts.gstatic.com/s/roboto/v51/roboto-700-latin.woff2' );
+	Http::assertSent( fn ( $request ) => 'https://fonts.gstatic.com/s/roboto/v51/roboto-700-latin.woff2' === $request->url() );
 } );
 
-it( 'aborts a download whose body exceeds the configured size cap', function () {
+it( 'aborts a download whose body exceeds the configured size cap', function (): void {
 	Http::fake( [
 		'fonts.google.com/metadata/*' => Http::response( googleMetadataFixture(), 200 ),
 		'fonts.googleapis.com/css2*'  => Http::response( googleCss2Fixture(), 200 ),
@@ -186,7 +186,7 @@ it( 'aborts a download whose body exceeds the configured size cap', function () 
 		->toThrow( FontProviderException::class, 'exceeded the maximum allowed size' );
 } );
 
-it( 'sends a browser user-agent so Google serves woff2', function () {
+it( 'sends a browser user-agent so Google serves woff2', function (): void {
 	fakeGoogleFonts();
 
 	$this->provider->fetchFace( 'roboto', '400', 'italic' );
@@ -195,11 +195,11 @@ it( 'sends a browser user-agent so Google serves woff2', function () {
 		&& str_contains( $request->header( 'User-Agent' )[0] ?? '', 'Chrome' ) );
 } );
 
-it( 'declares ttf as a server-readable format (#794)', function () {
+it( 'declares ttf as a server-readable format (#794)', function (): void {
 	expect( $this->provider->serverReadableFormats() )->toBe( [ 'ttf' ] );
 } );
 
-it( 'fetches ttf bytes with a legacy user-agent and downloads a .ttf URL (#794)', function () {
+it( 'fetches ttf bytes with a legacy user-agent and downloads a .ttf URL (#794)', function (): void {
 	Http::fake( [
 		'fonts.google.com/metadata/*' => Http::response( googleMetadataFixture(), 200 ),
 		'fonts.googleapis.com/css2*'  => Http::response(
@@ -214,7 +214,7 @@ it( 'fetches ttf bytes with a legacy user-agent and downloads a .ttf URL (#794)'
 			  src: url(https://fonts.gstatic.com/s/roboto/v51/roboto-700-latin.ttf) format('truetype');
 			}
 			CSS,
-			200
+			200,
 		),
 		'fonts.gstatic.com/*' => Http::response( "\x00\x01\x00\x00" . str_repeat( "\x00", 32 ), 200 ),
 	] );
@@ -228,10 +228,10 @@ it( 'fetches ttf bytes with a legacy user-agent and downloads a .ttf URL (#794)'
 		&& ! str_contains( $request->header( 'User-Agent' )[0] ?? '', 'Chrome' ) );
 
 	// Download URL is the .ttf file, not the .woff2.
-	Http::assertSent( fn ( $request ) => $request->url() === 'https://fonts.gstatic.com/s/roboto/v51/roboto-700-latin.ttf' );
+	Http::assertSent( fn ( $request ) => 'https://fonts.gstatic.com/s/roboto/v51/roboto-700-latin.ttf' === $request->url() );
 } );
 
-it( 'rejects a downloaded ttf whose bytes do not carry the TrueType signature (#794)', function () {
+it( 'rejects a downloaded ttf whose bytes do not carry the TrueType signature (#794)', function (): void {
 	Http::fake( [
 		'fonts.google.com/metadata/*' => Http::response( googleMetadataFixture(), 200 ),
 		'fonts.googleapis.com/css2*'  => Http::response(
@@ -241,7 +241,7 @@ it( 'rejects a downloaded ttf whose bytes do not carry the TrueType signature (#
 			  src: url(https://fonts.gstatic.com/s/roboto/v51/roboto-700-latin.ttf) format('truetype');
 			}
 			CSS,
-			200
+			200,
 		),
 		// HTML masquerading as TTF — should be rejected on signature.
 		'fonts.gstatic.com/*' => Http::response( '<html>error</html>', 200 ),
@@ -251,12 +251,12 @@ it( 'rejects a downloaded ttf whose bytes do not carry the TrueType signature (#
 		->toThrow( FontProviderException::class, 'is not a TTF font' );
 } );
 
-it( 'refuses to fetch a format it does not know about (#794)', function () {
+it( 'refuses to fetch a format it does not know about (#794)', function (): void {
 	expect( fn () => $this->provider->fetchFaceInFormat( 'roboto', '400', 'normal', 'exotic' ) )
 		->toThrow( FontProviderException::class, 'cannot serve the "exotic" format' );
 } );
 
-it( 'caches the catalog so browsing hits the metadata endpoint once', function () {
+it( 'caches the catalog so browsing hits the metadata endpoint once', function (): void {
 	fakeGoogleFonts();
 
 	$this->provider->searchCatalog( '' );
@@ -266,7 +266,7 @@ it( 'caches the catalog so browsing hits the metadata endpoint once', function (
 	Http::assertSentCount( 1 );
 } );
 
-it( 'throws when the metadata endpoint responds with an error', function () {
+it( 'throws when the metadata endpoint responds with an error', function (): void {
 	Http::fake( [
 		'fonts.google.com/metadata/*' => Http::response( 'nope', 500 ),
 	] );
@@ -275,7 +275,7 @@ it( 'throws when the metadata endpoint responds with an error', function () {
 		->toThrow( FontProviderException::class );
 } );
 
-it( 'throws rather than caching an empty font list', function () {
+it( 'throws rather than caching an empty font list', function (): void {
 	Http::fake( [
 		'fonts.google.com/metadata/*' => Http::response( [ 'familyMetadataList' => [] ], 200 ),
 	] );
@@ -284,11 +284,11 @@ it( 'throws rather than caching an empty font list', function () {
 		->toThrow( FontProviderException::class );
 } );
 
-it( 'throws when no metadata entry yields a usable family', function () {
+it( 'throws when no metadata entry yields a usable family', function (): void {
 	Http::fake( [
 		'fonts.google.com/metadata/*' => Http::response(
 			[ 'familyMetadataList' => [ [ 'category' => 'Sans Serif' ], [ 'family' => '' ] ] ],
-			200
+			200,
 		),
 	] );
 
@@ -296,14 +296,14 @@ it( 'throws when no metadata entry yields a usable family', function () {
 		->toThrow( FontProviderException::class );
 } );
 
-it( 'throws when a requested face is not in the family', function () {
+it( 'throws when a requested face is not in the family', function (): void {
 	fakeGoogleFonts();
 
 	expect( fn () => $this->provider->fetchFace( 'roboto', '900', 'normal' ) )
 		->toThrow( FontProviderException::class );
 } );
 
-it( 'rejects an unsupported style instead of falling back to normal', function () {
+it( 'rejects an unsupported style instead of falling back to normal', function (): void {
 	fakeGoogleFonts();
 
 	expect( fn () => $this->provider->fetchFace( 'roboto', '400', 'oblique' ) )
@@ -314,7 +314,7 @@ it( 'rejects an unsupported style instead of falling back to normal', function (
 	Http::assertNotSent( fn ( $request ) => str_contains( $request->url(), 'css2' ) );
 } );
 
-it( 'rejects a non-numeric weight token instead of coercing it', function () {
+it( 'rejects a non-numeric weight token instead of coercing it', function (): void {
 	fakeGoogleFonts();
 
 	expect( fn () => $this->provider->fetchFace( 'roboto', '400junk', 'normal' ) )
@@ -323,7 +323,7 @@ it( 'rejects a non-numeric weight token instead of coercing it', function () {
 	Http::assertNotSent( fn ( $request ) => str_contains( $request->url(), 'css2' ) );
 } );
 
-it( 'throws when the CSS2 endpoint yields no woff2 url', function () {
+it( 'throws when the CSS2 endpoint yields no woff2 url', function (): void {
 	Http::fake( [
 		'fonts.google.com/metadata/*' => Http::response( googleMetadataFixture(), 200 ),
 		'fonts.googleapis.com/css2*'  => Http::response( '/* nothing here */', 200 ),
@@ -333,7 +333,7 @@ it( 'throws when the CSS2 endpoint yields no woff2 url', function () {
 		->toThrow( FontProviderException::class );
 } );
 
-it( 'throws when the face file download fails', function () {
+it( 'throws when the face file download fails', function (): void {
 	Http::fake( [
 		'fonts.google.com/metadata/*' => Http::response( googleMetadataFixture(), 200 ),
 		'fonts.googleapis.com/css2*'  => Http::response( googleCss2Fixture(), 200 ),
@@ -344,12 +344,12 @@ it( 'throws when the face file download fails', function () {
 		->toThrow( FontProviderException::class );
 } );
 
-it( 'refuses to download a face URL pointing off the gstatic allowlist', function () {
+it( 'refuses to download a face URL pointing off the gstatic allowlist', function (): void {
 	Http::fake( [
 		'fonts.google.com/metadata/*' => Http::response( googleMetadataFixture(), 200 ),
 		'fonts.googleapis.com/css2*'  => Http::response(
 			"/* latin */\n@font-face { src: url(http://169.254.169.254/latest/meta-data/x.woff2) format('woff2'); }",
-			200
+			200,
 		),
 	] );
 
@@ -359,7 +359,7 @@ it( 'refuses to download a face URL pointing off the gstatic allowlist', functio
 	Http::assertNotSent( fn ( $request ) => str_contains( $request->url(), '169.254.169.254' ) );
 } );
 
-it( 'rejects a downloaded body that is not a WOFF2 font', function () {
+it( 'rejects a downloaded body that is not a WOFF2 font', function (): void {
 	Http::fake( [
 		'fonts.google.com/metadata/*' => Http::response( googleMetadataFixture(), 200 ),
 		'fonts.googleapis.com/css2*'  => Http::response( googleCss2Fixture(), 200 ),
@@ -370,11 +370,11 @@ it( 'rejects a downloaded body that is not a WOFF2 font', function () {
 		->toThrow( FontProviderException::class );
 } );
 
-it( 'tolerates the anti-json-hijacking prefix on the metadata body', function () {
+it( 'tolerates the anti-json-hijacking prefix on the metadata body', function (): void {
 	Http::fake( [
 		'fonts.google.com/metadata/*' => Http::response(
 			")]}'\n" . json_encode( googleMetadataFixture() ),
-			200
+			200,
 		),
 	] );
 

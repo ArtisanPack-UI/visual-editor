@@ -233,6 +233,22 @@ addFilter('ap.visualEditor.patternRender', function (string $html, string $slug,
 
 Non-string returns are ignored so the underlying `rawContent` survives.
 
+### `ap.visualEditor.patternPreviewCacheVary`
+
+**Since v1.13.** PHP filter that adds vary data to the pattern preview cache key (`PatternPreviewCache`). The key already covers the pattern's content, the active theme, the viewer (user class and id), the locale, the request host, the global-styles version and the package version. Return extra scalars when previews depend on something else, such as a role or a tenant.
+
+**Signature:** `array $vary -> array`
+
+```php
+addFilter('ap.visualEditor.patternPreviewCacheVary', function (array $vary): array {
+    $vary['role'] = auth()->user()?->role;
+
+    return $vary;
+});
+```
+
+The filter receives an empty array. A non-array or empty return adds nothing. See [Patterns](site-editor/Patterns.md#pattern-previews).
+
 ### `ap.visualEditor.businessInfo`
 
 **Since v1.9.** PHP filter that supplies the business envelope consumed by the `artisanpack/business-hours`, `artisanpack/business-address`, `artisanpack/business-phone`, and `artisanpack/business-email` blocks (#761). Fires at render time and in the `GET /visual-editor/api/business-info` REST endpoint.
@@ -443,6 +459,8 @@ $this->app->bind(SiteEditorAccessGate::class, App\SiteEditor\MyGate::class);
 ```
 
 See [[site-editor/Access Gate]] for the contract and bundled implementations.
+
+Post-editor content-authoring endpoints (the icon picker, the SVG sanitizer and pattern previews) check the `visual-editor.edit-content` Gate ability instead. The package defines it only when the host hasn't, so `Gate::define('visual-editor.edit-content', …)` replaces the default. See [Access Gate](site-editor/Access-Gate.md#content-authoring-ability-visual-editoredit-content).
 
 ---
 

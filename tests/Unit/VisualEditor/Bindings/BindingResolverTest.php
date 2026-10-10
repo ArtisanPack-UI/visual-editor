@@ -12,12 +12,11 @@ use Tests\Fixtures\TestBlockContentModel;
 
 function makeStaticSource( string $name, callable $resolver, array $eagerRelations = [] ): BlockBindingSource
 {
-	return new class( $name, $resolver, $eagerRelations ) implements BlockBindingSource
-	{
+	return new class( $name, $resolver, $eagerRelations ) implements BlockBindingSource {
 		public function __construct(
 			protected string $sourceName,
 			protected $resolver,
-			protected array $eager
+			protected array $eager,
 		) {
 		}
 
@@ -54,13 +53,13 @@ function buildResolver( array $sources = [] ): BindingResolver
 	return new BindingResolver( $registry );
 }
 
-it( 'returns an empty tree untouched', function () {
+it( 'returns an empty tree untouched', function (): void {
 	$resolver = buildResolver();
 
 	expect( $resolver->resolve( [] ) )->toBe( [] );
 } );
 
-it( 'leaves a tree without bindings byte-identical (BC regression)', function () {
+it( 'leaves a tree without bindings byte-identical (BC regression)', function (): void {
 	$resolver = buildResolver();
 
 	$tree = [
@@ -83,7 +82,7 @@ it( 'leaves a tree without bindings byte-identical (BC regression)', function ()
 	expect( $resolver->resolve( $tree ) )->toBe( $tree );
 } );
 
-it( 'overrides a static attribute with the bound value', function () {
+it( 'overrides a static attribute with the bound value', function (): void {
 	$resolver = buildResolver( [
 		makeStaticSource( 'custom_field', fn () => 'o-heart' ),
 	] );
@@ -107,7 +106,7 @@ it( 'overrides a static attribute with the bound value', function () {
 		->and( $resolved[0]['attrs']['size'] )->toBe( 'md' );
 } );
 
-it( 'falls back to the static value by default when the binding is empty', function () {
+it( 'falls back to the static value by default when the binding is empty', function (): void {
 	$resolver = buildResolver( [
 		makeStaticSource( 'custom_field', fn () => null ),
 	] );
@@ -130,7 +129,7 @@ it( 'falls back to the static value by default when the binding is empty', funct
 	expect( $resolved[0]['attrs']['icon'] )->toBe( 'o-star' );
 } );
 
-it( 'nulls the attribute when the empty-value policy is "hide"', function () {
+it( 'nulls the attribute when the empty-value policy is "hide"', function (): void {
 	$resolver = buildResolver( [
 		makeStaticSource( 'custom_field', fn () => null ),
 	] );
@@ -155,7 +154,7 @@ it( 'nulls the attribute when the empty-value policy is "hide"', function () {
 		->and( $resolved[0]['attrs']['icon'] )->toBeNull();
 } );
 
-it( 'writes the placeholder when the empty-value policy is "placeholder"', function () {
+it( 'writes the placeholder when the empty-value policy is "placeholder"', function (): void {
 	$resolver = buildResolver( [
 		makeStaticSource( 'custom_field', fn () => null ),
 	] );
@@ -180,7 +179,7 @@ it( 'writes the placeholder when the empty-value policy is "placeholder"', funct
 	expect( $resolved[0]['attrs']['icon'] )->toBe( '— pick one —' );
 } );
 
-it( 'falls back when the named source is not registered', function () {
+it( 'falls back when the named source is not registered', function (): void {
 	$resolver = buildResolver();
 
 	$tree = [
@@ -198,9 +197,9 @@ it( 'falls back when the named source is not registered', function () {
 	expect( $resolved[0]['attrs']['icon'] )->toBe( 'o-star' );
 } );
 
-it( 'falls back when the source throws — does not break the render', function () {
+it( 'falls back when the source throws — does not break the render', function (): void {
 	$resolver = buildResolver( [
-		makeStaticSource( 'breaks', function () {
+		makeStaticSource( 'breaks', function (): void {
 			throw new RuntimeException( 'boom' );
 		} ),
 	] );
@@ -220,7 +219,7 @@ it( 'falls back when the source throws — does not break the render', function 
 	expect( $resolved[0]['attrs']['icon'] )->toBe( 'o-star' );
 } );
 
-it( 'treats 0 and false as legitimate (non-empty) bound values', function () {
+it( 'treats 0 and false as legitimate (non-empty) bound values', function (): void {
 	$resolver = buildResolver( [
 		makeStaticSource( 'flag', fn () => false ),
 		makeStaticSource( 'count', fn () => 0 ),
@@ -243,7 +242,7 @@ it( 'treats 0 and false as legitimate (non-empty) bound values', function () {
 		->and( $resolved[0]['attrs']['count'] )->toBe( 0 );
 } );
 
-it( 'resolves bindings on innerBlocks recursively', function () {
+it( 'resolves bindings on innerBlocks recursively', function (): void {
 	$resolver = buildResolver( [
 		makeStaticSource( 'custom_field', fn ( BindingContext $context, array $args ) => 'value-of-' . ( $args['key'] ?? '' ) ),
 	] );
@@ -272,7 +271,7 @@ it( 'resolves bindings on innerBlocks recursively', function () {
 	expect( $resolved[0]['innerBlocks'][0]['attrs']['icon'] )->toBe( 'value-of-featured_icon' );
 } );
 
-it( 'loads the parent model at most once across a tree of 20+ bound blocks', function () {
+it( 'loads the parent model at most once across a tree of 20+ bound blocks', function (): void {
 	$model = TestBlockContentModel::query()->create( [
 		'title'   => 'Source Of Truth',
 		'status'  => 'published',
@@ -282,7 +281,7 @@ it( 'loads the parent model at most once across a tree of 20+ bound blocks', fun
 	$resolver = buildResolver( [
 		makeStaticSource(
 			'custom_field',
-			fn ( BindingContext $context, array $args ) => $context->model()?->getAttribute( $args['key'] ?? 'title' )
+			fn ( BindingContext $context, array $args ) => $context->model()?->getAttribute( $args['key'] ?? 'title' ),
 		),
 	] );
 
@@ -315,7 +314,7 @@ it( 'loads the parent model at most once across a tree of 20+ bound blocks', fun
 		->and( $resolved[24]['attrs']['icon'] )->toBe( 'Source Of Truth' );
 } );
 
-it( 'eager-loads relations declared by source drivers exactly once', function () {
+it( 'eager-loads relations declared by source drivers exactly once', function (): void {
 	$author = Tests\TestUser::query()->create( [
 		'name'     => 'Author Name',
 		'email'    => 'author+' . uniqid() . '@example.com',
@@ -333,7 +332,7 @@ it( 'eager-loads relations declared by source drivers exactly once', function ()
 		makeStaticSource(
 			'post_core',
 			fn ( BindingContext $context, array $args ) => $context->model()?->getAttribute( 'author' )?->getAttribute( 'name' ),
-			[ 'author' ]
+			[ 'author' ],
 		),
 	] );
 
@@ -366,7 +365,7 @@ it( 'eager-loads relations declared by source drivers exactly once', function ()
 		->and( $result[9]['attrs']['name'] )->toBe( 'Author Name' );
 } );
 
-it( 'ignores malformed binding entries on a block but still rewrites valid ones', function () {
+it( 'ignores malformed binding entries on a block but still rewrites valid ones', function (): void {
 	$resolver = buildResolver( [
 		makeStaticSource( 'custom_field', fn () => 'GOOD' ),
 	] );

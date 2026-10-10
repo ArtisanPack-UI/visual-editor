@@ -66,6 +66,13 @@ class QueryInliner
 		'query-title'                => 'stampQueryTitle',
 	];
 
+	/**
+	 * Host post passed through `inline()` so the related-posts expansion
+	 * can derive taxonomy terms from it without re-threading the value
+	 * through every internal helper.
+	 */
+	protected ?object $hostPost = null;
+
 	public function __construct(
 		protected Container $container,
 		protected PostResolver $postResolver,
@@ -75,13 +82,6 @@ class QueryInliner
 			$this->variantResolver = new VariantResolver();
 		}
 	}
-
-	/**
-	 * Host post passed through `inline()` so the related-posts expansion
-	 * can derive taxonomy terms from it without re-threading the value
-	 * through every internal helper.
-	 */
-	protected ?object $hostPost = null;
 
 	/**
 	 * Walks `$tree` and returns a copy with every `core/query` block
@@ -385,7 +385,7 @@ class QueryInliner
 				$inner,
 				$postTemplateIndex,
 				$results,
-				$paginator
+				$paginator,
 			);
 		}
 
@@ -416,7 +416,7 @@ class QueryInliner
 
 				$iterationBlocks[] = $this->postResolver->stampBlock(
 					$this->cloneBlock( $child ),
-					$post
+					$post,
 				);
 			}
 
@@ -487,7 +487,7 @@ class QueryInliner
 		array $inner,
 		int $postTemplateIndex,
 		iterable $results,
-		LengthAwarePaginator $paginator
+		LengthAwarePaginator $paginator,
 	): array {
 		$postTemplate      = $inner[ $postTemplateIndex ];
 		$iterationTemplate = isset( $postTemplate['innerBlocks'] ) && is_array( $postTemplate['innerBlocks'] )
@@ -501,8 +501,8 @@ class QueryInliner
 		// inner blocks so the renderer emits an empty `<ul>` rather
 		// than N copies of the un-stamped template.
 		if ( [] === $resultsList ) {
-			$emptyPostTemplate     = array_merge( $postTemplate, [ 'innerBlocks' => [] ] );
-			$newInner              = $inner;
+			$emptyPostTemplate              = array_merge( $postTemplate, [ 'innerBlocks' => [] ] );
+			$newInner                       = $inner;
 			$newInner[ $postTemplateIndex ] = $emptyPostTemplate;
 
 			return array_merge( $block, [
@@ -556,7 +556,7 @@ class QueryInliner
 
 				$iterationBlocks[] = $this->postResolver->stampBlock(
 					$this->cloneBlock( $tmplChild ),
-					$post
+					$post,
 				);
 			}
 
@@ -590,7 +590,7 @@ class QueryInliner
 			'innerBlocks' => $expandedIterations,
 		] );
 
-		$newInner = $inner;
+		$newInner                       = $inner;
 		$newInner[ $postTemplateIndex ] = $expandedPostTemplate;
 
 		return array_merge( $block, [
@@ -746,7 +746,7 @@ class QueryInliner
 
 				$iterationBlocks[] = $this->postResolver->stampBlock(
 					$this->cloneBlock( $tmplChild ),
-					$post
+					$post,
 				);
 			}
 
@@ -785,7 +785,7 @@ class QueryInliner
 			'innerBlocks' => $expandedIterations,
 		] );
 
-		$newQueryInner = $queryInner;
+		$newQueryInner                       = $queryInner;
 		$newQueryInner[ $postTemplateIndex ] = $expandedTemplate;
 
 		// Drop `query-no-results` (results are non-empty) and stamp
@@ -883,7 +883,7 @@ class QueryInliner
 					$block['innerBlocks'],
 					$paginator,
 					$queryAttrs,
-					$isEmpty
+					$isEmpty,
 				);
 			}
 
@@ -1091,7 +1091,7 @@ class QueryInliner
 	 * @param  array<int, array<string, mixed>>   $template
 	 * @param  array<int, object>                 $results
 	 */
-	protected function expandFlat( array $block, array $attributes, array $template, array $results, \Illuminate\Contracts\Pagination\LengthAwarePaginator $paginator ): array
+	protected function expandFlat( array $block, array $attributes, array $template, array $results, LengthAwarePaginator $paginator ): array
 	{
 		$expanded = [];
 
@@ -1107,7 +1107,7 @@ class QueryInliner
 
 				$expanded[] = $this->postResolver->stampBlock(
 					$this->cloneBlock( $child ),
-					$post
+					$post,
 				);
 			}
 		}

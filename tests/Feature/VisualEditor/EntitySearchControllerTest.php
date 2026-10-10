@@ -28,6 +28,7 @@ use Tests\TestUser;
  * matching what cms-framework's resolvers emit.
  *
  * @param  list<array{slug: string, title: string, area?: string}>  $rows
+ *
  * @return list<ResolvedEntity>
  */
 function entitySearchStubEntities( array $rows ): array
@@ -62,7 +63,7 @@ function actingAsSearchUser(): TestUser
 	return $user;
 }
 
-it( 'returns an empty data array when type is missing', function () {
+it( 'returns an empty data array when type is missing', function (): void {
 	actingAsSearchUser();
 
 	$this->getJson( '/visual-editor/api/search' )
@@ -70,7 +71,7 @@ it( 'returns an empty data array when type is missing', function () {
 		->assertJsonPath( 'data', [] );
 } );
 
-it( 'returns an empty data array for an unknown type slug', function () {
+it( 'returns an empty data array for an unknown type slug', function (): void {
 	actingAsSearchUser();
 
 	$this->getJson( '/visual-editor/api/search?type=mystery&q=anything' )
@@ -78,7 +79,7 @@ it( 'returns an empty data array for an unknown type slug', function () {
 		->assertJsonPath( 'data', [] );
 } );
 
-it( 'returns an empty data array for template type when no theme resolves', function () {
+it( 'returns an empty data array for template type when no theme resolves', function (): void {
 	actingAsSearchUser();
 
 	$this->getJson( '/visual-editor/api/search?type=template' )
@@ -86,7 +87,7 @@ it( 'returns an empty data array for template type when no theme resolves', func
 		->assertJsonPath( 'data', [] );
 } );
 
-it( 'returns an empty data array for template-part type when no theme resolves', function () {
+it( 'returns an empty data array for template-part type when no theme resolves', function (): void {
 	actingAsSearchUser();
 
 	$this->getJson( '/visual-editor/api/search?type=template-part' )
@@ -102,11 +103,10 @@ it( 'returns an empty data array for template-part type when no theme resolves',
  * old string and pass against the canonical key.
  */
 
-it( 'resolves the template resolver through the container so hosts can override it', function () {
+it( 'resolves the template resolver through the container so hosts can override it', function (): void {
 	actingAsSearchUser();
 
-	app()->instance( TemplateResolver::class, new class extends TemplateResolver
-	{
+	app()->instance( TemplateResolver::class, new class extends TemplateResolver {
 		public function __construct()
 		{
 		}
@@ -126,11 +126,10 @@ it( 'resolves the template resolver through the container so hosts can override 
 		->assertJsonPath( 'data.1', [ 'type' => 'template', 'id' => 'single', 'title' => 'Single Post', 'url' => null ] );
 } );
 
-it( 'resolves the template-part resolver through the container so hosts can override it', function () {
+it( 'resolves the template-part resolver through the container so hosts can override it', function (): void {
 	actingAsSearchUser();
 
-	app()->instance( TemplatePartResolver::class, new class extends TemplatePartResolver
-	{
+	app()->instance( TemplatePartResolver::class, new class extends TemplatePartResolver {
 		public function __construct()
 		{
 		}

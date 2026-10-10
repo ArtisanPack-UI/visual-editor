@@ -42,7 +42,7 @@ class BindingResolveController extends Controller
 {
 	public function __construct(
 		protected BindingResolver $resolver,
-		protected ResourceResolver $resourceResolver
+		protected ResourceResolver $resourceResolver,
 	) {
 	}
 

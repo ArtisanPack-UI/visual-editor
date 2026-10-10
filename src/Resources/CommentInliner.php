@@ -48,7 +48,8 @@ class CommentInliner
 
 	public function __construct(
 		protected CommentResolver $commentResolver,
-	) {}
+	) {
+	}
 
 	/**
 	 * Walks `$tree` and returns a copy with every
@@ -142,7 +143,7 @@ class CommentInliner
 			'_resolvedCommentsLabel' => trans_choice(
 				'{0} :count Comments|{1} :count Comment|[2,*] :count Comments',
 				$commentCount,
-				[ 'count' => $commentCount ]
+				[ 'count' => $commentCount ],
 			),
 		] );
 
@@ -182,7 +183,7 @@ class CommentInliner
 	 */
 	protected function expandCommentTemplate( array $templateBlock, object $post ): array
 	{
-		$templateAttrs    = isset( $templateBlock['attributes'] ) && is_array( $templateBlock['attributes'] ) ? $templateBlock['attributes'] : [];
+		$templateAttrs     = isset( $templateBlock['attributes'] ) && is_array( $templateBlock['attributes'] ) ? $templateBlock['attributes'] : [];
 		$iterationTemplate = isset( $templateBlock['innerBlocks'] ) && is_array( $templateBlock['innerBlocks'] ) ? $templateBlock['innerBlocks'] : [];
 
 		$comments = $this->readComments( $post );
@@ -215,7 +216,7 @@ class CommentInliner
 
 				$iterationBlocks[] = $this->commentResolver->stampBlock(
 					$this->cloneBlock( $tmplChild ),
-					$comment
+					$comment,
 				);
 			}
 

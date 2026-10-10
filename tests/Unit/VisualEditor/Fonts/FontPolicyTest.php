@@ -3,7 +3,7 @@
 /**
  * Font Library authorization policy tests (#733).
  *
- * Covers {@see \ArtisanPackUI\VisualEditor\Fonts\Policies\FontPolicy}: browsing
+ * Covers {@see FontPolicy}: browsing
  * is always allowed, and the mutating `manage()` gate resolves the configured
  * capability against whichever RBAC contract the host user exposes — the
  * WordPress-style `hasCapability()` and, crucially for a stock cms-framework

@@ -62,7 +62,7 @@ class CategoriesBlock extends DynamicBlock
 		return sprintf(
 			'<ul class="%s">%s</ul>',
 			e( implode( ' ', $classes ) ),
-			$items
+			$items,
 		);
 	}
 
@@ -92,7 +92,7 @@ class CategoriesBlock extends DynamicBlock
 		// safer cross-database choice.
 		if ( ! $attrs['showEmpty'] ) {
 			$categories = $categories->filter(
-				static fn ( object $category ): bool => (int) ( $category->posts_count ?? 0 ) > 0
+				static fn ( object $category ): bool => (int) ( $category->posts_count ?? 0 ) > 0,
 			)->values();
 		}
 
@@ -106,7 +106,7 @@ class CategoriesBlock extends DynamicBlock
 	protected function renderFlat( Collection $categories, array $attrs ): string
 	{
 		return $categories->map(
-			fn ( object $category ): string => $this->renderItem( $category, $attrs )
+			fn ( object $category ): string => $this->renderItem( $category, $attrs ),
 		)->implode( '' );
 	}
 
@@ -125,7 +125,7 @@ class CategoriesBlock extends DynamicBlock
 		return $children->map( function ( object $category ) use ( $categories, $attrs ): string {
 			$nested = $this->renderHierarchy( $categories, (int) $category->id, $attrs );
 
-			$inner = $nested === ''
+			$inner = '' === $nested
 				? ''
 				: sprintf( '<ul class="children">%s</ul>', $nested );
 
@@ -148,7 +148,7 @@ class CategoriesBlock extends DynamicBlock
 			e( (string) $category->permalink ),
 			e( (string) $category->name ),
 			$count,
-			$extra
+			$extra,
 		);
 	}
 
@@ -176,7 +176,7 @@ class CategoriesBlock extends DynamicBlock
 		return sprintf(
 			'<ul class="%s"><li class="cat-item-empty">%s</li></ul>',
 			e( implode( ' ', $this->wrapperClasses( $attrs ) ) ),
-			e( $message )
+			e( $message ),
 		);
 	}
 }

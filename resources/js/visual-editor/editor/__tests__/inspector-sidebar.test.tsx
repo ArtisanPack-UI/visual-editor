@@ -373,4 +373,11 @@ describe('<InspectorSidebar />', () => {
 
         await expectSingleListFillIn(listPanel);
     });
+
+    // FE-8 follow-up: BlockInspector unmounts while the List View tab is
+    // active (#813), so its own Settings/Styles tab, open panels and
+    // scroll position reset on every round-trip. Keeping it mounted needs
+    // its inner `list` slot suppressed, which `@wordpress/components`
+    // offers no public API for (see the comment in `inspector-sidebar.tsx`).
+    it.todo('keeps BlockInspector panel state across a List View tab round-trip');
 });

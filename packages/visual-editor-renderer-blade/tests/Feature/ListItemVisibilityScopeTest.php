@@ -61,7 +61,7 @@ function listItemScopeHideAtMd(): array
 	];
 }
 
-it( 'merges the scope onto a core/navigation-link <li> instead of wrapping it in a <div>', function () {
+it( 'merges the scope onto a core/navigation-link <li> instead of wrapping it in a <div>', function (): void {
 	$html = app( BlockRenderer::class )->render( [
 		[
 			'name'        => 'core/navigation',
@@ -93,7 +93,7 @@ it( 'merges the scope onto a core/navigation-link <li> instead of wrapping it in
 		->and( array_unique( listItemScopeChildTagNames( $html ) ) )->toBe( [ 'li' ] );
 } );
 
-it( 'merges the scope onto a core/navigation-submenu <li> that contains nested <li>s', function () {
+it( 'merges the scope onto a core/navigation-submenu <li> that contains nested <li>s', function (): void {
 	$html = app( BlockRenderer::class )->render( [
 		[
 			'name'        => 'core/navigation',
@@ -131,7 +131,7 @@ it( 'merges the scope onto a core/navigation-submenu <li> that contains nested <
 		->and( array_unique( listItemScopeChildTagNames( $html ) ) )->toBe( [ 'li' ] );
 } );
 
-it( 'merges the scope onto a nested child link inside a submenu', function () {
+it( 'merges the scope onto a nested child link inside a submenu', function (): void {
 	$html = app( BlockRenderer::class )->render( [
 		[
 			'name'        => 'core/navigation',
@@ -162,7 +162,7 @@ it( 'merges the scope onto a nested child link inside a submenu', function () {
 		->and( array_unique( listItemScopeChildTagNames( $html ) ) )->toBe( [ 'li' ] );
 } );
 
-it( 'adds a class attribute to a core/list-item <li> that has none', function () {
+it( 'adds a class attribute to a core/list-item <li> that has none', function (): void {
 	$html = app( BlockRenderer::class )->render( [
 		[
 			'name'        => 'core/list',
@@ -191,7 +191,7 @@ it( 'adds a class attribute to a core/list-item <li> that has none', function ()
 		->and( array_unique( listItemScopeChildTagNames( $html ) ) )->toBe( [ 'li' ] );
 } );
 
-it( 'appends the scope to an existing custom className on a core/list-item', function () {
+it( 'appends the scope to an existing custom className on a core/list-item', function (): void {
 	$html = app( BlockRenderer::class )->render( [
 		[
 			'name'        => 'core/list',
@@ -215,7 +215,7 @@ it( 'appends the scope to an existing custom className on a core/list-item', fun
 		->and( $html )->not->toMatch( '/<li[^>]*\sclass=[^>]*\sclass=/' );
 } );
 
-it( 'keeps the <div> scope wrapper for blocks that do not render a single <li> root', function () {
+it( 'keeps the <div> scope wrapper for blocks that do not render a single <li> root', function (): void {
 	$html = app( BlockRenderer::class )->render( [
 		[
 			'name'        => 'core/paragraph',
@@ -239,38 +239,38 @@ function listItemScopeMerge( string $html ): ?string
 	return ( fn ( string $markup ): ?string => $this->mergeScopeIntoListItem(
 		$markup,
 		've-vis-7',
-		'@media (min-width:768px){.ve-vis-7{display:none !important;}}'
+		'@media (min-width:768px){.ve-vis-7{display:none !important;}}',
 	) )->call( app( BlockRenderer::class ), $html );
 }
 
-it( 'keeps a quoted attribute value that contains ">" intact', function () {
+it( 'keeps a quoted attribute value that contains ">" intact', function (): void {
 	expect( listItemScopeMerge( '<li title="a > b" class="item">Text</li>' ) )
 		->toBe( '<li title="a > b" class="item ve-vis-7" data-ve-vis-scope>Text<style>@media (min-width:768px){.ve-vis-7{display:none !important;}}</style></li>' );
 } );
 
-it( 'merges into an unquoted class value instead of adding a duplicate class attribute', function () {
+it( 'merges into an unquoted class value instead of adding a duplicate class attribute', function (): void {
 	$html = listItemScopeMerge( '<li class=featured>Text</li>' );
 
 	expect( $html )->toStartWith( '<li class="featured ve-vis-7" data-ve-vis-scope>' )
 		->and( substr_count( (string) $html, 'class=' ) )->toBe( 1 );
 } );
 
-it( 'merges into a single-quoted class value and escapes embedded double quotes', function () {
+it( 'merges into a single-quoted class value and escapes embedded double quotes', function (): void {
 	expect( listItemScopeMerge( "<li class='a' data-x='say \"hi\"'>Text</li>" ) )
 		->toStartWith( '<li class="a ve-vis-7" data-x=\'say "hi"\' data-ve-vis-scope>' );
 } );
 
-it( 'does not mistake a class= inside another attribute value for the class attribute', function () {
+it( 'does not mistake a class= inside another attribute value for the class attribute', function (): void {
 	expect( listItemScopeMerge( '<li title="class=x">Text</li>' ) )
 		->toStartWith( '<li title="class=x" class="ve-vis-7" data-ve-vis-scope>' );
 } );
 
-it( 'preserves boolean attributes', function () {
+it( 'preserves boolean attributes', function (): void {
 	expect( listItemScopeMerge( '<li hidden class="a">Text</li>' ) )
 		->toStartWith( '<li hidden class="a ve-vis-7" data-ve-vis-scope>' );
 } );
 
-it( 'falls back to the wrapper for sibling <li>s, non-<li> roots, and unterminated tags', function ( string $html ) {
+it( 'falls back to the wrapper for sibling <li>s, non-<li> roots, and unterminated tags', function ( string $html ): void {
 	expect( listItemScopeMerge( $html ) )->toBeNull();
 } )->with( [
 	'siblings'         => '<li>a</li><li>b</li>',

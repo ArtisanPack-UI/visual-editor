@@ -46,8 +46,7 @@ beforeEach( function (): void {
  */
 function registerFakeFontProvider(): void
 {
-	app( FontSourceRegistry::class )->register( new class implements FontProvider
-	{
+	app( FontSourceRegistry::class )->register( new class implements FontProvider {
 		public function key(): string
 		{
 			return 'fake';
@@ -230,7 +229,7 @@ describe( 'GET /visual-editor/api/fonts/sources/{provider}/catalog', function ()
 			->assertOk()
 			->assertJsonPath(
 				'data.families.0.preview_url',
-				'/visual-editor/api/fonts/sources/fake/preview/roboto'
+				'/visual-editor/api/fonts/sources/fake/preview/roboto',
 			);
 	} );
 
@@ -258,7 +257,7 @@ describe( 'GET /visual-editor/api/fonts/sources/{provider}/preview/{slug}', func
 		expect( $css )->toContain( '@font-face' );
 		expect( $css )->toContain( 'font-family: "Roboto"' );
 		expect( $css )->toContain(
-			'src: url("/visual-editor/api/fonts/sources/fake/preview/roboto/400/normal") format("woff2")'
+			'src: url("/visual-editor/api/fonts/sources/fake/preview/roboto/400/normal") format("woff2")',
 		);
 	} );
 
@@ -311,8 +310,7 @@ describe( 'GET /visual-editor/api/fonts/sources/{provider}/preview/{slug}/{weigh
 
 		// A provider whose face body exceeds the 2 MB cache ceiling: the response
 		// is still served, but nothing is written to the shared cache store.
-		app( FontSourceRegistry::class )->register( new class implements FontProvider
-		{
+		app( FontSourceRegistry::class )->register( new class implements FontProvider {
 			public function key(): string
 			{
 				return 'big';

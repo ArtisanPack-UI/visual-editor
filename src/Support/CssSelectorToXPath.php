@@ -54,9 +54,9 @@ class CssSelectorToXPath
 	 *
 	 * @param  string  $selector  A CSS selector within the supported subset.
 	 *
-	 * @return string XPath expression, relative to the context node.
-	 *
 	 * @throws UnsupportedSelectorException When the selector falls outside the supported subset.
+	 *
+	 * @return string XPath expression, relative to the context node.
 	 */
 	public static function translate( string $selector ): string
 	{
@@ -145,7 +145,7 @@ class CssSelectorToXPath
 
 			if ( preg_match( '/^:not\(([^()]+)\)/', $rest, $match ) ) {
 				$predicates[] = sprintf( 'not(%s)', self::translateSimple( $match[1] ) );
-				$cursor      += strlen( $match[0] );
+				$cursor += strlen( $match[0] );
 
 				continue;
 			}
@@ -162,7 +162,7 @@ class CssSelectorToXPath
 			[ $predicate, $consumed ] = $simple;
 
 			$predicates[] = $predicate;
-			$cursor      += $consumed;
+			$cursor += $consumed;
 		}
 
 		return [] === $predicates

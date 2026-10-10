@@ -10,6 +10,10 @@
  * border `_gradientScopeId` pattern). The scope class is
  * `ve-bs-<id>`.
  *
+ * In the canvas the CSS goes into the shared `box-shadow` style host in
+ * the canvas document's `<head>` (`support/canvas-scoped-styles.ts`)
+ * rather than a `<style>` sibling of the block (1.13.0).
+ *
  * @package @artisanpack-ui/visual-editor
  * @since 1.2.0
  */
@@ -19,6 +23,8 @@ import { createHigherOrderComponent } from '@wordpress/compose'
 import { addFilter } from '@wordpress/hooks'
 import { Fragment, createElement, useEffect, useMemo, useRef } from 'react'
 import type { ComponentType, ReactNode } from 'react'
+
+import { useCanvasScopedStyle } from '../support/canvas-scoped-styles'
 
 import { TAILWIND_V4_DEFAULTS, BreakpointRegistry } from '../responsive/registry'
 import { DEFAULT_STATES, StateRegistry } from '../states/registry'
@@ -31,6 +37,14 @@ const SAVE_PROPS_HOOK   = 'blocks.getSaveContent.extraProps'
 const SAVE_ELEMENT_HOOK = 'blocks.getSaveElement'
 
 const FILTER_NAMESPACE = 'artisanpack-ui/visual-editor/box-shadow-styles'
+
+/**
+ * Shared canvas style host the scoped box-shadow rules are published into,
+ * so no `<style>` sibling lands in the block list's layout flow.
+ *
+ * @since 1.13.0
+ */
+export const BOX_SHADOW_STYLE_CHANNEL = 'box-shadow'
 
 const REGISTERED_KEY = Symbol.for(
 	'artisanpack-ui.visual-editor.box-shadow-styles.registered',
@@ -212,6 +226,8 @@ export const withBoxShadowStyles = createHigherOrderComponent(
 				)
 			}, [ supported, effectiveScopeId, attributes ] )
 
+			useCanvasScopedStyle( BOX_SHADOW_STYLE_CHANNEL, clientId, css )
+
 			const effectiveWrapperProps: Record<string, unknown> = useMemo( () => {
 				if ( ! supported || ! effectiveScopeId ) {
 					return wrapperProps ?? {}
@@ -241,16 +257,7 @@ export const withBoxShadowStyles = createHigherOrderComponent(
 				/>
 			)
 
-			if ( '' === css ) {
-				return wrapped
-			}
-
-			return (
-				<Fragment>
-					<style data-ap-box-shadow-scope={ effectiveScopeId }>{ css }</style>
-					{ wrapped }
-				</Fragment>
-			)
+			return wrapped
 		}
 
 		BoxShadowStyledBlock.displayName = 'BoxShadowStyledBlock'

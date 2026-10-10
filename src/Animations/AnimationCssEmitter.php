@@ -84,7 +84,8 @@ class AnimationCssEmitter
 		protected KeyframeRegistry $keyframes,
 		protected BreakpointRegistry $breakpoints,
 		protected AnimationAttributeResolver $resolver,
-	) {}
+	) {
+	}
 
 	/**
 	 * Emits the animation CSS for a block scope.
@@ -225,6 +226,21 @@ class AnimationCssEmitter
 	public function hasEntrance( array $attributes ): bool
 	{
 		return $this->hasEntranceAnywhere( $attributes );
+	}
+
+	/**
+	 * The CSS the renderer should drop inside a `<noscript>` tag — when
+	 * JS doesn't run, this reveals the block in its final state.
+	 *
+	 * @since 1.1.0
+	 */
+	public function noscriptCss( string $scope ): string
+	{
+		return sprintf(
+			'%s.%s { opacity: 1; transform: none; }',
+			$scope,
+			self::PRE_CLASS,
+		);
 	}
 
 	/**
@@ -443,7 +459,7 @@ class AnimationCssEmitter
 		$easing     = $this->easingOr( $hover['easing'] ?? null, (string) $definition['easing'] );
 		$preset     = (string) ( $definition['preset'] ?? '' );
 
-		$rule  = sprintf( '%s { transition: all %dms %s; } ', $scope, $duration, $easing );
+		$rule         = sprintf( '%s { transition: all %dms %s; } ', $scope, $duration, $easing );
 		$preset_decls = self::HOVER_PRESETS[ $preset ] ?? null;
 
 		if ( null !== $preset_decls ) {
@@ -455,7 +471,7 @@ class AnimationCssEmitter
 			$rule .= sprintf(
 				'@media (hover: hover) { %s:hover { %s } } ',
 				$scope,
-				implode( ' ', $decls )
+				implode( ' ', $decls ),
 			);
 		}
 
@@ -472,7 +488,7 @@ class AnimationCssEmitter
 
 		if ( is_string( $base ) && $this->registry->has( AnimationRegistry::FAMILY_CONTINUOUS, $base ) ) {
 			$definition = $this->registry->get( AnimationRegistry::FAMILY_CONTINUOUS, $base );
-			$css       .= sprintf(
+			$css .= sprintf(
 				'%s { animation: %s %dms %s 0ms %s; } ',
 				$scope,
 				$definition['keyframe'],
@@ -546,21 +562,6 @@ class AnimationCssEmitter
 		// the renderer wraps the actual <style> tag in <noscript>. We
 		// return the rule that resets the pre-state when JS is missing.
 		return '';
-	}
-
-	/**
-	 * The CSS the renderer should drop inside a `<noscript>` tag — when
-	 * JS doesn't run, this reveals the block in its final state.
-	 *
-	 * @since 1.1.0
-	 */
-	public function noscriptCss( string $scope ): string
-	{
-		return sprintf(
-			'%s.%s { opacity: 1; transform: none; }',
-			$scope,
-			self::PRE_CLASS
-		);
 	}
 
 	protected function respectsReducedMotion( array $attributes ): bool

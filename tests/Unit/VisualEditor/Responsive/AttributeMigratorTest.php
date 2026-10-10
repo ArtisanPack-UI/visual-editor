@@ -4,13 +4,13 @@ declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\Responsive\AttributeMigrator;
 
-it( 'leaves a scalar untouched when promoting to base', function () {
+it( 'leaves a scalar untouched when promoting to base', function (): void {
 	$migrator = new AttributeMigrator();
 
 	expect( $migrator->promote( 4, 'base', 5 ) )->toBe( 5 );
 } );
 
-it( 'promotes a scalar into the discriminated form on the first non-base override', function () {
+it( 'promotes a scalar into the discriminated form on the first non-base override', function (): void {
 	$migrator = new AttributeMigrator();
 
 	expect( $migrator->promote( 4, 'md', 6 ) )->toBe( [
@@ -19,7 +19,7 @@ it( 'promotes a scalar into the discriminated form on the first non-base overrid
 	] );
 } );
 
-it( 'merges another override into an already-discriminated attribute', function () {
+it( 'merges another override into an already-discriminated attribute', function (): void {
 	$migrator = new AttributeMigrator();
 	$start    = [ 'base' => 4, 'md' => 6 ];
 
@@ -30,28 +30,28 @@ it( 'merges another override into an already-discriminated attribute', function 
 	] );
 } );
 
-it( 'demotes back to scalar when every override is cleared', function () {
+it( 'demotes back to scalar when every override is cleared', function (): void {
 	$migrator = new AttributeMigrator();
 	$attr     = [ 'base' => 4, 'md' => null, 'lg' => null ];
 
 	expect( $migrator->demote( $attr ) )->toBe( 4 );
 } );
 
-it( 'leaves the attribute alone when overrides remain', function () {
+it( 'leaves the attribute alone when overrides remain', function (): void {
 	$migrator = new AttributeMigrator();
 	$attr     = [ 'base' => 4, 'md' => 6 ];
 
 	expect( $migrator->demote( $attr ) )->toBe( $attr );
 } );
 
-it( 'clears a specific override and demotes when nothing else remains', function () {
+it( 'clears a specific override and demotes when nothing else remains', function (): void {
 	$migrator = new AttributeMigrator();
 	$attr     = [ 'base' => 4, 'md' => 6 ];
 
 	expect( $migrator->clear( $attr, 'md' ) )->toBe( 4 );
 } );
 
-it( 'clears a single override out of many and keeps the rest', function () {
+it( 'clears a single override out of many and keeps the rest', function (): void {
 	$migrator = new AttributeMigrator();
 	$attr     = [ 'base' => 4, 'sm' => 1, 'md' => 6 ];
 

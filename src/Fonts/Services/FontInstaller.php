@@ -101,14 +101,14 @@ class FontInstaller
 		if ( null === $provider ) {
 			throw new FontInstallationException( __(
 				'No font source is registered under the key ":key".',
-				[ 'key' => $providerKey ]
+				[ 'key' => $providerKey ],
 			) );
 		}
 
 		if ( ! $provider->isSelfHostable() ) {
 			throw new FontInstallationException( __(
 				'The ":source" font source is not self-hostable and cannot be installed.',
-				[ 'source' => $provider->label() ]
+				[ 'source' => $provider->label() ],
 			) );
 		}
 
@@ -117,7 +117,7 @@ class FontInstaller
 		if ( null === $family ) {
 			throw new FontInstallationException( __(
 				'The ":source" font source has no family for the slug ":slug".',
-				[ 'source' => $provider->label(), 'slug' => $slug ]
+				[ 'source' => $provider->label(), 'slug' => $slug ],
 			) );
 		}
 
@@ -125,7 +125,7 @@ class FontInstaller
 
 		if ( [] === $requested ) {
 			throw new FontInstallationException( __(
-				'At least one face must be selected to install a font.'
+				'At least one face must be selected to install a font.',
 			) );
 		}
 
@@ -135,7 +135,7 @@ class FontInstaller
 		// committed FontFace now references.
 		$font = Cache::lock( $this->installLockKey( $providerKey, $slug ), 30 )->block(
 			15,
-			fn (): Font => $this->writeAndPersist( $provider, $providerKey, $slug, $family, $requested )
+			fn (): Font => $this->writeAndPersist( $provider, $providerKey, $slug, $family, $requested ),
 		);
 
 		$this->regenerate();
@@ -182,7 +182,7 @@ class FontInstaller
 
 		if ( null === $provider ) {
 			throw new FontInstallationException( __(
-				'Custom font uploads are not enabled.'
+				'Custom font uploads are not enabled.',
 			) );
 		}
 
@@ -191,7 +191,7 @@ class FontInstaller
 		if ( '' === $slug ) {
 			throw new FontInstallationException( __(
 				'The family name ":family" does not produce a usable font slug.',
-				[ 'family' => $family ]
+				[ 'family' => $family ],
 			) );
 		}
 
@@ -199,18 +199,123 @@ class FontInstaller
 
 		if ( [] === $prepared ) {
 			throw new FontInstallationException( __(
-				'At least one valid font file must be uploaded to install a custom font.'
+				'At least one valid font file must be uploaded to install a custom font.',
 			) );
 		}
 
 		$font = Cache::lock( $this->installLockKey( $providerKey, $slug ), 30 )->block(
 			15,
-			fn (): Font => $this->writeAndPersistUploads( $providerKey, $family, $slug, $prepared )
+			fn (): Font => $this->writeAndPersistUploads( $providerKey, $family, $slug, $prepared ),
 		);
 
 		$this->regenerate();
 
 		return $font->load( 'faces' );
+	}
+
+	/**
+	 * Uninstall a single font: delete its rows (faces cascade), remove its
+	 * files, and rebuild the bundle.
+	 *
+	 * @since 1.7.0
+	 */
+	public function uninstall( Font $font ): void
+	{
+		$filesByDisk = [];
+
+		// Serialize against a concurrent install of the same family so an
+		// uninstall cannot delete face files mid-write (same lock install holds).
+		// The face relation is snapshotted inside the lock so a concurrent install
+		// cannot add a face between the snapshot and the delete, which would leave
+		// that face's file behind unreferenced.
+		Cache::lock( $this->installLockKey( (string) $font->provider, (string) $font->slug ), 30 )->block(
+			15,
+			function () use ( $font, &$filesByDisk ): void {
+				$font->load( 'faces' );
+				$filesByDisk = $this->faceFilesByDisk( $font->faces );
+
+				DB::transaction( static function () use ( $font ): void {
+					$font->delete();
+				} );
+			},
+		);
+
+		// Regenerate before removing files so the bundle already reflects the
+		// removal even if file cleanup fails; a failed delete then leaves only
+		// an orphaned file (logged), never a stylesheet referencing it.
+		$this->regenerate();
+		$this->deleteFiles( $filesByDisk );
+	}
+
+	/**
+	 * Uninstall several fonts at once, rebuilding the bundle a single time.
+	 *
+	 * Accepts {@see Font} models or their integer ids; unknown ids are skipped.
+	 *
+	 * @since 1.7.0
+	 *
+	 * @param  iterable<int, Font|int>  $fonts  The fonts (or ids) to uninstall.
+	 *
+	 * @return int The number of fonts removed.
+	 */
+	public function bulkUninstall( iterable $fonts ): int
+	{
+		$ids         = [];
+		$filesByDisk = [];
+		$lockKeys    = [];
+
+		foreach ( $fonts as $font ) {
+			$model = $font instanceof Font ? $font : Font::query()->with( 'faces' )->find( $font );
+
+			if ( null === $model ) {
+				continue;
+			}
+
+			$ids[]      = $model->id;
+			$lockKeys[] = $this->installLockKey( (string) $model->provider, (string) $model->slug );
+
+			foreach ( $model->faces as $face ) {
+				$filesByDisk[ (string) $face->disk ][] = (string) $face->path;
+			}
+		}
+
+		$ids = array_values( array_unique( $ids ) );
+
+		if ( [] === $ids ) {
+			return 0;
+		}
+
+		// Serialize against a concurrent install of any of these families, the
+		// same way uninstall() does, so an install can't commit rows whose files
+		// this call then deletes. Locks are acquired in a stable (sorted) order
+		// so two concurrent bulk operations can't deadlock, and released in a
+		// finally once the rows are gone, the bundle is rebuilt, and the files
+		// are removed.
+		$lockKeys = array_values( array_unique( $lockKeys ) );
+		sort( $lockKeys );
+
+		$locks = [];
+
+		try {
+			foreach ( $lockKeys as $key ) {
+				$lock = Cache::lock( $key, 30 );
+				$lock->block( 15 );
+				$locks[] = $lock;
+			}
+
+			DB::transaction( static function () use ( $ids ): void {
+				Font::query()->whereIn( 'id', $ids )->delete();
+			} );
+
+			$this->regenerate();
+			$this->deleteFiles( $filesByDisk );
+		} finally {
+			foreach ( $locks as $lock ) {
+				$lock->release();
+			}
+		}
+
+		return count( $ids );
 	}
 
 	/**
@@ -255,7 +360,7 @@ class FontInstaller
 				if ( $index > 0 && ( microtime( true ) - $start ) >= $budget ) {
 					throw new FontInstallationException( __(
 						'Installing ":slug" is taking too long and was stopped before the request could time out. Install fewer weights and styles at a time.',
-						[ 'slug' => $slug ]
+						[ 'slug' => $slug ],
 					) );
 				}
 
@@ -267,7 +372,7 @@ class FontInstaller
 				if ( ! $this->isFontSignature( $bytes ) ) {
 					throw new FontInstallationException( __(
 						'The face fetched for ":slug" (:weight :style) is not a recognized font file.',
-						[ 'slug' => $slug, 'weight' => $weight, 'style' => $style ]
+						[ 'slug' => $slug, 'weight' => $weight, 'style' => $style ],
 					) );
 				}
 
@@ -349,7 +454,7 @@ class FontInstaller
 							if ( ! $this->isFontSignature( $extraBytes ) ) {
 								throw new FontInstallationException( __(
 									'The :format face fetched for ":slug" (:weight :style) is not a recognized font file.',
-									[ 'format' => strtoupper( $extraFormat ), 'slug' => $slug, 'weight' => $weight, 'style' => $style ]
+									[ 'format' => strtoupper( $extraFormat ), 'slug' => $slug, 'weight' => $weight, 'style' => $style ],
 								) );
 							}
 
@@ -380,7 +485,7 @@ class FontInstaller
 									'style'    => $style,
 									'format'   => $extraFormat,
 									'error'    => $e->getMessage(),
-								]
+								],
 							);
 						}
 					}
@@ -437,7 +542,7 @@ class FontInstaller
 			throw new FontInstallationException(
 				__( 'Failed to install ":family": :error', [ 'family' => $family['family'], 'error' => $e->getMessage() ] ),
 				0,
-				$e
+				$e,
 			);
 		}
 	}
@@ -578,7 +683,7 @@ class FontInstaller
 				$this->reapObsoleteFormats(
 					$font,
 					$this->deriveAdvertisedFormatsFromWritten( $writtenFaces ),
-					$orphans
+					$orphans,
 				);
 
 				return $font;
@@ -601,7 +706,7 @@ class FontInstaller
 			throw new FontInstallationException(
 				__( 'Failed to install the uploaded font ":family": :error', [ 'family' => $family, 'error' => $e->getMessage() ] ),
 				0,
-				$e
+				$e,
 			);
 		}
 	}
@@ -635,7 +740,7 @@ class FontInstaller
 			} catch ( Throwable $e ) {
 				Log::error(
 					'Failed to restore an overwritten font face after a failed custom upload.',
-					[ 'path' => $path, 'exception' => $e ]
+					[ 'path' => $path, 'exception' => $e ],
 				);
 			}
 		}
@@ -672,111 +777,6 @@ class FontInstaller
 	}
 
 	/**
-	 * Uninstall a single font: delete its rows (faces cascade), remove its
-	 * files, and rebuild the bundle.
-	 *
-	 * @since 1.7.0
-	 */
-	public function uninstall( Font $font ): void
-	{
-		$filesByDisk = [];
-
-		// Serialize against a concurrent install of the same family so an
-		// uninstall cannot delete face files mid-write (same lock install holds).
-		// The face relation is snapshotted inside the lock so a concurrent install
-		// cannot add a face between the snapshot and the delete, which would leave
-		// that face's file behind unreferenced.
-		Cache::lock( $this->installLockKey( (string) $font->provider, (string) $font->slug ), 30 )->block(
-			15,
-			function () use ( $font, &$filesByDisk ): void {
-				$font->load( 'faces' );
-				$filesByDisk = $this->faceFilesByDisk( $font->faces );
-
-				DB::transaction( static function () use ( $font ): void {
-					$font->delete();
-				} );
-			}
-		);
-
-		// Regenerate before removing files so the bundle already reflects the
-		// removal even if file cleanup fails; a failed delete then leaves only
-		// an orphaned file (logged), never a stylesheet referencing it.
-		$this->regenerate();
-		$this->deleteFiles( $filesByDisk );
-	}
-
-	/**
-	 * Uninstall several fonts at once, rebuilding the bundle a single time.
-	 *
-	 * Accepts {@see Font} models or their integer ids; unknown ids are skipped.
-	 *
-	 * @since 1.7.0
-	 *
-	 * @param  iterable<int, Font|int>  $fonts  The fonts (or ids) to uninstall.
-	 *
-	 * @return int The number of fonts removed.
-	 */
-	public function bulkUninstall( iterable $fonts ): int
-	{
-		$ids         = [];
-		$filesByDisk = [];
-		$lockKeys    = [];
-
-		foreach ( $fonts as $font ) {
-			$model = $font instanceof Font ? $font : Font::query()->with( 'faces' )->find( $font );
-
-			if ( null === $model ) {
-				continue;
-			}
-
-			$ids[]      = $model->id;
-			$lockKeys[] = $this->installLockKey( (string) $model->provider, (string) $model->slug );
-
-			foreach ( $model->faces as $face ) {
-				$filesByDisk[ (string) $face->disk ][] = (string) $face->path;
-			}
-		}
-
-		$ids = array_values( array_unique( $ids ) );
-
-		if ( [] === $ids ) {
-			return 0;
-		}
-
-		// Serialize against a concurrent install of any of these families, the
-		// same way uninstall() does, so an install can't commit rows whose files
-		// this call then deletes. Locks are acquired in a stable (sorted) order
-		// so two concurrent bulk operations can't deadlock, and released in a
-		// finally once the rows are gone, the bundle is rebuilt, and the files
-		// are removed.
-		$lockKeys = array_values( array_unique( $lockKeys ) );
-		sort( $lockKeys );
-
-		$locks = [];
-
-		try {
-			foreach ( $lockKeys as $key ) {
-				$lock = Cache::lock( $key, 30 );
-				$lock->block( 15 );
-				$locks[] = $lock;
-			}
-
-			DB::transaction( static function () use ( $ids ): void {
-				Font::query()->whereIn( 'id', $ids )->delete();
-			} );
-
-			$this->regenerate();
-			$this->deleteFiles( $filesByDisk );
-		} finally {
-			foreach ( $locks as $lock ) {
-				$lock->release();
-			}
-		}
-
-		return count( $ids );
-	}
-
-	/**
 	 * Rebuild the `fonts.css` bundle after a committed install or uninstall.
 	 *
 	 * Regeneration runs after the DB rows and files are already persisted, so a
@@ -798,12 +798,12 @@ class FontInstaller
 			// the previous bundle stays in place and the next mutation rebuilds it.
 			Cache::lock( 'visual-editor.fonts.regenerate', 30 )->block(
 				15,
-				fn (): string => $this->cssGenerator->generate()
+				fn (): string => $this->cssGenerator->generate(),
 			);
 		} catch ( Throwable $e ) {
 			Log::error(
 				'Failed to regenerate the Font Library fonts.css bundle after a font change.',
-				[ 'exception' => $e ]
+				[ 'exception' => $e ],
 			);
 		}
 	}
@@ -890,7 +890,7 @@ class FontInstaller
 				'path'      => $face['path'],
 				'file_size' => $face['file_size'],
 				'axes'      => $face['axes'],
-			]
+			],
 		);
 	}
 
@@ -950,7 +950,7 @@ class FontInstaller
 	{
 		$map = [];
 		foreach ( $writtenFaces as $face ) {
-			$slot          = $face['weight'] . ':' . $face['style'];
+			$slot           = $face['weight'] . ':' . $face['style'];
 			$map[ $slot ][] = $face['format'];
 		}
 
@@ -1033,7 +1033,7 @@ class FontInstaller
 			} catch ( Throwable $e ) {
 				Log::error(
 					'Failed to delete Font Library face files during uninstall.',
-					[ 'disk' => $disk, 'exception' => $e ]
+					[ 'disk' => $disk, 'exception' => $e ],
 				);
 			}
 		}

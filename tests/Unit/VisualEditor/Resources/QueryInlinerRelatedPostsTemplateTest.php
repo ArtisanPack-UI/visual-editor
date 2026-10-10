@@ -67,7 +67,7 @@ beforeEach( function (): void {
 	$this->inliner = new QueryInliner( $this->app, new PostResolver() );
 } );
 
-it( 'expands related-posts under a nested post-template with one post-template-item per result', function () {
+it( 'expands related-posts under a nested post-template with one post-template-item per result', function (): void {
 	$this->fake->setItems( [
 		relatedPostFixture( 11, 'Alpha' ),
 		relatedPostFixture( 12, 'Beta' ),
@@ -91,7 +91,7 @@ it( 'expands related-posts under a nested post-template with one post-template-i
 		->and( $items[1]['innerBlocks'][0]['attributes']['_resolvedTitle'] )->toBe( 'Beta' );
 } );
 
-it( 'keeps the post-template wrapper on zero-result related-posts with empty inner blocks', function () {
+it( 'keeps the post-template wrapper on zero-result related-posts with empty inner blocks', function (): void {
 	$this->fake->setItems( [] );
 
 	$tree = [ makeRelatedPostsWithTemplateBlock( 3, [
@@ -108,7 +108,7 @@ it( 'keeps the post-template wrapper on zero-result related-posts with empty inn
 		->and( $postTemplate['innerBlocks'] )->toBe( [] );
 } );
 
-it( 'matches the first post-variant under a related-posts post-template', function () {
+it( 'matches the first post-variant under a related-posts post-template', function (): void {
 	$this->fake->setItems( [
 		relatedPostFixture( 21, 'Lead' ),
 		relatedPostFixture( 22, 'Trailing' ),
@@ -137,7 +137,7 @@ it( 'matches the first post-variant under a related-posts post-template', functi
 		->and( $items[1]['attributes']['className'] )->not->toContain( 'is-variant' );
 } );
 
-it( 'stamps _resolvedGridSpan onto variant iterations when the related-posts post-template is grid layout', function () {
+it( 'stamps _resolvedGridSpan onto variant iterations when the related-posts post-template is grid layout', function (): void {
 	$this->fake->setItems( [
 		relatedPostFixture( 31, 'Hero' ),
 	] );
@@ -165,7 +165,7 @@ it( 'stamps _resolvedGridSpan onto variant iterations when the related-posts pos
 		->and( $items[0]['attributes']['_resolvedGridSpan']['columns']['base'] )->toBe( 2 );
 } );
 
-it( 'preserves the legacy flat related-posts path (no post-template wrapper) for backward compat', function () {
+it( 'preserves the legacy flat related-posts path (no post-template wrapper) for backward compat', function (): void {
 	$this->fake->setItems( [
 		relatedPostFixture( 41, 'Legacy' ),
 	] );

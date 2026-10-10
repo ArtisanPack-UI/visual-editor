@@ -44,7 +44,7 @@ beforeEach( function (): void {
 	$this->inliner = new QueryInliner( $this->app, new PostResolver() );
 } );
 
-it( 'expands core/query into one post-template wrapping N post-template-item blocks', function () {
+it( 'expands core/query into one post-template wrapping N post-template-item blocks', function (): void {
 	$this->fake->setItems( [ postFixture( 1, 'First' ), postFixture( 2, 'Second' ) ] );
 
 	$tree = [ makeQueryBlock( [
@@ -71,7 +71,7 @@ it( 'expands core/query into one post-template wrapping N post-template-item blo
 		->and( $postTemplate['innerBlocks'][1]['innerBlocks'][0]['attributes']['_resolvedTitle'] )->toBe( 'Second' );
 } );
 
-it( 'forwards the nested query attribute payload to the resolver', function () {
+it( 'forwards the nested query attribute payload to the resolver', function (): void {
 	$tree = [ makeQueryBlock( [], [
 		'postType' => 'page',
 		'perPage'  => 5,
@@ -87,7 +87,7 @@ it( 'forwards the nested query attribute payload to the resolver', function () {
 	] );
 } );
 
-it( 'falls back to top-level attributes when query is not nested', function () {
+it( 'falls back to top-level attributes when query is not nested', function (): void {
 	$tree = [
 		[
 			'name'        => 'core/query',
@@ -101,34 +101,34 @@ it( 'falls back to top-level attributes when query is not nested', function () {
 	expect( $this->fake->lastAttributes )->toBe( [ 'postType' => 'post', 'perPage' => 2 ] );
 } );
 
-it( 'marks core/query with _resolutionError when no resolver is bound', function () {
+it( 'marks core/query with _resolutionError when no resolver is bound', function (): void {
 	$this->app->forgetInstance( QueryResolverContract::class );
 	$this->app->offsetUnset( QueryResolverContract::class );
 
-	$tree = [ makeQueryBlock() ];
+	$tree    = [ makeQueryBlock() ];
 	$inlined = $this->inliner->inline( $tree );
 
 	expect( $inlined[0]['attributes']['_resolutionError'] )->toBe( QueryInliner::ERROR_NO_RUNTIME )
 		->and( $inlined[0]['innerBlocks'] )->toBe( [] );
 } );
 
-it( 'marks core/query with _resolutionError when the resolver throws', function () {
+it( 'marks core/query with _resolutionError when the resolver throws', function (): void {
 	$throwingFake = new class extends FakeQueryResolver {
-		public function resolve( array $attributes ): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+		public function resolve( array $attributes ): Illuminate\Contracts\Pagination\LengthAwarePaginator
 		{
-			throw new \RuntimeException( 'boom' );
+			throw new RuntimeException( 'boom' );
 		}
 	};
 	$this->app->instance( QueryResolverContract::class, $throwingFake );
 	$this->inliner = new QueryInliner( $this->app, new PostResolver() );
 
-	$tree = [ makeQueryBlock() ];
+	$tree    = [ makeQueryBlock() ];
 	$inlined = $this->inliner->inline( $tree );
 
 	expect( $inlined[0]['attributes']['_resolutionError'] )->toBe( QueryInliner::ERROR_RESOLVER_ERROR );
 } );
 
-it( 'clears the post-template iterations when the result set is empty but keeps the wrapper', function () {
+it( 'clears the post-template iterations when the result set is empty but keeps the wrapper', function (): void {
 	// Empty-result behavior changed in #521 so artisanpack/query-no-results
 	// siblings can render alongside an empty post-template. The post-template
 	// wrapper survives but its inner-block tree is cleared (zero iterations)
@@ -146,7 +146,7 @@ it( 'clears the post-template iterations when the result set is empty but keeps 
 		->and( $inlined[0]['attributes']['_resolvedTotal'] )->toBe( 0 );
 } );
 
-it( 'recurses into nested queries', function () {
+it( 'recurses into nested queries', function (): void {
 	$this->fake->setItems( [ postFixture( 1, 'Outer' ) ] );
 
 	$inner = [
@@ -169,7 +169,7 @@ it( 'recurses into nested queries', function () {
 		->and( count( $nestedQuery['innerBlocks'] ) )->toBe( 1 );
 } );
 
-it( 'deep-clones the template subtree per result so mutations do not leak', function () {
+it( 'deep-clones the template subtree per result so mutations do not leak', function (): void {
 	$this->fake->setItems( [ postFixture( 1, 'A' ), postFixture( 2, 'B' ) ] );
 
 	$tree = [ makeQueryBlock( [
@@ -180,8 +180,8 @@ it( 'deep-clones the template subtree per result so mutations do not leak', func
 
 	// Post-template → core/post-template-item[0] → post-title, item[1] → post-title.
 	$postTemplate = $inlined[0]['innerBlocks'][0];
-	$first  = $postTemplate['innerBlocks'][0]['innerBlocks'][0];
-	$second = $postTemplate['innerBlocks'][1]['innerBlocks'][0];
+	$first        = $postTemplate['innerBlocks'][0]['innerBlocks'][0];
+	$second       = $postTemplate['innerBlocks'][1]['innerBlocks'][0];
 
 	expect( $first['attributes']['_resolvedTitle'] )->toBe( 'A' )
 		->and( $second['attributes']['_resolvedTitle'] )->toBe( 'B' );
@@ -213,7 +213,7 @@ function makeQueryBlockWithSiblings( array $siblings = [], array $queryAttrs = [
 	];
 }
 
-it( 'drops artisanpack/query-no-results when the query has results', function () {
+it( 'drops artisanpack/query-no-results when the query has results', function (): void {
 	$this->fake->setItems( [ postFixture( 1, 'A' ) ] );
 
 	$noResultsMarkup = [
@@ -233,7 +233,7 @@ it( 'drops artisanpack/query-no-results when the query has results', function ()
 	expect( $names )->toBe( [ 'artisanpack/post-template' ] );
 } );
 
-it( 'keeps artisanpack/query-no-results when the query has zero rows', function () {
+it( 'keeps artisanpack/query-no-results when the query has zero rows', function (): void {
 	$noResultsMarkup = [
 		'name'        => 'artisanpack/query-no-results',
 		'attributes'  => [],
@@ -254,7 +254,7 @@ it( 'keeps artisanpack/query-no-results when the query has zero rows', function 
 	// the wrapper, not its inner-block tree.
 	$noResults = array_values( array_filter(
 		$inlined[0]['innerBlocks'],
-		static fn ( array $block ): bool => 'artisanpack/query-no-results' === ( $block['name'] ?? '' )
+		static fn ( array $block ): bool => 'artisanpack/query-no-results' === ( $block['name'] ?? '' ),
 	) )[0];
 
 	expect( $noResults['innerBlocks'][0]['attributes']['content'] )->toBe( 'No matches.' )
@@ -264,7 +264,7 @@ it( 'keeps artisanpack/query-no-results when the query has zero rows', function 
 		->and( $noResults['attributes']['_resolvedCurrentPage'] )->toBe( 1 );
 } );
 
-it( 'stamps pagination URLs on the next / previous / numbers leaves', function () {
+it( 'stamps pagination URLs on the next / previous / numbers leaves', function (): void {
 	// Three posts spread over multiple pages so the paginator reports a
 	// meaningful next + previous + page range.
 	$this->fake->setItems( [ postFixture( 1, 'A' ), postFixture( 2, 'B' ) ] );
@@ -288,7 +288,7 @@ it( 'stamps pagination URLs on the next / previous / numbers leaves', function (
 
 	$pagination = array_values( array_filter(
 		$inlined[0]['innerBlocks'],
-		static fn ( array $block ): bool => 'artisanpack/query-pagination' === ( $block['name'] ?? '' )
+		static fn ( array $block ): bool => 'artisanpack/query-pagination' === ( $block['name'] ?? '' ),
 	) )[0];
 
 	$leaves = [];
@@ -307,7 +307,7 @@ it( 'stamps pagination URLs on the next / previous / numbers leaves', function (
 		->and( $leaves['artisanpack/query-pagination-numbers']['_resolvedCurrentPage'] )->toBe( 2 );
 } );
 
-it( 'emits an empty previous-page url on page 1 and stamps the next link', function () {
+it( 'emits an empty previous-page url on page 1 and stamps the next link', function (): void {
 	$this->fake->setItems( [ postFixture( 1, 'A' ) ] );
 	$this->fake->totalOverride = 4;
 	$this->fake->perPage       = 2;
@@ -328,7 +328,7 @@ it( 'emits an empty previous-page url on page 1 and stamps the next link', funct
 
 	$pagination = array_values( array_filter(
 		$inlined[0]['innerBlocks'],
-		static fn ( array $block ): bool => 'artisanpack/query-pagination' === ( $block['name'] ?? '' )
+		static fn ( array $block ): bool => 'artisanpack/query-pagination' === ( $block['name'] ?? '' ),
 	) )[0];
 
 	$leaves = [];
@@ -342,7 +342,7 @@ it( 'emits an empty previous-page url on page 1 and stamps the next link', funct
 		->and( '' )->not->toBe( $leaves['artisanpack/query-pagination-next']['_resolvedNextPageUrl'] );
 } );
 
-it( 'stamps query-title with the configured type label', function () {
+it( 'stamps query-title with the configured type label', function (): void {
 	$this->fake->setItems( [ postFixture( 1, 'A' ) ] );
 
 	$titleMarkup = [
@@ -360,13 +360,13 @@ it( 'stamps query-title with the configured type label', function () {
 
 	$title = array_values( array_filter(
 		$inlined[0]['innerBlocks'],
-		static fn ( array $block ): bool => 'artisanpack/query-title' === ( $block['name'] ?? '' )
+		static fn ( array $block ): bool => 'artisanpack/query-title' === ( $block['name'] ?? '' ),
 	) )[0];
 
 	expect( $title['attributes']['_resolvedQueryTitle'] )->toContain( 'laravel' );
 } );
 
-it( 'stamps post-type query-title even when the result set is empty', function () {
+it( 'stamps post-type query-title even when the result set is empty', function (): void {
 	// No items configured — the resolver returns zero rows but the title
 	// should still resolve from the query attributes.
 	$titleMarkup = [
@@ -381,13 +381,13 @@ it( 'stamps post-type query-title even when the result set is empty', function (
 
 	$title = array_values( array_filter(
 		$inlined[0]['innerBlocks'],
-		static fn ( array $block ): bool => 'artisanpack/query-title' === ( $block['name'] ?? '' )
+		static fn ( array $block ): bool => 'artisanpack/query-title' === ( $block['name'] ?? '' ),
 	) )[0];
 
 	expect( $title['attributes']['_resolvedQueryTitle'] )->toBe( 'Pages' );
 } );
 
-it( 'preserves host-stamped _resolvedQueryTitle overrides', function () {
+it( 'preserves host-stamped _resolvedQueryTitle overrides', function (): void {
 	$this->fake->setItems( [ postFixture( 1, 'A' ) ] );
 
 	$titleMarkup = [
@@ -405,7 +405,7 @@ it( 'preserves host-stamped _resolvedQueryTitle overrides', function () {
 
 	$title = array_values( array_filter(
 		$inlined[0]['innerBlocks'],
-		static fn ( array $block ): bool => 'artisanpack/query-title' === ( $block['name'] ?? '' )
+		static fn ( array $block ): bool => 'artisanpack/query-title' === ( $block['name'] ?? '' ),
 	) )[0];
 
 	expect( $title['attributes']['_resolvedQueryTitle'] )->toBe( 'Custom: 2026 Posts' );

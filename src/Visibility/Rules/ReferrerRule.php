@@ -55,7 +55,7 @@ class ReferrerRule implements VisibilityRule
 		}
 
 		$direction  = ( 'hide' === ( $ruleAttributes['direction'] ?? 'show' ) ) ? 'hide' : 'show';
-		$combinator = ( 'all'  === ( $ruleAttributes['combinator'] ?? 'any' ) ) ? 'all'  : 'any';
+		$combinator = ( 'all' === ( $ruleAttributes['combinator'] ?? 'any' ) ) ? 'all'  : 'any';
 
 		$host = $this->hostFromReferer( $context->referrer );
 
@@ -119,7 +119,7 @@ class ReferrerRule implements VisibilityRule
 			return $host === $suffix || str_ends_with( $host, '.' . $suffix );
 		}
 
-		return strcasecmp( $host, $pattern ) === 0;
+		return 0 === strcasecmp( $host, $pattern );
 	}
 
 	protected function hostFromReferer( string $referer ): string

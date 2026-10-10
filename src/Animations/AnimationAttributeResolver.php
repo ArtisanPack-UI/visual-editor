@@ -30,7 +30,9 @@ use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 
 class AnimationAttributeResolver
 {
-	public function __construct( protected BreakpointRegistry $breakpoints ) {}
+	public function __construct( protected BreakpointRegistry $breakpoints )
+	{
+	}
 
 	/**
 	 * Resolves the effective animation value for `$breakpoint`. Walks

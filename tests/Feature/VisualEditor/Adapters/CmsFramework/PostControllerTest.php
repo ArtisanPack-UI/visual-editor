@@ -52,7 +52,7 @@ function blockTree(): array
 	];
 }
 
-it( 'returns 401 for unauthenticated GET', function () {
+it( 'returns 401 for unauthenticated GET', function (): void {
 	$post = TestBlockContentModel::create( [
 		'title'   => 'Hello',
 		'status'  => 'published',
@@ -63,7 +63,7 @@ it( 'returns 401 for unauthenticated GET', function () {
 		->assertUnauthorized();
 } );
 
-it( 'returns a single post in the WP-shape envelope', function () {
+it( 'returns a single post in the WP-shape envelope', function (): void {
 	actor();
 
 	$post = TestBlockContentModel::create( [
@@ -83,7 +83,7 @@ it( 'returns a single post in the WP-shape envelope', function () {
 		->assertJsonPath( 'content.raw', '' );
 } );
 
-it( 'lists posts with the paginated { data, meta } envelope', function () {
+it( 'lists posts with the paginated { data, meta } envelope', function (): void {
 	actor();
 
 	for ( $i = 1; $i <= 3; $i++ ) {
@@ -105,7 +105,7 @@ it( 'lists posts with the paginated { data, meta } envelope', function () {
 		->assertJsonPath( 'meta.total', 3 );
 } );
 
-it( 'creates a post via POST and returns 201', function () {
+it( 'creates a post via POST and returns 201', function (): void {
 	actor();
 
 	$payload = [
@@ -129,7 +129,7 @@ it( 'creates a post via POST and returns 201', function () {
 	expect( $saved->getBlockContent() )->toEqual( blockTree() );
 } );
 
-it( 'updates a post via PUT and round-trips the block tree', function () {
+it( 'updates a post via PUT and round-trips the block tree', function (): void {
 	actor();
 
 	$post = TestBlockContentModel::create( [
@@ -158,7 +158,7 @@ it( 'updates a post via PUT and round-trips the block tree', function () {
 	expect( $post->fresh()->getBlockContent() )->toEqual( $next );
 } );
 
-it( 'persists a partial metadata-only PUT (excerpt + featured_media)', function () {
+it( 'persists a partial metadata-only PUT (excerpt + featured_media)', function (): void {
 	actor();
 
 	$post = TestBlockContentModel::create( [
@@ -182,7 +182,7 @@ it( 'persists a partial metadata-only PUT (excerpt + featured_media)', function 
 	expect( (int) $fresh->getAttribute( 'featured_image_id' ) )->toBe( 42 );
 } );
 
-it( 'rejects a bare-list content payload with 422', function () {
+it( 'rejects a bare-list content payload with 422', function (): void {
 	actor();
 
 	$post = TestBlockContentModel::create( [
@@ -198,7 +198,7 @@ it( 'rejects a bare-list content payload with 422', function () {
 		->assertJsonValidationErrors( 'content' );
 } );
 
-it( 'deletes a post via DELETE and returns 204', function () {
+it( 'deletes a post via DELETE and returns 204', function (): void {
 	actor();
 
 	$post = TestBlockContentModel::create( [
@@ -213,7 +213,7 @@ it( 'deletes a post via DELETE and returns 204', function () {
 	expect( TestBlockContentModel::find( $post->id ) )->toBeNull();
 } );
 
-it( 'returns 404 for a missing post', function () {
+it( 'returns 404 for a missing post', function (): void {
 	actor();
 
 	$this->getJson( '/visual-editor/api/posts/9999' )->assertNotFound();

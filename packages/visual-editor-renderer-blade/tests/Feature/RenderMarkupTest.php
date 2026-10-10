@@ -15,7 +15,7 @@ use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
  * at all).
  */
 
-it( 'renders paragraph text that the markup carries only in its saved HTML', function () {
+it( 'renders paragraph text that the markup carries only in its saved HTML', function (): void {
 	$markup = <<<'HTML'
 	<!-- wp:artisanpack/paragraph {"textColor":"text-muted"} -->
 	<p class="has-text-muted-color has-text-color">Supporting subheading.</p>
@@ -28,7 +28,7 @@ it( 'renders paragraph text that the markup carries only in its saved HTML', fun
 	expect( $html )->toContain( 'wp-block-paragraph' );
 } )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
 
-it( 'renders a whole theme-style template including nested blocks', function () {
+it( 'renders a whole theme-style template including nested blocks', function (): void {
 	$markup = <<<'HTML'
 	<!-- wp:artisanpack/group -->
 	<div class="wp-block-group">
@@ -45,35 +45,35 @@ it( 'renders a whole theme-style template including nested blocks', function () 
 	expect( $html )->toContain( '<h1' );
 } )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
 
-it( 'renders core-namespaced theme markup', function () {
+it( 'renders core-namespaced theme markup', function (): void {
 	$html = app( BlockRenderer::class )->renderMarkup(
-		'<!-- wp:paragraph --><p>HELLO</p><!-- /wp:paragraph -->'
+		'<!-- wp:paragraph --><p>HELLO</p><!-- /wp:paragraph -->',
 	);
 
 	expect( $html )->toContain( 'HELLO' );
 } )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
 
-it( 'renders the saved markup of a core/html block verbatim', function () {
+it( 'renders the saved markup of a core/html block verbatim', function (): void {
 	// #690 — `core/html` keeps everything in its saved HTML and declares
 	// no wrapper supports, so the manifest's `raw` source has to recover
 	// `content` and the partial has to emit it untouched.
 	$html = app( BlockRenderer::class )->renderMarkup(
-		'<!-- wp:html --><div class="x">Raw HTML</div><!-- /wp:html -->'
+		'<!-- wp:html --><div class="x">Raw HTML</div><!-- /wp:html -->',
 	);
 
 	expect( $html )->toContain( '<div class="x">Raw HTML</div>' );
 	expect( $html )->not->toContain( 'data-ve-unknown-block' );
 } )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
 
-it( 'renders an artisanpack/html block the same way as its core alias', function () {
+it( 'renders an artisanpack/html block the same way as its core alias', function (): void {
 	$html = app( BlockRenderer::class )->renderMarkup(
-		'<!-- wp:artisanpack/html --><p><em>Markup</em> kept as written.</p><!-- /wp:artisanpack/html -->'
+		'<!-- wp:artisanpack/html --><p><em>Markup</em> kept as written.</p><!-- /wp:artisanpack/html -->',
 	);
 
 	expect( $html )->toContain( '<p><em>Markup</em> kept as written.</p>' );
 } )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
 
-it( 'renders a core/html block from an editor-shape tree', function () {
+it( 'renders a core/html block from an editor-shape tree', function (): void {
 	$html = app( BlockRenderer::class )->render( [
 		[
 			'name'        => 'core/html',
@@ -85,7 +85,7 @@ it( 'renders a core/html block from an editor-shape tree', function () {
 	expect( $html )->toContain( '<span data-x="1">Inline</span>' );
 } );
 
-it( 'renders nothing for a core/html block with no saved content', function () {
+it( 'renders nothing for a core/html block with no saved content', function (): void {
 	$html = app( BlockRenderer::class )->render( [
 		[ 'name' => 'core/html', 'attributes' => [], 'innerBlocks' => [] ],
 	] );
@@ -93,18 +93,17 @@ it( 'renders nothing for a core/html block with no saved content', function () {
 	expect( trim( $html ) )->toBe( '' );
 } );
 
-it( 'returns an empty string for blank markup', function () {
+it( 'returns an empty string for blank markup', function (): void {
 	expect( app( BlockRenderer::class )->renderMarkup( '' ) )->toBe( '' );
 	expect( app( BlockRenderer::class )->renderMarkup( "  \n " ) )->toBe( '' );
 } );
 
-it( 'inlines template-part references instead of emitting an empty wrapper', function () {
+it( 'inlines template-part references instead of emitting an empty wrapper', function (): void {
 	// The `.html`-sourced part is the #688 case: it resolves with
 	// `blocks` empty and only its raw markup populated, so without
 	// both halves of the fix wired together this renders as
 	// `<header></header>`.
-	$resolver = new class extends TemplatePartResolver
-	{
+	$resolver = new class extends TemplatePartResolver {
 		public function __construct()
 		{
 		}
@@ -139,7 +138,7 @@ it( 'inlines template-part references instead of emitting an empty wrapper', fun
 	expect( $html )->toContain( 'Header content' );
 } )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
 
-it( 'still renders an editor-shape tree passed straight to render()', function () {
+it( 'still renders an editor-shape tree passed straight to render()', function (): void {
 	$html = app( BlockRenderer::class )->render( [
 		[ 'name' => 'artisanpack/paragraph', 'attributes' => [ 'content' => 'HELLO' ], 'innerBlocks' => [] ],
 	] );
