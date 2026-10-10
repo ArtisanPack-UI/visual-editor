@@ -427,7 +427,101 @@ it( 'adds the is-always-overlay class when overlayMenu is "always" (Keystone #54
 
 	expect( $rendered )
 		->toContain( 'is-always-overlay' )
-		->and( $rendered )->toContain( 'wp-block-navigation__responsive-container-open' );
+		->and( $rendered )->toContain( 'wp-block-navigation__responsive-container-open' )
+		// #804 — the bundled style.css only collapses the drawer at
+		// desktop widths through upstream's `hidden-by-default` +
+		// `always-shown` pair.
+		->and( $rendered )->toContain( 'wp-block-navigation__responsive-container is-always-overlay hidden-by-default' )
+		->and( $rendered )->toContain( 'class="wp-block-navigation__responsive-container-open always-shown"' );
+} );
+
+it( 'keeps the default mobile overlay free of the always-shown classes (#804)', function () {
+	$tree = [
+		[
+			'clientId'    => 'nav-1',
+			'name'        => 'core/navigation',
+			'attributes'  => [],
+			'innerBlocks' => [],
+		],
+	];
+
+	app( \ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker::class )->reset();
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+	expect( $rendered )
+		->toContain( 'class="wp-block-navigation__responsive-container-open"' )
+		->and( $rendered )->not->toContain( 'hidden-by-default' )
+		->and( $rendered )->not->toContain( 'always-shown' );
+} );
+
+it( 'drops custom overlay colors that would inject extra declarations (#804)', function () {
+	$tree = [
+		[
+			'clientId'    => 'nav-1',
+			'name'        => 'core/navigation',
+			'attributes'  => [
+				'customOverlayBackgroundColor' => '#000; position: fixed; inset: 0',
+				'customOverlayTextColor'       => 'red;background-image:url(x)',
+			],
+			'innerBlocks' => [],
+		],
+	];
+
+	app( \ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker::class )->reset();
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+	expect( $rendered )
+		->toContain( '<div class="wp-block-navigation__responsive-container" id="ap-modal-nav-1" aria-hidden="true">' )
+		->and( $rendered )->not->toContain( 'position: fixed' )
+		->and( $rendered )->not->toContain( 'background-image' );
+} );
+
+it( 'keeps a safe custom overlay color (#804)', function () {
+	$tree = [
+		[
+			'clientId'    => 'nav-1',
+			'name'        => 'core/navigation',
+			'attributes'  => [ 'customOverlayBackgroundColor' => '#111111' ],
+			'innerBlocks' => [],
+		],
+	];
+
+	app( \ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker::class )->reset();
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+	expect( $rendered )->toContain( 'class="wp-block-navigation__responsive-container has-background" id="ap-modal-nav-1" aria-hidden="true" style="background-color: #111111"' );
+} );
+
+it( 'ignores the overlay template part when overlayMenu is "never" (#804)', function () {
+	bindOverlayResolverStub( (object) [
+		'area'   => 'navigation-overlay',
+		'blocks' => [
+			[
+				'clientId'    => 'p-1',
+				'name'        => 'core/paragraph',
+				'attributes'  => [ 'content' => 'Overlay-only CTA' ],
+				'innerBlocks' => [],
+			],
+		],
+	] );
+
+	$tree = [
+		[
+			'clientId'    => 'nav-1',
+			'name'        => 'core/navigation',
+			'attributes'  => [ 'overlayMenu' => 'never', 'overlay' => 'mobile-overlay' ],
+			'innerBlocks' => [],
+		],
+	];
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+	expect( $rendered )
+		->not->toContain( 'Overlay-only CTA' )
+		->and( $rendered )->not->toContain( 'wp-block-navigation__responsive-container' );
 } );
 
 it( 'skips overlay scaffolding entirely when overlayMenu is "never" (Keystone #54)', function () {

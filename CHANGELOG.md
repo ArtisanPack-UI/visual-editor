@@ -23,9 +23,28 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   post-editor-level `visual-editor.edit-content` ability, and throttled
   the sanitizer (#834). This is defense in depth recommended by
   [GHSA-r4qj-7p7h-gjxr](https://github.com/ArtisanPack-UI/visual-editor/security/advisories/GHSA-r4qj-7p7h-gjxr).
+- The navigation block's custom overlay colors are now checked against
+  the CSS-value whitelist in all three renderers. Before, a stored value
+  such as `#000; position: fixed` could add declarations to the overlay's
+  inline `style` (#804).
+
+### Added
+
+- The React and Vue renderers now render the navigation block's mobile
+  overlay: the menu button, the responsive dialog (Escape, backdrop
+  click, focus and scroll lock), and the overlay colors. A navigation
+  overlay template part (the block's `overlay` setting) replaces the menu
+  inside the open drawer, as it does in Blade, so you can build a
+  separate overlay layout (CTAs, contact links, social icons) without
+  per-item visibility rules. Pass the part in `templateParts` with
+  `area: 'navigation-overlay'`. `BlockTree` emits the overlay CSS once in
+  a `<style data-ve-navigation-overlay>` tag (#804).
 
 ### Fixed
 
+- A navigation block with Overlay Visibility set to **Always** now keeps
+  its menu behind the menu button at desktop widths too. Before, the
+  setting acted like **Mobile** in the Blade renderer (#804).
 - The inspector sidebar now mounts only one `list` InspectorControls
   slot at a time. The block inspector is unmounted while the List View
   tab is active, so navigation menu items no longer risk rendering in

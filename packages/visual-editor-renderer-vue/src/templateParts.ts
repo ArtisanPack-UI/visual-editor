@@ -42,8 +42,39 @@ export type TemplatePartResolutionError =
 export interface TemplatePartRecord {
     slug: string;
     theme?: string;
+    /**
+     * Template-part area (`header`, `footer`, `navigation-overlay`, …).
+     * A navigation block's `overlay` reference only resolves against a
+     * part in the {@link NAVIGATION_OVERLAY_AREA} area (#804).
+     */
+    area?: string;
     blocks: Block[];
 }
+
+/**
+ * Navigation block names whose `overlay` attribute references a
+ * navigation-overlay template part (#804). `artisanpack/navigation` is
+ * the legacy stub persisted by 1.11 saves.
+ */
+export const NAVIGATION_BLOCK_NAMES: ReadonlySet<string> = new Set([
+    'core/navigation',
+    'artisanpack/navigation',
+]);
+
+/** Template-part area a navigation `overlay` reference must resolve to. */
+export const NAVIGATION_OVERLAY_AREA = 'navigation-overlay';
+
+/**
+ * Synthetic block appended to a navigation block's inner blocks when its
+ * `overlay` part resolves. It carries the part's blocks and is routed by
+ * `BlockTree` into the navigation renderer's `overlay` slot rather than
+ * rendered in place, so the overlay content renders inside the open
+ * drawer instead of the menu `<ul>`.
+ */
+export const NAVIGATION_OVERLAY_CONTENT_BLOCK = 'artisanpack/navigation-overlay-content';
+
+/** Slot name the overlay content block is routed into. */
+export const NAVIGATION_OVERLAY_SLOT = 'overlay';
 
 export interface TemplateRecord {
     slug: string;
@@ -158,10 +189,19 @@ function walk(tree: Block[], context: WalkContext): Block[] {
         }
 
         const inner = Array.isArray(block.innerBlocks) ? block.innerBlocks : [];
+        const innerBlocks = walk(inner, context);
+
+        if (NAVIGATION_BLOCK_NAMES.has(name)) {
+            const overlay = resolveNavigationOverlay(block, context);
+
+            if (overlay !== null) {
+                innerBlocks.push(overlay);
+            }
+        }
 
         out.push({
             ...block,
-            innerBlocks: walk(inner, context),
+            innerBlocks,
         });
     }
 
@@ -213,6 +253,60 @@ function resolvePart(block: Block, context: WalkContext): Block {
             theme,
         },
         innerBlocks: walk(Array.isArray(part.blocks) ? part.blocks : [], childContext),
+    };
+}
+
+/**
+ * Resolve a navigation block's `overlay` template part into the synthetic
+ * overlay-content block (#804). Mirrors the Blade partial's fallbacks:
+ * the overlay is skipped (the drawer keeps showing the menu) when the
+ * overlay is switched off, the slug is empty or unknown, the part sits
+ * outside the `navigation-overlay` area, it has no blocks, or resolving
+ * it would cycle / exceed the depth limit.
+ */
+function resolveNavigationOverlay(block: Block, context: WalkContext): Block | null {
+    const attrs = block.attributes ?? {};
+
+    if (attrs.overlayMenu === 'never') {
+        return null;
+    }
+
+    const slug = typeof attrs.overlay === 'string' ? attrs.overlay.trim() : '';
+
+    if (slug === '' || context.depth >= context.maxDepth) {
+        return null;
+    }
+
+    const theme = context.defaultTheme ?? '';
+    const key = `${theme}/${slug}`;
+
+    if (context.stack.includes(key)) {
+        return null;
+    }
+
+    const part = findPart(context.parts, slug, theme);
+
+    if (part === undefined || part.area !== NAVIGATION_OVERLAY_AREA) {
+        return null;
+    }
+
+    const partBlocks = Array.isArray(part.blocks) ? part.blocks : [];
+
+    if (partBlocks.length === 0) {
+        return null;
+    }
+
+    const navClientId = typeof block.clientId === 'string' ? block.clientId : '';
+
+    return {
+        ...(navClientId === '' ? {} : { clientId: `${navClientId}-overlay` }),
+        name: NAVIGATION_OVERLAY_CONTENT_BLOCK,
+        attributes: { _slot: NAVIGATION_OVERLAY_SLOT, slug },
+        innerBlocks: walk(partBlocks, {
+            ...context,
+            stack: [...context.stack, key],
+            depth: context.depth + 1,
+        }),
     };
 }
 
