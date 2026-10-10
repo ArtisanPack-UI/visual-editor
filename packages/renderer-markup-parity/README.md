@@ -99,18 +99,51 @@ divergence — see **Known divergences** below.
 
 ## Known divergences
 
-### Class tokens encoded in `fixtures.json`
+### Divergences encoded in `fixtures.json`
 
-`knownDivergences` declares class tokens that one renderer emits and the
-others do not, with the reason and the tracking issue. Matching tokens
-are dropped from every class attribute on both sides before comparison —
-narrow and explicit, rather than loosening the match.
+`knownDivergences` declares renderer differences that are deliberate,
+each with an `id`, the tracking `issue`, a short `reason`, and **exactly
+one** drop rule — narrow and explicit, rather than loosening the match:
 
-**The list is currently empty**: every former class-token divergence has
-converged. The `ve-w-<hash>` column-width scope (#712/#487) and the
-`has-photo-grid` / `photo-grid-<hash>` scope (#714/#594) are now emitted
-identically by all three renderers, and their CSS bodies are compared
-directly (see **Scope** above) rather than dropped.
+| Key | Drops |
+| --- | --- |
+| `dropClassTokensMatching` | class tokens matching the regex, from every `class` attribute |
+| `dropAttributesMatching` | attributes whose lowercased name matches the regex |
+| `dropElementsMatching` | elements (subtree included) whose canonical open tag — the exact `<tag attr="…">` line the serializer emits, after attribute drops — matches the regex |
+| `dropRendererStyleTag` | a renderer `<style data-ve-*>` tag (exact attribute name), dropped like the global layer instead of compared as per-instance CSS |
+
+An optional `fixturesMatching` regex (tested against the fixture name)
+scopes the entry, so a divergence declared for one block cannot hide the
+same drift anywhere else. Both suites assert that every pattern compiles,
+that every entry carries a reason and exactly one drop rule, and that
+every `fixturesMatching` scope still matches a fixture.
+
+A fixture may also carry `templateParts` (`slug`, `area`, `blocks`): the
+JS suite passes them to `BlockTree`'s `templateParts` prop, and the Pest
+suite serves them through a `TemplatePartResolver` stub.
+
+Currently declared (RN-12, navigation):
+
+- **Overlay (`^navigation-overlay-`).** Element `id`s (Blade tracker ids,
+  React `useId()`, none in Vue) and the open button's `aria-controls`
+  that points at them; Blade's `data-ap-nav-overlay-*` script hooks; the
+  attribute-less inline `<style>` / `<script>` Blade emits once per
+  response; and the JS renderers' `<style data-ve-navigation-overlay>`.
+  Everything else — `aria-expanded`, `aria-haspopup`, labels, the absence
+  of `aria-hidden` / dialog semantics while closed, `always` classes, and
+  overlay color classes / styles including slug sanitizing — is compared.
+- **Nav-level attributes only Blade honors
+  (`navigation-layout-colors-elements`).** `layout.orientation` /
+  `layout.justifyContent`, the block-specific `customTextColor` /
+  `customBackgroundColor`, and `ElementsSupport` link colors
+  (`wp-elements-*` class plus its `<style>`). Delete these entries if the
+  JS renderers gain support — the fixture will then pin the shared markup.
+
+The former class-token divergences have all converged: the `ve-w-<hash>`
+column-width scope (#712/#487) and the `has-photo-grid` /
+`photo-grid-<hash>` scope (#714/#594) are emitted identically by all
+three renderers, and their CSS bodies are compared directly (see
+**Scope** above) rather than dropped.
 
 ### One-way CSS divergences (stripped, not compared)
 

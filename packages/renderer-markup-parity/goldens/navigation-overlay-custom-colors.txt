@@ -1,0 +1,40 @@
+<nav aria-label="Primary" class="wp-block-navigation is-horizontal is-responsive">
+  <button aria-expanded="false" aria-haspopup="dialog" aria-label="Primary" class="wp-block-navigation__responsive-container-open" type="button">
+    <svg aria-hidden="true" focusable="false" height="24" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+      <rect height="1.5" width="16" x="4" y="7.5">
+      </rect>
+      <rect height="1.5" width="16" x="4" y="15">
+      </rect>
+    </svg>
+  </button>
+  <div class="wp-block-navigation__responsive-container has-background has-text-color" style="background-color: #112233; color: rgb(250, 250, 250)">
+    <div class="wp-block-navigation__responsive-close" tabindex="-1">
+      <div class="wp-block-navigation__responsive-dialog">
+        <button aria-label="Close menu" class="wp-block-navigation__responsive-container-close" type="button">
+          <svg aria-hidden="true" focusable="false" height="24" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M13 11.8l6.1-6.3-1-1-6.1 6.2-6.1-6.2-1 1 6.1 6.3-6.5 6.7 1 1 6.5-6.6 6.5 6.6 1-1z">
+            </path>
+          </svg>
+        </button>
+        <div class="wp-block-navigation__responsive-container-content">
+          <ul class="wp-block-navigation__container">
+            <li class="wp-block-navigation-item wp-block-navigation-link">
+              <a class="wp-block-navigation-item__content" href="/">
+                <span class="wp-block-navigation-item__label">
+                  "Home"
+                </span>
+              </a>
+            </li>
+            <li class="wp-block-navigation-item wp-block-navigation-link">
+              <a class="wp-block-navigation-item__content" href="/about">
+                <span class="wp-block-navigation-item__label">
+                  "About"
+                </span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>

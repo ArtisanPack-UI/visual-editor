@@ -70,22 +70,74 @@ function markupParityManifest(): array
 }
 
 /**
- * Class-token regexes for the declared, documented renderer divergences.
+ * The `drop*` keys a `knownDivergences` entry may carry — exactly one per
+ * entry. Mirrors `DROP_KEYS` in blade-parity.test.ts.
  *
  * @return array<int, string>
  */
-function markupParityDropClassPatterns(): array
+function markupParityDropKeys(): array
 {
-	return array_map(
-		static fn ( array $divergence ): string => $divergence['dropClassTokensMatching'],
-		markupParityManifest()['knownDivergences'] ?? []
-	);
+	return [
+		'dropClassTokensMatching',
+		'dropAttributesMatching',
+		'dropElementsMatching',
+		'dropRendererStyleTag',
+	];
+}
+
+/**
+ * The declared, documented renderer divergences.
+ *
+ * @return array<int, array<string, string>>
+ */
+function markupParityDivergences(): array
+{
+	return markupParityManifest()['knownDivergences'] ?? [];
+}
+
+/**
+ * The declared divergences that apply to one fixture, grouped by `drop*`
+ * key. An entry's optional `fixturesMatching` regex (tested against the
+ * fixture name) scopes it, so a divergence declared for one block cannot
+ * mask the same drift anywhere else. Mirrors `divergencesFor()` in
+ * blade-parity.test.ts.
+ *
+ * @since 1.13.0
+ *
+ * @param  string  $name  Fixture name.
+ *
+ * @return array<string, array<int, string>> Drop key => declared values.
+ */
+function markupParityDivergencesFor( string $name ): array
+{
+	$grouped = array_fill_keys( markupParityDropKeys(), [] );
+
+	foreach ( markupParityDivergences() as $divergence ) {
+		$scope = $divergence['fixturesMatching'] ?? null;
+
+		if ( null !== $scope && 1 !== preg_match( CanonicalMarkup::compileDropClassPattern( $scope ), $name ) ) {
+			continue;
+		}
+
+		foreach ( markupParityDropKeys() as $key ) {
+			if ( isset( $divergence[ $key ] ) && is_string( $divergence[ $key ] ) ) {
+				$grouped[ $key ][] = $divergence[ $key ];
+			}
+		}
+	}
+
+	return $grouped;
 }
 
 /**
  * Loads the shared, language-neutral fixture set.
  *
- * @return array<string, array{0: string, 1: array<int, mixed>}>
+ * A fixture may carry an optional `templateParts` list (`slug`, `area`,
+ * `blocks`); the JS side hands it to `BlockTree`'s `templateParts` prop
+ * and this suite serves it through a TemplatePartResolver stub (see
+ * markupParityBindTemplateParts()).
+ *
+ * @return array<string, array{0: string, 1: array<int, mixed>, 2: array<int, array<string, mixed>>}>
  */
 function markupParityFixtures(): array
 {
@@ -94,10 +146,53 @@ function markupParityFixtures(): array
 	$dataset = [];
 
 	foreach ( $json['fixtures'] as $fixture ) {
-		$dataset[ $fixture['name'] ] = [ $fixture['name'], $fixture['tree'] ];
+		$dataset[ $fixture['name'] ] = [ $fixture['name'], $fixture['tree'], $fixture['templateParts'] ?? [] ];
 	}
 
 	return $dataset;
+}
+
+/**
+ * Serves a fixture's `templateParts` through a stub bound under
+ * cms-framework's TemplatePartResolver FQCN — the resolver the Blade
+ * navigation partial asks for an `overlay` part. Mirrors the JS side
+ * passing the same records to `BlockTree`'s `templateParts` prop.
+ *
+ * @since 1.13.0
+ *
+ * @param  array<int, array<string, mixed>>  $templateParts  Fixture template-part records.
+ */
+function markupParityBindTemplateParts( array $templateParts ): void
+{
+	$parts = [];
+
+	foreach ( $templateParts as $part ) {
+		$parts[ (string) $part['slug'] ] = $part;
+	}
+
+	$stub = new class( $parts ) {
+		/**
+		 * @param  array<string, array<string, mixed>>  $parts  Slug => template-part record.
+		 */
+		public function __construct( private array $parts ) {}
+
+		public function resolve( string $slug ): ?object
+		{
+			if ( ! array_key_exists( $slug, $this->parts ) ) {
+				return null;
+			}
+
+			return (object) [
+				'area'   => $this->parts[ $slug ]['area'] ?? null,
+				'blocks' => $this->parts[ $slug ]['blocks'] ?? [],
+			];
+		}
+	};
+
+	app()->bind(
+		'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Resolution\\TemplatePartResolver',
+		fn () => $stub,
+	);
 }
 
 /**
@@ -143,11 +238,16 @@ function markupParityGlobalStyleAttrs(): array
  * compared regardless of which tag each renderer delivers them in. Mirrors
  * `extractRendererCss()` in blade-parity.test.ts.
  *
+ * @param  string              $html              Rendered HTML.
+ * @param  array<int, string>  $droppedStyleTags  Declared `dropRendererStyleTag`
+ *                                                attributes, dropped like the
+ *                                                global layer rather than compared.
+ *
  * @return array{markup: string, css: string}
  */
-function markupParityExtractCss( string $html ): array
+function markupParityExtractCss( string $html, array $droppedStyleTags = [] ): array
 {
-	$global   = markupParityGlobalStyleAttrs();
+	$global   = array_merge( markupParityGlobalStyleAttrs(), $droppedStyleTags );
 	$captured = [];
 
 	$markup = (string) preg_replace_callback(
@@ -228,14 +328,22 @@ function markupParityCanonicalCss( string $css ): string
 	return implode( "\n", $rules );
 }
 
-it( 'matches the golden markup shared with the React and Vue renderers', function ( string $name, array $tree ) {
+it( 'matches the golden markup shared with the React and Vue renderers', function ( string $name, array $tree, array $templateParts ) {
+	if ( [] !== $templateParts ) {
+		markupParityBindTemplateParts( $templateParts );
+	}
+
 	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
 
-	$extracted = markupParityExtractCss( $rendered );
+	$divergences = markupParityDivergencesFor( $name );
+
+	$extracted = markupParityExtractCss( $rendered, $divergences['dropRendererStyleTag'] );
 
 	$canonicalMarkup = CanonicalMarkup::fromHtml(
 		$extracted['markup'],
-		markupParityDropClassPatterns()
+		$divergences['dropClassTokensMatching'],
+		$divergences['dropAttributesMatching'],
+		$divergences['dropElementsMatching'],
 	);
 
 	$canonicalCss = markupParityCanonicalCss( $extracted['css'] );
@@ -289,11 +397,46 @@ it( 'has a golden for every fixture and no orphaned goldens', function () {
  * declared pattern compiles", not that any are declared.
  */
 it( 'compiles every declared divergence pattern', function () {
-	$patterns = markupParityDropClassPatterns();
+	$divergences = markupParityDivergences();
 
-	expect( $patterns )->toBeArray();
+	expect( $divergences )->toBeArray();
 
-	foreach ( $patterns as $pattern ) {
-		expect( CanonicalMarkup::compileDropClassPattern( $pattern ) )->toBeString();
+	foreach ( $divergences as $divergence ) {
+		foreach ( [ 'dropClassTokensMatching', 'dropAttributesMatching', 'dropElementsMatching', 'fixturesMatching' ] as $key ) {
+			if ( isset( $divergence[ $key ] ) ) {
+				expect( CanonicalMarkup::compileDropClassPattern( $divergence[ $key ] ) )->toBeString();
+			}
+		}
+	}
+} );
+
+/**
+ * A malformed entry would otherwise silently drop nothing (or everything)
+ * on one side only. Mirrors the vitest twin.
+ */
+it( 'declares every divergence with a reason and exactly one drop rule', function () {
+	foreach ( markupParityDivergences() as $divergence ) {
+		expect( $divergence['id'] ?? null )->toBeString()
+			->and( $divergence['issue'] ?? '' )->not->toBe( '' )
+			->and( $divergence['reason'] ?? '' )->not->toBe( '' )
+			->and( array_intersect( markupParityDropKeys(), array_keys( $divergence ) ) )->toHaveCount( 1 );
+	}
+} );
+
+/**
+ * A `fixturesMatching` scope that matches no fixture is a stale entry: the
+ * divergence it documents is no longer exercised. Mirrors the vitest twin.
+ */
+it( 'scopes every divergence to at least one fixture', function () {
+	$names = array_keys( markupParityFixtures() );
+
+	foreach ( markupParityDivergences() as $divergence ) {
+		if ( ! isset( $divergence['fixturesMatching'] ) ) {
+			continue;
+		}
+
+		$pattern = CanonicalMarkup::compileDropClassPattern( $divergence['fixturesMatching'] );
+
+		expect( preg_grep( $pattern, $names ) )->not->toBeEmpty( $divergence['id'] . ' matches no fixture' );
 	}
 } );

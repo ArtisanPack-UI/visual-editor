@@ -38,18 +38,52 @@ const VOID_ELEMENTS = new Set([
 let dropClassPatterns: RegExp[] = [];
 
 /**
+ * Attribute-name regexes declared as known renderer divergences.
+ */
+let dropAttributePatterns: RegExp[] = [];
+
+/**
+ * Canonical open-tag regexes declared as known renderer divergences.
+ */
+let dropElementPatterns: RegExp[] = [];
+
+/**
+ * Extra, attribute- and element-level divergence declarations (see the
+ * `knownDivergences` block in fixtures.json).
+ */
+export interface CanonicalizeOptions {
+    /**
+     * Regex sources matched against lowercased attribute names
+     * (`dropAttributesMatching`). A matching attribute is dropped from
+     * every element before comparison.
+     */
+    dropAttributes?: string[];
+    /**
+     * Regex sources matched against an element's canonical open tag — the
+     * exact `<tag attr="…">` line the serializer would emit, after
+     * attribute drops (`dropElementsMatching`). A matching element is
+     * dropped together with its whole subtree.
+     */
+    dropElements?: string[];
+}
+
+/**
  * Serializes rendered HTML into the canonical comparison form.
  *
  * `dropClassPatternSources` carries regex sources for class tokens that
  * are declared, documented divergences (see the `knownDivergences` block
  * in fixtures.json). Matching tokens are dropped from every class
- * attribute before comparison.
+ * attribute before comparison. `options` carries the attribute- and
+ * element-level declarations the same way.
  */
 export function canonicalizeHtml(
     html: string,
-    dropClassPatternSources: string[] = []
+    dropClassPatternSources: string[] = [],
+    options: CanonicalizeOptions = {}
 ): string {
     dropClassPatterns = dropClassPatternSources.map((source) => new RegExp(source));
+    dropAttributePatterns = (options.dropAttributes ?? []).map((source) => new RegExp(source));
+    dropElementPatterns = (options.dropElements ?? []).map((source) => new RegExp(source));
 
     const root = document.createElement('div');
 
@@ -119,6 +153,12 @@ function serializeElement(element: Element, depth: number, lines: string[]): voi
     const tag = element.tagName.toLowerCase();
 
     const attributes = Array.from(element.attributes)
+        .filter(
+            (attribute) =>
+                !dropAttributePatterns.some((pattern) =>
+                    pattern.test(attribute.name.toLowerCase())
+                )
+        )
         .map((attribute) => ({
             name: attribute.name.toLowerCase(),
             value: canonicalAttributeValue(
@@ -132,13 +172,17 @@ function serializeElement(element: Element, depth: number, lines: string[]): voi
         .map(({ name, value }) => ` ${name}="${escape(value)}"`)
         .join('');
 
-    if (VOID_ELEMENTS.has(tag)) {
-        lines.push(`${indent}<${tag}${serialized} />`);
+    const openTag = VOID_ELEMENTS.has(tag) ? `<${tag}${serialized} />` : `<${tag}${serialized}>`;
 
+    if (dropElementPatterns.some((pattern) => pattern.test(openTag))) {
         return;
     }
 
-    lines.push(`${indent}<${tag}${serialized}>`);
+    lines.push(`${indent}${openTag}`);
+
+    if (VOID_ELEMENTS.has(tag)) {
+        return;
+    }
 
     serializeChildren(element, depth + 1, lines);
 
