@@ -70,6 +70,12 @@ class CustomFieldSource implements BlockBindingSource
 			return null;
 		}
 
+		// Never surface a column the model hides from serialization
+		// (#848): front-end renders publish the resolved value.
+		if ( in_array( $key, $model->getHidden(), true ) ) {
+			return null;
+		}
+
 		return $model->getAttribute( $key );
 	}
 

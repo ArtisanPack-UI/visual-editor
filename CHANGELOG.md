@@ -6,6 +6,27 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Fixed
+
+- Block bindings (`custom_field`, `post_core`, `relation`) now resolve on
+  the front end. `<x-ve-blocks :tree :post>` resolved every binding with
+  no record in scope, so blocks fell back to their static attributes
+  (or were blanked under the `hide` / `placeholder` policies) even
+  though the editor showed the right values. When `:post` is an
+  Eloquent model, bindings now resolve against it, including inside
+  nested renders such as tabs, accordions, and the navigation overlay.
+  `BlockRenderer::render()` takes an optional `BindingContext` for
+  hosts that call the renderer directly.
+
+### Security
+
+- The `custom_field` and `relation` binding sources no longer read
+  attributes or relations listed in a model's `$hidden` array, so a
+  binding such as `author.password` can't publish a hidden column on
+  the front end. If you bind to a column your model hides on purpose,
+  remove it from `$hidden` or expose it under another name with an
+  accessor.
+
 ## [1.13.0] - 2026-10-10
 
 ### Upgrade notes

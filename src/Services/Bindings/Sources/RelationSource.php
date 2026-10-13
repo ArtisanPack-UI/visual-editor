@@ -128,6 +128,14 @@ class RelationSource implements BlockBindingSource
 		}
 
 		if ( $current instanceof Model ) {
+			// Honour the model's `$hidden` list (#848). Front-end renders
+			// expose resolved values to visitors, so a path such as
+			// `author.password` must not read a column the model keeps
+			// out of its serialized form.
+			if ( in_array( $segment, $current->getHidden(), true ) ) {
+				return null;
+			}
+
 			return $current->getAttribute( $segment );
 		}
 
