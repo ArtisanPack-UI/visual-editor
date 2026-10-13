@@ -20,12 +20,13 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Security
 
-- The `custom_field` and `relation` binding sources no longer read
-  attributes or relations listed in a model's `$hidden` array, so a
-  binding such as `author.password` can't publish a hidden column on
+- The `post_core`, `custom_field`, and `relation` binding sources now
+  only read what a model would serialize: nothing in `$hidden`, and
+  only the keys in `$visible` when that list is non-empty. A binding
+  such as `author.password` can no longer publish a hidden column on
   the front end. If you bind to a column your model hides on purpose,
-  remove it from `$hidden` or expose it under another name with an
-  accessor.
+  remove it from `$hidden` (or add it to `$visible`), or expose it under
+  another name with an accessor.
 
 ## [1.13.0] - 2026-10-10
 

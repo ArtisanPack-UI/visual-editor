@@ -26,6 +26,7 @@ namespace ArtisanPackUI\VisualEditor\Services\Bindings\Sources;
 use ArtisanPackUI\VisualEditor\Resources\ResourceResolver;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BlockBindingSource;
+use ArtisanPackUI\VisualEditor\Services\Bindings\ModelAttributeVisibility;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\QueryException;
@@ -70,9 +71,9 @@ class CustomFieldSource implements BlockBindingSource
 			return null;
 		}
 
-		// Never surface a column the model hides from serialization
+		// Never surface a column the model keeps out of serialization
 		// (#848): front-end renders publish the resolved value.
-		if ( in_array( $key, $model->getHidden(), true ) ) {
+		if ( ! ModelAttributeVisibility::isReadable( $model, $key ) ) {
 			return null;
 		}
 

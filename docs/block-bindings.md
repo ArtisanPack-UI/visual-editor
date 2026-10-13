@@ -28,8 +28,9 @@ instance bound through cms-framework. `relation` walks
 `business_info.phone` through cms-framework's `DynamicContentAccessor`
 and is independent of the render's parent record.
 
-`custom_field` and `relation` never read an attribute or relation the
-model lists in `$hidden`, so a path such as `author.password` resolves
+`post_core`, `custom_field`, and `relation` only read what the model
+would serialize: never a key in `$hidden`, and only keys in `$visible`
+when that list is non-empty. A path such as `author.password` resolves
 to empty and the binding's empty-value policy applies.
 
 ### Which custom fields a content type offers
@@ -161,7 +162,9 @@ container (renderer installed standalone), the pass silently no-ops.
 
 `<x-ve-blocks :tree="$tree" :post="$post" />` resolves bindings against
 `$post` when it is an Eloquent model. Without a `:post`, or with a
-non-model one, every binding takes its empty-value policy. Nested
+non-model one, model-dependent bindings (`post_core`, `custom_field`,
+`relation`) take their empty-value policy; `dynamic_content` still
+resolves, since it doesn't need a parent record. Nested
 renders inside the same tree (tabs, accordions, the navigation
 overlay) reuse the same record. Hosts calling the renderer directly
 pass the record themselves:

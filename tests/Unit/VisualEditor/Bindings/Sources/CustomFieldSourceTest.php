@@ -137,3 +137,19 @@ it( 'refuses to read a column the model hides from serialization (#848)', functi
 	expect( $source->resolve( $ctx, [ 'key' => 'excerpt' ] ) )->toBeNull()
 		->and( $source->resolve( $ctx, [ 'key' => 'title' ] ) )->toBe( 'Hello' );
 } );
+
+it( 'only reads columns listed in a non-empty $visible (#848)', function (): void {
+	$model = TestBindingsModel::query()->create( [
+		'title'   => 'Hello',
+		'status'  => 'published',
+		'excerpt' => 'Short summary',
+		'content' => [],
+	] );
+	$model->setVisible( [ 'title' ] );
+
+	$source = new CustomFieldSource();
+	$ctx    = new BindingContext( $model );
+
+	expect( $source->resolve( $ctx, [ 'key' => 'excerpt' ] ) )->toBeNull()
+		->and( $source->resolve( $ctx, [ 'key' => 'title' ] ) )->toBe( 'Hello' );
+} );

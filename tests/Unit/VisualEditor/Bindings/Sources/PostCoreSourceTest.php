@@ -94,3 +94,54 @@ it( 'refuses to resolve a key that is not in the supported whitelist', function 
 	// binding layer.
 	expect( $source->resolve( new BindingContext( $model ), [ 'key' => 'author_id' ] ) )->toBeNull();
 } );
+
+it( 'refuses to read a supported field the model hides from serialization (#848)', function (): void {
+	$model = TestBindingsModel::query()->create( [
+		'title'   => 'Welcome',
+		'status'  => 'published',
+		'excerpt' => 'Internal summary',
+		'content' => [],
+	] );
+	$model->makeHidden( 'excerpt' );
+
+	$source = new PostCoreSource();
+	$ctx    = new BindingContext( $model );
+
+	expect( $source->resolve( $ctx, [ 'key' => 'excerpt' ] ) )->toBeNull()
+		->and( $source->resolve( $ctx, [ 'key' => 'title' ] ) )->toBe( 'Welcome' );
+} );
+
+it( 'only reads supported fields listed in a non-empty $visible (#848)', function (): void {
+	$model = TestBindingsModel::query()->create( [
+		'title'   => 'Welcome',
+		'status'  => 'published',
+		'excerpt' => 'Internal summary',
+		'content' => [],
+	] );
+	$model->setVisible( [ 'title' ] );
+
+	$source = new PostCoreSource();
+	$ctx    = new BindingContext( $model );
+
+	expect( $source->resolve( $ctx, [ 'key' => 'excerpt' ] ) )->toBeNull()
+		->and( $source->resolve( $ctx, [ 'key' => 'title' ] ) )->toBe( 'Welcome' );
+} );
+
+it( 'does not resolve author_name through a hidden author name (#848)', function (): void {
+	$author = TestUser::query()->create( [
+		'name'     => 'Grace Hopper',
+		'email'    => 'grace+' . uniqid() . '@example.com',
+		'password' => 'secret',
+	] );
+	$author->makeHidden( 'name' );
+
+	$model = TestBindingsModel::query()->create( [
+		'title'     => 'X',
+		'status'    => 'published',
+		'author_id' => $author->getKey(),
+		'content'   => [],
+	] );
+	$model->setRelation( 'author', $author );
+
+	expect( ( new PostCoreSource() )->resolve( new BindingContext( $model ), [ 'key' => 'author_name' ] ) )->toBeNull();
+} );

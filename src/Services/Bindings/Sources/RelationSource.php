@@ -31,6 +31,7 @@ namespace ArtisanPackUI\VisualEditor\Services\Bindings\Sources;
 use ArrayAccess;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BlockBindingSource;
+use ArtisanPackUI\VisualEditor\Services\Bindings\ModelAttributeVisibility;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
@@ -128,11 +129,11 @@ class RelationSource implements BlockBindingSource
 		}
 
 		if ( $current instanceof Model ) {
-			// Honour the model's `$hidden` list (#848). Front-end renders
-			// expose resolved values to visitors, so a path such as
-			// `author.password` must not read a column the model keeps
-			// out of its serialized form.
-			if ( in_array( $segment, $current->getHidden(), true ) ) {
+			// Honour the model's `$hidden` / `$visible` lists (#848).
+			// Front-end renders expose resolved values to visitors, so a
+			// path such as `author.password` must not read a column or
+			// relation the model keeps out of its serialized form.
+			if ( ! ModelAttributeVisibility::isReadable( $current, $segment ) ) {
 				return null;
 			}
 
