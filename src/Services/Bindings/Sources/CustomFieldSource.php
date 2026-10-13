@@ -26,6 +26,7 @@ namespace ArtisanPackUI\VisualEditor\Services\Bindings\Sources;
 use ArtisanPackUI\VisualEditor\Resources\ResourceResolver;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BlockBindingSource;
+use ArtisanPackUI\VisualEditor\Services\Bindings\ModelAttributeVisibility;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\QueryException;
@@ -67,6 +68,12 @@ class CustomFieldSource implements BlockBindingSource
 		$model = $context->model();
 
 		if ( ! $model instanceof Model ) {
+			return null;
+		}
+
+		// Never surface a column the model keeps out of serialization
+		// (#848): front-end renders publish the resolved value.
+		if ( ! ModelAttributeVisibility::isReadable( $model, $key ) ) {
 			return null;
 		}
 

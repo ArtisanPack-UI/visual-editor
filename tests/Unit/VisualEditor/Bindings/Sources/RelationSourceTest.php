@@ -116,3 +116,73 @@ it( 'deduplicates eager-load entries across many bindings on the same chain', fu
 
 	expect( $source->eagerLoadRelations( $paths ) )->toBe( [ 'author', 'author.profile' ] );
 } );
+
+it( 'refuses to read an attribute the related model hides from serialization (#848)', function (): void {
+	$author = TestUser::query()->create( [
+		'name'     => 'Grace Hopper',
+		'email'    => 'grace+' . uniqid() . '@example.com',
+		'password' => 'secret',
+	] );
+	$author->makeHidden( [ 'password', 'email' ] );
+
+	$model = TestBindingsModel::query()->create( [
+		'title'     => 'X',
+		'status'    => 'published',
+		'author_id' => $author->getKey(),
+		'content'   => [],
+	] );
+	$model->setRelation( 'author', $author );
+
+	$source = new RelationSource();
+	$ctx    = new BindingContext( $model );
+
+	expect( $source->resolve( $ctx, [ 'path' => 'author.password' ] ) )->toBeNull()
+		->and( $source->resolve( $ctx, [ 'path' => 'author.email' ] ) )->toBeNull()
+		->and( $source->resolve( $ctx, [ 'path' => 'author.name' ] ) )->toBe( 'Grace Hopper' );
+} );
+
+it( 'refuses to walk through a hidden relation (#848)', function (): void {
+	$author = TestUser::query()->create( [
+		'name'     => 'Grace Hopper',
+		'email'    => 'grace+' . uniqid() . '@example.com',
+		'password' => 'secret',
+	] );
+
+	$model = TestBindingsModel::query()->create( [
+		'title'     => 'X',
+		'status'    => 'published',
+		'author_id' => $author->getKey(),
+		'content'   => [],
+	] );
+	$model->setRelation( 'author', $author );
+	$model->makeHidden( 'author' );
+
+	expect( ( new RelationSource() )->resolve( new BindingContext( $model ), [ 'path' => 'author.name' ] ) )->toBeNull();
+} );
+
+it( 'only walks segments listed in a non-empty $visible (#848)', function (): void {
+	$author = TestUser::query()->create( [
+		'name'     => 'Grace Hopper',
+		'email'    => 'grace+' . uniqid() . '@example.com',
+		'password' => 'secret',
+	] );
+	$author->setVisible( [ 'name' ] );
+
+	$model = TestBindingsModel::query()->create( [
+		'title'     => 'X',
+		'status'    => 'published',
+		'author_id' => $author->getKey(),
+		'content'   => [],
+	] );
+	$model->setRelation( 'author', $author );
+
+	$source = new RelationSource();
+	$ctx    = new BindingContext( $model );
+
+	expect( $source->resolve( $ctx, [ 'path' => 'author.name' ] ) )->toBe( 'Grace Hopper' )
+		->and( $source->resolve( $ctx, [ 'path' => 'author.email' ] ) )->toBeNull();
+
+	$model->setVisible( [ 'title' ] );
+
+	expect( $source->resolve( $ctx, [ 'path' => 'author.name' ] ) )->toBeNull();
+} );

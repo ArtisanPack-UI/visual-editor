@@ -30,6 +30,7 @@ use ArtisanPackUI\VisualEditor\Resources\PostResolver;
 use ArtisanPackUI\VisualEditor\Resources\QueryInliner;
 use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
 use ArtisanPackUI\VisualEditor\Resources\TocResolver;
+use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesEmissionTracker;
 use ArtisanPackUI\VisualEditor\SiteEditor\NavigationBlockRefResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
@@ -43,6 +44,7 @@ use ArtisanPackUI\VisualEditorRendererBlade\Services\PositionCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\StateCssAccumulator;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\View\Component;
 
 class BlocksComponent extends Component
@@ -59,6 +61,13 @@ class BlocksComponent extends Component
 	 * rendered against a non-default theme picks up that theme's record.
 	 */
 	protected ?string $defaultTheme;
+
+	/**
+	 * Host record block bindings resolve against on the front end (#848).
+	 * Null when no `:post` is supplied or it isn't an Eloquent model, in
+	 * which case every binding's `onEmpty` policy applies.
+	 */
+	protected ?Model $bindingModel;
 
 	public function __construct(
 		protected BlockRenderer $renderer,
@@ -101,6 +110,7 @@ class BlocksComponent extends Component
 		}
 
 		$this->defaultTheme = $defaultTheme;
+		$this->bindingModel = $post instanceof Model ? $post : null;
 
 		$normalized = $this->normalizeTree( $tree );
 
@@ -204,7 +214,16 @@ class BlocksComponent extends Component
 		// `BlockSupports::pushResponsive()` side-effect has happened
 		// by the time we drain the accumulator. The drained block
 		// is then prepended to the output by the view template.
-		$html               = $this->renderer->render( $this->tree );
+		//
+		// Bindings resolve here, inside the renderer, against the host
+		// post (#848). They deliberately do NOT also resolve in the
+		// constructor: a second, model-less pass would re-apply the
+		// `hide` / `placeholder` policies over the resolved values.
+		$bindingContext = null !== $this->bindingModel
+			? new BindingContext( $this->bindingModel )
+			: null;
+
+		$html               = $this->renderer->render( $this->tree, $bindingContext );
 		$responsiveCss      = $this->responsiveAccumulator->flush();
 		$statesCss          = $this->stateAccumulator->flush();
 		$animationOutput    = $this->animationAccumulator->flush();

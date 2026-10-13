@@ -28,6 +28,7 @@ namespace ArtisanPackUI\VisualEditor\Services\Bindings\Sources;
 
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BlockBindingSource;
+use ArtisanPackUI\VisualEditor\Services\Bindings\ModelAttributeVisibility;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -93,6 +94,12 @@ class PostCoreSource implements BlockBindingSource
 			return $this->resolveAuthorName( $model );
 		}
 
+		// Supported fields can still be hidden by the host model (#848);
+		// front-end renders publish the resolved value, so honour it.
+		if ( ! ModelAttributeVisibility::isReadable( $model, $key ) ) {
+			return null;
+		}
+
 		// Defer to the model's accessor so casts and mutators apply.
 		$value = $model->getAttribute( $key );
 
@@ -142,16 +149,22 @@ class PostCoreSource implements BlockBindingSource
 	 */
 	protected function resolveAuthorName( Model $model ): mixed
 	{
-		$direct = $model->getAttribute( 'author_name' );
+		$direct = ModelAttributeVisibility::isReadable( $model, 'author_name' )
+			? $model->getAttribute( 'author_name' )
+			: null;
 
 		if ( null !== $direct && '' !== $direct ) {
 			return $direct;
 		}
 
-		if ( method_exists( $model, 'author' ) && $model->author() instanceof BelongsTo ) {
+		if (
+			ModelAttributeVisibility::isReadable( $model, 'author' )
+			&& method_exists( $model, 'author' )
+			&& $model->author() instanceof BelongsTo
+		) {
 			$author = $model->getAttribute( 'author' );
 
-			if ( $author instanceof Model ) {
+			if ( $author instanceof Model && ModelAttributeVisibility::isReadable( $author, 'name' ) ) {
 				$name = $author->getAttribute( 'name' );
 
 				if ( null !== $name && '' !== $name ) {

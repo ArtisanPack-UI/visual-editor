@@ -28,6 +28,11 @@ instance bound through cms-framework. `relation` walks
 `business_info.phone` through cms-framework's `DynamicContentAccessor`
 and is independent of the render's parent record.
 
+`post_core`, `custom_field`, and `relation` only read what the model
+would serialize: never a key in `$hidden`, and only keys in `$visible`
+when that list is non-empty. A path such as `author.password` resolves
+to empty and the binding's empty-value policy applies.
+
 ### Which custom fields a content type offers
 
 *Since v1.13.0 (#837).* The `custom_field` source's field catalog
@@ -154,6 +159,24 @@ bindings once at the top of `BlockRenderer::render()` via
 `resolveBindings()`. Trees without a `bindings` sidecar round-trip
 byte-identically. When the bindings layer is not bound in the
 container (renderer installed standalone), the pass silently no-ops.
+
+`<x-ve-blocks :tree="$tree" :post="$post" />` resolves bindings against
+`$post` when it is an Eloquent model. Without a `:post`, or with a
+non-model one, model-dependent bindings (`post_core`, `custom_field`,
+`relation`) take their empty-value policy; `dynamic_content` still
+resolves, since it doesn't need a parent record. Nested
+renders inside the same tree (tabs, accordions, the navigation
+overlay) reuse the same record. Hosts calling the renderer directly
+pass the record themselves:
+
+```php
+use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
+
+$html = app( BlockRenderer::class )->render( $tree, new BindingContext( $post ) );
+```
+
+Bindings inside a `core/query` loop currently resolve against the host
+record too, not each iteration's post.
 
 ## Naming note
 
