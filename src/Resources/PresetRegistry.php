@@ -299,10 +299,13 @@ class PresetRegistry
 	 *
 	 * The theme compiler only emits the presets a theme ships, so on a
 	 * theme-less install a "Large" pick saved `has-large-font-size`
-	 * with nothing behind it. Built from the same lists as the editor
-	 * (package defaults when the theme has none, plus host presets).
+	 * with nothing behind it. Built from {@see self::effectiveFontSizes()}
+	 * and {@see self::effectivePalette()}: the package defaults stay
+	 * declared underneath a theme's own lists (theme entries win on a
+	 * shared slug), with host presets merged on top.
 	 *
 	 * @since 1.12.1
+	 * @since 1.14.0 Declares the package defaults under a theme's own lists (#852).
 	 *
 	 * @param  array<string, mixed>|null  $themeSettings  The theme's `settings`, if any.
 	 */
