@@ -132,6 +132,11 @@ class DynamicLoopBlock extends DynamicBlock implements WantsInnerBlocks
 				// template's sidecars so they can resolve it per row
 				// with this row's indexes stamped on (#861).
 				$resolved = $this->bindingResolver->resolveAndStrip( $template, $context, [ self::BLOCK_NAME ] );
+
+				if ( $i > 0 ) {
+					$resolved = $this->suffixAnchors( $resolved, '-' . $collectionSlug . '-' . ( $i + 1 ) );
+				}
+
 				$out .= $renderer->render( $this->stampNestedLoops( $resolved, $indexMap ) );
 			} catch ( Throwable $e ) {
 				report( $e );
@@ -139,6 +144,41 @@ class DynamicLoopBlock extends DynamicBlock implements WantsInnerBlocks
 		}
 
 		return $out;
+	}
+
+	/**
+	 * Append a suffix to every `anchor` in a row so repeated rows don't
+	 * repeat element ids. The first row keeps the template's anchors, so
+	 * table-of-contents links (stamped on the template) still land on it.
+	 * Nested loops' templates are included, so their rows build on the
+	 * outer row's suffix.
+	 *
+	 * @since 1.14.0
+	 *
+	 * @param  array<int, array<string, mixed>>  $blocks
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	protected function suffixAnchors( array $blocks, string $suffix ): array
+	{
+		foreach ( $blocks as $key => $block ) {
+			if ( ! is_array( $block ) ) {
+				continue;
+			}
+
+			[ $attrKey, $blockAttrs ] = BlockShape::readAttrs( $block );
+
+			if ( is_string( $blockAttrs['anchor'] ?? null ) && '' !== trim( $blockAttrs['anchor'] ) ) {
+				$blockAttrs['anchor']    = trim( $blockAttrs['anchor'] ) . $suffix;
+				$blocks[ $key ][ $attrKey ] = $blockAttrs;
+			}
+
+			if ( isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) && [] !== $block['innerBlocks'] ) {
+				$blocks[ $key ]['innerBlocks'] = $this->suffixAnchors( $block['innerBlocks'], $suffix );
+			}
+		}
+
+		return $blocks;
 	}
 
 	/**

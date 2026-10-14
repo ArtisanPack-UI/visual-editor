@@ -349,3 +349,29 @@ it( 'leaves a dynamic loop template alone in the renderer binding pass (#854)', 
 	expect( $resolved[0]['attributes']['label'] )->toBe( 'Alice' )
 		->and( $resolved[0]['innerBlocks'][0] )->toBe( $paragraph );
 } );
+
+it( 'gives each row after the first its own anchors so ids stay unique', function (): void {
+	$heading = [
+		'name'        => 'core/heading',
+		'attributes'  => [ 'content' => 'Member', 'level' => 3, 'anchor' => 'member' ],
+		'innerBlocks' => [],
+	];
+
+	$html = renderDynamicLoop( [ $heading ] );
+
+	preg_match_all( '/<h3[^>]*\sid="([^"]+)"/', $html, $ids );
+
+	expect( $ids[1] )->toBe( [ 'member', 'member-team-2' ] );
+} );
+
+it( 'keeps nested-loop anchors unique across outer and inner rows', function (): void {
+	$html = renderNestedDynamicLoop( [ [
+		'name'        => 'core/heading',
+		'attributes'  => [ 'content' => 'Office', 'level' => 3, 'anchor' => 'office' ],
+		'innerBlocks' => [],
+	] ] );
+
+	preg_match_all( '/<h3[^>]*\sid="([^"]+)"/', $html, $ids );
+
+	expect( $ids[1] )->toBe( [ 'office', 'office-office-2', 'office-team-2', 'office-team-2-office-2' ] );
+} );
