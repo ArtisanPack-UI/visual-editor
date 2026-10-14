@@ -501,10 +501,21 @@ class IconBlock extends DynamicBlock
 	}
 
 	/**
+	 * Accepts the `{set, name}` array the editor saves, or the same shape
+	 * as a JSON string — what a binding hands over when the bound custom
+	 * field stores its iconRef in a text column and the record has no
+	 * cast to decode it.
+	 *
+	 * @since 1.14.1 Accepts a JSON-encoded iconRef.
+	 *
 	 * @return array{set: string, name: string}|null
 	 */
 	private function normalizeIconRef( mixed $value ): ?array
 	{
+		if ( is_string( $value ) && str_starts_with( ltrim( $value ), '{' ) ) {
+			$value = json_decode( $value, true );
+		}
+
 		if ( ! is_array( $value ) ) {
 			return null;
 		}

@@ -60,6 +60,28 @@ it( 'inlines the resolved SVG when iconRef matches a registered set', function (
 		->and( $html )->toContain( '<path' );
 } );
 
+it( 'inlines the resolved SVG when a binding hands over the iconRef as a JSON string', function (): void {
+	$html = test()->block->render( [
+		'iconRef' => '{"set":"fab","name":"github"}',
+	] );
+
+	expect( $html )->toContain( 'wp-block-artisanpack-icon__ref' )
+		->and( $html )->toContain( 'data-icon-name="github"' )
+		->and( $html )->toContain( '<svg' );
+} );
+
+it( 'renders a placeholder for an iconRef string that is not a valid iconRef', function ( string $iconRef ): void {
+	$html = test()->block->render( [ 'iconRef' => $iconRef ] );
+
+	expect( $html )->toContain( 'wp-block-artisanpack-icon__placeholder' )
+		->and( $html )->not->toContain( '<svg' );
+} )->with( [
+	'malformed json' => '{"set":"fab",',
+	'missing name'   => '{"set":"fab"}',
+	'unsafe set'     => '{"set":"../fab","name":"github"}',
+	'plain string'   => 'fab github',
+] );
+
 it( 'falls back to a placeholder when the iconRef cannot be resolved', function (): void {
 	$html = test()->block->render( [
 		'iconRef' => [ 'set' => 'fab', 'name' => 'does-not-exist' ],

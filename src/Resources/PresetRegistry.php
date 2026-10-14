@@ -95,6 +95,14 @@ class PresetRegistry
 	];
 
 	/**
+	 * Palette slugs whose `.has-{slug}-color` utility shares its name with
+	 * a block-support marker class. See {@see self::colorUtilitySelector()}.
+	 *
+	 * @since 1.14.1
+	 */
+	public const MARKER_COLOR_SLUGS = [ 'text', 'link', 'border' ];
+
+	/**
 	 * Package default layout tokens (#821). `contentSize` / `wideSize`
 	 * match the editor's `__experimentalFeatures.layout`; `blockGap`
 	 * matches the layout baseline's `var(--wp--style--block-gap, 24px)`
@@ -333,7 +341,7 @@ class PresetRegistry
 			}
 
 			$declarations[] = sprintf( '--wp--preset--color--%s: %s;', $slug, trim( $entry['color'] ) );
-			$utilities[]    = sprintf( '.has-%1$s-color { color: var(--wp--preset--color--%1$s) !important; }', $slug );
+			$utilities[]    = sprintf( '%2$s { color: var(--wp--preset--color--%1$s) !important; }', $slug, self::colorUtilitySelector( $slug ) );
 			$utilities[]    = sprintf( '.has-%1$s-background-color { background-color: var(--wp--preset--color--%1$s) !important; }', $slug );
 			$utilities[]    = sprintf( '.has-%1$s-border-color { border-color: var(--wp--preset--color--%1$s) !important; }', $slug );
 		}
@@ -367,6 +375,30 @@ class PresetRegistry
 			. "\t--wp--style--root--padding-bottom: {$padding};\n"
 			. "\t--wp--style--root--padding-left: {$padding};\n"
 			. '}';
+	}
+
+	/**
+	 * Selector for a palette slug's `.has-{slug}-color` utility.
+	 *
+	 * Three slugs produce a class that is also a block-support marker:
+	 * `text` → `has-text-color`, `link` → `has-link-color` and `border` →
+	 * `has-border-color`. Every block with a custom text, link or border
+	 * color carries those markers, so a plain `.has-text-color` utility
+	 * matches all of them and, emitted after `.has-base-color` at the same
+	 * specificity, overrides the color the author picked. `:where()`
+	 * drops the colliding utility to zero specificity: the slug's own
+	 * `.has-{slug}-color` rule still wins, and a block whose pick really
+	 * is `text` keeps it through `!important`.
+	 *
+	 * @since 1.14.1
+	 *
+	 * @param  string  $slug  A normalised palette slug.
+	 */
+	public static function colorUtilitySelector( string $slug ): string
+	{
+		$selector = '.has-' . $slug . '-color';
+
+		return in_array( $slug, self::MARKER_COLOR_SLUGS, true ) ? ':where(' . $selector . ')' : $selector;
 	}
 
 	/**

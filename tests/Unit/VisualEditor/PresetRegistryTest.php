@@ -376,6 +376,20 @@ describe( 'effectivePalette() / effectiveFontSizes() keep the package defaults (
 			->toContain( '--wp--preset--color--base-content: #1f2937;' )
 			->toContain( '.has-base-content-color { color: var(--wp--preset--color--base-content) !important; }' );
 	} );
+
+	it( 'drops color utilities that collide with block-support markers to zero specificity', function (): void {
+		$css = PresetRegistry::presetDefaultsCss( [
+			'color' => [ 'palette' => [
+				[ 'slug' => 'base', 'color' => '#111827' ],
+				[ 'slug' => 'text', 'color' => '#ffffff' ],
+			] ],
+		] );
+
+		expect( $css )
+			->toContain( '.has-base-color { color: var(--wp--preset--color--base) !important; }' )
+			->toContain( ':where(.has-text-color) { color: var(--wp--preset--color--text) !important; }' )
+			->not->toMatch( '/(^|\n)\.has-text-color \{/' );
+	} );
 } );
 
 describe( 'spacingPresetsCss() (#814)', function (): void {

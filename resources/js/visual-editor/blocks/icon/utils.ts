@@ -124,7 +124,20 @@ function asStyleObject( value: unknown ): WpStyleAttribute {
     return value as WpStyleAttribute;
 }
 
+/**
+ * Accepts the `{ set, name }` object the editor saves, or the same shape
+ * as a JSON string — what a binding hands over when the bound custom
+ * field stores its iconRef in a text column. Mirrors
+ * `IconBlock::normalizeIconRef()`.
+ */
 function asIconRef( value: unknown ): IconRef | null {
+    if ( typeof value === 'string' && value.trimStart().startsWith( '{' ) ) {
+        try {
+            value = JSON.parse( value );
+        } catch {
+            return null;
+        }
+    }
     if ( value === null || value === undefined || typeof value !== 'object' ) {
         return null;
     }

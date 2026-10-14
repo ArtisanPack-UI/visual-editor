@@ -249,7 +249,7 @@ class ThemeJsonTokensCompiler
 			$slug = $this->slug( $slug );
 			$var  = sprintf( 'var(--wp--preset--color--%s)', $slug );
 
-			$lines[] = sprintf( '.has-%s-color { color: %s !important; }', $slug, $var );
+			$lines[] = sprintf( '%s { color: %s !important; }', PresetRegistry::colorUtilitySelector( $slug ), $var );
 			$lines[] = sprintf( '.has-%s-background-color { background-color: %s !important; }', $slug, $var );
 			$lines[] = sprintf( '.has-%s-border-color { border-color: %s !important; }', $slug, $var );
 		}
