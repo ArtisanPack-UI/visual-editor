@@ -36,6 +36,14 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   Eloquent models fall back to the binding's `onEmpty` policy, and
   `relation` bindings load once across the result set instead of once
   per post.
+- Headings whose `content` is bound now get their auto-generated anchor
+  and table-of-contents entry from the resolved value instead of the
+  static authored text (#851). A heading bound to the post title renders
+  `id="core-package"` rather than `id="static-title"`, and the
+  `artisanpack/toc` block links to it under the same label. Author-set
+  anchors are unchanged, and a heading hidden by an empty binding no
+  longer leaves an orphan TOC entry. `TocResolver::resolveTree()` takes
+  an optional binding-resolved copy of the tree to read heading text from.
 
 ### Security
 

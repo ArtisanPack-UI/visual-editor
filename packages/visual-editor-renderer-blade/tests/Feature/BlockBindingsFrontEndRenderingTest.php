@@ -209,3 +209,76 @@ it( 'does not carry a binding context over to the next top-level render', functi
 	expect( $first )->toContain( '1.3.1' )
 		->and( $second )->toContain( '<p class="wp-block-paragraph">v</p>' );
 } );
+
+it( 'derives heading anchors and TOC entries from bound heading content (#851)', function (): void {
+	$post = bindingTestPost( [ 'title' => 'Core Package', 'version' => 'Version 1.3' ] );
+
+	$tree = [
+		boundBlock( 'artisanpack/toc', [], [], [], 'toc-1' ),
+		boundBlock( 'core/heading', [ 'level' => 2, 'content' => 'Static title' ], [
+			'content' => [ 'source' => 'post_core', 'args' => [ 'key' => 'title' ] ],
+		], [], 'h-1' ),
+		boundBlock( 'core/group', [], [], [
+			boundBlock( 'artisanpack/heading', [ 'level' => 3, 'content' => 'Static version' ], [
+				'content' => [ 'source' => 'custom_field', 'args' => [ 'key' => 'version' ] ],
+			], [], 'h-2' ),
+		], 'group-1' ),
+	];
+
+	$html = renderBoundTree( $tree, $post );
+
+	expect( $html )->toContain( 'id="core-package"' )
+		->and( $html )->toContain( 'href="#core-package"' )
+		->and( $html )->toContain( 'id="version-1-3"' )
+		->and( $html )->toContain( 'href="#version-1-3"' )
+		->and( $html )->not->toContain( 'static-title' )
+		->and( $html )->not->toContain( 'static-version' );
+} );
+
+it( 'keeps author-set anchors on bound headings', function (): void {
+	$post = bindingTestPost( [ 'title' => 'Core Package' ] );
+
+	$tree = [
+		boundBlock( 'artisanpack/toc', [], [], [], 'toc-1' ),
+		boundBlock( 'core/heading', [ 'level' => 2, 'content' => 'Static title', 'anchor' => 'overview' ], [
+			'content' => [ 'source' => 'post_core', 'args' => [ 'key' => 'title' ] ],
+		], [], 'h-1' ),
+	];
+
+	$html = renderBoundTree( $tree, $post );
+
+	expect( $html )->toContain( 'id="overview"' )
+		->and( $html )->toContain( 'href="#overview"' )
+		->and( $html )->not->toContain( 'id="core-package"' );
+} );
+
+it( 'leaves no orphan TOC entry for a heading hidden by an empty binding', function (): void {
+	$post = bindingTestPost( [ 'title' => 'Core Package' ] );
+
+	$tree = [
+		boundBlock( 'artisanpack/toc', [], [], [], 'toc-1' ),
+		boundBlock( 'core/heading', [ 'level' => 2, 'content' => 'Static subtitle' ], [
+			'content' => [ 'source' => 'custom_field', 'args' => [ 'key' => 'subtitle' ], 'onEmpty' => 'hide' ],
+		], [], 'h-1' ),
+	];
+
+	$html = renderBoundTree( $tree, $post );
+
+	expect( $html )->not->toContain( 'static-subtitle' )
+		->and( $html )->not->toContain( 'Static subtitle' )
+		->and( $html )->toContain( 'No headings found on this page yet.' );
+} );
+
+it( 'derives anchors from the fallback content when no post is supplied', function (): void {
+	$tree = [
+		boundBlock( 'artisanpack/toc', [], [], [], 'toc-1' ),
+		boundBlock( 'core/heading', [ 'level' => 2, 'content' => 'Static title' ], [
+			'content' => [ 'source' => 'post_core', 'args' => [ 'key' => 'title' ] ],
+		], [], 'h-1' ),
+	];
+
+	$html = renderBoundTree( $tree );
+
+	expect( $html )->toContain( 'id="static-title"' )
+		->and( $html )->toContain( 'href="#static-title"' );
+} );
