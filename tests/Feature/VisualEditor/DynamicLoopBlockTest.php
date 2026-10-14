@@ -375,3 +375,42 @@ it( 'keeps nested-loop anchors unique across outer and inner rows', function ():
 
 	expect( $ids[1] )->toBe( [ 'office', 'office-office-2', 'office-team-2', 'office-team-2-office-2' ] );
 } );
+
+it( 'keeps the outer-row suffix on a bound anchor inside a nested loop', function (): void {
+	$html = renderNestedDynamicLoop( [ [
+		'name'        => 'core/heading',
+		'attributes'  => [
+			'content'  => 'Office',
+			'level'    => 3,
+			'anchor'   => 'office',
+			'bindings' => [
+				'anchor' => [ 'source' => DynamicContentSource::NAME, 'args' => [ 'token' => 'office.city' ] ],
+			],
+		],
+		'innerBlocks' => [],
+	] ] );
+
+	preg_match_all( '/<h3[^>]*\sid="([^"]+)"/', $html, $ids );
+
+	expect( $ids[1] )->toBe( [ 'Paris', 'Oslo-office-2', 'Paris-team-2', 'Oslo-team-2-office-2' ] );
+} );
+
+it( 'ignores an unsafe anchor suffix stamped on a loop', function (): void {
+	app()->register( VisualEditorRendererBladeServiceProvider::class );
+
+	$block = new DynamicLoopBlock( $this->resolver );
+
+	$html = (string) $block->renderWithInner(
+		[ 'collection' => 'team', DynamicLoopBlock::PARENT_ANCHOR_SUFFIX_ATTR => '" onmouseover="x' ],
+		[ [
+			'name'        => 'core/heading',
+			'attributes'  => [ 'content' => 'Member', 'level' => 3, 'anchor' => 'member' ],
+			'innerBlocks' => [],
+		] ],
+	);
+
+	preg_match_all( '/<h3[^>]*\sid="([^"]+)"/', $html, $ids );
+
+	expect( $ids[1] )->toBe( [ 'member', 'member-team-2' ] )
+		->and( $html )->not->toContain( 'onmouseover' );
+} );
