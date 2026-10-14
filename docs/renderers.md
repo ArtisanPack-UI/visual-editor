@@ -189,6 +189,31 @@ $tree = app(BlockMarkupHydrator::class)->hydrate($markup);
 <x-ve-blocks :tree="$tree" :post="$post" />
 ```
 
+#### Support CSS for direct renders
+
+*Since v1.14.0.*
+
+Block supports don't print inline styles. Responsive overrides, states,
+animations, gradient borders, box shadows, position, and Elements API
+colors (Color → Link, heading and button element colors) are collected
+while the tree renders, and `<x-ve-blocks>` / `<x-ve-template>` print
+them around their output. When you call `render()` or `renderMarkup()`
+yourself, drain them with `flushSupportAssets()`. Print `css` before the
+HTML and `scripts` after it:
+
+```php
+$renderer = app(BlockRenderer::class);
+$html     = $renderer->renderMarkup($markup);
+$assets   = $renderer->flushSupportAssets();
+
+echo $assets['css'] . $html . $assets['scripts'];
+```
+
+Without it, blocks keep classes such as `wp-elements-{hash}` with no rules
+behind them. That includes Navigation link colors, which printed their own
+inline `<style>` before v1.14.0. Draining also clears the collected rules,
+so a later `<x-ve-blocks>` in the same request doesn't print them again.
+
 **Scope.** `renderMarkup()` cannot resolve blocks that need an entity in
 scope — `post-*`, `core/query` loops, comments, breadcrumbs — because a
 string input carries no post. Hydrate to a tree and hand it to

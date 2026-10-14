@@ -35,6 +35,13 @@ use ArtisanPackUI\VisualEditor\Visibility\VisibilityDecision;
 use ArtisanPackUI\VisualEditor\Visibility\VisibilityEvaluator;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\LoginoutResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\SiteMetaResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\BoxShadowCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\ElementsCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\PositionCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\StateCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Contracts\Support\Htmlable;
@@ -385,6 +392,52 @@ class BlockRenderer
 		return 0 === $this->renderDepth
 			? $this->applyRenderedContentFilter( $out )
 			: $out;
+	}
+
+	/**
+	 * Drain the per-request support CSS the last render collected.
+	 *
+	 * Block supports (responsive overrides, states, animations, gradient
+	 * borders, box shadows, position, Elements API link / heading /
+	 * button colors) don't print inline styles. They push their rules
+	 * into request-scoped accumulators, and `<x-ve-blocks>` /
+	 * `<x-ve-template>` drain those around their output. Hosts that call
+	 * {@see render()} or {@see renderMarkup()} directly call this after
+	 * rendering and print `css` before the HTML and `scripts` after it.
+	 * Without it, classes such as `wp-elements-{hash}` render with no
+	 * rules behind them.
+	 *
+	 * Draining clears the accumulators, so a later component render in
+	 * the same request doesn't repeat these rules.
+	 *
+	 * @since 1.14.0
+	 *
+	 * @return array{css: string, scripts: string}
+	 */
+	public function flushSupportAssets(): array
+	{
+		$animations = $this->drainAccumulator( AnimationCssAccumulator::class );
+		$animations = is_array( $animations ) ? $animations : [];
+
+		$css = implode( '', array_filter( [
+			$this->drainAccumulator( ResponsiveCssAccumulator::class ),
+			$this->drainAccumulator( StateCssAccumulator::class ),
+			$animations['styleTag'] ?? '',
+			$animations['noscriptTag'] ?? '',
+			$this->drainAccumulator( GradientBorderCssAccumulator::class ),
+			$this->drainAccumulator( BoxShadowCssAccumulator::class ),
+			$this->drainAccumulator( PositionCssAccumulator::class ),
+			$this->drainAccumulator( ElementsCssAccumulator::class ),
+		], static fn ( mixed $chunk ): bool => is_string( $chunk ) && '' !== $chunk ) );
+
+		$scripts = true === ( $animations['runtimeNeeded'] ?? false )
+			? $this->views->make( 'visual-editor-renderer-blade::partials.animations-runtime' )->render()
+			: '';
+
+		return [
+			'css'     => $css,
+			'scripts' => $scripts,
+		];
 	}
 
 	/**
@@ -1155,5 +1208,21 @@ class BlockRenderer
 		}
 
 		return $list;
+	}
+
+	/**
+	 * Flush one request-scoped accumulator, or null when it isn't bound.
+	 *
+	 * @since 1.14.0
+	 *
+	 * @param  class-string  $accumulator
+	 */
+	protected function drainAccumulator( string $accumulator ): mixed
+	{
+		if ( ! app()->bound( $accumulator ) ) {
+			return null;
+		}
+
+		return app( $accumulator )->flush();
 	}
 }
