@@ -166,3 +166,16 @@ it( 're-checks visibility per instance even when the relation segment is cached'
 	expect( $check( $post ) )->toBeTrue()
 		->and( $check( ( new TestBindingsModel() )->makeHidden( 'author' ) ) )->toBeFalse();
 } );
+
+it( 'caches typed relation segments but not rejected ones', function (): void {
+	$post     = new TestBindingsModel();
+	$resolver = $this->resolver;
+	$check    = fn ( string $path ): bool => ( fn (): bool => $this->isLoadableChain( $post, $path ) )->call( $resolver );
+	$cache    = fn (): array => ( fn (): array => $this->relationSegmentCache )->call( $resolver );
+
+	expect( $check( 'author' ) )->toBeTrue()
+		->and( $check( 'notARelation' ) )->toBeFalse()
+		->and( $check( 'wipe' ) )->toBeFalse()
+		->and( $cache()[ TestBindingsModel::class ] ?? [] )->toHaveKey( 'author' )
+		->and( $cache()[ TestBindingsModel::class ] ?? [] )->not->toHaveKeys( [ 'notARelation', 'wipe' ] );
+} );

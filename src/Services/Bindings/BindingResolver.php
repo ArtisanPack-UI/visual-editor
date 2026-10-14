@@ -49,16 +49,18 @@ class BindingResolver
 	];
 
 	/**
-	 * Relation segments already checked, keyed by model class then
-	 * segment: the related model, or false when the segment isn't a
-	 * typed relation. Query loops resolve the same template once per
-	 * result, so without this every iteration repeats the reflection and
-	 * relation instantiation in {@see isLoadableChain()}. Depends only on
-	 * class definitions, so it's safe to keep across requests.
+	 * Typed relation segments already resolved, keyed by model class then
+	 * segment, holding the related model. Query loops resolve the same
+	 * template once per result, so without this every iteration repeats
+	 * the reflection and relation instantiation in {@see isLoadableChain()}.
+	 * Depends only on class definitions, so it's safe to keep across
+	 * requests. Rejected segments aren't stored: binding paths are
+	 * authored content, so caching misses would let a long-lived worker
+	 * grow this without bound.
 	 *
 	 * @since 1.14.0
 	 *
-	 * @var array<class-string, array<string, false|Model>>
+	 * @var array<class-string, array<string, Model>>
 	 */
 	protected array $relationSegmentCache = [];
 
@@ -465,7 +467,8 @@ class BindingResolver
 
 	/**
 	 * The model a typed relation segment points to, or false when the
-	 * segment isn't one a binding may call. Cached per class and segment.
+	 * segment isn't one a binding may call. Successful lookups are cached
+	 * per class and segment.
 	 *
 	 * @since 1.14.0
 	 */
@@ -473,7 +476,7 @@ class BindingResolver
 	{
 		$class = $model::class;
 
-		if ( isset( $this->relationSegmentCache[ $class ] ) && array_key_exists( $segment, $this->relationSegmentCache[ $class ] ) ) {
+		if ( isset( $this->relationSegmentCache[ $class ][ $segment ] ) ) {
 			return $this->relationSegmentCache[ $class ][ $segment ];
 		}
 
@@ -485,13 +488,13 @@ class BindingResolver
 
 				if ( $relation instanceof Relation ) {
 					$related = $relation->getRelated();
+
+					$this->relationSegmentCache[ $class ][ $segment ] = $related;
 				}
 			} catch ( Throwable $e ) {
 				report( $e );
 			}
 		}
-
-		$this->relationSegmentCache[ $class ][ $segment ] = $related;
 
 		return $related;
 	}
