@@ -18,6 +18,7 @@ import type { CSSProperties, MouseEvent } from 'react';
 import { attrBoolean, attrString, classList, phpTrim } from '../../support/attributes';
 import { applyBlockGap, hasBlockGapStyle } from '../../support/blockGap';
 import { safeCssValue } from '../../support/cssValue';
+import { presetPickClass } from '../../support/layoutBaselineCss';
 import { safeUrl } from '../../support/urlSanitizer';
 import { NAVIGATION_OVERLAY_SLOT } from '../../templateParts';
 import type { BlockRendererProps } from '../../types';
@@ -117,6 +118,12 @@ function overlayColors(attributes: Record<string, unknown>): OverlayColors {
 
     if (textSlug !== '') {
         classes.push(`has-${textSlug}-color`, 'has-text-color');
+
+        const pickClass = presetPickClass(textSlug);
+
+        if (pickClass !== null) {
+            classes.push(pickClass);
+        }
     } else if (textCustom !== '') {
         style.color = textCustom;
         classes.push('has-text-color');

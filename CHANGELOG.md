@@ -18,17 +18,24 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   a button with a palette text color rendered in the theme's `text` color
   on the front end, a custom hex color lost to the utility's
   `!important`, and blocks with only a link or border color had their
-  text recolored. `PresetRegistry` and the Blade `ThemeJsonTokensCompiler`
-  now scope these utilities to real text-color picks of that slug
-  (`PresetRegistry::colorUtilitySelector()`), and the React / Vue
-  default-token CSS mirrors it. cms-framework 2.14.1 applies the same
-  rule to its global-styles emitter.
+  text recolored. A block that picks one of these slugs as its text color
+  now also carries an exact `has-{slug}-color-preset` class (Blade
+  renderer, and the React / Vue navigation overlay) with its own rule.
+  The `.has-{slug}-color` rule stays as a zero-specificity fallback for
+  markup the renderer doesn't build (editor canvas, saved Gutenberg
+  HTML): it skips elements with an inline `color:`, requires
+  `has-text-color` for `link` / `border`, and is emitted last with `text`
+  after `link` / `border`. In that markup a `link` or `border` text pick
+  can't be told apart from a `text` pick plus a link or border color, so
+  it resolves to `text`. See `PresetRegistry::colorUtilityRules()`;
+  `ThemeJsonTokensCompiler`, the React / Vue default-token CSS and
+  cms-framework 2.14.1's global-styles emitter use the same rules.
 - An `artisanpack/icon` block bound to a custom field now renders the
   bound icon when the field stores its `{set, name}` iconRef as JSON
   text, or casts it to `object` / `AsArrayObject`. The block previously
   rendered a placeholder for any value that wasn't a plain array. The
   editor preview accepts the JSON form too and applies the same `set` /
-  `name` character checks as the server.
+  `name` checks as the server, including rejecting `..` in the name.
 
 ## [1.14.0] - 2026-10-14
 

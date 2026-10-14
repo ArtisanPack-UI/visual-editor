@@ -144,6 +144,7 @@ describe( 'normalizeAttributes', () => {
         [ 'fab github', null ],
         [ '{"set":"../fab","name":"github"}', null ],
         [ '{"set":"fab","name":"git/hub"}', null ],
+        [ '{"set":"fab","name":"git..hub"}', null ],
     ] )( 'reads a bound iconRef JSON string %s', ( iconRef, expected ) => {
         const normalized = normalizeAttributes( {
             iconRef: iconRef as never,

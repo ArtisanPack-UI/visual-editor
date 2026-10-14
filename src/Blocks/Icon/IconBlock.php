@@ -539,7 +539,7 @@ class IconBlock extends DynamicBlock
 		if ( ! preg_match( '/^[a-z0-9][a-z0-9_-]*$/i', $set ) ) {
 			return null;
 		}
-		if ( ! preg_match( '/^[a-z0-9][a-z0-9_.-]*$/i', $name ) ) {
+		if ( ! preg_match( '/^[a-z0-9][a-z0-9_.-]*$/i', $name ) || str_contains( $name, '..' ) ) {
 			return null;
 		}
 

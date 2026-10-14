@@ -147,10 +147,10 @@ function asIconRef( value: unknown ): IconRef | null {
     const candidate = value as { set?: unknown; name?: unknown };
     const set = asString( candidate.set ).trim();
     const name = asString( candidate.name ).trim();
-    // Same character sets the server-side normalizer and icon registry
-    // accept, so the editor preview never requests a ref the front end
-    // would render as a placeholder.
-    if ( ! ICON_SET_PATTERN.test( set ) || ! ICON_NAME_PATTERN.test( name ) ) {
+    // Same rules the server-side normalizer and icon registry apply
+    // (character sets, no `..` in the name), so the editor preview never
+    // requests a ref the front end would render as a placeholder.
+    if ( ! ICON_SET_PATTERN.test( set ) || ! ICON_NAME_PATTERN.test( name ) || name.includes( '..' ) ) {
         return null;
     }
     return { set, name };

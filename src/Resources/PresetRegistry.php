@@ -97,10 +97,12 @@ class PresetRegistry
 	/**
 	 * Palette slugs whose `.has-{slug}-color` utility shares its name with
 	 * a block-support marker class. See {@see self::colorUtilitySelector()}.
+	 * Listed in emission order: `text` comes last so its fallback rule
+	 * wins the cases markup alone can't disambiguate.
 	 *
 	 * @since 1.14.1
 	 */
-	public const MARKER_COLOR_SLUGS = [ 'text', 'link', 'border' ];
+	public const MARKER_COLOR_SLUGS = [ 'link', 'border', 'text' ];
 
 	/**
 	 * Attribute selectors matching an inline `color:` declaration in the
@@ -331,6 +333,7 @@ class PresetRegistry
 	{
 		$declarations = [];
 		$utilities    = [];
+		$colorSlugs   = [];
 
 		foreach ( self::effectiveFontSizes( $themeSettings['typography']['fontSizes'] ?? null ) as $entry ) {
 			$slug = self::presetSlug( $entry['slug'] );
@@ -351,10 +354,12 @@ class PresetRegistry
 			}
 
 			$declarations[] = sprintf( '--wp--preset--color--%s: %s;', $slug, trim( $entry['color'] ) );
-			$utilities[]    = sprintf( '%2$s { color: var(--wp--preset--color--%1$s) !important; }', $slug, self::colorUtilitySelector( $slug ) );
+			$colorSlugs[]   = $slug;
 			$utilities[]    = sprintf( '.has-%1$s-background-color { background-color: var(--wp--preset--color--%1$s) !important; }', $slug );
 			$utilities[]    = sprintf( '.has-%1$s-border-color { border-color: var(--wp--preset--color--%1$s) !important; }', $slug );
 		}
+
+		array_push( $utilities, ...self::colorUtilityRules( $colorSlugs ) );
 
 		if ( [] === $declarations ) {
 			return '';
@@ -388,30 +393,85 @@ class PresetRegistry
 	}
 
 	/**
+	 * The `.has-{slug}-color` rules for a palette, in emission order.
+	 *
+	 * Ordinary slugs get the plain WordPress utility. The `text`, `link`
+	 * and `border` slugs produce a class that is also a block-support
+	 * marker (`has-text-color`, `has-link-color`, `has-border-color`),
+	 * which blocks carry for any custom text, link or border color, so a
+	 * plain utility for them would force the slug's color onto blocks
+	 * that never picked it. Each of those slugs gets two rules instead:
+	 *
+	 *  - `.has-{slug}-color-preset` — the exact pick. The Blade renderer
+	 *    adds this class when a block picks the slug as its text color
+	 *    (see {@see self::presetPickClass()}).
+	 *  - a zero-specificity fallback ({@see self::colorUtilitySelector()})
+	 *    for markup the renderer doesn't build, such as the editor canvas
+	 *    and saved Gutenberg HTML, where the class set alone is the only
+	 *    signal. The fallbacks come last, `text` after `link` / `border`,
+	 *    so a block that picked `text` and also has a link or border color
+	 *    keeps its text color.
+	 *
+	 * Shared by {@see self::presetDefaultsCss()} and the Blade
+	 * `ThemeJsonTokensCompiler`; mirrored by cms-framework's
+	 * `GlobalStylesEmitter` and the React / Vue renderers.
+	 *
+	 * @since 1.14.1
+	 *
+	 * @param  array<int, string>  $slugs  Normalised palette slugs, in palette order.
+	 *
+	 * @return array<int, string>
+	 */
+	public static function colorUtilityRules( array $slugs ): array
+	{
+		$rules = [];
+
+		foreach ( array_unique( $slugs ) as $slug ) {
+			if ( ! in_array( $slug, self::MARKER_COLOR_SLUGS, true ) ) {
+				$rules[] = sprintf( '.has-%1$s-color { color: var(--wp--preset--color--%1$s) !important; }', $slug );
+			}
+		}
+
+		foreach ( self::MARKER_COLOR_SLUGS as $slug ) {
+			if ( in_array( $slug, $slugs, true ) ) {
+				$rules[] = sprintf( '.%s { color: var(--wp--preset--color--%s) !important; }', self::presetPickClass( $slug ), $slug );
+			}
+		}
+
+		foreach ( self::MARKER_COLOR_SLUGS as $slug ) {
+			if ( in_array( $slug, $slugs, true ) ) {
+				$rules[] = sprintf( '%s { color: var(--wp--preset--color--%s) !important; }', self::colorUtilitySelector( $slug ), $slug );
+			}
+		}
+
+		return $rules;
+	}
+
+	/**
+	 * The extra class a block carries when it picks `$slug` as its text
+	 * color, or null when the slug's own `.has-{slug}-color` class is
+	 * unambiguous. Only the marker slugs (`text`, `link`, `border`) need
+	 * one; see {@see self::colorUtilityRules()}.
+	 *
+	 * @since 1.14.1
+	 *
+	 * @param  string  $slug  A normalised palette slug.
+	 */
+	public static function presetPickClass( string $slug ): ?string
+	{
+		return in_array( $slug, self::MARKER_COLOR_SLUGS, true ) ? 'has-' . $slug . '-color-preset' : null;
+	}
+
+	/**
 	 * Selector for a palette slug's `.has-{slug}-color` utility.
 	 *
-	 * Three slugs produce a class that is also a block-support marker:
-	 * `text` → `has-text-color`, `link` → `has-link-color` and `border` →
-	 * `has-border-color`. Blocks carry those markers for any custom text,
-	 * link or border color, so a plain utility for one of these slugs
-	 * forces its color onto blocks that never picked it: a palette pick
-	 * (`has-base-color has-text-color`) whenever it's emitted later in
-	 * the sheet, a custom hex color (an inline `color:` loses to any
-	 * `!important` rule), and the text of a block that only set a link
-	 * or border color.
-	 *
-	 * The colliding selector therefore only matches a real pick of that
-	 * slug for the text color:
-	 *
-	 *  - a text pick always adds `has-text-color`, so `link` / `border`
-	 *    also require it (a bare link / border marker no longer matches);
-	 *  - an element with an inline `color:` declaration carries a custom
-	 *    color, not the slug, so it's excluded;
-	 *  - `:where()` keeps the rule at zero specificity, so another
-	 *    palette slug's `.has-{slug}-color` on the same element wins.
-	 *
-	 * Mirrored by cms-framework's `GlobalStylesEmitter` and the React /
-	 * Vue renderers' `colorUtilitySelector()`.
+	 * Ordinary slugs keep the plain class. For the marker slugs this is
+	 * the fallback rule's selector (see {@see self::colorUtilityRules()}):
+	 * it only matches a likely text-color pick of that slug — `link` /
+	 * `border` also require `has-text-color` (every text pick adds it),
+	 * elements with an inline `color:` (a custom color) are skipped — and
+	 * `:where()` keeps it at zero specificity, so another palette slug's
+	 * class or the exact `.has-{slug}-color-preset` rule wins.
 	 *
 	 * @since 1.14.1
 	 *

@@ -398,6 +398,25 @@ describe( 'effectivePalette() / effectiveFontSizes() keep the package defaults (
 			->and( PresetRegistry::colorUtilitySelector( 'link' ) )->toBe( ':where(.has-link-color.has-text-color:not([style^="color:"], [style*=" color:"], [style*=";color:"]))' )
 			->and( PresetRegistry::colorUtilitySelector( 'border' ) )->toBe( ':where(.has-border-color.has-text-color:not([style^="color:"], [style*=" color:"], [style*=";color:"]))' );
 	} );
+
+	it( 'orders color rules as plain utilities, exact marker-slug picks, then fallbacks with text last', function (): void {
+		expect( PresetRegistry::colorUtilityRules( [ 'text', 'base', 'link', 'border' ] ) )->toBe( [
+			'.has-base-color { color: var(--wp--preset--color--base) !important; }',
+			'.has-link-color-preset { color: var(--wp--preset--color--link) !important; }',
+			'.has-border-color-preset { color: var(--wp--preset--color--border) !important; }',
+			'.has-text-color-preset { color: var(--wp--preset--color--text) !important; }',
+			':where(.has-link-color.has-text-color:not([style^="color:"], [style*=" color:"], [style*=";color:"])) { color: var(--wp--preset--color--link) !important; }',
+			':where(.has-border-color.has-text-color:not([style^="color:"], [style*=" color:"], [style*=";color:"])) { color: var(--wp--preset--color--border) !important; }',
+			':where(.has-text-color:not([style^="color:"], [style*=" color:"], [style*=";color:"])) { color: var(--wp--preset--color--text) !important; }',
+		] );
+	} );
+
+	it( 'names an exact pick class only for the marker slugs', function (): void {
+		expect( PresetRegistry::presetPickClass( 'text' ) )->toBe( 'has-text-color-preset' )
+			->and( PresetRegistry::presetPickClass( 'link' ) )->toBe( 'has-link-color-preset' )
+			->and( PresetRegistry::presetPickClass( 'border' ) )->toBe( 'has-border-color-preset' )
+			->and( PresetRegistry::presetPickClass( 'base' ) )->toBeNull();
+	} );
 } );
 
 describe( 'spacingPresetsCss() (#814)', function (): void {

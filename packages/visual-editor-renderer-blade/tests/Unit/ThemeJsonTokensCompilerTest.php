@@ -469,6 +469,8 @@ describe( 'styles.* CSS rule emission', function (): void {
 			->toContain( ':where(.has-text-color:not([style^="color:"], [style*=" color:"], [style*=";color:"])) { color: var(--wp--preset--color--text) !important; }' )
 			->toContain( ':where(.has-link-color.has-text-color:not([style^="color:"], [style*=" color:"], [style*=";color:"])) { color: var(--wp--preset--color--link) !important; }' )
 			->toContain( ':where(.has-border-color.has-text-color:not([style^="color:"], [style*=" color:"], [style*=";color:"])) { color: var(--wp--preset--color--border) !important; }' )
+			->toContain( '.has-text-color-preset { color: var(--wp--preset--color--text) !important; }' )
+			->toContain( '.has-link-color-preset { color: var(--wp--preset--color--link) !important; }' )
 			->toContain( '.has-text-background-color { background-color: var(--wp--preset--color--text) !important; }' )
 			->toContain( '.has-border-border-color { border-color: var(--wp--preset--color--border) !important; }' )
 			->not->toMatch( '/(^|[\s}])\.has-(text|link|border)-color \{/' );

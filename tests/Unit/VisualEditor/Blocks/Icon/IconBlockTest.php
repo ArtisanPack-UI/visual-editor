@@ -89,6 +89,7 @@ it( 'renders a placeholder for an iconRef string that is not a valid iconRef', f
 	'malformed json' => '{"set":"fab",',
 	'missing name'   => '{"set":"fab"}',
 	'unsafe set'     => '{"set":"../fab","name":"github"}',
+	'dotted name'    => '{"set":"fab","name":"git..hub"}',
 	'plain string'   => 'fab github',
 ] );
 

@@ -147,18 +147,15 @@ editor canvas. `<x-ve-blocks-styles>` always declares:
 
   *Since v1.14.1.* A palette slug named `text`, `link` or `border`
   produces a `.has-{slug}-color` class that is also a block-support
-  marker (`has-text-color`, `has-link-color`, `has-border-color`). Its
-  color utility is scoped so it only matches a real text-color pick of
-  that slug: `link` / `border` also require `has-text-color`, elements
-  with an inline `color:` (a custom color) are skipped, and the rule sits
-  at zero specificity so another palette slug's class wins. See
-  `PresetRegistry::colorUtilitySelector()`.
-- **Layout tokens at zero specificity** — `:where(:root)` defaults for
-  `--wp--style--global--content-size` (720px),
-  `--wp--style--global--wide-size` (1080px), `--wp--style--block-gap`
-  (24px), and `--wp--style--root--padding-*` (1.5rem), plus the
-  constrained-layout rules when the theme sets no layout sizes. Any theme
-  `:root` declaration wins whatever the source order.
+  marker (`has-text-color`, `has-link-color`, `has-border-color`). A
+  block that picks one of these slugs as its text color also gets an
+  exact `has-{slug}-color-preset` class with its own rule. The
+  `.has-{slug}-color` rule remains as a zero-specificity fallback for
+  markup the renderer doesn't build: it skips elements with an inline
+  `color:`, requires `has-text-color` for `link` / `border`, and the
+  `text` fallback is emitted last, so in editor-canvas or saved Gutenberg
+  markup a `link` / `border` text pick resolves to `text`. See
+  `PresetRegistry::colorUtilityRules()`.
 
 The package's own CSS also gives every `var(--wp--*)` / `var(--ap-*)` a
 fallback value, so a missing token never collapses a declaration.
