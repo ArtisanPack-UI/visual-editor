@@ -169,7 +169,7 @@ class DynamicLoopBlock extends DynamicBlock implements WantsInnerBlocks
 			[ $attrKey, $blockAttrs ] = BlockShape::readAttrs( $block );
 
 			if ( is_string( $blockAttrs['anchor'] ?? null ) && '' !== trim( $blockAttrs['anchor'] ) ) {
-				$blockAttrs['anchor']    = trim( $blockAttrs['anchor'] ) . $suffix;
+				$blockAttrs['anchor']       = trim( $blockAttrs['anchor'] ) . $suffix;
 				$blocks[ $key ][ $attrKey ] = $blockAttrs;
 			}
 

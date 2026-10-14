@@ -58,7 +58,7 @@ class BindingResolver
 	 *
 	 * @since 1.14.0
 	 *
-	 * @var array<class-string, array<string, Model|false>>
+	 * @var array<class-string, array<string, false|Model>>
 	 */
 	protected array $relationSegmentCache = [];
 
