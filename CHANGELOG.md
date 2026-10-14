@@ -31,11 +31,14 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   resolved a second time against the host binding context, which could
   show the wrong record, blank a row under the `hide` / `placeholder`
   policies, or show the host `:post`'s values in model-backed bindings.
+  A row whose bound field is empty now shows the block's authored
+  fallback instead of another record's value.
 - An `artisanpack/dynamic-loop` nested inside another dynamic loop's
   row now renders each of its rows with its own record (#861). Before,
   every inner row showed the inner collection's first record. Tokens
   for the outer collection inside the inner loop show the current outer
-  record.
+  record, and an inner row whose bound field is empty shows the
+  authored fallback instead of the first record's value.
 - Front-end colors now match the editor canvas (#852):
   - The package default palette and font sizes stay declared when a
     theme ships its own `settings.color.palette` / `fontSizes` (theme

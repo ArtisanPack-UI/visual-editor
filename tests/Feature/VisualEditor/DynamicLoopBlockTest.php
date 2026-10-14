@@ -305,3 +305,47 @@ it( 'leaves the inner blocks of opaque blocks unresolved and unstripped (#861)',
 	expect( $resolved[0]['innerBlocks'][0] )->toBe( $nested['innerBlocks'][0] )
 		->and( $resolved[1]['attributes'] )->toBe( [ 'content' => 'Bob' ] );
 } );
+
+it( 'keeps the authored fallback on a row whose field is empty (#854)', function (): void {
+	app()->instance(
+		'ArtisanPackUI\\CMSFramework\\Modules\\DynamicContent\\Services\\DynamicContentAccessor',
+		new FakeDynamicContentAccessor( [
+			'team' => [
+				[ 'name' => 'Alice', 'role' => 'CEO' ],
+				[ 'name' => 'Bob' ],
+			],
+		] ),
+	);
+
+	$html = renderDynamicLoop(
+		[ dynamicLoopParagraph( DynamicContentSource::NAME, [ 'token' => 'team.role' ] ) ],
+		dynamicLoopHost(),
+	);
+
+	expect( dynamicLoopParagraphTexts( $html ) )->toBe( [ 'CEO', 'Static' ] );
+} );
+
+it( 'keeps the authored fallback on a nested row whose field is empty (#861)', function (): void {
+	$html = renderNestedDynamicLoop( [
+		dynamicLoopParagraph( DynamicContentSource::NAME, [ 'token' => 'office.code' ] ),
+	] );
+
+	expect( dynamicLoopParagraphTexts( $html ) )->toBe( [ 'PAR', 'Static', 'PAR', 'Static' ] );
+} );
+
+it( 'leaves a dynamic loop template alone in the renderer binding pass (#854)', function (): void {
+	app()->register( VisualEditorRendererBladeServiceProvider::class );
+
+	$paragraph = dynamicLoopParagraph( DynamicContentSource::NAME, [ 'token' => 'team.name' ] );
+	$loop      = dynamicLoopBlock( 'team', [ $paragraph ] );
+
+	$loop['attributes']['label']    = 'Static label';
+	$loop['attributes']['bindings'] = [
+		'label' => [ 'source' => DynamicContentSource::NAME, 'args' => [ 'token' => 'team.name' ] ],
+	];
+
+	$resolved = app( BlockRenderer::class )->resolveBindings( [ $loop ], new BindingContext( dynamicLoopHost() ) );
+
+	expect( $resolved[0]['attributes']['label'] )->toBe( 'Alice' )
+		->and( $resolved[0]['innerBlocks'][0] )->toBe( $paragraph );
+} );

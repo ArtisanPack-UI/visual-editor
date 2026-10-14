@@ -7,8 +7,10 @@
  * renders the block's inner-block template once per record. Bindings
  * inside the template with tokens like `team.name` are re-resolved
  * per iteration by walking the tree and rewriting the `token` arg to
- * `team[N].field`. Each row's bindings sidecars are stripped after
- * resolving so the renderer's host-context pass leaves the row alone.
+ * `team[N].field`. The renderer's host-context pass skips the
+ * template, so this per-row resolve is the only one it gets (#854).
+ * Each row's bindings sidecars are stripped after resolving so the
+ * nested render() of the row leaves it alone.
  *
  * A loop nested inside a row is left unresolved by that pass. The row
  * stamps its index map onto the nested loop instead, and the nested

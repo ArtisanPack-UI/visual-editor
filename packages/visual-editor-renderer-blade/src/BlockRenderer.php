@@ -21,6 +21,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditorRendererBlade;
 
+use ArtisanPackUI\VisualEditor\Blocks\DynamicContent\DynamicLoopBlock;
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
 use ArtisanPackUI\VisualEditor\Resources\PatternInliner;
 use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
@@ -214,11 +215,19 @@ class BlockRenderer
 	 * bound (VE renderer-blade is installable without the bindings
 	 * layer).
 	 *
+	 * A dynamic loop's own bindings resolve here, but its inner-block
+	 * template is left alone: the loop resolves it once per row with
+	 * that row's index. Resolving it here, with no index, would write
+	 * the collection's first record into the template's static attrs,
+	 * and a row whose field is empty would then show that value under
+	 * the `fallback` policy instead of the authored text (#854, #861).
+	 *
 	 * @param  array<int, array<string, mixed>>  $tree
 	 *
 	 * @return array<int, array<string, mixed>>
 	 *
 	 * @since 1.4.0
+	 * @since 1.14.0 Leaves dynamic-loop templates for the loop to resolve per row.
 	 */
 	public function resolveBindings( array $tree, ?BindingContext $context = null ): array
 	{
@@ -227,7 +236,7 @@ class BlockRenderer
 		}
 
 		try {
-			return $this->bindingResolver->resolve( $tree, $context );
+			return $this->bindingResolver->resolve( $tree, $context, [ DynamicLoopBlock::BLOCK_NAME ] );
 		} catch ( Throwable $e ) {
 			report( $e );
 
