@@ -591,3 +591,21 @@ it( 'stamps post-content from its own HTML when the content tree holds a differe
 	expect( $resolved[0]['attributes']['_resolvedContent'] )->toBe( '<h2 id="intro">Intro</h2>{{site.extra}}' )
 		->and( array_column( $resolved[1]['attributes']['_resolvedItems'], 'anchor' ) )->toBe( [ 'intro' ] );
 } );
+
+it( 'stamps anchors and TOC items into the attrs bag of a legacy attrs-shape tree (#863)', function (): void {
+	$resolver = new TocResolver();
+
+	$tree = [
+		[ 'name' => 'artisanpack/toc', 'attrs' => [ 'minLevel' => 2 ], 'innerBlocks' => [] ],
+		[ 'name' => 'core/heading', 'attrs' => [ 'level' => 2, 'content' => 'Getting Started' ], 'innerBlocks' => [] ],
+		[ 'name' => 'core/paragraph', 'attrs' => [ 'content' => 'Body' ], 'innerBlocks' => [] ],
+	];
+
+	$resolved = $resolver->resolveTree( $tree );
+
+	expect( $resolved[1]['attrs'] )->toBe( [ 'level' => 2, 'content' => 'Getting Started', 'anchor' => 'getting-started' ] )
+		->and( $resolved[1] )->not->toHaveKey( 'attributes' )
+		->and( $resolved[0]['attrs']['minLevel'] )->toBe( 2 )
+		->and( array_column( $resolved[0]['attrs']['_resolvedItems'], 'anchor' ) )->toBe( [ 'getting-started' ] )
+		->and( $resolved[2] )->toBe( $tree[2] );
+} );

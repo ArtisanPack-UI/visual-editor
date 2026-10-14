@@ -209,7 +209,7 @@ class TocResolver
 	{
 		$name = isset( $block['name'] ) && is_string( $block['name'] ) ? $block['name'] : '';
 
-		$attributes = isset( $block['attributes'] ) && is_array( $block['attributes'] ) ? $block['attributes'] : [];
+		[ $attrKey, $attributes ] = BlockShape::readAttrs( $block );
 
 		// A source of a different type means the copy drifted out of
 		// step with the tree; read the block's own attributes instead.
@@ -217,8 +217,8 @@ class TocResolver
 			$source = null;
 		}
 
-		$sourceAttributes = null !== $source && isset( $source['attributes'] ) && is_array( $source['attributes'] )
-			? $source['attributes']
+		$sourceAttributes = null !== $source
+			? BlockShape::readAttrs( $source )[1]
 			: $attributes;
 
 		if ( in_array( $name, self::HEADING_BLOCKS, true ) ) {
@@ -250,8 +250,8 @@ class TocResolver
 					$anchor          = $this->uniqueSlug( $slug, $used );
 					$used[ $anchor ] = true;
 
-					$attributes             = array_merge( $attributes, [ 'anchor' => $anchor ] );
-					$block['attributes']    = $attributes;
+					$attributes        = array_merge( $attributes, [ 'anchor' => $anchor ] );
+					$block[ $attrKey ] = $attributes;
 				}
 			}
 
@@ -277,8 +277,8 @@ class TocResolver
 				$rewritten = $this->stampSourceContentHeadings( $ownContent, $content, $used, $headings );
 
 				if ( $rewritten !== ( '' === $ownContent ? $content : $ownContent ) ) {
-					$attributes           = array_merge( $attributes, [ '_resolvedContent' => $rewritten ] );
-					$block['attributes']  = $attributes;
+					$attributes        = array_merge( $attributes, [ '_resolvedContent' => $rewritten ] );
+					$block[ $attrKey ] = $attributes;
 				}
 			}
 		}
@@ -493,7 +493,7 @@ class TocResolver
 		$name = isset( $block['name'] ) && is_string( $block['name'] ) ? $block['name'] : '';
 
 		if ( in_array( $name, self::TOC_BLOCKS, true ) ) {
-			$attributes = isset( $block['attributes'] ) && is_array( $block['attributes'] ) ? $block['attributes'] : [];
+			[ $attrKey, $attributes ] = BlockShape::readAttrs( $block );
 
 			// Host apps can layer their own heading extractor in front of
 			// this resolver — a headless site, for example, might stamp
@@ -527,7 +527,7 @@ class TocResolver
 					$filtered[] = $heading;
 				}
 
-				$block['attributes'] = array_merge( $attributes, [ '_resolvedItems' => $filtered ] );
+				$block[ $attrKey ] = array_merge( $attributes, [ '_resolvedItems' => $filtered ] );
 			}
 		}
 

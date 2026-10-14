@@ -33,6 +33,7 @@ use ArtisanPackUI\VisualEditor\Resources\TocResolver;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesEmissionTracker;
 use ArtisanPackUI\VisualEditor\SiteEditor\NavigationBlockRefResolver;
+use ArtisanPackUI\VisualEditor\Support\BlockShape;
 use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\BreadcrumbsResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\BusinessInfoResolver;
@@ -113,7 +114,9 @@ class BlocksComponent extends Component
 		$this->defaultTheme = $defaultTheme;
 		$this->bindingModel = $post instanceof Model ? $post : null;
 
-		$normalized = $this->normalizeTree( $tree );
+		// Canonicalize legacy `attrs`-shape blocks to `attributes` up
+		// front so every resolver below reads one shape (#863).
+		$normalized = BlockShape::normalizeTree( $this->normalizeTree( $tree ) );
 
 		$resolved = $resolveParts
 			? $this->inliner->inline( $normalized, $defaultTheme )
@@ -124,6 +127,12 @@ class BlocksComponent extends Component
 		// same pass.
 		$resolved = $resolvePatterns
 			? $this->patternInliner->inline( $resolved )
+			: $resolved;
+
+		// Template parts and synced patterns splice in stored subtrees
+		// that may themselves be in the `attrs` shape.
+		$resolved = ( $resolveParts || $resolvePatterns )
+			? BlockShape::normalizeTree( $resolved )
 			: $resolved;
 
 		// Query inlining runs before nav-block resolution so a `core/query`

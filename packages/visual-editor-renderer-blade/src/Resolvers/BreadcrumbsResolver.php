@@ -33,6 +33,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditorRendererBlade\Resolvers;
 
+use ArtisanPackUI\VisualEditor\Support\BlockShape;
 use stdClass;
 use Throwable;
 
@@ -94,11 +95,12 @@ class BreadcrumbsResolver
 	{
 		$name = isset( $block['name'] ) && is_string( $block['name'] ) ? $block['name'] : '';
 
-		$attributes = isset( $block['attributes'] ) && is_array( $block['attributes'] )
-			? $block['attributes']
-			: [];
-
 		if ( self::BREADCRUMBS_BLOCK === $name ) {
+			// Read and write through whichever bag the block carries so a
+			// legacy `attrs`-shape block isn't shadowed by an empty
+			// `attributes` key (#863).
+			[ $attrKey, $attributes ] = BlockShape::readAttrs( $block );
+
 			// A pre-stamped `_resolvedTrail` on the host's saved tree wins
 			// over the resolver fallback — matches PostResolver's contract
 			// so a host that has resolved the trail upstream (e.g. through
@@ -106,17 +108,15 @@ class BreadcrumbsResolver
 			// request than this resolver does) keeps full control.
 			if ( ! array_key_exists( '_resolvedTrail', $attributes ) ) {
 				$attributes['_resolvedTrail'] = $this->buildTrail( $post, $attributes );
+				$block[ $attrKey ]            = $attributes;
 			}
 		}
 
-		$inner = isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] )
-			? $this->stampTree( $block['innerBlocks'], $post )
-			: [];
+		if ( isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) ) {
+			$block['innerBlocks'] = $this->stampTree( $block['innerBlocks'], $post );
+		}
 
-		return array_merge( $block, [
-			'attributes'  => $attributes,
-			'innerBlocks' => $inner,
-		] );
+		return $block;
 	}
 
 	/**
