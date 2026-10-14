@@ -10,6 +10,11 @@
  * `team[N].field`. Each row's bindings sidecars are stripped after
  * resolving so the renderer's host-context pass leaves the row alone.
  *
+ * A loop nested inside a row is left unresolved by that pass. The row
+ * stamps its index map onto the nested loop instead, and the nested
+ * loop merges it into each of its own rows, so tokens for both the
+ * inner and the outer collection resolve to the current record (#861).
+ *
  * Zero-record collections emit an empty string. Missing collections
  * emit a warning placeholder identical in shape to the snippet-cycle
  * placeholder so ops sees the reference is broken.
@@ -31,6 +36,7 @@ use ArtisanPackUI\VisualEditor\Blocks\WantsInnerBlocks;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingResolver;
 use ArtisanPackUI\VisualEditor\Services\Bindings\Sources\DynamicContentSource;
+use ArtisanPackUI\VisualEditor\Support\BlockShape;
 use Throwable;
 
 class DynamicLoopBlock extends DynamicBlock implements WantsInnerBlocks
@@ -44,6 +50,14 @@ class DynamicLoopBlock extends DynamicBlock implements WantsInnerBlocks
 	 * @since 1.4.0
 	 */
 	public const MAX_RECORDS = 500;
+
+	/**
+	 * Attribute an enclosing loop stamps on a nested loop to pass down
+	 * the current row's collection → index map (#861).
+	 *
+	 * @since 1.13.1
+	 */
+	public const PARENT_INDEX_ATTR = '_dcParentIndex';
 
 	public function __construct( protected BindingResolver $bindingResolver )
 	{
@@ -95,30 +109,95 @@ class DynamicLoopBlock extends DynamicBlock implements WantsInnerBlocks
 			return '';
 		}
 
-		$renderer = app( $rendererClass );
-		$out      = '';
-		$limit    = min( count( $records ), self::MAX_RECORDS );
+		$renderer    = app( $rendererClass );
+		$out         = '';
+		$limit       = min( count( $records ), self::MAX_RECORDS );
+		$parentIndex = $this->parentIndex( $attrs );
 
 		for ( $i = 0; $i < $limit; $i++ ) {
-			$context = new BindingContext(
+			$indexMap = array_merge( $parentIndex, [ $collectionSlug => $i ] );
+			$context  = new BindingContext(
 				null,
 				[],
-				[ DynamicContentSource::EXTRAS_INDEX_KEY => [ $collectionSlug => $i ] ],
+				[ DynamicContentSource::EXTRAS_INDEX_KEY => $indexMap ],
 			);
 
 			try {
 				// Strip the bindings sidecars once this row has resolved:
 				// the nested render() reuses the host's binding context,
 				// and without the strip it would resolve the row again
-				// without its index (#854).
-				$resolved = $this->bindingResolver->resolveAndStrip( $template, $context );
-				$out .= $renderer->render( $resolved );
+				// without its index (#854). Nested loops keep their
+				// template's sidecars so they can resolve it per row
+				// with this row's indexes stamped on (#861).
+				$resolved = $this->bindingResolver->resolveAndStrip( $template, $context, [ self::BLOCK_NAME ] );
+				$out .= $renderer->render( $this->stampNestedLoops( $resolved, $indexMap ) );
 			} catch ( Throwable $e ) {
 				report( $e );
 			}
 		}
 
 		return $out;
+	}
+
+	/**
+	 * Read the index map an enclosing loop stamped on this block,
+	 * keeping only `slug => non-negative int` entries.
+	 *
+	 * @since 1.13.1
+	 *
+	 * @param  array<string, mixed>  $attrs
+	 *
+	 * @return array<string, int>
+	 */
+	protected function parentIndex( array $attrs ): array
+	{
+		$stamped = $attrs[ self::PARENT_INDEX_ATTR ] ?? null;
+
+		if ( ! is_array( $stamped ) ) {
+			return [];
+		}
+
+		return array_filter(
+			$stamped,
+			static fn ( $index, $slug ): bool => is_string( $slug ) && is_int( $index ) && $index >= 0,
+			ARRAY_FILTER_USE_BOTH,
+		);
+	}
+
+	/**
+	 * Stamp the row's index map onto every loop nested in the row. The
+	 * walk stops at each nested loop: deeper loops get stamped when that
+	 * loop renders its own rows.
+	 *
+	 * @since 1.13.1
+	 *
+	 * @param  array<int, array<string, mixed>>  $blocks
+	 * @param  array<string, int>                $indexMap
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	protected function stampNestedLoops( array $blocks, array $indexMap ): array
+	{
+		foreach ( $blocks as $key => $block ) {
+			if ( ! is_array( $block ) ) {
+				continue;
+			}
+
+			if ( self::BLOCK_NAME === ( $block['name'] ?? null ) ) {
+				[ $attrKey, $blockAttrs ] = BlockShape::readAttrs( $block );
+
+				$blockAttrs[ self::PARENT_INDEX_ATTR ] = $indexMap;
+				$blocks[ $key ][ $attrKey ]            = $blockAttrs;
+
+				continue;
+			}
+
+			if ( isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) && [] !== $block['innerBlocks'] ) {
+				$blocks[ $key ]['innerBlocks'] = $this->stampNestedLoops( $block['innerBlocks'], $indexMap );
+			}
+		}
+
+		return $blocks;
 	}
 
 	/**

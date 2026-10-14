@@ -56,13 +56,20 @@ class BindingResolver
 	 * Resolve every binding in the given block tree against the supplied
 	 * context. Returns a new tree — the input is left untouched.
 	 *
+	 * Blocks named in `$opaqueBlocks` still have their own bindings
+	 * resolved, but the walk doesn't descend into their inner blocks.
+	 * A nested loop uses this so its template resolves later, once per
+	 * row, instead of now without a row index (#861).
+	 *
 	 * @since 1.1.0
+	 * @since 1.13.1 Accepts `$opaqueBlocks` (#861).
 	 *
 	 * @param  array<int, array<string, mixed>>  $blocks
+	 * @param  array<int, string>                $opaqueBlocks  Block names whose inner blocks are left untouched.
 	 *
 	 * @return array<int, array<string, mixed>>
 	 */
-	public function resolve( array $blocks, ?BindingContext $context = null ): array
+	public function resolve( array $blocks, ?BindingContext $context = null, array $opaqueBlocks = [] ): array
 	{
 		if ( [] === $blocks ) {
 			return $blocks;
@@ -73,7 +80,7 @@ class BindingResolver
 		$this->prepareEagerLoads( $blocks, $context );
 
 		return array_values( array_map(
-			fn ( $block ) => $this->resolveBlock( $block, $context ),
+			fn ( $block ) => $this->resolveBlock( $block, $context, $opaqueBlocks ),
 			$blocks,
 		) );
 	}
@@ -86,15 +93,19 @@ class BindingResolver
 	 * against the host record leaves the resolved values alone, including
 	 * under the `hide` and `placeholder` policies.
 	 *
+	 * Inner blocks of `$opaqueBlocks` are neither resolved nor stripped,
+	 * see {@see resolve()}.
+	 *
 	 * @since 1.13.1
 	 *
 	 * @param  array<int, array<string, mixed>>  $blocks
+	 * @param  array<int, string>                $opaqueBlocks  Block names whose inner blocks are left untouched.
 	 *
 	 * @return array<int, array<string, mixed>>
 	 */
-	public function resolveAndStrip( array $blocks, ?BindingContext $context = null ): array
+	public function resolveAndStrip( array $blocks, ?BindingContext $context = null, array $opaqueBlocks = [] ): array
 	{
-		return BlockShape::stripBindings( $this->resolve( $blocks, $context ) );
+		return BlockShape::stripBindings( $this->resolve( $blocks, $context, $opaqueBlocks ), $opaqueBlocks );
 	}
 
 	/**
@@ -153,10 +164,11 @@ class BindingResolver
 	 * @since 1.1.0
 	 *
 	 * @param  array<string, mixed>  $block
+	 * @param  array<int, string>    $opaqueBlocks
 	 *
 	 * @return array<string, mixed>
 	 */
-	protected function resolveBlock( array $block, BindingContext $context ): array
+	protected function resolveBlock( array $block, BindingContext $context, array $opaqueBlocks = [] ): array
 	{
 		// Shape-agnostic read via BlockShape — supports both
 		// Gutenberg's `attributes` (editor persistence, bindings under
@@ -180,9 +192,13 @@ class BindingResolver
 			$block[ $attrKey ] = $attrs;
 		}
 
+		if ( in_array( $block['name'] ?? null, $opaqueBlocks, true ) ) {
+			return $block;
+		}
+
 		if ( isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) && [] !== $block['innerBlocks'] ) {
 			$block['innerBlocks'] = array_values( array_map(
-				fn ( $inner ) => is_array( $inner ) ? $this->resolveBlock( $inner, $context ) : $inner,
+				fn ( $inner ) => is_array( $inner ) ? $this->resolveBlock( $inner, $context, $opaqueBlocks ) : $inner,
 				$block['innerBlocks'],
 			) );
 		}
