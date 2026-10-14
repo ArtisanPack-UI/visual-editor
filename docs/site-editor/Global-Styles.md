@@ -168,6 +168,36 @@ CSS variables follow the `--wp--preset--{category}--{slug}` convention
 so existing Gutenberg block markup using `var(--wp--preset--*)` resolves
 without modification.
 
+### Element and per-block rules from theme.json
+
+*Since v1.14.0 (#852).*
+
+When `<x-ve-blocks-styles :theme-json="…" />` compiles a theme.json, its
+`styles.elements.*` and `styles.blocks[*].elements.*` rules are wrapped
+in `:root :where(…)` like WordPress's global styles, so they all sit at
+a flat (0,1,0) specificity. `.has-*` preset classes and inline block
+styles beat them, and a later per-block rule wins by source order. Each
+element's `:hover`, `:focus`, `:focus-visible` and `:active` sub-nodes
+compile too:
+
+```css
+:root :where(a:where(:not(.wp-element-button))) { color: var(--wp--preset--color--primary); }
+:root :where(a:where(:not(.wp-element-button)):hover) { color: var(--wp--preset--color--accent); }
+:root :where(.wp-block-group h1, .wp-block-group h2, …) { color: …; }
+```
+
+The link selector skips `.wp-element-button`, so a link color never
+repaints buttons, which are `<a>` elements too. Host CSS that overrode
+theme link or heading colors with a bare element selector such as `a`
+(0,0,1) may need more specificity than it did before v1.14.0.
+
+Per-block element colors (Color → Link and the heading / button element
+colors on a single block) are scoped to that block's `wp-elements-{hash}`
+class and printed once in a `<style data-ve-elements>` block by
+`<x-ve-blocks>` / `<x-ve-template>`. Hosts that call `BlockRenderer`
+directly print it with `flushSupportAssets()`; see
+[Support CSS for direct renders](../renderers.md#support-css-for-direct-renders).
+
 ---
 
 ## 8. Handling a future schema bump
