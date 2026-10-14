@@ -124,6 +124,9 @@ function asStyleObject( value: unknown ): WpStyleAttribute {
     return value as WpStyleAttribute;
 }
 
+const ICON_SET_PATTERN  = /^[a-z0-9][a-z0-9_-]*$/i;
+const ICON_NAME_PATTERN = /^[a-z0-9][a-z0-9_.-]*$/i;
+
 /**
  * Accepts the `{ set, name }` object the editor saves, or the same shape
  * as a JSON string — what a binding hands over when the bound custom
@@ -144,7 +147,13 @@ function asIconRef( value: unknown ): IconRef | null {
     const candidate = value as { set?: unknown; name?: unknown };
     const set = asString( candidate.set ).trim();
     const name = asString( candidate.name ).trim();
-    return set.length > 0 && name.length > 0 ? { set, name } : null;
+    // Same character sets the server-side normalizer and icon registry
+    // accept, so the editor preview never requests a ref the front end
+    // would render as a placeholder.
+    if ( ! ICON_SET_PATTERN.test( set ) || ! ICON_NAME_PATTERN.test( name ) ) {
+        return null;
+    }
+    return { set, name };
 }
 
 /**

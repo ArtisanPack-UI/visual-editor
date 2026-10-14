@@ -450,7 +450,7 @@ describe( 'styles.* CSS rule emission', function (): void {
 		expect( $css )->toContain( '.has-muted-background-color { background-color: var(--wp--preset--color--muted) !important; }' );
 	} );
 
-	it( 'drops color utilities that collide with block-support markers to zero specificity', function (): void {
+	it( 'scopes color utilities that collide with block-support markers to real picks of that slug', function (): void {
 		$css = ( new ThemeJsonTokensCompiler() )->compile( [
 			'settings' => [
 				'color' => [
@@ -466,12 +466,12 @@ describe( 'styles.* CSS rule emission', function (): void {
 
 		expect( $css )
 			->toContain( '.has-base-color { color: var(--wp--preset--color--base) !important; }' )
-			->toContain( ':where(.has-text-color) { color: var(--wp--preset--color--text) !important; }' )
-			->toContain( ':where(.has-link-color) { color: var(--wp--preset--color--link) !important; }' )
-			->toContain( ':where(.has-border-color) { color: var(--wp--preset--color--border) !important; }' )
+			->toContain( ':where(.has-text-color:not([style^="color:"], [style*=" color:"], [style*=";color:"])) { color: var(--wp--preset--color--text) !important; }' )
+			->toContain( ':where(.has-link-color.has-text-color:not([style^="color:"], [style*=" color:"], [style*=";color:"])) { color: var(--wp--preset--color--link) !important; }' )
+			->toContain( ':where(.has-border-color.has-text-color:not([style^="color:"], [style*=" color:"], [style*=";color:"])) { color: var(--wp--preset--color--border) !important; }' )
 			->toContain( '.has-text-background-color { background-color: var(--wp--preset--color--text) !important; }' )
 			->toContain( '.has-border-border-color { border-color: var(--wp--preset--color--border) !important; }' )
-			->not->toMatch( '/(^|[\s}])\.has-text-color \{/' );
+			->not->toMatch( '/(^|[\s}])\.has-(text|link|border)-color \{/' );
 	} );
 
 	it( 'emits has-{slug}-gradient-background for each gradient preset', function (): void {

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import '../src/index';
 import { LayoutBaseline } from '../src/LayoutBaseline';
-import { LAYOUT_BASELINE_CSS } from '../src/support/layoutBaselineCss';
+import { LAYOUT_BASELINE_CSS, colorUtilitySelector } from '../src/support/layoutBaselineCss';
 
 describe('LayoutBaseline', () => {
     it('renders a <style data-ve-layout-baseline> tag', () => {
@@ -36,5 +36,20 @@ describe('LayoutBaseline', () => {
             ':where(:root) { --wp--preset--spacing--20: 0.5rem; --wp--preset--spacing--30: 1rem; --wp--preset--spacing--40: 1.5rem; --wp--preset--spacing--50: 3rem; --wp--preset--spacing--60: 5rem; --wp--preset--spacing--70: 7rem; }'
         );
         expect(css).toContain(':where(.wp-block-navigation) { gap: var(--wp--style--block-gap, 0.5em); }');
+    });
+});
+
+describe('colorUtilitySelector (mirrors PresetRegistry::colorUtilitySelector)', () => {
+    const inline = '[style^="color:"], [style*=" color:"], [style*=";color:"]';
+
+    it('keeps a plain class selector for ordinary slugs', () => {
+        expect(colorUtilitySelector('base')).toBe('.has-base-color');
+        expect(colorUtilitySelector('text-muted')).toBe('.has-text-muted-color');
+    });
+
+    it('scopes the slugs that collide with block-support markers to real picks', () => {
+        expect(colorUtilitySelector('text')).toBe(`:where(.has-text-color:not(${inline}))`);
+        expect(colorUtilitySelector('link')).toBe(`:where(.has-link-color.has-text-color:not(${inline}))`);
+        expect(colorUtilitySelector('border')).toBe(`:where(.has-border-color.has-text-color:not(${inline}))`);
     });
 });

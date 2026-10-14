@@ -51,6 +51,36 @@ export const SPACING_PRESET_DEFAULTS_CSS =
     ' }';
 
 /**
+ * Palette slugs whose `.has-{slug}-color` utility shares its name with a
+ * block-support marker class. Mirrors `PresetRegistry::MARKER_COLOR_SLUGS`.
+ *
+ * @since 1.14.1
+ */
+export const MARKER_COLOR_SLUGS: ReadonlyArray<string> = ['text', 'link', 'border'];
+
+/**
+ * Selector for a palette slug's `.has-{slug}-color` utility. The `text`,
+ * `link` and `border` slugs collide with the block-support markers, so
+ * their selector only matches a real text-color pick of that slug: it
+ * requires `has-text-color`, skips elements with an inline `color:`
+ * (a custom color), and stays at zero specificity so another palette
+ * slug's class wins. Mirrors `PresetRegistry::colorUtilitySelector()`.
+ *
+ * @since 1.14.1
+ */
+export function colorUtilitySelector(slug: string): string {
+    const selector = `.has-${slug}-color`;
+
+    if (!MARKER_COLOR_SLUGS.includes(slug)) {
+        return selector;
+    }
+
+    const scoped = slug === 'text' ? selector : `${selector}.has-text-color`;
+
+    return `:where(${scoped}:not([style^="color:"], [style*=" color:"], [style*=";color:"]))`;
+}
+
+/**
  * Package default font sizes and palette. Mirror
  * `PresetRegistry::DEFAULT_FONT_SIZES` / `DEFAULT_PALETTE` (#821).
  *
@@ -95,7 +125,7 @@ export const DEFAULT_TOKENS_CSS =
     '\n' +
     DEFAULT_PALETTE.map(
         ({ slug }) =>
-            `.has-${slug}-color { color: var(--wp--preset--color--${slug}) !important; }\n` +
+            `${colorUtilitySelector(slug)} { color: var(--wp--preset--color--${slug}) !important; }\n` +
             `.has-${slug}-background-color { background-color: var(--wp--preset--color--${slug}) !important; }\n` +
             `.has-${slug}-border-color { border-color: var(--wp--preset--color--${slug}) !important; }`
     ).join('\n');

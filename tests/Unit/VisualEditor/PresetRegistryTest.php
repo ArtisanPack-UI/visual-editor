@@ -377,7 +377,7 @@ describe( 'effectivePalette() / effectiveFontSizes() keep the package defaults (
 			->toContain( '.has-base-content-color { color: var(--wp--preset--color--base-content) !important; }' );
 	} );
 
-	it( 'drops color utilities that collide with block-support markers to zero specificity', function (): void {
+	it( 'scopes color utilities that collide with block-support markers to real picks of that slug', function (): void {
 		$css = PresetRegistry::presetDefaultsCss( [
 			'color' => [ 'palette' => [
 				[ 'slug' => 'base', 'color' => '#111827' ],
@@ -387,8 +387,16 @@ describe( 'effectivePalette() / effectiveFontSizes() keep the package defaults (
 
 		expect( $css )
 			->toContain( '.has-base-color { color: var(--wp--preset--color--base) !important; }' )
-			->toContain( ':where(.has-text-color) { color: var(--wp--preset--color--text) !important; }' )
+			->toContain( ':where(.has-text-color:not([style^="color:"], [style*=" color:"], [style*=";color:"])) { color: var(--wp--preset--color--text) !important; }' )
 			->not->toMatch( '/(^|\n)\.has-text-color \{/' );
+	} );
+
+	it( 'builds the colliding-slug selector from the marker and inline-color rules', function (): void {
+		expect( PresetRegistry::colorUtilitySelector( 'base' ) )->toBe( '.has-base-color' )
+			->and( PresetRegistry::colorUtilitySelector( 'text-muted' ) )->toBe( '.has-text-muted-color' )
+			->and( PresetRegistry::colorUtilitySelector( 'text' ) )->toBe( ':where(.has-text-color:not([style^="color:"], [style*=" color:"], [style*=";color:"]))' )
+			->and( PresetRegistry::colorUtilitySelector( 'link' ) )->toBe( ':where(.has-link-color.has-text-color:not([style^="color:"], [style*=" color:"], [style*=";color:"]))' )
+			->and( PresetRegistry::colorUtilitySelector( 'border' ) )->toBe( ':where(.has-border-color.has-text-color:not([style^="color:"], [style*=" color:"], [style*=";color:"]))' );
 	} );
 } );
 

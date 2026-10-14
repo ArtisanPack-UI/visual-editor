@@ -70,6 +70,16 @@ it( 'inlines the resolved SVG when a binding hands over the iconRef as a JSON st
 		->and( $html )->toContain( '<svg' );
 } );
 
+it( 'inlines the resolved SVG when a binding hands over an object-cast iconRef', function ( mixed $iconRef ): void {
+	$html = test()->block->render( [ 'iconRef' => $iconRef ] );
+
+	expect( $html )->toContain( 'data-icon-name="github"' )
+		->and( $html )->toContain( '<svg' );
+} )->with( [
+	'stdClass'    => fn () => (object) [ 'set' => 'fab', 'name' => 'github' ],
+	'ArrayObject' => fn () => new ArrayObject( [ 'set' => 'fab', 'name' => 'github' ] ),
+] );
+
 it( 'renders a placeholder for an iconRef string that is not a valid iconRef', function ( string $iconRef ): void {
 	$html = test()->block->render( [ 'iconRef' => $iconRef ] );
 

@@ -103,6 +103,16 @@ class PresetRegistry
 	public const MARKER_COLOR_SLUGS = [ 'text', 'link', 'border' ];
 
 	/**
+	 * Attribute selectors matching an inline `color:` declaration in the
+	 * forms the renderers (`color: #fff; …`) and the block editor
+	 * (`color:#fff;…`) serialize it, without matching `background-color`
+	 * or `border-color`. See {@see self::colorUtilitySelector()}.
+	 *
+	 * @since 1.14.1
+	 */
+	public const INLINE_COLOR_ATTRIBUTE_SELECTORS = '[style^="color:"], [style*=" color:"], [style*=";color:"]';
+
+	/**
 	 * Package default layout tokens (#821). `contentSize` / `wideSize`
 	 * match the editor's `__experimentalFeatures.layout`; `blockGap`
 	 * matches the layout baseline's `var(--wp--style--block-gap, 24px)`
@@ -382,13 +392,26 @@ class PresetRegistry
 	 *
 	 * Three slugs produce a class that is also a block-support marker:
 	 * `text` → `has-text-color`, `link` → `has-link-color` and `border` →
-	 * `has-border-color`. Every block with a custom text, link or border
-	 * color carries those markers, so a plain `.has-text-color` utility
-	 * matches all of them and, emitted after `.has-base-color` at the same
-	 * specificity, overrides the color the author picked. `:where()`
-	 * drops the colliding utility to zero specificity: the slug's own
-	 * `.has-{slug}-color` rule still wins, and a block whose pick really
-	 * is `text` keeps it through `!important`.
+	 * `has-border-color`. Blocks carry those markers for any custom text,
+	 * link or border color, so a plain utility for one of these slugs
+	 * forces its color onto blocks that never picked it: a palette pick
+	 * (`has-base-color has-text-color`) whenever it's emitted later in
+	 * the sheet, a custom hex color (an inline `color:` loses to any
+	 * `!important` rule), and the text of a block that only set a link
+	 * or border color.
+	 *
+	 * The colliding selector therefore only matches a real pick of that
+	 * slug for the text color:
+	 *
+	 *  - a text pick always adds `has-text-color`, so `link` / `border`
+	 *    also require it (a bare link / border marker no longer matches);
+	 *  - an element with an inline `color:` declaration carries a custom
+	 *    color, not the slug, so it's excluded;
+	 *  - `:where()` keeps the rule at zero specificity, so another
+	 *    palette slug's `.has-{slug}-color` on the same element wins.
+	 *
+	 * Mirrored by cms-framework's `GlobalStylesEmitter` and the React /
+	 * Vue renderers' `colorUtilitySelector()`.
 	 *
 	 * @since 1.14.1
 	 *
@@ -398,7 +421,15 @@ class PresetRegistry
 	{
 		$selector = '.has-' . $slug . '-color';
 
-		return in_array( $slug, self::MARKER_COLOR_SLUGS, true ) ? ':where(' . $selector . ')' : $selector;
+		if ( ! in_array( $slug, self::MARKER_COLOR_SLUGS, true ) ) {
+			return $selector;
+		}
+
+		if ( 'text' !== $slug ) {
+			$selector .= '.has-text-color';
+		}
+
+		return ':where(' . $selector . ':not(' . self::INLINE_COLOR_ATTRIBUTE_SELECTORS . '))';
 	}
 
 	/**
