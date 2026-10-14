@@ -29,6 +29,9 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Resources;
 
+use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
+use ArtisanPackUI\VisualEditor\Services\Bindings\BindingResolver;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Throwable;
 
@@ -165,6 +168,17 @@ class PostResolver
 	];
 
 	/**
+	 * @param  BindingResolver|null  $bindingResolver  Resolves bindings inside adjacent-post
+	 *                                                 containers against the adjacent post
+	 *                                                 (#850). Null skips that step, leaving
+	 *                                                 those bindings to the renderer's
+	 *                                                 host-record pass.
+	 */
+	public function __construct( protected ?BindingResolver $bindingResolver = null )
+	{
+	}
+
+	/**
 	 * Recursively walk a block subtree and stamp every supported
 	 * `core/post-*` block against the given post.
 	 *
@@ -220,6 +234,17 @@ class PostResolver
 			$inner = null === $adjacent
 				? $rawInner
 				: $this->stampTree( $rawInner, $adjacent );
+
+			// Bindings in the container belong to the adjacent post, not
+			// the post this container sits in (#850). A missing or
+			// non-model neighbor resolves with no record, so its
+			// bindings take their `onEmpty` policy.
+			if ( null !== $this->bindingResolver ) {
+				$inner = $this->bindingResolver->resolveAndStrip(
+					$inner,
+					new BindingContext( $adjacent instanceof Model ? $adjacent : null ),
+				);
+			}
 
 			$attributes = array_merge(
 				[ '_resolvedHasAdjacent' => null !== $adjacent ],

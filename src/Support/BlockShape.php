@@ -147,6 +147,34 @@ class BlockShape
 	}
 
 	/**
+	 * Remove the bindings sidecar from every block in a tree, in both
+	 * the top-level and nested-in-attributes placements. Callers that
+	 * have already resolved a subtree's bindings against its own record
+	 * use this so a later pass over the whole tree, with a different
+	 * context, can't overwrite those values. A nested attribute named
+	 * `bindings` that doesn't look like a sidecar is left alone, using
+	 * the same check as {@see readBindings()}.
+	 *
+	 * Blocks named in `$keepInnerOf` lose their own sidecar but keep
+	 * their inner blocks' sidecars, so a nested loop can still resolve
+	 * its template per row (#861).
+	 *
+	 * @param  array<int, array<string, mixed>>  $tree
+	 * @param  array<int, string>                $keepInnerOf  Block names whose inner blocks are left untouched.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 *
+	 * @since 1.14.0
+	 */
+	public static function stripBindings( array $tree, array $keepInnerOf = [] ): array
+	{
+		return array_values( array_map(
+			static fn ( $block ) => is_array( $block ) ? self::stripBlockBindings( $block, $keepInnerOf ) : $block,
+			$tree,
+		) );
+	}
+
+	/**
 	 * Canonicalize a whole block tree so every block uses
 	 * `attributes` as the attribute-bag key. Recursively normalizes
 	 * `innerBlocks`. Trees already in canonical form round-trip
@@ -167,6 +195,36 @@ class BlockShape
 			static fn ( $block ) => is_array( $block ) ? self::normalizeBlock( $block ) : $block,
 			$tree,
 		) );
+	}
+
+	/**
+	 * @param  array<string, mixed>  $block
+	 * @param  array<int, string>    $keepInnerOf
+	 *
+	 * @return array<string, mixed>
+	 *
+	 * @since 1.14.0
+	 */
+	protected static function stripBlockBindings( array $block, array $keepInnerOf = [] ): array
+	{
+		unset( $block['bindings'] );
+
+		[ $attrKey, $attrs ] = self::readAttrs( $block );
+
+		if ( null !== self::readBindings( [ $attrKey => $attrs ] ) ) {
+			unset( $attrs['bindings'] );
+			$block[ $attrKey ] = $attrs;
+		}
+
+		if ( in_array( $block['name'] ?? null, $keepInnerOf, true ) ) {
+			return $block;
+		}
+
+		if ( isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) && [] !== $block['innerBlocks'] ) {
+			$block['innerBlocks'] = self::stripBindings( $block['innerBlocks'], $keepInnerOf );
+		}
+
+		return $block;
 	}
 
 	/**

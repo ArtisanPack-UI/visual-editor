@@ -30,19 +30,23 @@ use ArtisanPackUI\VisualEditor\Resources\PostResolver;
 use ArtisanPackUI\VisualEditor\Resources\QueryInliner;
 use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
 use ArtisanPackUI\VisualEditor\Resources\TocResolver;
+use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesEmissionTracker;
 use ArtisanPackUI\VisualEditor\SiteEditor\NavigationBlockRefResolver;
+use ArtisanPackUI\VisualEditor\Support\BlockShape;
 use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\BreadcrumbsResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\BusinessInfoResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\BoxShadowCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\ElementsCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\PositionCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\StateCssAccumulator;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\View\Component;
 
 class BlocksComponent extends Component
@@ -59,6 +63,13 @@ class BlocksComponent extends Component
 	 * rendered against a non-default theme picks up that theme's record.
 	 */
 	protected ?string $defaultTheme;
+
+	/**
+	 * Host record block bindings resolve against on the front end (#848).
+	 * Null when no `:post` is supplied or it isn't an Eloquent model, in
+	 * which case every binding's `onEmpty` policy applies.
+	 */
+	protected ?Model $bindingModel;
 
 	public function __construct(
 		protected BlockRenderer $renderer,
@@ -101,8 +112,11 @@ class BlocksComponent extends Component
 		}
 
 		$this->defaultTheme = $defaultTheme;
+		$this->bindingModel = $post instanceof Model ? $post : null;
 
-		$normalized = $this->normalizeTree( $tree );
+		// Canonicalize legacy `attrs`-shape blocks to `attributes` up
+		// front so every resolver below reads one shape (#863).
+		$normalized = BlockShape::normalizeTree( $this->normalizeTree( $tree ) );
 
 		$resolved = $resolveParts
 			? $this->inliner->inline( $normalized, $defaultTheme )
@@ -113,6 +127,12 @@ class BlocksComponent extends Component
 		// same pass.
 		$resolved = $resolvePatterns
 			? $this->patternInliner->inline( $resolved )
+			: $resolved;
+
+		// Template parts and synced patterns splice in stored subtrees
+		// that may themselves be in the `attrs` shape.
+		$resolved = ( $resolveParts || $resolvePatterns )
+			? BlockShape::normalizeTree( $resolved )
 			: $resolved;
 
 		// Query inlining runs before nav-block resolution so a `core/query`
@@ -179,8 +199,14 @@ class BlocksComponent extends Component
 		// post/query/pattern/template-part resolution so headings that
 		// were injected by a resolver (a post-content expansion inside
 		// a template part, for example) also participate in the TOC.
+		//
+		// Heading text is read from a binding- and token-resolved copy
+		// of the tree (#851, #858) so a heading's anchor and TOC entry
+		// follow the value it renders. The copy is only read: the
+		// renderer's own pass stays the single one that resolves
+		// rendered attrs.
 		$resolved = $resolveToc
-			? $this->tocResolver->resolveTree( $resolved )
+			? $this->tocResolver->resolveTree( $resolved, $this->tocContentTree( $resolved ) )
 			: $resolved;
 
 		// Navigation resolution mirrors the editor's read path
@@ -204,13 +230,20 @@ class BlocksComponent extends Component
 		// `BlockSupports::pushResponsive()` side-effect has happened
 		// by the time we drain the accumulator. The drained block
 		// is then prepended to the output by the view template.
-		$html               = $this->renderer->render( $this->tree );
+		//
+		// Bindings resolve here, inside the renderer, against the host
+		// post (#848). The constructor only resolves a throwaway copy for
+		// the TOC pass (#851); it never writes resolved values into
+		// `$this->tree`, because a second pass over already-resolved
+		// attrs would re-apply the `hide` / `placeholder` policies.
+		$html               = $this->renderer->render( $this->tree, $this->bindingContext() );
 		$responsiveCss      = $this->responsiveAccumulator->flush();
 		$statesCss          = $this->stateAccumulator->flush();
 		$animationOutput    = $this->animationAccumulator->flush();
 		$gradientBordersCss = $this->gradientBorderAccumulator->flush();
 		$boxShadowsCss      = $this->boxShadowAccumulator->flush();
 		$positionCss        = $this->positionAccumulator->flush();
+		$elementsCss        = app( ElementsCssAccumulator::class )->flush();
 
 		return view( 'visual-editor-renderer-blade::components.blocks', [
 			'html'                    => $html,
@@ -223,6 +256,7 @@ class BlocksComponent extends Component
 			'gradientBordersCss'      => $gradientBordersCss,
 			'boxShadowsCss'           => $boxShadowsCss,
 			'positionCss'             => $positionCss,
+			'elementsCss'             => $elementsCss,
 		] );
 	}
 
@@ -245,6 +279,43 @@ class BlocksComponent extends Component
 		$css = $this->globalStyles->emit();
 
 		return '' === $css ? null : $css;
+	}
+
+	/**
+	 * Context bindings resolve against: the host post when one was
+	 * supplied, or null so the renderer falls back to a model-less
+	 * context.
+	 *
+	 * @since 1.14.0
+	 */
+	protected function bindingContext(): ?BindingContext
+	{
+		return null !== $this->bindingModel
+			? new BindingContext( $this->bindingModel )
+			: null;
+	}
+
+	/**
+	 * Copy of the tree the TOC pass reads heading text from, resolved in
+	 * the renderer's order: bindings, then inline `{{token}}`s.
+	 *
+	 * The token pass only runs when a heading or post-content attribute
+	 * actually holds a token, since every other block's tokens resolve
+	 * again in the real render.
+	 *
+	 * @since 1.14.0
+	 *
+	 * @param  array<int, array<string, mixed>>  $tree
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	protected function tocContentTree( array $tree ): array
+	{
+		$contentTree = $this->renderer->resolveBindings( $tree, $this->bindingContext() );
+
+		return $this->tocResolver->hasInlineTokens( $contentTree )
+			? $this->renderer->resolveInlineTokens( $contentTree )
+			: $contentTree;
 	}
 
 	/**

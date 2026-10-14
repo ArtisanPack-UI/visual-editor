@@ -159,6 +159,10 @@ export function FileBlock({ attributes }: BlockRendererProps): JSX.Element {
 
     const classes = classList(['wp-block-file', className]);
     const linkLabel = fileName !== '' ? fileName : href;
+    // Mirrors the editor save: the button points at the file-name link
+    // for its accessible description, but only when that link has a name.
+    const fileId = attrString(attributes.fileId);
+    const describedById = fileName !== '' && fileId !== '' ? fileId : undefined;
 
     if (href === '') {
         return <div className={classes} />;
@@ -166,9 +170,16 @@ export function FileBlock({ attributes }: BlockRendererProps): JSX.Element {
 
     return (
         <div className={classes}>
-            <a href={textLinkHref !== '' ? textLinkHref : href}>{linkLabel}</a>
+            <a id={describedById} href={textLinkHref !== '' ? textLinkHref : href}>
+                {linkLabel}
+            </a>
             {showDownload ? (
-                <a href={href} className="wp-block-file__button" download>
+                <a
+                    href={href}
+                    className="wp-block-file__button wp-element-button"
+                    download
+                    aria-describedby={describedById}
+                >
                     {download}
                 </a>
             ) : null}

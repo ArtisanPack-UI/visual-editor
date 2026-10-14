@@ -21,6 +21,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditorRendererBlade;
 
+use ArtisanPackUI\VisualEditor\Blocks\DynamicContent\DynamicLoopBlock;
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
 use ArtisanPackUI\VisualEditor\Resources\PatternInliner;
 use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
@@ -34,6 +35,13 @@ use ArtisanPackUI\VisualEditor\Visibility\VisibilityDecision;
 use ArtisanPackUI\VisualEditor\Visibility\VisibilityEvaluator;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\LoginoutResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\SiteMetaResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\BoxShadowCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\ElementsCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\PositionCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\StateCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Contracts\Support\Htmlable;
@@ -124,6 +132,17 @@ class BlockRenderer
 	protected ?VisibilityContext $visibilityContext = null;
 
 	/**
+	 * {@see BindingContext} supplied to the outermost {@see render()} call
+	 * (#848). Nested renders (navigation overlay, tabs, accordion) reuse
+	 * it so their sub-trees resolve bindings against the same host model
+	 * instead of a model-less default context, which would otherwise
+	 * re-apply the `hide` / `placeholder` empty policies over values the
+	 * outer pass already resolved. Cleared once the outermost call
+	 * unwinds so long-lived workers don't hold the model between renders.
+	 */
+	protected ?BindingContext $bindingContext = null;
+
+	/**
 	 * Monotonically-increasing counter used to mint unique CSS scope
 	 * classes for CSS-hidden blocks, keeping the emitted `@media`
 	 * rules from bleeding into other blocks that share a wrapper tag.
@@ -203,11 +222,19 @@ class BlockRenderer
 	 * bound (VE renderer-blade is installable without the bindings
 	 * layer).
 	 *
+	 * A dynamic loop's own bindings resolve here, but its inner-block
+	 * template is left alone: the loop resolves it once per row with
+	 * that row's index. Resolving it here, with no index, would write
+	 * the collection's first record into the template's static attrs,
+	 * and a row whose field is empty would then show that value under
+	 * the `fallback` policy instead of the authored text (#854, #861).
+	 *
 	 * @param  array<int, array<string, mixed>>  $tree
 	 *
 	 * @return array<int, array<string, mixed>>
 	 *
 	 * @since 1.4.0
+	 * @since 1.14.0 Leaves dynamic-loop templates for the loop to resolve per row.
 	 */
 	public function resolveBindings( array $tree, ?BindingContext $context = null ): array
 	{
@@ -216,7 +243,7 @@ class BlockRenderer
 		}
 
 		try {
-			return $this->bindingResolver->resolve( $tree, $context );
+			return $this->bindingResolver->resolve( $tree, $context, [ DynamicLoopBlock::BLOCK_NAME ] );
 		} catch ( Throwable $e ) {
 			report( $e );
 
@@ -290,10 +317,15 @@ class BlockRenderer
 	 * Render the given block tree to an HTML string.
 	 *
 	 * @since 1.0.0
+	 * @since 1.14.0 Accepts an optional `$bindingContext` (#848).
 	 *
-	 * @param  array<int, array<string, mixed>>  $tree  Block tree produced by the editor.
+	 * @param  array<int, array<string, mixed>>  $tree            Block tree produced by the editor.
+	 * @param  ?BindingContext                   $bindingContext  Context bindings resolve against. Only
+	 *                                                            read on the outermost call; nested
+	 *                                                            calls without one reuse the outer
+	 *                                                            call's context.
 	 */
-	public function render( array $tree ): string
+	public function render( array $tree, ?BindingContext $bindingContext = null ): string
 	{
 		// Track re-entrancy so the whole-content filter fires only once,
 		// when the outermost call unwinds. `try`/`finally` keeps the
@@ -310,6 +342,7 @@ class BlockRenderer
 				$this->renderIndex       = 0;
 				$this->innerDepth        = 0;
 				$this->visibilityContext = null;
+				$this->bindingContext    = $bindingContext;
 
 				if ( null !== $this->visibility && $this->visibility->enabled() ) {
 					$this->visibilityContext = $this->visibility->contextFromRequest();
@@ -329,7 +362,7 @@ class BlockRenderer
 			// post_core, relation) once before the walker runs. The
 			// resolver only mutates blocks with a `bindings` sidecar; trees
 			// without bindings round-trip byte-identically.
-			$tree = $this->resolveBindings( $tree );
+			$tree = $this->resolveBindings( $tree, $bindingContext ?? $this->bindingContext );
 
 			// #650 — inline token pass. Walks every block's string /
 			// rich-text attribute looking for `{{token}}` occurrences and
@@ -350,11 +383,61 @@ class BlockRenderer
 			}
 		} finally {
 			$this->renderDepth--;
+
+			if ( 0 === $this->renderDepth ) {
+				$this->bindingContext = null;
+			}
 		}
 
 		return 0 === $this->renderDepth
 			? $this->applyRenderedContentFilter( $out )
 			: $out;
+	}
+
+	/**
+	 * Drain the per-request support CSS the last render collected.
+	 *
+	 * Block supports (responsive overrides, states, animations, gradient
+	 * borders, box shadows, position, Elements API link / heading /
+	 * button colors) don't print inline styles. They push their rules
+	 * into request-scoped accumulators, and `<x-ve-blocks>` /
+	 * `<x-ve-template>` drain those around their output. Hosts that call
+	 * {@see render()} or {@see renderMarkup()} directly call this after
+	 * rendering and print `css` before the HTML and `scripts` after it.
+	 * Without it, classes such as `wp-elements-{hash}` render with no
+	 * rules behind them.
+	 *
+	 * Draining clears the accumulators, so a later component render in
+	 * the same request doesn't repeat these rules.
+	 *
+	 * @since 1.14.0
+	 *
+	 * @return array{css: string, scripts: string}
+	 */
+	public function flushSupportAssets(): array
+	{
+		$animations = $this->drainAccumulator( AnimationCssAccumulator::class );
+		$animations = is_array( $animations ) ? $animations : [];
+
+		$css = implode( '', array_filter( [
+			$this->drainAccumulator( ResponsiveCssAccumulator::class ),
+			$this->drainAccumulator( StateCssAccumulator::class ),
+			$animations['styleTag'] ?? '',
+			$animations['noscriptTag'] ?? '',
+			$this->drainAccumulator( GradientBorderCssAccumulator::class ),
+			$this->drainAccumulator( BoxShadowCssAccumulator::class ),
+			$this->drainAccumulator( PositionCssAccumulator::class ),
+			$this->drainAccumulator( ElementsCssAccumulator::class ),
+		], static fn ( mixed $chunk ): bool => is_string( $chunk ) && '' !== $chunk ) );
+
+		$scripts = true === ( $animations['runtimeNeeded'] ?? false )
+			? $this->views->make( 'visual-editor-renderer-blade::partials.animations-runtime' )->render()
+			: '';
+
+		return [
+			'css'     => $css,
+			'scripts' => $scripts,
+		];
 	}
 
 	/**
@@ -1125,5 +1208,21 @@ class BlockRenderer
 		}
 
 		return $list;
+	}
+
+	/**
+	 * Flush one request-scoped accumulator, or null when it isn't bound.
+	 *
+	 * @since 1.14.0
+	 *
+	 * @param  class-string  $accumulator
+	 */
+	protected function drainAccumulator( string $accumulator ): mixed
+	{
+		if ( ! app()->bound( $accumulator ) ) {
+			return null;
+		}
+
+		return app( $accumulator )->flush();
 	}
 }

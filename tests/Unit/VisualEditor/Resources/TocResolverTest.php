@@ -432,3 +432,180 @@ it( 'ignores non-array top-level entries without dropping the good ones', functi
 	expect( $resolved )->toHaveCount( 1 )
 		->and( $resolved[0]['attributes']['anchor'] )->toBe( 'kept' );
 } );
+
+it( 'reads heading text from the content tree but stamps the original tree (#851)', function (): void {
+	$resolver = new TocResolver();
+
+	$tree = [
+		tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Static title' ] ),
+		tocBlock( 'artisanpack/toc' ),
+	];
+
+	$contentTree                               = $tree;
+	$contentTree[0]['attributes']['content']   = 'Core Package';
+
+	$resolved = $resolver->resolveTree( $tree, $contentTree );
+
+	expect( $resolved[0]['attributes']['anchor'] )->toBe( 'core-package' )
+		->and( $resolved[0]['attributes']['content'] )->toBe( 'Static title' )
+		->and( $resolved[1]['attributes']['_resolvedItems'] )->toBe( [
+			[ 'level' => 2, 'text' => 'Core Package', 'anchor' => 'core-package' ],
+		] );
+} );
+
+it( 'reads nested heading text from the matching content-tree inner block', function (): void {
+	$resolver = new TocResolver();
+
+	$tree = [
+		tocBlock( 'core/group', [], [
+			tocBlock( 'core/heading', [ 'level' => 3, 'content' => 'Static' ] ),
+		] ),
+	];
+
+	$contentTree                                               = $tree;
+	$contentTree[0]['innerBlocks'][0]['attributes']['content'] = 'Bound';
+
+	$resolved = $resolver->resolveTree( $tree, $contentTree );
+
+	expect( $resolved[0]['innerBlocks'][0]['attributes']['anchor'] )->toBe( 'bound' );
+} );
+
+it( 'skips a heading whose content-tree content is null (hidden binding)', function (): void {
+	$resolver = new TocResolver();
+
+	$tree = [
+		tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Static' ] ),
+		tocBlock( 'artisanpack/toc' ),
+	];
+
+	$contentTree                               = $tree;
+	$contentTree[0]['attributes']['content']   = null;
+
+	$resolved = $resolver->resolveTree( $tree, $contentTree );
+
+	expect( $resolved[0]['attributes'] )->not->toHaveKey( 'anchor' )
+		->and( $resolved[1]['attributes']['_resolvedItems'] )->toBe( [] );
+} );
+
+it( 'does not stamp an anchor when the content tree carries one from a binding', function (): void {
+	$resolver = new TocResolver();
+
+	$tree = [
+		tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Static' ] ),
+		tocBlock( 'artisanpack/toc' ),
+	];
+
+	$contentTree                              = $tree;
+	$contentTree[0]['attributes']['anchor']   = 'bound-anchor';
+
+	$resolved = $resolver->resolveTree( $tree, $contentTree );
+
+	expect( $resolved[0]['attributes'] )->not->toHaveKey( 'anchor' )
+		->and( $resolved[1]['attributes']['_resolvedItems'][0]['anchor'] )->toBe( 'bound-anchor' );
+} );
+
+it( 'falls back to the block\'s own content when the content-tree block type differs', function (): void {
+	$resolver = new TocResolver();
+
+	$tree = [
+		tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Own text' ] ),
+	];
+
+	$contentTree = [
+		tocBlock( 'core/paragraph', [ 'content' => 'Other text' ] ),
+	];
+
+	$resolved = $resolver->resolveTree( $tree, $contentTree );
+
+	expect( $resolved[0]['attributes']['anchor'] )->toBe( 'own-text' );
+} );
+
+it( 'detects inline tokens in heading content (#858)', function (): void {
+	$resolver = new TocResolver();
+
+	expect( $resolver->hasInlineTokens( [
+		tocBlock( 'core/heading', [ 'content' => 'About {{site.name}}' ] ),
+	] ) )->toBeTrue()
+		->and( $resolver->hasInlineTokens( [
+			[ 'name' => 'artisanpack/heading', 'attrs' => [ 'content' => '{{site.name}}' ] ],
+		] ) )->toBeTrue();
+} );
+
+it( 'detects inline tokens in nested post-content HTML', function (): void {
+	$resolver = new TocResolver();
+
+	$tree = [
+		tocBlock( 'core/group', [], [
+			tocBlock( 'core/post-content', [ '_resolvedContent' => '<h2>About {{site.name}}</h2>' ] ),
+		] ),
+	];
+
+	expect( $resolver->hasInlineTokens( $tree ) )->toBeTrue();
+} );
+
+it( 'ignores inline tokens outside the attributes the TOC reads', function (): void {
+	$resolver = new TocResolver();
+
+	$tree = [
+		tocBlock( 'core/paragraph', [ 'content' => 'Call {{business_info.phone}}' ] ),
+		tocBlock( 'core/heading', [ 'content' => 'Plain heading', 'className' => '{{token}}' ] ),
+		tocBlock( 'artisanpack/toc', [ 'title' => '{{site.name}}' ] ),
+	];
+
+	expect( $resolver->hasInlineTokens( $tree ) )->toBeFalse()
+		->and( $resolver->hasInlineTokens( [] ) )->toBeFalse();
+} );
+
+it( 'stamps anchors from the content tree into the block\'s own post-content HTML', function (): void {
+	$resolver = new TocResolver();
+
+	$tree = [
+		tocBlock( 'core/post-content', [ '_resolvedContent' => '<h2>About {{site.name}}</h2><h2 id="kept">Kept</h2><p>{{site.name}}</p>' ] ),
+		tocBlock( 'artisanpack/toc' ),
+	];
+
+	$contentTree                                       = $tree;
+	$contentTree[0]['attributes']['_resolvedContent']  = '<h2>About Acme</h2><h2 id="kept">Kept</h2><p>Acme</p>';
+
+	$resolved = $resolver->resolveTree( $tree, $contentTree );
+
+	expect( $resolved[0]['attributes']['_resolvedContent'] )
+		->toBe( '<h2 id="about-acme">About {{site.name}}</h2><h2 id="kept">Kept</h2><p>{{site.name}}</p>' )
+		->and( array_column( $resolved[1]['attributes']['_resolvedItems'], 'anchor' ) )->toBe( [ 'about-acme', 'kept' ] )
+		->and( $resolved[1]['attributes']['_resolvedItems'][0]['text'] )->toBe( 'About Acme' );
+} );
+
+it( 'stamps post-content from its own HTML when the content tree holds a different number of headings', function (): void {
+	$resolver = new TocResolver();
+
+	$tree = [
+		tocBlock( 'core/post-content', [ '_resolvedContent' => '<h2>Intro</h2>{{site.extra}}' ] ),
+		tocBlock( 'artisanpack/toc' ),
+	];
+
+	$contentTree                                       = $tree;
+	$contentTree[0]['attributes']['_resolvedContent']  = '<h2>Intro</h2><h2>Injected</h2>';
+
+	$resolved = $resolver->resolveTree( $tree, $contentTree );
+
+	expect( $resolved[0]['attributes']['_resolvedContent'] )->toBe( '<h2 id="intro">Intro</h2>{{site.extra}}' )
+		->and( array_column( $resolved[1]['attributes']['_resolvedItems'], 'anchor' ) )->toBe( [ 'intro' ] );
+} );
+
+it( 'stamps anchors and TOC items into the attrs bag of a legacy attrs-shape tree (#863)', function (): void {
+	$resolver = new TocResolver();
+
+	$tree = [
+		[ 'name' => 'artisanpack/toc', 'attrs' => [ 'minLevel' => 2 ], 'innerBlocks' => [] ],
+		[ 'name' => 'core/heading', 'attrs' => [ 'level' => 2, 'content' => 'Getting Started' ], 'innerBlocks' => [] ],
+		[ 'name' => 'core/paragraph', 'attrs' => [ 'content' => 'Body' ], 'innerBlocks' => [] ],
+	];
+
+	$resolved = $resolver->resolveTree( $tree );
+
+	expect( $resolved[1]['attrs'] )->toBe( [ 'level' => 2, 'content' => 'Getting Started', 'anchor' => 'getting-started' ] )
+		->and( $resolved[1] )->not->toHaveKey( 'attributes' )
+		->and( $resolved[0]['attrs']['minLevel'] )->toBe( 2 )
+		->and( array_column( $resolved[0]['attrs']['_resolvedItems'], 'anchor' ) )->toBe( [ 'getting-started' ] )
+		->and( $resolved[2] )->toBe( $tree[2] );
+} );

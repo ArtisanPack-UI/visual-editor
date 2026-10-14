@@ -79,6 +79,38 @@ template part keeps the block name it was saved with, and its saved
 `innerBlocks` snapshot is always replaced by the live part. A resolved
 pattern reference is always output as `core/block`.
 
+### Core query block names
+
+Theme templates written for WordPress use the `core/query-*` family. The
+renderers render these names with the matching `artisanpack/*` fork output,
+so a theme template renders on the front end without first being saved in
+the site editor:
+
+| Core name | Renders as |
+|-----------|------------|
+| `core/query-pagination` | `artisanpack/query-pagination` |
+| `core/query-pagination-previous` | `artisanpack/query-pagination-previous` |
+| `core/query-pagination-numbers` | `artisanpack/query-pagination-numbers` |
+| `core/query-pagination-next` | `artisanpack/query-pagination-next` |
+| `core/query-no-results` | `artisanpack/query-no-results` |
+| `core/query-title` | `artisanpack/query-title` |
+
+*Since v1.14.0 (#856).* Earlier versions rendered these names through the
+unknown-block wrapper. The Blade, React and Vue renderers all follow this
+mapping.
+
+### Tree shapes
+
+`<x-ve-blocks :tree>` accepts both the editor shape (`name` /
+`attributes`) and WordPress's `parse_blocks()` shape (`blockName` /
+`attrs`). Attributes are read from whichever key the block carries, so
+headings in a `parse_blocks()` tree keep their content and get table of
+contents anchors, and breadcrumbs and business-info blocks resolve in
+either shape.
+
+*Since v1.14.0 (#863).* Earlier versions rendered every block in an
+`attrs`-shape tree with empty attributes.
+
 ### Front-end styles
 
 Mount `<x-ve-blocks-styles>` once in your layout's `<head>`:
@@ -188,6 +220,31 @@ $tree = app(BlockMarkupHydrator::class)->hydrate($markup);
 ```blade
 <x-ve-blocks :tree="$tree" :post="$post" />
 ```
+
+#### Support CSS for direct renders
+
+*Since v1.14.0.*
+
+Block supports don't print inline styles. Responsive overrides, states,
+animations, gradient borders, box shadows, position, and Elements API
+colors (Color → Link, heading and button element colors) are collected
+while the tree renders, and `<x-ve-blocks>` / `<x-ve-template>` print
+them around their output. When you call `render()` or `renderMarkup()`
+yourself, drain them with `flushSupportAssets()`. Print `css` before the
+HTML and `scripts` after it:
+
+```php
+$renderer = app(BlockRenderer::class);
+$html     = $renderer->renderMarkup($markup);
+$assets   = $renderer->flushSupportAssets();
+
+echo $assets['css'] . $html . $assets['scripts'];
+```
+
+Without it, blocks keep classes such as `wp-elements-{hash}` with no rules
+behind them. That includes Navigation link colors, which printed their own
+inline `<style>` before v1.14.0. Draining also clears the collected rules,
+so a later `<x-ve-blocks>` in the same request doesn't print them again.
 
 **Scope.** `renderMarkup()` cannot resolve blocks that need an entity in
 scope — `post-*`, `core/query` loops, comments, breadcrumbs — because a

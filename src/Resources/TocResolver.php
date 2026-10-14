@@ -20,6 +20,11 @@
  * by an upstream pass (a host app may run its own extractor and want the
  * result to win).
  *
+ * Callers can pass a binding-resolved copy of the tree as `$contentTree`
+ * (#851). Heading text, levels, anchors, and post-content HTML are then
+ * read from that copy, so anchors and TOC labels match what the bound
+ * blocks render, while the stamps still land on the original tree.
+ *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor
  *
@@ -31,6 +36,8 @@
 declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Resources;
+
+use ArtisanPackUI\VisualEditor\Support\BlockShape;
 use Normalizer;
 
 class TocResolver
@@ -70,22 +77,31 @@ class TocResolver
 	];
 
 	/**
+	 * Matches one `<h1>…<h6>` tag: level, attribute string, inner HTML.
+	 */
+	protected const HEADING_TAG_PATTERN = '#<h([1-6])([^>]*)>(.*?)</h\\1>#is';
+
+	/**
 	 * Walk the tree twice: once to stamp anchors on headings and collect
 	 * the ordered heading list, once to stamp `_resolvedItems` on every
 	 * TOC block.
 	 *
 	 * @since 1.9.0
+	 * @since 1.14.0 Accepts an optional `$contentTree` (#851).
 	 *
-	 * @param  array<int, array<string, mixed>>  $tree
+	 * @param  array<int, array<string, mixed>>   $tree         Tree to stamp anchors and TOC items on.
+	 * @param  ?array<int, array<string, mixed>>  $contentTree  Structurally identical copy of `$tree`
+	 *                                                          with bindings resolved. Heading content
+	 *                                                          is read from here when supplied.
 	 *
 	 * @return array<int, array<string, mixed>>
 	 */
-	public function resolveTree( array $tree ): array
+	public function resolveTree( array $tree, ?array $contentTree = null ): array
 	{
 		$used     = [];
 		$headings = [];
 
-		$stamped = $this->stampHeadings( $tree, $used, $headings );
+		$stamped = $this->stampHeadings( $tree, $used, $headings, $contentTree );
 
 		if ( empty( $headings ) ) {
 			// No headings in the tree — TOC blocks still get an empty
@@ -98,27 +114,73 @@ class TocResolver
 	}
 
 	/**
-	 * First pass: stamp anchors on headings and collect their metadata
-	 * in document order.
+	 * Whether any heading `content` or post-content `_resolvedContent`
+	 * in the tree contains an inline `{{token}}`.
 	 *
-	 * @since 1.9.0
+	 * Callers use this to skip resolving inline tokens on the
+	 * `$contentTree` copy when none of the attributes this resolver
+	 * reads would change (#858).
+	 *
+	 * @since 1.14.0
 	 *
 	 * @param  array<int, array<string, mixed>>  $tree
-	 * @param  array<string, bool>               $used      Anchor slugs already claimed (by ref).
-	 * @param  array<int, array<string, mixed>>  $headings  Collected heading rows (by ref).
-	 *
-	 * @return array<int, array<string, mixed>>
 	 */
-	protected function stampHeadings( array $tree, array &$used, array &$headings ): array
+	public function hasInlineTokens( array $tree ): bool
 	{
-		$out = [];
-
 		foreach ( $tree as $block ) {
 			if ( ! is_array( $block ) ) {
 				continue;
 			}
 
-			$out[] = $this->stampHeadingBlock( $block, $used, $headings );
+			$name = isset( $block['name'] ) && is_string( $block['name'] ) ? $block['name'] : '';
+
+			[ , $attributes ] = BlockShape::readAttrs( $block );
+
+			$key = match ( true ) {
+				in_array( $name, self::HEADING_BLOCKS, true )      => 'content',
+				in_array( $name, self::POST_CONTENT_BLOCKS, true ) => '_resolvedContent',
+				default                                            => null,
+			};
+
+			if ( null !== $key && is_string( $attributes[ $key ] ?? null ) && str_contains( $attributes[ $key ], '{{' ) ) {
+				return true;
+			}
+
+			if ( isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) && $this->hasInlineTokens( $block['innerBlocks'] ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * First pass: stamp anchors on headings and collect their metadata
+	 * in document order.
+	 *
+	 * @since 1.9.0
+	 * @since 1.14.0 Accepts an optional `$contentTree` (#851).
+	 *
+	 * @param  array<int, array<string, mixed>>   $tree
+	 * @param  array<string, bool>                $used         Anchor slugs already claimed (by ref).
+	 * @param  array<int, array<string, mixed>>   $headings     Collected heading rows (by ref).
+	 * @param  ?array<int, array<string, mixed>>  $contentTree  Binding-resolved copy of `$tree`.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	protected function stampHeadings( array $tree, array &$used, array &$headings, ?array $contentTree = null ): array
+	{
+		$out     = [];
+		$sources = null === $contentTree ? [] : array_values( $contentTree );
+
+		foreach ( array_values( $tree ) as $index => $block ) {
+			if ( ! is_array( $block ) ) {
+				continue;
+			}
+
+			$source = $sources[ $index ] ?? null;
+
+			$out[] = $this->stampHeadingBlock( $block, $used, $headings, is_array( $source ) ? $source : null );
 		}
 
 		return $out;
@@ -128,23 +190,40 @@ class TocResolver
 	 * Stamp a single block (and its inner blocks) with an anchor when the
 	 * block is a heading and no author-set anchor is present.
 	 *
+	 * When `$source` is supplied and is the same block type, its
+	 * attributes stand in for the block's own when reading heading
+	 * content, level, anchor, and post-content HTML. Stamps are still
+	 * written to `$block`.
+	 *
 	 * @since 1.9.0
+	 * @since 1.14.0 Accepts an optional `$source` block (#851).
 	 *
 	 * @param  array<string, mixed>              $block
 	 * @param  array<string, bool>               $used
 	 * @param  array<int, array<string, mixed>>  $headings
+	 * @param  ?array<string, mixed>             $source    Binding-resolved copy of `$block`.
 	 *
 	 * @return array<string, mixed>
 	 */
-	protected function stampHeadingBlock( array $block, array &$used, array &$headings ): array
+	protected function stampHeadingBlock( array $block, array &$used, array &$headings, ?array $source = null ): array
 	{
 		$name = isset( $block['name'] ) && is_string( $block['name'] ) ? $block['name'] : '';
 
-		$attributes = isset( $block['attributes'] ) && is_array( $block['attributes'] ) ? $block['attributes'] : [];
+		[ $attrKey, $attributes ] = BlockShape::readAttrs( $block );
+
+		// A source of a different type means the copy drifted out of
+		// step with the tree; read the block's own attributes instead.
+		if ( null !== $source && ( $source['name'] ?? null ) !== $name ) {
+			$source = null;
+		}
+
+		$sourceAttributes = null !== $source
+			? BlockShape::readAttrs( $source )[1]
+			: $attributes;
 
 		if ( in_array( $name, self::HEADING_BLOCKS, true ) ) {
-			$content  = isset( $attributes['content'] ) && is_string( $attributes['content'] ) ? $attributes['content'] : '';
-			$rawLevel = $attributes['level'] ?? 2;
+			$content  = isset( $sourceAttributes['content'] ) && is_string( $sourceAttributes['content'] ) ? $sourceAttributes['content'] : '';
+			$rawLevel = $sourceAttributes['level'] ?? 2;
 			$level    = is_numeric( $rawLevel ) ? (int) round( (float) $rawLevel ) : 2;
 
 			if ( $level < 1 ) {
@@ -153,8 +232,8 @@ class TocResolver
 				$level = 6;
 			}
 
-			$existing = isset( $attributes['anchor'] ) && is_string( $attributes['anchor'] )
-				? trim( $attributes['anchor'] )
+			$existing = isset( $sourceAttributes['anchor'] ) && is_string( $sourceAttributes['anchor'] )
+				? trim( $sourceAttributes['anchor'] )
 				: '';
 
 			if ( '' !== $existing ) {
@@ -171,8 +250,8 @@ class TocResolver
 					$anchor          = $this->uniqueSlug( $slug, $used );
 					$used[ $anchor ] = true;
 
-					$attributes             = array_merge( $attributes, [ 'anchor' => $anchor ] );
-					$block['attributes']    = $attributes;
+					$attributes        = array_merge( $attributes, [ 'anchor' => $anchor ] );
+					$block[ $attrKey ] = $attributes;
 				}
 			}
 
@@ -186,25 +265,119 @@ class TocResolver
 		}
 
 		if ( in_array( $name, self::POST_CONTENT_BLOCKS, true ) ) {
-			$content = isset( $attributes['_resolvedContent'] ) && is_string( $attributes['_resolvedContent'] )
+			$content = isset( $sourceAttributes['_resolvedContent'] ) && is_string( $sourceAttributes['_resolvedContent'] )
+				? $sourceAttributes['_resolvedContent']
+				: '';
+
+			$ownContent = isset( $attributes['_resolvedContent'] ) && is_string( $attributes['_resolvedContent'] )
 				? $attributes['_resolvedContent']
 				: '';
 
 			if ( '' !== $content ) {
-				$rewritten = $this->stampContentHeadings( $content, $used, $headings );
+				$rewritten = $this->stampSourceContentHeadings( $ownContent, $content, $used, $headings );
 
-				if ( $rewritten !== $content ) {
-					$attributes           = array_merge( $attributes, [ '_resolvedContent' => $rewritten ] );
-					$block['attributes']  = $attributes;
+				if ( $rewritten !== ( '' === $ownContent ? $content : $ownContent ) ) {
+					$attributes        = array_merge( $attributes, [ '_resolvedContent' => $rewritten ] );
+					$block[ $attrKey ] = $attributes;
 				}
 			}
 		}
 
 		if ( isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) ) {
-			$block['innerBlocks'] = $this->stampHeadings( $block['innerBlocks'], $used, $headings );
+			$sourceInner = null !== $source && isset( $source['innerBlocks'] ) && is_array( $source['innerBlocks'] )
+				? $source['innerBlocks']
+				: null;
+
+			$block['innerBlocks'] = $this->stampHeadings( $block['innerBlocks'], $used, $headings, $sourceInner );
 		}
 
 		return $block;
+	}
+
+	/**
+	 * Stamp post-content headings using anchors derived from the source
+	 * (binding- / token-resolved) HTML, injected into the block's own HTML.
+	 *
+	 * Writing the source HTML back would hand the renderer content whose
+	 * tokens were already resolved, and its own token pass would then
+	 * resolve any `{{…}}` inside a resolved value a second time (#858).
+	 * Heading tags are paired by position. When the two strings hold a
+	 * different number of headings the pairing can't be trusted, so the
+	 * block's own HTML is stamped from its own text instead.
+	 *
+	 * @since 1.14.0
+	 *
+	 * @param  string                            $own       The block's own `_resolvedContent`.
+	 * @param  string                            $source    The content-tree copy's `_resolvedContent`.
+	 * @param  array<string, bool>               $used
+	 * @param  array<int, array<string, mixed>>  $headings
+	 */
+	protected function stampSourceContentHeadings( string $own, string $source, array &$used, array &$headings ): string
+	{
+		if ( '' === $own || $own === $source ) {
+			return $this->stampContentHeadings( '' === $own ? $source : $own, $used, $headings );
+		}
+
+		$sourceUsed     = $used;
+		$sourceHeadings = $headings;
+		$sourceIds      = $this->headingIds( $this->stampContentHeadings( $source, $sourceUsed, $sourceHeadings ) );
+
+		if ( count( $sourceIds ) !== count( $this->headingIds( $own ) ) ) {
+			return $this->stampContentHeadings( $own, $used, $headings );
+		}
+
+		$used     = $sourceUsed;
+		$headings = $sourceHeadings;
+		$index    = 0;
+
+		$rewritten = preg_replace_callback(
+			self::HEADING_TAG_PATTERN,
+			function ( array $match ) use ( $sourceIds, &$index ): string {
+				$id = $sourceIds[ $index++ ] ?? null;
+
+				if ( null === $id || null !== $this->headingId( $match[2] ) ) {
+					return $match[0];
+				}
+
+				return sprintf(
+					'<h%1$d id="%2$s"%3$s>%4$s</h%1$d>',
+					(int) $match[1],
+					htmlspecialchars( $id, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
+					$match[2],
+					$match[3],
+				);
+			},
+			$own,
+		);
+
+		return null === $rewritten ? $own : $rewritten;
+	}
+
+	/**
+	 * The `id` of every `<h1>…<h6>` tag in the HTML, in document order,
+	 * with null for a heading that has none.
+	 *
+	 * @since 1.14.0
+	 *
+	 * @return array<int, ?string>
+	 */
+	protected function headingIds( string $html ): array
+	{
+		if ( false === preg_match_all( self::HEADING_TAG_PATTERN, $html, $matches, PREG_SET_ORDER ) ) {
+			return [];
+		}
+
+		return array_map( fn ( array $match ): ?string => $this->headingId( $match[2] ), $matches );
+	}
+
+	/**
+	 * The `id` value in a heading tag's attribute string, or null.
+	 *
+	 * @since 1.14.0
+	 */
+	protected function headingId( string $attrs ): ?string
+	{
+		return preg_match( '#\bid\s*=\s*(["\'])([^"\']+)\1#i', $attrs, $idMatch ) ? $idMatch[2] : null;
 	}
 
 	/**
@@ -224,7 +397,7 @@ class TocResolver
 	protected function stampContentHeadings( string $html, array &$used, array &$headings ): string
 	{
 		$rewritten = preg_replace_callback(
-			'#<h([1-6])([^>]*)>(.*?)</h\1>#is',
+			self::HEADING_TAG_PATTERN,
 			function ( array $match ) use ( &$used, &$headings ): string {
 				$level = (int) $match[1];
 				$attrs = $match[2];
@@ -236,13 +409,9 @@ class TocResolver
 					return $match[0];
 				}
 
-				$existingId = '';
+				$existingId = $this->headingId( $attrs );
 
-				if ( preg_match( '#\bid\s*=\s*(["\'])([^"\']+)\1#i', $attrs, $idMatch ) ) {
-					$existingId = $idMatch[2];
-				}
-
-				if ( '' !== $existingId ) {
+				if ( null !== $existingId ) {
 					$used[ $existingId ] = true;
 					$headings[]          = [
 						'level'  => $level,
@@ -324,7 +493,7 @@ class TocResolver
 		$name = isset( $block['name'] ) && is_string( $block['name'] ) ? $block['name'] : '';
 
 		if ( in_array( $name, self::TOC_BLOCKS, true ) ) {
-			$attributes = isset( $block['attributes'] ) && is_array( $block['attributes'] ) ? $block['attributes'] : [];
+			[ $attrKey, $attributes ] = BlockShape::readAttrs( $block );
 
 			// Host apps can layer their own heading extractor in front of
 			// this resolver — a headless site, for example, might stamp
@@ -358,7 +527,7 @@ class TocResolver
 					$filtered[] = $heading;
 				}
 
-				$block['attributes'] = array_merge( $attributes, [ '_resolvedItems' => $filtered ] );
+				$block[ $attrKey ] = array_merge( $attributes, [ '_resolvedItems' => $filtered ] );
 			}
 		}
 

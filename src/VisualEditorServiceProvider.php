@@ -391,14 +391,16 @@ class VisualEditorServiceProvider extends ServiceProvider
 		// blocks; `QueryInliner` orchestrates per-result expansion of
 		// `core/query` blocks. Both are stateless so binding as singletons
 		// is safe and lets host apps swap implementations cleanly.
-		$this->app->singleton( PostResolver::class, function () {
-			return new PostResolver();
+		$this->app->singleton( PostResolver::class, function ( $app ) {
+			return new PostResolver( $app->make( BindingResolver::class ) );
 		} );
 
 		$this->app->singleton( QueryInliner::class, function ( $app ) {
 			return new QueryInliner(
 				$app,
 				$app->make( PostResolver::class ),
+				null,
+				$app->make( BindingResolver::class ),
 			);
 		} );
 
@@ -1916,7 +1918,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 	 *
 	 * @since 1.1.0
 	 */
-	protected function humanizeIconName( string $name): string
+	protected function humanizeIconName( string $name ): string
 	{
 		$spaced = preg_replace( '/[-_]+/', ' ', $name ) ?? $name;
 

@@ -37,10 +37,13 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Resources;
 
+use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
+use ArtisanPackUI\VisualEditor\Services\Bindings\BindingResolver;
 use ArtisanPackUI\VisualEditor\Services\HostRelatedTermsResolver;
 use ArtisanPackUI\VisualEditor\Services\QueryResolverContract;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -73,10 +76,17 @@ class QueryInliner
 	 */
 	protected ?object $hostPost = null;
 
+	/**
+	 * @param  BindingResolver|null  $bindingResolver  Resolves each iteration's block bindings
+	 *                                                 against that iteration's post (#850).
+	 *                                                 Null leaves them to the renderer's
+	 *                                                 host-record pass.
+	 */
 	public function __construct(
 		protected Container $container,
 		protected PostResolver $postResolver,
 		protected ?VariantResolver $variantResolver = null,
+		protected ?BindingResolver $bindingResolver = null,
 	) {
 		if ( null === $this->variantResolver ) {
 			$this->variantResolver = new VariantResolver();
@@ -257,6 +267,8 @@ class QueryInliner
 			$stamped[] = $this->postResolver->stampBlock( $this->cloneBlock( $child ), $post );
 		}
 
+		$stamped = $this->resolveIterationBindings( $stamped, $post );
+
 		return array_merge( $block, [
 			'attributes'  => array_merge( [ '_resolvedHasPost' => true ], $attributes ),
 			'innerBlocks' => $stamped,
@@ -399,6 +411,8 @@ class QueryInliner
 			] );
 		}
 
+		$this->eagerLoadIterationBindings( $inner, $results );
+
 		$expanded = [];
 
 		foreach ( $results as $post ) {
@@ -419,6 +433,8 @@ class QueryInliner
 					$post,
 				);
 			}
+
+			$iterationBlocks = $this->resolveIterationBindings( $iterationBlocks, $post );
 
 			$expanded[] = [
 				'clientId'    => 'rp-' . $postId,
@@ -531,6 +547,8 @@ class QueryInliner
 			$this->variantResolver->prime( $variantBlocks, $compiledMap, count( $resultsList ) );
 		}
 
+		$this->eagerLoadIterationBindings( $iterationTemplate, $resultsList );
+
 		$expandedIterations = [];
 
 		foreach ( $resultsList as $loopIndex => $post ) {
@@ -559,6 +577,8 @@ class QueryInliner
 					$post,
 				);
 			}
+
+			$iterationBlocks = $this->resolveIterationBindings( $iterationBlocks, $post );
 
 			$itemAttributes = [
 				'postId'    => $postId,
@@ -717,6 +737,8 @@ class QueryInliner
 
 		$this->variantResolver->prime( $variantBlocks, $compiledMap, count( $resultsList ) );
 
+		$this->eagerLoadIterationBindings( $iterationTemplate, $resultsList );
+
 		// Expand: clone the iteration template once per result, stamp
 		// _resolved* attributes, and wrap each iteration in a synthetic
 		// `core/post-template-item` block. The renderers turn that into
@@ -749,6 +771,8 @@ class QueryInliner
 					$post,
 				);
 			}
+
+			$iterationBlocks = $this->resolveIterationBindings( $iterationBlocks, $post );
 
 			$itemAttributes = [
 				'postId'    => $postId,
@@ -1093,6 +1117,8 @@ class QueryInliner
 	 */
 	protected function expandFlat( array $block, array $attributes, array $template, array $results, LengthAwarePaginator $paginator ): array
 	{
+		$this->eagerLoadIterationBindings( $template, $results );
+
 		$expanded = [];
 
 		foreach ( $results as $post ) {
@@ -1100,16 +1126,20 @@ class QueryInliner
 				continue;
 			}
 
+			$iterationBlocks = [];
+
 			foreach ( $template as $child ) {
 				if ( ! is_array( $child ) ) {
 					continue;
 				}
 
-				$expanded[] = $this->postResolver->stampBlock(
+				$iterationBlocks[] = $this->postResolver->stampBlock(
 					$this->cloneBlock( $child ),
 					$post,
 				);
 			}
+
+			array_push( $expanded, ...$this->resolveIterationBindings( $iterationBlocks, $post ) );
 		}
 
 		return array_merge( $block, [
@@ -1296,6 +1326,46 @@ class QueryInliner
 		}
 
 		return [ $base, $variants ];
+	}
+
+	/**
+	 * Resolve one iteration's block bindings against that iteration's
+	 * post and strip the sidecars, so the renderer's whole-tree pass
+	 * against the host post can't overwrite them (#850). Iteration posts
+	 * that aren't Eloquent models resolve with no record, so their
+	 * model-backed bindings take the `onEmpty` policy.
+	 *
+	 * @param  array<int, array<string, mixed>>  $blocks
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	protected function resolveIterationBindings( array $blocks, object $post ): array
+	{
+		if ( null === $this->bindingResolver || [] === $blocks ) {
+			return $blocks;
+		}
+
+		return $this->bindingResolver->resolveAndStrip(
+			$blocks,
+			new BindingContext( $post instanceof Model ? $post : null ),
+		);
+	}
+
+	/**
+	 * Load the relations an iteration template's bindings need across
+	 * the whole result set up front, so resolving each iteration doesn't
+	 * run its own relation queries.
+	 *
+	 * @param  array<int, array<string, mixed>>  $template
+	 * @param  iterable<int, mixed>              $results
+	 */
+	protected function eagerLoadIterationBindings( array $template, iterable $results ): void
+	{
+		if ( null === $this->bindingResolver || [] === $template ) {
+			return;
+		}
+
+		$this->bindingResolver->eagerLoadAcross( $template, $results );
 	}
 
 	protected function markFailed( array $block, string $reason ): array

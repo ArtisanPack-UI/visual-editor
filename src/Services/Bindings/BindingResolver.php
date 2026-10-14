@@ -26,7 +26,9 @@ namespace ArtisanPackUI\VisualEditor\Services\Bindings;
 
 use ArtisanPackUI\VisualEditor\Registries\BlockBindingSourceRegistry;
 use ArtisanPackUI\VisualEditor\Support\BlockShape;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Throwable;
 
 class BindingResolver
@@ -46,6 +48,22 @@ class BindingResolver
 		self::POLICY_PLACEHOLDER,
 	];
 
+	/**
+	 * Typed relation segments already resolved, keyed by model class then
+	 * segment, holding the related model. Query loops resolve the same
+	 * template once per result, so without this every iteration repeats
+	 * the reflection and relation instantiation in {@see isLoadableChain()}.
+	 * Depends only on class definitions, so it's safe to keep across
+	 * requests. Rejected segments aren't stored: binding paths are
+	 * authored content, so caching misses would let a long-lived worker
+	 * grow this without bound.
+	 *
+	 * @since 1.14.0
+	 *
+	 * @var array<class-string, array<string, Model>>
+	 */
+	protected array $relationSegmentCache = [];
+
 	public function __construct( protected BlockBindingSourceRegistry $registry )
 	{
 	}
@@ -54,13 +72,20 @@ class BindingResolver
 	 * Resolve every binding in the given block tree against the supplied
 	 * context. Returns a new tree — the input is left untouched.
 	 *
+	 * Blocks named in `$opaqueBlocks` still have their own bindings
+	 * resolved, but the walk doesn't descend into their inner blocks.
+	 * A nested loop uses this so its template resolves later, once per
+	 * row, instead of now without a row index (#861).
+	 *
 	 * @since 1.1.0
+	 * @since 1.14.0 Accepts `$opaqueBlocks` (#861).
 	 *
 	 * @param  array<int, array<string, mixed>>  $blocks
+	 * @param  array<int, string>                $opaqueBlocks  Block names whose inner blocks are left untouched.
 	 *
 	 * @return array<int, array<string, mixed>>
 	 */
-	public function resolve( array $blocks, ?BindingContext $context = null ): array
+	public function resolve( array $blocks, ?BindingContext $context = null, array $opaqueBlocks = [] ): array
 	{
 		if ( [] === $blocks ) {
 			return $blocks;
@@ -71,9 +96,82 @@ class BindingResolver
 		$this->prepareEagerLoads( $blocks, $context );
 
 		return array_values( array_map(
-			fn ( $block ) => $this->resolveBlock( $block, $context ),
+			fn ( $block ) => $this->resolveBlock( $block, $context, $opaqueBlocks ),
 			$blocks,
 		) );
+	}
+
+	/**
+	 * Resolve a subtree against its own context, then drop its bindings
+	 * sidecars. Used where part of a tree belongs to a different record
+	 * than the page (a query loop iteration, an adjacent-post container):
+	 * with the sidecars gone, the renderer's later whole-tree pass
+	 * against the host record leaves the resolved values alone, including
+	 * under the `hide` and `placeholder` policies.
+	 *
+	 * Inner blocks of `$opaqueBlocks` are neither resolved nor stripped,
+	 * see {@see resolve()}.
+	 *
+	 * @since 1.14.0
+	 *
+	 * @param  array<int, array<string, mixed>>  $blocks
+	 * @param  array<int, string>                $opaqueBlocks  Block names whose inner blocks are left untouched.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function resolveAndStrip( array $blocks, ?BindingContext $context = null, array $opaqueBlocks = [] ): array
+	{
+		return BlockShape::stripBindings( $this->resolve( $blocks, $context, $opaqueBlocks ), $opaqueBlocks );
+	}
+
+	/**
+	 * Eager-load every relation the tree's bindings need across a set of
+	 * models in one query per relation, instead of one per model. Callers
+	 * that resolve the same template once per record (query loops) run
+	 * this first, so each per-record {@see resolve()} finds its relations
+	 * already loaded. Non-model entries are skipped; models of different
+	 * classes are loaded in separate batches.
+	 *
+	 * @since 1.14.0
+	 *
+	 * @param  array<int, array<string, mixed>>  $blocks
+	 * @param  iterable<int, mixed>              $models
+	 */
+	public function eagerLoadAcross( array $blocks, iterable $models ): void
+	{
+		$byClass = [];
+
+		foreach ( $models as $model ) {
+			if ( $model instanceof Model ) {
+				$byClass[ $model::class ][] = $model;
+			}
+		}
+
+		if ( [] === $byClass ) {
+			return;
+		}
+
+		$relations = $this->declaredRelations( $blocks );
+
+		if ( [] === $relations ) {
+			return;
+		}
+
+		foreach ( $byClass as $group ) {
+			$loadable = $this->loadableRelations( $group[0], $relations );
+
+			if ( [] === $loadable ) {
+				continue;
+			}
+
+			try {
+				( new EloquentCollection( $group ) )->loadMissing( $loadable );
+			} catch ( Throwable $e ) {
+				// Same degradation as prepareEagerLoads(): dotted paths
+				// fall back at resolve time instead of failing the render.
+				report( $e );
+			}
+		}
 	}
 
 	/**
@@ -82,10 +180,11 @@ class BindingResolver
 	 * @since 1.1.0
 	 *
 	 * @param  array<string, mixed>  $block
+	 * @param  array<int, string>    $opaqueBlocks
 	 *
 	 * @return array<string, mixed>
 	 */
-	protected function resolveBlock( array $block, BindingContext $context ): array
+	protected function resolveBlock( array $block, BindingContext $context, array $opaqueBlocks = [] ): array
 	{
 		// Shape-agnostic read via BlockShape — supports both
 		// Gutenberg's `attributes` (editor persistence, bindings under
@@ -109,9 +208,13 @@ class BindingResolver
 			$block[ $attrKey ] = $attrs;
 		}
 
+		if ( in_array( $block['name'] ?? null, $opaqueBlocks, true ) ) {
+			return $block;
+		}
+
 		if ( isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) && [] !== $block['innerBlocks'] ) {
 			$block['innerBlocks'] = array_values( array_map(
-				fn ( $inner ) => is_array( $inner ) ? $this->resolveBlock( $inner, $context ) : $inner,
+				fn ( $inner ) => is_array( $inner ) ? $this->resolveBlock( $inner, $context, $opaqueBlocks ) : $inner,
 				$block['innerBlocks'],
 			) );
 		}
@@ -251,12 +354,37 @@ class BindingResolver
 			return;
 		}
 
+		$missing = array_filter(
+			$this->loadableRelations( $model, $this->declaredRelations( $blocks ) ),
+			static fn ( string $relation ): bool => ! $model->relationLoaded( $relation ),
+		);
+
+		if ( [] !== $missing ) {
+			try {
+				$model->loadMissing( array_values( $missing ) );
+			} catch ( Throwable $e ) {
+				// DB errors / missing relations / etc. — bindings on
+				// dotted paths will degrade to fallback at resolve
+				// time. Don't take the whole render down.
+				report( $e );
+			}
+		}
+	}
+
+	/**
+	 * Collect the relations every registered source driver declares for
+	 * the bindings in the tree, de-duplicated.
+	 *
+	 * @since 1.14.0
+	 *
+	 * @param  array<int, array<string, mixed>>  $blocks
+	 *
+	 * @return array<int, string>
+	 */
+	protected function declaredRelations( array $blocks ): array
+	{
 		$bindingArgsBySource = [];
 		$this->collectBindings( $blocks, $bindingArgsBySource );
-
-		if ( [] === $bindingArgsBySource ) {
-			return;
-		}
 
 		$relations = [];
 
@@ -284,25 +412,91 @@ class BindingResolver
 			}
 		}
 
-		if ( [] === $relations ) {
-			return;
+		return array_keys( $relations );
+	}
+
+	/**
+	 * Keep only the relation chains whose every segment is a typed
+	 * relation the binding may read (#850). Eloquent's eager loader
+	 * calls each segment as a method on a fresh model instance with no
+	 * checks of its own, so an unfiltered path like `truncate.x` would
+	 * run `truncate()` against the table during a render.
+	 *
+	 * @since 1.14.0
+	 *
+	 * @param  array<int, string>  $chains
+	 *
+	 * @return array<int, string>
+	 */
+	protected function loadableRelations( Model $model, array $chains ): array
+	{
+		return array_values( array_filter(
+			$chains,
+			fn ( string $chain ): bool => $this->isLoadableChain( $model, $chain ),
+		) );
+	}
+
+	/**
+	 * Walk one dotted relation chain across the related model classes,
+	 * checking each segment before it is called.
+	 *
+	 * @since 1.14.0
+	 */
+	protected function isLoadableChain( Model $model, string $chain ): bool
+	{
+		$current = $model;
+
+		foreach ( explode( '.', $chain ) as $segment ) {
+			// Visibility is checked on every call: `makeHidden()` /
+			// `makeVisible()` can change it per instance.
+			if ( ! ModelAttributeVisibility::isReadable( $current, $segment ) ) {
+				return false;
+			}
+
+			$related = $this->relatedModel( $current, $segment );
+
+			if ( false === $related ) {
+				return false;
+			}
+
+			$current = $related;
 		}
 
-		$missing = array_filter(
-			array_keys( $relations ),
-			static fn ( string $relation ): bool => ! $model->relationLoaded( $relation ),
-		);
+		return true;
+	}
 
-		if ( [] !== $missing ) {
+	/**
+	 * The model a typed relation segment points to, or false when the
+	 * segment isn't one a binding may call. Successful lookups are cached
+	 * per class and segment.
+	 *
+	 * @since 1.14.0
+	 */
+	protected function relatedModel( Model $model, string $segment ): Model|false
+	{
+		$class = $model::class;
+
+		if ( isset( $this->relationSegmentCache[ $class ][ $segment ] ) ) {
+			return $this->relationSegmentCache[ $class ][ $segment ];
+		}
+
+		$related = false;
+
+		if ( ModelAttributeVisibility::isRelationMethod( $model, $segment ) ) {
 			try {
-				$model->loadMissing( $missing );
+				$relation = $model->newInstance()->{$segment}();
+
+				if ( $relation instanceof Relation ) {
+					$related = $relation->getRelated();
+
+					$this->relationSegmentCache[ $class ][ $segment ] = $related;
+				}
 			} catch ( Throwable $e ) {
-				// DB errors / missing relations / etc. — bindings on
-				// dotted paths will degrade to fallback at resolve
-				// time. Don't take the whole render down.
 				report( $e );
 			}
 		}
+
+		return $related;
 	}
 
 	/**

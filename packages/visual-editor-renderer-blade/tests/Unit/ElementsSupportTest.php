@@ -34,10 +34,10 @@ describe( 'ElementsSupport::compile (no-op cases)', function (): void {
 		expect( $result )->toBe( [ 'class' => '', 'style' => '' ] );
 	} );
 
-	it( 'ignores a link node that has no usable color.text declaration', function (): void {
+	it( 'ignores a link node that has no usable color declaration', function (): void {
 		$result = ElementsSupport::compile( [
 			'style' => [ 'elements' => [
-				'link' => [ 'color' => [ 'background' => '#fff' ] ],
+				'link' => [ 'typography' => [ 'fontWeight' => '700' ], 'color' => [ 'text' => '' ] ],
 			] ],
 		] );
 
@@ -54,7 +54,7 @@ describe( 'ElementsSupport::compile (link color)', function (): void {
 		] );
 
 		expect( $result['class'] )->toStartWith( 'wp-elements-' );
-		expect( $result['style'] )->toContain( '.' . $result['class'] . ' a{color: var(--wp--preset--color--accent) !important;}' );
+		expect( $result['style'] )->toContain( '.' . $result['class'] . ' a:where(:not(.wp-element-button)){color: var(--wp--preset--color--accent) !important;}' );
 	} );
 
 	it( 'emits a custom hex value verbatim with !important', function (): void {
@@ -64,7 +64,7 @@ describe( 'ElementsSupport::compile (link color)', function (): void {
 			] ],
 		] );
 
-		expect( $result['style'] )->toContain( ' a{color: #0f172a !important;}' );
+		expect( $result['style'] )->toContain( ' a:where(:not(.wp-element-button)){color: #0f172a !important;}' );
 	} );
 
 	it( 'kebab-cases camelCase preset slugs (e.g. brandPrimary → brand-primary)', function (): void {
@@ -149,8 +149,8 @@ describe( 'ElementsSupport::compile (link pseudo-states)', function (): void {
 			] ],
 		] );
 
-		expect( $result['style'] )->toContain( ' a{color: #000 !important;}' );
-		expect( $result['style'] )->toContain( ' a:hover{color: var(--wp--preset--color--accent) !important;}' );
+		expect( $result['style'] )->toContain( ' a:where(:not(.wp-element-button)){color: #000 !important;}' );
+		expect( $result['style'] )->toContain( ' a:where(:not(.wp-element-button)):hover{color: var(--wp--preset--color--accent) !important;}' );
 	} );
 
 	it( 'emits a :focus rule independently of base / hover', function (): void {
@@ -162,8 +162,8 @@ describe( 'ElementsSupport::compile (link pseudo-states)', function (): void {
 			] ],
 		] );
 
-		expect( $result['style'] )->toContain( ' a:focus{color: #abcdef !important;}' );
-		expect( $result['style'] )->not->toContain( ' a{' );
+		expect( $result['style'] )->toContain( ' a:where(:not(.wp-element-button)):focus{color: #abcdef !important;}' );
+		expect( $result['style'] )->not->toContain( ' a:where(:not(.wp-element-button)){' );
 	} );
 
 	it( 'preserves base → :hover → :focus order so the cascade matches author intent', function (): void {
@@ -177,14 +177,85 @@ describe( 'ElementsSupport::compile (link pseudo-states)', function (): void {
 			] ],
 		] );
 
-		$hoverPos = strpos( $result['style'], ' a:hover{' );
-		$focusPos = strpos( $result['style'], ' a:focus{' );
-		$basePos  = strpos( $result['style'], ' a{' );
+		$hoverPos = strpos( $result['style'], ' a:where(:not(.wp-element-button)):hover{' );
+		$focusPos = strpos( $result['style'], ' a:where(:not(.wp-element-button)):focus{' );
+		$basePos  = strpos( $result['style'], ' a:where(:not(.wp-element-button)){' );
 
 		expect( $basePos )->not->toBeFalse();
 		expect( $hoverPos )->not->toBeFalse();
 		expect( $focusPos )->not->toBeFalse();
 		expect( $basePos )->toBeLessThan( $hoverPos );
 		expect( $hoverPos )->toBeLessThan( $focusPos );
+	} );
+} );
+
+describe( 'ElementsSupport::compile (#852 selectors and states)', function (): void {
+	it( 'never targets button links with the link selector', function (): void {
+		$result = ElementsSupport::compile( [
+			'style' => [ 'elements' => [
+				'link' => [ 'color' => [ 'text' => '#ff0000' ] ],
+			] ],
+		] );
+
+		expect( $result['style'] )
+			->toBe( '.' . $result['class'] . ' a:where(:not(.wp-element-button)){color: #ff0000 !important;}' );
+	} );
+
+	it( 'emits a :focus-visible rule between :focus and :active', function (): void {
+		$result = ElementsSupport::compile( [
+			'style' => [ 'elements' => [
+				'link' => [
+					':active'        => [ 'color' => [ 'text' => '#333' ] ],
+					':focus-visible' => [ 'color' => [ 'text' => '#222' ] ],
+					':focus'         => [ 'color' => [ 'text' => '#111' ] ],
+				],
+			] ],
+		] );
+
+		$focus        = strpos( $result['style'], ':focus{' );
+		$focusVisible = strpos( $result['style'], ':focus-visible{color: #222 !important;}' );
+		$active       = strpos( $result['style'], ':active{' );
+
+		expect( $focusVisible )->not->toBeFalse()
+			->and( $focus )->toBeLessThan( $focusVisible )
+			->and( $focusVisible )->toBeLessThan( $active );
+	} );
+
+	it( 'emits background colors alongside text colors', function (): void {
+		$result = ElementsSupport::compile( [
+			'style' => [ 'elements' => [
+				'button' => [ 'color' => [ 'text' => 'var:preset|color|base-content', 'background' => '#00ffff' ] ],
+			] ],
+		] );
+
+		$scope = '.' . $result['class'];
+
+		expect( $result['style'] )->toBe(
+			"{$scope} .wp-element-button,{$scope} .wp-block-button__link"
+			. '{color: var(--wp--preset--color--base-content) !important;background-color: #00ffff !important;}',
+		);
+	} );
+
+	it( 'scopes every heading selector and appends the pseudo to each', function (): void {
+		$result = ElementsSupport::compile( [
+			'style' => [ 'elements' => [
+				'heading' => [ ':hover' => [ 'color' => [ 'text' => '#010203' ] ] ],
+			] ],
+		] );
+
+		$scope = '.' . $result['class'];
+
+		expect( $result['style'] )->toContain( "{$scope} h1:hover,{$scope} h2:hover," )
+			->toContain( "{$scope} h6:hover{color: #010203 !important;}" );
+	} );
+
+	it( 'drops an unsafe background value', function (): void {
+		$result = ElementsSupport::compile( [
+			'style' => [ 'elements' => [
+				'link' => [ 'color' => [ 'background' => 'red;}body{display:none' ] ],
+			] ],
+		] );
+
+		expect( $result )->toBe( [ 'class' => '', 'style' => '' ] );
 	} );
 } );

@@ -161,10 +161,14 @@ class PresetRegistry
 	}
 
 	/**
-	 * Resolve the font sizes the editor's picker offers, with the same
-	 * precedence as {@see self::effectiveSpacingSizes()} (#821).
+	 * Resolve every font size the front end must declare (#821, #852).
+	 *
+	 * Same layering as {@see self::effectivePalette()}: the package
+	 * defaults stay declared under a theme's own `fontSizes` (theme
+	 * entries win on slug), with host presets merged on top.
 	 *
 	 * @since 1.12.1
+	 * @since 1.14.0 Keeps the package defaults when the theme ships its own sizes.
 	 *
 	 * @param  mixed  $themeFontSizes  The theme's `settings.typography.fontSizes`, if any.
 	 *
@@ -172,21 +176,28 @@ class PresetRegistry
 	 */
 	public static function effectiveFontSizes( mixed $themeFontSizes ): array
 	{
-		$host  = self::fromConfig()['fontSizes'];
-		$theme = self::normaliseThemeList( $themeFontSizes, 'size' );
-
-		if ( null !== $theme ) {
-			return [] === $host['entries'] ? $theme : self::mergeSizedList( $theme, $host, 'size' );
-		}
-
-		return self::mergeSizedList( self::DEFAULT_FONT_SIZES, $host, 'size' );
+		return self::layerPresetList(
+			self::DEFAULT_FONT_SIZES,
+			self::normaliseThemeList( $themeFontSizes, 'size' ),
+			self::fromConfig()['fontSizes'],
+			'size',
+		);
 	}
 
 	/**
-	 * Resolve the palette the editor's color pickers offer, with the same
-	 * precedence as {@see self::effectiveSpacingSizes()} (#821).
+	 * Resolve every palette color the front end must declare (#821, #852).
+	 *
+	 * The editor offers the package defaults whenever it has no theme
+	 * palette of its own to show, and saved content keeps referencing
+	 * those slugs (`has-base-content-color`, `var:preset|color|primary`)
+	 * after a host later passes a theme palette to the renderer. So the
+	 * defaults always stay declared underneath the theme palette — theme
+	 * entries win on a colliding slug — and host presets merge on top.
+	 * A host `replace` list is the one exception: the editor never offers
+	 * the defaults then, so neither layer below it is kept.
 	 *
 	 * @since 1.12.1
+	 * @since 1.14.0 Keeps the package defaults when the theme ships its own palette.
 	 *
 	 * @param  mixed  $themePalette  The theme's `settings.color.palette`, if any.
 	 *
@@ -194,14 +205,12 @@ class PresetRegistry
 	 */
 	public static function effectivePalette( mixed $themePalette ): array
 	{
-		$host  = self::fromConfig()['palette'];
-		$theme = self::normaliseThemeList( $themePalette, 'color' );
-
-		if ( null !== $theme ) {
-			return [] === $host['entries'] ? $theme : self::mergeSizedList( $theme, $host, 'color' );
-		}
-
-		return self::mergeSizedList( self::DEFAULT_PALETTE, $host, 'color' );
+		return self::layerPresetList(
+			self::DEFAULT_PALETTE,
+			self::normaliseThemeList( $themePalette, 'color' ),
+			self::fromConfig()['palette'],
+			'color',
+		);
 	}
 
 	/**
@@ -290,10 +299,13 @@ class PresetRegistry
 	 *
 	 * The theme compiler only emits the presets a theme ships, so on a
 	 * theme-less install a "Large" pick saved `has-large-font-size`
-	 * with nothing behind it. Built from the same lists as the editor
-	 * (package defaults when the theme has none, plus host presets).
+	 * with nothing behind it. Built from {@see self::effectiveFontSizes()}
+	 * and {@see self::effectivePalette()}: the package defaults stay
+	 * declared underneath a theme's own lists (theme entries win on a
+	 * shared slug), with host presets merged on top.
 	 *
 	 * @since 1.12.1
+	 * @since 1.14.0 Declares the package defaults under a theme's own lists (#852).
 	 *
 	 * @param  array<string, mixed>|null  $themeSettings  The theme's `settings`, if any.
 	 */
@@ -711,6 +723,37 @@ class PresetRegistry
 		}
 
 		return [] === $out ? null : $out;
+	}
+
+	/**
+	 * Layer package defaults, a theme list, and a host list (#852): the
+	 * theme overrides colliding default slugs in place and appends the
+	 * rest, then the host list merges on top per its mode. A host
+	 * `replace` list drops the defaults (the editor never offers them
+	 * then) but, as before, an empty one leaves the theme list intact.
+	 *
+	 * @since 1.14.0
+	 *
+	 * @param  array<int, array<string, string>>  $defaults
+	 * @param  array<int, array<string, string>>|null  $theme
+	 * @param  array{mode: string, entries: array<int, array<string, string>>}  $host
+	 * @param  string  $valueKey  Value field (`size`, `color`).
+	 *
+	 * @return array<int, array<string, string>>
+	 */
+	protected static function layerPresetList( array $defaults, ?array $theme, array $host, string $valueKey ): array
+	{
+		if ( null === $theme ) {
+			return self::mergeSizedList( $defaults, $host, $valueKey );
+		}
+
+		if ( 'replace' === $host['mode'] ) {
+			return [] === $host['entries'] ? $theme : self::mergeSizedList( $theme, $host, $valueKey );
+		}
+
+		$base = self::mergeSizedList( $defaults, [ 'mode' => 'append', 'entries' => $theme ], $valueKey );
+
+		return [] === $host['entries'] ? $base : self::mergeSizedList( $base, $host, $valueKey );
 	}
 
 	/**

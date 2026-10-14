@@ -28,6 +28,19 @@ instance bound through cms-framework. `relation` walks
 `business_info.phone` through cms-framework's `DynamicContentAccessor`
 and is independent of the render's parent record.
 
+`post_core`, `custom_field`, and `relation` only read what the model
+would serialize: never a key in `$hidden`, and only keys in `$visible`
+when that list is non-empty. A path such as `author.password` resolves
+to empty and the binding's empty-value policy applies.
+
+Bindings never call arbitrary model methods. A `custom_field` key or a
+`relation` path segment that names a method only resolves when that
+method declares an Eloquent `Relation` return type, such as
+`public function author(): BelongsTo`. Stored attributes, accessors, and
+relations that are already loaded aren't affected. A relation method
+without a return type resolves to empty, so add one if you bind through
+it.
+
 ### Which custom fields a content type offers
 
 *Since v1.13.0 (#837).* The `custom_field` source's field catalog
@@ -154,6 +167,37 @@ bindings once at the top of `BlockRenderer::render()` via
 `resolveBindings()`. Trees without a `bindings` sidecar round-trip
 byte-identically. When the bindings layer is not bound in the
 container (renderer installed standalone), the pass silently no-ops.
+
+`<x-ve-blocks :tree="$tree" :post="$post" />` resolves bindings against
+`$post` when it is an Eloquent model. Without a `:post`, or with a
+non-model one, model-dependent bindings (`post_core`, `custom_field`,
+`relation`) take their empty-value policy; `dynamic_content` still
+resolves, since it doesn't need a parent record. Nested
+renders inside the same tree (tabs, accordions, the navigation
+overlay) reuse the same record. Hosts calling the renderer directly
+pass the record themselves:
+
+```php
+use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
+use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
+
+$renderer = app( BlockRenderer::class );
+$html     = $renderer->render( $tree, new BindingContext( $post ) );
+$assets   = $renderer->flushSupportAssets(); // print $assets['css'] before $html, $assets['scripts'] after
+```
+
+See [Support CSS for direct renders](./renderers.md#support-css-for-direct-renders)
+for what `flushSupportAssets()` returns.
+
+Inside a `core/query` loop, each `post-template` iteration resolves its
+bindings against that iteration's post, not the host record. The same
+goes for `artisanpack/related-posts`, `artisanpack/single-content` with a
+selected entry, and the `artisanpack/next-post` / `artisanpack/previous-post`
+containers, which resolve against the post they show. When the query
+runtime returns plain objects instead of Eloquent models, model-dependent
+bindings in those iterations take their empty-value policy. Relations
+that `relation` bindings need are loaded once across the whole result
+set.
 
 ## Naming note
 

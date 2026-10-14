@@ -21,6 +21,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditor\View\Components;
 
 use ArtisanPackUI\VisualEditor\Resources\PresetRegistry;
+use ArtisanPackUI\VisualEditor\Resources\QueryPostTypeRegistry;
 use ArtisanPackUI\VisualEditor\Resources\TaxonomyRegistry;
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use Illuminate\Contracts\View\View;
@@ -118,6 +119,17 @@ class VisualEditorComponent extends Component
 	public array $taxonomies;
 
 	/**
+	 * Query Loop "Post type" picker options (#847). Resolved through the
+	 * `ap.visualEditor.query.postTypes` filter via
+	 * {@see QueryPostTypeRegistry::resolve()}.
+	 *
+	 * @since 1.14.0
+	 *
+	 * @var array<int, array{value: string, label: string}>
+	 */
+	public array $queryPostTypes;
+
+	/**
 	 * Serialised breakpoint registry (#617) — the merged config +
 	 * theme.json + defaults snapshot the React shell hydrates the
 	 * viewport switcher against.
@@ -187,6 +199,7 @@ class VisualEditorComponent extends Component
 		$this->patternPostType      = $this->normalizePatternPostType( $patternPostType );
 		$this->contentTypes         = $this->resolveContentTypes();
 		$this->taxonomies           = TaxonomyRegistry::fromConfig();
+		$this->queryPostTypes       = QueryPostTypeRegistry::resolve();
 		$this->breakpoints          = app( BreakpointRegistry::class )->toArray();
 		$this->presets              = PresetRegistry::fromConfig();
 
@@ -270,6 +283,11 @@ class VisualEditorComponent extends Component
 		$nullableBool        = static fn ( mixed $v, mixed $current ) => is_bool( $v ) || null === $v ? $v : $current;
 		$nullableIntOrString = static fn ( mixed $v, mixed $current ) => is_int( $v ) || is_string( $v ) || null === $v ? $v : $current;
 		$array               = static fn ( mixed $v, mixed $current ) => is_array( $v ) ? $v : $current;
+		$queryPostTypes      = static function ( mixed $v, mixed $current ): mixed {
+			$options = is_array( $v ) ? QueryPostTypeRegistry::normalise( $v ) : [];
+
+			return [] === $options ? $current : $options;
+		};
 
 		return [
 			'resource'             => $string,
@@ -290,6 +308,7 @@ class VisualEditorComponent extends Component
 			'patternPostType'      => $nullableString,
 			'contentTypes'         => $array,
 			'taxonomies'           => $array,
+			'queryPostTypes'       => $queryPostTypes,
 			'breakpoints'          => $array,
 			'presets'              => $array,
 		];

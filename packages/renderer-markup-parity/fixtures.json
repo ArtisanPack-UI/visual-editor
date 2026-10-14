@@ -75,8 +75,8 @@
             "id": "navigation-elements-support-style",
             "issue": "Keystone #56",
             "fixturesMatching": "^navigation-layout-colors-elements$",
-            "reason": "The scoped `.wp-elements-{hash} a { color: … }` rule ElementsSupport emits as an attribute-less `<style>` before the `<nav>` — Blade-only, like its scope class.",
-            "dropElementsMatching": "^<style>$"
+            "reason": "The scoped `.wp-elements-{hash} a:where(:not(.wp-element-button)) { color: … }` rules ElementsSupport pushes into the shared `<style data-ve-elements>` block (#852) — Blade-only, like its scope class.",
+            "dropRendererStyleTag": "data-ve-elements"
         }
     ],
     "fixtures": [

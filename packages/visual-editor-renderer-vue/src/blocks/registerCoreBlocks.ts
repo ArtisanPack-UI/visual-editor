@@ -306,15 +306,20 @@ const CORE_BLOCKS: Record<string, BlockRenderer> = {
     'artisanpack/comments-pagination-next': CommentsPaginationNextBlock,
     'artisanpack/comments-pagination-numbers': CommentsPaginationNumbersBlock,
     'artisanpack/comments-pagination-previous': CommentsPaginationPreviousBlock,
-    // Query family (#521) — registered under the artisanpack/* namespace
-    // only; the new query-pagination / query-no-results / query-title
-    // forks never shipped as `core/*` in v1 so there are no core
-    // counterparts to mirror here.
+    // Query family (#521). The core/* names (#856) render theme files
+    // that haven't been saved through the site editor, which still carry
+    // WordPress's names; QueryInliner stamps both namespaces alike.
+    'core/query-no-results': QueryNoResultsBlock,
     'artisanpack/query-no-results': QueryNoResultsBlock,
+    'core/query-pagination': QueryPaginationBlock,
     'artisanpack/query-pagination': QueryPaginationBlock,
+    'core/query-pagination-next': QueryPaginationNextBlock,
     'artisanpack/query-pagination-next': QueryPaginationNextBlock,
+    'core/query-pagination-numbers': QueryPaginationNumbersBlock,
     'artisanpack/query-pagination-numbers': QueryPaginationNumbersBlock,
+    'core/query-pagination-previous': QueryPaginationPreviousBlock,
     'artisanpack/query-pagination-previous': QueryPaginationPreviousBlock,
+    'core/query-title': QueryTitleBlock,
     'artisanpack/query-title': QueryTitleBlock,
     // Auth family (#522) — registered under the artisanpack/* namespace
     // only; loginout never shipped as `core/*` in v1 so there is no

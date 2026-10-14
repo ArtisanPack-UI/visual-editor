@@ -3,6 +3,7 @@
 declare( strict_types=1 );
 
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\File;
 
 it( 'emits the block-library and theme stylesheet links by default', function (): void {
 	$rendered = Blade::render( '<x-ve-blocks-styles />' );
@@ -142,12 +143,20 @@ it( 'emits the layout-flow block-gap baseline rule for sibling spacing', functio
 } );
 
 it( 'publishes block-library assets under the visual-editor-renderer-blade-assets tag', function (): void {
-	$artisan = $this->artisan( 'vendor:publish', [
-		'--tag'   => 'visual-editor-renderer-blade-assets',
-		'--force' => true,
-	] );
+	$published = public_path( 'vendor/visual-editor-renderer-blade' );
 
-	$artisan->assertExitCode( 0 );
+	try {
+		$this->artisan( 'vendor:publish', [
+			'--tag'   => 'visual-editor-renderer-blade-assets',
+			'--force' => true,
+		] )->assertExitCode( 0 );
+
+		expect( File::isDirectory( $published . '/frontend' ) )->toBeTrue();
+	} finally {
+		// Don't leave published copies in testbench's skeleton for later
+		// tests and runs to pick up.
+		File::deleteDirectory( $published );
+	}
 } );
 
 it( 'declares the default spacing presets even without a theme.json (#814)', function (): void {
@@ -209,7 +218,7 @@ describe( 'theme-less defaults (#821)', function (): void {
 			->toContain( ':where(.wp-block-gallery.has-nested-images) { gap: var(--wp--style--unstable-gallery-gap, 16px); }' );
 	} );
 
-	it( 'uses the theme presets in place of the defaults when the theme ships them', function (): void {
+	it( 'lets theme presets win on slug while keeping the other defaults declared (#852)', function (): void {
 		$rendered = Blade::render( '<x-ve-blocks-styles :theme-json="$themeJson" />', [
 			'themeJson' => [
 				'settings' => [
@@ -222,7 +231,7 @@ describe( 'theme-less defaults (#821)', function (): void {
 		expect( $rendered )
 			->toContain( '--wp--preset--font-size--large: 3rem;' )
 			->not->toContain( '--wp--preset--font-size--large: 28px;' )
-			->not->toContain( '--wp--preset--font-size--huge' )
+			->toContain( '--wp--preset--font-size--huge: 36px;' )
 			->toContain( '--wp--style--global--content-size: 640px;' );
 	} );
 
