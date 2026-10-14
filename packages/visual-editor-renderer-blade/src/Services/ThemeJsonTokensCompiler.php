@@ -615,10 +615,19 @@ class ThemeJsonTokensCompiler
 	 * outside the `namespace/slug` shape lose only the slash → dash
 	 * substitution; downstream CSS authoring still resolves correctly.
 	 *
+	 * The `core/` namespace is dropped, as in WordPress's own block
+	 * class names: `core/group` renders `.wp-block-group`, so a
+	 * `.wp-block-core-group` rule would match nothing.
+	 *
 	 * @since 1.2.0
+	 * @since 1.14.0 Drops the `core/` namespace.
 	 */
 	protected function blockSelector( string $blockName ): string
 	{
+		if ( str_starts_with( $blockName, 'core/' ) ) {
+			$blockName = substr( $blockName, 5 );
+		}
+
 		return '.wp-block-' . str_replace( '/', '-', $blockName );
 	}
 

@@ -342,7 +342,22 @@ describe( 'styles.* CSS rule emission', function (): void {
 			],
 		] );
 
-		expect( $css )->toContain( ':root :where(.wp-block-core-group h1, .wp-block-core-group h2, .wp-block-core-group h3, .wp-block-core-group h4, .wp-block-core-group h5, .wp-block-core-group h6) {' );
+		expect( $css )->toContain( ':root :where(.wp-block-group h1, .wp-block-group h2, .wp-block-group h3, .wp-block-group h4, .wp-block-group h5, .wp-block-group h6) {' );
+	} );
+
+	it( 'targets core blocks by their rendered class, without the core namespace', function (): void {
+		$css = ( new ThemeJsonTokensCompiler() )->compile( [
+			'styles' => [
+				'blocks' => [
+					'core/group'        => [ 'color' => [ 'background' => '#eeeeee' ] ],
+					'artisanpack/form'  => [ 'color' => [ 'background' => '#dddddd' ] ],
+				],
+			],
+		] );
+
+		expect( $css )->toContain( ':root :where(.wp-block-group) {' )
+			->and( $css )->toContain( ':root :where(.wp-block-artisanpack-form) {' )
+			->and( $css )->not->toContain( 'wp-block-core-' );
 	} );
 
 	it( 'handles per-corner border-radius objects', function (): void {
@@ -627,7 +642,7 @@ describe( 'styles.elements pseudo-states and selectors (#852)', function (): voi
 			],
 		] );
 
-		expect( $css )->toContain( ':root :where(.wp-block-core-paragraph a:where(:not(.wp-element-button)):hover) {' );
+		expect( $css )->toContain( ':root :where(.wp-block-paragraph a:where(:not(.wp-element-button)):hover) {' );
 	} );
 
 	it( 'never emits a bare `a` rule that would also match button links', function (): void {
