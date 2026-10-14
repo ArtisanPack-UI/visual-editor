@@ -137,6 +137,13 @@ class RelationSource implements BlockBindingSource
 				return null;
 			}
 
+			// `getAttribute()` calls any method named like the segment,
+			// so only walk into typed relations, not arbitrary methods
+			// such as `forceDelete` (#850).
+			if ( ! ModelAttributeVisibility::isSafeToRead( $current, $segment ) ) {
+				return null;
+			}
+
 			return $current->getAttribute( $segment );
 		}
 
