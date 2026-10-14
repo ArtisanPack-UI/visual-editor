@@ -39,6 +39,11 @@
 		     live in the site editor, so the post-terms block needs the
 		     taxonomy list here too. --}}
 		data-taxonomies="{{ json_encode( \ArtisanPackUI\VisualEditor\Resources\TaxonomyRegistry::fromConfig(), JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS ) }}"
+		{{-- #847 — Query Loop "Post type" picker options, resolved
+		     through the `ap.visualEditor.query.postTypes` filter.
+		     Archive templates are edited here, so the picker needs the
+		     host's content types in the site editor too. --}}
+		data-query-post-types="{{ json_encode( \ArtisanPackUI\VisualEditor\Resources\QueryPostTypeRegistry::resolve(), JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS ) }}"
 		{{-- #773 — host-provided palette / font-size / font-family /
 		     spacing-size presets. The site editor also boots the block
 		     inspector and needs the same seam so brand entries reach the

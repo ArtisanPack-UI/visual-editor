@@ -101,6 +101,28 @@ it( 'forwards the validated payload to the resolver', function (): void {
 	expect( test()->fake->lastAttributes['taxQuery']['terms'] )->toBe( [ 3, 4 ] );
 } );
 
+it( 'forwards a host content type to the resolver for the canvas preview (#847)', function (): void {
+	actingResolver();
+
+	$post = TestBlockContentModel::create( [
+		'title'   => 'Case study',
+		'status'  => 'published',
+		'content' => [],
+	] );
+
+	test()->fake->setItems( [ $post ] );
+
+	$this->postJson( '/visual-editor/api/query/resolve', [
+		'postType' => 'case-study',
+		'perPage'  => 3,
+	] )
+		->assertOk()
+		->assertJsonPath( 'data.0.id', $post->id )
+		->assertJsonPath( 'data.0.title.rendered', 'Case study' );
+
+	expect( test()->fake->lastAttributes['postType'] )->toBe( 'case-study' );
+} );
+
 it( 'rejects an invalid orderBy value', function (): void {
 	actingResolver();
 
