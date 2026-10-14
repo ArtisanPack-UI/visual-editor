@@ -136,7 +136,7 @@ Currently declared (RN-12, navigation):
   (`navigation-layout-colors-elements`).** `layout.orientation` /
   `layout.justifyContent`, the block-specific `customTextColor` /
   `customBackgroundColor`, and `ElementsSupport` link colors
-  (`wp-elements-*` class plus its `<style>`). Delete these entries if the
+  (`wp-elements-*` class plus its `<style data-ve-elements>` rules). Delete these entries if the
   JS renderers gain support — the fixture will then pin the shared markup.
 
 The former class-token divergences have all converged: the `ve-w-<hash>`

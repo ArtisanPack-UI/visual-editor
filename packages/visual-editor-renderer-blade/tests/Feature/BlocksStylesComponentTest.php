@@ -209,7 +209,7 @@ describe( 'theme-less defaults (#821)', function (): void {
 			->toContain( ':where(.wp-block-gallery.has-nested-images) { gap: var(--wp--style--unstable-gallery-gap, 16px); }' );
 	} );
 
-	it( 'uses the theme presets in place of the defaults when the theme ships them', function (): void {
+	it( 'lets theme presets win on slug while keeping the other defaults declared (#852)', function (): void {
 		$rendered = Blade::render( '<x-ve-blocks-styles :theme-json="$themeJson" />', [
 			'themeJson' => [
 				'settings' => [
@@ -222,7 +222,7 @@ describe( 'theme-less defaults (#821)', function (): void {
 		expect( $rendered )
 			->toContain( '--wp--preset--font-size--large: 3rem;' )
 			->not->toContain( '--wp--preset--font-size--large: 28px;' )
-			->not->toContain( '--wp--preset--font-size--huge' )
+			->toContain( '--wp--preset--font-size--huge: 36px;' )
 			->toContain( '--wp--style--global--content-size: 640px;' );
 	} );
 

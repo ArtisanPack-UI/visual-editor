@@ -33,6 +33,7 @@ use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\SiteMetaResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Responsive\ResponsiveClassResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\BoxShadowCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\ElementsCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker;
@@ -212,6 +213,12 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 		// `<style data-ve-position>` block.
 		$this->app->scoped( PositionCssAccumulator::class, function () {
 			return new PositionCssAccumulator();
+		} );
+
+		// #852 — sibling accumulator for the per-block Elements API
+		// `<style data-ve-elements>` block (link / heading / button colors).
+		$this->app->scoped( ElementsCssAccumulator::class, function () {
+			return new ElementsCssAccumulator();
 		} );
 	}
 

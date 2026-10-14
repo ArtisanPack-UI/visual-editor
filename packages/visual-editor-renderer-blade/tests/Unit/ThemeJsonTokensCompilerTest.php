@@ -253,13 +253,13 @@ describe( 'styles.* CSS rule emission', function (): void {
 		] );
 
 		expect( $css )
-			->toContain( 'a {' )
+			->toContain( ':root :where(a:where(:not(.wp-element-button))) {' )
 			->toContain( 'color: var(--wp--preset--color--accent);' )
-			->toContain( 'h1, h2, h3, h4, h5, h6 {' )
+			->toContain( ':root :where(h1, h2, h3, h4, h5, h6) {' )
 			->toContain( 'font-weight: 700;' )
-			->toContain( 'h2 {' )
+			->toContain( ':root :where(h2) {' )
 			->toContain( 'font-size: 2rem;' )
-			->toContain( '.wp-element-button, .wp-block-button__link {' )
+			->toContain( ':root :where(.wp-element-button, .wp-block-button__link) {' )
 			->toContain( 'background-color: var(--wp--preset--color--accent);' )
 			->toContain( 'padding-top: 0.75rem;' )
 			->toContain( 'padding-right: 1.5rem;' );
@@ -279,7 +279,7 @@ describe( 'styles.* CSS rule emission', function (): void {
 		] );
 
 		expect( $css )
-			->toContain( '.wp-block-artisanpack-form {' )
+			->toContain( ':root :where(.wp-block-artisanpack-form) {' )
 			->toContain( 'background-color: var(--wp--preset--color--surface);' )
 			->toContain( 'border-color: var(--wp--preset--color--divider);' )
 			->toContain( 'border-width: 1px;' )
@@ -308,7 +308,7 @@ describe( 'styles.* CSS rule emission', function (): void {
 		expect( $css )
 			->toContain( 'body {' )
 			->toContain( '--wp--style--block-gap: 2em;' )
-			->toContain( '.wp-block-artisanpack-group {' )
+			->toContain( ':root :where(.wp-block-artisanpack-group) {' )
 			->toContain( '--wp--style--block-gap: 3rem;' );
 	} );
 
@@ -325,8 +325,24 @@ describe( 'styles.* CSS rule emission', function (): void {
 			],
 		] );
 
-		expect( $css )->toContain( '.wp-block-artisanpack-form a {' )
+		expect( $css )->toContain( ':root :where(.wp-block-artisanpack-form a:where(:not(.wp-element-button))) {' )
 			->and( $css )->toContain( 'color: #ff0000;' );
+	} );
+
+	it( 'scopes every selector of a nested multi-selector element to the block', function (): void {
+		$css = ( new ThemeJsonTokensCompiler() )->compile( [
+			'styles' => [
+				'blocks' => [
+					'core/group' => [
+						'elements' => [
+							'heading' => [ 'color' => [ 'text' => '#123456' ] ],
+						],
+					],
+				],
+			],
+		] );
+
+		expect( $css )->toContain( ':root :where(.wp-block-core-group h1, .wp-block-core-group h2, .wp-block-core-group h3, .wp-block-core-group h4, .wp-block-core-group h5, .wp-block-core-group h6) {' );
 	} );
 
 	it( 'handles per-corner border-radius objects', function (): void {
@@ -550,5 +566,87 @@ describe( 'compileDefaults (#821)', function (): void {
 		preg_match_all( '/var\(\s*(--(?:wp|ap)-[\w-]+)\s*\)/', $css, $unguarded );
 
 		expect( array_values( array_diff( $unguarded[1], $declared[1] ) ) )->toBe( [] );
+	} );
+} );
+
+describe( 'styles.elements pseudo-states and selectors (#852)', function (): void {
+	it( 'compiles link :hover / :focus / :focus-visible / :active sub-nodes after the base rule', function (): void {
+		$css = ( new ThemeJsonTokensCompiler() )->compile( [
+			'styles' => [
+				'elements' => [
+					'link' => [
+						'color'          => [ 'text' => 'var:preset|color|primary' ],
+						':hover'         => [ 'color' => [ 'text' => 'var:preset|color|accent' ] ],
+						':focus'         => [ 'color' => [ 'text' => '#111111' ] ],
+						':focus-visible' => [ 'color' => [ 'text' => '#222222' ] ],
+						':active'        => [ 'color' => [ 'text' => '#333333' ] ],
+					],
+				],
+			],
+		] );
+
+		$link = 'a:where(:not(.wp-element-button))';
+		$base = strpos( $css, ":root :where({$link}) {" );
+
+		expect( $base )->not->toBeFalse()
+			->and( $css )->toContain( ":root :where({$link}:hover) {\n\tcolor: var(--wp--preset--color--accent);" )
+			->and( $css )->toContain( ":root :where({$link}:focus) {\n\tcolor: #111111;" )
+			->and( $css )->toContain( ":root :where({$link}:focus-visible) {\n\tcolor: #222222;" )
+			->and( $css )->toContain( ":root :where({$link}:active) {\n\tcolor: #333333;" )
+			->and( strpos( $css, ':hover)' ) )->toBeGreaterThan( $base )
+			->and( strpos( $css, ':focus)' ) )->toBeGreaterThan( strpos( $css, ':hover)' ) );
+	} );
+
+	it( 'appends the pseudo to every selector in the button element list', function (): void {
+		$css = ( new ThemeJsonTokensCompiler() )->compile( [
+			'styles' => [
+				'elements' => [
+					'button' => [
+						':hover' => [ 'color' => [ 'background' => '#000000', 'text' => '#ffffff' ] ],
+						':focus' => [ 'color' => [ 'text' => '#ff0000' ] ],
+					],
+				],
+			],
+		] );
+
+		expect( $css )
+			->toContain( ":root :where(.wp-element-button:hover, .wp-block-button__link:hover) {\n\tbackground-color: #000000;\n\tcolor: #ffffff;" )
+			->toContain( ':root :where(.wp-element-button:focus, .wp-block-button__link:focus) {' );
+	} );
+
+	it( 'compiles pseudo-states under styles.blocks[*].elements', function (): void {
+		$css = ( new ThemeJsonTokensCompiler() )->compile( [
+			'styles' => [
+				'blocks' => [
+					'core/paragraph' => [
+						'elements' => [
+							'link' => [ ':hover' => [ 'color' => [ 'text' => '#abcdef' ] ] ],
+						],
+					],
+				],
+			],
+		] );
+
+		expect( $css )->toContain( ':root :where(.wp-block-core-paragraph a:where(:not(.wp-element-button)):hover) {' );
+	} );
+
+	it( 'never emits a bare `a` rule that would also match button links', function (): void {
+		$css = ( new ThemeJsonTokensCompiler() )->compile( [
+			'styles' => [
+				'elements' => [ 'link' => [ 'color' => [ 'text' => '#00ff00' ] ] ],
+			],
+		] );
+
+		expect( $css )->not->toMatch( '/(^|[\s,(])a\s*\{/m' );
+	} );
+
+	it( 'skips pseudo-state sub-nodes that carry no recognised declarations', function (): void {
+		$css = ( new ThemeJsonTokensCompiler() )->compile( [
+			'styles' => [
+				'elements' => [ 'link' => [ ':hover' => [ 'unknown' => [ 'x' => 'y' ] ] ] ],
+			],
+		] );
+
+		expect( $css )->not->toContain( ':hover' );
 	} );
 } );

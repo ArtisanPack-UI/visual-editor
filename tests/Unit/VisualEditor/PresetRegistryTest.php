@@ -309,6 +309,75 @@ describe( 'effectiveSpacingSizes() (#814)', function (): void {
 	} );
 } );
 
+describe( 'effectivePalette() / effectiveFontSizes() keep the package defaults (#852)', function (): void {
+	beforeEach( function (): void {
+		config()->set( 'artisanpack.visual-editor.presets', [] );
+	} );
+
+	it( 'keeps every default swatch under a theme palette, the theme winning on slug', function (): void {
+		$palette = PresetRegistry::effectivePalette( [
+			[ 'slug' => 'Primary', 'color' => '#00b5e2' ],
+			[ 'slug' => 'legends-navy', 'color' => '#002b49' ],
+		] );
+
+		$bySlug = array_column( $palette, 'color', 'slug' );
+
+		expect( $bySlug['primary'] )->toBe( '#00b5e2' )
+			->and( $bySlug['base-content'] )->toBe( '#1f2937' )
+			->and( $bySlug['legends-navy'] )->toBe( '#002b49' )
+			->and( $palette )->toHaveCount( count( PresetRegistry::DEFAULT_PALETTE ) + 1 );
+	} );
+
+	it( 'keeps the default font sizes under a theme list, the theme winning on slug', function (): void {
+		$bySlug = array_column(
+			PresetRegistry::effectiveFontSizes( [ [ 'slug' => 'large', 'size' => '3rem' ] ] ),
+			'size',
+			'slug',
+		);
+
+		expect( $bySlug['large'] )->toBe( '3rem' )
+			->and( $bySlug['huge'] )->toBe( '36px' );
+	} );
+
+	it( 'layers host append entries on top of the theme and the defaults', function (): void {
+		config()->set( 'artisanpack.visual-editor.presets.palette', [
+			[ 'slug' => 'legends-navy', 'name' => 'Navy', 'color' => '#000000' ],
+			[ 'slug' => 'brand', 'name' => 'Brand', 'color' => '#abcdef' ],
+		] );
+
+		$bySlug = array_column(
+			PresetRegistry::effectivePalette( [ [ 'slug' => 'legends-navy', 'color' => '#002b49' ] ] ),
+			'color',
+			'slug',
+		);
+
+		expect( $bySlug['legends-navy'] )->toBe( '#000000' )
+			->and( $bySlug['brand'] )->toBe( '#abcdef' )
+			->and( $bySlug )->toHaveKey( 'base-content' );
+	} );
+
+	it( 'drops the defaults under a host replace list, as the editor never offers them', function (): void {
+		config()->set( 'artisanpack.visual-editor.presets.palette', [
+			'mode'    => 'replace',
+			'entries' => [ [ 'slug' => 'brand', 'name' => 'Brand', 'color' => '#abcdef' ] ],
+		] );
+
+		expect( PresetRegistry::effectivePalette( [ [ 'slug' => 'navy', 'color' => '#002b49' ] ] ) )
+			->toBe( [ [ 'slug' => 'brand', 'color' => '#abcdef' ] ] );
+	} );
+
+	it( 'declares default swatch utilities in presetDefaultsCss() when the theme ships a palette', function (): void {
+		$css = PresetRegistry::presetDefaultsCss( [
+			'color' => [ 'palette' => [ [ 'slug' => 'legends-teal', 'color' => '#00b5e2' ] ] ],
+		] );
+
+		expect( $css )
+			->toContain( '--wp--preset--color--legends-teal: #00b5e2;' )
+			->toContain( '--wp--preset--color--base-content: #1f2937;' )
+			->toContain( '.has-base-content-color { color: var(--wp--preset--color--base-content) !important; }' );
+	} );
+} );
+
 describe( 'spacingPresetsCss() (#814)', function (): void {
 	beforeEach( function (): void {
 		config()->set( 'artisanpack.visual-editor.presets', [] );

@@ -9,17 +9,19 @@
  * WordPress behavior where the block wrapper grows a hash-derived
  * class and Gutenberg emits a stylesheet block scoped to that class.
  *
- * Currently covers the `link` element's `color.text` (plus `:hover`
- * and `:focus` nested pseudo-state objects). The dedicated link picker
- * in `core/navigation` (and any other block with the link element
- * support) writes its choice here — a path separate from the
- * `textColor` / `customTextColor` attributes handled by
- * {@see BlockSupports::applyColor}.
+ * Covers the `link`, `heading` / `h1`…`h6` and `button` elements'
+ * `color.text` / `color.background` (plus their `:hover`, `:focus`,
+ * `:focus-visible` and `:active` nested pseudo-state objects). The
+ * Color → Link picker on any block with the link element support
+ * (paragraph, heading, group, columns, cover, navigation, …) writes its
+ * choice here — a path separate from the `textColor` / `customTextColor`
+ * attributes handled by {@see BlockSupports::applyColor}.
  *
- * Heading and button element supports follow the same Gutenberg shape
- * (`style.elements.{heading|h1..h6|button}.color.text` etc.) and can
- * extend this helper without changing callers — they would just add
- * their own element selector mapping.
+ * Since 1.13.1 every block picks this up through
+ * {@see BlockSupports::compile()}, which stamps the scope class and
+ * pushes the rules into the per-request
+ * {@see \ArtisanPackUI\VisualEditorRendererBlade\Services\ElementsCssAccumulator}
+ * (#852); previously only `core/navigation` called it.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditorRendererBlade
@@ -36,15 +38,31 @@ namespace ArtisanPackUI\VisualEditorRendererBlade\Support;
 class ElementsSupport
 {
 	/**
-	 * Map a recognized element key to the descendant selector its rules
-	 * should be scoped to. Keys outside this set are ignored so an
+	 * Map a recognized element key to the descendant selector(s) its
+	 * rules should be scoped to. Keys outside this set are ignored so an
 	 * attacker-authored attribute tree can't smuggle arbitrary selectors
 	 * into the page.
 	 *
-	 * @var array<string, string>
+	 * The link selector skips `.wp-element-button` as WordPress does, so
+	 * a block's link color never repaints the buttons inside it — a
+	 * button is an `<a>` too (#852). Mirrors
+	 * `ThemeJsonTokensCompiler::elementSelector()`.
+	 *
+	 * @since 1.0.0
+	 * @since 1.13.1 Link selector skips buttons; heading and button elements added.
+	 *
+	 * @var array<string, array<int, string>>
 	 */
-	protected const ELEMENT_SELECTORS = [
-		'link' => 'a',
+	public const ELEMENT_SELECTORS = [
+		'link'    => [ 'a:where(:not(.wp-element-button))' ],
+		'heading' => [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ],
+		'h1'      => [ 'h1' ],
+		'h2'      => [ 'h2' ],
+		'h3'      => [ 'h3' ],
+		'h4'      => [ 'h4' ],
+		'h5'      => [ 'h5' ],
+		'h6'      => [ 'h6' ],
+		'button'  => [ '.wp-element-button', '.wp-block-button__link' ],
 	];
 
 	/**
@@ -53,9 +71,12 @@ class ElementsSupport
 	 * on `:hover` overriding base and `:focus` overriding `:hover` when
 	 * an author sets all three.
 	 *
+	 * @since 1.0.0
+	 * @since 1.13.1 Adds `:focus-visible`.
+	 *
 	 * @var array<int, string>
 	 */
-	protected const PSEUDO_STATES = [ ':hover', ':focus', ':active' ];
+	public const PSEUDO_STATES = [ ':hover', ':focus', ':focus-visible', ':active' ];
 
 	/**
 	 * Compile a block's `style.elements.*` tree into a per-block scoping
@@ -83,7 +104,7 @@ class ElementsSupport
 
 		$rules = [];
 
-		foreach ( self::ELEMENT_SELECTORS as $elementKey => $selector ) {
+		foreach ( self::ELEMENT_SELECTORS as $elementKey => $selectors ) {
 			$node = $elements[ $elementKey ] ?? null;
 
 			if ( ! is_array( $node ) ) {
@@ -94,7 +115,7 @@ class ElementsSupport
 
 			if ( [] !== $baseDecls ) {
 				$rules[] = [
-					'selector'     => $selector,
+					'selectors'    => $selectors,
 					'declarations' => $baseDecls,
 				];
 			}
@@ -113,7 +134,7 @@ class ElementsSupport
 				}
 
 				$rules[] = [
-					'selector'     => $selector . $pseudo,
+					'selectors'    => array_map( static fn ( string $selector ): string => $selector . $pseudo, $selectors ),
 					'declarations' => $pseudoDecls,
 				];
 			}
@@ -138,9 +159,8 @@ class ElementsSupport
 
 		foreach ( $rules as $rule ) {
 			$css .= sprintf(
-				'.%s %s{%s;}',
-				$class,
-				$rule['selector'],
+				'%s{%s;}',
+				implode( ',', array_map( static fn ( string $selector ): string => '.' . $class . ' ' . $selector, $rule['selectors'] ) ),
 				implode( ';', $rule['declarations'] ),
 			);
 		}
@@ -152,10 +172,10 @@ class ElementsSupport
 	}
 
 	/**
-	 * Pull the CSS declarations off a single element-or-pseudo node.
-	 * Currently only the `color.text` path emits a declaration; adding
-	 * `color.background`, `typography.*`, etc. is a matter of mapping
-	 * each Gutenberg attribute path to its CSS property here.
+	 * Pull the CSS declarations off a single element-or-pseudo node:
+	 * `color.text` and `color.background`. Adding `typography.*` etc. is
+	 * a matter of mapping each Gutenberg attribute path to its CSS
+	 * property here.
 	 *
 	 * The `!important` flag mirrors upstream WordPress: it defeats the
 	 * theme's default `a { color: … }` cascade so an author's link
@@ -172,15 +192,19 @@ class ElementsSupport
 	protected static function declarationsFor( array $node ): array
 	{
 		$declarations = [];
+		$color        = is_array( $node['color'] ?? null ) ? $node['color'] : [];
 
-		$text = self::stringAttr( $node['color']['text'] ?? null );
+		foreach ( [ 'text' => 'color', 'background' => 'background-color' ] as $key => $property ) {
+			$value = self::stringAttr( $color[ $key ] ?? null );
 
-		if ( '' !== $text ) {
-			$expanded  = self::expandPresetReference( $text );
-			$sanitized = self::sanitizeColorValue( $expanded );
+			if ( '' === $value ) {
+				continue;
+			}
+
+			$sanitized = self::sanitizeColorValue( self::expandPresetReference( $value ) );
 
 			if ( '' !== $sanitized ) {
-				$declarations[] = 'color: ' . $sanitized . ' !important';
+				$declarations[] = $property . ': ' . $sanitized . ' !important';
 			}
 		}
 
