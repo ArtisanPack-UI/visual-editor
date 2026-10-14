@@ -92,6 +92,12 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   when cms-framework's `DynamicContentResolver` isn't available. The
   extra token pass only runs when a heading or post-content block holds
   a token, and post-content HTML still resolves its tokens only once.
+- Block trees in WordPress's `parse_blocks()` shape (`attrs` instead of
+  `attributes`) now render through `<x-ve-blocks>` with their attributes
+  intact (#863). Before, every block in such a tree rendered empty, e.g.
+  a heading came out as `<h2 class="wp-block-heading"></h2>`. Headings
+  in these trees also get TOC anchors and entries again, and breadcrumbs
+  and business-info blocks resolve in both shapes.
 
 ### Security
 
