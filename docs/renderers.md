@@ -79,6 +79,38 @@ template part keeps the block name it was saved with, and its saved
 `innerBlocks` snapshot is always replaced by the live part. A resolved
 pattern reference is always output as `core/block`.
 
+### Core query block names
+
+Theme templates written for WordPress use the `core/query-*` family. The
+renderers render these names with the matching `artisanpack/*` fork output,
+so a theme template renders on the front end without first being saved in
+the site editor:
+
+| Core name | Renders as |
+|-----------|------------|
+| `core/query-pagination` | `artisanpack/query-pagination` |
+| `core/query-pagination-previous` | `artisanpack/query-pagination-previous` |
+| `core/query-pagination-numbers` | `artisanpack/query-pagination-numbers` |
+| `core/query-pagination-next` | `artisanpack/query-pagination-next` |
+| `core/query-no-results` | `artisanpack/query-no-results` |
+| `core/query-title` | `artisanpack/query-title` |
+
+*Since v1.14.0 (#856).* Earlier versions rendered these names through the
+unknown-block wrapper. The Blade, React and Vue renderers all follow this
+mapping.
+
+### Tree shapes
+
+`<x-ve-blocks :tree>` accepts both the editor shape (`name` /
+`attributes`) and WordPress's `parse_blocks()` shape (`blockName` /
+`attrs`). Attributes are read from whichever key the block carries, so
+headings in a `parse_blocks()` tree keep their content and get table of
+contents anchors, and breadcrumbs and business-info blocks resolve in
+either shape.
+
+*Since v1.14.0 (#863).* Earlier versions rendered every block in an
+`attrs`-shape tree with empty attributes.
+
 ### Front-end styles
 
 Mount `<x-ve-blocks-styles>` once in your layout's `<head>`:

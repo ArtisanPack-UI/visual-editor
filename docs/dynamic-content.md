@@ -44,6 +44,18 @@ A **snippet** is a reusable block tree stored in VE's own `ve_snippets` table. P
 
 `artisanpack/dynamic-loop` iterates a collection source and renders its inner-block template once per record. Bindings inside the template that reference the loop's source (e.g. `team.name` under a `team` loop) resolve to the current record's value through the `EXTRAS_INDEX_KEY` scope.
 
+Each row resolves against its own record only (#854, since v1.14.0):
+
+- A row whose bound field is empty shows the block's authored fallback,
+  not another record's value or the host `:post`'s.
+- A dynamic loop nested in another loop's row renders each inner row
+  with its own record (#861). Tokens for the outer collection inside the
+  inner loop show the current outer record.
+- Anchored blocks (headings and the like) keep the template's `anchor`
+  on the first row. Later rows add `-{collection}-{row}` (e.g.
+  `member-team-2`) so element ids stay unique, and nested loops build on
+  the outer row's suffix.
+
 ## Editor UX
 
 ### `{{` autocomplete
@@ -116,7 +128,7 @@ Field / source management still lives in cms-framework's admin — this package 
 
 ## SSR
 
-The Blade renderer (`packages/visual-editor-renderer-blade`) resolves bindings once at the top of the render call via `BlockRenderer::resolveBindings()`. When cms-framework or the bindings layer is absent, the resolver silently no-ops and blocks render with their static attrs.
+The Blade renderer (`packages/visual-editor-renderer-blade`) resolves bindings once at the top of the render call via `BlockRenderer::resolveBindings()`. Dynamic-loop templates are skipped there and resolved per row by the loop itself (since v1.14.0). When cms-framework or the bindings layer is absent, the resolver silently no-ops and blocks render with their static attrs.
 
 Dynamic blocks that need their inner tree at render time (like `artisanpack/dynamic-loop` iterating a template) implement `ArtisanPackUI\VisualEditor\Blocks\WantsInnerBlocks` — the renderer forwards the tree via `renderWithInner()` instead of the plain `render()`.
 
