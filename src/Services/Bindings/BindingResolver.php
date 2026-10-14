@@ -48,6 +48,20 @@ class BindingResolver
 		self::POLICY_PLACEHOLDER,
 	];
 
+	/**
+	 * Relation segments already checked, keyed by model class then
+	 * segment: the related model, or false when the segment isn't a
+	 * typed relation. Query loops resolve the same template once per
+	 * result, so without this every iteration repeats the reflection and
+	 * relation instantiation in {@see isLoadableChain()}. Depends only on
+	 * class definitions, so it's safe to keep across requests.
+	 *
+	 * @since 1.14.0
+	 *
+	 * @var array<class-string, array<string, Model|false>>
+	 */
+	protected array $relationSegmentCache = [];
+
 	public function __construct( protected BlockBindingSourceRegistry $registry )
 	{
 	}
@@ -431,29 +445,55 @@ class BindingResolver
 		$current = $model;
 
 		foreach ( explode( '.', $chain ) as $segment ) {
-			if (
-				! ModelAttributeVisibility::isReadable( $current, $segment )
-				|| ! ModelAttributeVisibility::isRelationMethod( $current, $segment )
-			) {
+			// Visibility is checked on every call: `makeHidden()` /
+			// `makeVisible()` can change it per instance.
+			if ( ! ModelAttributeVisibility::isReadable( $current, $segment ) ) {
 				return false;
 			}
 
-			try {
-				$relation = $current->newInstance()->{$segment}();
-			} catch ( Throwable $e ) {
-				report( $e );
+			$related = $this->relatedModel( $current, $segment );
 
+			if ( false === $related ) {
 				return false;
 			}
 
-			if ( ! $relation instanceof Relation ) {
-				return false;
-			}
-
-			$current = $relation->getRelated();
+			$current = $related;
 		}
 
 		return true;
+	}
+
+	/**
+	 * The model a typed relation segment points to, or false when the
+	 * segment isn't one a binding may call. Cached per class and segment.
+	 *
+	 * @since 1.14.0
+	 */
+	protected function relatedModel( Model $model, string $segment ): Model|false
+	{
+		$class = $model::class;
+
+		if ( isset( $this->relationSegmentCache[ $class ] ) && array_key_exists( $segment, $this->relationSegmentCache[ $class ] ) ) {
+			return $this->relationSegmentCache[ $class ][ $segment ];
+		}
+
+		$related = false;
+
+		if ( ModelAttributeVisibility::isRelationMethod( $model, $segment ) ) {
+			try {
+				$relation = $model->newInstance()->{$segment}();
+
+				if ( $relation instanceof Relation ) {
+					$related = $relation->getRelated();
+				}
+			} catch ( Throwable $e ) {
+				report( $e );
+			}
+		}
+
+		$this->relationSegmentCache[ $class ][ $segment ] = $related;
+
+		return $related;
 	}
 
 	/**
