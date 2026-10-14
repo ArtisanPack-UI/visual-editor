@@ -7,7 +7,8 @@
  * renders the block's inner-block template once per record. Bindings
  * inside the template with tokens like `team.name` are re-resolved
  * per iteration by walking the tree and rewriting the `token` arg to
- * `team[N].field`.
+ * `team[N].field`. Each row's bindings sidecars are stripped after
+ * resolving so the renderer's host-context pass leaves the row alone.
  *
  * Zero-record collections emit an empty string. Missing collections
  * emit a warning placeholder identical in shape to the snippet-cycle
@@ -106,7 +107,11 @@ class DynamicLoopBlock extends DynamicBlock implements WantsInnerBlocks
 			);
 
 			try {
-				$resolved = $this->bindingResolver->resolve( $template, $context );
+				// Strip the bindings sidecars once this row has resolved:
+				// the nested render() reuses the host's binding context,
+				// and without the strip it would resolve the row again
+				// without its index (#854).
+				$resolved = $this->bindingResolver->resolveAndStrip( $template, $context );
 				$out .= $renderer->render( $resolved );
 			} catch ( Throwable $e ) {
 				report( $e );

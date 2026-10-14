@@ -19,6 +19,11 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
+- Each row of an `artisanpack/dynamic-loop` now shows its own record's
+  values when rendered through `<x-ve-blocks>` (#854). Rows were
+  resolved a second time against the host binding context, which could
+  show the wrong record, blank a row under the `hide` / `placeholder`
+  policies, or show the host `:post`'s values in model-backed bindings.
 - Front-end colors now match the editor canvas (#852):
   - The package default palette and font sizes stay declared when a
     theme ships its own `settings.color.palette` / `fontSizes` (theme
