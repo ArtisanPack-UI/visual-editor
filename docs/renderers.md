@@ -144,6 +144,15 @@ editor canvas. `<x-ve-blocks-styles>` always declares:
   [`presets`](Configuration.md#presets) layered on top. Before 1.12.1 a
   "Large" pick on a theme-less site saved `has-large-font-size` with
   nothing behind it.
+
+  *Since v1.14.1.* A palette slug named `text`, `link` or `border`
+  produces a `.has-{slug}-color` class that is also a block-support
+  marker (`has-text-color`, `has-link-color`, `has-border-color`). Its
+  color utility is scoped so it only matches a real text-color pick of
+  that slug: `link` / `border` also require `has-text-color`, elements
+  with an inline `color:` (a custom color) are skipped, and the rule sits
+  at zero specificity so another palette slug's class wins. See
+  `PresetRegistry::colorUtilitySelector()`.
 - **Layout tokens at zero specificity** — `:where(:root)` defaults for
   `--wp--style--global--content-size` (720px),
   `--wp--style--global--wide-size` (1080px), `--wp--style--block-gap`

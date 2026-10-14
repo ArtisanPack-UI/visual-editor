@@ -6,6 +6,30 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.14.1] - 2026-10-14
+
+### Fixed
+
+- A theme palette with a `text`, `link` or `border` slug no longer
+  overrides the colors authors pick. Those slugs' `.has-{slug}-color`
+  utilities share their class name with the `has-text-color`,
+  `has-link-color` and `has-border-color` markers that blocks carry for
+  any custom color, so the slug's color was forced onto every such block:
+  a button with a palette text color rendered in the theme's `text` color
+  on the front end, a custom hex color lost to the utility's
+  `!important`, and blocks with only a link or border color had their
+  text recolored. `PresetRegistry` and the Blade `ThemeJsonTokensCompiler`
+  now scope these utilities to real text-color picks of that slug
+  (`PresetRegistry::colorUtilitySelector()`), and the React / Vue
+  default-token CSS mirrors it. cms-framework 2.14.1 applies the same
+  rule to its global-styles emitter.
+- An `artisanpack/icon` block bound to a custom field now renders the
+  bound icon when the field stores its `{set, name}` iconRef as JSON
+  text, or casts it to `object` / `AsArrayObject`. The block previously
+  rendered a placeholder for any value that wasn't a plain array. The
+  editor preview accepts the JSON form too and applies the same `set` /
+  `name` character checks as the server.
+
 ## [1.14.0] - 2026-10-14
 
 ### Upgrade notes
