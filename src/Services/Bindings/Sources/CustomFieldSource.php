@@ -77,6 +77,12 @@ class CustomFieldSource implements BlockBindingSource
 			return null;
 		}
 
+		// A key naming a non-relation method (`forceDelete`, `restore`)
+		// would otherwise be called by `getAttribute()` (#850).
+		if ( ! ModelAttributeVisibility::isSafeToRead( $model, $key ) ) {
+			return null;
+		}
+
 		return $model->getAttribute( $key );
 	}
 

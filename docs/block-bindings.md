@@ -33,6 +33,14 @@ would serialize: never a key in `$hidden`, and only keys in `$visible`
 when that list is non-empty. A path such as `author.password` resolves
 to empty and the binding's empty-value policy applies.
 
+Bindings never call arbitrary model methods. A `custom_field` key or a
+`relation` path segment that names a method only resolves when that
+method declares an Eloquent `Relation` return type, such as
+`public function author(): BelongsTo`. Stored attributes, accessors, and
+relations that are already loaded aren't affected. A relation method
+without a return type resolves to empty, so add one if you bind through
+it.
+
 ### Which custom fields a content type offers
 
 *Since v1.13.0 (#837).* The `custom_field` source's field catalog
@@ -175,8 +183,15 @@ use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
 $html = app( BlockRenderer::class )->render( $tree, new BindingContext( $post ) );
 ```
 
-Bindings inside a `core/query` loop currently resolve against the host
-record too, not each iteration's post.
+Inside a `core/query` loop, each `post-template` iteration resolves its
+bindings against that iteration's post, not the host record. The same
+goes for `artisanpack/related-posts`, `artisanpack/single-content` with a
+selected entry, and the `artisanpack/next-post` / `artisanpack/previous-post`
+containers, which resolve against the post they show. When the query
+runtime returns plain objects instead of Eloquent models, model-dependent
+bindings in those iterations take their empty-value policy. Relations
+that `relation` bindings need are loaded once across the whole result
+set.
 
 ## Naming note
 

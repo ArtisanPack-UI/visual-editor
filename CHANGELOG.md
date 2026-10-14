@@ -17,6 +17,14 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   nested renders such as tabs, accordions, and the navigation overlay.
   `BlockRenderer::render()` takes an optional `BindingContext` for
   hosts that call the renderer directly.
+- Block bindings inside a `core/query` loop now resolve against each
+  iteration's post instead of the host `:post`, so a paragraph bound to
+  `title` in a post template shows each listed post's title. This also
+  covers related posts, a single-content block with a selected entry,
+  and next / previous post containers. Iteration posts that aren't
+  Eloquent models fall back to the binding's `onEmpty` policy, and
+  `relation` bindings load once across the result set instead of once
+  per post.
 
 ### Security
 
@@ -27,6 +35,15 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   the front end. If you bind to a column your model hides on purpose,
   remove it from `$hidden` (or add it to `$visible`), or expose it under
   another name with an accessor.
+- Binding keys and relation paths can no longer run model methods.
+  Eloquent calls any method named like an attribute or relation, so a
+  `custom_field` key such as `forceDelete`, or a `relation` path such as
+  `truncate.name`, could write to or empty a table while a page
+  rendered. The `custom_field` and `relation` sources, and relation
+  eager loading, now only call methods that declare an Eloquent
+  `Relation` return type. Stored attributes, accessors, and already-loaded
+  relations read as before. If you bind through a relation method with
+  no return type, add one (e.g. `: BelongsTo`).
 
 ## [1.13.0] - 2026-10-10
 

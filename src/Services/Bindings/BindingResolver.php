@@ -26,7 +26,9 @@ namespace ArtisanPackUI\VisualEditor\Services\Bindings;
 
 use ArtisanPackUI\VisualEditor\Registries\BlockBindingSourceRegistry;
 use ArtisanPackUI\VisualEditor\Support\BlockShape;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Throwable;
 
 class BindingResolver
@@ -74,6 +76,75 @@ class BindingResolver
 			fn ( $block ) => $this->resolveBlock( $block, $context ),
 			$blocks,
 		) );
+	}
+
+	/**
+	 * Resolve a subtree against its own context, then drop its bindings
+	 * sidecars. Used where part of a tree belongs to a different record
+	 * than the page (a query loop iteration, an adjacent-post container):
+	 * with the sidecars gone, the renderer's later whole-tree pass
+	 * against the host record leaves the resolved values alone, including
+	 * under the `hide` and `placeholder` policies.
+	 *
+	 * @since 1.13.1
+	 *
+	 * @param  array<int, array<string, mixed>>  $blocks
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function resolveAndStrip( array $blocks, ?BindingContext $context = null ): array
+	{
+		return BlockShape::stripBindings( $this->resolve( $blocks, $context ) );
+	}
+
+	/**
+	 * Eager-load every relation the tree's bindings need across a set of
+	 * models in one query per relation, instead of one per model. Callers
+	 * that resolve the same template once per record (query loops) run
+	 * this first, so each per-record {@see resolve()} finds its relations
+	 * already loaded. Non-model entries are skipped; models of different
+	 * classes are loaded in separate batches.
+	 *
+	 * @since 1.13.1
+	 *
+	 * @param  array<int, array<string, mixed>>  $blocks
+	 * @param  iterable<int, mixed>              $models
+	 */
+	public function eagerLoadAcross( array $blocks, iterable $models ): void
+	{
+		$byClass = [];
+
+		foreach ( $models as $model ) {
+			if ( $model instanceof Model ) {
+				$byClass[ $model::class ][] = $model;
+			}
+		}
+
+		if ( [] === $byClass ) {
+			return;
+		}
+
+		$relations = $this->declaredRelations( $blocks );
+
+		if ( [] === $relations ) {
+			return;
+		}
+
+		foreach ( $byClass as $group ) {
+			$loadable = $this->loadableRelations( $group[0], $relations );
+
+			if ( [] === $loadable ) {
+				continue;
+			}
+
+			try {
+				( new EloquentCollection( $group ) )->loadMissing( $loadable );
+			} catch ( Throwable $e ) {
+				// Same degradation as prepareEagerLoads(): dotted paths
+				// fall back at resolve time instead of failing the render.
+				report( $e );
+			}
+		}
 	}
 
 	/**
@@ -251,12 +322,37 @@ class BindingResolver
 			return;
 		}
 
+		$missing = array_filter(
+			$this->loadableRelations( $model, $this->declaredRelations( $blocks ) ),
+			static fn ( string $relation ): bool => ! $model->relationLoaded( $relation ),
+		);
+
+		if ( [] !== $missing ) {
+			try {
+				$model->loadMissing( array_values( $missing ) );
+			} catch ( Throwable $e ) {
+				// DB errors / missing relations / etc. — bindings on
+				// dotted paths will degrade to fallback at resolve
+				// time. Don't take the whole render down.
+				report( $e );
+			}
+		}
+	}
+
+	/**
+	 * Collect the relations every registered source driver declares for
+	 * the bindings in the tree, de-duplicated.
+	 *
+	 * @since 1.13.1
+	 *
+	 * @param  array<int, array<string, mixed>>  $blocks
+	 *
+	 * @return array<int, string>
+	 */
+	protected function declaredRelations( array $blocks ): array
+	{
 		$bindingArgsBySource = [];
 		$this->collectBindings( $blocks, $bindingArgsBySource );
-
-		if ( [] === $bindingArgsBySource ) {
-			return;
-		}
 
 		$relations = [];
 
@@ -284,25 +380,64 @@ class BindingResolver
 			}
 		}
 
-		if ( [] === $relations ) {
-			return;
-		}
+		return array_keys( $relations );
+	}
 
-		$missing = array_filter(
-			array_keys( $relations ),
-			static fn ( string $relation ): bool => ! $model->relationLoaded( $relation ),
-		);
+	/**
+	 * Keep only the relation chains whose every segment is a typed
+	 * relation the binding may read (#850). Eloquent's eager loader
+	 * calls each segment as a method on a fresh model instance with no
+	 * checks of its own, so an unfiltered path like `truncate.x` would
+	 * run `truncate()` against the table during a render.
+	 *
+	 * @since 1.13.1
+	 *
+	 * @param  array<int, string>  $chains
+	 *
+	 * @return array<int, string>
+	 */
+	protected function loadableRelations( Model $model, array $chains ): array
+	{
+		return array_values( array_filter(
+			$chains,
+			fn ( string $chain ): bool => $this->isLoadableChain( $model, $chain ),
+		) );
+	}
 
-		if ( [] !== $missing ) {
-			try {
-				$model->loadMissing( $missing );
-			} catch ( Throwable $e ) {
-				// DB errors / missing relations / etc. — bindings on
-				// dotted paths will degrade to fallback at resolve
-				// time. Don't take the whole render down.
-				report( $e );
+	/**
+	 * Walk one dotted relation chain across the related model classes,
+	 * checking each segment before it is called.
+	 *
+	 * @since 1.13.1
+	 */
+	protected function isLoadableChain( Model $model, string $chain ): bool
+	{
+		$current = $model;
+
+		foreach ( explode( '.', $chain ) as $segment ) {
+			if (
+				! ModelAttributeVisibility::isReadable( $current, $segment )
+				|| ! ModelAttributeVisibility::isRelationMethod( $current, $segment )
+			) {
+				return false;
 			}
+
+			try {
+				$relation = $current->newInstance()->{$segment}();
+			} catch ( Throwable $e ) {
+				report( $e );
+
+				return false;
+			}
+
+			if ( ! $relation instanceof Relation ) {
+				return false;
+			}
+
+			$current = $relation->getRelated();
 		}
+
+		return true;
 	}
 
 	/**
