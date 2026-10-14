@@ -30,7 +30,7 @@ function mount( selector: 'data-ap-visual-editor' | 'data-ap-site-editor', optio
 
 afterEach( () => {
     document.body.innerHTML = '';
-    removeAllFilters( QUERY_POST_TYPES_FILTER );
+    removeAllFilters( QUERY_POST_TYPES_FILTER, '' );
     refreshQueryPostTypeOptions();
     vi.restoreAllMocks();
 } );
@@ -111,7 +111,7 @@ describe( 'getQueryPostTypeOptions', () => {
         } );
 
         getQueryPostTypeOptions( 'event' );
-        removeAllFilters( QUERY_POST_TYPES_FILTER );
+        removeAllFilters( QUERY_POST_TYPES_FILTER, '' );
 
         expect( getQueryPostTypeOptions( 'event' ) ).toEqual( [ { label: 'Events', value: 'event' } ] );
     } );
@@ -120,7 +120,7 @@ describe( 'getQueryPostTypeOptions', () => {
         addFilter( QUERY_POST_TYPES_FILTER, 'test/garbage', () => 'not-an-array' );
         expect( getQueryPostTypeOptions( 'post' ) ).toEqual( DEFAULTS );
 
-        removeAllFilters( QUERY_POST_TYPES_FILTER );
+        removeAllFilters( QUERY_POST_TYPES_FILTER, '' );
         addFilter( QUERY_POST_TYPES_FILTER, 'test/empty', () => [] );
         expect( getQueryPostTypeOptions( 'post' ) ).toEqual( DEFAULTS );
     } );
