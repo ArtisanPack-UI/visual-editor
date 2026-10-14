@@ -317,7 +317,7 @@ class BlockRenderer
 	 * Render the given block tree to an HTML string.
 	 *
 	 * @since 1.0.0
-	 * @since 1.13.1 Accepts an optional `$bindingContext` (#848).
+	 * @since 1.14.0 Accepts an optional `$bindingContext` (#848).
 	 *
 	 * @param  array<int, array<string, mixed>>  $tree            Block tree produced by the editor.
 	 * @param  ?BindingContext                   $bindingContext  Context bindings resolve against. Only

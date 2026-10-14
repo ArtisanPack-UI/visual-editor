@@ -11,7 +11,7 @@
  * @package    ArtisanPack_UI
  * @subpackage VisualEditorRendererBlade
  *
- * @since      1.13.1
+ * @since      1.14.0
  */
 
 declare( strict_types=1 );

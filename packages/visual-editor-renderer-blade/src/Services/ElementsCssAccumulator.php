@@ -18,7 +18,7 @@
  *
  * @author     Jacob Martella <me@jacobmartella.com>
  *
- * @since      1.13.1
+ * @since      1.14.0
  */
 
 declare( strict_types=1 );
@@ -42,7 +42,7 @@ class ElementsCssAccumulator
 	 * content-derived scope classes so an identical payload always
 	 * hashes to the same key.
 	 *
-	 * @since 1.13.1
+	 * @since 1.14.0
 	 *
 	 * @param  string  $scope  The scope class (e.g. `wp-elements-1a2b3c4d`).
 	 * @param  string  $css    The CSS rule string (no surrounding
@@ -67,7 +67,7 @@ class ElementsCssAccumulator
 	 * `<x-ve-blocks>` / `<x-ve-template>` output. Returns an empty
 	 * string when no rules were pushed.
 	 *
-	 * @since 1.13.1
+	 * @since 1.14.0
 	 */
 	public function flush(): string
 	{
@@ -85,7 +85,7 @@ class ElementsCssAccumulator
 	 * Resets the accumulator without emitting. Tests use this to clear
 	 * state between assertions inside a single PHP process.
 	 *
-	 * @since 1.13.1
+	 * @since 1.14.0
 	 */
 	public function reset(): void
 	{
@@ -95,7 +95,7 @@ class ElementsCssAccumulator
 	/**
 	 * Inspect what's currently accumulated without draining. Test-only.
 	 *
-	 * @since 1.13.1
+	 * @since 1.14.0
 	 *
 	 * @return array<string, string>
 	 */

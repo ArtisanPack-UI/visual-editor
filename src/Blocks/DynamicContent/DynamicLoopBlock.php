@@ -57,7 +57,7 @@ class DynamicLoopBlock extends DynamicBlock implements WantsInnerBlocks
 	 * Attribute an enclosing loop stamps on a nested loop to pass down
 	 * the current row's collection → index map (#861).
 	 *
-	 * @since 1.13.1
+	 * @since 1.14.0
 	 */
 	public const PARENT_INDEX_ATTR = '_dcParentIndex';
 
@@ -185,7 +185,7 @@ class DynamicLoopBlock extends DynamicBlock implements WantsInnerBlocks
 	 * Read the index map an enclosing loop stamped on this block,
 	 * keeping only `slug => non-negative int` entries.
 	 *
-	 * @since 1.13.1
+	 * @since 1.14.0
 	 *
 	 * @param  array<string, mixed>  $attrs
 	 *
@@ -211,7 +211,7 @@ class DynamicLoopBlock extends DynamicBlock implements WantsInnerBlocks
 	 * walk stops at each nested loop: deeper loops get stamped when that
 	 * loop renders its own rows.
 	 *
-	 * @since 1.13.1
+	 * @since 1.14.0
 	 *
 	 * @param  array<int, array<string, mixed>>  $blocks
 	 * @param  array<string, int>                $indexMap

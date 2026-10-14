@@ -168,7 +168,7 @@ class PresetRegistry
 	 * entries win on slug), with host presets merged on top.
 	 *
 	 * @since 1.12.1
-	 * @since 1.13.1 Keeps the package defaults when the theme ships its own sizes.
+	 * @since 1.14.0 Keeps the package defaults when the theme ships its own sizes.
 	 *
 	 * @param  mixed  $themeFontSizes  The theme's `settings.typography.fontSizes`, if any.
 	 *
@@ -197,7 +197,7 @@ class PresetRegistry
 	 * the defaults then, so neither layer below it is kept.
 	 *
 	 * @since 1.12.1
-	 * @since 1.13.1 Keeps the package defaults when the theme ships its own palette.
+	 * @since 1.14.0 Keeps the package defaults when the theme ships its own palette.
 	 *
 	 * @param  mixed  $themePalette  The theme's `settings.color.palette`, if any.
 	 *
@@ -732,7 +732,7 @@ class PresetRegistry
 	 * `replace` list drops the defaults (the editor never offers them
 	 * then) but, as before, an empty one leaves the theme list intact.
 	 *
-	 * @since 1.13.1
+	 * @since 1.14.0
 	 *
 	 * @param  array<int, array<string, string>>  $defaults
 	 * @param  array<int, array<string, string>>|null  $theme

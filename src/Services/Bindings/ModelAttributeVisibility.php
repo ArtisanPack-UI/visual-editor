@@ -14,7 +14,7 @@
  *
  * @author     Jacob Martella <me@jacobmartella.com>
  *
- * @since      1.13.1
+ * @since      1.14.0
  */
 
 declare( strict_types=1 );
@@ -32,7 +32,7 @@ final class ModelAttributeVisibility
 	 * True when `$key` would appear in the model's serialized form, so a
 	 * binding may read it.
 	 *
-	 * @since 1.13.1
+	 * @since 1.14.0
 	 *
 	 * @param  Model   $model  Record the binding reads from.
 	 * @param  string  $key    Attribute or relation name.
@@ -57,7 +57,7 @@ final class ModelAttributeVisibility
 	 * and keys with no matching method are safe; a method is only
 	 * allowed when {@see isRelationMethod()} accepts it.
 	 *
-	 * @since 1.13.1
+	 * @since 1.14.0
 	 *
 	 * @param  Model   $model  Record the binding reads from.
 	 * @param  string  $key    Attribute or relation name.
@@ -84,7 +84,7 @@ final class ModelAttributeVisibility
 	 * return type aren't accepted, since nothing short of calling them
 	 * tells a relation apart from a method with side effects.
 	 *
-	 * @since 1.13.1
+	 * @since 1.14.0
 	 *
 	 * @param  Model   $model  Record the relation would load on.
 	 * @param  string  $name   Method name.
