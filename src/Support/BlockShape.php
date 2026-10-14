@@ -155,16 +155,21 @@ class BlockShape
 	 * `bindings` that doesn't look like a sidecar is left alone, using
 	 * the same check as {@see readBindings()}.
 	 *
+	 * Blocks named in `$keepInnerOf` lose their own sidecar but keep
+	 * their inner blocks' sidecars, so a nested loop can still resolve
+	 * its template per row (#861).
+	 *
 	 * @param  array<int, array<string, mixed>>  $tree
+	 * @param  array<int, string>                $keepInnerOf  Block names whose inner blocks are left untouched.
 	 *
 	 * @return array<int, array<string, mixed>>
 	 *
 	 * @since 1.13.1
 	 */
-	public static function stripBindings( array $tree ): array
+	public static function stripBindings( array $tree, array $keepInnerOf = [] ): array
 	{
 		return array_values( array_map(
-			static fn ( $block ) => is_array( $block ) ? self::stripBlockBindings( $block ) : $block,
+			static fn ( $block ) => is_array( $block ) ? self::stripBlockBindings( $block, $keepInnerOf ) : $block,
 			$tree,
 		) );
 	}
@@ -194,12 +199,13 @@ class BlockShape
 
 	/**
 	 * @param  array<string, mixed>  $block
+	 * @param  array<int, string>    $keepInnerOf
 	 *
 	 * @return array<string, mixed>
 	 *
 	 * @since 1.13.1
 	 */
-	protected static function stripBlockBindings( array $block ): array
+	protected static function stripBlockBindings( array $block, array $keepInnerOf = [] ): array
 	{
 		unset( $block['bindings'] );
 
@@ -210,8 +216,12 @@ class BlockShape
 			$block[ $attrKey ] = $attrs;
 		}
 
+		if ( in_array( $block['name'] ?? null, $keepInnerOf, true ) ) {
+			return $block;
+		}
+
 		if ( isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) && [] !== $block['innerBlocks'] ) {
-			$block['innerBlocks'] = self::stripBindings( $block['innerBlocks'] );
+			$block['innerBlocks'] = self::stripBindings( $block['innerBlocks'], $keepInnerOf );
 		}
 
 		return $block;
