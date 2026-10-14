@@ -179,6 +179,7 @@ pass the record themselves:
 
 ```php
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
+use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
 
 $renderer = app( BlockRenderer::class );
 $html     = $renderer->render( $tree, new BindingContext( $post ) );
