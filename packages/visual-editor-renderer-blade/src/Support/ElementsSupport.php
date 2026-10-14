@@ -17,7 +17,7 @@
  * choice here — a path separate from the `textColor` / `customTextColor`
  * attributes handled by {@see BlockSupports::applyColor}.
  *
- * Since 1.13.1 every block picks this up through
+ * Since 1.14.0 every block picks this up through
  * {@see BlockSupports::compile()}, which stamps the scope class and
  * pushes the rules into the per-request
  * {@see \ArtisanPackUI\VisualEditorRendererBlade\Services\ElementsCssAccumulator}
@@ -49,7 +49,7 @@ class ElementsSupport
 	 * `ThemeJsonTokensCompiler::elementSelector()`.
 	 *
 	 * @since 1.0.0
-	 * @since 1.13.1 Link selector skips buttons; heading and button elements added.
+	 * @since 1.14.0 Link selector skips buttons; heading and button elements added.
 	 *
 	 * @var array<string, array<int, string>>
 	 */
@@ -72,7 +72,7 @@ class ElementsSupport
 	 * an author sets all three.
 	 *
 	 * @since 1.0.0
-	 * @since 1.13.1 Adds `:focus-visible`.
+	 * @since 1.14.0 Adds `:focus-visible`.
 	 *
 	 * @var array<int, string>
 	 */

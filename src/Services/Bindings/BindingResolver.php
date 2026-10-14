@@ -48,6 +48,20 @@ class BindingResolver
 		self::POLICY_PLACEHOLDER,
 	];
 
+	/**
+	 * Relation segments already checked, keyed by model class then
+	 * segment: the related model, or false when the segment isn't a
+	 * typed relation. Query loops resolve the same template once per
+	 * result, so without this every iteration repeats the reflection and
+	 * relation instantiation in {@see isLoadableChain()}. Depends only on
+	 * class definitions, so it's safe to keep across requests.
+	 *
+	 * @since 1.14.0
+	 *
+	 * @var array<class-string, array<string, false|Model>>
+	 */
+	protected array $relationSegmentCache = [];
+
 	public function __construct( protected BlockBindingSourceRegistry $registry )
 	{
 	}
@@ -62,7 +76,7 @@ class BindingResolver
 	 * row, instead of now without a row index (#861).
 	 *
 	 * @since 1.1.0
-	 * @since 1.13.1 Accepts `$opaqueBlocks` (#861).
+	 * @since 1.14.0 Accepts `$opaqueBlocks` (#861).
 	 *
 	 * @param  array<int, array<string, mixed>>  $blocks
 	 * @param  array<int, string>                $opaqueBlocks  Block names whose inner blocks are left untouched.
@@ -96,7 +110,7 @@ class BindingResolver
 	 * Inner blocks of `$opaqueBlocks` are neither resolved nor stripped,
 	 * see {@see resolve()}.
 	 *
-	 * @since 1.13.1
+	 * @since 1.14.0
 	 *
 	 * @param  array<int, array<string, mixed>>  $blocks
 	 * @param  array<int, string>                $opaqueBlocks  Block names whose inner blocks are left untouched.
@@ -116,7 +130,7 @@ class BindingResolver
 	 * already loaded. Non-model entries are skipped; models of different
 	 * classes are loaded in separate batches.
 	 *
-	 * @since 1.13.1
+	 * @since 1.14.0
 	 *
 	 * @param  array<int, array<string, mixed>>  $blocks
 	 * @param  iterable<int, mixed>              $models
@@ -359,7 +373,7 @@ class BindingResolver
 	 * Collect the relations every registered source driver declares for
 	 * the bindings in the tree, de-duplicated.
 	 *
-	 * @since 1.13.1
+	 * @since 1.14.0
 	 *
 	 * @param  array<int, array<string, mixed>>  $blocks
 	 *
@@ -406,7 +420,7 @@ class BindingResolver
 	 * checks of its own, so an unfiltered path like `truncate.x` would
 	 * run `truncate()` against the table during a render.
 	 *
-	 * @since 1.13.1
+	 * @since 1.14.0
 	 *
 	 * @param  array<int, string>  $chains
 	 *
@@ -424,36 +438,62 @@ class BindingResolver
 	 * Walk one dotted relation chain across the related model classes,
 	 * checking each segment before it is called.
 	 *
-	 * @since 1.13.1
+	 * @since 1.14.0
 	 */
 	protected function isLoadableChain( Model $model, string $chain ): bool
 	{
 		$current = $model;
 
 		foreach ( explode( '.', $chain ) as $segment ) {
-			if (
-				! ModelAttributeVisibility::isReadable( $current, $segment )
-				|| ! ModelAttributeVisibility::isRelationMethod( $current, $segment )
-			) {
+			// Visibility is checked on every call: `makeHidden()` /
+			// `makeVisible()` can change it per instance.
+			if ( ! ModelAttributeVisibility::isReadable( $current, $segment ) ) {
 				return false;
 			}
 
-			try {
-				$relation = $current->newInstance()->{$segment}();
-			} catch ( Throwable $e ) {
-				report( $e );
+			$related = $this->relatedModel( $current, $segment );
 
+			if ( false === $related ) {
 				return false;
 			}
 
-			if ( ! $relation instanceof Relation ) {
-				return false;
-			}
-
-			$current = $relation->getRelated();
+			$current = $related;
 		}
 
 		return true;
+	}
+
+	/**
+	 * The model a typed relation segment points to, or false when the
+	 * segment isn't one a binding may call. Cached per class and segment.
+	 *
+	 * @since 1.14.0
+	 */
+	protected function relatedModel( Model $model, string $segment ): Model|false
+	{
+		$class = $model::class;
+
+		if ( isset( $this->relationSegmentCache[ $class ] ) && array_key_exists( $segment, $this->relationSegmentCache[ $class ] ) ) {
+			return $this->relationSegmentCache[ $class ][ $segment ];
+		}
+
+		$related = false;
+
+		if ( ModelAttributeVisibility::isRelationMethod( $model, $segment ) ) {
+			try {
+				$relation = $model->newInstance()->{$segment}();
+
+				if ( $relation instanceof Relation ) {
+					$related = $relation->getRelated();
+				}
+			} catch ( Throwable $e ) {
+				report( $e );
+			}
+		}
+
+		$this->relationSegmentCache[ $class ][ $segment ] = $related;
+
+		return $related;
 	}
 
 	/**

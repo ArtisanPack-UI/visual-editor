@@ -77,7 +77,7 @@ class ThemeJsonTokensCompiler
 	 * Pseudo-state sub-nodes compiled under `styles.elements.*` and
 	 * `styles.blocks[*].elements.*`, in cascade order (#852).
 	 *
-	 * @since 1.13.1
+	 * @since 1.14.0
 	 */
 	public const ELEMENT_PSEUDO_STATES = ElementsSupport::PSEUDO_STATES;
 
@@ -396,7 +396,7 @@ class ThemeJsonTokensCompiler
 	 * `.wp-element-button:hover, .wp-block-button__link:hover`), and
 	 * `$prefix` (a block selector plus a space) scopes each one.
 	 *
-	 * @since 1.13.1
+	 * @since 1.14.0
 	 *
 	 * @param  array<mixed>  $elements  Element name → style node.
 	 * @param  string        $prefix    Descendant prefix, `''` at the root.
@@ -454,7 +454,7 @@ class ThemeJsonTokensCompiler
 	 * (0,1,0) specificity, so `.has-*` preset classes and inline block
 	 * styles beat it while a later per-block rule wins by source order.
 	 *
-	 * @since 1.13.1
+	 * @since 1.14.0
 	 *
 	 * @param  list<string>  $selectors
 	 */
@@ -592,7 +592,7 @@ class ThemeJsonTokensCompiler
 	 * so a link color never repaints buttons — a button is an `<a>` too
 	 * (#852). Mirrors `ElementsSupport::ELEMENT_SELECTORS`.
 	 *
-	 * @since 1.13.1
+	 * @since 1.14.0
 	 *
 	 * @return list<string>|null
 	 */
@@ -615,10 +615,19 @@ class ThemeJsonTokensCompiler
 	 * outside the `namespace/slug` shape lose only the slash → dash
 	 * substitution; downstream CSS authoring still resolves correctly.
 	 *
+	 * The `core/` namespace is dropped, as in WordPress's own block
+	 * class names: `core/group` renders `.wp-block-group`, so a
+	 * `.wp-block-core-group` rule would match nothing.
+	 *
 	 * @since 1.2.0
+	 * @since 1.14.0 Drops the `core/` namespace.
 	 */
 	protected function blockSelector( string $blockName ): string
 	{
+		if ( str_starts_with( $blockName, 'core/' ) ) {
+			$blockName = substr( $blockName, 5 );
+		}
+
 		return '.wp-block-' . str_replace( '/', '-', $blockName );
 	}
 

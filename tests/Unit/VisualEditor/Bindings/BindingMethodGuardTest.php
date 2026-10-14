@@ -6,7 +6,7 @@
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor
  *
- * @since      1.13.1
+ * @since      1.14.0
  */
 
 declare( strict_types=1 );
@@ -135,4 +135,34 @@ it( 'still resolves typed relations', function (): void {
 		->and( ModelAttributeVisibility::isRelationMethod( $post, 'author' ) )->toBeTrue()
 		->and( ModelAttributeVisibility::isRelationMethod( $post, 'delete' ) )->toBeFalse()
 		->and( ModelAttributeVisibility::isSafeToRead( $post, 'title' ) )->toBeTrue();
+} );
+
+it( 'checks each relation segment once per model class', function (): void {
+	$model = new class extends TestBindingsModel {
+		public static int $calls = 0;
+
+		public function countedAuthor(): Illuminate\Database\Eloquent\Relations\BelongsTo
+		{
+			static::$calls++;
+
+			return $this->belongsTo( Tests\TestUser::class, 'author_id' );
+		}
+	};
+
+	$model::$calls = 0;
+	$resolver      = $this->resolver;
+	$check         = fn ( TestBindingsModel $record ): bool => ( fn (): bool => $this->isLoadableChain( $record, 'countedAuthor' ) )->call( $resolver );
+
+	expect( $check( $model ) )->toBeTrue()
+		->and( $check( $model->newInstance() ) )->toBeTrue()
+		->and( $model::$calls )->toBe( 1 );
+} );
+
+it( 're-checks visibility per instance even when the relation segment is cached', function (): void {
+	$post     = new TestBindingsModel();
+	$resolver = $this->resolver;
+	$check    = fn ( TestBindingsModel $record ): bool => ( fn (): bool => $this->isLoadableChain( $record, 'author' ) )->call( $resolver );
+
+	expect( $check( $post ) )->toBeTrue()
+		->and( $check( ( new TestBindingsModel() )->makeHidden( 'author' ) ) )->toBeFalse();
 } );

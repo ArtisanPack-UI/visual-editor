@@ -164,7 +164,7 @@ class BlockShape
 	 *
 	 * @return array<int, array<string, mixed>>
 	 *
-	 * @since 1.13.1
+	 * @since 1.14.0
 	 */
 	public static function stripBindings( array $tree, array $keepInnerOf = [] ): array
 	{
@@ -203,7 +203,7 @@ class BlockShape
 	 *
 	 * @return array<string, mixed>
 	 *
-	 * @since 1.13.1
+	 * @since 1.14.0
 	 */
 	protected static function stripBlockBindings( array $block, array $keepInnerOf = [] ): array
 	{

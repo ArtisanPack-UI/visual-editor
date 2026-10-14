@@ -169,6 +169,21 @@ it( 'sets an aria-label on the landmark from the heading text, or the default wh
 	expect( $blankHtml )->toContain( 'aria-label="Table of contents"' );
 } );
 
+it( 'translates the default landmark label', function (): void {
+	// Load the (empty) JSON catalog first so addLines() isn't overwritten
+	// by the lazy load on the first lookup.
+	app( 'translator' )->load( '*', '*', 'de' );
+	app( 'translator' )->addLines( [ '*.Table of contents' => 'Inhaltsverzeichnis' ], 'de', '*' );
+	app()->setLocale( 'de' );
+
+	$html = renderTocTree( [
+		tocRenderBlock( 'artisanpack/toc' ),
+		tocRenderBlock( 'core/heading', [ 'level' => 2, 'content' => 'One' ] ),
+	] );
+
+	expect( $html )->toContain( 'aria-label="Inhaltsverzeichnis"' );
+} );
+
 it( 'derives entries from headings nested inside container blocks', function (): void {
 	$tree = [
 		tocRenderBlock( 'artisanpack/toc' ),

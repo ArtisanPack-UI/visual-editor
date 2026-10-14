@@ -286,7 +286,7 @@ class BlocksComponent extends Component
 	 * supplied, or null so the renderer falls back to a model-less
 	 * context.
 	 *
-	 * @since 1.13.1
+	 * @since 1.14.0
 	 */
 	protected function bindingContext(): ?BindingContext
 	{
@@ -303,7 +303,7 @@ class BlocksComponent extends Component
 	 * actually holds a token, since every other block's tokens resolve
 	 * again in the real render.
 	 *
-	 * @since 1.13.1
+	 * @since 1.14.0
 	 *
 	 * @param  array<int, array<string, mixed>>  $tree
 	 *

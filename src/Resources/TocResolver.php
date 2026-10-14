@@ -87,7 +87,7 @@ class TocResolver
 	 * TOC block.
 	 *
 	 * @since 1.9.0
-	 * @since 1.13.1 Accepts an optional `$contentTree` (#851).
+	 * @since 1.14.0 Accepts an optional `$contentTree` (#851).
 	 *
 	 * @param  array<int, array<string, mixed>>   $tree         Tree to stamp anchors and TOC items on.
 	 * @param  ?array<int, array<string, mixed>>  $contentTree  Structurally identical copy of `$tree`
@@ -121,7 +121,7 @@ class TocResolver
 	 * `$contentTree` copy when none of the attributes this resolver
 	 * reads would change (#858).
 	 *
-	 * @since 1.13.1
+	 * @since 1.14.0
 	 *
 	 * @param  array<int, array<string, mixed>>  $tree
 	 */
@@ -159,7 +159,7 @@ class TocResolver
 	 * in document order.
 	 *
 	 * @since 1.9.0
-	 * @since 1.13.1 Accepts an optional `$contentTree` (#851).
+	 * @since 1.14.0 Accepts an optional `$contentTree` (#851).
 	 *
 	 * @param  array<int, array<string, mixed>>   $tree
 	 * @param  array<string, bool>                $used         Anchor slugs already claimed (by ref).
@@ -196,7 +196,7 @@ class TocResolver
 	 * written to `$block`.
 	 *
 	 * @since 1.9.0
-	 * @since 1.13.1 Accepts an optional `$source` block (#851).
+	 * @since 1.14.0 Accepts an optional `$source` block (#851).
 	 *
 	 * @param  array<string, mixed>              $block
 	 * @param  array<string, bool>               $used
@@ -305,7 +305,7 @@ class TocResolver
 	 * different number of headings the pairing can't be trusted, so the
 	 * block's own HTML is stamped from its own text instead.
 	 *
-	 * @since 1.13.1
+	 * @since 1.14.0
 	 *
 	 * @param  string                            $own       The block's own `_resolvedContent`.
 	 * @param  string                            $source    The content-tree copy's `_resolvedContent`.
@@ -357,7 +357,7 @@ class TocResolver
 	 * The `id` of every `<h1>…<h6>` tag in the HTML, in document order,
 	 * with null for a heading that has none.
 	 *
-	 * @since 1.13.1
+	 * @since 1.14.0
 	 *
 	 * @return array<int, ?string>
 	 */
@@ -373,7 +373,7 @@ class TocResolver
 	/**
 	 * The `id` value in a heading tag's attribute string, or null.
 	 *
-	 * @since 1.13.1
+	 * @since 1.14.0
 	 */
 	protected function headingId( string $attrs ): ?string
 	{

@@ -6,8 +6,48 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.14.0] - 2026-10-14
+
+### Upgrade notes
+
+- **Bindings only call relation methods with a return type.** A
+  `custom_field` key or `relation` path segment that names a model
+  method now resolves only when the method declares an Eloquent
+  `Relation` return type (e.g. `public function author(): BelongsTo`).
+  An untyped relation resolves to empty, so the binding's `onEmpty`
+  policy applies, and eager loading skips it. Relations declared by
+  third-party binding sources through `eagerLoadRelations()` go through
+  the same check. cms-framework's models already declare their return
+  types. See **Security** below.
+- **Bindings honour `$hidden` / `$visible`.** A binding to a hidden
+  column, or to a column missing from a non-empty `$visible`, now
+  renders as empty. See **Security** below for workarounds.
+- **Global element styles carry more specificity.** `styles.elements.*`
+  rules moved from bare selectors such as `a` (0,0,1) to
+  `:root :where(…)` (0,1,0), and the link selector is now
+  `a:where(:not(.wp-element-button))`. Host CSS that overrode theme link
+  or heading colors with a bare element selector may now lose.
+- **Per-block element colors print in one `<style data-ve-elements>`
+  block.** `<x-ve-blocks>` and `<x-ve-template>` emit it, and Navigation
+  no longer prints its own inline `<style>`. Hosts that call
+  `BlockRenderer::render()` or `renderMarkup()` directly must print the
+  collected CSS themselves with the new
+  `BlockRenderer::flushSupportAssets()`, or blocks keep their
+  `wp-elements-{hash}` classes with no rules behind them.
+- **The package default palette and font sizes are always declared on
+  the front end**, underneath a theme's own lists (theme entries win on
+  a shared slug). Pages gain `--wp--preset--color--*` variables and
+  `.has-*-color` utility classes for the default slugs even when the
+  theme ships its own palette. A host `replace` preset list still drops
+  the defaults.
+
 ### Added
 
+- `BlockRenderer::flushSupportAssets()` returns the support CSS a
+  direct `render()` / `renderMarkup()` call collected (responsive,
+  states, animations, gradient borders, box shadows, position and
+  Elements API colors) plus the animation runtime script, for hosts
+  that don't render through `<x-ve-blocks>` / `<x-ve-template>`.
 - Hosts can add their own content types to the Query Loop block's
   **Post type** picker (#847). Register them server-side through the
   `ap.visualEditor.query.postTypes` PHP filter (stamped onto both the
@@ -16,6 +56,13 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   defaults to Posts and Pages. A saved `postType` that isn't in the
   list now shows as "(unavailable)" instead of silently switching to
   `post` when the block is opened.
+
+### Changed
+
+- Query loops check each binding relation chain once per model class
+  instead of once per listed post.
+- The editor translation template (`languages/artisanpack-visual-editor.pot`)
+  is regenerated and now lists all 924 editor strings.
 
 ### Fixed
 
@@ -31,11 +78,14 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   resolved a second time against the host binding context, which could
   show the wrong record, blank a row under the `hide` / `placeholder`
   policies, or show the host `:post`'s values in model-backed bindings.
+  A row whose bound field is empty now shows the block's authored
+  fallback instead of another record's value.
 - An `artisanpack/dynamic-loop` nested inside another dynamic loop's
   row now renders each of its rows with its own record (#861). Before,
   every inner row showed the inner collection's first record. Tokens
   for the outer collection inside the inner loop show the current outer
-  record.
+  record, and an inner row whose bound field is empty shows the
+  authored fallback instead of the first record's value.
 - Front-end colors now match the editor canvas (#852):
   - The package default palette and font sizes stay declared when a
     theme ships its own `settings.color.palette` / `fontSizes` (theme
@@ -59,7 +109,7 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     custom text color when both are set for different states. Before,
     one silently replaced the other.
 - Block bindings (`custom_field`, `post_core`, `relation`) now resolve on
-  the front end. `<x-ve-blocks :tree :post>` resolved every binding with
+  the front end (#848). `<x-ve-blocks :tree :post>` resolved every binding with
   no record in scope, so blocks fell back to their static attributes
   (or were blanked under the `hide` / `placeholder` policies) even
   though the editor showed the right values. When `:post` is an
@@ -68,7 +118,7 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   `BlockRenderer::render()` takes an optional `BindingContext` for
   hosts that call the renderer directly.
 - Block bindings inside a `core/query` loop now resolve against each
-  iteration's post instead of the host `:post`, so a paragraph bound to
+  iteration's post instead of the host `:post` (#850), so a paragraph bound to
   `title` in a post template shows each listed post's title. This also
   covers related posts, a single-content block with a selected entry,
   and next / previous post containers. Iteration posts that aren't
@@ -98,17 +148,34 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   a heading came out as `<h2 class="wp-block-heading"></h2>`. Headings
   in these trees also get TOC anchors and entries again, and breadcrumbs
   and business-info blocks resolve in both shapes.
+- Headings and other anchored blocks inside an `artisanpack/dynamic-loop`
+  no longer repeat the same `id` on every row. Rows after the first add
+  the collection and row number to each anchor (`member`,
+  `member-team-2`, …), and the first row keeps the template's anchor so
+  table-of-contents links still land.
+- The File block's download button carries `wp-element-button` in the
+  Blade, React and Vue renderers, matching the editor save. A parent
+  block's link color no longer repaints it, and global button styles
+  reach it. The button also points at the file name through
+  `aria-describedby`, like the saved markup.
+- Theme.json `styles.blocks["core/…"]` rules now apply on the front end.
+  The Blade compiler targeted `.wp-block-core-group` and the like, which
+  no markup carries. Core blocks now use their rendered class
+  (`.wp-block-group`), as in WordPress and the editor canvas.
+- The table of contents landmark's default `aria-label` ("Table of
+  contents") and the File block's default "Download" button text are
+  now translatable in the Blade renderer.
 
 ### Security
 
 - The `post_core`, `custom_field`, and `relation` binding sources now
-  only read what a model would serialize: nothing in `$hidden`, and
+  only read what a model would serialize (#848): nothing in `$hidden`, and
   only the keys in `$visible` when that list is non-empty. A binding
   such as `author.password` can no longer publish a hidden column on
   the front end. If you bind to a column your model hides on purpose,
   remove it from `$hidden` (or add it to `$visible`), or expose it under
   another name with an accessor.
-- Binding keys and relation paths can no longer run model methods.
+- Binding keys and relation paths can no longer run model methods (#850).
   Eloquent calls any method named like an attribute or relation, so a
   `custom_field` key such as `forceDelete`, or a `relation` path such as
   `truncate.name`, could write to or empty a table while a page

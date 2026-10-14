@@ -3,6 +3,7 @@
 declare( strict_types=1 );
 
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\File;
 
 it( 'renders the x-ve-blocks component from an array tree', function (): void {
 	$tree = [
@@ -51,9 +52,19 @@ it( 'renders an empty output when the tree is null and cms-framework is not inst
 it( 'publishes block views under the visual-editor-blade-views tag', function (): void {
 	$tag = 'visual-editor-blade-views';
 
-	$artisan = $this->artisan( 'vendor:publish', [ '--tag' => $tag, '--force' => true ] );
+	$published = resource_path( 'views/vendor/visual-editor-renderer-blade' );
 
-	$artisan->assertExitCode( 0 );
+	try {
+		$this->artisan( 'vendor:publish', [ '--tag' => $tag, '--force' => true ] )->assertExitCode( 0 );
+
+		expect( File::exists( $published . '/blocks/core/paragraph.blade.php' ) )->toBeTrue();
+	} finally {
+		// `loadViewsFrom()` prefers a published copy over the package's
+		// own views, so leaving this snapshot in testbench's skeleton
+		// would make every later test (and later runs) render stale
+		// partials.
+		File::deleteDirectory( $published );
+	}
 } );
 
 it( 'passes the nav-block tree through unchanged when no defaultTheme is supplied (Keystone #51)', function (): void {

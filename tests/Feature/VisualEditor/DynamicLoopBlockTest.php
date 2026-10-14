@@ -305,3 +305,112 @@ it( 'leaves the inner blocks of opaque blocks unresolved and unstripped (#861)',
 	expect( $resolved[0]['innerBlocks'][0] )->toBe( $nested['innerBlocks'][0] )
 		->and( $resolved[1]['attributes'] )->toBe( [ 'content' => 'Bob' ] );
 } );
+
+it( 'keeps the authored fallback on a row whose field is empty (#854)', function (): void {
+	app()->instance(
+		'ArtisanPackUI\\CMSFramework\\Modules\\DynamicContent\\Services\\DynamicContentAccessor',
+		new FakeDynamicContentAccessor( [
+			'team' => [
+				[ 'name' => 'Alice', 'role' => 'CEO' ],
+				[ 'name' => 'Bob' ],
+			],
+		] ),
+	);
+
+	$html = renderDynamicLoop(
+		[ dynamicLoopParagraph( DynamicContentSource::NAME, [ 'token' => 'team.role' ] ) ],
+		dynamicLoopHost(),
+	);
+
+	expect( dynamicLoopParagraphTexts( $html ) )->toBe( [ 'CEO', 'Static' ] );
+} );
+
+it( 'keeps the authored fallback on a nested row whose field is empty (#861)', function (): void {
+	$html = renderNestedDynamicLoop( [
+		dynamicLoopParagraph( DynamicContentSource::NAME, [ 'token' => 'office.code' ] ),
+	] );
+
+	expect( dynamicLoopParagraphTexts( $html ) )->toBe( [ 'PAR', 'Static', 'PAR', 'Static' ] );
+} );
+
+it( 'leaves a dynamic loop template alone in the renderer binding pass (#854)', function (): void {
+	app()->register( VisualEditorRendererBladeServiceProvider::class );
+
+	$paragraph = dynamicLoopParagraph( DynamicContentSource::NAME, [ 'token' => 'team.name' ] );
+	$loop      = dynamicLoopBlock( 'team', [ $paragraph ] );
+
+	$loop['attributes']['label']    = 'Static label';
+	$loop['attributes']['bindings'] = [
+		'label' => [ 'source' => DynamicContentSource::NAME, 'args' => [ 'token' => 'team.name' ] ],
+	];
+
+	$resolved = app( BlockRenderer::class )->resolveBindings( [ $loop ], new BindingContext( dynamicLoopHost() ) );
+
+	expect( $resolved[0]['attributes']['label'] )->toBe( 'Alice' )
+		->and( $resolved[0]['innerBlocks'][0] )->toBe( $paragraph );
+} );
+
+it( 'gives each row after the first its own anchors so ids stay unique', function (): void {
+	$heading = [
+		'name'        => 'core/heading',
+		'attributes'  => [ 'content' => 'Member', 'level' => 3, 'anchor' => 'member' ],
+		'innerBlocks' => [],
+	];
+
+	$html = renderDynamicLoop( [ $heading ] );
+
+	preg_match_all( '/<h3[^>]*\sid="([^"]+)"/', $html, $ids );
+
+	expect( $ids[1] )->toBe( [ 'member', 'member-team-2' ] );
+} );
+
+it( 'keeps nested-loop anchors unique across outer and inner rows', function (): void {
+	$html = renderNestedDynamicLoop( [ [
+		'name'        => 'core/heading',
+		'attributes'  => [ 'content' => 'Office', 'level' => 3, 'anchor' => 'office' ],
+		'innerBlocks' => [],
+	] ] );
+
+	preg_match_all( '/<h3[^>]*\sid="([^"]+)"/', $html, $ids );
+
+	expect( $ids[1] )->toBe( [ 'office', 'office-office-2', 'office-team-2', 'office-team-2-office-2' ] );
+} );
+
+it( 'keeps the outer-row suffix on a bound anchor inside a nested loop', function (): void {
+	$html = renderNestedDynamicLoop( [ [
+		'name'        => 'core/heading',
+		'attributes'  => [
+			'content'  => 'Office',
+			'level'    => 3,
+			'anchor'   => 'office',
+			'bindings' => [
+				'anchor' => [ 'source' => DynamicContentSource::NAME, 'args' => [ 'token' => 'office.city' ] ],
+			],
+		],
+		'innerBlocks' => [],
+	] ] );
+
+	preg_match_all( '/<h3[^>]*\sid="([^"]+)"/', $html, $ids );
+
+	expect( $ids[1] )->toBe( [ 'Paris', 'Oslo-office-2', 'Paris-team-2', 'Oslo-team-2-office-2' ] );
+} );
+
+it( 'ignores an unsafe anchor suffix stamped on a loop', function (): void {
+	app()->register( VisualEditorRendererBladeServiceProvider::class );
+
+	$block = new DynamicLoopBlock( $this->resolver );
+
+	$html = (string) $block->renderWithInner(
+		[ 'collection' => 'team', DynamicLoopBlock::PARENT_ANCHOR_SUFFIX_ATTR => '" onmouseover="x' ],
+		[ [
+			'name'        => 'core/heading',
+			'attributes'  => [ 'content' => 'Member', 'level' => 3, 'anchor' => 'member' ],
+			'innerBlocks' => [],
+		] ],
+	);
+
+	preg_match_all( '/<h3[^>]*\sid="([^"]+)"/', $html, $ids );
+
+	expect( $ids[1] )->toBe( [ 'member', 'member-team-2' ] )
+		->and( $html )->not->toContain( 'onmouseover' );
+} );

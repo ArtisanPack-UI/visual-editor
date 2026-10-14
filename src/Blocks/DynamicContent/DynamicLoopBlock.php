@@ -7,8 +7,10 @@
  * renders the block's inner-block template once per record. Bindings
  * inside the template with tokens like `team.name` are re-resolved
  * per iteration by walking the tree and rewriting the `token` arg to
- * `team[N].field`. Each row's bindings sidecars are stripped after
- * resolving so the renderer's host-context pass leaves the row alone.
+ * `team[N].field`. The renderer's host-context pass skips the
+ * template, so this per-row resolve is the only one it gets (#854).
+ * Each row's bindings sidecars are stripped after resolving so the
+ * nested render() of the row leaves it alone.
  *
  * A loop nested inside a row is left unresolved by that pass. The row
  * stamps its index map onto the nested loop instead, and the nested
@@ -55,9 +57,19 @@ class DynamicLoopBlock extends DynamicBlock implements WantsInnerBlocks
 	 * Attribute an enclosing loop stamps on a nested loop to pass down
 	 * the current row's collection → index map (#861).
 	 *
-	 * @since 1.13.1
+	 * @since 1.14.0
 	 */
 	public const PARENT_INDEX_ATTR = '_dcParentIndex';
+
+	/**
+	 * Attribute an enclosing loop stamps on a nested loop to pass down
+	 * the current row's anchor suffix, so the nested loop can apply it
+	 * after its own rows resolve (a bound `anchor` would otherwise
+	 * replace a suffix added beforehand).
+	 *
+	 * @since 1.14.0
+	 */
+	public const PARENT_ANCHOR_SUFFIX_ATTR = '_dcAnchorSuffix';
 
 	public function __construct( protected BindingResolver $bindingResolver )
 	{
@@ -109,10 +121,11 @@ class DynamicLoopBlock extends DynamicBlock implements WantsInnerBlocks
 			return '';
 		}
 
-		$renderer    = app( $rendererClass );
-		$out         = '';
-		$limit       = min( count( $records ), self::MAX_RECORDS );
-		$parentIndex = $this->parentIndex( $attrs );
+		$renderer     = app( $rendererClass );
+		$out          = '';
+		$limit        = min( count( $records ), self::MAX_RECORDS );
+		$parentIndex  = $this->parentIndex( $attrs );
+		$parentSuffix = $this->parentAnchorSuffix( $attrs );
 
 		for ( $i = 0; $i < $limit; $i++ ) {
 			$indexMap = array_merge( $parentIndex, [ $collectionSlug => $i ] );
@@ -130,7 +143,17 @@ class DynamicLoopBlock extends DynamicBlock implements WantsInnerBlocks
 				// template's sidecars so they can resolve it per row
 				// with this row's indexes stamped on (#861).
 				$resolved = $this->bindingResolver->resolveAndStrip( $template, $context, [ self::BLOCK_NAME ] );
-				$out .= $renderer->render( $this->stampNestedLoops( $resolved, $indexMap ) );
+
+				// Rows after the first add their position to each anchor,
+				// on top of any suffix an enclosing row passed down, so
+				// repeated rows never repeat an element id.
+				$rowSuffix = $parentSuffix . ( $i > 0 ? '-' . $collectionSlug . '-' . ( $i + 1 ) : '' );
+
+				if ( '' !== $rowSuffix ) {
+					$resolved = $this->suffixAnchors( $resolved, $rowSuffix );
+				}
+
+				$out .= $renderer->render( $this->stampNestedLoops( $resolved, $indexMap, $rowSuffix ) );
 			} catch ( Throwable $e ) {
 				report( $e );
 			}
@@ -140,10 +163,66 @@ class DynamicLoopBlock extends DynamicBlock implements WantsInnerBlocks
 	}
 
 	/**
+	 * Append a suffix to every `anchor` in a row so repeated rows don't
+	 * repeat element ids. The first row keeps the template's anchors, so
+	 * table-of-contents links (stamped on the template) still land on it.
+	 * The walk stops at nested loops: their templates still hold
+	 * unresolved bindings, so they get the suffix through
+	 * {@see self::PARENT_ANCHOR_SUFFIX_ATTR} and apply it once their own
+	 * rows resolve.
+	 *
+	 * @since 1.14.0
+	 *
+	 * @param  array<int, array<string, mixed>>  $blocks
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	protected function suffixAnchors( array $blocks, string $suffix ): array
+	{
+		foreach ( $blocks as $key => $block ) {
+			if ( ! is_array( $block ) ) {
+				continue;
+			}
+
+			[ $attrKey, $blockAttrs ] = BlockShape::readAttrs( $block );
+
+			if ( is_string( $blockAttrs['anchor'] ?? null ) && '' !== trim( $blockAttrs['anchor'] ) ) {
+				$blockAttrs['anchor']       = trim( $blockAttrs['anchor'] ) . $suffix;
+				$blocks[ $key ][ $attrKey ] = $blockAttrs;
+			}
+
+			if ( self::BLOCK_NAME === ( $block['name'] ?? null ) ) {
+				continue;
+			}
+
+			if ( isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) && [] !== $block['innerBlocks'] ) {
+				$blocks[ $key ]['innerBlocks'] = $this->suffixAnchors( $block['innerBlocks'], $suffix );
+			}
+		}
+
+		return $blocks;
+	}
+
+	/**
+	 * Read the anchor suffix an enclosing loop stamped on this block.
+	 * Anything outside the id-safe `[A-Za-z0-9_-]` alphabet is ignored.
+	 *
+	 * @since 1.14.0
+	 *
+	 * @param  array<string, mixed>  $attrs
+	 */
+	protected function parentAnchorSuffix( array $attrs ): string
+	{
+		$stamped = $attrs[ self::PARENT_ANCHOR_SUFFIX_ATTR ] ?? null;
+
+		return is_string( $stamped ) && 1 === preg_match( '/^[A-Za-z0-9_-]*$/', $stamped ) ? $stamped : '';
+	}
+
+	/**
 	 * Read the index map an enclosing loop stamped on this block,
 	 * keeping only `slug => non-negative int` entries.
 	 *
-	 * @since 1.13.1
+	 * @since 1.14.0
 	 *
 	 * @param  array<string, mixed>  $attrs
 	 *
@@ -165,18 +244,19 @@ class DynamicLoopBlock extends DynamicBlock implements WantsInnerBlocks
 	}
 
 	/**
-	 * Stamp the row's index map onto every loop nested in the row. The
-	 * walk stops at each nested loop: deeper loops get stamped when that
-	 * loop renders its own rows.
+	 * Stamp the row's index map and anchor suffix onto every loop nested
+	 * in the row. The walk stops at each nested loop: deeper loops get
+	 * stamped when that loop renders its own rows.
 	 *
-	 * @since 1.13.1
+	 * @since 1.14.0
 	 *
 	 * @param  array<int, array<string, mixed>>  $blocks
 	 * @param  array<string, int>                $indexMap
+	 * @param  string                            $anchorSuffix  The row's cumulative anchor suffix.
 	 *
 	 * @return array<int, array<string, mixed>>
 	 */
-	protected function stampNestedLoops( array $blocks, array $indexMap ): array
+	protected function stampNestedLoops( array $blocks, array $indexMap, string $anchorSuffix = '' ): array
 	{
 		foreach ( $blocks as $key => $block ) {
 			if ( ! is_array( $block ) ) {
@@ -186,14 +266,15 @@ class DynamicLoopBlock extends DynamicBlock implements WantsInnerBlocks
 			if ( self::BLOCK_NAME === ( $block['name'] ?? null ) ) {
 				[ $attrKey, $blockAttrs ] = BlockShape::readAttrs( $block );
 
-				$blockAttrs[ self::PARENT_INDEX_ATTR ] = $indexMap;
-				$blocks[ $key ][ $attrKey ]            = $blockAttrs;
+				$blockAttrs[ self::PARENT_INDEX_ATTR ]         = $indexMap;
+				$blockAttrs[ self::PARENT_ANCHOR_SUFFIX_ATTR ] = $anchorSuffix;
+				$blocks[ $key ][ $attrKey ]                    = $blockAttrs;
 
 				continue;
 			}
 
 			if ( isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) && [] !== $block['innerBlocks'] ) {
-				$blocks[ $key ]['innerBlocks'] = $this->stampNestedLoops( $block['innerBlocks'], $indexMap );
+				$blocks[ $key ]['innerBlocks'] = $this->stampNestedLoops( $block['innerBlocks'], $indexMap, $anchorSuffix );
 			}
 		}
 

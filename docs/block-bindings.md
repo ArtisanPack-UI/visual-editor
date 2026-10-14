@@ -179,9 +179,15 @@ pass the record themselves:
 
 ```php
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
+use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
 
-$html = app( BlockRenderer::class )->render( $tree, new BindingContext( $post ) );
+$renderer = app( BlockRenderer::class );
+$html     = $renderer->render( $tree, new BindingContext( $post ) );
+$assets   = $renderer->flushSupportAssets(); // print $assets['css'] before $html, $assets['scripts'] after
 ```
+
+See [Support CSS for direct renders](./renderers.md#support-css-for-direct-renders)
+for what `flushSupportAssets()` returns.
 
 Inside a `core/query` loop, each `post-template` iteration resolves its
 bindings against that iteration's post, not the host record. The same

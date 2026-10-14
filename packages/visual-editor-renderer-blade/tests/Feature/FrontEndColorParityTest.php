@@ -6,7 +6,7 @@
  * staying declared under a theme palette, and the button States panel's
  * hover / focus text + background colors.
  *
- * @since 1.13.1
+ * @since 1.14.0
  */
 
 declare( strict_types=1 );

@@ -325,7 +325,7 @@ class BlockSupports
 	/**
 	 * Push Elements API rules into the per-request accumulator (#852).
 	 *
-	 * @since 1.13.1
+	 * @since 1.14.0
 	 */
 	public static function pushElements( string $scope, string $rules ): void
 	{

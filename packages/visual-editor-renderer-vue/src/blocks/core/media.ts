@@ -211,13 +211,18 @@ export const FileBlock = defineComponent({
 
             const classes = classList(['wp-block-file', className]);
             const linkLabel = fileName !== '' ? fileName : href;
+            // Mirrors the editor save: the button points at the file-name
+            // link for its accessible description, but only when that link
+            // has a name.
+            const fileId = attrString(props.attributes.fileId);
+            const describedById = fileName !== '' && fileId !== '' ? fileId : undefined;
 
             if (href === '') {
                 return h('div', { class: classes });
             }
 
             const children: VNode[] = [
-                h('a', { href: textLinkHref !== '' ? textLinkHref : href }, linkLabel),
+                h('a', { id: describedById, href: textLinkHref !== '' ? textLinkHref : href }, linkLabel),
             ];
 
             if (showDownload) {
@@ -226,8 +231,9 @@ export const FileBlock = defineComponent({
                         'a',
                         {
                             href,
-                            class: 'wp-block-file__button',
+                            class: 'wp-block-file__button wp-element-button',
                             download: '',
+                            'aria-describedby': describedById,
                         },
                         download
                     )
