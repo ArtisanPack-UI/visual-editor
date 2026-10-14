@@ -19,6 +19,28 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
+- Front-end colors now match the editor canvas (#852):
+  - The package default palette and font sizes stay declared when a
+    theme ships its own `settings.color.palette` / `fontSizes` (theme
+    entries win on a shared slug). A button whose text color is a
+    default swatch such as **Base content** no longer falls back to
+    white.
+  - Per-block link colors (Color → Link) render on every block that
+    supports them, not only Navigation, including their `:hover`,
+    `:focus`, `:focus-visible` and `:active` colors. The rules ship in a
+    single `<style data-ve-elements>` block. Navigation no longer emits
+    its own inline `<style>`.
+  - Global `styles.elements.*` and `styles.blocks[*].elements.*` now
+    compile their `:hover`, `:focus`, `:focus-visible` and `:active`
+    sub-nodes.
+  - Link colors no longer leak into buttons. The link selector is now
+    `a:where(:not(.wp-element-button))`. Global element and block
+    rules are wrapped in `:root :where(…)` like WordPress, so they sit
+    at a flat (0,1,0) specificity. Host CSS that relied on beating, or
+    losing to, the old bare `a` rule may need adjusting.
+  - A button's States panel keeps both its palette text color and its
+    custom text color when both are set for different states. Before,
+    one silently replaced the other.
 - Block bindings (`custom_field`, `post_core`, `relation`) now resolve on
   the front end. `<x-ve-blocks :tree :post>` resolved every binding with
   no record in scope, so blocks fell back to their static attributes

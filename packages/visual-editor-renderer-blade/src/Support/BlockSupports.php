@@ -58,6 +58,7 @@ use ArtisanPackUI\VisualEditor\States\StateCssEmitter;
 use ArtisanPackUI\VisualEditor\States\StateRegistry;
 use ArtisanPackUI\VisualEditor\States\StateValueResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\BoxShadowCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\ElementsCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\PositionCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
@@ -248,6 +249,16 @@ class BlockSupports
 			self::pushPosition( $position['class'], $position['rules'] );
 		}
 
+		// #852 — per-block Elements API colors (Color → Link, heading /
+		// button element colors) for every block, not just navigation.
+		$elements = ElementsSupport::compile( $attributes );
+
+		if ( '' !== $elements['class'] ) {
+			$classes[] = $elements['class'];
+
+			self::pushElements( $elements['class'], $elements['style'] );
+		}
+
 		return [
 			'classes'             => $classes,
 			'style'               => $styleString,
@@ -263,6 +274,8 @@ class BlockSupports
 			'boxShadowRules'      => $boxShadow['rules'],
 			'positionClass'       => $position['class'],
 			'positionRules'       => $position['rules'],
+			'elementsClass'       => $elements['class'],
+			'elementsRules'       => $elements['style'],
 		];
 	}
 
@@ -307,6 +320,16 @@ class BlockSupports
 	public static function pushBoxShadow( string $scope, string $rules ): void
 	{
 		self::pushToAccumulator( BoxShadowCssAccumulator::class, $scope, $rules );
+	}
+
+	/**
+	 * Push Elements API rules into the per-request accumulator (#852).
+	 *
+	 * @since 1.13.1
+	 */
+	public static function pushElements( string $scope, string $rules ): void
+	{
+		self::pushToAccumulator( ElementsCssAccumulator::class, $scope, $rules );
 	}
 
 	/**
@@ -1104,7 +1127,20 @@ class BlockSupports
 				continue;
 			}
 
-			$out[ $entry['property'] ] = $converted;
+			// Two paths can share a property (`textColor` / `color.text`
+			// → `color`). Merge per state like the JS emitter's
+			// `bucketByState()` so a palette hover color and a custom
+			// focus color both survive; a null never erases a value an
+			// earlier path set (#852).
+			$property = $entry['property'];
+
+			foreach ( $converted as $state => $stateValue ) {
+				if ( null === $stateValue && isset( $out[ $property ][ $state ] ) ) {
+					continue;
+				}
+
+				$out[ $property ][ $state ] = $stateValue;
+			}
 		}
 
 		return $out;

@@ -38,6 +38,11 @@
 {!! $positionCss !!}
 @endif
 @endisset
+@isset( $elementsCss )
+@if( '' !== $elementsCss )
+{!! $elementsCss !!}
+@endif
+@endisset
 {!! $html !!}
 @isset( $animationsRuntimeNeeded )
 @if( $animationsRuntimeNeeded )

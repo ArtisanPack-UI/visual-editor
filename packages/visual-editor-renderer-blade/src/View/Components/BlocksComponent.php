@@ -38,6 +38,7 @@ use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\BreadcrumbsResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\BusinessInfoResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\BoxShadowCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\ElementsCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\PositionCssAccumulator;
@@ -235,6 +236,7 @@ class BlocksComponent extends Component
 		$gradientBordersCss = $this->gradientBorderAccumulator->flush();
 		$boxShadowsCss      = $this->boxShadowAccumulator->flush();
 		$positionCss        = $this->positionAccumulator->flush();
+		$elementsCss        = app( ElementsCssAccumulator::class )->flush();
 
 		return view( 'visual-editor-renderer-blade::components.blocks', [
 			'html'                    => $html,
@@ -247,6 +249,7 @@ class BlocksComponent extends Component
 			'gradientBordersCss'      => $gradientBordersCss,
 			'boxShadowsCss'           => $boxShadowsCss,
 			'positionCss'             => $positionCss,
+			'elementsCss'             => $elementsCss,
 		] );
 	}
 

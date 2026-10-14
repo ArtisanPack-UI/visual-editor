@@ -19,13 +19,17 @@
  *      - Root styles (`styles.color`, `styles.typography`, `styles.spacing`,
  *        `styles.border`) → `body { … }`.
  *      - Element styles (`styles.elements.{link, heading, h1..h6, button,
- *        caption, cite}`) → canonical selectors (`a`, `h1, h2, …`,
- *        `.wp-element-button`, etc.).
+ *        caption, cite}`) → canonical selectors
+ *        (`a:where(:not(.wp-element-button))`, `h1, h2, …`,
+ *        `.wp-element-button`, etc.), plus their `:hover` / `:focus` /
+ *        `:focus-visible` / `:active` sub-nodes.
  *      - Block styles (`styles.blocks["<namespace>/<slug>"]`) →
  *        `.wp-block-<namespace>-<slug>` selectors. Nested
  *        `styles.blocks[X].elements.Y` produces descendant rules so a
  *        block can re-style its own headings/links without affecting
  *        the rest of the page.
+ *      Element and block rules are wrapped in `:root :where(…)` like
+ *      WordPress's global styles, so they share one (0,1,0) specificity.
  *
  * Anything outside those recognised sections passes through untouched so
  * theme.json files keep validating against WP's schema while only the
@@ -48,6 +52,7 @@ namespace ArtisanPackUI\VisualEditorRendererBlade\Services;
 
 use ArtisanPackUI\VisualEditor\Resources\PresetRegistry;
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
+use ArtisanPackUI\VisualEditorRendererBlade\Support\ElementsSupport;
 use ArtisanPackUI\VisualEditorRendererBlade\Support\StackingStyles;
 
 class ThemeJsonTokensCompiler
@@ -67,6 +72,14 @@ class ThemeJsonTokensCompiler
 	 * @since 1.12.1
 	 */
 	public const DEFAULT_WIDE_SIZE = PresetRegistry::DEFAULT_LAYOUT['wideSize'];
+
+	/**
+	 * Pseudo-state sub-nodes compiled under `styles.elements.*` and
+	 * `styles.blocks[*].elements.*`, in cascade order (#852).
+	 *
+	 * @since 1.13.1
+	 */
+	public const ELEMENT_PSEUDO_STATES = ElementsSupport::PSEUDO_STATES;
 
 	/**
 	 * Compile a theme.json array into a `:root` CSS block, or '' when the
@@ -343,29 +356,11 @@ class ThemeJsonTokensCompiler
 			$rules[] = "body {\n\t" . $rootDeclarations . "\n}";
 		}
 
-		// styles.elements.* — typed selectors. Per-element nodes can also
-		// carry sub-selectors via `:hover` / `:focus` state keys; we only
-		// cover the base state today since the editor surface itself
-		// doesn't expose state authoring yet.
+		// styles.elements.* — typed selectors, plus their `:hover` /
+		// `:focus` / `:focus-visible` / `:active` sub-nodes (#852).
 		$elements = is_array( $styles['elements'] ?? null ) ? $styles['elements'] : [];
 
-		foreach ( $elements as $name => $node ) {
-			if ( ! is_string( $name ) || ! is_array( $node ) ) {
-				continue;
-			}
-
-			$selector = $this->elementSelector( $name );
-
-			if ( null === $selector ) {
-				continue;
-			}
-
-			$declarations = $this->compileStyleNode( $node );
-
-			if ( '' !== $declarations ) {
-				$rules[] = $selector . " {\n\t" . $declarations . "\n}";
-			}
-		}
+		array_push( $rules, ...$this->compileElementRules( $elements, '' ) );
 
 		// styles.blocks[<name>] — per-block rules. Nested `elements`
 		// produces descendant rules so a block can override headings or
@@ -381,31 +376,91 @@ class ThemeJsonTokensCompiler
 			$declarations  = $this->compileStyleNode( $node );
 
 			if ( '' !== $declarations ) {
-				$rules[] = $blockSelector . " {\n\t" . $declarations . "\n}";
+				$rules[] = $this->whereRule( [ $blockSelector ], $declarations );
 			}
 
 			$nestedElements = is_array( $node['elements'] ?? null ) ? $node['elements'] : [];
 
-			foreach ( $nestedElements as $elementName => $elementNode ) {
-				if ( ! is_string( $elementName ) || ! is_array( $elementNode ) ) {
-					continue;
-				}
-
-				$elementSelector = $this->elementSelector( $elementName );
-
-				if ( null === $elementSelector ) {
-					continue;
-				}
-
-				$nestedDeclarations = $this->compileStyleNode( $elementNode );
-
-				if ( '' !== $nestedDeclarations ) {
-					$rules[] = $blockSelector . ' ' . $elementSelector . " {\n\t" . $nestedDeclarations . "\n}";
-				}
-			}
+			array_push( $rules, ...$this->compileElementRules( $nestedElements, $blockSelector . ' ' ) );
 		}
 
 		return implode( "\n\n", $rules );
+	}
+
+	/**
+	 * Compile a `styles.elements` (or `styles.blocks[X].elements`) map
+	 * into rules: one for each element's base node, then one per
+	 * pseudo-state sub-node in {@see self::ELEMENT_PSEUDO_STATES} order so
+	 * `:focus` overrides `:hover` when both are set (#852). The pseudo is
+	 * appended to every selector in the element's list (`button` →
+	 * `.wp-element-button:hover, .wp-block-button__link:hover`), and
+	 * `$prefix` (a block selector plus a space) scopes each one.
+	 *
+	 * @since 1.13.1
+	 *
+	 * @param  array<mixed>  $elements  Element name → style node.
+	 * @param  string        $prefix    Descendant prefix, `''` at the root.
+	 *
+	 * @return list<string>
+	 */
+	protected function compileElementRules( array $elements, string $prefix ): array
+	{
+		$rules = [];
+
+		foreach ( $elements as $name => $node ) {
+			if ( ! is_string( $name ) || ! is_array( $node ) ) {
+				continue;
+			}
+
+			$selectors = $this->elementSelectors( $name );
+
+			if ( null === $selectors ) {
+				continue;
+			}
+
+			$scoped       = array_map( static fn ( string $selector ): string => $prefix . $selector, $selectors );
+			$declarations = $this->compileStyleNode( $node );
+
+			if ( '' !== $declarations ) {
+				$rules[] = $this->whereRule( $scoped, $declarations );
+			}
+
+			foreach ( self::ELEMENT_PSEUDO_STATES as $pseudo ) {
+				$pseudoNode = $node[ $pseudo ] ?? null;
+
+				if ( ! is_array( $pseudoNode ) ) {
+					continue;
+				}
+
+				$pseudoDeclarations = $this->compileStyleNode( $pseudoNode );
+
+				if ( '' === $pseudoDeclarations ) {
+					continue;
+				}
+
+				$rules[] = $this->whereRule(
+					array_map( static fn ( string $selector ): string => $selector . $pseudo, $scoped ),
+					$pseudoDeclarations,
+				);
+			}
+		}
+
+		return $rules;
+	}
+
+	/**
+	 * Wrap a selector list in `:root :where(…)`, as WordPress's global
+	 * styles do (#852): every element / block rule lands at a flat
+	 * (0,1,0) specificity, so `.has-*` preset classes and inline block
+	 * styles beat it while a later per-block rule wins by source order.
+	 *
+	 * @since 1.13.1
+	 *
+	 * @param  list<string>  $selectors
+	 */
+	protected function whereRule( array $selectors, string $declarations ): string
+	{
+		return ':root :where(' . implode( ', ', $selectors ) . ") {\n\t" . $declarations . "\n}";
 	}
 
 	/**
@@ -530,27 +585,28 @@ class ThemeJsonTokensCompiler
 	}
 
 	/**
-	 * Translate a theme.json element key into its canonical selector.
-	 * Returns `null` for unknown keys so callers can skip the rule.
+	 * Translate a theme.json element key into its canonical selector
+	 * list. Returns `null` for unknown keys so callers can skip the rule.
 	 *
-	 * @since 1.2.0
+	 * The link selector skips `.wp-element-button`, as WordPress does,
+	 * so a link color never repaints buttons — a button is an `<a>` too
+	 * (#852). Mirrors `ElementsSupport::ELEMENT_SELECTORS`.
+	 *
+	 * @since 1.13.1
+	 *
+	 * @return list<string>|null
 	 */
-	protected function elementSelector( string $element ): ?string
+	protected function elementSelectors( string $element ): ?array
 	{
-		return match ( $element ) {
-			'link'    => 'a',
-			'heading' => 'h1, h2, h3, h4, h5, h6',
-			'h1'      => 'h1',
-			'h2'      => 'h2',
-			'h3'      => 'h3',
-			'h4'      => 'h4',
-			'h5'      => 'h5',
-			'h6'      => 'h6',
-			'button'  => '.wp-element-button, .wp-block-button__link',
-			'caption' => '.wp-element-caption',
-			'cite'    => 'cite',
-			default   => null,
-		};
+		if ( 'caption' === $element ) {
+			return [ '.wp-element-caption' ];
+		}
+
+		if ( 'cite' === $element ) {
+			return [ 'cite' ];
+		}
+
+		return ElementsSupport::ELEMENT_SELECTORS[ $element ] ?? null;
 	}
 
 	/**

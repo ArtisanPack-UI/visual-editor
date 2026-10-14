@@ -254,9 +254,10 @@ it( 'falls back to the duplicate inline-menu container when the overlay slug res
 it( 'renders style.elements.link.color.text on the nav block as a scoped style + class (Keystone #56)', function (): void {
 	// The dedicated Link color picker on core/navigation writes to
 	// `style.elements.link.color.text` — a path separate from the
-	// `textColor` / `customTextColor` attributes. Renderer-blade now
+	// `textColor` / `customTextColor` attributes. Renderer-blade
 	// compiles it into a per-block `wp-elements-{hash}` class on the
-	// wrapper plus a scoped `<style>` rule above the `<nav>`.
+	// wrapper plus a scoped rule in the shared `<style data-ve-elements>`
+	// block (#852).
 	$tree = [
 		[
 			'clientId'    => 'nav-1',
@@ -288,10 +289,14 @@ it( 'renders style.elements.link.color.text on the nav block as a scoped style +
 	// Preset slug expanded into a CSS custom property reference,
 	// scoped to descendant `a` elements, with !important to defeat
 	// the theme's default link color.
-	expect( $rendered )->toContain( 'a{color: var(--wp--preset--color--accent) !important;}' );
+	expect( $rendered )->toContain( 'a:where(:not(.wp-element-button)){color: var(--wp--preset--color--accent) !important;}' );
 
 	// Hover pseudo-state emitted alongside the base rule.
-	expect( $rendered )->toContain( 'a:hover{color: #0f172a !important;}' );
+	expect( $rendered )->toContain( 'a:where(:not(.wp-element-button)):hover{color: #0f172a !important;}' );
+
+	// Emitted once, through the shared accumulator — no per-partial `<style>`.
+	expect( substr_count( $rendered, '<style data-ve-elements>' ) )->toBe( 1 )
+		->and( $rendered )->not->toContain( '<style>.wp-elements-' );
 } );
 
 it( 'emits items-justified-* class from layout.justifyContent (Keystone #52)', function (): void {

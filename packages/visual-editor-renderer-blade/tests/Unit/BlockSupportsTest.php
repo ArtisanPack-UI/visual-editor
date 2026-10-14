@@ -559,6 +559,8 @@ describe( 'BlockSupports::compile (composition)', function (): void {
 			'boxShadowRules'      => '',
 			'positionClass'       => '',
 			'positionRules'       => '',
+			'elementsClass'       => '',
+			'elementsRules'       => '',
 		] );
 	} );
 
