@@ -270,8 +270,24 @@ describe('Core media blocks', () => {
 
         expect(html).toContain('<div class="wp-block-file">');
         expect(html).toContain('<a href="https://example.test/doc.pdf">doc.pdf</a>');
-        expect(html).toContain('class="wp-block-file__button"');
+        expect(html).toContain('class="wp-block-file__button wp-element-button"');
         expect(html).toContain('Download PDF');
+        expect(html).not.toContain('aria-describedby');
+    });
+
+    it('links the file download button to the file name for its description', () => {
+        const tree = [
+            makeBlock('core/file', {
+                href: 'https://example.test/doc.pdf',
+                fileId: 'wp-block-file--media-1',
+                fileName: 'doc.pdf',
+            }),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('id="wp-block-file--media-1"');
+        expect(html).toContain('aria-describedby="wp-block-file--media-1"');
     });
 
     it('renders a gallery with columns class and nested images', () => {
