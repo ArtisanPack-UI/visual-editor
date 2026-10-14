@@ -4,7 +4,7 @@ The visual editor exposes extension points through four mechanisms:
 
 - **PHP filters** — `applyFilters('ap.visualEditor.*', ...)` for value transformation (resource map, site-editor entities, server-rendered block HTML, etc.)
 - **PHP actions** — `doAction('ap.visualEditor.*', ...)` for side effects
-- **JavaScript filters** — `addFilter('ap.visualEditor.*', ...)` via `@wordpress/hooks` for editor-side extension (document panels, background controls, canvas styles)
+- **JavaScript filters** — `addFilter('ap.visualEditor.*', ...)` via `@wordpress/hooks` for editor-side extension (document panels, background controls, canvas styles, Query Loop post types)
 - **Browser events** — `CustomEvent` dispatched on `window` for client-side integration (autosave, change, save)
 
 All PHP hooks use the global helpers from [`artisanpack-ui/hooks`](https://github.com/ArtisanPack-UI/hooks). All browser events are plain `CustomEvent` instances dispatched on `window`.
@@ -215,6 +215,28 @@ Only known keys are re-hydrated back onto the component's typed props — extra 
 
 ---
 
+### `ap.visualEditor.query.postTypes`
+
+**Since v1.14.** PHP filter that supplies the options for the Query Loop block's **Post type** picker (#847). The result is stamped onto both the post-editor and site-editor mounts as `data-query-post-types`, so hosts can offer their own content types without shipping a JS bundle. The JavaScript filter of the same name (below) runs on top of this list.
+
+**Signature:** `array $options -> array`, where each option is `['value' => string, 'label' => string]`.
+
+```php
+addFilter('ap.visualEditor.query.postTypes', function (array $options): array {
+    $options[] = ['value' => 'case-study', 'label' => __('Case Studies')];
+
+    return $options;
+});
+```
+
+The filter receives the defaults (Posts, Pages). Entries without a non-empty string `label`, or whose `value` isn't 1–64 letters, digits, `-` or `_`, are dropped. Duplicate values keep the first entry, so relabel a default by mapping over the list instead of appending a second row. A non-array return, or a list with no valid entries, falls back to the defaults.
+
+A `queryPostTypes` value set through `ap.visualEditor.editorConfig` goes through the same rules.
+
+The picker only controls what authors can choose. Whatever `postType` a saved block carries is resolved by the bound `QueryResolverContract` on the front end and in the canvas preview.
+
+---
+
 ### `ap.visualEditor.patternRender`
 
 PHP filter applied by `PatternAdapter::toArray()` on the rendered raw content of a pattern before it ships to the editor / consumer. Runs on every read.
@@ -369,6 +391,32 @@ type DocumentPanelSpec = {
 ```
 
 Descriptors are sorted by `order` (default `100`, lower first) with ties falling back to registration order and deduped by `id` (last-wins). The slot-fill companion `<PluginDocumentSettingPanel>` mirrors the WordPress component of the same name for panels rendered as part of the editor tree instead of registered at bootstrap.
+
+---
+
+### `ap.visualEditor.query.postTypes`
+
+**Since v1.14.** Contribute options to the Query Loop block's **Post type** picker (#847). Applied every time the inspector renders, over the server-provided list from the PHP filter of the same name (or Posts / Pages when the mount carries no list).
+
+**Signature:** `QueryPostTypeOption[] -> QueryPostTypeOption[]` where `QueryPostTypeOption = { label: string; value: string }`.
+
+```ts
+import { addFilter } from '@wordpress/hooks'
+import { __ } from '@wordpress/i18n'
+
+addFilter(
+    'ap.visualEditor.query.postTypes',
+    'my-plugin/case-studies',
+    (options) => [
+        ...options,
+        { label: __('Case Studies', 'my-plugin'), value: 'case-study' },
+    ],
+)
+```
+
+Entries are validated the same way as on the server, and duplicate values keep the first entry. A non-array or empty result falls back to the unfiltered list. A callback that throws is logged to `console.error` and the unfiltered list is used.
+
+If a block's saved `postType` isn't in the final list (for example, a type that was renamed or removed), it's appended as `<slug> (unavailable)`. The block keeps its saved value instead of switching to `post` when it's opened. New Query Loop blocks default to `post`, so if you remove Posts from the list, new blocks show `post (unavailable)` until the author picks another type.
 
 ---
 

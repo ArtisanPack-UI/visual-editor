@@ -6,6 +6,17 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- Hosts can add their own content types to the Query Loop block's
+  **Post type** picker (#847). Register them server-side through the
+  `ap.visualEditor.query.postTypes` PHP filter (stamped onto both the
+  post-editor and site-editor mounts as `data-query-post-types`) or
+  client-side through the JS filter of the same name. The picker still
+  defaults to Posts and Pages. A saved `postType` that isn't in the
+  list now shows as "(unavailable)" instead of silently switching to
+  `post` when the block is opened.
+
 ### Fixed
 
 - Block bindings (`custom_field`, `post_core`, `relation`) now resolve on

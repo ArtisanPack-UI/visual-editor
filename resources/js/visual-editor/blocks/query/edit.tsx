@@ -3,6 +3,8 @@
  *
  * Provides inspector controls for all QueryRuntime-supported attributes:
  * post type, posts per page, offset, order/orderBy, and search filter.
+ * Post type options are host-extensible (#847) — see
+ * `post-type-options.ts`.
  * Previews the first matching post via `useQueryPreview` and renders
  * `<InnerBlocks />` inside a `BlockContextProvider` so inner
  * `artisanpack/post-*` blocks resolve against the right post.
@@ -35,6 +37,7 @@ import {
 import { useQueryPreview } from '../../editor/use-query-preview';
 import { TEXT_DOMAIN } from '../../vendor/i18n';
 import PostVariantsPanel from './post-variants-panel';
+import { getQueryPostTypeOptions } from './post-type-options';
 
 interface QueryEditProps {
     attributes: Record<string, unknown>;
@@ -135,10 +138,7 @@ export default function QueryEdit( {
                         __nextHasNoMarginBottom
                         label={ __( 'Post type', TEXT_DOMAIN ) }
                         value={ postType }
-                        options={ [
-                            { label: __( 'Posts', TEXT_DOMAIN ), value: 'post' },
-                            { label: __( 'Pages', TEXT_DOMAIN ), value: 'page' },
-                        ] }
+                        options={ getQueryPostTypeOptions( postType ) }
                         onChange={ ( value: string ) => updateQuery( { postType: value } ) }
                     />
                     <RangeControl
