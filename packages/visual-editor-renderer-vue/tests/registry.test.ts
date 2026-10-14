@@ -88,6 +88,20 @@ describe('registerBlockRenderer', () => {
         }
     });
 
+    it('renders core query-family names with their artisanpack fork renderers', () => {
+        for (const slug of [
+            'query-no-results',
+            'query-pagination',
+            'query-pagination-next',
+            'query-pagination-numbers',
+            'query-pagination-previous',
+            'query-title',
+        ]) {
+            expect(hasBlockRenderer(`core/${slug}`)).toBe(true);
+            expect(getBlockRenderer(`core/${slug}`)).toBe(getBlockRenderer(`artisanpack/${slug}`));
+        }
+    });
+
     it('allows unregistering a renderer', () => {
         registerBlockRenderer('acme/temp', noopRenderer);
         expect(hasBlockRenderer('acme/temp')).toBe(true);
