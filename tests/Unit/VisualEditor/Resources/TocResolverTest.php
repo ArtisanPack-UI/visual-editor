@@ -519,3 +519,75 @@ it( 'falls back to the block\'s own content when the content-tree block type dif
 
 	expect( $resolved[0]['attributes']['anchor'] )->toBe( 'own-text' );
 } );
+
+it( 'detects inline tokens in heading content (#858)', function (): void {
+	$resolver = new TocResolver();
+
+	expect( $resolver->hasInlineTokens( [
+		tocBlock( 'core/heading', [ 'content' => 'About {{site.name}}' ] ),
+	] ) )->toBeTrue()
+		->and( $resolver->hasInlineTokens( [
+			[ 'name' => 'artisanpack/heading', 'attrs' => [ 'content' => '{{site.name}}' ] ],
+		] ) )->toBeTrue();
+} );
+
+it( 'detects inline tokens in nested post-content HTML', function (): void {
+	$resolver = new TocResolver();
+
+	$tree = [
+		tocBlock( 'core/group', [], [
+			tocBlock( 'core/post-content', [ '_resolvedContent' => '<h2>About {{site.name}}</h2>' ] ),
+		] ),
+	];
+
+	expect( $resolver->hasInlineTokens( $tree ) )->toBeTrue();
+} );
+
+it( 'ignores inline tokens outside the attributes the TOC reads', function (): void {
+	$resolver = new TocResolver();
+
+	$tree = [
+		tocBlock( 'core/paragraph', [ 'content' => 'Call {{business_info.phone}}' ] ),
+		tocBlock( 'core/heading', [ 'content' => 'Plain heading', 'className' => '{{token}}' ] ),
+		tocBlock( 'artisanpack/toc', [ 'title' => '{{site.name}}' ] ),
+	];
+
+	expect( $resolver->hasInlineTokens( $tree ) )->toBeFalse()
+		->and( $resolver->hasInlineTokens( [] ) )->toBeFalse();
+} );
+
+it( 'stamps anchors from the content tree into the block\'s own post-content HTML', function (): void {
+	$resolver = new TocResolver();
+
+	$tree = [
+		tocBlock( 'core/post-content', [ '_resolvedContent' => '<h2>About {{site.name}}</h2><h2 id="kept">Kept</h2><p>{{site.name}}</p>' ] ),
+		tocBlock( 'artisanpack/toc' ),
+	];
+
+	$contentTree                                       = $tree;
+	$contentTree[0]['attributes']['_resolvedContent']  = '<h2>About Acme</h2><h2 id="kept">Kept</h2><p>Acme</p>';
+
+	$resolved = $resolver->resolveTree( $tree, $contentTree );
+
+	expect( $resolved[0]['attributes']['_resolvedContent'] )
+		->toBe( '<h2 id="about-acme">About {{site.name}}</h2><h2 id="kept">Kept</h2><p>{{site.name}}</p>' )
+		->and( array_column( $resolved[1]['attributes']['_resolvedItems'], 'anchor' ) )->toBe( [ 'about-acme', 'kept' ] )
+		->and( $resolved[1]['attributes']['_resolvedItems'][0]['text'] )->toBe( 'About Acme' );
+} );
+
+it( 'stamps post-content from its own HTML when the content tree holds a different number of headings', function (): void {
+	$resolver = new TocResolver();
+
+	$tree = [
+		tocBlock( 'core/post-content', [ '_resolvedContent' => '<h2>Intro</h2>{{site.extra}}' ] ),
+		tocBlock( 'artisanpack/toc' ),
+	];
+
+	$contentTree                                       = $tree;
+	$contentTree[0]['attributes']['_resolvedContent']  = '<h2>Intro</h2><h2>Injected</h2>';
+
+	$resolved = $resolver->resolveTree( $tree, $contentTree );
+
+	expect( $resolved[0]['attributes']['_resolvedContent'] )->toBe( '<h2 id="intro">Intro</h2>{{site.extra}}' )
+		->and( array_column( $resolved[1]['attributes']['_resolvedItems'], 'anchor' ) )->toBe( [ 'intro' ] );
+} );
