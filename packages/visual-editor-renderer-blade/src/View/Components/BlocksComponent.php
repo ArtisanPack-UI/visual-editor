@@ -189,8 +189,16 @@ class BlocksComponent extends Component
 		// post/query/pattern/template-part resolution so headings that
 		// were injected by a resolver (a post-content expansion inside
 		// a template part, for example) also participate in the TOC.
+		//
+		// Heading text is read from a binding-resolved copy of the tree
+		// (#851) so a bound heading's anchor and TOC entry follow the
+		// value it renders. The copy is only read: the renderer's own
+		// pass stays the single one that resolves rendered attrs.
 		$resolved = $resolveToc
-			? $this->tocResolver->resolveTree( $resolved )
+			? $this->tocResolver->resolveTree(
+				$resolved,
+				$this->renderer->resolveBindings( $resolved, $this->bindingContext() ),
+			)
 			: $resolved;
 
 		// Navigation resolution mirrors the editor's read path
@@ -216,14 +224,11 @@ class BlocksComponent extends Component
 		// is then prepended to the output by the view template.
 		//
 		// Bindings resolve here, inside the renderer, against the host
-		// post (#848). They deliberately do NOT also resolve in the
-		// constructor: a second, model-less pass would re-apply the
-		// `hide` / `placeholder` policies over the resolved values.
-		$bindingContext = null !== $this->bindingModel
-			? new BindingContext( $this->bindingModel )
-			: null;
-
-		$html               = $this->renderer->render( $this->tree, $bindingContext );
+		// post (#848). The constructor only resolves a throwaway copy for
+		// the TOC pass (#851); it never writes resolved values into
+		// `$this->tree`, because a second pass over already-resolved
+		// attrs would re-apply the `hide` / `placeholder` policies.
+		$html               = $this->renderer->render( $this->tree, $this->bindingContext() );
 		$responsiveCss      = $this->responsiveAccumulator->flush();
 		$statesCss          = $this->stateAccumulator->flush();
 		$animationOutput    = $this->animationAccumulator->flush();
@@ -264,6 +269,20 @@ class BlocksComponent extends Component
 		$css = $this->globalStyles->emit();
 
 		return '' === $css ? null : $css;
+	}
+
+	/**
+	 * Context bindings resolve against: the host post when one was
+	 * supplied, or null so the renderer falls back to a model-less
+	 * context.
+	 *
+	 * @since 1.13.1
+	 */
+	protected function bindingContext(): ?BindingContext
+	{
+		return null !== $this->bindingModel
+			? new BindingContext( $this->bindingModel )
+			: null;
 	}
 
 	/**

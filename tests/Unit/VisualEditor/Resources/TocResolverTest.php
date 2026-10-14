@@ -432,3 +432,90 @@ it( 'ignores non-array top-level entries without dropping the good ones', functi
 	expect( $resolved )->toHaveCount( 1 )
 		->and( $resolved[0]['attributes']['anchor'] )->toBe( 'kept' );
 } );
+
+it( 'reads heading text from the content tree but stamps the original tree (#851)', function (): void {
+	$resolver = new TocResolver();
+
+	$tree = [
+		tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Static title' ] ),
+		tocBlock( 'artisanpack/toc' ),
+	];
+
+	$contentTree                               = $tree;
+	$contentTree[0]['attributes']['content']   = 'Core Package';
+
+	$resolved = $resolver->resolveTree( $tree, $contentTree );
+
+	expect( $resolved[0]['attributes']['anchor'] )->toBe( 'core-package' )
+		->and( $resolved[0]['attributes']['content'] )->toBe( 'Static title' )
+		->and( $resolved[1]['attributes']['_resolvedItems'] )->toBe( [
+			[ 'level' => 2, 'text' => 'Core Package', 'anchor' => 'core-package' ],
+		] );
+} );
+
+it( 'reads nested heading text from the matching content-tree inner block', function (): void {
+	$resolver = new TocResolver();
+
+	$tree = [
+		tocBlock( 'core/group', [], [
+			tocBlock( 'core/heading', [ 'level' => 3, 'content' => 'Static' ] ),
+		] ),
+	];
+
+	$contentTree                                               = $tree;
+	$contentTree[0]['innerBlocks'][0]['attributes']['content'] = 'Bound';
+
+	$resolved = $resolver->resolveTree( $tree, $contentTree );
+
+	expect( $resolved[0]['innerBlocks'][0]['attributes']['anchor'] )->toBe( 'bound' );
+} );
+
+it( 'skips a heading whose content-tree content is null (hidden binding)', function (): void {
+	$resolver = new TocResolver();
+
+	$tree = [
+		tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Static' ] ),
+		tocBlock( 'artisanpack/toc' ),
+	];
+
+	$contentTree                               = $tree;
+	$contentTree[0]['attributes']['content']   = null;
+
+	$resolved = $resolver->resolveTree( $tree, $contentTree );
+
+	expect( $resolved[0]['attributes'] )->not->toHaveKey( 'anchor' )
+		->and( $resolved[1]['attributes']['_resolvedItems'] )->toBe( [] );
+} );
+
+it( 'does not stamp an anchor when the content tree carries one from a binding', function (): void {
+	$resolver = new TocResolver();
+
+	$tree = [
+		tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Static' ] ),
+		tocBlock( 'artisanpack/toc' ),
+	];
+
+	$contentTree                              = $tree;
+	$contentTree[0]['attributes']['anchor']   = 'bound-anchor';
+
+	$resolved = $resolver->resolveTree( $tree, $contentTree );
+
+	expect( $resolved[0]['attributes'] )->not->toHaveKey( 'anchor' )
+		->and( $resolved[1]['attributes']['_resolvedItems'][0]['anchor'] )->toBe( 'bound-anchor' );
+} );
+
+it( 'falls back to the block\'s own content when the content-tree block type differs', function (): void {
+	$resolver = new TocResolver();
+
+	$tree = [
+		tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Own text' ] ),
+	];
+
+	$contentTree = [
+		tocBlock( 'core/paragraph', [ 'content' => 'Other text' ] ),
+	];
+
+	$resolved = $resolver->resolveTree( $tree, $contentTree );
+
+	expect( $resolved[0]['attributes']['anchor'] )->toBe( 'own-text' );
+} );
