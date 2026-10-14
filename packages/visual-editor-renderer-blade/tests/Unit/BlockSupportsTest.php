@@ -94,6 +94,18 @@ describe( 'BlockSupports::compile (color)', function (): void {
 		expect( $custom['classes'] )->toContain( 'has-text-color' );
 	} );
 
+	it( 'adds the exact pick class when the text color is a marker slug', function (): void {
+		$text   = BlockSupports::compile( [ 'textColor' => 'text' ] );
+		$link   = BlockSupports::compile( [ 'textColor' => 'link' ] );
+		$border = BlockSupports::compile( [ 'textColor' => 'border' ] );
+		$plain  = BlockSupports::compile( [ 'textColor' => 'primary' ] );
+
+		expect( $text['classes'] )->toContain( 'has-text-color-preset' )
+			->and( $link['classes'] )->toContain( 'has-link-color-preset' )
+			->and( $border['classes'] )->toContain( 'has-border-color-preset' )
+			->and( $plain['classes'] )->not->toContain( 'has-primary-color-preset' );
+	} );
+
 	it( 'gradient palette slug + custom both emit has-background; gradient inline uses `background:` shorthand', function (): void {
 		$slug   = BlockSupports::compile( [ 'gradient' => 'vivid-cyan' ] );
 		$custom = BlockSupports::compile( [

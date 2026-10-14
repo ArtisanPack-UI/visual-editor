@@ -136,6 +136,36 @@ describe( 'normalizeAttributes', () => {
 
         expect( normalized.iconRef ).toBeNull();
     } );
+
+    it.each( [
+        [ '{"set":"fab","name":"github"}', { set: 'fab', name: 'github' } ],
+        [ '{"set":"fab",', null ],
+        [ '{"set":"fab"}', null ],
+        [ 'fab github', null ],
+        [ '{"set":"../fab","name":"github"}', null ],
+        [ '{"set":"fab","name":"git/hub"}', null ],
+        [ '{"set":"fab","name":"git..hub"}', null ],
+    ] )( 'reads a bound iconRef JSON string %s', ( iconRef, expected ) => {
+        const normalized = normalizeAttributes( {
+            iconRef: iconRef as never,
+            customSvg: '',
+            size: 32,
+            sizeUnit: 'px',
+            color: '',
+            backgroundColor: '',
+            rotation: 0,
+            flipH: false,
+            flipV: false,
+            link: '',
+            linkTarget: '',
+            linkRel: '',
+            titleAttr: '',
+            ariaLabel: '',
+            isDecorative: false,
+        } );
+
+        expect( normalized.iconRef ).toEqual( expected );
+    } );
 } );
 
 describe( 'computeIconStyle', () => {

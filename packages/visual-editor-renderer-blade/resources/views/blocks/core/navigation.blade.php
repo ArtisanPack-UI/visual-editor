@@ -1,4 +1,5 @@
 @php
+	use ArtisanPackUI\VisualEditor\Resources\PresetRegistry;
 	use ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 
@@ -169,6 +170,10 @@
 	if ( '' !== $overlayTextSlug ) {
 		$overlayClasses[] = 'has-' . $overlayTextSlug . '-color';
 		$overlayClasses[] = 'has-text-color';
+
+		if ( null !== PresetRegistry::presetPickClass( $overlayTextSlug ) ) {
+			$overlayClasses[] = PresetRegistry::presetPickClass( $overlayTextSlug );
+		}
 	} elseif ( '' !== $overlayTextCustom ) {
 		$overlayStyles[]  = 'color: ' . $overlayTextCustom;
 		$overlayClasses[] = 'has-text-color';

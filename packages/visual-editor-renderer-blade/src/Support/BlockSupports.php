@@ -53,6 +53,7 @@ use ArtisanPackUI\VisualEditor\GradientBorder\GradientBorderEmitter;
 use ArtisanPackUI\VisualEditor\GradientBorder\GradientBorderResolver;
 use ArtisanPackUI\VisualEditor\Position\PositionEmitter;
 use ArtisanPackUI\VisualEditor\Position\PositionResolver;
+use ArtisanPackUI\VisualEditor\Resources\PresetRegistry;
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use ArtisanPackUI\VisualEditor\States\StateCssEmitter;
 use ArtisanPackUI\VisualEditor\States\StateRegistry;
@@ -1757,6 +1758,7 @@ class BlockSupports
 	 * caring whether the value came from a slug or a custom picker.
 	 *
 	 * @since 1.0.0
+	 * @since 1.14.1 Adds `has-{slug}-color-preset` for the `text` / `link` / `border` text-color slugs.
 	 *
 	 * @param  array<string, mixed>  $attributes
 	 * @param  array<int, string>   &$classes
@@ -1793,10 +1795,18 @@ class BlockSupports
 			$classes[] = 'has-background';
 		}
 
-		// Text color.
+		// Text color. A `text` / `link` / `border` slug's class doubles as
+		// a block-support marker, so those picks also carry the exact
+		// `has-{slug}-color-preset` class (see PresetRegistry::colorUtilityRules()).
 		if ( '' !== $textSlug ) {
 			$classes[] = 'has-' . self::slugify( $textSlug ) . '-color';
 			$classes[] = 'has-text-color';
+
+			$pickClass = PresetRegistry::presetPickClass( self::slugify( $textSlug ) );
+
+			if ( null !== $pickClass ) {
+				$classes[] = $pickClass;
+			}
 		} elseif ( '' !== $customText ) {
 			$style[]   = 'color: ' . self::expandPresetReference( $customText );
 			$classes[] = 'has-text-color';

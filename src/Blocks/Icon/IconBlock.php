@@ -21,10 +21,12 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Blocks\Icon;
 
+use ArrayObject;
 use ArtisanPackUI\VisualEditor\Blocks\DynamicBlock;
 use ArtisanPackUI\VisualEditor\Services\Icon\IconSvgResolver;
 use ArtisanPackUI\VisualEditor\Services\Icon\SvgSanitizer;
 use Generator;
+use stdClass;
 
 class IconBlock extends DynamicBlock
 {
@@ -501,10 +503,25 @@ class IconBlock extends DynamicBlock
 	}
 
 	/**
+	 * Accepts the `{set, name}` array the editor saves, or the same shape
+	 * as a JSON string, `stdClass` or `ArrayObject` — what a binding hands
+	 * over when the bound custom field stores its iconRef in a text column
+	 * with no cast, or casts it with `object` / `AsArrayObject`.
+	 *
+	 * @since 1.14.1 Accepts a JSON-encoded, `stdClass` or `ArrayObject` iconRef.
+	 *
 	 * @return array{set: string, name: string}|null
 	 */
 	private function normalizeIconRef( mixed $value ): ?array
 	{
+		if ( is_string( $value ) && str_starts_with( ltrim( $value ), '{' ) ) {
+			$value = json_decode( $value, true );
+		} elseif ( $value instanceof ArrayObject ) {
+			$value = $value->getArrayCopy();
+		} elseif ( $value instanceof stdClass ) {
+			$value = (array) $value;
+		}
+
 		if ( ! is_array( $value ) ) {
 			return null;
 		}
@@ -522,7 +539,7 @@ class IconBlock extends DynamicBlock
 		if ( ! preg_match( '/^[a-z0-9][a-z0-9_-]*$/i', $set ) ) {
 			return null;
 		}
-		if ( ! preg_match( '/^[a-z0-9][a-z0-9_.-]*$/i', $name ) ) {
+		if ( ! preg_match( '/^[a-z0-9][a-z0-9_.-]*$/i', $name ) || str_contains( $name, '..' ) ) {
 			return null;
 		}
 

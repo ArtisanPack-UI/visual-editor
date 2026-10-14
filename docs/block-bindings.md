@@ -55,6 +55,16 @@ static config. Fields registered through cms-framework's
 resource gets no fields, so the endpoint can't list the fields of
 content types the editor doesn't expose.
 
+### Binding an icon to a custom field
+
+*Since v1.14.1.* `artisanpack/icon`'s `iconRef` attribute accepts the
+`{"set": "fas", "name": "cube"}` shape as an array, a JSON string, a
+`stdClass` or an `ArrayObject`. A custom field can therefore store the
+iconRef in a `text` column without a cast, or cast it with `object` /
+`AsArrayObject`. The `set` and `name` are checked against the icon
+registry's character sets on both the server and in the editor preview;
+anything else renders the placeholder.
+
 ## Binding shape
 
 A binding is stored on the block as a top-level `bindings` sidecar

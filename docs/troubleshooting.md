@@ -126,6 +126,13 @@ component pack. Restyling is best-effort — some quirks:
 - **Color tokens.** The editor reads palette tokens from the active
   global-styles record. If colors look wrong, check `/global-styles/css`
   in DevTools to confirm the expected variables are emitted.
+- **Palette slugs named `text`, `link` or `border`.** Their color class
+  shares a name with the `has-text-color` / `has-link-color` /
+  `has-border-color` markers. Before v1.14.1 (cms-framework 2.14.1) the
+  slug's color was forced onto every block with a custom color, so a
+  button with a palette text color showed the theme's `text` color on the
+  front end. Upgrade both packages; the utilities are now scoped to real
+  picks of the slug.
 - **Dark mode.** Toggled by DaisyUI's `data-theme` attribute on a parent
   element. The editor inherits the host page's theme; flipping themes
   inside the editor without a remount produces inconsistent paint

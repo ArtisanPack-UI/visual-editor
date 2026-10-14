@@ -229,6 +229,7 @@ class ThemeJsonTokensCompiler
 		}
 
 		$lines = [];
+		$slugs = [];
 
 		foreach ( $palette as $entry ) {
 			if ( ! is_array( $entry ) ) {
@@ -249,10 +250,12 @@ class ThemeJsonTokensCompiler
 			$slug = $this->slug( $slug );
 			$var  = sprintf( 'var(--wp--preset--color--%s)', $slug );
 
-			$lines[] = sprintf( '.has-%s-color { color: %s !important; }', $slug, $var );
+			$slugs[] = $slug;
 			$lines[] = sprintf( '.has-%s-background-color { background-color: %s !important; }', $slug, $var );
 			$lines[] = sprintf( '.has-%s-border-color { border-color: %s !important; }', $slug, $var );
 		}
+
+		array_push( $lines, ...PresetRegistry::colorUtilityRules( $slugs ) );
 
 		return implode( "\n", $lines );
 	}

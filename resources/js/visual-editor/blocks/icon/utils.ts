@@ -124,14 +124,36 @@ function asStyleObject( value: unknown ): WpStyleAttribute {
     return value as WpStyleAttribute;
 }
 
+const ICON_SET_PATTERN  = /^[a-z0-9][a-z0-9_-]*$/i;
+const ICON_NAME_PATTERN = /^[a-z0-9][a-z0-9_.-]*$/i;
+
+/**
+ * Accepts the `{ set, name }` object the editor saves, or the same shape
+ * as a JSON string — what a binding hands over when the bound custom
+ * field stores its iconRef in a text column. Mirrors
+ * `IconBlock::normalizeIconRef()`.
+ */
 function asIconRef( value: unknown ): IconRef | null {
+    if ( typeof value === 'string' && value.trimStart().startsWith( '{' ) ) {
+        try {
+            value = JSON.parse( value );
+        } catch {
+            return null;
+        }
+    }
     if ( value === null || value === undefined || typeof value !== 'object' ) {
         return null;
     }
     const candidate = value as { set?: unknown; name?: unknown };
     const set = asString( candidate.set ).trim();
     const name = asString( candidate.name ).trim();
-    return set.length > 0 && name.length > 0 ? { set, name } : null;
+    // Same rules the server-side normalizer and icon registry apply
+    // (character sets, no `..` in the name), so the editor preview never
+    // requests a ref the front end would render as a placeholder.
+    if ( ! ICON_SET_PATTERN.test( set ) || ! ICON_NAME_PATTERN.test( name ) || name.includes( '..' ) ) {
+        return null;
+    }
+    return { set, name };
 }
 
 /**
