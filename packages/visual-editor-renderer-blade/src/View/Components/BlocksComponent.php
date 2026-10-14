@@ -191,15 +191,13 @@ class BlocksComponent extends Component
 		// were injected by a resolver (a post-content expansion inside
 		// a template part, for example) also participate in the TOC.
 		//
-		// Heading text is read from a binding-resolved copy of the tree
-		// (#851) so a bound heading's anchor and TOC entry follow the
-		// value it renders. The copy is only read: the renderer's own
-		// pass stays the single one that resolves rendered attrs.
+		// Heading text is read from a binding- and token-resolved copy
+		// of the tree (#851, #858) so a heading's anchor and TOC entry
+		// follow the value it renders. The copy is only read: the
+		// renderer's own pass stays the single one that resolves
+		// rendered attrs.
 		$resolved = $resolveToc
-			? $this->tocResolver->resolveTree(
-				$resolved,
-				$this->renderer->resolveBindings( $resolved, $this->bindingContext() ),
-			)
+			? $this->tocResolver->resolveTree( $resolved, $this->tocContentTree( $resolved ) )
 			: $resolved;
 
 		// Navigation resolution mirrors the editor's read path
@@ -286,6 +284,29 @@ class BlocksComponent extends Component
 		return null !== $this->bindingModel
 			? new BindingContext( $this->bindingModel )
 			: null;
+	}
+
+	/**
+	 * Copy of the tree the TOC pass reads heading text from, resolved in
+	 * the renderer's order: bindings, then inline `{{token}}`s.
+	 *
+	 * The token pass only runs when a heading or post-content attribute
+	 * actually holds a token, since every other block's tokens resolve
+	 * again in the real render.
+	 *
+	 * @since 1.13.1
+	 *
+	 * @param  array<int, array<string, mixed>>  $tree
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	protected function tocContentTree( array $tree ): array
+	{
+		$contentTree = $this->renderer->resolveBindings( $tree, $this->bindingContext() );
+
+		return $this->tocResolver->hasInlineTokens( $contentTree )
+			? $this->renderer->resolveInlineTokens( $contentTree )
+			: $contentTree;
 	}
 
 	/**

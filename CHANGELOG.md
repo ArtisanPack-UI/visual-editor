@@ -78,6 +78,15 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   anchors are unchanged, and a heading hidden by an empty binding no
   longer leaves an orphan TOC entry. `TocResolver::resolveTree()` takes
   an optional binding-resolved copy of the tree to read heading text from.
+- Headings with inline `{{token}}`s, including headings inside post
+  content, now get their auto-generated anchor and table-of-contents
+  entry from the token-resolved text (#858). A heading authored as
+  `About {{site.name}}` on a site named "Acme" renders `id="about-acme"`
+  rather than `id="about-site-name"`, and the TOC lists it as
+  "About Acme". Author-set anchors are unchanged, and nothing changes
+  when cms-framework's `DynamicContentResolver` isn't available. The
+  extra token pass only runs when a heading or post-content block holds
+  a token, and post-content HTML still resolves its tokens only once.
 
 ### Security
 
