@@ -96,6 +96,8 @@ export const CoverBlock = defineComponent({
                 // Cover always lays its inner container out as flex (#888).
                 'is-layout-flex',
                 'wp-block-cover-is-layout-flex',
+                // Duotone scope stamped by `stampDuotoneScopes()`.
+                attrString(props.attributes._veDuotone) || null,
                 align !== '' ? `align${align}` : null,
                 className,
             ]);

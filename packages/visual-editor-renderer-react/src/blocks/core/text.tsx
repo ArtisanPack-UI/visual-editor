@@ -6,7 +6,8 @@
  * React-rendered pages ship identical markup.
  */
 
-import { attrBoolean, attrInt, attrRecord, attrString, classList } from '../../support/attributes';
+import { attrBoolean, attrInt, attrRecord, attrString, classList, phpTrim } from '../../support/attributes';
+import { applyBackground } from '../../support/background';
 import { applyDimensions, hasDimensionStyle } from '../../support/dimensions';
 import { resolveAnchor } from '../../support/headingAnchors';
 import { presetClasses } from '../../support/presetClasses';
@@ -122,8 +123,7 @@ export function QuoteBlock({ attributes, children }: BlockRendererProps): JSX.El
     const className = attrString(attributes.className);
     const citation = attrString(attributes.citation);
     const classes = classList(['wp-block-quote', className]);
-    const dimensionStyle = applyDimensions(attributes);
-    const style = hasDimensionStyle(dimensionStyle) ? dimensionStyle : undefined;
+    const style = backgroundAndDimensions(attributes);
 
     return (
         <blockquote className={classes} style={style}>
@@ -160,8 +160,7 @@ export function VerseBlock({ attributes }: BlockRendererProps): JSX.Element {
         'wp-block-verse',
         textAlign !== '' ? `has-text-align-${textAlign}` : null,
     ]);
-    const dimensionStyle = applyDimensions(attributes);
-    const style = hasDimensionStyle(dimensionStyle) ? dimensionStyle : undefined;
+    const style = backgroundAndDimensions(attributes);
 
     return <pre className={classes} style={style} dangerouslySetInnerHTML={{ __html: content }} />;
 }
@@ -171,19 +170,34 @@ export function PullquoteBlock({ attributes }: BlockRendererProps): JSX.Element 
     const value = attrString(attributes.value);
     const citation = attrString(attributes.citation);
     const classes = classList(['wp-block-pullquote', className]);
-    const dimensionStyle = applyDimensions(attributes);
-    const style = hasDimensionStyle(dimensionStyle) ? dimensionStyle : undefined;
+    const style = backgroundAndDimensions(attributes);
 
     return (
         <figure className={classes} style={style}>
-            <blockquote>
-                {value.trim() !== '' ? (
-                    <span dangerouslySetInnerHTML={{ __html: value }} />
-                ) : null}
-                {citation.trim() !== '' ? (
-                    <cite dangerouslySetInnerHTML={{ __html: citation }} />
-                ) : null}
-            </blockquote>
+            {/* The value's HTML goes straight into the blockquote, as in
+                `pullquote.blade.php` (no wrapping element). */}
+            <blockquote dangerouslySetInnerHTML={{ __html: pullquoteInnerHtml(value, citation) }} />
         </figure>
     );
+}
+
+/**
+ * The wrapper style quote, pullquote and verse share: the background image
+ * (F-4) and then the dimensions, in `BlockSupports::compile()` order.
+ * `undefined` when neither is set.
+ */
+function backgroundAndDimensions(attributes: Record<string, unknown>): React.CSSProperties | undefined {
+    const dimensionStyle = applyDimensions(attributes);
+    const style = { ...applyBackground(attributes), ...(hasDimensionStyle(dimensionStyle) ? dimensionStyle : {}) };
+
+    return Object.keys(style).length > 0 ? (style as React.CSSProperties) : undefined;
+}
+
+/**
+ * The pullquote `<blockquote>` content, as `pullquote.blade.php` prints it:
+ * the value's HTML, then the citation in a `<cite>`, each only when it has
+ * non-whitespace content.
+ */
+function pullquoteInnerHtml(value: string, citation: string): string {
+    return (phpTrim(value) !== '' ? value : '') + (phpTrim(citation) !== '' ? `<cite>${citation}</cite>` : '');
 }

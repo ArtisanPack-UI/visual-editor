@@ -26,6 +26,7 @@ import '../../visual-editor-renderer-vue/src/index';
 import { BlockTree as VueBlockTree } from '../../visual-editor-renderer-vue/src/BlockTree';
 import '../../visual-editor-renderer-react/src/index';
 import { BlockTree as ReactBlockTree } from '../../visual-editor-renderer-react/src/BlockTree';
+import type { DuotonePresets } from '../../visual-editor-renderer-react/src/support/duotone';
 import type { TemplatePartRecord } from '../../visual-editor-renderer-react/src/templateParts';
 import type { Block } from '../../visual-editor-renderer-react/src/types';
 import { canonicalizeHtml } from '../canonicalize';
@@ -41,6 +42,13 @@ interface Fixture {
      * a TemplatePartResolver stub (`markupParityBindTemplateParts()`).
      */
     templateParts?: TemplatePartRecord[];
+    /**
+     * Optional theme duotone presets (`settings.color.duotone`), handed to
+     * `BlockTree`'s `duotonePresets` prop. The Pest suite seeds the same
+     * list as the request's resolved presets
+     * (`markupParitySeedDuotonePresets()`).
+     */
+    duotonePresets?: DuotonePresets;
 }
 
 /**
@@ -252,16 +260,16 @@ function canonicalOutput(html: string, name: string): string {
         : `${canonicalMarkup}\n${CSS_SECTION_DELIMITER}\n${canonicalCss}`;
 }
 
-function renderReact({ name, tree, templateParts }: Fixture): string {
+function renderReact({ name, tree, templateParts, duotonePresets }: Fixture): string {
     return canonicalOutput(
-        renderToStaticMarkup(createElement(ReactBlockTree, { tree, templateParts })),
+        renderToStaticMarkup(createElement(ReactBlockTree, { tree, templateParts, duotonePresets })),
         name
     );
 }
 
-async function renderVue({ name, tree, templateParts }: Fixture): Promise<string> {
+async function renderVue({ name, tree, templateParts, duotonePresets }: Fixture): Promise<string> {
     const app = createSSRApp({
-        render: () => vueH(VueBlockTree, { tree, templateParts }),
+        render: () => vueH(VueBlockTree, { tree, templateParts, duotonePresets }),
     });
 
     return canonicalOutput(await vueRenderToString(app), name);

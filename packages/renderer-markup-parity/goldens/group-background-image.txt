@@ -1,0 +1,23 @@
+<div class="wp-block-group is-layout-flow wp-block-group-is-layout-flow" style="background-image: url('https://example.com/hero.jpg'); background-size: contain; background-position: 50% 50%; background-repeat: no-repeat; background-attachment: fixed; --wp--style--block-gap: 2rem; min-height: 300px">
+  <p class="wp-block-paragraph">
+    "Group"
+  </p>
+</div>
+<blockquote class="wp-block-quote" style="background-image: url('/img/quote.png'); background-size: 200px auto; background-position: 25% 75%">
+  <p class="wp-block-paragraph">
+    "Quote"
+  </p>
+</blockquote>
+<figure class="wp-block-pullquote" style="background-image: url('https://example.com/pull.png'); background-size: cover; background-repeat: repeat-x; background-attachment: scroll">
+  <blockquote>
+    "Pull"
+  </blockquote>
+</figure>
+<pre class="wp-block-verse" style="background-image: url('https://example.com/verse.png'); background-size: cover; min-height: 10rem">
+  "Verse"
+</pre>
+<div class="entry-content wp-block-post-content is-layout-flow wp-block-post-content-is-layout-flow" style="background-image: url('https://example.com/body.png'); background-size: auto">
+  <p>
+    "Body"
+  </p>
+</div>

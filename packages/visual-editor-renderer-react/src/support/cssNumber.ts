@@ -10,6 +10,8 @@
  * @since 1.15.0
  */
 
+import { phpNumberFormat } from './phpNumberFormat';
+
 /**
  * Format `value` the way `BlockSupports::cssNumber()` does.
  */
@@ -30,7 +32,7 @@ export function cssNumber(value: number): string {
         return BigInt(Math.round(value)).toString();
     }
 
-    const fixed = value.toFixed(4).replace(/0+$/, '').replace(/\.$/, '');
+    const fixed = phpNumberFormat(value, 4).replace(/0+$/, '').replace(/\.$/, '');
 
     return fixed === '' || fixed === '-0' ? '0' : fixed;
 }

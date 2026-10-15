@@ -21,6 +21,7 @@
 
 declare( strict_types=1 );
 
+use ArtisanPackUI\VisualEditorRendererBlade\Services\DuotoneCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Tests\Support\CanonicalMarkup;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\View;
@@ -137,7 +138,12 @@ function markupParityDivergencesFor( string $name ): array
  * and this suite serves it through a TemplatePartResolver stub (see
  * markupParityBindTemplateParts()).
  *
- * @return array<string, array{0: string, 1: array<int, mixed>, 2: array<int, array<string, mixed>>}>
+ * A fixture may also carry `duotonePresets` (the theme's
+ * `settings.color.duotone`); the JS side hands it to `BlockTree`'s
+ * `duotonePresets` prop and this suite seeds it as the request's resolved
+ * presets (see markupParitySeedDuotonePresets()).
+ *
+ * @return array<string, array{0: string, 1: array<int, mixed>, 2: array<int, array<string, mixed>>, 3: array<int|string, mixed>}>
  */
 function markupParityFixtures(): array
 {
@@ -146,10 +152,24 @@ function markupParityFixtures(): array
 	$dataset = [];
 
 	foreach ( $json['fixtures'] as $fixture ) {
-		$dataset[ $fixture['name'] ] = [ $fixture['name'], $fixture['tree'], $fixture['templateParts'] ?? [] ];
+		$dataset[ $fixture['name'] ] = [ $fixture['name'], $fixture['tree'], $fixture['templateParts'] ?? [], $fixture['duotonePresets'] ?? [] ];
 	}
 
 	return $dataset;
+}
+
+/**
+ * Seeds a fixture's `duotonePresets` as the request's resolved
+ * `settings.color.duotone`, through the scoped accumulator's preset memo —
+ * the same list the JS side passes to `BlockTree`'s `duotonePresets` prop.
+ *
+ * @since 1.15.0
+ *
+ * @param  array<int|string, mixed>  $presets  Theme duotone presets.
+ */
+function markupParitySeedDuotonePresets( array $presets ): void
+{
+	app( DuotoneCssAccumulator::class )->presets( static fn (): array => $presets );
 }
 
 /**
@@ -330,9 +350,13 @@ function markupParityCanonicalCss( string $css ): string
 	return implode( "\n", $rules );
 }
 
-it( 'matches the golden markup shared with the React and Vue renderers', function ( string $name, array $tree, array $templateParts ): void {
+it( 'matches the golden markup shared with the React and Vue renderers', function ( string $name, array $tree, array $templateParts, array $duotonePresets ): void {
 	if ( [] !== $templateParts ) {
 		markupParityBindTemplateParts( $templateParts );
+	}
+
+	if ( [] !== $duotonePresets ) {
+		markupParitySeedDuotonePresets( $duotonePresets );
 	}
 
 	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );

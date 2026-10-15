@@ -7,7 +7,8 @@
  */
 
 import { defineComponent, h } from 'vue';
-import { attrBoolean, attrInt, attrRecord, attrString, classList } from '../../support/attributes';
+import { attrBoolean, attrInt, attrRecord, attrString, classList, phpTrim } from '../../support/attributes';
+import { applyBackground } from '../../support/background';
 import { applyDimensions, hasDimensionStyle } from '../../support/dimensions';
 import { resolveAnchor } from '../../support/headingAnchors';
 import { presetClasses } from '../../support/presetClasses';
@@ -152,11 +153,11 @@ export const QuoteBlock = defineComponent({
                 nodes.push(h('cite', { innerHTML: citation }));
             }
 
-            const dimensionStyle = applyDimensions(props.attributes);
+            const wrapperStyle = backgroundAndDimensions(props.attributes);
             const nodeProps: Record<string, unknown> = { class: classes };
 
-            if (hasDimensionStyle(dimensionStyle)) {
-                nodeProps.style = dimensionStyle;
+            if (wrapperStyle !== undefined) {
+                nodeProps.style = wrapperStyle;
             }
 
             return h('blockquote', nodeProps, nodes);
@@ -200,11 +201,11 @@ export const VerseBlock = defineComponent({
                 textAlign !== '' ? `has-text-align-${textAlign}` : null,
             ]);
 
-            const dimensionStyle = applyDimensions(props.attributes);
+            const wrapperStyle = backgroundAndDimensions(props.attributes);
             const nodeProps: Record<string, unknown> = { class: classes, innerHTML: content };
 
-            if (hasDimensionStyle(dimensionStyle)) {
-                nodeProps.style = dimensionStyle;
+            if (wrapperStyle !== undefined) {
+                nodeProps.style = wrapperStyle;
             }
 
             return h('pre', nodeProps);
@@ -221,24 +222,41 @@ export const PullquoteBlock = defineComponent({
             const value = attrString(props.attributes.value);
             const citation = attrString(props.attributes.citation);
             const classes = classList(['wp-block-pullquote', className]);
-            const quoteChildren = [];
 
-            if (value.trim() !== '') {
-                quoteChildren.push(h('span', { innerHTML: value }));
-            }
-
-            if (citation.trim() !== '') {
-                quoteChildren.push(h('cite', { innerHTML: citation }));
-            }
-
-            const dimensionStyle = applyDimensions(props.attributes);
+            const wrapperStyle = backgroundAndDimensions(props.attributes);
             const nodeProps: Record<string, unknown> = { class: classes };
 
-            if (hasDimensionStyle(dimensionStyle)) {
-                nodeProps.style = dimensionStyle;
+            if (wrapperStyle !== undefined) {
+                nodeProps.style = wrapperStyle;
             }
 
-            return h('figure', nodeProps, h('blockquote', null, quoteChildren));
+            // The value's HTML goes straight into the blockquote, as in
+            // `pullquote.blade.php` (no wrapping element).
+            return h('figure', nodeProps, [h('blockquote', { innerHTML: pullquoteInnerHtml(value, citation) })]);
         };
     },
 });
+
+/**
+ * The wrapper style for blocks with background-image support (F-4): the
+ * background image and then the dimensions, in `BlockSupports::compile()`
+ * order. `undefined` when neither is set.
+ */
+function backgroundAndDimensions(attributes: Record<string, unknown>): Record<string, string> | undefined {
+    const dimensionStyle = applyDimensions(attributes);
+    const style: Record<string, string> = {
+        ...(applyBackground(attributes) as Record<string, string>),
+        ...(hasDimensionStyle(dimensionStyle) ? (dimensionStyle as Record<string, string>) : {}),
+    };
+
+    return Object.keys(style).length > 0 ? style : undefined;
+}
+
+/**
+ * The pullquote `<blockquote>` content, as `pullquote.blade.php` prints it:
+ * the value's HTML, then the citation in a `<cite>`, each only when it has
+ * non-whitespace content.
+ */
+function pullquoteInnerHtml(value: string, citation: string): string {
+    return (phpTrim(value) !== '' ? value : '') + (phpTrim(citation) !== '' ? `<cite>${citation}</cite>` : '');
+}

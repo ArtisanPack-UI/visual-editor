@@ -51,10 +51,13 @@ export function ImageBlock({ attributes }: BlockRendererProps): JSX.Element {
     const sizeSlug = attrString(attributes.sizeSlug);
     const className = attrString(attributes.className);
 
+    // Blade order: base, size, duotone scope (stamped by
+    // `stampDuotoneScopes()`), then the supports' align and className.
     const figureClasses = classList([
         'wp-block-image',
-        align !== '' ? `align${align}` : null,
         sizeSlug !== '' ? `size-${sizeSlug}` : null,
+        attrString(attributes._veDuotone) || null,
+        align !== '' ? `align${align}` : null,
         className,
     ]);
 
