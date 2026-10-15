@@ -52,6 +52,65 @@ describe( 'BlockSupports::applyToRenderedHtml', function (): void {
 		);
 	} );
 
+	it( 'never lets a longhand override the handler\'s shorthand, or a shorthand its longhand (R-7)', function (): void {
+		$html = BlockSupports::applyToRenderedHtml(
+			'<div style="padding: 4px; background: #000">x</div>',
+			[ 'style' => [ 'color' => [ 'background' => '#fff' ], 'spacing' => [ 'padding' => [ 'top' => '3rem' ] ] ] ],
+		);
+
+		expect( $html )->toBe( '<div style="padding: 4px; background: #000" class="has-background">x</div>' );
+
+		$html = BlockSupports::applyToRenderedHtml(
+			'<div style="background-color: red; border-top-width: 2px; inset: 0">x</div>',
+			[ 'style' => [
+				'color'  => [ 'gradient' => 'linear-gradient(red, blue)' ],
+				'border' => [ 'width' => '1px', 'radius' => '4px' ],
+			] ],
+		);
+
+		expect( $html )->not->toContain( 'background: linear-gradient' )
+			->not->toContain( 'border-width: 1px' )
+			->toContain( 'border-radius: 4px' );
+	} );
+
+	it( 'still adds sibling longhands the handler did not set (R-7)', function (): void {
+		$html = BlockSupports::applyToRenderedHtml(
+			'<div style="padding-top: 4px">x</div>',
+			[ 'style' => [ 'spacing' => [ 'padding' => [ 'bottom' => '2rem' ], 'margin' => '1rem' ] ] ],
+		);
+
+		expect( $html )->toBe( '<div style="padding-top: 4px; padding-bottom: 2rem; margin: 1rem;">x</div>' );
+	} );
+
+	it( 'skips leading decorative elements when locating the wrapper (R-8)', function ( string $prefix ): void {
+		$html = BlockSupports::applyToRenderedHtml(
+			$prefix . '<div class="real">x</div>',
+			[ 'anchor' => 'install', 'className' => 'mine' ],
+		);
+
+		expect( $html )->toBe( $prefix . '<div class="real mine" id="install">x</div>' );
+	} )->with( [
+		'hidden svg'          => '<svg aria-hidden="true"></svg>',
+		'svg with children'   => '<svg viewBox="0 0 1 1"><g><svg></svg><path d="M0"/></g></svg>',
+		'hidden span'         => '<span aria-hidden="true"><span>*</span></span> ',
+		'self-closing hidden' => '<i aria-hidden=\'TRUE\'/>',
+		'hidden void element' => '<img src="/x.png" alt="" aria-hidden="true">',
+	] );
+
+	it( 'targets the element marked data-ve-wrapper (R-8)', function (): void {
+		$html = BlockSupports::applyToRenderedHtml(
+			'<div class="outer"><p class="intro" data-x="data-ve-wrapper">a</p><section data-ve-wrapper class="real">b</section></div>',
+			[ 'className' => 'mine' ],
+		);
+
+		expect( $html )->toBe( '<div class="outer"><p class="intro" data-x="data-ve-wrapper">a</p><section data-ve-wrapper class="real mine">b</section></div>' );
+	} );
+
+	it( 'merges nothing when only decorative elements are rendered (R-8)', function (): void {
+		expect( BlockSupports::applyToRenderedHtml( '<svg aria-hidden="true"></svg>', [ 'className' => 'mine' ] ) )
+			->toBe( '<svg aria-hidden="true"></svg>' );
+	} );
+
 	it( "keeps the handler's style verbatim, including semicolons inside values", function (): void {
 		$html = BlockSupports::applyToRenderedHtml(
 			'<div style="background-image: url(&quot;data:image/svg+xml;utf8,&lt;svg/&gt;&quot;)">x</div>',

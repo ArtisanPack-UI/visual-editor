@@ -589,16 +589,23 @@ class BlockSupports
 	 * Blade-partial blocks get their supports from {@see wrapperAttrs}.
 	 * Dynamic blocks render their own HTML, so the renderer pipes the
 	 * output through here instead: {@see compile} (plus animations) runs
-	 * against `$attributes` and the result is merged into the first
-	 * element of `$html`. Leading whitespace, comments, `<style>`,
-	 * `<script>`, `<template>`, `<noscript>`, `<link>` and `<meta>` are
-	 * skipped so a block that prints its own assets first still has its
-	 * real wrapper targeted.
+	 * against `$attributes` and the result is merged into the wrapper
+	 * element of `$html`:
+	 * - an element carrying a `data-ve-wrapper` attribute, when the
+	 *   handler marks one;
+	 * - otherwise the first element, skipping leading whitespace,
+	 *   comments, `<style>`, `<script>`, `<template>`, `<noscript>`,
+	 *   `<link>` and `<meta>` (so a block that prints its own assets first
+	 *   still has its real wrapper targeted) and leading decorative
+	 *   elements: any `<svg>` and any element with `aria-hidden="true"`,
+	 *   so the classes and anchor `id` never land on a hidden icon.
 	 *
 	 * The merge never overrides the handler's own output:
 	 * - classes are appended and deduped;
 	 * - a declaration is added only when the wrapper's `style` doesn't
-	 *   already set that property;
+	 *   already set that property, a shorthand that resets it (an existing
+	 *   `padding` blocks `padding-top`), or a longhand it would reset (an
+	 *   existing `background-color` blocks `background`);
 	 * - `id` and the animation `data-*` attributes are added only when
 	 *   absent.
 	 *
@@ -607,6 +614,9 @@ class BlockSupports
 	 * wrapper element to target or nothing to merge.
 	 *
 	 * @since 1.15.0
+	 *
+	 * A dynamic block that applies its supports itself, or renders no
+	 * wrapper of its own, opts out with `DynamicBlock::appliesOwnSupports()`.
 	 *
 	 * @param  string                $html        Block's pre-rendered HTML.
 	 * @param  array<string, mixed>  $attributes  Attribute payload to
@@ -1371,11 +1381,13 @@ class BlockSupports
 	}
 
 	/**
-	 * Find the first wrapper element in rendered HTML, skipping leading
-	 * whitespace, comments and non-visual asset elements. Returns the
-	 * opening tag's byte offset / length, element name, raw attribute
-	 * string and whether it was written self-closing — or `null` when
-	 * the output doesn't start with an element.
+	 * Find the wrapper element in rendered HTML: the first element with a
+	 * `data-ve-wrapper` attribute, else the first element after leading
+	 * whitespace, comments, non-visual asset elements and decorative
+	 * elements (`<svg>`, `aria-hidden="true"`). Returns the opening tag's
+	 * byte offset / length, element name, raw attribute string and whether
+	 * it was written self-closing — or `null` when there is no element to
+	 * target.
 	 *
 	 * @since 1.15.0
 	 *
@@ -1383,6 +1395,14 @@ class BlockSupports
 	 */
 	protected static function locateWrapperTag( string $html ): ?array
 	{
+		if ( 1 === preg_match( '/<[a-zA-Z][a-zA-Z0-9-]*\s(?:[^>"\']|"[^"]*"|\'[^\']*\')*?(?<=[\s"\'])data-ve-wrapper(?=[\s=\/>])/', $html, $marker, PREG_OFFSET_CAPTURE ) ) {
+			$tag = self::openingTagAt( $html, (int) $marker[0][1] );
+
+			if ( null !== $tag ) {
+				return $tag;
+			}
+		}
+
 		$offset = 0;
 		$length = strlen( $html );
 
@@ -1402,9 +1422,33 @@ class BlockSupports
 				continue;
 			}
 
-			break;
+			$tag = self::openingTagAt( $html, $offset );
+
+			if ( null === $tag || ! self::isDecorativeTag( $tag ) ) {
+				return $tag;
+			}
+
+			$end = self::elementEnd( $html, $tag );
+
+			if ( null === $end ) {
+				return null;
+			}
+
+			$offset = $end;
 		}
 
+		return null;
+	}
+
+	/**
+	 * Parse the opening tag that starts at `$offset`, or null.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @return array{offset: int, length: int, name: string, attributes: string, selfClosing: bool}|null
+	 */
+	protected static function openingTagAt( string $html, int $offset ): ?array
+	{
 		$pattern = '/\G<([a-zA-Z][a-zA-Z0-9-]*)((?:\s+[^\s=\/>"\']+(?:\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s"\'=<>`]+))?)*)\s*(\/?)>/';
 
 		if ( 1 !== preg_match( $pattern, $html, $match, 0, $offset ) ) {
@@ -1418,6 +1462,66 @@ class BlockSupports
 			'attributes'  => $match[2],
 			'selfClosing' => '/' === $match[3],
 		];
+	}
+
+	/**
+	 * Whether a leading element is decorative — an `<svg>` icon or any
+	 * element hidden from assistive technology with `aria-hidden="true"`
+	 * — and so never the block's wrapper.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  array{offset: int, length: int, name: string, attributes: string, selfClosing: bool}  $tag
+	 */
+	protected static function isDecorativeTag( array $tag ): bool
+	{
+		if ( 'svg' === strtolower( $tag['name'] ) ) {
+			return true;
+		}
+
+		$attrs = self::parseTagAttributes( $tag['attributes'] );
+
+		return isset( $attrs['aria-hidden'] )
+			&& 'true' === strtolower( trim( html_entity_decode( (string) $attrs['aria-hidden'][1], ENT_QUOTES | ENT_HTML5 ) ) );
+	}
+
+	/**
+	 * Byte offset just past the element whose opening tag is `$tag`:
+	 * past the tag itself for a void or self-closing element, else past
+	 * its matching closing tag (same-name nesting counted). Null when the
+	 * element is never closed.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  array{offset: int, length: int, name: string, attributes: string, selfClosing: bool}  $tag
+	 */
+	protected static function elementEnd( string $html, array $tag ): ?int
+	{
+		$end  = $tag['offset'] + $tag['length'];
+		$name = strtolower( $tag['name'] );
+
+		if ( $tag['selfClosing'] || in_array( $name, [ 'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'source', 'track', 'wbr' ], true ) ) {
+			return $end;
+		}
+
+		$depth   = 1;
+		$pattern = '/<(\/?)' . preg_quote( $tag['name'], '/' ) . '\b[^>]*?(\/?)>/i';
+
+		while ( 1 === preg_match( $pattern, $html, $match, PREG_OFFSET_CAPTURE, $end ) ) {
+			$end = (int) $match[0][1] + strlen( $match[0][0] );
+
+			if ( '/' === $match[1][0] ) {
+				--$depth;
+			} elseif ( '/' !== $match[2][0] ) {
+				++$depth;
+			}
+
+			if ( 0 === $depth ) {
+				return $end;
+			}
+		}
+
+		return null;
 	}
 
 	/**
@@ -1456,11 +1560,14 @@ class BlockSupports
 	}
 
 	/**
-	 * Append the compiled declarations whose property the existing
-	 * inline style doesn't set yet. The existing style is kept verbatim
-	 * — it is only scanned for property names — so a value holding a
-	 * `;` (e.g. a `data:` URI) survives untouched. Returns the merged
-	 * declaration list.
+	 * Append the compiled declarations that wouldn't override anything
+	 * the existing inline style sets (R-7). A compiled declaration is
+	 * skipped when the existing style sets the same property, a shorthand
+	 * that resets it, or a longhand it would reset — so `padding: 4px`
+	 * keeps a compiled `padding-top`, and `background-color` keeps a
+	 * compiled `background`. The existing style is kept verbatim — it is
+	 * only scanned for property names — so a value holding a `;` (e.g. a
+	 * `data:` URI) survives untouched. Returns the merged declaration list.
 	 *
 	 * @since 1.15.0
 	 */
@@ -1470,7 +1577,7 @@ class BlockSupports
 
 		preg_match_all( '/(?:^|;)\s*([a-zA-Z-]+)\s*:/', $existing, $matches );
 
-		$properties = array_fill_keys( array_map( 'strtolower', $matches[1] ), true );
+		$properties = array_values( array_unique( array_map( 'strtolower', $matches[1] ) ) );
 		$additions  = [];
 
 		foreach ( explode( ';', $compiled ) as $declaration ) {
@@ -1483,12 +1590,12 @@ class BlockSupports
 
 			$property = strtolower( trim( substr( $declaration, 0, $colon ) ) );
 
-			if ( isset( $properties[ $property ] ) ) {
+			if ( self::overlapsAnyProperty( $property, $properties ) ) {
 				continue;
 			}
 
-			$properties[ $property ] = true;
-			$additions[]             = $declaration;
+			$properties[] = $property;
+			$additions[]  = $declaration;
 		}
 
 		if ( [] === $additions ) {
@@ -1498,6 +1605,68 @@ class BlockSupports
 		$prefix = '' === $existing ? '' : rtrim( $existing, '; ' ) . '; ';
 
 		return $prefix . implode( '; ', $additions ) . ';';
+	}
+
+	/**
+	 * Whether `$property` is, resets, or is reset by any of `$properties`.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  string              $property    Lower-cased property name.
+	 * @param  array<int, string>  $properties  Lower-cased property names.
+	 */
+	protected static function overlapsAnyProperty( string $property, array $properties ): bool
+	{
+		foreach ( $properties as $other ) {
+			if ( $other === $property || self::shorthandResets( $other, $property ) || self::shorthandResets( $property, $other ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Whether the shorthand `$shorthand` resets the property `$longhand`.
+	 * Covers the families block supports write: `padding`, `margin`,
+	 * `background`, `font` (plus `line-height`), `border` and its side,
+	 * width, style, color and radius shorthands, `inset`, `gap`,
+	 * `outline` and `text-decoration`. Custom properties are never
+	 * shorthands.
+	 *
+	 * @since 1.15.0
+	 */
+	protected static function shorthandResets( string $shorthand, string $longhand ): bool
+	{
+		if ( str_starts_with( $shorthand, '--' ) || str_starts_with( $longhand, '--' ) ) {
+			return false;
+		}
+
+		if ( 'border' === $shorthand ) {
+			return str_starts_with( $longhand, 'border-' )
+				&& ! str_contains( $longhand, 'radius' )
+				&& ! in_array( $longhand, [ 'border-collapse', 'border-spacing' ], true );
+		}
+
+		if ( 1 === preg_match( '/^border-(width|style|color|radius)$/', $shorthand, $part ) ) {
+			return 1 === preg_match( '/^border-[a-z]+(?:-[a-z]+)?-' . $part[1] . '$/', $longhand );
+		}
+
+		$extra = [
+			'font'  => [ 'line-height' ],
+			'inset' => [ 'top', 'right', 'bottom', 'left' ],
+			'gap'   => [ 'row-gap', 'column-gap' ],
+		];
+
+		if ( in_array( $longhand, $extra[ $shorthand ] ?? [], true ) ) {
+			return true;
+		}
+
+		$prefixed = [ 'padding', 'margin', 'background', 'font', 'inset', 'outline', 'text-decoration', 'border-top', 'border-right', 'border-bottom', 'border-left', 'border-block', 'border-inline', 'border-block-start', 'border-block-end', 'border-inline-start', 'border-inline-end' ];
+
+		return in_array( $shorthand, $prefixed, true )
+			&& str_starts_with( $longhand, $shorthand . '-' )
+			&& ! ( str_starts_with( $shorthand, 'border-' ) && str_contains( $longhand, 'radius' ) );
 	}
 
 	/**
