@@ -29,6 +29,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditor\Services\Bindings\Sources;
 
 use ArrayAccess;
+use ArtisanPackUI\VisualEditor\Services\Bindings\BindingAttributeAllowlist;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BlockBindingSource;
 use ArtisanPackUI\VisualEditor\Services\Bindings\ModelAttributeVisibility;
@@ -61,11 +62,19 @@ class RelationSource implements BlockBindingSource
 		$current  = $model;
 
 		foreach ( $segments as $segment ) {
-			$current = $this->walkSegment( $current, $segment );
+			$current = $this->walkSegment( $current, $segment, $model, $path );
 
 			if ( null === $current ) {
 				return null;
 			}
+		}
+
+		// With the allowlist enforced (#869), a path that ends on a
+		// related record (or a list of them) would publish every
+		// attribute that record serializes, bypassing the per-attribute
+		// check. Only scalar leaves are allowed.
+		if ( BindingAttributeAllowlist::isEnforced() && $this->containsModel( $current ) ) {
+			return null;
 		}
 
 		return $current;
@@ -121,8 +130,14 @@ class RelationSource implements BlockBindingSource
 	 * the segment is missing.
 	 *
 	 * @since 1.1.0
+	 * @since 1.15.0 Takes the root model and path for the allowlist check (#869).
+	 *
+	 * @param  mixed       $current  Value reached so far.
+	 * @param  string      $segment  Next path segment.
+	 * @param  Model|null  $root     The binding's parent record.
+	 * @param  string      $path     Full binding path.
 	 */
-	protected function walkSegment( mixed $current, string $segment ): mixed
+	protected function walkSegment( mixed $current, string $segment, ?Model $root = null, string $path = '' ): mixed
 	{
 		if ( '' === $segment ) {
 			return null;
@@ -144,6 +159,12 @@ class RelationSource implements BlockBindingSource
 				return null;
 			}
 
+			// Related records are gated by the opt-in allowlist (#869);
+			// the parent record's own attributes are not.
+			if ( $current !== $root && ! BindingAttributeAllowlist::allows( $current, $segment, $path ) ) {
+				return null;
+			}
+
 			return $current->getAttribute( $segment );
 		}
 
@@ -152,7 +173,7 @@ class RelationSource implements BlockBindingSource
 				return $current->get( (int) $segment );
 			}
 
-			return $current->map( fn ( $item ) => $this->walkSegment( $item, $segment ) )
+			return $current->map( fn ( $item ) => $this->walkSegment( $item, $segment, $root, $path ) )
 				->filter( fn ( $v ): bool => null !== $v )
 				->values()
 				->all();
@@ -173,5 +194,33 @@ class RelationSource implements BlockBindingSource
 		}
 
 		return null;
+	}
+
+	/**
+	 * True when `$value` is a model, or a list that holds one at any depth.
+	 *
+	 * @since 1.15.0
+	 */
+	protected function containsModel( mixed $value ): bool
+	{
+		if ( $value instanceof Model ) {
+			return true;
+		}
+
+		if ( $value instanceof Collection ) {
+			$value = $value->all();
+		}
+
+		if ( ! is_array( $value ) ) {
+			return false;
+		}
+
+		foreach ( $value as $item ) {
+			if ( $this->containsModel( $item ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 }

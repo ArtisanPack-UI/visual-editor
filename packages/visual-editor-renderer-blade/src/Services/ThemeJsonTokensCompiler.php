@@ -12,8 +12,10 @@
  *      references those tokens (every Gutenberg core block's preset
  *      attributes do) just works on the public site without each consumer
  *      re-implementing the bridge. Categories covered:
- *      `color.palette[]`, `color.gradient[]`, `typography.fontSizes[]`,
- *      `spacing.spacingSizes[]`.
+ *      `color.palette[]`, `color.gradients[]` (with the legacy
+ *      `color.gradient[]` key as a fallback), `typography.fontSizes[]`,
+ *      `typography.fontFamilies[]`, `spacing.spacingSizes[]`,
+ *      `shadow.presets[]`.
  *
  *   2. `styles.*` → CSS rules at three levels:
  *      - Root styles (`styles.color`, `styles.typography`, `styles.spacing`,
@@ -96,9 +98,11 @@ class ThemeJsonTokensCompiler
 
 		$declarations = array_merge(
 			$this->compilePresetList( $settings, [ 'color', 'palette' ], 'color', 'color' ),
-			$this->compilePresetList( $settings, [ 'color', 'gradient' ], 'gradient', 'gradient' ),
+			$this->compilePresetList( $settings, $this->gradientsPath( $settings ), 'gradient', 'gradient' ),
 			$this->compilePresetList( $settings, [ 'typography', 'fontSizes' ], 'font-size', 'size' ),
+			$this->compilePresetList( $settings, [ 'typography', 'fontFamilies' ], 'font-family', 'fontFamily' ),
 			$this->compilePresetList( $settings, [ 'spacing', 'spacingSizes' ], 'spacing', 'size' ),
+			$this->compilePresetList( $settings, [ 'shadow', 'presets' ], 'shadow', 'shadow' ),
 			$this->compileLayoutSizes( $settings ),
 		);
 
@@ -211,7 +215,31 @@ class ThemeJsonTokensCompiler
 			$rules[] = $fontSizes;
 		}
 
+		$fontFamilies = $this->compileFontFamilyUtilityRules( $settings );
+		if ( '' !== $fontFamilies ) {
+			$rules[] = $fontFamilies;
+		}
+
 		return implode( "\n\n", $rules );
+	}
+
+	/**
+	 * Path to the theme's gradient presets (#872). theme.json v2 / v3
+	 * spell the key `color.gradients`; the singular `color.gradient`
+	 * this compiler originally read is kept as a fallback so themes
+	 * written against it keep their tokens.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  array<string, mixed>  $settings  `themeJson.settings` payload.
+	 *
+	 * @return array{0: string, 1: string}
+	 */
+	protected function gradientsPath( array $settings ): array
+	{
+		return is_array( $settings['color']['gradients'] ?? null )
+			? [ 'color', 'gradients' ]
+			: [ 'color', 'gradient' ];
 	}
 
 	/**
@@ -262,13 +290,16 @@ class ThemeJsonTokensCompiler
 
 	/**
 	 * Emit `.has-{slug}-gradient-background` for each entry in
-	 * `settings.color.gradient`.
+	 * `settings.color.gradients` (or the legacy `settings.color.gradient`).
+	 *
+	 * @since 1.15.0 Reads `color.gradients`, keeping `color.gradient` as a fallback (#872).
 	 *
 	 * @param  array<string, mixed>  $settings
 	 */
 	protected function compileGradientUtilityRules( array $settings ): string
 	{
-		$gradients = $settings['color']['gradient'] ?? null;
+		[ $group, $key ] = $this->gradientsPath( $settings );
+		$gradients       = $settings[ $group ][ $key ] ?? null;
 		if ( ! is_array( $gradients ) ) {
 			return '';
 		}
@@ -330,6 +361,49 @@ class ThemeJsonTokensCompiler
 
 			$lines[] = sprintf(
 				'.has-%s-font-size { font-size: var(--wp--preset--font-size--%s) !important; }',
+				$slug,
+				$slug,
+			);
+		}
+
+		return implode( "\n", $lines );
+	}
+
+	/**
+	 * Emit `.has-{slug}-font-family` for each entry in
+	 * `settings.typography.fontFamilies` (#872). A preset font-family
+	 * pick renders only that class — the inline `font-family` is skipped
+	 * on purpose — so without these rules the pick did nothing.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  array<string, mixed>  $settings
+	 */
+	protected function compileFontFamilyUtilityRules( array $settings ): string
+	{
+		$fontFamilies = $settings['typography']['fontFamilies'] ?? null;
+		if ( ! is_array( $fontFamilies ) ) {
+			return '';
+		}
+
+		$lines = [];
+
+		foreach ( $fontFamilies as $entry ) {
+			if ( ! is_array( $entry ) ) {
+				continue;
+			}
+
+			$slug  = isset( $entry['slug'] ) && is_string( $entry['slug'] ) ? trim( $entry['slug'] ) : '';
+			$value = isset( $entry['fontFamily'] ) && is_string( $entry['fontFamily'] ) ? trim( $entry['fontFamily'] ) : '';
+
+			if ( '' === $slug || '' === $value ) {
+				continue;
+			}
+
+			$slug = $this->slug( $slug );
+
+			$lines[] = sprintf(
+				'.has-%s-font-family { font-family: var(--wp--preset--font-family--%s) !important; }',
 				$slug,
 				$slug,
 			);
@@ -911,9 +985,11 @@ class ThemeJsonTokensCompiler
 	 * Entries missing either `slug` or the value key are skipped silently
 	 * — theme.json validation is the consumer's responsibility, the
 	 * compiler stays defensive so a malformed entry doesn't blow up the
-	 * whole render.
+	 * whole render. Values that could break out of the `<style>` block
+	 * are skipped the same way ({@see isPrintablePresetValue()}).
 	 *
 	 * @since 1.0.0
+	 * @since 1.15.0 Skips values that could break out of the `<style>` block.
 	 *
 	 * @param  array<string, mixed>  $settings
 	 * @param  array{0: string, 1: string}  $path
@@ -938,7 +1014,7 @@ class ThemeJsonTokensCompiler
 			$slug  = isset( $entry['slug'] ) && is_string( $entry['slug'] ) ? trim( $entry['slug'] ) : '';
 			$value = isset( $entry[ $valueKey ] ) && is_string( $entry[ $valueKey ] ) ? trim( $entry[ $valueKey ] ) : '';
 
-			if ( '' === $slug || '' === $value ) {
+			if ( '' === $slug || '' === $value || ! $this->isPrintablePresetValue( $value ) ) {
 				continue;
 			}
 
@@ -951,6 +1027,41 @@ class ThemeJsonTokensCompiler
 		}
 
 		return $declarations;
+	}
+
+	/**
+	 * Whether a preset value can be written into the `<style>` block
+	 * as-is. The compiled tokens are printed unescaped, so a value that
+	 * closes the declaration or rule (`; { }`), the element (`< >`),
+	 * opens a comment, smuggles a CSS escape, or breaks the line is
+	 * dropped. Quotes stay allowed — font-family stacks and some
+	 * gradients need them — but each kind must be balanced, as must the
+	 * parentheses: an unterminated string or `(` swallows every rule
+	 * after it in the same block.
+	 *
+	 * @since 1.15.0
+	 */
+	protected function isPrintablePresetValue( string $value ): bool
+	{
+		if ( 1 === preg_match( '#[;{}<>\\\\\x00-\x1F\x7F]|/\*|\*/#', $value ) ) {
+			return false;
+		}
+
+		if ( 0 !== substr_count( $value, '"' ) % 2 || 0 !== substr_count( $value, "'" ) % 2 ) {
+			return false;
+		}
+
+		$depth = 0;
+
+		foreach ( str_split( $value ) as $char ) {
+			if ( '(' === $char ) {
+				++$depth;
+			} elseif ( ')' === $char && --$depth < 0 ) {
+				return false;
+			}
+		}
+
+		return 0 === $depth;
 	}
 
 	/**

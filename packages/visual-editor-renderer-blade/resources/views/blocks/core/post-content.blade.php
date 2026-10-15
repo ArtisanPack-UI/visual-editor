@@ -8,10 +8,13 @@
 	// layout-supporting block, but the wrapper never surfaced it. Without
 	// `is-layout-constrained` here the content-size containment rules
 	// `ThemeJsonTokensCompiler` emits for `.wp-block-post-content` can
-	// never match.
+	// never match. #871 — its own content / wide size and justification
+	// ride on a hashed `wp-container-*` scope.
+	$layoutClass = LayoutSupport::layoutClass( $attributes );
 	$baseClasses = array_merge(
 		[ 'entry-content', 'wp-block-post-content' ],
-		LayoutSupport::wrapperForBlock( $attributes, 'post-content' )
+		LayoutSupport::pair( 'post-content', $layoutClass ),
+		LayoutSupport::containerClasses( $attributes, 'post-content', $layoutClass )
 	);
 @endphp
 <div{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}>{!! $content !!}</div>

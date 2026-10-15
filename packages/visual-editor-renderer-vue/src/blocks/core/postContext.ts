@@ -96,6 +96,8 @@ export const PostContentBlock = defineComponent({
                 'entry-content',
                 'wp-block-post-content',
                 ...layoutWrapperForBlock(props.attributes, 'post-content'),
+                // Per-instance layout scope stamped by `stampLayoutScopes()` (#871).
+                attrString(props.attributes._veLayoutScope) || null,
                 align !== '' ? `has-text-align-${align}` : null,
                 className,
             ]);

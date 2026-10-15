@@ -1361,6 +1361,339 @@
                     ]
                 }
             ]
+        },
+        {
+            "name": "group-layout-constrained-sizes",
+            "tree": [
+                {
+                    "clientId": "group-layout-constrained-sizes",
+                    "name": "core/group",
+                    "attributes": {
+                        "layout": {
+                            "type": "constrained",
+                            "contentSize": "640px",
+                            "wideSize": "1200px",
+                            "justifyContent": "left"
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "group-layout-constrained-sizes-a",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "One"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "group-layout-constrained-sizes-b",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Two"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "group-layout-constrained-justify-only",
+            "tree": [
+                {
+                    "clientId": "group-layout-constrained-justify-only",
+                    "name": "core/group",
+                    "attributes": {
+                        "layout": {
+                            "type": "constrained",
+                            "justifyContent": "right"
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "group-layout-constrained-justify-only-a",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "One"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "group-layout-constrained-justify-only-b",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Two"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "group-layout-constrained-unsafe-size",
+            "tree": [
+                {
+                    "clientId": "group-layout-constrained-unsafe-size",
+                    "name": "core/group",
+                    "attributes": {
+                        "layout": {
+                            "type": "constrained",
+                            "contentSize": "640px;}body{color:red",
+                            "wideSize": "calc(100% - 2rem"
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "group-layout-constrained-unsafe-size-a",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "One"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "group-layout-constrained-unsafe-size-b",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Two"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "group-layout-flex-row",
+            "tree": [
+                {
+                    "clientId": "group-layout-flex-row",
+                    "name": "core/group",
+                    "attributes": {
+                        "layout": {
+                            "type": "flex",
+                            "flexWrap": "nowrap",
+                            "justifyContent": "space-between",
+                            "verticalAlignment": "center"
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "group-layout-flex-row-a",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "One"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "group-layout-flex-row-b",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Two"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "group-layout-flex-stack",
+            "tree": [
+                {
+                    "clientId": "group-layout-flex-stack",
+                    "name": "core/group",
+                    "attributes": {
+                        "layout": {
+                            "type": "flex",
+                            "orientation": "vertical",
+                            "justifyContent": "center",
+                            "verticalAlignment": "space-between"
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "group-layout-flex-stack-a",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "One"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "group-layout-flex-stack-b",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Two"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "group-layout-grid-columns",
+            "tree": [
+                {
+                    "clientId": "group-layout-grid-columns",
+                    "name": "core/group",
+                    "attributes": {
+                        "layout": {
+                            "type": "grid",
+                            "columnCount": 3
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "group-layout-grid-columns-a",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "One"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "group-layout-grid-columns-b",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Two"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "group-layout-grid-default",
+            "tree": [
+                {
+                    "clientId": "group-layout-grid-default",
+                    "name": "core/group",
+                    "attributes": {
+                        "layout": {
+                            "type": "grid"
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "group-layout-grid-default-a",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "One"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "group-layout-grid-default-b",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Two"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "artisanpack-group-layout-grid-responsive",
+            "tree": [
+                {
+                    "clientId": "artisanpack-group-layout-grid-responsive",
+                    "name": "artisanpack/group",
+                    "attributes": {
+                        "layout": {
+                            "type": "grid",
+                            "columnCount": 4,
+                            "minimumColumnWidth": "14rem"
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "artisanpack-group-layout-grid-responsive-a",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "One"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "artisanpack-group-layout-grid-responsive-b",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Two"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "group-layout-shared-scope",
+            "tree": [
+                {
+                    "clientId": "gs-1",
+                    "name": "core/group",
+                    "attributes": {
+                        "layout": {
+                            "type": "grid",
+                            "columnCount": 2
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "gs-1-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "A"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                },
+                {
+                    "clientId": "gs-2",
+                    "name": "core/group",
+                    "attributes": {
+                        "layout": {
+                            "type": "grid",
+                            "columnCount": 2
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "gs-2-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "B"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "post-content-constrained-sizes",
+            "tree": [
+                {
+                    "clientId": "pc-sizes",
+                    "name": "core/post-content",
+                    "attributes": {
+                        "layout": {
+                            "type": "constrained",
+                            "contentSize": "700px"
+                        },
+                        "_resolvedContent": "<p>Body</p>"
+                    },
+                    "innerBlocks": []
+                }
+            ]
         }
     ]
 }

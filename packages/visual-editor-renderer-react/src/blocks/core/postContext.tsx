@@ -92,6 +92,8 @@ export function PostContentBlock({ attributes }: BlockRendererProps): JSX.Elemen
         'entry-content',
         'wp-block-post-content',
         ...layoutWrapperForBlock(attributes, 'post-content'),
+        // Per-instance layout scope stamped by `stampLayoutScopes()` (#871).
+        attrString(attributes._veLayoutScope) || null,
         align !== '' ? `has-text-align-${align}` : null,
         className,
     ]);

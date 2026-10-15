@@ -691,3 +691,156 @@ describe( 'styles.elements pseudo-states and selectors (#852)', function (): voi
 		expect( $css )->not->toContain( ':hover' );
 	} );
 } );
+
+describe( 'shadow, gradient and font-family presets (#872)', function (): void {
+	beforeEach( function (): void {
+		config()->set( 'artisanpack.visual-editor.presets', [] );
+	} );
+
+	it( 'declares --wp--preset--shadow--{slug} from settings.shadow.presets', function (): void {
+		$css = $this->compiler->compile( [
+			'settings' => [
+				'shadow' => [
+					'presets' => [
+						[ 'slug' => 'natural', 'shadow' => '6px 6px 9px rgba(0, 0, 0, 0.2)' ],
+						[ 'slug' => 'neon-glow', 'shadow' => '0 0 12px #0ff' ],
+						[ 'slug' => 'missing-value' ],
+					],
+				],
+			],
+		] );
+
+		expect( $css )
+			->toContain( '--wp--preset--shadow--natural: 6px 6px 9px rgba(0, 0, 0, 0.2);' )
+			->toContain( '--wp--preset--shadow--neon-glow: 0 0 12px #0ff;' )
+			->not->toContain( 'missing-value' );
+	} );
+
+	it( 'reads gradients from settings.color.gradients', function (): void {
+		$css = $this->compiler->compile( [
+			'settings' => [
+				'color' => [
+					'gradients' => [
+						[ 'slug' => 'sunrise', 'gradient' => 'linear-gradient(90deg, #f60, #fc0)' ],
+					],
+				],
+			],
+		] );
+
+		expect( $css )
+			->toContain( '--wp--preset--gradient--sunrise: linear-gradient(90deg, #f60, #fc0);' )
+			->toContain( '.has-sunrise-gradient-background { background: var(--wp--preset--gradient--sunrise) !important; }' );
+	} );
+
+	it( 'prefers settings.color.gradients over the legacy gradient key', function (): void {
+		$css = $this->compiler->compile( [
+			'settings' => [
+				'color' => [
+					'gradients' => [ [ 'slug' => 'current', 'gradient' => 'linear-gradient(red, blue)' ] ],
+					'gradient'  => [ [ 'slug' => 'legacy', 'gradient' => 'linear-gradient(green, blue)' ] ],
+				],
+			],
+		] );
+
+		expect( $css )
+			->toContain( '--wp--preset--gradient--current:' )
+			->not->toContain( 'legacy' );
+	} );
+
+	it( 'declares font-family presets and binds has-{slug}-font-family to them', function (): void {
+		$css = $this->compiler->compile( [
+			'settings' => [
+				'typography' => [
+					'fontFamilies' => [
+						[ 'slug' => 'display', 'name' => 'Display', 'fontFamily' => '"Space Grotesk", sans-serif' ],
+						[ 'name' => 'No slug', 'fontFamily' => 'serif' ],
+					],
+				],
+			],
+		] );
+
+		expect( $css )
+			->toContain( '--wp--preset--font-family--display: "Space Grotesk", sans-serif;' )
+			->toContain( '.has-display-font-family { font-family: var(--wp--preset--font-family--display) !important; }' )
+			->not->toContain( 'No slug' );
+	} );
+
+	it( 'declares the default font families and their utility classes', function (): void {
+		$css = $this->compiler->compileDefaults( null );
+
+		expect( $css )
+			->toContain( '--wp--preset--font-family--serif: Georgia, Cambria, "Times New Roman", Times, serif;' )
+			->toContain( '.has-mono-font-family { font-family: var(--wp--preset--font-family--mono) !important; }' );
+	} );
+
+	it( 'layers theme and host font families over the defaults', function (): void {
+		config()->set( 'artisanpack.visual-editor.presets.font_families', [
+			[ 'slug' => 'brand', 'fontFamily' => '"Brand Sans", sans-serif' ],
+		] );
+
+		$css = $this->compiler->compileDefaults( [
+			'settings' => [
+				'typography' => [
+					'fontFamilies' => [ [ 'slug' => 'serif', 'fontFamily' => '"Lora", serif' ] ],
+				],
+			],
+		] );
+
+		expect( $css )
+			->toContain( '--wp--preset--font-family--serif: "Lora", serif;' )
+			->toContain( '--wp--preset--font-family--system:' )
+			->toContain( '--wp--preset--font-family--brand: "Brand Sans", sans-serif;' )
+			->toContain( '.has-brand-font-family' );
+	} );
+
+	it( 'skips theme preset values that could break out of the style block', function ( string $value ): void {
+		$css = $this->compiler->compile( [
+			'settings' => [
+				'shadow'     => [ 'presets' => [ [ 'slug' => 'bad', 'shadow' => $value ] ] ],
+				'typography' => [ 'fontFamilies' => [ [ 'slug' => 'ok', 'fontFamily' => '"Inter", sans-serif' ] ] ],
+			],
+		] );
+
+		expect( $css )
+			->not->toContain( 'shadow--bad' )
+			->toContain( '--wp--preset--font-family--ok: "Inter", sans-serif;' );
+	} )->with( [
+		'tag breakout'      => [ '0 0 1px red</style><script>alert(1)</script>' ],
+		'declaration break' => [ '0 0 1px red;}body{display:none' ],
+		'comment'           => [ '0 0 1px red /*' ],
+		'newline'           => [ "0 0 1px red\n}" ],
+		'unbalanced quote'  => [ '0 0 1px "red' ],
+		'unbalanced paren'  => [ '0 0 1px rgba(0, 0, 0' ],
+		'stray close paren' => [ '0 0 1px red)(' ],
+	] );
+
+	it( 'skips theme font families with an unbalanced quote', function (): void {
+		$css = $this->compiler->compile( [
+			'settings' => [
+				'typography' => [
+					'fontFamilies' => [
+						[ 'slug' => 'broken', 'fontFamily' => '"Open Sans, serif' ],
+						[ 'slug' => 'display', 'fontFamily' => '"Space Grotesk", sans-serif' ],
+					],
+				],
+			],
+		] );
+
+		expect( $css )
+			->not->toContain( '--wp--preset--font-family--broken:' )
+			->toContain( '--wp--preset--font-family--display: "Space Grotesk", sans-serif;' );
+	} );
+
+	it( 'drops unsafe font-family values', function ( string $family ): void {
+		config()->set( 'artisanpack.visual-editor.presets.font_families', [
+			[ 'slug' => 'bad', 'fontFamily' => $family ],
+		] );
+
+		expect( $this->compiler->compileDefaults( null ) )->not->toContain( 'font-family--bad' );
+	} )->with( [
+		'declaration break' => [ 'serif;}body{color:red' ],
+		'unbalanced quote'  => [ '"Open Sans, serif' ],
+		'tag breakout'      => [ 'serif</style><script>' ],
+		'comment'           => [ 'serif /* x' ],
+	] );
+} );

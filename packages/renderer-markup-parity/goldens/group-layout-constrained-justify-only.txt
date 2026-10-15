@@ -1,0 +1,10 @@
+<div class="wp-block-group is-layout-constrained wp-block-group-is-layout-constrained wp-container-283744cafd23">
+  <p class="wp-block-paragraph">
+    "One"
+  </p>
+  <p class="wp-block-paragraph">
+    "Two"
+  </p>
+</div>
+@@ renderer-instance-css @@
+.wp-block-group.wp-block-group-is-layout-constrained.wp-container-283744cafd23 > :where(:not(.alignleft):not(.alignright):not(.alignfull)){margin-right:0 !important;}

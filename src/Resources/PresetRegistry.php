@@ -95,6 +95,21 @@ class PresetRegistry
 	];
 
 	/**
+	 * Package default font families. Mirrors `DEFAULT_FONT_FAMILIES` in
+	 * `editor-settings.ts` (slug + fontFamily only) so the front end
+	 * declares the `--wp--preset--font-family--*` properties and
+	 * `.has-{slug}-font-family` classes the editor's picker offers when
+	 * a theme ships no `fontFamilies` (#872).
+	 *
+	 * @since 1.15.0
+	 */
+	public const DEFAULT_FONT_FAMILIES = [
+		[ 'slug' => 'system', 'fontFamily' => 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' ],
+		[ 'slug' => 'serif', 'fontFamily' => 'Georgia, Cambria, "Times New Roman", Times, serif' ],
+		[ 'slug' => 'mono', 'fontFamily' => 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace' ],
+	];
+
+	/**
 	 * Palette slugs whose `.has-{slug}-color` utility shares its name with
 	 * a block-support marker class. See {@see self::colorUtilitySelector()}.
 	 * Listed in emission order: `text` comes last so its fallback rule
@@ -234,6 +249,29 @@ class PresetRegistry
 	}
 
 	/**
+	 * Resolve every font family the front end must declare (#872).
+	 *
+	 * Same layering as {@see self::effectivePalette()}: the package
+	 * defaults stay declared under a theme's own `fontFamilies` (theme
+	 * entries win on slug), with host presets merged on top.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  mixed  $themeFontFamilies  The theme's `settings.typography.fontFamilies`, if any.
+	 *
+	 * @return array<int, array{slug: string, fontFamily: string}>
+	 */
+	public static function effectiveFontFamilies( mixed $themeFontFamilies ): array
+	{
+		return self::layerPresetList(
+			self::DEFAULT_FONT_FAMILIES,
+			self::normaliseThemeList( $themeFontFamilies, 'fontFamily' ),
+			self::fromConfig()['fontFamilies'],
+			'fontFamily',
+		);
+	}
+
+	/**
 	 * Resolve the configured presets into normalised descriptor lists.
 	 *
 	 * Returns a stable-shape record — every list key is always present,
@@ -326,6 +364,7 @@ class PresetRegistry
 	 *
 	 * @since 1.12.1
 	 * @since 1.14.0 Declares the package defaults under a theme's own lists (#852).
+	 * @since 1.15.0 Declares font families and their `.has-{slug}-font-family` classes (#872).
 	 *
 	 * @param  array<string, mixed>|null  $themeSettings  The theme's `settings`, if any.
 	 */
@@ -360,6 +399,18 @@ class PresetRegistry
 		}
 
 		array_push( $utilities, ...self::colorUtilityRules( $colorSlugs ) );
+
+		foreach ( self::effectiveFontFamilies( $themeSettings['typography']['fontFamilies'] ?? null ) as $entry ) {
+			$slug   = self::presetSlug( $entry['slug'] );
+			$family = trim( $entry['fontFamily'] );
+
+			if ( '' === $slug || ! self::isSafeFontFamilyValue( $family ) ) {
+				continue;
+			}
+
+			$declarations[] = sprintf( '--wp--preset--font-family--%s: %s;', $slug, $family );
+			$utilities[]    = sprintf( '.has-%1$s-font-family { font-family: var(--wp--preset--font-family--%1$s) !important; }', $slug );
+		}
 
 		if ( [] === $declarations ) {
 			return '';
@@ -546,6 +597,26 @@ class PresetRegistry
 		}
 
 		return 0 === $depth;
+	}
+
+	/**
+	 * Whether a font-family stack is safe to write inside a `<style>`
+	 * element (#872). Family names are routinely quoted
+	 * (`"Segoe UI", sans-serif`), which {@see self::isSafeCssValue()}
+	 * rejects, so quotes are allowed here as long as each kind is
+	 * balanced — an unterminated string would swallow the rules after
+	 * it. Everything else that could close the declaration, rule, or tag
+	 * is still rejected.
+	 *
+	 * @since 1.15.0
+	 */
+	public static function isSafeFontFamilyValue( string $value ): bool
+	{
+		if ( '' === $value || 1 === preg_match( '#[;{}<>\\\\\x00-\x1F\x7F()]|/\*|\*/#', $value ) ) {
+			return false;
+		}
+
+		return 0 === substr_count( $value, '"' ) % 2 && 0 === substr_count( $value, "'" ) % 2;
 	}
 
 	/**

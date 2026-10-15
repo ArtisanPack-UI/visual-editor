@@ -1,0 +1,10 @@
+<div class="wp-block-group is-layout-grid wp-block-group-is-layout-grid wp-container-4f8338a0eb92">
+  <p class="wp-block-paragraph">
+    "One"
+  </p>
+  <p class="wp-block-paragraph">
+    "Two"
+  </p>
+</div>
+@@ renderer-instance-css @@
+.wp-block-group.wp-block-group-is-layout-grid.wp-container-4f8338a0eb92{grid-template-columns:repeat(auto-fill, minmax(min(12rem, 100%), 1fr));container-type:inline-size;}

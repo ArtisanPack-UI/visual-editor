@@ -438,6 +438,39 @@ return [
 
 	/*
 	|--------------------------------------------------------------------------
+	| Block bindings attribute allowlist (#869)
+	|--------------------------------------------------------------------------
+	|
+	| Block bindings publish the values they read on the public front end.
+	| By default a binding may read any attribute a model doesn't keep in
+	| `$hidden`, so a `relation` binding such as `author.email` renders
+	| unless the related model hides `email`.
+	|
+	| Set `enforce_allowlist` to true to deny by default: a binding may
+	| then only read a related model's attribute when it is allowlisted,
+	| and a path can't end on a whole related record. The parent record's
+	| own attributes (custom fields, post core fields) are not affected.
+	|
+	| An attribute is allowlisted when any of these lists it:
+	|   - the model, by implementing
+	|     `ArtisanPackUI\VisualEditor\Services\Bindings\DefinesBindableAttributes`;
+	|   - `allowed_attributes` below, keyed by model class
+	|     (`App\Models\User::class => [ 'name' ]`);
+	|   - the `ap.visualEditor.bindings.allowedAttributes` filter, which
+	|     receives the merged list, the related model and the binding path.
+	|
+	| `'*'` allows every attribute on that model. Enforcement is off by
+	| default in 1.x and planned to become the default in the next major.
+	|
+	*/
+
+	'bindings' => [
+		'enforce_allowlist'  => env( 'VE_BINDINGS_ENFORCE_ALLOWLIST', false ),
+		'allowed_attributes' => [],
+	],
+
+	/*
+	|--------------------------------------------------------------------------
 	| Loginout block (#522)
 	|--------------------------------------------------------------------------
 	|

@@ -29,8 +29,36 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditorRendererBlade\Support;
 
+use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
+use Throwable;
+
 class LayoutSupport
 {
+	/**
+	 * Fallback minimum column width for a grid layout that stores no
+	 * `columnCount` / `minimumColumnWidth`. Matches the block editor's
+	 * grid layout default (#871).
+	 *
+	 * @since 1.15.0
+	 */
+	public const DEFAULT_MINIMUM_COLUMN_WIDTH = '12rem';
+
+	/**
+	 * Largest `layout.columnCount` the renderer accepts (#871). Anything
+	 * above it is dropped rather than minting an unbounded track list.
+	 *
+	 * @since 1.15.0
+	 */
+	public const MAX_COLUMN_COUNT = 64;
+
+	/**
+	 * Child selector the constrained layout caps, matching WordPress's
+	 * `wp_get_layout_style()` (#871).
+	 *
+	 * @since 1.15.0
+	 */
+	public const CONSTRAINED_CHILD_SELECTOR = ' > :where(:not(.alignleft):not(.alignright):not(.alignfull))';
+
 	/**
 	 * Layout types the renderer knows how to serialize. Anything else
 	 * stored on the block falls back to the caller's default so an
@@ -114,5 +142,295 @@ class LayoutSupport
 	public static function wrapperForBlock( array $attributes, string $blockSlug, string $default = 'flow' ): array
 	{
 		return self::pair( $blockSlug, self::layoutClass( $attributes, $default ) );
+	}
+
+	/**
+	 * Resolve the per-instance layout rules for a block, push them into
+	 * the per-request CSS accumulator under a hashed `wp-container-{hash}`
+	 * scope class, and return that class (or an empty list when the
+	 * block's layout needs no per-instance rule) (#871).
+	 *
+	 * The shared `is-layout-{type}` class only carries the layout's
+	 * defaults. The values an author sets in the layout panel — content
+	 * and wide size, justification, orientation, wrap, grid columns —
+	 * are per block, so, like WordPress's `wp_get_layout_style()`, they
+	 * become a rule scoped to that one wrapper. The scope is hashed from
+	 * the rule itself so identical layouts share one rule; the React and
+	 * Vue renderers hash it the same way (`layoutContainer.ts`).
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  array<string, mixed>  $attributes   Raw block attributes.
+	 * @param  string                $blockSlug    Wrapper slug without the
+	 *                                             `wp-block-` prefix.
+	 * @param  string                $layoutClass  The resolved
+	 *                                             `is-layout-{type}` class
+	 *                                             the wrapper carries.
+	 *
+	 * @return array<int, string>
+	 */
+	public static function containerClasses( array $attributes, string $blockSlug, string $layoutClass ): array
+	{
+		$container = self::container( $attributes, $blockSlug, $layoutClass );
+
+		if ( null === $container ) {
+			return [];
+		}
+
+		try {
+			app( ResponsiveCssAccumulator::class )->push( $container['class'], $container['css'] );
+		} catch ( Throwable $e ) {
+			// Accumulator not booted (early or test path) — silently drop.
+		}
+
+		return [ $container['class'] ];
+	}
+
+	/**
+	 * Build the scope class and CSS for a block's layout, or null when
+	 * the layout declares nothing beyond its type's defaults (#871).
+	 *
+	 * The selector chains the wrapper class, the per-block layout
+	 * compound and the scope, so it outranks the shared containment
+	 * rules (`.wp-block-group.wp-block-group-is-layout-constrained > …`)
+	 * that apply the global content size.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 *
+	 * @return array{class: string, css: string}|null
+	 */
+	public static function container( array $attributes, string $blockSlug, string $layoutClass ): ?array
+	{
+		$layout = is_array( $attributes['layout'] ?? null ) ? $attributes['layout'] : [];
+		$type   = str_starts_with( $layoutClass, 'is-layout-' ) ? substr( $layoutClass, strlen( 'is-layout-' ) ) : '';
+
+		$rules = match ( $type ) {
+			'constrained' => self::constrainedRules( $layout ),
+			'flex'        => self::flexRules( $layout ),
+			'grid'        => self::gridRules( $layout ),
+			default       => [],
+		};
+
+		if ( [] === $rules ) {
+			return null;
+		}
+
+		$body = '';
+
+		foreach ( $rules as [ $suffix, $declarations ] ) {
+			$body .= $suffix . '{' . implode( ';', $declarations ) . ';}';
+		}
+
+		$scope    = 'wp-container-' . substr( sha1( $blockSlug . '|' . $layoutClass . '|' . $body ), 0, 12 );
+		$selector = '.wp-block-' . $blockSlug . '.wp-block-' . $blockSlug . '-' . $layoutClass . '.' . $scope;
+		$css      = '';
+
+		foreach ( $rules as [ $suffix, $declarations ] ) {
+			$css .= $selector . $suffix . '{' . implode( ';', $declarations ) . ';}';
+		}
+
+		return [
+			'class' => $scope,
+			'css'   => $css,
+		];
+	}
+
+	/**
+	 * Constrained layout: cap unaligned children at the block's content
+	 * size, aligned-wide children at its wide size, and honor the
+	 * left / right justification (#871).
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  array<string, mixed>  $layout
+	 *
+	 * @return array<int, array{0: string, 1: array<int, string>}>
+	 */
+	protected static function constrainedRules( array $layout ): array
+	{
+		$contentSize = self::cssLength( $layout['contentSize'] ?? null );
+		$wideSize    = self::cssLength( $layout['wideSize'] ?? null );
+		$justify     = $layout['justifyContent'] ?? null;
+
+		$marginLeft  = 'left' === $justify ? '0 !important' : 'auto !important';
+		$marginRight = 'right' === $justify ? '0 !important' : 'auto !important';
+
+		if ( null === $contentSize && null === $wideSize ) {
+			if ( 'left' === $justify ) {
+				return [ [ self::CONSTRAINED_CHILD_SELECTOR, [ 'margin-left:0 !important' ] ] ];
+			}
+
+			if ( 'right' === $justify ) {
+				return [ [ self::CONSTRAINED_CHILD_SELECTOR, [ 'margin-right:0 !important' ] ] ];
+			}
+
+			return [];
+		}
+
+		return [
+			[
+				self::CONSTRAINED_CHILD_SELECTOR,
+				[
+					'max-width:' . ( $contentSize ?? $wideSize ),
+					'margin-left:' . $marginLeft,
+					'margin-right:' . $marginRight,
+				],
+			],
+			[ ' > .alignwide', [ 'max-width:' . ( $wideSize ?? $contentSize ) ] ],
+		];
+	}
+
+	/**
+	 * Flex layout: wrap, orientation, justification and vertical
+	 * alignment, mapped the way WordPress maps them (#871).
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  array<string, mixed>  $layout
+	 *
+	 * @return array<int, array{0: string, 1: array<int, string>}>
+	 */
+	protected static function flexRules( array $layout ): array
+	{
+		$isVertical = 'vertical' === ( $layout['orientation'] ?? null );
+
+		$justifyOptions  = [ 'left' => 'flex-start', 'right' => 'flex-end', 'center' => 'center' ];
+		$verticalOptions = [ 'top' => 'flex-start', 'center' => 'center', 'bottom' => 'flex-end' ];
+
+		if ( $isVertical ) {
+			$justifyOptions['stretch']        = 'stretch';
+			$verticalOptions['space-between'] = 'space-between';
+		} else {
+			$justifyOptions['space-between'] = 'space-between';
+			$verticalOptions['stretch']      = 'stretch';
+		}
+
+		$justify  = self::option( $layout['justifyContent'] ?? null, $justifyOptions );
+		$vertical = self::option( $layout['verticalAlignment'] ?? null, $verticalOptions );
+
+		$declarations = [];
+
+		if ( 'nowrap' === ( $layout['flexWrap'] ?? null ) ) {
+			$declarations[] = 'flex-wrap:nowrap';
+		}
+
+		if ( $isVertical ) {
+			$declarations[] = 'flex-direction:column';
+			$declarations[] = 'align-items:' . ( $justify ?? 'flex-start' );
+
+			if ( null !== $vertical ) {
+				$declarations[] = 'justify-content:' . $vertical;
+			}
+		} else {
+			if ( null !== $justify ) {
+				$declarations[] = 'justify-content:' . $justify;
+			}
+
+			if ( null !== $vertical ) {
+				$declarations[] = 'align-items:' . $vertical;
+			}
+		}
+
+		return [] === $declarations ? [] : [ [ '', $declarations ] ];
+	}
+
+	/**
+	 * Grid layout: a fixed column count, an auto-fill track list from
+	 * the minimum column width, or both — the column count then caps an
+	 * auto-fill grid that still collapses on narrow containers (#871).
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  array<string, mixed>  $layout
+	 *
+	 * @return array<int, array{0: string, 1: array<int, string>}>
+	 */
+	protected static function gridRules( array $layout ): array
+	{
+		$columnCount = self::columnCount( $layout['columnCount'] ?? null );
+		$minimum     = self::cssLength( $layout['minimumColumnWidth'] ?? null );
+
+		if ( null !== $columnCount && null !== $minimum ) {
+			$track = 'max(min(' . $minimum . ', 100%), (100% - (var(--wp--style--block-gap, 24px) * ' . ( $columnCount - 1 ) . ')) / ' . $columnCount . ')';
+
+			return [ [ '', [ 'grid-template-columns:repeat(auto-fill, minmax(' . $track . ', 1fr))', 'container-type:inline-size' ] ] ];
+		}
+
+		if ( null !== $columnCount ) {
+			return [ [ '', [ 'grid-template-columns:repeat(' . $columnCount . ', minmax(0, 1fr))' ] ] ];
+		}
+
+		$minimum ??= self::DEFAULT_MINIMUM_COLUMN_WIDTH;
+
+		return [ [ '', [ 'grid-template-columns:repeat(auto-fill, minmax(min(' . $minimum . ', 100%), 1fr))', 'container-type:inline-size' ] ] ];
+	}
+
+	/**
+	 * A stored length (`contentSize`, `wideSize`, `minimumColumnWidth`)
+	 * that is safe to splice into a `<style>` block, or null. Values
+	 * that fail {@see BlockSupports::safeCssValue()} or leave a
+	 * parenthesis unbalanced are dropped (#871).
+	 *
+	 * @since 1.15.0
+	 */
+	protected static function cssLength( mixed $value ): ?string
+	{
+		if ( ! is_string( $value ) ) {
+			return null;
+		}
+
+		$value = BlockSupports::safeCssValue( trim( $value ) );
+
+		if ( null === $value ) {
+			return null;
+		}
+
+		$depth = 0;
+
+		foreach ( str_split( $value ) as $char ) {
+			if ( '(' === $char ) {
+				++$depth;
+			} elseif ( ')' === $char && --$depth < 0 ) {
+				return null;
+			}
+		}
+
+		return 0 === $depth ? $value : null;
+	}
+
+	/**
+	 * A positive whole `columnCount` up to {@see self::MAX_COLUMN_COUNT},
+	 * or null. Accepts an integer, an integral float (how a JSON `3.0`
+	 * decodes) or a digit string (#871).
+	 *
+	 * @since 1.15.0
+	 */
+	protected static function columnCount( mixed $value ): ?int
+	{
+		if ( is_string( $value ) && 1 === preg_match( '/^[0-9]+$/', trim( $value ) ) ) {
+			$value = (int) trim( $value );
+		} elseif ( is_float( $value ) && floor( $value ) === $value && $value <= self::MAX_COLUMN_COUNT ) {
+			$value = (int) $value;
+		}
+
+		if ( ! is_int( $value ) || $value < 1 || $value > self::MAX_COLUMN_COUNT ) {
+			return null;
+		}
+
+		return $value;
+	}
+
+	/**
+	 * Map a stored option through an allowlist, or null.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  array<string, string>  $options
+	 */
+	protected static function option( mixed $value, array $options ): ?string
+	{
+		return is_string( $value ) && isset( $options[ $value ] ) ? $options[ $value ] : null;
 	}
 }

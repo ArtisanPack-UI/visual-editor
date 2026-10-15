@@ -137,9 +137,22 @@ export const DEFAULT_PALETTE: ReadonlyArray<{ slug: string; color: string }> = [
 ];
 
 /**
- * Zero-specificity layout tokens plus default font-size / palette presets
- * and their `.has-{slug}-*` utility classes (#821). Mirrors
- * `PresetRegistry::layoutDefaultsCss()` / `presetDefaultsCss()`.
+ * Package default font families. Mirror
+ * `PresetRegistry::DEFAULT_FONT_FAMILIES` (#872).
+ *
+ * @since 1.15.0
+ */
+export const DEFAULT_FONT_FAMILIES: ReadonlyArray<{ slug: string; fontFamily: string }> = [
+    { slug: 'system', fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' },
+    { slug: 'serif', fontFamily: 'Georgia, Cambria, "Times New Roman", Times, serif' },
+    { slug: 'mono', fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace' },
+];
+
+/**
+ * Zero-specificity layout tokens plus default font-size / palette /
+ * font-family presets and their `.has-{slug}-*` utility classes (#821,
+ * #872). Mirrors `PresetRegistry::layoutDefaultsCss()` /
+ * `presetDefaultsCss()`.
  *
  * @since 1.12.1
  */
@@ -149,6 +162,8 @@ export const DEFAULT_TOKENS_CSS =
     DEFAULT_FONT_SIZES.map(({ slug, size }) => `--wp--preset--font-size--${slug}: ${size};`).join(' ') +
     ' ' +
     DEFAULT_PALETTE.map(({ slug, color }) => `--wp--preset--color--${slug}: ${color};`).join(' ') +
+    ' ' +
+    DEFAULT_FONT_FAMILIES.map(({ slug, fontFamily }) => `--wp--preset--font-family--${slug}: ${fontFamily};`).join(' ') +
     ' }\n' +
     DEFAULT_FONT_SIZES.map(
         ({ slug }) => `.has-${slug}-font-size { font-size: var(--wp--preset--font-size--${slug}) !important; }`
@@ -160,7 +175,11 @@ export const DEFAULT_TOKENS_CSS =
             `.has-${slug}-border-color { border-color: var(--wp--preset--color--${slug}) !important; }`
     ).join('\n') +
     '\n' +
-    colorUtilityRules(DEFAULT_PALETTE.map(({ slug }) => slug)).join('\n');
+    colorUtilityRules(DEFAULT_PALETTE.map(({ slug }) => slug)).join('\n') +
+    '\n' +
+    DEFAULT_FONT_FAMILIES.map(
+        ({ slug }) => `.has-${slug}-font-family { font-family: var(--wp--preset--font-family--${slug}) !important; }`
+    ).join('\n');
 
 export const LAYOUT_BASELINE_CSS =
     ':where(.is-layout-flow) > :first-child { margin-block-start: 0; }\n' +

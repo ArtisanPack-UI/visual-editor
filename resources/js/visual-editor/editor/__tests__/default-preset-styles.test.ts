@@ -11,7 +11,7 @@ import { resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_FONT_SIZES, DEFAULT_PALETTE, editorSettings } from '../../editor-settings';
+import { DEFAULT_FONT_FAMILIES, DEFAULT_FONT_SIZES, DEFAULT_PALETTE, editorSettings } from '../../editor-settings';
 
 const php = readFileSync(resolve(process.cwd(), 'src/Resources/PresetRegistry.php'), 'utf8');
 
@@ -34,6 +34,12 @@ describe('default presets stay in sync with PresetRegistry (#821)', () => {
     it('matches DEFAULT_PALETTE', () => {
         expect(phpList('DEFAULT_PALETTE', 'color')).toEqual(
             DEFAULT_PALETTE.map(({ slug, color }) => ({ slug, value: color }))
+        );
+    });
+
+    it('matches DEFAULT_FONT_FAMILIES (#872)', () => {
+        expect(phpList('DEFAULT_FONT_FAMILIES', 'fontFamily')).toEqual(
+            DEFAULT_FONT_FAMILIES.map(({ slug, fontFamily }) => ({ slug, value: fontFamily }))
         );
     });
 
