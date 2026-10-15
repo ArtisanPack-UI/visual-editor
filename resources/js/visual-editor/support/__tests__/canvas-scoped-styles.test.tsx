@@ -15,9 +15,12 @@ vi.mock( '@wordpress/blocks', () => ( {
 } ) );
 
 import {
+	IN_TREE_CANVAS_ROOT,
 	findBlockDocument,
 	getCanvasScopedStyleElement,
+	scopeToInTreeCanvas,
 	setCanvasScopedStyle,
+	useCanvasScopedStyle,
 } from '../canvas-scoped-styles';
 import { POSITION_STYLE_CHANNEL, withPositionStyles } from '../../positioning/with-position-styles';
 import { BOX_SHADOW_STYLE_CHANNEL, withBoxShadowStyles } from '../../box-shadows/with-box-shadow-styles';
@@ -126,5 +129,56 @@ describe( 'canvas filters publish into the shared host', () => {
 
 		unmount();
 		expect( getCanvasScopedStyleElement( BOX_SHADOW_STYLE_CHANNEL ) ).toBeNull();
+	} );
+} );
+
+describe( 'in-tree canvas scoping (F-12)', () => {
+	function ScopedBlock( { clientId, css }: { clientId: string, css: string } ): JSX.Element {
+		useCanvasScopedStyle( 'scope-test', clientId, css, { scopeInTree: true } );
+
+		return <div id={ `block-${ clientId }` } />;
+	}
+
+	it( 'wraps CSS in @scope for the editor document only', () => {
+		const frame = document.createElement( 'iframe' );
+		document.body.appendChild( frame );
+
+		expect( IN_TREE_CANVAS_ROOT ).toBe( '.editor-styles-wrapper' );
+		expect( scopeToInTreeCanvas( '.a{}', document ) ).toBe( '@scope (.editor-styles-wrapper){.a{}}' );
+		expect( scopeToInTreeCanvas( '.a{}', frame.contentDocument as Document ) ).toBe( '.a{}' );
+		expect( scopeToInTreeCanvas( '', document ) ).toBe( '' );
+
+		frame.remove();
+	} );
+
+	it( 'scopes a block rendered in-tree', () => {
+		const { unmount } = render( <ScopedBlock clientId="in-tree" css=".ve-fx-1{color:red}" /> );
+
+		expect( getCanvasScopedStyleElement( 'scope-test' )?.textContent )
+			.toBe( '@scope (.editor-styles-wrapper){.ve-fx-1{color:red}}' );
+
+		unmount();
+	} );
+
+	it( 'leaves a block in an iframe canvas unscoped', () => {
+		const frame = document.createElement( 'iframe' );
+		document.body.appendChild( frame );
+		const frameDocument = frame.contentDocument as Document;
+		const wrapper       = frameDocument.createElement( 'div' );
+		wrapper.setAttribute( 'data-block', 'framed' );
+		frameDocument.body.appendChild( wrapper );
+
+		function FramedBlock(): null {
+			useCanvasScopedStyle( 'scope-test', 'framed', '.ve-fx-2{color:red}', { scopeInTree: true } );
+
+			return null;
+		}
+
+		const { unmount } = render( <FramedBlock /> );
+
+		expect( getCanvasScopedStyleElement( 'scope-test', frameDocument )?.textContent ).toBe( '.ve-fx-2{color:red}' );
+
+		unmount();
+		frame.remove();
 	} );
 } );

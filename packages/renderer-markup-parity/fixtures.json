@@ -1847,7 +1847,7 @@
         },
         {
             "name": "block-effects-custom-css",
-            "$comment": "#881 — the Effects panel and Custom CSS compile to one hashed `ve-fx-<sha1>` scope appended after the author `className`, with the same rule (Custom CSS nested by native CSS nesting) in every renderer. The second paragraph repeats the first's effects to prove identical blocks share one rule; the rejected Custom CSS on the third paragraph is dropped while its opacity survives.",
+            "$comment": "#881 — the Effects panel and Custom CSS compile to one hashed `ve-fx-<sha1>` scope appended after the author `className`, with the same rule (Custom CSS nested by native CSS nesting) in every renderer. The second gradient heading repeats the first's effects to prove identical blocks share one rule; the rejected Custom CSS on the first paragraph is dropped while its opacity survives. Text clip needs a gradient or background image (and gets a forced-colors fallback), so the paragraph without one keeps only its blend mode; Custom CSS URLs must be quoted, so the group's quoted `url(\"…\")` survives and the last paragraph's unquoted one is dropped.",
             "tree": [
                 {
                     "clientId": "fx-group",
@@ -1860,15 +1860,28 @@
                             "backdropSaturate": 180,
                             "zIndex": 2,
                             "overflowX": "hidden",
-                            "customCss": "border: 1px solid rgba(255, 255, 255, 0.2);\n& > p { margin: 0; }"
+                            "customCss": "border: 1px solid rgba(255, 255, 255, 0.2);\nbackground-image: url(\"https://example.com/glass.png\");\n& > p { margin: 0; }"
                         }
                     },
                     "innerBlocks": [
-                        { "clientId": "fx-p1", "name": "core/paragraph", "attributes": { "content": "Gradient", "artisanpackEffects": { "textClip": true, "mixBlendMode": "screen" } }, "innerBlocks": [] },
-                        { "clientId": "fx-p2", "name": "core/paragraph", "attributes": { "content": "Gradient two", "artisanpackEffects": { "textClip": true, "mixBlendMode": "screen" } }, "innerBlocks": [] },
-                        { "clientId": "fx-h", "name": "core/paragraph", "attributes": { "content": "Clipped", "artisanpackEffects": { "opacity": 50, "clipShape": "hexagon", "customCss": "color: red; } body { display: none" } }, "innerBlocks": [] }
+                        { "clientId": "fx-p1", "name": "core/heading", "attributes": { "level": 2, "content": "Gradient", "gradient": "vivid-cyan-blue-to-vivid-purple", "artisanpackEffects": { "textClip": true, "mixBlendMode": "screen" } }, "innerBlocks": [] },
+                        { "clientId": "fx-p2", "name": "core/heading", "attributes": { "level": 2, "content": "Gradient two", "gradient": "vivid-cyan-blue-to-vivid-purple", "artisanpackEffects": { "textClip": true, "mixBlendMode": "screen" } }, "innerBlocks": [] },
+                        { "clientId": "fx-h", "name": "core/paragraph", "attributes": { "content": "Clipped", "artisanpackEffects": { "opacity": 50, "clipShape": "hexagon", "customCss": "color: red; } body { display: none" } }, "innerBlocks": [] },
+                        { "clientId": "fx-p3", "name": "core/paragraph", "attributes": { "content": "No background", "artisanpackEffects": { "textClip": true, "mixBlendMode": "screen" } }, "innerBlocks": [] },
+                        { "clientId": "fx-p4", "name": "core/paragraph", "attributes": { "content": "Unquoted URL", "artisanpackEffects": { "opacity": 60, "customCss": "background: url(https://example.com/a.png);" } }, "innerBlocks": [] }
                     ]
                 }
+            ]
+        },
+        {
+            "name": "block-effects-values",
+            "$comment": "F-5 — effect values every renderer must coerce the same way: `overflowY` and `isolation` on their own, a lone `zIndex` (with its zero-specificity `position: relative`), out-of-range values clamped (opacity 0–100, blur 0–200, saturate 0–500, z-index ±99999), numeric strings parsed with ASCII-only padding and rounded half away from zero, and non-numeric or non-boolean values dropped.",
+            "tree": [
+                { "clientId": "fxv-overflow", "name": "core/paragraph", "attributes": { "content": "Overflow", "artisanpackEffects": { "overflowY": "scroll", "isolation": true } }, "innerBlocks": [] },
+                { "clientId": "fxv-z", "name": "core/paragraph", "attributes": { "content": "Stacked", "artisanpackEffects": { "zIndex": -3 } }, "innerBlocks": [] },
+                { "clientId": "fxv-clamp", "name": "core/paragraph", "attributes": { "content": "Clamped", "artisanpackEffects": { "opacity": 150, "backdropBlur": 999, "backdropSaturate": -5, "zIndex": 200000 } }, "innerBlocks": [] },
+                { "clientId": "fxv-strings", "name": "core/paragraph", "attributes": { "content": "Strings", "artisanpackEffects": { "opacity": "40", "zIndex": " 7 ", "backdropBlur": "12.5", "backdropSaturate": "-2.5" } }, "innerBlocks": [] },
+                { "clientId": "fxv-invalid", "name": "core/paragraph", "attributes": { "content": "Invalid", "artisanpackEffects": { "opacity": "abc", "zIndex": "\u00a05", "isolation": "true", "overflowX": "sideways", "mixBlendMode": "multiply" } }, "innerBlocks": [] }
             ]
         },
         {

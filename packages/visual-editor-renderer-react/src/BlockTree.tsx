@@ -104,6 +104,15 @@ export interface BlockTreeProps {
      * fetching see `useQueryPreview`.
      */
     queryResults?: ResolvedQuery[];
+    /**
+     * Whether a block's Custom CSS may load resources (`url(`,
+     * `image-set(`, `image(`, `src(`). Pass the host's config
+     * `effects.custom_css_allow_urls` so the page matches Blade; Custom
+     * CSS that loads one is dropped when `false`. Defaults to `true`.
+     *
+     * @since 1.15.0
+     */
+    customCssAllowUrls?: boolean;
 }
 
 export function BlockTree({
@@ -118,6 +127,7 @@ export function BlockTree({
     globalStylesCss,
     siteMeta,
     queryResults,
+    customCssAllowUrls = true,
 }: BlockTreeProps): ReactElement {
     const blocks = useMemo(() => {
         const normalized = normalizeTree(tree);
@@ -245,8 +255,8 @@ export function BlockTree({
     // scope to each block's `className` and emit the rules Blade pushes
     // from `BlockSupports::compile()`.
     const { tree: renderTree, css: effectsCss } = useMemo(() => {
-        return stampEffectsScopes(responsiveTree);
-    }, [responsiveTree]);
+        return stampEffectsScopes(responsiveTree, { allowCustomCssUrls: customCssAllowUrls });
+    }, [responsiveTree, customCssAllowUrls]);
 
     // Navigation overlay (#804) — the drawer's breakpoint + open-state
     // rules, emitted once when any navigation block has its overlay on.

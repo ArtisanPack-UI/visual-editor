@@ -27,6 +27,7 @@ import type {
     FeaturedImageValue,
 } from './document-panels';
 import type { BreakpointRegistrySnapshot } from '../responsive/types';
+import type { ThemeBlockStyle } from '../block-style-registry';
 
 export {
     registerArtisanpackMediaBridge,
@@ -158,6 +159,33 @@ export interface MountConfig {
      * mount reads as `data-route-base`. Omit to use the package default.
      */
     siteEditorRouteBase?: string;
+    /**
+     * Whether the current user may write a block's Custom CSS (#881) —
+     * the `visual-editor.edit-block-css` gate. Only shows or hides the
+     * field; every save re-checks the gate server-side. Read from
+     * `data-can-edit-block-css`; omit to hide the field.
+     *
+     * @since 1.15.0
+     */
+    canEditBlockCss?: boolean;
+    /**
+     * Whether Custom CSS may load resources (`url(`, `image-set(`, …),
+     * as config `effects.custom_css_allow_urls`, so the canvas previews
+     * what the front end prints. Read from `data-custom-css-allow-urls`;
+     * omit for the config default (`true`).
+     *
+     * @since 1.15.0
+     */
+    customCssAllowUrls?: boolean;
+    /**
+     * Theme block style variations for the Styles picker (#876), as
+     * `VisualEditorComponent::$blockStyles`. Read from
+     * `data-block-styles`; omit to read that attribute off the page's
+     * first editor mount.
+     *
+     * @since 1.15.0
+     */
+    blockStyles?: ReadonlyArray<ThemeBlockStyle>;
 }
 
 export interface MountedEditor {
@@ -230,6 +258,12 @@ export function readMountConfig(element: HTMLElement): MountConfig | null {
     const initialUpdatedAt = element.dataset.updatedAt?.trim();
     const patternPostType = element.dataset.patternPostType?.trim();
     const siteEditorRouteBase = element.dataset.siteEditorRouteBase?.trim();
+    // #876 — validated by `setThemeBlockStyles()` once the (lazy)
+    // registry loads; only an array is passed on.
+    const rawBlockStyles = parseJsonDataset<unknown>(
+        element.dataset.blockStyles,
+        'data-block-styles'
+    );
 
     const initialCategories = parseIdListDataset(
         element.dataset.categories,
@@ -328,6 +362,14 @@ export function readMountConfig(element: HTMLElement): MountConfig | null {
         ...(patternPostType ? { patternPostType } : {}),
         ...(breakpoints !== null ? { breakpoints } : {}),
         ...(siteEditorRouteBase ? { siteEditorRouteBase } : {}),
+        ...(Array.isArray(rawBlockStyles)
+            ? { blockStyles: rawBlockStyles as ReadonlyArray<ThemeBlockStyle> }
+            : {}),
+        // #881 — the host stamps `data-can-edit-block-css="true"` for
+        // users with the block-CSS ability, and
+        // `data-custom-css-allow-urls="false"` when config disallows URLs.
+        canEditBlockCss: element.dataset.canEditBlockCss === 'true',
+        customCssAllowUrls: element.dataset.customCssAllowUrls !== 'false',
         previewUrl: previewUrl ?? null,
     };
 }
@@ -465,8 +507,21 @@ export function mountEditor(
     const root = createRoot(host);
     host[ROOT_SYMBOL] = root;
 
-    const ready = import('./editor-app').then(
-        ({ EditorApp }) => {
+    // #881 / R-17 — apply the effects flags for every mount path, so
+    // hosts mounting with an explicit config (the Vue wrapper) get the
+    // same Custom CSS access as the `data-*` bootstrap. Absent means no
+    // access (fail closed) and the config default for URLs.
+    const { canEditBlockCss, customCssAllowUrls, blockStyles, ...appConfig } = config;
+
+    setBlockCssAccess(canEditBlockCss === true);
+    setCustomCssUrlAccess(customCssAllowUrls !== false);
+
+    const ready = Promise.all([
+        import('./editor-app'),
+        // Lazy, like the app: the registry pulls in `@wordpress/blocks`.
+        blockStyles !== undefined ? import('../block-style-registry') : null,
+    ]).then(
+        ([{ EditorApp }, registry]) => {
             // If the host unmounted before the dynamic import resolved,
             // `ROOT_SYMBOL` will have been cleared — skip the render.
             if (host[ROOT_SYMBOL] !== root) {
@@ -480,7 +535,13 @@ export function mountEditor(
             // depth exceeded" crashes during interactions like color
             // picker drag. Revisit once Gutenberg's own StrictMode audit
             // lands upstream.
-            root.render(createElement(EditorApp, config));
+            // #876 / R-17 — seed the Styles picker before the app
+            // registers its blocks.
+            if (registry !== null && blockStyles !== undefined) {
+                registry.setThemeBlockStyles(blockStyles);
+            }
+
+            root.render(createElement(EditorApp, appConfig));
         },
         (error: unknown) => {
             console.error('visual-editor: failed to load editor app.', error);
@@ -516,10 +577,6 @@ async function mount(element: MountableElement): Promise<void> {
         );
         return;
     }
-
-    // #881 — the host stamps `data-can-edit-block-css="true"` for users
-    // with the block-CSS ability; it only controls the Custom CSS field.
-    setBlockCssAccess(element.dataset.canEditBlockCss === 'true');
 
     try {
         await mountEditor(element, config).ready;
@@ -559,7 +616,7 @@ import {
     registerExternalBlocks as registerExternalBlocksImpl,
     registerExternalBlockType as registerExternalBlockTypeImpl,
 } from './external-block-registration';
-import { setBlockCssAccess } from '../effects/access';
+import { setBlockCssAccess, setCustomCssUrlAccess } from '../effects/access';
 
 declare global {
     interface Window {

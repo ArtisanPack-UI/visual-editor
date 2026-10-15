@@ -15,9 +15,11 @@
  * @since 1.15.0
  */
 
+import { speak } from '@wordpress/a11y'
 import { InspectorControls } from '@wordpress/block-editor'
 import { getBlockType } from '@wordpress/blocks'
 import {
+	Notice,
 	RangeControl,
 	SelectControl,
 	TextareaControl,
@@ -26,23 +28,35 @@ import {
 	__experimentalToolsPanel as ToolsPanel,
 	__experimentalToolsPanelItem as ToolsPanelItem,
 } from '@wordpress/components'
-import { createHigherOrderComponent } from '@wordpress/compose'
+import { createHigherOrderComponent, useDebounce } from '@wordpress/compose'
 import { addFilter } from '@wordpress/hooks'
-import { __ } from '@wordpress/i18n'
-import { useMemo } from 'react'
+import { __, _x } from '@wordpress/i18n'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import type { ComponentType, ReactNode } from 'react'
 
 import { useCanvasScopedStyle } from '../support/canvas-scoped-styles'
-import { canEditBlockCss } from './access'
+import { TEXT_DOMAIN } from '../vendor/i18n'
+import { canEditBlockCss, customCssAllowsUrls } from './access'
 import {
 	BLEND_MODES,
 	CLIP_SHAPES,
 	EFFECTS_ATTRIBUTE,
 	OVERFLOW_VALUES,
 	compileEffects,
+	hasBackgroundFill,
 	sanitizeCustomCss,
 } from './compiler'
 import { effectsEnabled } from './register-attribute'
+
+import './with-effects.css'
+
+/**
+ * How long Custom CSS validity must hold before a change is announced,
+ * so a rule that is only half-typed isn't read out on every keystroke.
+ *
+ * @since 1.15.0
+ */
+export const CUSTOM_CSS_ANNOUNCE_DELAY = 500
 
 const CONTROL_HOOK     = 'editor.BlockEdit'
 const STYLES_HOOK      = 'editor.BlockListBlock'
@@ -85,10 +99,13 @@ function readEffects( attributes: Record<string, unknown> ): Effects {
 	return raw && 'object' === typeof raw && ! Array.isArray( raw ) ? ( raw as Effects ) : {}
 }
 
-function keywordOptions( values: readonly string[] ): Array<{ label: string, value: string }> {
+function keywordOptions(
+	values: readonly string[],
+	labels: Record<string, string>,
+): Array<{ label: string, value: string }> {
 	return [
-		{ label: __( 'Default', 'artisanpack-visual-editor' ), value: '' },
-		...values.map( ( value ) => ( { label: value, value } ) ),
+		{ label: __( 'Default', TEXT_DOMAIN ), value: '' },
+		...values.map( ( value ) => ( { label: labels[ value ] ?? value, value } ) ),
 	]
 }
 
@@ -102,13 +119,123 @@ function numberOrUndefined( value: unknown ): number | undefined {
 	return Number.isFinite( numeric ) ? Math.round( numeric ) : undefined
 }
 
-const CLIP_SHAPE_LABELS: Record<string, string> = {
-	circle:   __( 'Circle', 'artisanpack-visual-editor' ),
-	ellipse:  __( 'Ellipse', 'artisanpack-visual-editor' ),
-	triangle: __( 'Triangle', 'artisanpack-visual-editor' ),
-	diamond:  __( 'Diamond', 'artisanpack-visual-editor' ),
-	hexagon:  __( 'Hexagon', 'artisanpack-visual-editor' ),
-	slant:    __( 'Slanted bottom', 'artisanpack-visual-editor' ),
+/**
+ * Translated labels for the overflow keywords. Built at render time, so
+ * locale data loaded after this module still applies.
+ */
+function overflowLabels(): Record<string, string> {
+	return {
+		visible: _x( 'Visible', 'overflow value', TEXT_DOMAIN ),
+		hidden:  _x( 'Hidden', 'overflow value', TEXT_DOMAIN ),
+		clip:    _x( 'Clip', 'overflow value', TEXT_DOMAIN ),
+		scroll:  _x( 'Scroll', 'overflow value', TEXT_DOMAIN ),
+		auto:    _x( 'Auto', 'overflow value', TEXT_DOMAIN ),
+	}
+}
+
+/**
+ * Translated labels for the blend modes. Built at render time.
+ */
+function blendModeLabels(): Record<string, string> {
+	return {
+		normal:        _x( 'Normal', 'blend mode', TEXT_DOMAIN ),
+		multiply:      _x( 'Multiply', 'blend mode', TEXT_DOMAIN ),
+		screen:        _x( 'Screen', 'blend mode', TEXT_DOMAIN ),
+		overlay:       _x( 'Overlay', 'blend mode', TEXT_DOMAIN ),
+		darken:        _x( 'Darken', 'blend mode', TEXT_DOMAIN ),
+		lighten:       _x( 'Lighten', 'blend mode', TEXT_DOMAIN ),
+		'color-dodge': _x( 'Color dodge', 'blend mode', TEXT_DOMAIN ),
+		'color-burn':  _x( 'Color burn', 'blend mode', TEXT_DOMAIN ),
+		'hard-light':  _x( 'Hard light', 'blend mode', TEXT_DOMAIN ),
+		'soft-light':  _x( 'Soft light', 'blend mode', TEXT_DOMAIN ),
+		difference:    _x( 'Difference', 'blend mode', TEXT_DOMAIN ),
+		exclusion:     _x( 'Exclusion', 'blend mode', TEXT_DOMAIN ),
+		hue:           _x( 'Hue', 'blend mode', TEXT_DOMAIN ),
+		saturation:    _x( 'Saturation', 'blend mode', TEXT_DOMAIN ),
+		color:         _x( 'Color', 'blend mode', TEXT_DOMAIN ),
+		luminosity:    _x( 'Luminosity', 'blend mode', TEXT_DOMAIN ),
+	}
+}
+
+/**
+ * Translated labels for the clip shapes. Built at render time.
+ */
+function clipShapeLabels(): Record<string, string> {
+	return {
+		circle:   __( 'Circle', TEXT_DOMAIN ),
+		ellipse:  __( 'Ellipse', TEXT_DOMAIN ),
+		triangle: __( 'Triangle', TEXT_DOMAIN ),
+		diamond:  __( 'Diamond', TEXT_DOMAIN ),
+		hexagon:  __( 'Hexagon', TEXT_DOMAIN ),
+		slant:    __( 'Slanted bottom', TEXT_DOMAIN ),
+	}
+}
+
+interface CustomCssFieldProps {
+	value: string
+	onChange: ( value: string ) => void
+}
+
+/**
+ * The Custom CSS textarea. Marks invalid CSS with `aria-invalid`, a
+ * visible error style and an "Error:" prefix (so color isn't the only
+ * cue), and announces valid ⇄ invalid changes once the value has held
+ * for {@link CUSTOM_CSS_ANNOUNCE_DELAY} ms.
+ */
+function CustomCssField( { value, onChange }: CustomCssFieldProps ): JSX.Element {
+	const allowUrls   = customCssAllowsUrls()
+	const invalid     = null === sanitizeCustomCss( value, allowUrls )
+	const urlsBlocked = invalid && ! allowUrls && null !== sanitizeCustomCss( value, true )
+	const announced   = useRef( invalid )
+
+	const announceChange = useCallback( ( nextInvalid: boolean ): void => {
+		if ( nextInvalid === announced.current ) {
+			return
+		}
+
+		announced.current = nextInvalid
+
+		speak( nextInvalid
+			? __( 'Custom CSS has an error and won’t be printed.', TEXT_DOMAIN )
+			: __( 'Custom CSS is valid.', TEXT_DOMAIN ) )
+	}, [] )
+
+	const debouncedAnnounce = useDebounce( announceChange, CUSTOM_CSS_ANNOUNCE_DELAY )
+
+	useEffect( () => {
+		debouncedAnnounce( invalid )
+	}, [ invalid, debouncedAnnounce ] )
+
+	useEffect( () => () => debouncedAnnounce.cancel(), [ debouncedAnnounce ] )
+
+	let help: ReactNode = __( 'Applies to this block only. Write declarations for the block, or nest rules with “&”, e.g. “& img { border-radius: 8px; }”.', TEXT_DOMAIN )
+
+	if ( invalid ) {
+		help = (
+			<span className="ap-effects-custom-css__error">
+				<strong>{ __( 'Error:', TEXT_DOMAIN ) }</strong>
+				{ ' ' }
+				{ urlsBlocked
+					? __( 'This site doesn’t allow Custom CSS to load URLs (url(), image-set(), image() or src()). It won’t be printed.', TEXT_DOMAIN )
+					: __( 'This CSS can’t be used: check for unclosed or mismatched braces, parentheses, brackets, strings or comments, unquoted url() values, “<”, backslashes, or at-rules other than @media, @supports and @container. It won’t be printed.', TEXT_DOMAIN ) }
+			</span>
+		)
+	}
+
+	return (
+		<TextareaControl
+			__nextHasNoMarginBottom
+			className="ap-effects-custom-css"
+			label={ __( 'Custom CSS', TEXT_DOMAIN ) }
+			help={ help }
+			value={ value }
+			rows={ 6 }
+			dir="ltr"
+			spellCheck={ false }
+			aria-invalid={ invalid ? true : undefined }
+			onChange={ onChange }
+		/>
+	)
 }
 
 export const withEffectsControl = createHigherOrderComponent(
@@ -157,23 +284,24 @@ export const withEffectsControl = createHigherOrderComponent(
 				</ToolsPanelItem>
 			)
 
-			const customCss       = 'string' === typeof effects.customCss ? effects.customCss : ''
-			const customCssResult = sanitizeCustomCss( customCss )
+			const customCss    = 'string' === typeof effects.customCss ? effects.customCss : ''
+			const shapeLabels  = clipShapeLabels()
+			const clipsNothing = true === effects.textClip && ! hasBackgroundFill( attributes )
 
 			return (
 				<>
 					<BlockEdit { ...props } />
 					<InspectorControls group="styles">
 						<ToolsPanel
-							label={ __( 'Effects', 'artisanpack-visual-editor' ) }
+							label={ __( 'Effects', TEXT_DOMAIN ) }
 							resetAll={ resetAll }
 							panelId={ clientId }
 						>
-							{ item( 'opacity', __( 'Opacity', 'artisanpack-visual-editor' ), (
+							{ item( 'opacity', __( 'Opacity', TEXT_DOMAIN ), (
 								<RangeControl
 									__nextHasNoMarginBottom
 									__next40pxDefaultSize
-									label={ __( 'Opacity (%)', 'artisanpack-visual-editor' ) }
+									label={ __( 'Opacity (%)', TEXT_DOMAIN ) }
 									min={ 0 }
 									max={ 100 }
 									value={ numberOrUndefined( effects.opacity ) ?? 100 }
@@ -182,32 +310,32 @@ export const withEffectsControl = createHigherOrderComponent(
 									resetFallbackValue={ undefined }
 								/>
 							) ) }
-							{ item( 'overflowX', __( 'Overflow (horizontal)', 'artisanpack-visual-editor' ), (
+							{ item( 'overflowX', __( 'Overflow (horizontal)', TEXT_DOMAIN ), (
 								<SelectControl
 									__nextHasNoMarginBottom
 									__next40pxDefaultSize
-									label={ __( 'Overflow (horizontal)', 'artisanpack-visual-editor' ) }
+									label={ __( 'Overflow (horizontal)', TEXT_DOMAIN ) }
 									value={ 'string' === typeof effects.overflowX ? effects.overflowX : '' }
-									options={ keywordOptions( OVERFLOW_VALUES ) }
+									options={ keywordOptions( OVERFLOW_VALUES, overflowLabels() ) }
 									onChange={ ( value ) => update( 'overflowX', value ) }
 								/>
 							) ) }
-							{ item( 'overflowY', __( 'Overflow (vertical)', 'artisanpack-visual-editor' ), (
+							{ item( 'overflowY', __( 'Overflow (vertical)', TEXT_DOMAIN ), (
 								<SelectControl
 									__nextHasNoMarginBottom
 									__next40pxDefaultSize
-									label={ __( 'Overflow (vertical)', 'artisanpack-visual-editor' ) }
+									label={ __( 'Overflow (vertical)', TEXT_DOMAIN ) }
 									value={ 'string' === typeof effects.overflowY ? effects.overflowY : '' }
-									options={ keywordOptions( OVERFLOW_VALUES ) }
+									options={ keywordOptions( OVERFLOW_VALUES, overflowLabels() ) }
 									onChange={ ( value ) => update( 'overflowY', value ) }
 								/>
 							) ) }
-							{ item( 'backdropBlur', __( 'Backdrop blur', 'artisanpack-visual-editor' ), (
+							{ item( 'backdropBlur', __( 'Backdrop blur', TEXT_DOMAIN ), (
 								<RangeControl
 									__nextHasNoMarginBottom
 									__next40pxDefaultSize
-									label={ __( 'Backdrop blur (px)', 'artisanpack-visual-editor' ) }
-									help={ __( 'Blurs whatever shows through a translucent background, for frosted glass.', 'artisanpack-visual-editor' ) }
+									label={ __( 'Backdrop blur (px)', TEXT_DOMAIN ) }
+									help={ __( 'Blurs whatever shows through a translucent background, for frosted glass.', TEXT_DOMAIN ) }
 									min={ 0 }
 									max={ 100 }
 									value={ numberOrUndefined( effects.backdropBlur ) ?? 0 }
@@ -216,11 +344,11 @@ export const withEffectsControl = createHigherOrderComponent(
 									resetFallbackValue={ undefined }
 								/>
 							) ) }
-							{ item( 'backdropSaturate', __( 'Backdrop saturation', 'artisanpack-visual-editor' ), (
+							{ item( 'backdropSaturate', __( 'Backdrop saturation', TEXT_DOMAIN ), (
 								<RangeControl
 									__nextHasNoMarginBottom
 									__next40pxDefaultSize
-									label={ __( 'Backdrop saturation (%)', 'artisanpack-visual-editor' ) }
+									label={ __( 'Backdrop saturation (%)', TEXT_DOMAIN ) }
 									min={ 0 }
 									max={ 300 }
 									value={ numberOrUndefined( effects.backdropSaturate ) ?? 100 }
@@ -229,67 +357,66 @@ export const withEffectsControl = createHigherOrderComponent(
 									resetFallbackValue={ undefined }
 								/>
 							) ) }
-							{ item( 'mixBlendMode', __( 'Blend mode', 'artisanpack-visual-editor' ), (
+							{ item( 'mixBlendMode', __( 'Blend mode', TEXT_DOMAIN ), (
 								<SelectControl
 									__nextHasNoMarginBottom
 									__next40pxDefaultSize
-									label={ __( 'Blend mode', 'artisanpack-visual-editor' ) }
+									label={ __( 'Blend mode', TEXT_DOMAIN ) }
 									value={ 'string' === typeof effects.mixBlendMode ? effects.mixBlendMode : '' }
-									options={ keywordOptions( BLEND_MODES ) }
+									options={ keywordOptions( BLEND_MODES, blendModeLabels() ) }
 									onChange={ ( value ) => update( 'mixBlendMode', value ) }
 								/>
 							) ) }
-							{ item( 'zIndex', __( 'Z-index', 'artisanpack-visual-editor' ), (
+							{ item( 'zIndex', __( 'Z-index', TEXT_DOMAIN ), (
 								<NumberControl
 									__next40pxDefaultSize
-									label={ __( 'Z-index', 'artisanpack-visual-editor' ) }
-									help={ __( 'Stacks the block above or below its neighbours. A block that isn’t positioned becomes position: relative.', 'artisanpack-visual-editor' ) }
+									label={ __( 'Z-index', TEXT_DOMAIN ) }
+									help={ __( 'Stacks the block above or below its neighbors. A block that isn’t positioned becomes position: relative.', TEXT_DOMAIN ) }
 									value={ numberOrUndefined( effects.zIndex ) ?? '' }
 									onChange={ ( value: string | undefined ) => update( 'zIndex', numberOrUndefined( value ) ) }
 								/>
 							) ) }
-							{ item( 'isolation', __( 'Isolate', 'artisanpack-visual-editor' ), (
+							{ item( 'isolation', __( 'Isolate', TEXT_DOMAIN ), (
 								<ToggleControl
 									__nextHasNoMarginBottom
-									label={ __( 'Isolate', 'artisanpack-visual-editor' ) }
-									help={ __( 'Starts a new stacking context, so blend modes inside the block don’t mix with what’s behind it.', 'artisanpack-visual-editor' ) }
+									label={ __( 'Isolate', TEXT_DOMAIN ) }
+									help={ __( 'Starts a new stacking context, so blend modes inside the block don’t mix with what’s behind it.', TEXT_DOMAIN ) }
 									checked={ true === effects.isolation }
 									onChange={ ( value ) => update( 'isolation', value ) }
 								/>
 							) ) }
-							{ item( 'clipShape', __( 'Clip shape', 'artisanpack-visual-editor' ), (
+							{ item( 'clipShape', __( 'Clip shape', TEXT_DOMAIN ), (
 								<SelectControl
 									__nextHasNoMarginBottom
 									__next40pxDefaultSize
-									label={ __( 'Clip shape', 'artisanpack-visual-editor' ) }
+									label={ __( 'Clip shape', TEXT_DOMAIN ) }
 									value={ 'string' === typeof effects.clipShape ? effects.clipShape : '' }
 									options={ [
-										{ label: __( 'None', 'artisanpack-visual-editor' ), value: '' },
-										...Object.keys( CLIP_SHAPES ).map( ( slug ) => ( { label: CLIP_SHAPE_LABELS[ slug ] ?? slug, value: slug } ) ),
+										{ label: __( 'None', TEXT_DOMAIN ), value: '' },
+										...Object.keys( CLIP_SHAPES ).map( ( slug ) => ( { label: shapeLabels[ slug ] ?? slug, value: slug } ) ),
 									] }
 									onChange={ ( value ) => update( 'clipShape', value ) }
 								/>
 							) ) }
-							{ item( 'textClip', __( 'Clip background to text', 'artisanpack-visual-editor' ), (
-								<ToggleControl
-									__nextHasNoMarginBottom
-									label={ __( 'Clip background to text', 'artisanpack-visual-editor' ) }
-									help={ __( 'Paints the background only inside the letters. Pair it with a gradient background for gradient text.', 'artisanpack-visual-editor' ) }
-									checked={ true === effects.textClip }
-									onChange={ ( value ) => update( 'textClip', value ) }
-								/>
+							{ item( 'textClip', __( 'Clip background to text', TEXT_DOMAIN ), (
+								<>
+									<ToggleControl
+										__nextHasNoMarginBottom
+										label={ __( 'Clip background to text', TEXT_DOMAIN ) }
+										help={ __( 'Paints the background only inside the letters. Pair it with a gradient background for gradient text.', TEXT_DOMAIN ) }
+										checked={ true === effects.textClip }
+										onChange={ ( value ) => update( 'textClip', value ) }
+									/>
+									{ clipsNothing && (
+										<Notice status="warning" isDismissible={ false } className="ap-effects-text-clip-notice">
+											{ __( 'This block has no gradient or background image, so text clip is left off: the text would be invisible. Add a gradient or a background image to use it.', TEXT_DOMAIN ) }
+										</Notice>
+									) }
+								</>
 							) ) }
-							{ canEditBlockCss() && item( 'customCss', __( 'Custom CSS', 'artisanpack-visual-editor' ), (
-								<TextareaControl
-									__nextHasNoMarginBottom
-									className="ap-effects-custom-css"
-									label={ __( 'Custom CSS', 'artisanpack-visual-editor' ) }
-									help={ null === customCssResult
-										? __( 'This CSS can’t be used: check for unclosed braces, strings or comments, “<”, backslashes, or at-rules other than @media, @supports and @container. It won’t be printed.', 'artisanpack-visual-editor' )
-										: __( 'Applies to this block only. Write declarations for the block, or nest rules with “&”, e.g. “& img { border-radius: 8px; }”.', 'artisanpack-visual-editor' ) }
+							{ canEditBlockCss() && item( 'customCss', __( 'Custom CSS', TEXT_DOMAIN ), (
+								<CustomCssField
 									value={ customCss }
-									rows={ 6 }
-									spellCheck={ false }
 									onChange={ ( value ) => update( 'customCss', value ) }
 								/>
 							) ) }
@@ -311,9 +438,17 @@ export const withEffectsStyles = createHigherOrderComponent(
 		function EffectsStyledBlock( props: BlockProps ): JSX.Element {
 			const { clientId, attributes, wrapperProps } = props
 
-			const compiled = useMemo( () => compileEffects( attributes ), [ attributes ] )
+			const allowUrls = customCssAllowsUrls()
 
-			useCanvasScopedStyle( EFFECTS_STYLE_CHANNEL, clientId, compiled?.css ?? '' )
+			// F-12 — Custom CSS can name selectors outside the block
+			// (`:root:has(&) …`), so in an in-tree canvas its rule is
+			// scoped to the canvas.
+			const { compiled, hasCustomCss } = useMemo( () => ( {
+				compiled:     compileEffects( attributes, { allowCustomCssUrls: allowUrls } ),
+				hasCustomCss: '' !== ( sanitizeCustomCss( readEffects( attributes ).customCss, allowUrls ) ?? '' ),
+			} ), [ attributes, allowUrls ] )
+
+			useCanvasScopedStyle( EFFECTS_STYLE_CHANNEL, clientId, compiled?.css ?? '', { scopeInTree: hasCustomCss } )
 
 			const effectiveWrapperProps = useMemo( () => {
 				if ( null === compiled ) {

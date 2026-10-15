@@ -103,6 +103,15 @@ export interface BlockTreeProps {
      * pass them here.
      */
     queryResults?: ResolvedQuery[];
+    /**
+     * Whether a block's Custom CSS may load resources (`url(`,
+     * `image-set(`, `image(`, `src(`). Pass the host's config
+     * `effects.custom_css_allow_urls` so the page matches Blade; Custom
+     * CSS that loads one is dropped when `false`. Defaults to `true`.
+     *
+     * @since 1.15.0
+     */
+    customCssAllowUrls?: boolean;
 }
 
 export const BlockTree = defineComponent({
@@ -151,6 +160,10 @@ export const BlockTree = defineComponent({
         queryResults: {
             type: Array as PropType<ResolvedQuery[]>,
             default: undefined,
+        },
+        customCssAllowUrls: {
+            type: Boolean,
+            default: true,
         },
     },
     setup(props) {
@@ -273,7 +286,7 @@ export const BlockTree = defineComponent({
         // `ve-fx-<hash>` scope to each block's `className` and emit the
         // rules Blade pushes from `BlockSupports::compile()`.
         const effects = computed(() =>
-            stampEffectsScopes(responsive.value.tree)
+            stampEffectsScopes(responsive.value.tree, { allowCustomCssUrls: props.customCssAllowUrls })
         );
 
         const hasNavigationOverlay = computed(() => treeHasNavigationOverlay(effects.value.tree));

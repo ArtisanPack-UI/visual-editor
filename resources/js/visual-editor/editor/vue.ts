@@ -25,6 +25,7 @@ import {
 } from 'vue';
 import type { PropType } from 'vue';
 
+import type { ThemeBlockStyle } from '../block-style-registry';
 import type {
     AuthorOption,
     DocumentSupports,
@@ -64,6 +65,29 @@ export interface VisualEditorProps {
     previewUrl?: string | null;
     authorOptions?: ReadonlyArray<AuthorOption>;
     supports?: DocumentSupports;
+    /**
+     * Whether the current user may write a block's Custom CSS — pass the
+     * `visual-editor.edit-block-css` gate result (e.g.
+     * `Gate::allows( BlockCssAccess::ABILITY )` in the Inertia props).
+     * Only shows or hides the field; saves re-check the gate.
+     *
+     * @since 1.15.0
+     */
+    canEditBlockCss?: boolean;
+    /**
+     * Config `effects.custom_css_allow_urls`, so the canvas previews what
+     * the front end prints. Defaults to `true`.
+     *
+     * @since 1.15.0
+     */
+    customCssAllowUrls?: boolean;
+    /**
+     * Theme block style variations for the Styles picker, e.g.
+     * `app( BlockStyleResolver::class )->editorPayload()`.
+     *
+     * @since 1.15.0
+     */
+    blockStyles?: ReadonlyArray<ThemeBlockStyle>;
 }
 
 function buildMountConfig(props: VisualEditorProps): MountConfig {
@@ -86,6 +110,9 @@ function buildMountConfig(props: VisualEditorProps): MountConfig {
             : {}),
         ...(authorOptions !== undefined ? { authorOptions } : {}),
         ...(supports !== undefined ? { supports } : {}),
+        ...(props.blockStyles !== undefined ? { blockStyles: props.blockStyles } : {}),
+        canEditBlockCss: props.canEditBlockCss === true,
+        customCssAllowUrls: props.customCssAllowUrls !== false,
         previewUrl: props.previewUrl ?? null,
     };
 }
@@ -115,6 +142,18 @@ export const VisualEditor = defineComponent({
         },
         supports: {
             type: Object as PropType<DocumentSupports>,
+            default: undefined,
+        },
+        canEditBlockCss: {
+            type: Boolean,
+            default: false,
+        },
+        customCssAllowUrls: {
+            type: Boolean,
+            default: true,
+        },
+        blockStyles: {
+            type: Array as PropType<ReadonlyArray<ThemeBlockStyle>>,
             default: undefined,
         },
     },
