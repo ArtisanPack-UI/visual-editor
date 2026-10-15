@@ -415,8 +415,9 @@ return [
 	|   - capability         Left null (or any non-string), any authenticated
 	|                        user passes. Set a capability string (e.g.
 	|                        'edit_content') to require it through the
-	|                        user's hasCapability() / hasPermissionTo() /
-	|                        hasPermission(). A user model with none of those
+	|                        user's checkPermissionTo() / hasCapability() /
+	|                        hasPermissionTo() / hasPermission(); a backend
+	|                        that throws denies. A user model with none of those
 	|                        falls back to `$user->can( $capability )` and
 	|                        logs a warning. Or define the
 	|                        `visual-editor.edit-content` gate yourself.
@@ -877,8 +878,9 @@ return [
 		],
 
 		// Capability the default `visual-editor.use-ai` gate requires
-		// (checked through the user's hasCapability() / hasPermissionTo()
-		// / hasPermission()). Users without it are denied. Redefine the
+		// (checked through the user's checkPermissionTo() / hasCapability()
+		// / hasPermissionTo() / hasPermission(); a backend that throws
+		// denies). Users without it are denied. Redefine the
 		// gate to use your own rule; set to '' to deny everyone.
 		'capability' => 'use_ai_features',
 
@@ -900,6 +902,25 @@ return [
 
 	/*
 	|--------------------------------------------------------------------------
+	| Block Effects (#881)
+	|--------------------------------------------------------------------------
+	|
+	| `custom_css_capability` is the capability the default
+	| `visual-editor.edit-block-css` gate requires before a user may write a
+	| block's Custom CSS (checked through the user's checkPermissionTo() /
+	| hasCapability() / hasPermissionTo() / hasPermission(); a permission
+	| backend that throws denies). Users without it don't see the field,
+	| and every save of a block-content model keeps only the Custom CSS
+	| already stored on that record. Redefine the gate to use your own
+	| rule; set to '' to deny everyone.
+	|
+	*/
+	'effects' => [
+		'custom_css_capability' => 'edit_block_css',
+	],
+
+	/*
+	|--------------------------------------------------------------------------
 	| Block Visibility (#491 · #492 · #493)
 	|--------------------------------------------------------------------------
 	|
@@ -917,23 +938,6 @@ return [
 	| Docs: docs/visibility.md
 	|
 	*/
-
-	/*
-	|--------------------------------------------------------------------------
-	| Block Effects (#881)
-	|--------------------------------------------------------------------------
-	|
-	| `custom_css_capability` is the capability the default
-	| `visual-editor.edit-block-css` gate requires before a user may write a
-	| block's Custom CSS (checked through the user's hasCapability() /
-	| hasPermissionTo() / hasPermission()). Users without it don't see the
-	| field, and saves keep only the Custom CSS already stored. Redefine the
-	| gate to use your own rule; set to '' to deny everyone.
-	|
-	*/
-	'effects' => [
-		'custom_css_capability' => 'edit_block_css',
-	],
 
 	'visibility' => [
 		'enabled'              => true,
@@ -976,9 +980,10 @@ return [
 		/*
 		| The capability that gates every mutating Font Library action (install,
 		| upload, uninstall, bulk uninstall). It is checked by `FontPolicy`,
-		| which probes the authenticated user's `hasCapability()`,
-		| `hasPermissionTo()`, and `hasPermission()` methods in turn (each guarded
-		| by `method_exists()`), so a host can grant font management on its own —
+		| which probes the authenticated user's `checkPermissionTo()`,
+		| `hasCapability()`, `hasPermissionTo()`, and `hasPermission()` methods in
+		| turn (each guarded by `method_exists()`; a backend that throws denies),
+		| so a host can grant font management on its own —
 		| whether its users expose WordPress-style capabilities or rbac
 		| permissions — independently of whoever the
 		| bound `SiteEditorAccessGate` lets into the rest of the site editor. A
