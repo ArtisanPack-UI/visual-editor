@@ -21,8 +21,7 @@ import {
     useBlockProps,
     useInnerBlocksProps,
 } from '@wordpress/block-editor';
-import { __ } from '@wordpress/i18n';
-import { TEXT_DOMAIN } from '../../vendor/i18n';
+// Saved markup must not vary by locale, so strings serialized by save() (or persisted by migrate()) stay untranslated literals.
 import { compose } from '@wordpress/compose';
 
 import {
@@ -1299,7 +1298,7 @@ const v3 = {
                         },
                     },
                     fontSize: 'large',
-                    placeholder: __('Write title…', TEXT_DOMAIN),
+                    placeholder: 'Write title…',
                 }),
             ],
         ];
@@ -1374,7 +1373,7 @@ const v2 = {
                         },
                     },
                     fontSize: 'large',
-                    placeholder: __('Write title…', TEXT_DOMAIN),
+                    placeholder: 'Write title…',
                 }),
             ],
         ];
@@ -1425,7 +1424,7 @@ const v1 = {
                         },
                     },
                     fontSize: 'large',
-                    placeholder: __('Write title…', TEXT_DOMAIN),
+                    placeholder: 'Write title…',
                 }),
             ],
         ];

@@ -18,7 +18,7 @@ import { relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-import { collectSourceFiles, offendersIn } from './i18n-call-scanner';
+import { collectSourceFiles, findCalls, offendersIn } from './i18n-call-scanner';
 
 const SOURCE_DIR = fileURLToPath( new URL( '../..', import.meta.url ) );
 
@@ -73,6 +73,32 @@ describe( 'editor i18n calls', () => {
 
 			for ( const { line, fn, domain } of offendersIn( readFileSync( file, 'utf8' ) ) ) {
 				offenders.push( `${ path }:${ line } ${ fn }() domain ${ domain }` );
+			}
+		}
+
+		expect( offenders ).toEqual( [] );
+	} );
+} );
+
+/*
+ * Serialized markup must not depend on the editor's locale: once
+ * translations load, a translated string in `save()` would make every
+ * block saved in another language invalid. Block `save` and
+ * `deprecated` files therefore use plain literals.
+ */
+describe( 'block save code', () => {
+	it( 'calls no i18n function in save or deprecated files', () => {
+		const offenders: string[] = [];
+
+		for ( const file of collectSourceFiles( SOURCE_DIR ).sort() ) {
+			if ( ! /(^|[\\/])(save|deprecated)\.tsx?$/.test( file ) ) {
+				continue;
+			}
+
+			const path = relative( SOURCE_DIR, file ).split( sep ).join( '/' );
+
+			for ( const { line, fn } of findCalls( readFileSync( file, 'utf8' ) ) ) {
+				offenders.push( `${ path }:${ line } ${ fn }()` );
 			}
 		}
 
