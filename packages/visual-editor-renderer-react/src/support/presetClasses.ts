@@ -64,10 +64,13 @@ function stringAttr(value: unknown): string {
     return typeof value === 'number' && Number.isFinite(value) ? String(value) : '';
 }
 
-/** Mirrors `BlockSupports::slugify()`. */
+/**
+ * Mirrors `BlockSupports::slugify()`. Lowercases ASCII only, like PHP's
+ * `strtolower()`, so `İnk` slugs to `nk` here too rather than `i-nk`.
+ */
 function slugify(value: string): string {
     return phpTrim(value)
-        .toLowerCase()
+        .replace(/[A-Z]/g, (char) => char.toLowerCase())
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '');
 }

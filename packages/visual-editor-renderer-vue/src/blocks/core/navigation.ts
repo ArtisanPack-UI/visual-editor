@@ -38,11 +38,11 @@ const SWAPPED_MENU_SELECTOR = '.has-overlay-template > .wp-block-navigation__con
 /**
  * Reduce a color preset slug to `[a-z0-9-]` so a stored value can't mint
  * extra class tokens (e.g. `x is-menu-open`). Mirrors the Blade
- * partial's slug sanitizing.
+ * partial's slug sanitizing, lowercasing ASCII only like `strtolower()`.
  */
 function presetSlug(value: unknown): string {
     return phpTrim(attrString(value))
-        .toLowerCase()
+        .replace(/[A-Z]/g, (char) => char.toLowerCase())
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '');
 }
