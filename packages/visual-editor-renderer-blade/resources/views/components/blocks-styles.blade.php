@@ -159,7 +159,13 @@
 @media (max-width: 767px) { :where(.is-layout-constrained, .is-layout-flow) > :is(.alignleft, .alignright) { float: none; margin-inline: auto; } }
 </style>
 {{-- #879: global styles last, so they beat the block library and sit
-     before the theme stylesheet the host links after this component. --}}
+     before the theme stylesheet the host links after this component.
+     Printed inline when this component claimed them, or from the
+     `ve-global-styles` stack when a block renderer in a layout's section
+     or slot rendered first and queued them there. --}}
 @if( '' !== $globalStylesCss )
 <style data-ve-global-styles>{!! $globalStylesCss !!}</style>
+@endif
+@if( $printGlobalStylesStack )
+@stack( 've-global-styles' )
 @endif

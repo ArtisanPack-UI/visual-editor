@@ -36,6 +36,7 @@ use ArtisanPackUI\VisualEditorRendererBlade\Services\BoxShadowCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\DuotoneCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ElementsCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesPlacement;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\PositionCssAccumulator;
@@ -226,6 +227,12 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 		// `<style data-ve-duotone>` rules + hidden `<svg>` filter defs.
 		$this->app->scoped( DuotoneCssAccumulator::class, function () {
 			return new DuotoneCssAccumulator();
+		} );
+
+		// #879 — where the request's global styles land (head vs body).
+		// Scoped with the emission tracker it works alongside.
+		$this->app->scoped( GlobalStylesPlacement::class, function () {
+			return new GlobalStylesPlacement();
 		} );
 	}
 
