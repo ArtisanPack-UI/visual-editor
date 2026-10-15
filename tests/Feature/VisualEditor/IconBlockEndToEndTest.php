@@ -20,14 +20,17 @@
 declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\Blocks\Icon\IconBlock;
+use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
 use ArtisanPackUI\VisualEditor\Services\Icon\IconCatalog;
 use ArtisanPackUI\VisualEditor\Services\Icon\IconSvgResolver;
 use ArtisanPackUI\VisualEditor\Services\Icon\SvgSanitizer;
 use ArtisanPackUI\VisualEditor\Services\Icon\UploadedIconSet;
 use ArtisanPackUI\VisualEditor\Services\Icon\UploadedIconSetRegistry;
 use ArtisanPackUI\VisualEditor\SiteEditor\Gates\SiteEditorAccessGate;
+use ArtisanPackUI\VisualEditorRendererBlade\VisualEditorRendererBladeServiceProvider;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Blade;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\TestUser;
 
@@ -484,4 +487,28 @@ it( 'collects bundled FA Free sets via the ap.icons.registerIconSets filter', fu
 	$sets = $registry->getSets();
 
 	expect( $sets )->toHaveKeys( [ 'fas', 'far', 'fab' ] );
+} );
+
+it( 'never puts a rejected url() gradient on the wrapper through the Blade supports merge (M-8)', function (): void {
+	app()->register( VisualEditorRendererBladeServiceProvider::class );
+	app( DynamicBlockRegistry::class )->register( new IconBlock( new SvgSanitizer(), new IconSvgResolver( [] ) ) );
+
+	$html = Blade::render( '<x-ve-blocks :tree="$tree" />', [
+		'tree' => [ [
+			'clientId'    => 'c1',
+			'name'        => 'artisanpack/icon',
+			'attributes'  => [
+				'customSvg' => '<svg viewBox="0 0 24 24"><path d="M0 0"/></svg>',
+				'style'     => [ 'color' => [
+					'gradient'   => 'linear-gradient(red, blue), url(https://tracker.example/p.png)',
+					'background' => 'url(https://tracker.example/q.png)',
+				] ],
+			],
+			'innerBlocks' => [],
+		] ],
+	] );
+
+	expect( $html )->toContain( 'wp-block-artisanpack-icon' )
+		->not->toContain( 'url(' )
+		->not->toContain( 'tracker.example' );
 } );
