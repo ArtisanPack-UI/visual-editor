@@ -95,6 +95,11 @@ class CustomCssGuard
 	}
 
 	/**
+	 * Collect every block's normalised Custom CSS from a stored tree,
+	 * at any depth, into `$allowed`.
+	 *
+	 * @since 1.15.0
+	 *
 	 * @param  array<mixed>  $blocks
 	 * @param  array<string, bool>  $allowed
 	 */
@@ -120,6 +125,11 @@ class CustomCssGuard
 	}
 
 	/**
+	 * Strip Custom CSS not in `$allowed` from every block, at any depth,
+	 * in both the `attributes` and `attrs` bags.
+	 *
+	 * @since 1.15.0
+	 *
 	 * @param  array<mixed>  $blocks
 	 * @param  array<string, bool>  $allowed
 	 *
@@ -151,6 +161,10 @@ class CustomCssGuard
 	}
 
 	/**
+	 * Drop a block's Custom CSS unless its normalised value is allowed.
+	 *
+	 * @since 1.15.0
+	 *
 	 * @param  array<string, mixed>  $attributes
 	 * @param  array<string, bool>  $allowed
 	 *
@@ -179,6 +193,8 @@ class CustomCssGuard
 
 	/**
 	 * A block's normalised, non-empty Custom CSS, or null.
+	 *
+	 * @since 1.15.0
 	 */
 	protected function normalisedValue( mixed $attributes ): ?string
 	{

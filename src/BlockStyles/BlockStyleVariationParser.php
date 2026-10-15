@@ -246,6 +246,8 @@ class BlockStyleVariationParser
 	/**
 	 * Variations from a list of partial files.
 	 *
+	 * @since 1.15.0
+	 *
 	 * @param  list<string>  $files
 	 *
 	 * @return list<array{block: string, slug: string, label: string, style: array<string, mixed>, isDefault: bool}>
@@ -276,6 +278,10 @@ class BlockStyleVariationParser
 	}
 
 	/**
+	 * One normalised variation entry.
+	 *
+	 * @since 1.15.0
+	 *
 	 * @param  array<string, mixed>  $style
 	 *
 	 * @return array{block: string, slug: string, label: string, style: array<string, mixed>, isDefault: bool}

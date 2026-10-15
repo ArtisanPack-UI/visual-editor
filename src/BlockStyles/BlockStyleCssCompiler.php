@@ -44,6 +44,8 @@ class BlockStyleCssCompiler
 	 * WordPress's `WP_Theme_JSON::ELEMENTS` does, so link styles never
 	 * restyle button links.
 	 *
+	 * @since 1.15.0
+	 *
 	 * @var array<string, list<string>>
 	 */
 	public const ELEMENT_SELECTORS = [
@@ -64,6 +66,8 @@ class BlockStyleCssCompiler
 	 * Every pseudo-state sub-node an element can carry, in WordPress's
 	 * cascade order (`WP_Theme_JSON::VALID_ELEMENT_PSEUDO_SELECTORS`).
 	 *
+	 * @since 1.15.0
+	 *
 	 * @var list<string>
 	 */
 	public const PSEUDO_STATES = [ ':link', ':any-link', ':visited', ':hover', ':focus', ':focus-visible', ':active' ];
@@ -72,6 +76,8 @@ class BlockStyleCssCompiler
 	 * The pseudo states each element takes: only `link` and `button`, as
 	 * in WordPress. Other elements' pseudo sub-nodes are ignored. Mirrors
 	 * the Blade renderer's `ElementsSupport::ELEMENT_PSEUDO_STATES`.
+	 *
+	 * @since 1.15.0
 	 *
 	 * @var array<string, list<string>>
 	 */
@@ -82,6 +88,8 @@ class BlockStyleCssCompiler
 
 	/**
 	 * theme.json `typography` keys → CSS properties.
+	 *
+	 * @since 1.15.0
 	 *
 	 * @var array<string, string>
 	 */
@@ -99,6 +107,8 @@ class BlockStyleCssCompiler
 	/**
 	 * theme.json `outline` keys → CSS properties.
 	 *
+	 * @since 1.15.0
+	 *
 	 * @var array<string, string>
 	 */
 	protected const OUTLINE = [
@@ -115,6 +125,8 @@ class BlockStyleCssCompiler
 	 * image's border and shadow on its `<img>`. Keyed by group (`root`
 	 * covers every group without its own entry); each selector suffix is
 	 * appended to the variation's wrapper selectors.
+	 *
+	 * @since 1.15.0
 	 *
 	 * @var array<string, array<string, string>>
 	 */
@@ -232,6 +244,8 @@ class BlockStyleCssCompiler
 	 * Elements always nest under `$selectors`; declaration groups listed
 	 * in `$features` go to those selectors instead.
 	 *
+	 * @since 1.15.0
+	 *
 	 * @param  array<string, mixed>         $node
 	 * @param  list<string>                 $selectors
 	 * @param  array<string, list<string>>  $features
@@ -294,6 +308,8 @@ class BlockStyleCssCompiler
 	}
 
 	/**
+	 * @since 1.15.0
+	 *
 	 * @param  list<string>  $selectors
 	 */
 	protected function whereRule( array $selectors, string $declarations ): string
@@ -304,6 +320,8 @@ class BlockStyleCssCompiler
 	/**
 	 * Tab-joined CSS declarations for a style node, for element nodes
 	 * that always share one selector.
+	 *
+	 * @since 1.15.0
 	 *
 	 * @param  array<string, mixed>  $node
 	 */
@@ -316,6 +334,8 @@ class BlockStyleCssCompiler
 	 * CSS declarations for a style node's `color`, `typography`,
 	 * `spacing`, `border`, `shadow`, `dimensions` and `outline` groups,
 	 * keyed by group; empty groups are left out.
+	 *
+	 * @since 1.15.0
 	 *
 	 * @param  array<string, mixed>  $node
 	 *
@@ -393,6 +413,8 @@ class BlockStyleCssCompiler
 	/**
 	 * Append `padding` / `margin` as a shorthand string or per side.
 	 *
+	 * @since 1.15.0
+	 *
 	 * @param  list<string>  $declarations
 	 */
 	protected function pushBox( array &$declarations, string $box, mixed $value ): void
@@ -410,6 +432,8 @@ class BlockStyleCssCompiler
 
 	/**
 	 * Append one declaration when the value is a printable string.
+	 *
+	 * @since 1.15.0
 	 *
 	 * @param  list<string>  $declarations
 	 */
@@ -434,6 +458,8 @@ class BlockStyleCssCompiler
 
 	/**
 	 * `var:preset|color|primary` → `var(--wp--preset--color--primary)`.
+	 *
+	 * @since 1.15.0
 	 */
 	protected function expandPresetReference( string $value ): string
 	{
