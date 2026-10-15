@@ -82,7 +82,7 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   `effects.custom_css_allow_urls` config key to `false` to drop any
   Custom CSS that loads a resource (`url(`, `image-set(`, `image(`,
   `src(`); React and Vue hosts must then pass `customCssAllowUrls={false}`
-  to `<BlockTree>` as well.
+  to `<BlockTree>` (or `<Template>`) as well.
 - **Binding previews check the record's `view` policy.**
   `POST /visual-editor/api/bindings/resolve` and
   `POST /visual-editor/api/blocks/preview` now return 403 when the
@@ -280,7 +280,7 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   `aria-invalid`, explained in the field's help and announced to screen
   readers.
 - `effects.custom_css_allow_urls` config key (default `true`), the React
-  and Vue `<BlockTree>` `customCssAllowUrls` prop and the editor's
+  and Vue `<BlockTree>` / `<Template>` `customCssAllowUrls` prop and the editor's
   matching `customCssAllowUrls` mount option.
 - `global_styles_in_head` config key (default `true`), the
   `ve-global-styles` Blade stack and the `InjectQueuedGlobalStyles`
