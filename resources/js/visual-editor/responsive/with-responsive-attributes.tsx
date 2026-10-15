@@ -327,11 +327,24 @@ export const withResponsiveAttributes = createHigherOrderComponent(
                         }
                     }
 
+                    // Gutenberg merges attribute updates at the top level
+                    // only, so each touched top-level key must carry its
+                    // whole subtree. Seed it from the block's *base*
+                    // attributes (not the merged read view, so overlay
+                    // values never leak into the base) before writing the
+                    // leaf. `setPath` copies every object it walks, so the
+                    // store's frozen attribute objects are never mutated.
                     for ( const { path, value } of routed.base ) {
-                        Object.assign(
-                            baseUpdates,
-                            setPath( baseUpdates, path, value ),
+                        const top    = path.split( '.' )[ 0 ]
+                        const seeded = setPath(
+                            { [ top ]: top in baseUpdates ? baseUpdates[ top ] : attributes[ top ] },
+                            path,
+                            value,
                         )
+
+                        // A leaf cleared to nothing prunes its top-level
+                        // key; send `undefined` so the base is cleared too.
+                        baseUpdates[ top ] = seeded[ top ]
                     }
 
                     const finalUpdates: Record<string, unknown> = { ...baseUpdates }
@@ -345,7 +358,7 @@ export const withResponsiveAttributes = createHigherOrderComponent(
 
                     setAttributes( finalUpdates )
                 },
-                [ activeBreakpoint, mergedAttributes, responsive, roots, setAttributes ],
+                [ activeBreakpoint, attributes, mergedAttributes, responsive, roots, setAttributes ],
             )
 
             if ( ! roots ) {

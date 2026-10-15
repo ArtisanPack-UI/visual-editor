@@ -1,4 +1,4 @@
-import { render, screen, act } from '@testing-library/react'
+import { render, act } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
@@ -477,5 +477,209 @@ describe( 'withResponsiveAttributes — preset / custom pairs (#887)', () => {
 	it( 'treats `false` on an unpaired path as an ordinary value', () => {
 		expect( buildOverlay( { isStackedOnMobile: { mobile: false } }, 'mobile', getResponsiveRegistry() ) )
 			.toEqual( { isStackedOnMobile: false } )
+	} )
+} )
+
+function deepFreeze<T>( value: T ): T {
+	if ( null !== value && 'object' === typeof value ) {
+		for ( const child of Object.values( value as Record<string, unknown> ) ) {
+			deepFreeze( child )
+		}
+
+		Object.freeze( value )
+	}
+
+	return value
+}
+
+describe( 'withResponsiveAttributes — base writes keep their siblings', () => {
+	beforeEach( () => {
+		__setBlockType( 'artisanpack/paragraph', {
+			artisanpackResponsive: { attributes: [ 'spacing', 'fontSize', 'style.typography.fontSize' ] },
+		} )
+
+		act( () => {
+			setActiveBreakpoint( 'md' )
+		} )
+	} )
+
+	it( 'keeps the other base style values when a non-responsive leaf changes at a breakpoint', () => {
+		const setAttributes = vi.fn()
+		const attributes    = deepFreeze( {
+			content: 'Copy',
+			style: { typography: { lineHeight: '1.5' }, border: { width: '1px' } },
+		} )
+
+		render(
+			<Wrapped
+				name="artisanpack/paragraph"
+				attributes={ attributes }
+				setAttributes={ setAttributes }
+			/> as never,
+		)
+
+		captured?.setAttributes( {
+			style: { typography: { lineHeight: '1.5' }, border: { width: '1px', color: '#f00' } },
+		} )
+
+		expect( setAttributes ).toHaveBeenCalledWith( {
+			style: { typography: { lineHeight: '1.5' }, border: { width: '1px', color: '#f00' } },
+		} )
+	} )
+
+	it( 'keeps siblings when the panel sends only the changed subtree', () => {
+		const setAttributes = vi.fn()
+
+		render(
+			<Wrapped
+				name="artisanpack/paragraph"
+				attributes={ deepFreeze( {
+					style: { typography: { lineHeight: '1.5' }, border: { width: '1px' } },
+				} ) }
+				setAttributes={ setAttributes }
+			/> as never,
+		)
+
+		captured?.setAttributes( { style: { border: { color: '#f00' } } } )
+
+		const style = setAttributes.mock.calls[ 0 ][ 0 ].style
+
+		expect( style.typography.lineHeight ).toBe( '1.5' )
+		expect( style.border.width ).toBe( '1px' )
+		expect( style.border.color ).toBe( '#f00' )
+	} )
+
+	it( 'routes a responsive leaf and keeps the base siblings of a mixed edit', () => {
+		const setAttributes = vi.fn()
+
+		render(
+			<Wrapped
+				name="artisanpack/paragraph"
+				attributes={ deepFreeze( {
+					style: {
+						spacing: { padding: '1rem' },
+						typography: { lineHeight: '1.5' },
+						border: { width: '1px' },
+					},
+					responsive: { 'style.spacing.padding': { md: '2rem' } },
+				} ) }
+				setAttributes={ setAttributes }
+			/> as never,
+		)
+
+		// The panel works from the read view, so it echoes the md padding.
+		captured?.setAttributes( {
+			style: {
+				spacing: { padding: '3rem' },
+				typography: { lineHeight: '1.5' },
+				border: { width: '1px', style: 'dashed' },
+			},
+		} )
+
+		expect( setAttributes ).toHaveBeenCalledWith( {
+			style: {
+				spacing: { padding: '1rem' },
+				typography: { lineHeight: '1.5' },
+				border: { width: '1px', style: 'dashed' },
+			},
+			responsive: { 'style.spacing.padding': { md: '3rem' } },
+		} )
+	} )
+
+	it( 'never copies a breakpoint override into the base', () => {
+		const setAttributes = vi.fn()
+
+		render(
+			<Wrapped
+				name="artisanpack/paragraph"
+				attributes={ deepFreeze( {
+					style: { spacing: { padding: '1rem' }, border: { width: '1px' } },
+					responsive: { 'style.spacing.padding': { md: '2rem' } },
+				} ) }
+				setAttributes={ setAttributes }
+			/> as never,
+		)
+
+		expect( ( captured?.attributes.style as { spacing: { padding: string } } ).spacing.padding ).toBe( '2rem' )
+
+		captured?.setAttributes( {
+			style: { spacing: { padding: '2rem' }, border: { width: '1px', color: '#000' } },
+		} )
+
+		expect( setAttributes ).toHaveBeenCalledWith( {
+			style: { spacing: { padding: '1rem' }, border: { width: '1px', color: '#000' } },
+		} )
+	} )
+
+	it( 'writes a nested deep path without dropping sibling branches', () => {
+		const setAttributes = vi.fn()
+
+		render(
+			<Wrapped
+				name="artisanpack/paragraph"
+				attributes={ deepFreeze( {
+					style: {
+						border: {
+							top: { width: '1px', color: '#111' },
+							bottom: { width: '2px' },
+						},
+						shadow: 'var:preset|shadow|natural',
+					},
+				} ) }
+				setAttributes={ setAttributes }
+			/> as never,
+		)
+
+		captured?.setAttributes( { style: { border: { top: { style: 'dotted' } } } } )
+
+		expect( setAttributes ).toHaveBeenCalledWith( {
+			style: {
+				border: {
+					top: { width: '1px', color: '#111', style: 'dotted' },
+					bottom: { width: '2px' },
+				},
+				shadow: 'var:preset|shadow|natural',
+			},
+		} )
+	} )
+
+	it( 'clears a base leaf without touching its siblings', () => {
+		const setAttributes = vi.fn()
+
+		render(
+			<Wrapped
+				name="artisanpack/paragraph"
+				attributes={ deepFreeze( {
+					style: { typography: { lineHeight: '1.5' }, border: { width: '1px', color: '#f00' } },
+				} ) }
+				setAttributes={ setAttributes }
+			/> as never,
+		)
+
+		captured?.setAttributes( { style: { border: { color: undefined } } } )
+
+		expect( setAttributes ).toHaveBeenCalledWith( {
+			style: { typography: { lineHeight: '1.5' }, border: { width: '1px' } },
+		} )
+	} )
+
+	it( 'clears the top-level key when its last base leaf is removed', () => {
+		const setAttributes = vi.fn()
+
+		render(
+			<Wrapped
+				name="artisanpack/paragraph"
+				attributes={ deepFreeze( { style: { border: { color: '#f00' } } } ) }
+				setAttributes={ setAttributes }
+			/> as never,
+		)
+
+		captured?.setAttributes( { style: { border: { color: undefined } } } )
+
+		const updates = setAttributes.mock.calls[ 0 ][ 0 ]
+
+		// `toEqual` ignores undefined keys, so assert the key is sent.
+		expect( Object.keys( updates ) ).toEqual( [ 'style' ] )
+		expect( updates.style ).toBeUndefined()
 	} )
 } )
