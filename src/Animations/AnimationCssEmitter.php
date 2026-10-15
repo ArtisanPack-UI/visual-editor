@@ -59,6 +59,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Animations;
 
+use ArtisanPackUI\VisualEditor\Resources\PresetRegistry;
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use ArtisanPackUI\VisualEditor\Support\CssValue;
 
@@ -534,7 +535,7 @@ class AnimationCssEmitter
 		}
 
 		if ( 1 === preg_match( '/^var:preset\|color\|([a-zA-Z0-9_-]+)$/', $trimmed, $matches ) ) {
-			return sprintf( 'var(--wp--preset--color--%s)', strtolower( (string) preg_replace( '/([a-z])([A-Z])/', '$1-$2', $matches[1] ) ) );
+			return sprintf( 'var(--wp--preset--color--%s)', PresetRegistry::presetSlug( $matches[1] ) );
 		}
 
 		if ( str_contains( $trimmed, '/*' ) || str_contains( $trimmed, '*/' ) ) {

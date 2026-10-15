@@ -84,4 +84,18 @@ describe('block style registry (#876)', () => {
             ['artisanpack/group', { name: 'card', label: 'Card', isDefault: true }],
         ]);
     });
+
+    it('keeps each explicit entry when both block names define the same slug', () => {
+        getBlockStyles.mockReturnValue([]);
+
+        registerThemeBlockStyles([
+            { name: 'core/group', slug: 'card', label: 'Core card', isDefault: false },
+            { name: 'artisanpack/group', slug: 'card', label: 'Fork card', isDefault: true },
+        ]);
+
+        expect(registerBlockStyle.mock.calls).toEqual([
+            ['core/group', { name: 'card', label: 'Core card', isDefault: false }],
+            ['artisanpack/group', { name: 'card', label: 'Fork card', isDefault: true }],
+        ]);
+    });
 });

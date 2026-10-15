@@ -93,10 +93,15 @@ class ThemeJsonTokensCompiler
 	 * input carries no recognised tokens.
 	 *
 	 * @since 1.0.0
+	 * @since 1.15.0 `$blockStyleVariations` — pass `false` when the page
+	 *               also emits `BlockStyleResolver::css()` (the
+	 *               `<x-ve-blocks>` global styles), which already covers
+	 *               the theme's variations.
 	 *
-	 * @param  array<string, mixed>  $themeJson  Decoded theme.json payload.
+	 * @param  array<string, mixed>  $themeJson             Decoded theme.json payload.
+	 * @param  bool                  $blockStyleVariations  Compile `styles.blocks.*.variations`.
 	 */
-	public function compile( array $themeJson ): string
+	public function compile( array $themeJson, bool $blockStyleVariations = true ): string
 	{
 		$settings = is_array( $themeJson['settings'] ?? null ) ? $themeJson['settings'] : [];
 		$styles   = is_array( $themeJson['styles'] ?? null ) ? $themeJson['styles'] : [];
@@ -122,7 +127,9 @@ class ThemeJsonTokensCompiler
 
 		// #876 — `styles.blocks.*.variations` → `.is-style-*` rules,
 		// after the block rules so a variation overrides its block.
-		$variationsCss = ( new BlockStyleCssCompiler() )->compile( ( new BlockStyleVariationParser() )->fromStyles( $styles ) );
+		$variationsCss = $blockStyleVariations
+			? ( new BlockStyleCssCompiler() )->compile( ( new BlockStyleVariationParser() )->fromStyles( $styles ) )
+			: '';
 
 		$parts = array_values( array_filter( [ $root, $layout, $utilities, $stylesCss, $variationsCss ], static fn ( string $section ): bool => '' !== $section ) );
 

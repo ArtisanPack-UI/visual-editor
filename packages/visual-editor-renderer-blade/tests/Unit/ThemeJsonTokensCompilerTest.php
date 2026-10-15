@@ -906,3 +906,19 @@ it( 'compiles styles.blocks.*.variations into is-style rules after the block rul
 		->toContain( 'color: var(--wp--preset--color--primary);' )
 		->and( strpos( $css, '.wp-block-group.is-style-card' ) )->toBeGreaterThan( strpos( $css, ':root :where(.wp-block-group) {' ) );
 } );
+
+it( 'skips block style variations when asked to (#876)', function (): void {
+	$themeJson = [
+		'styles' => [
+			'blocks' => [
+				'core/group' => [
+					'color'      => [ 'background' => '#ffffff' ],
+					'variations' => [ 'card' => [ 'border' => [ 'radius' => '12px' ] ] ],
+				],
+			],
+		],
+	];
+
+	expect( $this->compiler->compile( $themeJson, false ) )->toContain( ':root :where(.wp-block-group) {' )
+		->not->toContain( 'is-style-card' );
+} );

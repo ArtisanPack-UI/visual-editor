@@ -104,3 +104,25 @@ it( 're-reads a directory when a partial changes', function (): void {
 
 	expect( $label )->toBe( 'Capsule' );
 } );
+
+it( 're-reads a partial edited without a new modification time', function (): void {
+	$directory = sys_get_temp_dir() . '/ve-block-styles-' . uniqid();
+	mkdir( $directory );
+	$file = $directory . '/pill.json';
+	file_put_contents( $file, json_encode( [ 'title' => 'Pill', 'blockTypes' => [ 'core/button' ] ] ) );
+	touch( $file, 1700000000 );
+	clearstatcache();
+
+	expect( $this->parser->fromDirectory( $directory )[0]['label'] )->toBe( 'Pill' );
+
+	file_put_contents( $file, json_encode( [ 'title' => 'Capsule', 'blockTypes' => [ 'core/button' ] ] ) );
+	touch( $file, 1700000000 );
+	clearstatcache();
+
+	$label = $this->parser->fromDirectory( $directory )[0]['label'];
+
+	unlink( $file );
+	rmdir( $directory );
+
+	expect( $label )->toBe( 'Capsule' );
+} );

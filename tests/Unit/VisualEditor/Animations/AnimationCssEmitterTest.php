@@ -246,3 +246,9 @@ it( 'keeps a valid custom easing', function (): void {
 		'hover' => [ 'name' => 'lift', 'easing' => 'cubic-bezier(0.2, 0, 0, 1)' ],
 	] ) )->toContain( 'transition: all 200ms cubic-bezier(0.2, 0, 0, 1);' );
 } );
+
+it( 'slugs a palette reference the way the preset declarations do (#878)', function (): void {
+	expect( makeAnimEmitter()->emit( '.ap-block-x', [
+		'hover' => [ 'name' => 'glow', 'color' => 'var:preset|color|brandAccent_2' ],
+	] ) )->toContain( '--ap-anim-glow-color: var(--wp--preset--color--brand-accent-2);' );
+} );

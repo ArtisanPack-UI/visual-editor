@@ -11,8 +11,10 @@
  *
  * A theme names blocks the WordPress way (`core/button`) while the
  * editor registers first-party forks (`artisanpack/button`), so every
- * variation is registered under both names. A slug the block already
- * offers (e.g. a block.json `styles` entry) is left alone.
+ * variation is registered under both names — its own name first, the
+ * counterpart only when that block + slug has no entry of its own. A
+ * slug the block already offers (e.g. a block.json `styles` entry) is
+ * left alone.
  *
  * @since 1.15.0
  */
@@ -123,22 +125,34 @@ export function getThemeBlockStyles(): readonly ThemeBlockStyle[] {
  * editor's blocks are registered; safe to call more than once.
  */
 export function registerThemeBlockStyles(styles: readonly ThemeBlockStyle[] = getThemeBlockStyles()): void {
-    for (const style of styles) {
-        for (const blockName of blockNamesFor(style.name)) {
-            const existing = (select(blocksStore) as {
-                getBlockStyles: (name: string) => Array<{ name: string }> | undefined;
-            }).getBlockStyles(blockName);
+    // Explicit names first, so a counterpart registration never claims a
+    // block + slug that has its own entry (e.g. `core/group` and
+    // `artisanpack/group` both defining `card` with different labels).
+    const explicit = new Set(styles.map((style) => `${style.name}|${style.slug}`));
+    const pending: Array<[string, ThemeBlockStyle]> = [
+        ...styles.map((style): [string, ThemeBlockStyle] => [style.name, style]),
+        ...styles.flatMap((style) =>
+            blockNamesFor(style.name)
+                .slice(1)
+                .filter((blockName) => !explicit.has(`${blockName}|${style.slug}`))
+                .map((blockName): [string, ThemeBlockStyle] => [blockName, style]),
+        ),
+    ];
 
-            if (existing?.some((entry) => entry.name === style.slug)) {
-                continue;
-            }
+    for (const [blockName, style] of pending) {
+        const existing = (select(blocksStore) as {
+            getBlockStyles: (name: string) => Array<{ name: string }> | undefined;
+        }).getBlockStyles(blockName);
 
-            registerBlockStyle(blockName, {
-                name: style.slug,
-                label: style.label,
-                isDefault: style.isDefault,
-            });
+        if (existing?.some((entry) => entry.name === style.slug)) {
+            continue;
         }
+
+        registerBlockStyle(blockName, {
+            name: style.slug,
+            label: style.label,
+            isDefault: style.isDefault,
+        });
     }
 }
 

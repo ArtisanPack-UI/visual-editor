@@ -113,7 +113,7 @@ class BlockStyleVariationParser
 	/**
 	 * Variations from every `*.json` partial in a directory. Unreadable
 	 * or malformed files are skipped. The parsed result is cached until
-	 * a file is added, removed or modified.
+	 * a file is added, removed or its contents change.
 	 *
 	 * @since 1.15.0
 	 *
@@ -133,12 +133,13 @@ class BlockStyleVariationParser
 
 		sort( $files );
 
-		// Partials are re-read only when one changes: the cache key
-		// covers every file's path and modification time.
+		// Partials are re-parsed only when one changes: the cache key
+		// covers every file's path and a hash of its contents, so an edit
+		// inside the filesystem's mtime resolution still busts it.
 		$signature = [];
 
 		foreach ( $files as $file ) {
-			$signature[ $file ] = @filemtime( $file );
+			$signature[ $file ] = is_readable( $file ) ? hash_file( 'xxh3', $file ) : false;
 		}
 
 		$key = 'artisanpack.visual-editor.block-styles.' . hash( 'xxh3', $directory . '|' . serialize( $signature ) );

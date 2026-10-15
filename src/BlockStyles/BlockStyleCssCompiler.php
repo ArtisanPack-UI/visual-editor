@@ -32,6 +32,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\BlockStyles;
 
+use ArtisanPackUI\VisualEditor\Resources\PresetRegistry;
 use ArtisanPackUI\VisualEditor\Support\CssValue;
 
 class BlockStyleCssCompiler
@@ -405,10 +406,7 @@ class BlockStyleCssCompiler
 		}
 
 		[ $kind, $path ] = explode( '|', $value, 2 );
-		$segments        = array_map(
-			static fn ( string $segment ): string => (string) preg_replace( '/[^a-z0-9-]/', '-', strtolower( (string) preg_replace( '/([a-z])([A-Z])/', '$1-$2', $segment ) ) ),
-			explode( '|', $path ),
-		);
+		$segments        = array_map( PresetRegistry::presetSlug( ... ), explode( '|', $path ) );
 
 		return 'var(--wp--' . substr( $kind, 4 ) . '--' . implode( '--', $segments ) . ')';
 	}
