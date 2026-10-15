@@ -41,7 +41,9 @@ vi.mock( '@wordpress/blocks', () => {
 
 import { __setBlockType, __clearBlockTypes } from '@wordpress/blocks'
 import { RichTextData } from '@wordpress/rich-text'
-import { withResponsiveAttributes } from '../with-responsive-attributes'
+import { buildOverlay, withResponsiveAttributes } from '../with-responsive-attributes'
+import { pathMatchesAnyRoot } from '../attribute-paths'
+import { getResponsiveRegistry } from '../registry'
 
 interface CapturedProps {
 	attributes: Record<string, unknown>
@@ -320,5 +322,160 @@ describe( 'withResponsiveAttributes — rich text at a device breakpoint (#820)'
 		} )
 
 		expect( setAttributes ).toHaveBeenCalledWith( { content: typed } )
+	} )
+} )
+
+describe( 'withResponsiveAttributes — preset / custom pairs (#887)', () => {
+	const TEXT_ROOTS = [ 'fontSize', 'textColor', 'style.color.text', 'backgroundColor', 'style.color.background' ]
+
+	beforeEach( () => {
+		__setBlockType( 'artisanpack/paragraph', {
+			artisanpackResponsive: { attributes: TEXT_ROOTS },
+		} )
+
+		act( () => {
+			setActiveBreakpoint( 'mobile' )
+		} )
+	} )
+
+	function renderParagraph( attributes: Record<string, unknown>, setAttributes = vi.fn() ): typeof setAttributes {
+		render(
+			<Wrapped
+				name="artisanpack/paragraph"
+				attributes={ { content: 'Copy', ...attributes } }
+				setAttributes={ setAttributes }
+			/> as never,
+		)
+
+		return setAttributes
+	}
+
+	it( 'routes the custom font size through the `fontSize` root', () => {
+		expect( pathMatchesAnyRoot( 'style.typography.fontSize', TEXT_ROOTS ) ).toBe( true )
+
+		const setAttributes = renderParagraph( {} )
+
+		captured?.setAttributes( { style: { typography: { fontSize: '18px' } } } )
+
+		expect( setAttributes ).toHaveBeenCalledWith( {
+			responsive: {
+				'style.typography.fontSize': { mobile: '18px' },
+				fontSize: { mobile: false },
+			},
+		} )
+	} )
+
+	it( 'tombstones the inherited custom size when Mobile picks a preset', () => {
+		const setAttributes = renderParagraph( {
+			responsive: { 'style.typography.fontSize': { tablet: '20px' } },
+		} )
+
+		captured?.setAttributes( { fontSize: 'small', style: { typography: { fontSize: undefined } } } )
+
+		expect( setAttributes ).toHaveBeenCalledWith( {
+			responsive: {
+				'style.typography.fontSize': { tablet: '20px', mobile: false },
+				fontSize: { mobile: 'small' },
+			},
+		} )
+	} )
+
+	it( 'tombstones the preset when Mobile switches to a custom value', () => {
+		const setAttributes = renderParagraph( {
+			responsive: { fontSize: { mobile: 'small' }, 'style.typography.fontSize': { mobile: false } },
+		} )
+
+		captured?.setAttributes( { fontSize: undefined, style: { typography: { fontSize: '18px' } } } )
+
+		expect( setAttributes ).toHaveBeenCalledWith( {
+			responsive: {
+				fontSize: { mobile: false },
+				'style.typography.fontSize': { mobile: '18px' },
+			},
+		} )
+	} )
+
+	it( 'drops the twin tombstone when the value at that breakpoint is cleared', () => {
+		const setAttributes = renderParagraph( {
+			responsive: {
+				fontSize: { mobile: 'small' },
+				'style.typography.fontSize': { tablet: '20px', mobile: false },
+			},
+		} )
+
+		captured?.setAttributes( { fontSize: undefined } )
+
+		const responsive = setAttributes.mock.calls[ 0 ][ 0 ].responsive
+
+		expect( responsive.fontSize.mobile ).toBeUndefined()
+		expect( responsive[ 'style.typography.fontSize' ] ).toEqual( { tablet: '20px' } )
+	} )
+
+	it( 'tombstones the colour twins the same way', () => {
+		const setAttributes = renderParagraph( {
+			responsive: { 'style.color.background': { tablet: '#0f172a' } },
+		} )
+
+		captured?.setAttributes( { backgroundColor: 'accent', textColor: 'contrast' } )
+
+		expect( setAttributes ).toHaveBeenCalledWith( {
+			responsive: {
+				'style.color.background': { tablet: '#0f172a', mobile: false },
+				backgroundColor: { mobile: 'accent' },
+				textColor: { mobile: 'contrast' },
+				'style.color.text': { mobile: false },
+			},
+		} )
+	} )
+
+	it( 'shows only the Mobile preset, not the Tablet custom size, at Mobile', () => {
+		renderParagraph( {
+			responsive: {
+				fontSize: { mobile: 'small' },
+				'style.typography.fontSize': { tablet: '20px', mobile: false },
+			},
+		} )
+
+		const style = captured?.attributes.style as { typography?: { fontSize?: unknown } } | undefined
+
+		expect( captured?.attributes.fontSize ).toBe( 'small' )
+		expect( style?.typography?.fontSize ).toBeUndefined()
+	} )
+
+	it( 'hides a base custom size behind a Mobile tombstone', () => {
+		renderParagraph( {
+			style: { typography: { fontSize: '30px' } },
+			responsive: {
+				fontSize: { mobile: 'small' },
+				'style.typography.fontSize': { mobile: false },
+			},
+		} )
+
+		const style = captured?.attributes.style as { typography?: { fontSize?: unknown } } | undefined
+
+		expect( style?.typography?.fontSize ).toBeUndefined()
+	} )
+
+	it( 'keeps cascading past a narrower tombstone at Tablet', () => {
+		act( () => {
+			setActiveBreakpoint( 'tablet' )
+		} )
+
+		renderParagraph( {
+			responsive: {
+				fontSize: { mobile: 'small' },
+				'style.typography.fontSize': { tablet: '20px', mobile: false },
+			},
+		} )
+
+		const style = captured?.attributes.style as { typography?: { fontSize?: unknown } } | undefined
+
+		expect( style?.typography?.fontSize ).toBe( '20px' )
+		expect( captured?.attributes.fontSize ).toBeUndefined()
+	} )
+
+	it( 'treats `false` on an unpaired path as an ordinary value', () => {
+		expect( buildOverlay( { isStackedOnMobile: { mobile: false } }, 'mobile', getResponsiveRegistry() ) )
+			.toEqual( { isStackedOnMobile: false } )
 	} )
 } )

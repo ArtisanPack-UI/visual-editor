@@ -46,7 +46,15 @@ export function SpacerBlock({ attributes }: BlockRendererProps): JSX.Element {
             ? `${rawHeight.trim()}px`
             : attrString(rawHeight, '100px');
 
-    return <div aria-hidden="true" className="wp-block-spacer" style={{ height }} />;
+    // `_veSpacerWidthScope` is stamped by `stampResponsiveScopes()` for
+    // per-breakpoint widths; Blade appends it after the compiled classes.
+    const classes = classList([
+        'wp-block-spacer',
+        attrString(attributes.className),
+        attrString(attributes._veSpacerWidthScope),
+    ]);
+
+    return <div aria-hidden="true" className={classes} style={{ height }} />;
 }
 
 export function CoverBlock({ attributes, children }: BlockRendererProps): JSX.Element {
@@ -62,6 +70,9 @@ export function CoverBlock({ attributes, children }: BlockRendererProps): JSX.El
     const classes = classList([
         'wp-block-cover',
         isDark ? 'is-dark' : 'is-light',
+        // Cover always lays its inner container out as flex (#888).
+        'is-layout-flex',
+        'wp-block-cover-is-layout-flex',
         align !== '' ? `align${align}` : null,
         className,
     ]);

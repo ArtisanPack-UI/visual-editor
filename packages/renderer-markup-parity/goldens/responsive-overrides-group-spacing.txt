@@ -1,0 +1,9 @@
+<div class="wp-block-group is-layout-flow wp-block-group-is-layout-flow hero ve-r-5ab521b63c">
+  <p class="wp-block-paragraph">
+    "Inside"
+  </p>
+</div>
+@@ renderer-instance-css @@
+@media (max-width:1023px){.ve-r-5ab521b63c.ve-r-5ab521b63c.ve-r-5ab521b63c{border-radius:12px!important}}
+@media (max-width:767px){.ve-r-5ab521b63c.ve-r-5ab521b63c.ve-r-5ab521b63c{padding-right:8px!important;padding-left:8px!important}}
+@media (min-width:768px){.ve-r-5ab521b63c.ve-r-5ab521b63c.ve-r-5ab521b63c{padding-top:2rem!important;padding-bottom:var(--wp--preset--spacing--40)!important}}

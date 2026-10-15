@@ -779,7 +779,10 @@ class BlockSupports
 			$overrides = self::withUnitOnlyOverrides( (string) $path, $overrides, $attributes, $registry );
 
 			foreach ( $overrides as $breakpoint => $value ) {
-				if ( null === $value || '' === $value ) {
+				// `false` is the editor's tombstone (#887): it only stops
+				// the canvas cascade for one half of a preset / custom
+				// pair, so it must never displace the other half's value.
+				if ( null === $value || '' === $value || false === $value ) {
 					continue;
 				}
 

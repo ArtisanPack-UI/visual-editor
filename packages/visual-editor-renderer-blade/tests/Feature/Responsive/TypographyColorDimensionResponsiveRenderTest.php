@@ -234,3 +234,32 @@ it( 'emits one font-size per breakpoint when both twins set it, the later-stored
 	expect( $rendered )->toContain( '{font-size:var(--wp--preset--font-size--small)!important}' )
 		->not->toContain( '{font-size:1rem!important}' );
 } );
+
+it( 'never lets an editor tombstone displace its twin at the same breakpoint (#887)', function ( string $path, string $twin, string $value, string $expected ): void {
+	$rendered = renderResponsiveBlock( 'artisanpack/paragraph', [
+		'content'    => 'Copy',
+		'responsive' => [
+			$twin => [ 'mobile' => $value ],
+			$path => [ 'tablet' => '#123456', 'mobile' => false ],
+		],
+	] );
+
+	expect( $rendered )->toContain( $expected )
+		->and( substr_count( $rendered, '@media (max-width:767px)' ) )->toBe( 1 );
+} )->with( [
+	'font size'  => [ 'style.typography.fontSize', 'fontSize', 'small', '{font-size:var(--wp--preset--font-size--small)!important}' ],
+	'text'       => [ 'style.color.text', 'textColor', 'contrast', '{color:var(--wp--preset--color--contrast)!important}' ],
+	'background' => [ 'backgroundColor', 'style.color.background', '#0f172a', '{background-color:#0f172a!important}' ],
+] );
+
+it( 'emits nothing for a tombstone with no twin value (#887)', function (): void {
+	$rendered = renderResponsiveBlock( 'artisanpack/paragraph', [
+		'content'    => 'Copy',
+		'responsive' => [
+			'style.typography.fontSize' => [ 'mobile' => false ],
+			'fontSize'                  => [ 'tablet' => false ],
+		],
+	] );
+
+	expect( $rendered )->not->toContain( 've-r-' );
+} );

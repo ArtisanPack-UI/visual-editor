@@ -57,9 +57,18 @@ export const SpacerBlock = defineComponent({
                     ? `${rawHeight.trim()}px`
                     : attrString(rawHeight, '100px');
 
+            // `_veSpacerWidthScope` is stamped by `stampResponsiveScopes()`
+            // for per-breakpoint widths; Blade appends it after the
+            // compiled classes.
+            const classes = classList([
+                'wp-block-spacer',
+                attrString(props.attributes.className),
+                attrString(props.attributes._veSpacerWidthScope),
+            ]);
+
             return h('div', {
                 'aria-hidden': 'true',
-                class: 'wp-block-spacer',
+                class: classes,
                 style: { height },
             });
         };
@@ -83,6 +92,9 @@ export const CoverBlock = defineComponent({
             const classes = classList([
                 'wp-block-cover',
                 isDark ? 'is-dark' : 'is-light',
+                // Cover always lays its inner container out as flex (#888).
+                'is-layout-flex',
+                'wp-block-cover-is-layout-flex',
                 align !== '' ? `align${align}` : null,
                 className,
             ]);

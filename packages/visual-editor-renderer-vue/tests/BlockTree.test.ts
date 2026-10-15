@@ -96,7 +96,8 @@ describe('Core text blocks', () => {
     it('renders a heading at the configured level', () => {
         const tree = [makeBlock('core/heading', { level: 3, content: 'Section' })];
 
-        expect(renderTree(tree)).toBe('<h3 class="wp-block-heading">Section</h3>');
+        // The auto anchor matches Blade's `TocResolver` stamp (#888).
+        expect(renderTree(tree)).toBe('<h3 class="wp-block-heading" id="section">Section</h3>');
     });
 
     it('clamps invalid heading levels to the allowed range', () => {

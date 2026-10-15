@@ -1,0 +1,20 @@
+<h2 class="wp-block-heading has-primary-color has-text-color has-xx-large-font-size has-defined-font-size" id="section-title">
+  "Section title"
+</h2>
+<div class="wp-block-group is-layout-flow wp-block-group-is-layout-flow">
+  <h3 class="wp-block-heading" id="section-title-1">
+    "Intro"
+  </h3>
+  <h3 class="wp-block-heading has-base-background-color has-background has-sunset-gradient-background has-body-serif-font-family" id="section-title-2">
+    "Section "
+    <em>
+      "title"
+    </em>
+  </h3>
+</div>
+<h4 class="wp-block-heading has-text-color has-text-color-preset" id="cafe-creme-brulee">
+  "Café & Crème Brûlée"
+</h4>
+<h2 class="wp-block-heading" id="badidxyz">
+  "Hostile"
+</h2>
