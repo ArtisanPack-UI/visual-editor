@@ -403,7 +403,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 			return new SiteEditorPatternResolver();
 		} );
 
-		$this->app->singleton( SiteEditorGlobalStylesResolver::class, function () {
+		$this->app->scoped( SiteEditorGlobalStylesResolver::class, function () {
 			return new SiteEditorGlobalStylesResolver();
 		} );
 
@@ -898,10 +898,16 @@ class VisualEditorServiceProvider extends ServiceProvider
 	 * up with empty resolvers — the editor's site-editor surface boots clean
 	 * and the editor renders with zero entities until something registers.
 	 *
+	 * The global styles resolver is the exception: it is bound request-
+	 * scoped and merges its filter on first use in each request (see
+	 * {@see self::mergedGlobalStyles()}), so long-lived workers never serve
+	 * a stale snapshot.
+	 *
 	 * Public so tests (and edge cases that mutate config or hook callbacks at
 	 * runtime) can re-trigger the rebind without going through reflection.
 	 *
 	 * @since 1.0.0
+	 * @since 1.15.0 Binds the global styles resolver request-scoped.
 	 */
 	public function registerSiteEditorResolvers(): void
 	{
@@ -938,18 +944,15 @@ class VisualEditorServiceProvider extends ServiceProvider
 			new SiteEditorPatternResolver( $patternsMerged ),
 		);
 
-		// Global styles ─ singleton (?array). Static-config null-coalesces over
-		// filter return so a host that sets static config wins outright; with no
-		// static config, the filter result is authoritative.
-		$globalStylesStatic = config( 'artisanpack.visual-editor.site-editor.global-styles', null );
-		$globalStylesStatic = is_array( $globalStylesStatic ) ? $globalStylesStatic : null;
-		$globalStylesMerged = applyFilters( 'ap.visualEditor.globalStyles', $globalStylesStatic );
-		$globalStylesMerged = is_array( $globalStylesMerged ) ? $globalStylesMerged : null;
-		$globalStylesMerged = $globalStylesStatic ?? $globalStylesMerged;
-
-		$this->app->instance(
+		// Global styles ─ request-scoped (F-6). The filter's contributors
+		// (cms-framework reads the user's Global Styles row and the active
+		// theme) run on first use in each request rather than once at
+		// boot, so under Octane an edit or a theme switch shows up without
+		// a worker restart. The variations and keyframes read it through
+		// the container, so they pick up the fresh instance too.
+		$this->app->scoped(
 			SiteEditorGlobalStylesResolver::class,
-			new SiteEditorGlobalStylesResolver( $globalStylesMerged ),
+			fn (): SiteEditorGlobalStylesResolver => new SiteEditorGlobalStylesResolver( $this->mergedGlobalStyles() ),
 		);
 
 		// Navigation ─ array<string, array> keyed by location.
@@ -962,6 +965,26 @@ class VisualEditorServiceProvider extends ServiceProvider
 			SiteEditorMenuResolver::class,
 			new SiteEditorMenuResolver( $menusMerged ),
 		);
+	}
+
+	/**
+	 * The global styles payload: the static config, else the
+	 * `ap.visualEditor.globalStyles` filter result. Static config
+	 * null-coalesces over the filter return, so a host that sets it wins
+	 * outright; with no static config, the filter result is authoritative.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @return array<string, mixed>|null
+	 */
+	protected function mergedGlobalStyles(): ?array
+	{
+		$static = config( 'artisanpack.visual-editor.site-editor.global-styles', null );
+		$static = is_array( $static ) ? $static : null;
+		$merged = applyFilters( 'ap.visualEditor.globalStyles', $static );
+		$merged = is_array( $merged ) ? $merged : null;
+
+		return $static ?? $merged;
 	}
 
 	/**

@@ -226,6 +226,11 @@ class VisualEditor
 	 * it empty to label a variation the theme already styles. A code
 	 * registration wins over the theme's own on the same block + slug.
 	 *
+	 * Call it while the application boots (a service provider's `boot()`).
+	 * Registrations live in a process-wide registry, so under Octane one
+	 * made while handling a request would leak into every later request
+	 * the worker serves.
+	 *
 	 * @since 1.15.0
 	 *
 	 * @param  string                $block      Block name, e.g. `core/group`.
@@ -246,7 +251,8 @@ class VisualEditor
 	}
 
 	/**
-	 * Removes a block style variation registered in code (#876).
+	 * Removes a block style variation registered in code (#876). Like
+	 * {@see self::registerBlockStyle()}, call it at boot.
 	 *
 	 * @since 1.15.0
 	 */
