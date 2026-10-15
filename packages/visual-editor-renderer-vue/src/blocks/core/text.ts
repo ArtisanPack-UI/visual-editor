@@ -9,6 +9,8 @@
 import { defineComponent, h } from 'vue';
 import { attrBoolean, attrInt, attrRecord, attrString, classList } from '../../support/attributes';
 import { applyDimensions, hasDimensionStyle } from '../../support/dimensions';
+import { resolveAnchor } from '../../support/headingAnchors';
+import { presetClasses } from '../../support/presetClasses';
 import { blockRendererProps } from '../shared';
 
 export const ParagraphBlock = defineComponent({
@@ -64,13 +66,16 @@ export const HeadingBlock = defineComponent({
             const className = attrString(props.attributes.className);
             const content = attrString(props.attributes.content);
 
+            // Preset colour / font-size classes and the anchor `id` match
+            // the Blade partial's `BlockSupports::wrapperAttrs()` output (#888).
             const classes = classList([
                 'wp-block-heading',
                 textAlign !== '' ? `has-text-align-${textAlign}` : null,
+                ...presetClasses(props.attributes),
                 className,
             ]);
 
-            return h(`h${level}`, { class: classes, innerHTML: content });
+            return h(`h${level}`, { class: classes, id: resolveAnchor(props.attributes.anchor), innerHTML: content });
         };
     },
 });

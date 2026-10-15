@@ -34,8 +34,10 @@ import {
     treeHasNavigationOverlay,
 } from './support/navigationOverlayCss';
 import { stampEffectsScopes } from './support/effects';
+import { stampHeadingAnchors } from './support/headingAnchors';
 import { stampLayoutScopes } from './support/layoutContainer';
 import { stampPhotoGridScopes } from './support/photoGrid';
+import { stampResponsiveScopes } from './support/responsive';
 import {
     DEFAULT_MAX_PATTERN_DEPTH,
     inlinePatterns,
@@ -164,12 +166,18 @@ export function BlockTree({
 
         const withSiteMeta = inlineSiteMeta(withOverlays, siteMeta);
 
-        // Query inlining runs last so a `core/query` block reachable only
-        // through a resolved template part / pattern still gets its loop
-        // expanded.
-        return queryResults === undefined
-            ? withSiteMeta
-            : inlineQueries(withSiteMeta, { queries: queryResults });
+        // Query inlining runs after the other inliners so a `core/query`
+        // block reachable only through a resolved template part / pattern
+        // still gets its loop expanded.
+        const withQueries =
+            queryResults === undefined
+                ? withSiteMeta
+                : inlineQueries(withSiteMeta, { queries: queryResults });
+
+        // Heading anchors (#888) — stamp a unique auto-generated `anchor`
+        // on every heading that lacks one, after every inliner so injected
+        // headings take part, the way Blade's `TocResolver` pass does.
+        return stampHeadingAnchors(withQueries);
     }, [
         tree,
         templateParts,
@@ -224,12 +232,21 @@ export function BlockTree({
         return stampLayoutScopes(photoGridTree);
     }, [photoGridTree]);
 
+    // Generic responsive overrides (#886) — append the hashed
+    // `ve-r-<hash>` scope to each block's `className` and emit the
+    // per-breakpoint rules Blade pushes from
+    // `BlockSupports::compileResponsive()`. Runs before effects so the
+    // class lands ahead of `ve-fx-<hash>`, as in Blade.
+    const { tree: responsiveTree, css: responsiveCss } = useMemo(() => {
+        return stampResponsiveScopes(layoutTree);
+    }, [layoutTree]);
+
     // Block effects + Custom CSS (#881) — append the hashed `ve-fx-<hash>`
     // scope to each block's `className` and emit the rules Blade pushes
     // from `BlockSupports::compile()`.
     const { tree: renderTree, css: effectsCss } = useMemo(() => {
-        return stampEffectsScopes(layoutTree);
-    }, [layoutTree]);
+        return stampEffectsScopes(responsiveTree);
+    }, [responsiveTree]);
 
     // Navigation overlay (#804) — the drawer's breakpoint + open-state
     // rules, emitted once when any navigation block has its overlay on.
@@ -258,6 +275,11 @@ export function BlockTree({
                 // `&gt;` inside the style element. The rule values are
                 // whitelisted by `layoutContainer()` and carry no `<`.
                 <style data-ve-layout="" dangerouslySetInnerHTML={{ __html: layoutCss }} />
+            )}
+            {responsiveCss !== '' && (
+                // Values are stripped to the CSS-value whitelist, so the
+                // rules carry no character React would escape.
+                <style data-ve-responsive="">{responsiveCss}</style>
             )}
             {effectsCss !== '' && (
                 // Raw HTML so `>` in Custom CSS isn't escaped to `&gt;`.

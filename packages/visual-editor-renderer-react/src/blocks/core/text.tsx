@@ -8,6 +8,8 @@
 
 import { attrBoolean, attrInt, attrRecord, attrString, classList } from '../../support/attributes';
 import { applyDimensions, hasDimensionStyle } from '../../support/dimensions';
+import { resolveAnchor } from '../../support/headingAnchors';
+import { presetClasses } from '../../support/presetClasses';
 import type { BlockRendererProps } from '../../types';
 
 export function ParagraphBlock({ attributes }: BlockRendererProps): JSX.Element {
@@ -53,15 +55,18 @@ export function HeadingBlock({ attributes }: BlockRendererProps): JSX.Element {
     const className = attrString(attributes.className);
     const content = attrString(attributes.content);
 
+    // Preset colour / font-size classes and the anchor `id` match the
+    // Blade partial's `BlockSupports::wrapperAttrs()` output (#888).
     const classes = classList([
         'wp-block-heading',
         textAlign !== '' ? `has-text-align-${textAlign}` : null,
+        ...presetClasses(attributes),
         className,
     ]);
 
     const Tag = `h${level}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 
-    return <Tag className={classes} dangerouslySetInnerHTML={{ __html: content }} />;
+    return <Tag className={classes} id={resolveAnchor(attributes.anchor)} dangerouslySetInnerHTML={{ __html: content }} />;
 }
 
 export function ListBlock({ attributes, children }: BlockRendererProps): JSX.Element {

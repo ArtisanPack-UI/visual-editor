@@ -77,20 +77,6 @@
             "fixturesMatching": "^navigation-layout-colors-elements$",
             "reason": "The scoped `.wp-elements-{hash} a:where(:not(.wp-element-button)) { color: … }` rules ElementsSupport pushes into the shared `<style data-ve-elements>` block (#852) — Blade-only, like its scope class.",
             "dropRendererStyleTag": "data-ve-elements"
-        },
-        {
-            "id": "responsive-overrides-scope-class",
-            "issue": "#877",
-            "fixturesMatching": "^responsive-overrides-",
-            "reason": "Only Blade compiles the generic `attributes.responsive` overrides (padding, margin, border, and since #877 font size, colours, spacer height/width and cover min-height) into a per-block `ve-r-{hash}` scope class; the React and Vue renderers have no generic responsive emitter. The base markup is still compared.",
-            "dropClassTokensMatching": "^ve-r-[0-9a-f]{10}$"
-        },
-        {
-            "id": "responsive-overrides-style",
-            "issue": "#877",
-            "fixturesMatching": "^responsive-overrides-",
-            "reason": "The `@media` rules for those overrides land in Blade's shared `<style data-ve-responsive>` block; Blade-only, like their scope class.",
-            "dropRendererStyleTag": "data-ve-responsive"
         }
     ],
     "fixtures": [
@@ -1743,7 +1729,7 @@
         },
         {
             "name": "responsive-overrides-spacer",
-            "$comment": "#877 — spacer height and width with Mobile overrides. The base `height` is compared across renderers; the overrides are Blade-only (see `responsive-overrides-*` divergences).",
+            "$comment": "#877 · #886 — spacer height and width with Mobile overrides. The height override rides the generic `ve-r-<hash>` scope; the width override gets its own spacer-only scope, appended after the compiled classes in every renderer.",
             "tree": [
                 {
                     "clientId": "resp-spacer",
@@ -1765,7 +1751,7 @@
         },
         {
             "name": "responsive-overrides-paragraph",
-            "$comment": "#877 — paragraph font size and colour overrides (preset slug and custom value) at Tablet and Mobile. The overrides are Blade-only (see `responsive-overrides-*` divergences); the base markup is compared.",
+            "$comment": "#877 · #886 — paragraph font size and colour overrides (preset slug and custom value) at Tablet and Mobile, grouped by CSS property so the narrower breakpoint wins in every renderer.",
             "tree": [
                 {
                     "clientId": "resp-paragraph",
@@ -1882,6 +1868,130 @@
                         { "clientId": "fx-p2", "name": "core/paragraph", "attributes": { "content": "Gradient two", "artisanpackEffects": { "textClip": true, "mixBlendMode": "screen" } }, "innerBlocks": [] },
                         { "clientId": "fx-h", "name": "core/paragraph", "attributes": { "content": "Clipped", "artisanpackEffects": { "opacity": 50, "clipShape": "hexagon", "customCss": "color: red; } body { display: none" } }, "innerBlocks": [] }
                     ]
+                }
+            ]
+        },
+        {
+            "name": "cover",
+            "$comment": "#888 — cover carries the shared flex layout classes (`is-layout-flex wp-block-cover-is-layout-flex`) in every renderer.",
+            "tree": [
+                {
+                    "clientId": "cover-1",
+                    "name": "core/cover",
+                    "attributes": { "minHeight": 600 },
+                    "innerBlocks": [
+                        { "clientId": "cover-1-p", "name": "core/paragraph", "attributes": { "content": "Cover copy" }, "innerBlocks": [] }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "heading",
+            "$comment": "#888 — heading preset colour and font-size classes and the anchor id match across renderers. Auto anchors are unique across the tree (an author anchor claims its slug first-come), accents and entities fold out of the slug, and a hostile author anchor is reduced to `[A-Za-z0-9_:.-]` — and it is that rendered id a later auto anchor (`Badidxyz` → `badidxyz-1`) must avoid. Named HTML 4 entities decode before slugging.",
+            "tree": [
+                {
+                    "clientId": "heading-1",
+                    "name": "core/heading",
+                    "attributes": { "content": "Section title", "level": 2, "fontSize": "xx-large", "textColor": "primary" },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "heading-2",
+                    "name": "core/group",
+                    "attributes": { "layout": { "type": "flow" } },
+                    "innerBlocks": [
+                        { "clientId": "heading-2a", "name": "core/heading", "attributes": { "content": "Intro", "level": 3, "anchor": "section-title-1" }, "innerBlocks": [] },
+                        { "clientId": "heading-2b", "name": "core/heading", "attributes": { "content": "Section <em>title</em>", "level": 3, "backgroundColor": "base", "gradient": "sunset", "fontFamily": "Body Serif" }, "innerBlocks": [] }
+                    ]
+                },
+                {
+                    "clientId": "heading-3",
+                    "name": "core/heading",
+                    "attributes": { "content": "Café &amp; Crème&nbsp;Brûlée", "level": 4, "textColor": "text" },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "heading-4",
+                    "name": "core/heading",
+                    "attributes": { "content": "Hostile", "level": 2, "anchor": "  bad\" id=\"x y<z>  " },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "heading-5",
+                    "name": "core/heading",
+                    "attributes": { "content": "Badidxyz", "level": 2 },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "heading-6",
+                    "name": "core/heading",
+                    "attributes": { "content": "Cr&egrave;me &frac12; x", "level": 2 },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "name": "responsive-overrides-cover-unit",
+            "$comment": "#886 — a cover whose Mobile override changes only `minHeightUnit`: the inherited `minHeight` is re-emitted with the new unit, and the base value and unit join the scope hash.",
+            "tree": [
+                {
+                    "clientId": "resp-cover",
+                    "name": "core/cover",
+                    "attributes": {
+                        "minHeight": 60,
+                        "minHeightUnit": "vh",
+                        "responsive": {
+                            "minHeight": { "tablet": 480 },
+                            "minHeightUnit": { "tablet": "px", "mobile": "rem" }
+                        }
+                    },
+                    "innerBlocks": [
+                        { "clientId": "resp-cover-p", "name": "core/paragraph", "attributes": { "content": "Cover copy" }, "innerBlocks": [] }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "responsive-overrides-group-spacing",
+            "$comment": "#886 — per-side padding at a legacy key and a device key, a preset spacing reference, a border radius, and hostile values: the comment-open margin and the unbalanced `calc(` gap are dropped in every renderer.",
+            "tree": [
+                {
+                    "clientId": "resp-group",
+                    "name": "core/group",
+                    "attributes": {
+                        "className": "hero",
+                        "layout": { "type": "flow" },
+                        "responsive": {
+                            "style.spacing.padding": {
+                                "md": { "top": "2rem", "bottom": "var:preset|spacing|40" },
+                                "mobile": { "left": "8px", "right": "8px" }
+                            },
+                            "style.border.radius": { "tablet": "12px" },
+                            "style.spacing.margin": { "mobile": "1rem /* x" },
+                            "style.spacing.blockGap": { "mobile": "calc(1rem + 2px" }
+                        }
+                    },
+                    "innerBlocks": [
+                        { "clientId": "resp-group-p", "name": "core/paragraph", "attributes": { "content": "Inside" }, "innerBlocks": [] }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "responsive-overrides-tombstone",
+            "$comment": "#887 — Tablet sets a custom font size; Mobile picks a preset and the editor tombstones (`false`) the custom half. The tombstone is stored after the preset, so it must not displace the Mobile preset rule.",
+            "tree": [
+                {
+                    "clientId": "resp-tomb",
+                    "name": "core/paragraph",
+                    "attributes": {
+                        "content": "Tombstone",
+                        "responsive": {
+                            "fontSize": { "mobile": "small" },
+                            "style.typography.fontSize": { "tablet": "20px", "mobile": false }
+                        }
+                    },
+                    "innerBlocks": []
                 }
             ]
         }

@@ -82,6 +82,14 @@ class TocResolver
 	protected const HEADING_TAG_PATTERN = '#<h([1-6])([^>]*)>(.*?)</h\\1>#is';
 
 	/**
+	 * Characters a heading anchor loses before it renders as an `id`.
+	 * Mirrors `BlockSupports::resolveAnchor()` in the Blade renderer.
+	 *
+	 * @since 1.15.0
+	 */
+	protected const ANCHOR_DISALLOWED = '/[^A-Za-z0-9_:.\-]/';
+
+	/**
 	 * Walk the tree twice: once to stamp anchors on headings and collect
 	 * the ordered heading list, once to stamp `_resolvedItems` on every
 	 * TOC block.
@@ -232,8 +240,15 @@ class TocResolver
 				$level = 6;
 			}
 
+			// The id the heading renders, not the raw value (#888): the
+			// renderers strip an anchor to `[A-Za-z0-9_:.-]` (see
+			// `BlockSupports::resolveAnchor()`), so `foo bar` renders
+			// `foobar`. Claiming and linking the raw value would let a later
+			// auto anchor collide with it and point TOC links at a missing
+			// id. An anchor that sanitizes to nothing renders no id, so the
+			// heading gets an auto anchor instead.
 			$existing = isset( $sourceAttributes['anchor'] ) && is_string( $sourceAttributes['anchor'] )
-				? trim( $sourceAttributes['anchor'] )
+				? (string) preg_replace( self::ANCHOR_DISALLOWED, '', trim( $sourceAttributes['anchor'] ) )
 				: '';
 
 			if ( '' !== $existing ) {

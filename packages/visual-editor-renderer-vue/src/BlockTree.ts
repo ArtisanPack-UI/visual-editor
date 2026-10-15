@@ -34,8 +34,10 @@ import {
     treeHasNavigationOverlay,
 } from './support/navigationOverlayCss';
 import { stampEffectsScopes } from './support/effects';
+import { stampHeadingAnchors } from './support/headingAnchors';
 import { stampLayoutScopes } from './support/layoutContainer';
 import { stampPhotoGridScopes } from './support/photoGrid';
+import { stampResponsiveScopes } from './support/responsive';
 import {
     DEFAULT_MAX_PATTERN_DEPTH,
     inlinePatterns,
@@ -201,12 +203,19 @@ export const BlockTree = defineComponent({
 
             const withSiteMeta = inlineSiteMeta(withOverlays, props.siteMeta);
 
-            // Query inlining runs last so a `core/query` block reachable
-            // only through a resolved template part / pattern still gets
-            // its loop expanded.
-            return props.queryResults === undefined
-                ? withSiteMeta
-                : inlineQueries(withSiteMeta, { queries: props.queryResults });
+            // Query inlining runs after the other inliners so a
+            // `core/query` block reachable only through a resolved
+            // template part / pattern still gets its loop expanded.
+            const withQueries =
+                props.queryResults === undefined
+                    ? withSiteMeta
+                    : inlineQueries(withSiteMeta, { queries: props.queryResults });
+
+            // Heading anchors (#888) — stamp a unique auto-generated
+            // `anchor` on every heading that lacks one, after every
+            // inliner so injected headings take part, the way Blade's
+            // `TocResolver` pass does.
+            return stampHeadingAnchors(withQueries);
         });
 
         const flexArbitraryCss = computed(() =>
@@ -251,11 +260,20 @@ export const BlockTree = defineComponent({
             stampLayoutScopes(photoGrid.value.tree)
         );
 
+        // Generic responsive overrides (#886) — append the hashed
+        // `ve-r-<hash>` scope to each block's `className` and emit the
+        // per-breakpoint rules Blade pushes from
+        // `BlockSupports::compileResponsive()`. Runs before effects so
+        // the class lands ahead of `ve-fx-<hash>`, as in Blade.
+        const responsive = computed(() =>
+            stampResponsiveScopes(layout.value.tree)
+        );
+
         // Block effects + Custom CSS (#881) — append the hashed
         // `ve-fx-<hash>` scope to each block's `className` and emit the
         // rules Blade pushes from `BlockSupports::compile()`.
         const effects = computed(() =>
-            stampEffectsScopes(layout.value.tree)
+            stampEffectsScopes(responsive.value.tree)
         );
 
         const hasNavigationOverlay = computed(() => treeHasNavigationOverlay(effects.value.tree));
@@ -317,6 +335,16 @@ export const BlockTree = defineComponent({
                         'data-ve-layout': '',
                         innerHTML: layout.value.css,
                     })
+                );
+            }
+
+            if (responsive.value.css !== '') {
+                children.push(
+                    h(
+                        'style',
+                        { 'data-ve-responsive': '' },
+                        responsive.value.css
+                    )
                 );
             }
 

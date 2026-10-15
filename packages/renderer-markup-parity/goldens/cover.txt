@@ -1,0 +1,9 @@
+<div class="wp-block-cover is-dark is-layout-flex wp-block-cover-is-layout-flex" style="min-height: 600px">
+  <span aria-hidden="true" class="wp-block-cover__background has-background-dim" style="opacity: 0.5">
+  </span>
+  <div class="wp-block-cover__inner-container">
+    <p class="wp-block-paragraph">
+      "Cover copy"
+    </p>
+  </div>
+</div>

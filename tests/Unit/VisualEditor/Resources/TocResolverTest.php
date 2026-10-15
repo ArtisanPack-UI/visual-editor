@@ -609,3 +609,29 @@ it( 'stamps anchors and TOC items into the attrs bag of a legacy attrs-shape tre
 		->and( array_column( $resolved[0]['attrs']['_resolvedItems'], 'anchor' ) )->toBe( [ 'getting-started' ] )
 		->and( $resolved[2] )->toBe( $tree[2] );
 } );
+
+it( 'claims and links the rendered (sanitized) author anchor, not the raw value (#888)', function (): void {
+	$resolver = new TocResolver();
+
+	$resolved = $resolver->resolveTree( [
+		tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Author', 'anchor' => ' foo bar ' ] ),
+		tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Foobar' ] ),
+		tocBlock( 'artisanpack/toc' ),
+	] );
+
+	$items = $resolved[2]['attributes']['_resolvedItems'];
+
+	expect( $resolved[0]['attributes']['anchor'] )->toBe( ' foo bar ' )
+		->and( $resolved[1]['attributes']['anchor'] )->toBe( 'foobar-1' )
+		->and( array_column( $items, 'anchor' ) )->toBe( [ 'foobar', 'foobar-1' ] );
+} );
+
+it( 'auto-anchors a heading whose author anchor sanitizes to nothing (#888)', function (): void {
+	$resolver = new TocResolver();
+
+	$resolved = $resolver->resolveTree( [
+		tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Quoted', 'anchor' => '"<>"' ] ),
+	] );
+
+	expect( $resolved[0]['attributes']['anchor'] )->toBe( 'quoted' );
+} );
