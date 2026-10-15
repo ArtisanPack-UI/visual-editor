@@ -223,7 +223,7 @@ export function buildOverlay(
  * whole; a plain object outside every root is walked until a sub-path
  * matches one (#887). Without the walk, a block with no base `style` saw
  * `style.typography.fontSize` arrive as one `style` leaf, which matches
- * no root, so a breakpoint font size or colour was written to the base.
+ * no root, so a breakpoint font size or color was written to the base.
  */
 function splitLeaf(
     path: string,
