@@ -24,3 +24,9 @@ resources/js/visual-editor/blocks/**/upstream-diff-report.json
 
 # PHP-CS-Fixer cache is per-machine.
 .php-cs-fixer.cache
+
+# Release-readiness audits are working notes, never committed.
+/audits/
+
+# Per-machine Claude Code settings.
+/.claude/settings.local.json
