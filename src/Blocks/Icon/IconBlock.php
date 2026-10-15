@@ -23,6 +23,7 @@ namespace ArtisanPackUI\VisualEditor\Blocks\Icon;
 
 use ArrayObject;
 use ArtisanPackUI\VisualEditor\Blocks\DynamicBlock;
+use ArtisanPackUI\VisualEditor\Resources\PresetRegistry;
 use ArtisanPackUI\VisualEditor\Services\Icon\IconSvgResolver;
 use ArtisanPackUI\VisualEditor\Services\Icon\SvgSanitizer;
 use Generator;
@@ -117,9 +118,15 @@ class IconBlock extends DynamicBlock
 	 *
 	 * - The top-level `backgroundColor` / `borderColor` slots double as
 	 *   legacy hex storage, so only the validated palette slugs are kept
-	 *   there. A hex value isn't misread as a `has-{slug}-*` class.
+	 *   there, and `gradient` is likewise reduced to a validated palette
+	 *   slug. A hex value isn't misread as a `has-{slug}-*` class.
 	 * - `style.color.text` is dropped because the icon paints its
 	 *   foreground on the body span (see `bodyStyle()`), not the wrapper.
+	 * - The custom background and gradient (`style.color.background`,
+	 *   `style.color.gradient`) are dropped because `render()` paints them
+	 *   itself and rejects unsafe values such as a `url(` layer. Merging
+	 *   them again would put a value `render()` refused back on the
+	 *   wrapper (M-8).
 	 *
 	 * @since 1.15.0
 	 *
@@ -132,8 +139,10 @@ class IconBlock extends DynamicBlock
 		$attrs['backgroundColor'] = $attrs['paletteBackground'] ?? $this->normalizePaletteSlug( $attrs['backgroundColor'] ?? null );
 		$attrs['borderColor']     = $attrs['paletteBorderColor'] ?? $this->normalizePaletteSlug( $attrs['borderColor'] ?? null );
 
+		$attrs['gradient']        = $attrs['paletteGradient'] ?? $this->normalizePaletteSlug( $attrs['gradient'] ?? null );
+
 		if ( isset( $attrs['style']['color'] ) && is_array( $attrs['style']['color'] ) ) {
-			unset( $attrs['style']['color']['text'] );
+			unset( $attrs['style']['color']['text'], $attrs['style']['color']['background'], $attrs['style']['color']['gradient'] );
 		}
 
 		return $attrs;
@@ -688,7 +697,7 @@ class IconBlock extends DynamicBlock
 		$trimmed = trim( $value );
 
 		if ( 1 === preg_match( '/^var:preset\|gradient\|([a-z0-9_-]+)$/i', $trimmed, $matches ) ) {
-			return sprintf( 'var(--wp--preset--gradient--%s)', strtolower( str_replace( '_', '-', $matches[1] ) ) );
+			return sprintf( 'var(--wp--preset--gradient--%s)', PresetRegistry::presetSlug( $matches[1] ) );
 		}
 
 		if ( 1 === preg_match( '/^var\(--[a-z0-9_-]+\)$/i', $trimmed ) ) {

@@ -282,26 +282,44 @@ export const FileBlock = defineComponent({
     },
 });
 
+/**
+ * Reduce an embed provider slug the way `embed.blade.php` does
+ * (`preg_replace( '/[^a-z0-9\-]/i', '-', … )`): case is kept, and every
+ * other character becomes one `-` per UTF-8 byte, since the PHP pattern
+ * has no `/u` flag.
+ */
+function embedProviderSlug(provider: string): string {
+    return provider.replace(/[^a-zA-Z0-9-]/gu, (char) => {
+        const codePoint = char.codePointAt(0) ?? 0;
+        const bytes = codePoint < 0x80 ? 1 : codePoint < 0x800 ? 2 : codePoint < 0x10000 ? 3 : 4;
+
+        return '-'.repeat(bytes);
+    });
+}
+
 export const EmbedBlock = defineComponent({
     name: 'EmbedBlock',
     props: blockRendererProps,
     setup(props) {
         return () => {
             const url = attrString(props.attributes.url);
-            const provider = attrString(props.attributes.providerNameSlug).toLowerCase();
+            const provider = attrString(props.attributes.providerNameSlug);
             const caption = attrString(props.attributes.caption);
             const ratio = attrString(props.attributes.aspectRatio);
             const type = attrString(props.attributes.type);
 
-            const sanitizedProvider = provider.replace(/[^a-z0-9-]/g, '-');
+            const sanitizedProvider = embedProviderSlug(provider);
 
             const classes = classList([
                 'wp-block-embed',
                 sanitizedProvider !== '' ? `is-provider-${sanitizedProvider}` : null,
                 sanitizedProvider !== '' ? `wp-block-embed-${sanitizedProvider}` : null,
-                type !== '' ? `is-type-${type}` : null,
+                // PHP's `empty()` also skips `'0'`.
+                type !== '' && type !== '0' ? `is-type-${type}` : null,
                 ratio !== '' ? `wp-embed-aspect-${ratio.replace(/\//g, '-')}` : null,
                 ratio !== '' ? 'wp-has-aspect-ratio' : null,
+                // `className` carries the `ve-r-*` / `ve-fx-*` scopes too (M-7).
+                attrString(props.attributes.className),
             ]);
 
             const children: VNode[] = [

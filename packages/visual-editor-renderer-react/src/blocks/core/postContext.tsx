@@ -16,9 +16,10 @@ import {
     attrInt,
     attrString,
     classList,
-    layoutWrapperForBlock,
+    layoutClass,
 } from '../../support/attributes';
 import { applyBackground } from '../../support/background';
+import { layoutWrapperClasses } from '../../support/layoutContainer';
 import { applyDimensions } from '../../support/dimensions';
 import { safeUrl } from '../../support/urlSanitizer';
 import type { BlockRendererProps } from '../../types';
@@ -92,9 +93,9 @@ export function PostContentBlock({ attributes }: BlockRendererProps): JSX.Elemen
     const classes = classList([
         'entry-content',
         'wp-block-post-content',
-        ...layoutWrapperForBlock(attributes, 'post-content'),
-        // Per-instance layout scope stamped by `stampLayoutScopes()` (#871).
-        attrString(attributes._veLayoutScope) || null,
+        // Per-instance layout scope stamped by `stampLayoutScopes()` (#871),
+        // then the layout modifier classes (F-3).
+        ...layoutWrapperClasses(attributes, 'post-content', layoutClass(attributes)),
         align !== '' ? `has-text-align-${align}` : null,
         className,
     ]);

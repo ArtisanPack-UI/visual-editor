@@ -12,6 +12,12 @@
  * Hover rules are automatically wrapped in `@media (hover: hover)` so
  * touch devices don't sticky-state on tap.
  *
+ * A trailing `@media (prefers-reduced-motion: reduce)` block turns the
+ * transitions off and holds every non-idle state's `transform` at its
+ * idle value, so reduced-motion users get no animated or moving state
+ * change. It matches the JS `emitStateCss()` guard, which saves the
+ * same rules into the block markup.
+ *
  * Inheritance pruning is delegated to {@see StateValueResolver::distinctOverrides()}
  * — only states whose resolved value differs from their inheritance
  * parent emit a rule.
@@ -93,9 +99,10 @@ class StateCssEmitter
 			return '';
 		}
 
-		$idleRule  = $this->renderIdleRule( $scope, $buckets[ StateRegistry::BASE_KEY ] ?? [], $buckets );
-		$stateCss  = '';
-		$hoverCss  = '';
+		$idleRule   = $this->renderIdleRule( $scope, $buckets[ StateRegistry::BASE_KEY ] ?? [], $buckets );
+		$stateCss   = '';
+		$hoverCss   = '';
+		$stateRules = [];
 
 		foreach ( $this->registry->keys() as $state ) {
 			if ( StateRegistry::BASE_KEY === $state ) {
@@ -114,7 +121,8 @@ class StateCssEmitter
 				continue;
 			}
 
-			$rule = sprintf( '%s { %s }', $selector, $this->joinDeclarations( $declarations ) );
+			$rule         = sprintf( '%s { %s }', $selector, $this->joinDeclarations( $declarations ) );
+			$stateRules[] = [ 'selector' => $selector, 'declarations' => $declarations ];
 
 			if ( ! empty( $definition['hoverMediaWrap'] ) ) {
 				$hoverCss .= ( '' === $hoverCss ? '' : ' ' ) . $rule;
@@ -134,6 +142,16 @@ class StateCssEmitter
 			$out .= ( '' === $out ? '' : ' ' ) . $stateCss;
 		}
 
+		$guard = $this->renderReducedMotionGuard(
+			$scope,
+			$this->idleDeclarations( $buckets[ StateRegistry::BASE_KEY ] ?? [], $buckets ),
+			$stateRules,
+		);
+
+		if ( '' !== $guard ) {
+			$out .= ( '' === $out ? '' : ' ' ) . $guard;
+		}
+
 		return $out;
 	}
 
@@ -146,6 +164,29 @@ class StateCssEmitter
 	 * @param  array<string, array<string, string>>  $allBuckets
 	 */
 	protected function renderIdleRule( string $scope, array $idleDeclarations, array $allBuckets ): string
+	{
+		$idleDeclarations = $this->idleDeclarations( $idleDeclarations, $allBuckets );
+
+		if ( [] === $idleDeclarations ) {
+			return '';
+		}
+
+		return sprintf( '%s { %s }', $scope, $this->joinDeclarations( $idleDeclarations ) );
+	}
+
+	/**
+	 * Returns the idle declarations, plus the default transition when
+	 * the editor never set one and there is at least one non-idle
+	 * override.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  array<string, string>                 $idleDeclarations  Declarations of the idle state.
+	 * @param  array<string, array<string, string>>  $allBuckets        Declarations keyed by state.
+	 *
+	 * @return array<string, string>
+	 */
+	protected function idleDeclarations( array $idleDeclarations, array $allBuckets ): array
 	{
 		$hasNonIdleOverride = false;
 		foreach ( $allBuckets as $stateKey => $declarations ) {
@@ -163,11 +204,56 @@ class StateCssEmitter
 			$idleDeclarations['transition'] = self::DEFAULT_TRANSITION;
 		}
 
-		if ( [] === $idleDeclarations ) {
+		return $idleDeclarations;
+	}
+
+	/**
+	 * Builds the `prefers-reduced-motion: reduce` guard.
+	 *
+	 * The idle rule's transition (authored or the default) becomes
+	 * `none`. It is `!important`, so it also beats a non-idle state's
+	 * own (never-important) `transition` on the block itself. Each
+	 * non-idle rule that sets a `transition` or `transform` gets a twin
+	 * on the same selector that turns the transition off and holds the
+	 * transform at its idle value.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  string                                                                    $scope             CSS scope, including the leading `.`.
+	 * @param  array<string, string>                                                     $idleDeclarations  Idle declarations, default transition included.
+	 * @param  array<int, array{selector: string, declarations: array<string, string>}>  $stateRules        Non-idle rules in emission order.
+	 *
+	 * @return string The guard, or an empty string when nothing can animate or move.
+	 */
+	protected function renderReducedMotionGuard( string $scope, array $idleDeclarations, array $stateRules ): string
+	{
+		$rules = [];
+
+		if ( array_key_exists( 'transition', $idleDeclarations ) ) {
+			$rules[] = sprintf( '%s { transition: none !important; }', $scope );
+		}
+
+		foreach ( $stateRules as $stateRule ) {
+			$neutral = [];
+
+			if ( array_key_exists( 'transition', $stateRule['declarations'] ) ) {
+				$neutral[] = 'transition: none !important;';
+			}
+
+			if ( array_key_exists( 'transform', $stateRule['declarations'] ) ) {
+				$neutral[] = sprintf( 'transform: %s !important;', $idleDeclarations['transform'] ?? 'none' );
+			}
+
+			if ( [] !== $neutral ) {
+				$rules[] = sprintf( '%s { %s }', $stateRule['selector'], implode( ' ', $neutral ) );
+			}
+		}
+
+		if ( [] === $rules ) {
 			return '';
 		}
 
-		return sprintf( '%s { %s }', $scope, $this->joinDeclarations( $idleDeclarations ) );
+		return sprintf( '@media (prefers-reduced-motion: reduce) { %s }', implode( ' ', $rules ) );
 	}
 
 	/**

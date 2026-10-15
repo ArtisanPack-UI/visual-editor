@@ -49,6 +49,15 @@ export function parseBlockStyles(raw: string | undefined | null): ThemeBlockStyl
         return [];
     }
 
+    return normaliseBlockStyles(decoded);
+}
+
+/**
+ * Keep the well-formed entries of a decoded variation list.
+ *
+ * @since 1.15.0
+ */
+export function normaliseBlockStyles(decoded: unknown): ThemeBlockStyle[] {
     if (!Array.isArray(decoded)) {
         return [];
     }
@@ -118,6 +127,18 @@ export function getThemeBlockStyles(): readonly ThemeBlockStyle[] {
         parseFromElement(document.querySelector('[data-ap-site-editor]')) ??
         [];
     return cached;
+}
+
+/**
+ * Use a host-supplied variation list instead of the mount's
+ * `data-block-styles`, for hosts that mount through `mountEditor()` with
+ * an explicit config (e.g. the Vue wrapper). Call before the editor
+ * registers its blocks; malformed entries are dropped.
+ *
+ * @since 1.15.0
+ */
+export function setThemeBlockStyles(styles: unknown): void {
+    cached = normaliseBlockStyles(styles);
 }
 
 /**

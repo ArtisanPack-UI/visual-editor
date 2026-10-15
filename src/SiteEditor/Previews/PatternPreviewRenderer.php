@@ -48,6 +48,22 @@ class PatternPreviewRenderer
 	protected const THEME_MANAGER_FQCN = 'ArtisanPackUI\\CMSFramework\\Modules\\Themes\\Managers\\ThemeManager';
 
 	/**
+	 * cms-framework's theme stylesheet reader (2.5+).
+	 *
+	 * @since 1.13.0
+	 * @deprecated 1.15.0 Use {@see ThemeStylesheets::STYLESHEET_READER_FQCN}.
+	 */
+	protected const STYLESHEET_READER_FQCN = ThemeStylesheets::STYLESHEET_READER_FQCN;
+
+	/**
+	 * cms-framework's named route serving `themes/{slug}/assets/{path}`.
+	 *
+	 * @since 1.13.0
+	 * @deprecated 1.15.0 Use {@see ThemeStylesheets::THEME_ASSETS_ROUTE}.
+	 */
+	protected const THEME_ASSETS_ROUTE = ThemeStylesheets::THEME_ASSETS_ROUTE;
+
+	/**
 	 * Memoized active theme manifest; `false` until first read.
 	 *
 	 * @var array<string, mixed>|false|null
@@ -227,6 +243,19 @@ class PatternPreviewRenderer
 	protected function themeStylesheet(): string
 	{
 		return app( ThemeStylesheets::class )->stylesheet( 'style.css' );
+	}
+
+	/**
+	 * Absolute URL of the active theme's root directory — the directory
+	 * `style.css` lives in. Null without an active theme or the theme
+	 * assets route.
+	 *
+	 * @since 1.13.0
+	 * @deprecated 1.15.0 Use {@see ThemeStylesheets::baseUrl()}.
+	 */
+	protected function themeBaseUrl(): ?string
+	{
+		return app( ThemeStylesheets::class )->baseUrl();
 	}
 
 	/**

@@ -174,3 +174,25 @@ it( 'ignores pseudo states on elements other than link and button', function ():
 		->not->toContain( ':hover' )
 		->not->toContain( ':focus' );
 } );
+
+it( 'paints inner blocks of a variation on their block.json selectors (M-6)', function (): void {
+	$css = compileVariation( 'core/group', 'card', [
+		'blocks' => [
+			'core/button' => [ 'color' => [ 'background' => 'blue' ] ],
+			'core/image'  => [ 'border' => [ 'radius' => '8px' ], 'color' => [ 'text' => 'red' ] ],
+		],
+	] );
+
+	expect( $css )->toContain( ":root :where(.wp-block-group.is-style-card .wp-block-button .wp-block-button__link) {\n\tbackground-color: blue;" )
+		->toContain( ":root :where(.wp-block-group.is-style-card .wp-block-image img) {\n\tborder-radius: 8px;" )
+		->toContain( ":root :where(.wp-block-group.is-style-card .wp-block-image) {\n\tcolor: red;" )
+		->not->toContain( ':root :where(.wp-block-group.is-style-card .wp-block-button) {' );
+} );
+
+it( 'emits the gradient shorthand before background-color so the color survives (R-1)', function (): void {
+	$css = compileVariation( 'core/group', 'card', [
+		'color' => [ 'background' => '#fff', 'gradient' => 'linear-gradient(red, blue)' ],
+	] );
+
+	expect( $css )->toContain( "background: linear-gradient(red, blue);\n\tbackground-color: #fff;" );
+} );

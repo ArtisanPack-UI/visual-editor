@@ -17,6 +17,20 @@ const PAYLOADS: Array<Record<string, unknown>> = [
 	{ opacity: 50, customCss: 'border: 1px solid red;\n& > img { border-radius: 8px; }' },
 	{ opacity: 50, customCss: 'color: red; } body { display: none' },
 	{ opacity: 'nope', overflowY: 'sideways' },
+	{ textClip: true },
+	{ textClip: true, opacity: 40 },
+	{ customCss: '\u00a0' },
+	{ zIndex: '\u00a05', opacity: '\u00a050' },
+	{ zIndex: ' 5\t', opacity: '\u000b50\f' },
+	{ opacity: 50, customCss: 'a:url({);} body{background:red} y{a:url(})' },
+	{ opacity: 50, customCss: 'background: url("a.png");' },
+]
+
+const ATTRIBUTE_PAYLOADS: Array<Record<string, unknown>> = [
+	{ artisanpackEffects: { textClip: true }, gradient: 'cool-to-warm' },
+	{ artisanpackEffects: { textClip: true, opacity: 40 }, style: { color: { gradient: 'linear-gradient(red, blue)' } } },
+	{ artisanpackEffects: { textClip: true }, style: { background: { backgroundImage: { url: 'a.png' } } } },
+	{ artisanpackEffects: { textClip: true }, style: { color: { background: '#000' } } },
 ]
 
 describe( 'canvas effects compiler', () => {
@@ -34,9 +48,56 @@ describe( 'canvas effects compiler', () => {
 			.toBe( renderer.css.split( renderer.className ).join( 'SCOPE' ) )
 	} )
 
-	it( 'sanitizes Custom CSS like the renderers', () => {
-		for ( const css of [ '& img { color: red; }', '@import url(x.css);', 'a { b', 'content: "x  y";' ] ) {
-			expect( sanitizeCustomCss( css ) ).toBe( rendererSanitizeCustomCss( css ) )
+	it.each( ATTRIBUTE_PAYLOADS )( 'matches the renderer text clip for %j', ( attributes ) => {
+		const canvas   = compileEffects( attributes )
+		const renderer = rendererCompileEffects( attributes )
+
+		if ( null === renderer ) {
+			expect( canvas ).toBeNull()
+			return
 		}
+
+		expect( canvas?.css.split( canvas.className ).join( 'SCOPE' ) )
+			.toBe( renderer.css.split( renderer.className ).join( 'SCOPE' ) )
+	} )
+
+	it( 'drops text clip without a gradient or background image', () => {
+		expect( compileEffects( { artisanpackEffects: { textClip: true } } ) ).toBeNull()
+		expect( compileEffects( { artisanpackEffects: { textClip: true } }, { hasBackgroundFill: true } )?.css )
+			.toContain( '@media (forced-colors:active)' )
+	} )
+
+	it( 'sanitizes Custom CSS like the renderers', () => {
+		for ( const css of [
+			'& img { color: red; }',
+			'@import url(x.css);',
+			'a { b',
+			'content: "x  y";',
+			'background: url(https://example.com/a.png);',
+			'background: url("https://example.com/a.png");',
+			"a:url(x'){}'",
+			'color: rgb(',
+			'a[href{}',
+			'a)',
+			'a:( { ) }',
+			'content:"("',
+			'content:"[x"',
+			'\u00a0',
+		] ) {
+			expect( sanitizeCustomCss( css ) ).toBe( rendererSanitizeCustomCss( css ) )
+			expect( sanitizeCustomCss( css, false ) ).toBe( rendererSanitizeCustomCss( css, false ) )
+		}
+	} )
+
+	it( 'rejects unquoted URLs and unbalanced brackets', () => {
+		for ( const css of [ 'background: url(a.png);', 'a:url({);} body{background:red} y{a:url(})', 'color: rgb(', 'a[href{}', 'a)' ] ) {
+			expect( sanitizeCustomCss( css ) ).toBeNull()
+		}
+
+		expect( sanitizeCustomCss( 'background: url("a.png");', false ) ).toBeNull()
+		expect( compileEffects(
+			{ artisanpackEffects: { opacity: 50, customCss: 'background: image-set("a.png" 1x);' } },
+			{ allowCustomCssUrls: false },
+		)?.css ).not.toContain( 'image-set' )
 	} )
 } )

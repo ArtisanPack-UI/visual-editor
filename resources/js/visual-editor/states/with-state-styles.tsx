@@ -21,6 +21,10 @@
  * regenerating each render) keeps the editor and save markup in
  * lockstep so editor previews always reflect the published output.
  *
+ * Content saved with an older shape of the state CSS validates through
+ * the deprecations in `state-css-deprecations.ts` (M-5, F-9); their
+ * block types carry the shape `wrapSaveElement` emits.
+ *
  * @package @artisanpack-ui/visual-editor
  * @since 1.0.0
  */
@@ -33,6 +37,7 @@ import type { ComponentType, ReactNode } from 'react'
 
 import { emitStateCss, type StatesByPath } from './css-emitter'
 import { getStateRegistry } from './registry'
+import { registerStateCssDeprecations, stateCssShapeFor } from './state-css-deprecations'
 
 const BLOCK_FILTER_HOOK = 'editor.BlockListBlock'
 const SAVE_PROPS_HOOK   = 'blocks.getSaveContent.extraProps'
@@ -315,7 +320,12 @@ function wrapSaveElement(
 		return element
 	}
 
-	const css = emitStateCss( `.${ scopeIdToClass( scopeId ) }`, paths, getStateRegistry() )
+	const css = emitStateCss(
+		`.${ scopeIdToClass( scopeId ) }`,
+		paths,
+		getStateRegistry(),
+		stateCssShapeFor( blockType ) ?? {},
+	)
 	if ( '' === css ) {
 		return element
 	}
@@ -340,5 +350,6 @@ export function registerStateStylesFilters(): void {
 	addFilter( BLOCK_FILTER_HOOK, FILTER_NAMESPACE, withStateStyles )
 	addFilter( SAVE_PROPS_HOOK, FILTER_NAMESPACE, addSaveProps )
 	addFilter( SAVE_ELEMENT_HOOK, FILTER_NAMESPACE, wrapSaveElement )
+	registerStateCssDeprecations()
 	host[ REGISTERED_KEY ] = true
 }

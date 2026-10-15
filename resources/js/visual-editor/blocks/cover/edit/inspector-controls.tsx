@@ -54,6 +54,7 @@ import {
     __experimentalUseMultipleOriginColorsAndGradients as useMultipleOriginColorsAndGradients,
 } from '@wordpress/block-editor';
 import { __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../../vendor/i18n';
 import { useSelect } from '@wordpress/data';
 import { store as coreStore } from '@wordpress/core-data';
 
@@ -174,7 +175,7 @@ function CoverHeightInput({
     return (
         <UnitControl
             __next40pxDefaultSize
-            label={__('Minimum height')}
+            label={__('Minimum height', TEXT_DOMAIN)}
             id={inputId}
             isResetValueOnUnitChange
             min={min}
@@ -306,7 +307,7 @@ export default function CoverInspectorControls({
     const colorGradientSettings = useMultipleOriginColorsAndGradients();
 
     const tagNameOptions = [
-        { label: __('Default (<div>)'), value: 'div' },
+        { label: __('Default (<div>)', TEXT_DOMAIN), value: 'div' },
         { label: '<header>', value: 'header' },
         { label: '<main>', value: 'main' },
         { label: '<section>', value: 'section' },
@@ -320,7 +321,7 @@ export default function CoverInspectorControls({
             <InspectorControls>
                 {(!!url || useFeaturedImage) && (
                     <ToolsPanel
-                        label={__('Settings')}
+                        label={__('Settings', TEXT_DOMAIN)}
                         resetAll={() => {
                             setAttributes({
                                 hasParallax: false,
@@ -335,7 +336,7 @@ export default function CoverInspectorControls({
                         {isImageBackground && (
                             <>
                                 <ToolsPanelItem
-                                    label={__('Fixed background')}
+                                    label={__('Fixed background', TEXT_DOMAIN)}
                                     isShownByDefault
                                     hasValue={() => !!hasParallax}
                                     onDeselect={() =>
@@ -346,14 +347,14 @@ export default function CoverInspectorControls({
                                     }
                                 >
                                     <ToggleControl
-                                        label={__('Fixed background')}
+                                        label={__('Fixed background', TEXT_DOMAIN)}
                                         checked={!!hasParallax}
                                         onChange={toggleParallax}
                                     />
                                 </ToolsPanelItem>
 
                                 <ToolsPanelItem
-                                    label={__('Repeated background')}
+                                    label={__('Repeated background', TEXT_DOMAIN)}
                                     isShownByDefault
                                     hasValue={() => !!isRepeated}
                                     onDeselect={() =>
@@ -363,7 +364,7 @@ export default function CoverInspectorControls({
                                     }
                                 >
                                     <ToggleControl
-                                        label={__('Repeated background')}
+                                        label={__('Repeated background', TEXT_DOMAIN)}
                                         checked={!!isRepeated}
                                         onChange={toggleIsRepeated}
                                     />
@@ -372,7 +373,7 @@ export default function CoverInspectorControls({
                         )}
                         {showFocalPointPicker && url && (
                             <ToolsPanelItem
-                                label={__('Focal point')}
+                                label={__('Focal point', TEXT_DOMAIN)}
                                 isShownByDefault
                                 hasValue={() => !!focalPoint}
                                 onDeselect={() =>
@@ -382,7 +383,7 @@ export default function CoverInspectorControls({
                                 }
                             >
                                 <FocalPointPicker
-                                    label={__('Focal point')}
+                                    label={__('Focal point', TEXT_DOMAIN)}
                                     url={url}
                                     value={focalPoint}
                                     onDragStart={imperativeFocalPointPreview}
@@ -397,7 +398,7 @@ export default function CoverInspectorControls({
                         )}
                         {isVideoBackground && (
                             <ToolsPanelItem
-                                label={__('Poster image')}
+                                label={__('Poster image', TEXT_DOMAIN)}
                                 isShownByDefault
                                 hasValue={() => !!poster}
                                 onDeselect={() =>
@@ -406,7 +407,7 @@ export default function CoverInspectorControls({
                             >
                                 <MediaUploadCheck>
                                     <MediaUpload
-                                        title={__('Poster image')}
+                                        title={__('Poster image', TEXT_DOMAIN)}
                                         onSelect={(media: {
                                             url?: string;
                                         }) =>
@@ -425,8 +426,8 @@ export default function CoverInspectorControls({
                                                 onClick={open}
                                             >
                                                 {poster
-                                                    ? __('Replace')
-                                                    : __('Select')}
+                                                    ? __('Replace', TEXT_DOMAIN)
+                                                    : __('Select', TEXT_DOMAIN)}
                                             </Button>
                                         )}
                                     />
@@ -435,13 +436,13 @@ export default function CoverInspectorControls({
                         )}
                         {!useFeaturedImage && url && !isVideoBackground && (
                             <ToolsPanelItem
-                                label={__('Alternative text')}
+                                label={__('Alternative text', TEXT_DOMAIN)}
                                 isShownByDefault
                                 hasValue={() => !!alt}
                                 onDeselect={() => setAttributes({ alt: '' })}
                             >
                                 <TextareaControl
-                                    label={__('Alternative text')}
+                                    label={__('Alternative text', TEXT_DOMAIN)}
                                     value={alt ?? ''}
                                     onChange={(newAlt: string) =>
                                         setAttributes({ alt: newAlt })
@@ -452,11 +453,12 @@ export default function CoverInspectorControls({
                                                 href="https://www.w3.org/WAI/tutorials/images/decision-tree/"
                                             >
                                                 {__(
-                                                    'Describe the purpose of the image.'
+                                                    'Describe the purpose of the image.',
+                                                    TEXT_DOMAIN
                                                 )}
                                             </ExternalLink>
                                             <br />
-                                            {__('Leave empty if decorative.')}
+                                            {__('Leave empty if decorative.', TEXT_DOMAIN)}
                                         </>
                                     }
                                 />
@@ -464,7 +466,7 @@ export default function CoverInspectorControls({
                         )}
                         {!!imageSizeOptions?.length && (
                             <ToolsPanelItem
-                                label={__('Resolution')}
+                                label={__('Resolution', TEXT_DOMAIN)}
                                 isShownByDefault
                                 hasValue={() =>
                                     sizeSlug !== DEFAULT_MEDIA_SIZE_SLUG
@@ -475,7 +477,7 @@ export default function CoverInspectorControls({
                             >
                                 <SelectControl
                                     __next40pxDefaultSize
-                                    label={__('Resolution')}
+                                    label={__('Resolution', TEXT_DOMAIN)}
                                     value={sizeSlug}
                                     options={imageSizeOptions}
                                     onChange={(next: string) =>
@@ -496,7 +498,7 @@ export default function CoverInspectorControls({
                             {
                                 colorValue: overlayColor?.color,
                                 gradientValue,
-                                label: __('Overlay'),
+                                label: __('Overlay', TEXT_DOMAIN),
                                 onColorChange: setOverlayColor,
                                 onGradientChange: setGradient,
                                 isShownByDefault: true,
@@ -518,7 +520,7 @@ export default function CoverInspectorControls({
                                 ? false
                                 : dimRatio !== (url ? 50 : 100);
                         }}
-                        label={__('Overlay opacity')}
+                        label={__('Overlay opacity', TEXT_DOMAIN)}
                         onDeselect={() => updateDimRatio(url ? 50 : 100)}
                         resetAllFilter={() => ({
                             dimRatio: url ? 50 : 100,
@@ -527,7 +529,7 @@ export default function CoverInspectorControls({
                         panelId={clientId}
                     >
                         <RangeControl
-                            label={__('Overlay opacity')}
+                            label={__('Overlay opacity', TEXT_DOMAIN)}
                             value={dimRatio}
                             onChange={(newDimRatio: number) =>
                                 updateDimRatio(newDimRatio)
@@ -545,7 +547,7 @@ export default function CoverInspectorControls({
                 <ToolsPanelItem
                     className="single-column"
                     hasValue={() => !!minHeight}
-                    label={__('Minimum height')}
+                    label={__('Minimum height', TEXT_DOMAIN)}
                     onDeselect={() =>
                         setAttributes({
                             minHeight: undefined,
@@ -589,7 +591,7 @@ export default function CoverInspectorControls({
             <InspectorControls group="advanced">
                 <SelectControl
                     __next40pxDefaultSize
-                    label={__('HTML element')}
+                    label={__('HTML element', TEXT_DOMAIN)}
                     value={tagName ?? 'div'}
                     options={tagNameOptions}
                     onChange={(value: string) =>

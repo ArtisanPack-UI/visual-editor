@@ -178,6 +178,30 @@ describe( 'BlockSupports::compile (spacing)', function (): void {
 		expect( $result['style'] )->toContain( 'column-gap: 2rem;' );
 	} );
 
+	it( 'drops blockGap values that could add declarations (F-10)', function ( mixed $blockGap, array $absent ): void {
+		$result = BlockSupports::compile( [
+			'style' => [ 'spacing' => [ 'blockGap' => $blockGap ] ],
+		] );
+
+		foreach ( $absent as $fragment ) {
+			expect( $result['style'] )->not->toContain( $fragment );
+		}
+	} )->with( [
+		'declaration break' => [ '1rem;position:fixed;inset:0', [ 'block-gap', 'position' ] ],
+		'rule break'        => [ '1rem}body{color:red', [ 'block-gap', 'color' ] ],
+		'unbalanced paren'  => [ 'calc(1rem', [ 'block-gap' ] ],
+		'axis break'        => [ [ 'top' => '1rem;position:fixed', 'left' => '2rem}' ], [ 'row-gap', 'column-gap', 'position' ] ],
+	] );
+
+	it( 'keeps the safe side of a per-axis blockGap (F-10)', function (): void {
+		$result = BlockSupports::compile( [
+			'style' => [ 'spacing' => [ 'blockGap' => [ 'top' => '1rem;position:fixed', 'left' => 'var:preset|spacing|40' ] ] ],
+		] );
+
+		expect( $result['style'] )
+			->toBe( 'column-gap: var(--wp--preset--spacing--40);' );
+	} );
+
 	it( 'expands preset references in spacing values', function (): void {
 		$result = BlockSupports::compile( [
 			'style' => [ 'spacing' => [ 'padding' => 'var:preset|spacing|40' ] ],
@@ -626,6 +650,25 @@ describe( 'compile() — state design tools (#488)', function (): void {
 		expect( $result['statesRules'] )->toContain( '@media (hover: hover)' );
 		expect( $result['statesRules'] )->toContain( 'background-color: var(--wp--preset--color--accent-700) !important;' );
 		expect( $result['statesRules'] )->toContain( ':is(a, button)' );
+	} );
+
+	it( 'emits the same reduced-motion guard the editor saves (F-9)', function (): void {
+		$result = BlockSupports::compile( [
+			'states' => [
+				'_scopeId'                   => 'g1',
+				'style.color.background'     => [ 'idle' => 'var:preset|color|base', 'hover' => 'var:preset|color|primary' ],
+				'style.dimensions.transform' => [ 'hover' => 'translateY(-4px)' ],
+			],
+		] );
+
+		// Byte-identical to `emitStateCss()` for the same states (see
+		// `states/__tests__/state-css-deprecations.test.tsx`).
+		expect( $result['statesRules'] )->toBe(
+			'.ap-state-g1 { background-color: var(--wp--preset--color--base) !important; transition: all 150ms ease; } '
+			. '@media (hover: hover) { .ap-state-g1:hover, .ap-state-g1:hover :is(a, button) { background-color: var(--wp--preset--color--primary) !important; transform: translateY(-4px) !important; } } '
+			. '@media (prefers-reduced-motion: reduce) { .ap-state-g1 { transition: none !important; } '
+			. '.ap-state-g1:hover, .ap-state-g1:hover :is(a, button) { transform: none !important; } }',
+		);
 	} );
 
 	it( 'rejects a `_scopeId` that contains CSS-breaking characters', function (): void {

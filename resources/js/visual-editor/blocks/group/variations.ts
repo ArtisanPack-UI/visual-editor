@@ -15,6 +15,7 @@
  */
 
 import { __, _x } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 
 interface Variation {
     name: string;
@@ -32,27 +33,27 @@ const example = {
     innerBlocks: [
         {
             name: 'core/paragraph',
-            attributes: { content: __('One.') },
+            attributes: { content: __('One.', TEXT_DOMAIN) },
         },
         {
             name: 'core/paragraph',
-            attributes: { content: __('Two.') },
+            attributes: { content: __('Two.', TEXT_DOMAIN) },
         },
         {
             name: 'core/paragraph',
-            attributes: { content: __('Three.') },
+            attributes: { content: __('Three.', TEXT_DOMAIN) },
         },
         {
             name: 'core/paragraph',
-            attributes: { content: __('Four.') },
+            attributes: { content: __('Four.', TEXT_DOMAIN) },
         },
         {
             name: 'core/paragraph',
-            attributes: { content: __('Five.') },
+            attributes: { content: __('Five.', TEXT_DOMAIN) },
         },
         {
             name: 'core/paragraph',
-            attributes: { content: __('Six.') },
+            attributes: { content: __('Six.', TEXT_DOMAIN) },
         },
     ],
 };
@@ -60,16 +61,16 @@ const example = {
 const variations: Variation[] = [
     {
         name: 'group',
-        title: __('Group'),
-        description: __('Gather blocks in a container.'),
+        title: __('Group', TEXT_DOMAIN),
+        description: __('Gather blocks in a container.', TEXT_DOMAIN),
         attributes: { layout: { type: 'constrained' } },
         isDefault: true,
         scope: ['block', 'inserter', 'transform'],
     },
     {
         name: 'row',
-        title: _x('Row', 'single horizontal line'),
-        description: __('Arrange blocks horizontally.'),
+        title: _x('Row', 'single horizontal line', TEXT_DOMAIN),
+        description: __('Arrange blocks horizontally.', TEXT_DOMAIN),
         attributes: { layout: { type: 'flex', flexWrap: 'nowrap' } },
         scope: ['block', 'inserter', 'transform'],
         isActive: ['layout.type'],
@@ -77,8 +78,8 @@ const variations: Variation[] = [
     },
     {
         name: 'stack',
-        title: __('Stack'),
-        description: __('Arrange blocks vertically.'),
+        title: __('Stack', TEXT_DOMAIN),
+        description: __('Arrange blocks vertically.', TEXT_DOMAIN),
         attributes: { layout: { type: 'flex', orientation: 'vertical' } },
         scope: ['block', 'inserter', 'transform'],
         isActive: ['layout.type', 'layout.orientation'],

@@ -17,6 +17,7 @@ import {
     Notice,
 } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../../vendor/i18n';
 
 import { isValidVideoEmbedUrl } from '../embed-video-utils';
 
@@ -36,14 +37,15 @@ export default function EmbedVideoUrlInput({
 
     const handleConfirm = (): void => {
         if (!url) {
-            setError(__('Please enter a URL.'));
+            setError(__('Please enter a URL.', TEXT_DOMAIN));
             return;
         }
 
         if (!isValidVideoEmbedUrl(url)) {
             setError(
                 __(
-                    'This URL is not supported. Please enter a valid video link from a supported provider.'
+                    'This URL is not supported. Please enter a valid video link from a supported provider.',
+                    TEXT_DOMAIN
                 )
             );
             return;
@@ -58,7 +60,7 @@ export default function EmbedVideoUrlInput({
             isOpen
             onConfirm={handleConfirm}
             onCancel={onClose}
-            confirmButtonText={__('Add video')}
+            confirmButtonText={__('Add video', TEXT_DOMAIN)}
             size="medium"
         >
             <VStack spacing={4}>
@@ -70,17 +72,19 @@ export default function EmbedVideoUrlInput({
                 <TextControl
                     type="url"
                     __next40pxDefaultSize
-                    label={__('Video URL')}
+                    label={__('Video URL', TEXT_DOMAIN)}
                     value={url}
                     onChange={(value: string) => {
                         setUrl(value);
                         setError('');
                     }}
                     placeholder={__(
-                        'Enter YouTube, Vimeo, or other video URL'
+                        'Enter YouTube, Vimeo, or other video URL',
+                        TEXT_DOMAIN
                     )}
                     help={__(
-                        'Add a background video to the cover block that will autoplay in a loop.'
+                        'Add a background video to the cover block that will autoplay in a loop.',
+                        TEXT_DOMAIN
                     )}
                 />
             </VStack>

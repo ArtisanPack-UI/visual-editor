@@ -132,9 +132,9 @@ describe.each([
     it('slugs heading text like TocResolver', () => {
         expect(impl.headingSlug('Café &amp; Crème&nbsp;Brûlée')).toBe('cafe-creme-brulee');
         expect(impl.headingSlug('<em>Hello</em>, World! &#8212; 2026')).toBe('hello-world-2026');
-        expect(impl.headingSlug('Привет мир')).toBe('привет-мир');
+        expect(impl.headingSlug('Привет мир')).toBe('heading');
         expect(impl.headingSlug('<br>')).toBe('');
-        expect(impl.headingSlug('Cr&egrave;me &frac12; &AElig;on &bigstar;')).toBe('creme-½-æon-bigstar');
+        expect(impl.headingSlug('Cr&egrave;me &frac12; &AElig;on &bigstar;')).toBe('creme-on-bigstar');
     });
 
     it('stamps unique anchors in document order, honouring author anchors', () => {

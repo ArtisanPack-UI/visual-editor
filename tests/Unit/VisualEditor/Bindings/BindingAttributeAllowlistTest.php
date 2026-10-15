@@ -179,6 +179,57 @@ describe( 'enforcement on', function (): void {
 			->and( $source->resolve( $ctx, [ 'key' => 'title' ] ) )->toBe( 'Welcome' );
 	} );
 
+	it( 'refuses a custom field whose accessor returns models in a list or support collection (R-6)', function (): void {
+		[ , $author ] = allowlistPostWithAuthor();
+
+		$post = new class( [ 'title' => 'Welcome' ] ) extends TestBindingsModel {
+			public ?TestUser $member = null;
+
+			public function getTeamAttribute(): mixed
+			{
+				return collect( [ $this->member ] );
+			}
+
+			public function getTeamListAttribute(): mixed
+			{
+				return [ 'lead' => [ $this->member ] ];
+			}
+		};
+
+		$post->member = $author;
+		$source       = new CustomFieldSource();
+		$ctx          = new BindingContext( $post );
+
+		expect( $source->resolve( $ctx, [ 'key' => 'team' ] ) )->toBeNull()
+			->and( $source->resolve( $ctx, [ 'key' => 'team_list' ] ) )->toBeNull()
+			->and( $source->resolve( $ctx, [ 'key' => 'title' ] ) )->toBe( 'Welcome' );
+	} );
+
+	it( 'refuses a post_core field whose accessor returns a whole record (R-6)', function (): void {
+		[ , $author ] = allowlistPostWithAuthor();
+
+		$post = new class( [ 'title' => 'Welcome' ] ) extends TestBindingsModel {
+			public ?TestUser $image = null;
+
+			public function getFeaturedImageAttribute(): mixed
+			{
+				return $this->image;
+			}
+		};
+
+		$post->image = $author;
+
+		expect( ( new PostCoreSource() )->resolve( new BindingContext( $post ), [ 'key' => 'featured_image' ] ) )->toBeNull();
+	} );
+
+	it( 'detects models at any depth of arrays and collections (R-6)', function (): void {
+		expect( BindingAttributeAllowlist::containsModel( new TestUser() ) )->toBeTrue()
+			->and( BindingAttributeAllowlist::containsModel( collect( [ [ new TestUser() ] ] ) ) )->toBeTrue()
+			->and( BindingAttributeAllowlist::containsModel( [ 'a' => collect( [ new TestUser() ] ) ] ) )->toBeTrue()
+			->and( BindingAttributeAllowlist::containsModel( [ 'a' => [ 'b' => 'c' ] ] ) )->toBeFalse()
+			->and( BindingAttributeAllowlist::containsModel( 'text' ) )->toBeFalse();
+	} );
+
 	it( 'gates the post_core author name on the author model', function (): void {
 		[ $post ] = allowlistPostWithAuthor();
 		$source   = new PostCoreSource();

@@ -31,6 +31,7 @@ import {
 	ToggleControl,
 	__experimentalNumberControl as NumberControl,
 } from '@wordpress/components';
+import { useInstanceId } from '@wordpress/compose';
 import { __ } from '@wordpress/i18n';
 
 import type { AnimationRegistry } from './registry';
@@ -41,6 +42,7 @@ import type {
 	HoverAttribute,
 } from './types';
 import { FAMILY_CONTINUOUS, FAMILY_ENTRANCE, FAMILY_HOVER } from './types';
+import { TEXT_DOMAIN } from '../vendor/i18n';
 import { glowColorDisplayValue, glowColorStoredValue, type PaletteColor } from './glow-color';
 
 export interface AnimationPanelProps {
@@ -53,7 +55,7 @@ export interface AnimationPanelProps {
 
 function dropdownOptions( registry: AnimationRegistry, family: 'entrance' | 'hover' | 'continuous' ) {
 	return [
-		{ label: __( '(none)', 'visual-editor' ), value: '' },
+		{ label: __( '(none)', TEXT_DOMAIN ), value: '' },
 		...registry.family( family ).map( ( def ) => ( {
 			label: def.label,
 			value: def.key,
@@ -88,6 +90,27 @@ function parseNumber( next: unknown ): number | undefined {
 	return Number.isFinite( parsed ) ? parsed : undefined;
 }
 
+/**
+ * Color list for the glow picker, matching the core color panel: the
+ * theme palette, then the default palette unless the theme turned it
+ * off with `color.defaultPalette: false`, then the user's custom
+ * palette (R-25).
+ *
+ * @since 1.15.0
+ */
+export function glowPalette(
+	themePalette: PaletteColor[] | undefined,
+	defaultPalette: PaletteColor[] | undefined,
+	customPalette: PaletteColor[] | undefined,
+	showDefaultPalette: boolean | undefined,
+): PaletteColor[] {
+	return [
+		...( themePalette ?? [] ),
+		...( false === showDefaultPalette ? [] : ( defaultPalette ?? [] ) ),
+		...( customPalette ?? [] ),
+	];
+}
+
 function GlowColorControl( {
 	value,
 	onChange,
@@ -95,25 +118,45 @@ function GlowColorControl( {
 	value: string | undefined;
 	onChange: ( next: string | undefined ) => void;
 } ): JSX.Element {
-	const [ themePalette, defaultPalette ] = useSettings( 'color.palette.theme', 'color.palette.default' ) as [
+	const [ themePalette, defaultPalette, customPalette, showDefaultPalette ] = useSettings(
+		'color.palette.theme',
+		'color.palette.default',
+		'color.palette.custom',
+		'color.defaultPalette',
+	) as [
 		PaletteColor[] | undefined,
 		PaletteColor[] | undefined,
+		PaletteColor[] | undefined,
+		boolean | undefined,
 	];
-	const palette = [ ...( themePalette ?? [] ), ...( defaultPalette ?? [] ) ];
+	const palette = glowPalette( themePalette, defaultPalette, customPalette, showDefaultPalette );
+
+	// `ColorPalette` takes no `id`, so a `<label for>` would point at
+	// nothing. Name the swatch listbox (and the group around the picker)
+	// with a visual label instead, and describe the group with the help
+	// text, which `BaseControl` renders with the id `${ id }__help`.
+	const id      = useInstanceId( GlowColorControl, 'ap-animation-glow-color' ) as string;
+	const labelId = `${ id }__label`;
+	const helpId  = `${ id }__help`;
 
 	return (
 		<BaseControl
-			id="ap-animation-glow-color"
-			label={ __( 'Glow colour', 'visual-editor' ) }
-			help={ __( 'Leave unset to use the theme’s glow colour.', 'visual-editor' ) }
+			id={ id }
+			help={ __( 'Leave unset to use the theme’s glow color.', TEXT_DOMAIN ) }
 			__nextHasNoMarginBottom
 		>
-			<ColorPalette
-				colors={ palette.map( ( entry ) => ( { name: entry.name ?? entry.slug, color: entry.color } ) ) }
-				value={ glowColorDisplayValue( value, palette ) }
-				onChange={ ( next?: string ) => onChange( glowColorStoredValue( next, palette ) ) }
-				clearable
-			/>
+			<BaseControl.VisualLabel id={ labelId }>
+				{ __( 'Glow color', TEXT_DOMAIN ) }
+			</BaseControl.VisualLabel>
+			<div id={ id } role="group" aria-labelledby={ labelId } aria-describedby={ helpId }>
+				<ColorPalette
+					aria-labelledby={ labelId }
+					colors={ palette.map( ( entry ) => ( { name: entry.name ?? entry.slug, color: entry.color } ) ) }
+					value={ glowColorDisplayValue( value, palette ) }
+					onChange={ ( next?: string ) => onChange( glowColorStoredValue( next, palette ) ) }
+					clearable
+				/>
+			</div>
 		</BaseControl>
 	);
 }
@@ -151,12 +194,12 @@ export function AnimationPanel( {
 
 	return (
 		<>
-			<PanelBody title={ __( 'Motion preferences', 'visual-editor' ) } initialOpen={ false }>
+			<PanelBody title={ __( 'Motion preferences', TEXT_DOMAIN ) } initialOpen={ false }>
 				<ToggleControl
-					label={ __( 'Respect reduced motion', 'visual-editor' ) }
+					label={ __( 'Respect reduced motion', TEXT_DOMAIN ) }
 					help={ __(
 						'When on, the runtime suppresses entrance + continuous animations for visitors who set “reduce motion” in their OS.',
-						'visual-editor'
+						TEXT_DOMAIN
 					) }
 					checked={ 'respect' === reducedMotion }
 					onChange={ ( next: boolean ) =>
@@ -165,9 +208,9 @@ export function AnimationPanel( {
 				/>
 			</PanelBody>
 
-			<PanelBody title={ __( 'Entrance animation', 'visual-editor' ) } initialOpen={ false }>
+			<PanelBody title={ __( 'Entrance animation', TEXT_DOMAIN ) } initialOpen={ false }>
 				<SelectControl
-					label={ __( 'Motion', 'visual-editor' ) }
+					label={ __( 'Motion', TEXT_DOMAIN ) }
 					value={ baseString( entrance.name ) }
 					options={ dropdownOptions( registry, FAMILY_ENTRANCE ) }
 					onChange={ ( next: string ) =>
@@ -175,26 +218,26 @@ export function AnimationPanel( {
 					}
 				/>
 				<NumberControl
-					label={ __( 'Duration (ms)', 'visual-editor' ) }
+					label={ __( 'Duration (ms)', TEXT_DOMAIN ) }
 					value={ entrance.duration ?? '' }
 					min={ 0 }
 					step={ 50 }
 					onChange={ ( next ) => patchEntrance( { duration: parseNumber( next ) } ) }
 				/>
 				<NumberControl
-					label={ __( 'Delay (ms)', 'visual-editor' ) }
+					label={ __( 'Delay (ms)', TEXT_DOMAIN ) }
 					value={ entrance.delay ?? '' }
 					min={ 0 }
 					step={ 50 }
 					onChange={ ( next ) => patchEntrance( { delay: parseNumber( next ) } ) }
 				/>
 				<TextControl
-					label={ __( 'Easing', 'visual-editor' ) }
+					label={ __( 'Easing', TEXT_DOMAIN ) }
 					value={ entrance.easing ?? '' }
 					onChange={ ( next: string ) => patchEntrance( { easing: '' === next ? undefined : next } ) }
 				/>
 				<NumberControl
-					label={ __( 'Viewport threshold (0–1)', 'visual-editor' ) }
+					label={ __( 'Viewport threshold (0–1)', TEXT_DOMAIN ) }
 					value={ entrance.threshold ?? '' }
 					min={ 0 }
 					max={ 1 }
@@ -203,9 +246,9 @@ export function AnimationPanel( {
 				/>
 			</PanelBody>
 
-			<PanelBody title={ __( 'Hover animation', 'visual-editor' ) } initialOpen={ false }>
+			<PanelBody title={ __( 'Hover animation', TEXT_DOMAIN ) } initialOpen={ false }>
 				<SelectControl
-					label={ __( 'Preset', 'visual-editor' ) }
+					label={ __( 'Preset', TEXT_DOMAIN ) }
 					value={ baseString( hover.name ) }
 					options={ dropdownOptions( registry, FAMILY_HOVER ) }
 					onChange={ ( next: string ) =>
@@ -219,22 +262,22 @@ export function AnimationPanel( {
 					/>
 				) }
 				<NumberControl
-					label={ __( 'Duration (ms)', 'visual-editor' ) }
+					label={ __( 'Duration (ms)', TEXT_DOMAIN ) }
 					value={ hover.duration ?? '' }
 					min={ 0 }
 					step={ 25 }
 					onChange={ ( next ) => patchHover( { duration: parseNumber( next ) } ) }
 				/>
 				<TextControl
-					label={ __( 'Easing', 'visual-editor' ) }
+					label={ __( 'Easing', TEXT_DOMAIN ) }
 					value={ hover.easing ?? '' }
 					onChange={ ( next: string ) => patchHover( { easing: '' === next ? undefined : next } ) }
 				/>
 			</PanelBody>
 
-			<PanelBody title={ __( 'Continuous animation', 'visual-editor' ) } initialOpen={ false }>
+			<PanelBody title={ __( 'Continuous animation', TEXT_DOMAIN ) } initialOpen={ false }>
 				<SelectControl
-					label={ __( 'Motion', 'visual-editor' ) }
+					label={ __( 'Motion', TEXT_DOMAIN ) }
 					value={ baseString( continuous.name ) }
 					options={ dropdownOptions( registry, FAMILY_CONTINUOUS ) }
 					onChange={ ( next: string ) =>
@@ -242,22 +285,22 @@ export function AnimationPanel( {
 					}
 				/>
 				<NumberControl
-					label={ __( 'Duration (ms)', 'visual-editor' ) }
+					label={ __( 'Duration (ms)', TEXT_DOMAIN ) }
 					value={ continuous.duration ?? '' }
 					min={ 0 }
 					step={ 100 }
 					onChange={ ( next ) => patchContinuous( { duration: parseNumber( next ) } ) }
 				/>
 				<TextControl
-					label={ __( 'Easing', 'visual-editor' ) }
+					label={ __( 'Easing', TEXT_DOMAIN ) }
 					value={ continuous.easing ?? '' }
 					onChange={ ( next: string ) =>
 						patchContinuous( { easing: '' === next ? undefined : next } )
 					}
 				/>
 				<TextControl
-					label={ __( 'Repeat', 'visual-editor' ) }
-					help={ __( '“infinite” or a positive integer.', 'visual-editor' ) }
+					label={ __( 'Repeat', TEXT_DOMAIN ) }
+					help={ __( '“infinite” or a positive integer.', TEXT_DOMAIN ) }
 					value={ undefined === continuous.count ? '' : String( continuous.count ) }
 					onChange={ ( next: string ) => {
 						if ( '' === next ) {

@@ -90,6 +90,15 @@ class TocResolver
 	protected const ANCHOR_DISALLOWED = '/[^A-Za-z0-9_:.\-]/';
 
 	/**
+	 * The auto anchor for a heading whose text slugs only to characters
+	 * an `id` can't keep (e.g. `日本語`). It takes the usual `-1`, `-2`, …
+	 * suffixes when repeated.
+	 *
+	 * @since 1.15.0
+	 */
+	protected const FALLBACK_SLUG = 'heading';
+
+	/**
 	 * Walk the tree twice: once to stamp anchors on headings and collect
 	 * the ordered heading list, once to stamp `_resolvedItems` on every
 	 * TOC block.
@@ -247,9 +256,7 @@ class TocResolver
 			// auto anchor collide with it and point TOC links at a missing
 			// id. An anchor that sanitizes to nothing renders no id, so the
 			// heading gets an auto anchor instead.
-			$existing = isset( $sourceAttributes['anchor'] ) && is_string( $sourceAttributes['anchor'] )
-				? (string) preg_replace( self::ANCHOR_DISALLOWED, '', trim( $sourceAttributes['anchor'] ) )
-				: '';
+			$existing = $this->renderedAnchor( $sourceAttributes['anchor'] ?? null );
 
 			if ( '' !== $existing ) {
 				$anchor = $existing;
@@ -561,7 +568,13 @@ class TocResolver
 	 * "Café" produces the same `cafe` anchor client-side and
 	 * server-side.
 	 *
+	 * The slug is then reduced to the characters a rendered `id` keeps,
+	 * with runs of `-` collapsed and trimmed. Text with letters or
+	 * numbers that all drop out (`日本語`) gives `heading`; text with
+	 * none at all (`???`) gives `''`.
+	 *
 	 * @since 1.9.0
+	 * @since 1.15.0 Returns an id-safe slug, falling back to `heading`.
 	 */
 	protected function slug( string $content ): string
 	{
@@ -590,7 +603,46 @@ class TocResolver
 			? mb_strtolower( $hyphenated, 'UTF-8' )
 			: strtolower( $hyphenated );
 
-		return trim( $lower, '-' );
+		$slug = trim( $lower, '-' );
+
+		if ( '' === $slug ) {
+			return '';
+		}
+
+		// Reduce the slug to the characters a rendered `id` keeps (#888,
+		// see `BlockSupports::resolveAnchor()`) before the uniqueness
+		// check, so `Résumé 日本` and `Résumé 中文` don't both claim
+		// `resume-`, and a TOC link never points at an id that isn't
+		// printed. Text that leaves nothing behind falls back to
+		// `heading`.
+		$safe = trim( (string) preg_replace( '/-{2,}/', '-', (string) preg_replace( self::ANCHOR_DISALLOWED, '', $slug ) ), '-' );
+
+		return '' === $safe ? self::FALLBACK_SLUG : $safe;
+	}
+
+	/**
+	 * The `id` a heading renders for its stored `anchor` attribute, or
+	 * `''` when none survives. Mirrors `BlockSupports::resolveAnchor()`:
+	 * a string is trimmed, a number is cast, and characters outside
+	 * `[A-Za-z0-9_:.-]` are dropped.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  mixed  $anchor  The stored `anchor` attribute.
+	 *
+	 * @return string The rendered id, or an empty string.
+	 */
+	protected function renderedAnchor( mixed $anchor ): string
+	{
+		if ( is_string( $anchor ) ) {
+			$anchor = trim( $anchor );
+		} elseif ( is_int( $anchor ) || is_float( $anchor ) ) {
+			$anchor = (string) $anchor;
+		} else {
+			return '';
+		}
+
+		return (string) preg_replace( self::ANCHOR_DISALLOWED, '', $anchor );
 	}
 
 	/**

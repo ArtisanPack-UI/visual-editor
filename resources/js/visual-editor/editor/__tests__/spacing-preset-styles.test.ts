@@ -98,6 +98,10 @@ describe('spacingPresetSlug (#814)', () => {
         ['-x-', '-x-'],
         ['bigGap', 'big-gap'],
         ['2xl', '2xl'],
+        // R-19: byte-wise like PHP, so the canvas declares the property
+        // the front end and every reference use.
+        ['İnk', '--nk'],
+        ['Café', 'caf--'],
     ])('%s → %s', (input, expected) => {
         expect(spacingPresetSlug(input)).toBe(expected);
     });

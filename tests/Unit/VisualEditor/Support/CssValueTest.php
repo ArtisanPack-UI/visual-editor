@@ -46,6 +46,7 @@ it( 'rejects values that break the style block', function ( string $value ): voi
 	'quote in unquoted url'    => 'url(a\'b) ( \'x)',
 	'paren in unquoted url'    => 'url(a(b))',
 	'unclosed unquoted url'    => 'url(a',
+	'bad url opens a string'   => 'url(a")"x)',
 ] );
 
 it( 'checks balance and comments for whitelisted values', function (): void {

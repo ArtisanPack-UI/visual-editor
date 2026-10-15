@@ -15,7 +15,8 @@ import {
     RichText,
     useBlockProps,
 } from '@wordpress/block-editor';
-import { __, sprintf } from '@wordpress/i18n';
+// Saved markup must not vary by locale, so strings serialized by save() stay untranslated literals.
+import { sprintf } from '@wordpress/i18n';
 
 interface DeprecatedFileAttributes {
     readonly href?: string;
@@ -104,10 +105,9 @@ const v3 = {
         }
 
         const pdfEmbedLabel = RichText.isEmpty(fileName ?? '')
-            ? __('PDF embed')
+            ? 'PDF embed'
             : sprintf(
-                  /* translators: %s: filename. */
-                  __('Embed of %s.'),
+                  'Embed of %s.',
                   fileName
               );
 
@@ -239,10 +239,9 @@ const v2 = {
         }
 
         const pdfEmbedLabel = RichText.isEmpty(fileName ?? '')
-            ? __('PDF embed')
+            ? 'PDF embed'
             : sprintf(
-                  /* translators: %s: filename. */
-                  __('Embed of %s.'),
+                  'Embed of %s.',
                   fileName
               );
 
@@ -363,10 +362,9 @@ const v1 = {
         }
 
         const pdfEmbedLabel = RichText.isEmpty(fileName ?? '')
-            ? __('PDF embed')
+            ? 'PDF embed'
             : sprintf(
-                  /* translators: %s: filename. */
-                  __('Embed of %s.'),
+                  'Embed of %s.',
                   fileName
               );
 

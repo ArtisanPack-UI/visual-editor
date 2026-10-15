@@ -32,6 +32,7 @@ import {
     __experimentalVStack as VStack,
 } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 
 import {
     DEFAULT_WIDTH_UNIT,
@@ -182,7 +183,7 @@ export default function WidthControl({
                     className="artisanpack-image-width-control__label-row"
                 >
                     <BaseControl.VisualLabel>
-                        {__('Preset size')}
+                        {__('Preset size', TEXT_DOMAIN)}
                     </BaseControl.VisualLabel>
                     <Button
                         size="small"
@@ -190,7 +191,7 @@ export default function WidthControl({
                         onClick={clearWidth}
                         disabled={!width}
                     >
-                        {__('Reset')}
+                        {__('Reset', TEXT_DOMAIN)}
                     </Button>
                 </HStack>
                 <ButtonGroup>
@@ -217,7 +218,7 @@ export default function WidthControl({
                 <FlexItem isBlock>
                     <NumberControl
                         __next40pxDefaultSize
-                        label={__('Custom width')}
+                        label={__('Custom width', TEXT_DOMAIN)}
                         min={0}
                         step={1}
                         value={parsedValue ?? ''}
@@ -229,7 +230,7 @@ export default function WidthControl({
                         __next40pxDefaultSize
                         __nextHasNoMarginBottom
                         hideLabelFromVision
-                        label={__('Unit')}
+                        label={__('Unit', TEXT_DOMAIN)}
                         value={unit}
                         isBlock
                         onChange={(value) => onUnitChange(String(value))}
@@ -242,9 +243,10 @@ export default function WidthControl({
 
             <CheckboxControl
                 __nextHasNoMarginBottom
-                label={__('Keep aspect ratio')}
+                label={__('Keep aspect ratio', TEXT_DOMAIN)}
                 help={__(
-                    'When on, height follows width proportionally.'
+                    'When on, height follows width proportionally.',
+                    TEXT_DOMAIN
                 )}
                 checked={keepAspectRatio}
                 onChange={onKeepAspectRatioChange}

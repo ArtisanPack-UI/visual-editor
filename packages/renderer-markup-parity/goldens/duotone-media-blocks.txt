@@ -38,7 +38,7 @@
   <span aria-hidden="true" class="wp-block-cover__background has-background-dim" style="opacity: 0.3">
   </span>
   <img alt="" class="wp-block-cover__image-background" src="https://example.com/cover.jpg" />
-  <div class="wp-block-cover__inner-container">
+  <div class="wp-block-cover__inner-container is-layout-flow wp-block-cover-is-layout-flow">
     <div class="wp-block-avatar wp-duotone-308e7f2d45">
       <img alt="Ada" height="96" src="https://example.com/ada.png" width="96" />
     </div>
@@ -60,7 +60,7 @@
 <div class="wp-block-cover is-dark is-layout-flex wp-block-cover-is-layout-flex">
   <span aria-hidden="true" class="wp-block-cover__background has-background-dim" style="opacity: 0.5">
   </span>
-  <div class="wp-block-cover__inner-container">
+  <div class="wp-block-cover__inner-container is-layout-flow wp-block-cover-is-layout-flow">
   </div>
 </div>
 <div class="wp-block-post-author">

@@ -1,0 +1,23 @@
+<div class="entry-content wp-block-post-content is-layout-flow wp-block-post-content-is-layout-flow">
+  <h2 id="intro">
+    "Intro"
+  </h2>
+  <p>
+    "Body"
+  </p>
+  <h2 class="wp-block-heading" id="details">
+    "Details"
+  </h2>
+  <h3 id="heading">
+    "日本語"
+  </h3>
+</div>
+<h2 class="wp-block-heading" id="intro-1">
+  "Intro"
+</h2>
+<h2 class="wp-block-heading" id="details-1">
+  "Details"
+</h2>
+<h2 class="wp-block-heading" id="heading-1">
+  "中文"
+</h2>

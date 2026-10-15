@@ -411,6 +411,67 @@
             ]
         },
         {
+            "name": "column-layout-constrained",
+            "$comment": "F-3 — a column carries the layout pair (flow by default) and, with a constrained content size and its own Block spacing, a `wp-container-*` scope.",
+            "tree": [
+                {
+                    "clientId": "cols-lay",
+                    "name": "core/columns",
+                    "attributes": {},
+                    "innerBlocks": [
+                        {
+                            "clientId": "col-lay-a",
+                            "name": "core/column",
+                            "attributes": {
+                                "layout": {
+                                    "type": "constrained",
+                                    "contentSize": "480px"
+                                },
+                                "style": {
+                                    "spacing": {
+                                        "blockGap": "2rem"
+                                    }
+                                }
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "col-lay-a-1",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "One"
+                                    },
+                                    "innerBlocks": []
+                                },
+                                {
+                                    "clientId": "col-lay-a-2",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "Two"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        },
+                        {
+                            "clientId": "col-lay-b",
+                            "name": "core/column",
+                            "attributes": {},
+                            "innerBlocks": [
+                                {
+                                    "clientId": "col-lay-b-1",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "Three"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
             "name": "columns-responsive-width",
             "$comment": "#712 — a column with the legacy scalar `width` promoted to the `base` slot plus a `responsive.width` per-breakpoint override. Exercises the merged-map hash and the `ve-w-<hash>` scope token now shared by all three renderers.",
             "tree": [
@@ -496,6 +557,50 @@
                                 "text": "Go",
                                 "url": "https://example.com",
                                 "linkTarget": "_blank"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "buttons-layout-vertical",
+            "$comment": "F-3 — vertical, non-wrapping, aligned buttons with their own Block spacing get a `wp-container-*` scope plus the `is-vertical` / `is-nowrap` modifiers.",
+            "tree": [
+                {
+                    "clientId": "btns-v",
+                    "name": "core/buttons",
+                    "attributes": {
+                        "layout": {
+                            "type": "flex",
+                            "orientation": "vertical",
+                            "flexWrap": "nowrap",
+                            "justifyContent": "right",
+                            "verticalAlignment": "center"
+                        },
+                        "style": {
+                            "spacing": {
+                                "blockGap": "1.5rem"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "btns-v-1",
+                            "name": "core/button",
+                            "attributes": {
+                                "text": "One",
+                                "url": "https://example.com/one"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "btns-v-2",
+                            "name": "core/button",
+                            "attributes": {
+                                "text": "Two",
+                                "url": "https://example.com/two"
                             },
                             "innerBlocks": []
                         }
@@ -1631,6 +1736,40 @@
             ]
         },
         {
+            "name": "navigation-layout-scope",
+            "$comment": "F-3 — navigation is always a flex layout: the layout pair, `is-nowrap`, and a `wp-container-*` scope for its wrap and Block spacing (vertical alignment, which navigation doesn't allow, is left out).",
+            "tree": [
+                {
+                    "clientId": "nav-scope",
+                    "name": "core/navigation",
+                    "attributes": {
+                        "overlayMenu": "never",
+                        "layout": {
+                            "type": "flex",
+                            "flexWrap": "nowrap",
+                            "verticalAlignment": "bottom"
+                        },
+                        "style": {
+                            "spacing": {
+                                "blockGap": "2rem"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "nav-scope-l1",
+                            "name": "core/navigation-link",
+                            "attributes": {
+                                "label": "Home",
+                                "url": "/"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
             "name": "group-layout-constrained-sizes",
             "tree": [
                 {
@@ -1658,6 +1797,57 @@
                             "name": "core/paragraph",
                             "attributes": {
                                 "content": "Two"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "group-layout-constrained-wide-only",
+            "$comment": "F-5 — a constrained group with only a wide size caps its children at it.",
+            "tree": [
+                {
+                    "clientId": "wide-only",
+                    "name": "core/group",
+                    "attributes": {
+                        "layout": {
+                            "type": "constrained",
+                            "wideSize": "1200px"
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "wide-only-a",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "A"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "group-layout-inherit",
+            "$comment": "F-3 — a legacy `inherit: true` layout is a constrained layout, as in WordPress and the editor.",
+            "tree": [
+                {
+                    "clientId": "inherit",
+                    "name": "core/group",
+                    "attributes": {
+                        "layout": {
+                            "inherit": true
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "inherit-a",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "A"
                             },
                             "innerBlocks": []
                         }
@@ -1803,6 +1993,42 @@
             ]
         },
         {
+            "name": "group-layout-flex-vertical-stretch",
+            "$comment": "F-5 — a vertical flex group with stretch justification: `is-vertical`, `is-content-justification-stretch`, and `align-items: stretch` in its scope.",
+            "tree": [
+                {
+                    "clientId": "stretch",
+                    "name": "core/group",
+                    "attributes": {
+                        "layout": {
+                            "type": "flex",
+                            "orientation": "vertical",
+                            "justifyContent": "stretch",
+                            "verticalAlignment": "top"
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "stretch-a",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "A"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "stretch-b",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "B"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
             "name": "group-layout-grid-columns",
             "tree": [
                 {
@@ -1828,6 +2054,41 @@
                             "name": "core/paragraph",
                             "attributes": {
                                 "content": "Two"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "group-layout-grid-columns-min-width",
+            "$comment": "F-5 — a Grid with both a column count and a minimum column width caps an auto-fill track list.",
+            "tree": [
+                {
+                    "clientId": "grid-cmw",
+                    "name": "core/group",
+                    "attributes": {
+                        "layout": {
+                            "type": "grid",
+                            "columnCount": 3,
+                            "minimumColumnWidth": "10rem"
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "grid-cmw-a",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "A"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "grid-cmw-b",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "B"
                             },
                             "innerBlocks": []
                         }
@@ -2247,6 +2508,48 @@
             ]
         },
         {
+            "name": "responsive-overrides-spacer-numeric",
+            "$comment": "F-5 — a numeric spacer `height` (base and per breakpoint) takes the `px` fallback unit in every renderer, and joins the scope hash as a number.",
+            "tree": [
+                { "clientId": "resp-spacer-num", "name": "core/spacer", "attributes": { "height": 120, "responsive": { "height": { "tablet": 80, "mobile": 40 } } }, "innerBlocks": [] }
+            ]
+        },
+        {
+            "name": "responsive-overrides-coverage",
+            "$comment": "F-5 — per-breakpoint border width / colour / style, group `minHeight`, a `backgroundColor` preset slug, the `base` key, a legacy (`md`) and a device (`mobile`) key on the same property, and hostile values: a `</style><script>` colour and a `;}` breakout width are dropped (or reduced to the CSS-value whitelist) identically in every renderer.",
+            "tree": [
+                {
+                    "clientId": "resp-cov-group",
+                    "name": "core/group",
+                    "attributes": {
+                        "layout": { "type": "flow" },
+                        "responsive": {
+                            "style.border.width": { "tablet": "2px", "mobile": "1px;}body{color:red" },
+                            "style.border.color": { "tablet": "#ff0000", "mobile": "red</style><script>alert(1)</script>" },
+                            "style.border.style": { "mobile": "dashed" },
+                            "style.dimensions.minHeight": { "tablet": "50vh", "mobile": "320px" },
+                            "backgroundColor": { "mobile": "accent" },
+                            "style.spacing.padding": { "base": "1rem", "md": "2rem", "mobile": "0.5rem" }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "resp-cov-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Legacy and device",
+                                "responsive": {
+                                    "style.typography.fontSize": { "md": "1.5rem", "mobile": "1rem" },
+                                    "style.color.text": { "base": "#111111", "lg": "#222222", "tablet": "#333333" }
+                                }
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
             "name": "responsive-overrides-paragraph",
             "$comment": "#877 · #886 — paragraph font size and colour overrides (preset slug and custom value) at Tablet and Mobile, grouped by CSS property so the narrower breakpoint wins in every renderer.",
             "tree": [
@@ -2343,8 +2646,235 @@
             ]
         },
         {
+            "name": "group-nested-flex-block-gap",
+            "$comment": "M-15 — an outer group with 5rem Block spacing around a Row with none. The outer group's spacing reaches its children through its `wp-container-*` rule (`> * + * { margin-block-start }`); the Row carries no inline gap and no scope, so the baseline resets it to the root gap rather than inheriting 5rem.",
+            "tree": [
+                {
+                    "clientId": "nest-outer",
+                    "name": "core/group",
+                    "attributes": {
+                        "style": {
+                            "spacing": {
+                                "blockGap": "5rem"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "nest-outer-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Intro"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "nest-row",
+                            "name": "core/group",
+                            "attributes": {
+                                "layout": {
+                                    "type": "flex"
+                                }
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "nest-row-a",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "One"
+                                    },
+                                    "innerBlocks": []
+                                },
+                                {
+                                    "clientId": "nest-row-b",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "Two"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "group-block-gap-axes",
+            "$comment": "M-15 — per-axis Block spacing follows `wp_get_layout_style()`: a constrained group spaces its children with the top value; a Row with only a top value falls back to 0.5em for the column gap; a Grid with both prints `gap: <row> <column>`.",
+            "tree": [
+                {
+                    "clientId": "axes-constrained",
+                    "name": "core/group",
+                    "attributes": {
+                        "layout": {
+                            "type": "constrained"
+                        },
+                        "style": {
+                            "spacing": {
+                                "blockGap": {
+                                    "top": "2rem",
+                                    "left": "1rem"
+                                }
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "axes-constrained-a",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "A"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "axes-constrained-b",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "B"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                },
+                {
+                    "clientId": "axes-row",
+                    "name": "core/group",
+                    "attributes": {
+                        "layout": {
+                            "type": "flex"
+                        },
+                        "style": {
+                            "spacing": {
+                                "blockGap": {
+                                    "top": "1rem"
+                                }
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "axes-row-a",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "A"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                },
+                {
+                    "clientId": "axes-grid",
+                    "name": "core/group",
+                    "attributes": {
+                        "layout": {
+                            "type": "grid",
+                            "columnCount": 2
+                        },
+                        "style": {
+                            "spacing": {
+                                "blockGap": {
+                                    "top": "var:preset|spacing|30",
+                                    "left": "3rem"
+                                }
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "axes-grid-a",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "A"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "group-block-gap-hostile",
+            "$comment": "F-10 — a Block spacing value that could add declarations is dropped from the inline style and the per-instance rule in every renderer; the safe side of a per-axis value is kept.",
+            "tree": [
+                {
+                    "clientId": "hostile-row",
+                    "name": "core/group",
+                    "attributes": {
+                        "layout": {
+                            "type": "flex"
+                        },
+                        "style": {
+                            "spacing": {
+                                "blockGap": "1rem;position:fixed;inset:0"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "hostile-row-a",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "A"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                },
+                {
+                    "clientId": "hostile-flow",
+                    "name": "core/group",
+                    "attributes": {
+                        "style": {
+                            "spacing": {
+                                "blockGap": {
+                                    "top": "2rem}body{color:red",
+                                    "left": "var:preset|spacing|40"
+                                }
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "hostile-flow-a",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "A"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                },
+                {
+                    "clientId": "hostile-paren",
+                    "name": "core/group",
+                    "attributes": {
+                        "layout": {
+                            "type": "grid"
+                        },
+                        "style": {
+                            "spacing": {
+                                "blockGap": "calc(1rem"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "hostile-paren-a",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "A"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
             "name": "block-effects-custom-css",
-            "$comment": "#881 — the Effects panel and Custom CSS compile to one hashed `ve-fx-<sha1>` scope appended after the author `className`, with the same rule (Custom CSS nested by native CSS nesting) in every renderer. The second paragraph repeats the first's effects to prove identical blocks share one rule; the rejected Custom CSS on the third paragraph is dropped while its opacity survives.",
+            "$comment": "#881 — the Effects panel and Custom CSS compile to one hashed `ve-fx-<sha1>` scope appended after the author `className`, with the same rule (Custom CSS nested by native CSS nesting) in every renderer. The second gradient heading repeats the first's effects to prove identical blocks share one rule; the rejected Custom CSS on the first paragraph is dropped while its opacity survives. Text clip needs a gradient or background image (and gets a forced-colors fallback), so the paragraph without one keeps only its blend mode; Custom CSS URLs must be quoted, so the group's quoted `url(\"…\")` survives and the last paragraph's unquoted one is dropped.",
             "tree": [
                 {
                     "clientId": "fx-group",
@@ -2357,15 +2887,28 @@
                             "backdropSaturate": 180,
                             "zIndex": 2,
                             "overflowX": "hidden",
-                            "customCss": "border: 1px solid rgba(255, 255, 255, 0.2);\n& > p { margin: 0; }"
+                            "customCss": "border: 1px solid rgba(255, 255, 255, 0.2);\nbackground-image: url(\"https://example.com/glass.png\");\n& > p { margin: 0; }"
                         }
                     },
                     "innerBlocks": [
-                        { "clientId": "fx-p1", "name": "core/paragraph", "attributes": { "content": "Gradient", "artisanpackEffects": { "textClip": true, "mixBlendMode": "screen" } }, "innerBlocks": [] },
-                        { "clientId": "fx-p2", "name": "core/paragraph", "attributes": { "content": "Gradient two", "artisanpackEffects": { "textClip": true, "mixBlendMode": "screen" } }, "innerBlocks": [] },
-                        { "clientId": "fx-h", "name": "core/paragraph", "attributes": { "content": "Clipped", "artisanpackEffects": { "opacity": 50, "clipShape": "hexagon", "customCss": "color: red; } body { display: none" } }, "innerBlocks": [] }
+                        { "clientId": "fx-p1", "name": "core/heading", "attributes": { "level": 2, "content": "Gradient", "gradient": "vivid-cyan-blue-to-vivid-purple", "artisanpackEffects": { "textClip": true, "mixBlendMode": "screen" } }, "innerBlocks": [] },
+                        { "clientId": "fx-p2", "name": "core/heading", "attributes": { "level": 2, "content": "Gradient two", "gradient": "vivid-cyan-blue-to-vivid-purple", "artisanpackEffects": { "textClip": true, "mixBlendMode": "screen" } }, "innerBlocks": [] },
+                        { "clientId": "fx-h", "name": "core/paragraph", "attributes": { "content": "Clipped", "artisanpackEffects": { "opacity": 50, "clipShape": "hexagon", "customCss": "color: red; } body { display: none" } }, "innerBlocks": [] },
+                        { "clientId": "fx-p3", "name": "core/paragraph", "attributes": { "content": "No background", "artisanpackEffects": { "textClip": true, "mixBlendMode": "screen" } }, "innerBlocks": [] },
+                        { "clientId": "fx-p4", "name": "core/paragraph", "attributes": { "content": "Unquoted URL", "artisanpackEffects": { "opacity": 60, "customCss": "background: url(https://example.com/a.png);" } }, "innerBlocks": [] }
                     ]
                 }
+            ]
+        },
+        {
+            "name": "block-effects-values",
+            "$comment": "F-5 — effect values every renderer must coerce the same way: `overflowY` and `isolation` on their own, a lone `zIndex` (with its zero-specificity `position: relative`), out-of-range values clamped (opacity 0–100, blur 0–200, saturate 0–500, z-index ±99999), numeric strings parsed with ASCII-only padding and rounded half away from zero, and non-numeric or non-boolean values dropped.",
+            "tree": [
+                { "clientId": "fxv-overflow", "name": "core/paragraph", "attributes": { "content": "Overflow", "artisanpackEffects": { "overflowY": "scroll", "isolation": true } }, "innerBlocks": [] },
+                { "clientId": "fxv-z", "name": "core/paragraph", "attributes": { "content": "Stacked", "artisanpackEffects": { "zIndex": -3 } }, "innerBlocks": [] },
+                { "clientId": "fxv-clamp", "name": "core/paragraph", "attributes": { "content": "Clamped", "artisanpackEffects": { "opacity": 150, "backdropBlur": 999, "backdropSaturate": -5, "zIndex": 200000 } }, "innerBlocks": [] },
+                { "clientId": "fxv-strings", "name": "core/paragraph", "attributes": { "content": "Strings", "artisanpackEffects": { "opacity": "40", "zIndex": " 7 ", "backdropBlur": "12.5", "backdropSaturate": "-2.5" } }, "innerBlocks": [] },
+                { "clientId": "fxv-invalid", "name": "core/paragraph", "attributes": { "content": "Invalid", "artisanpackEffects": { "opacity": "abc", "zIndex": "\u00a05", "isolation": "true", "overflowX": "sideways", "mixBlendMode": "multiply" } }, "innerBlocks": [] }
             ]
         },
         {
@@ -2491,6 +3034,189 @@
             ]
         },
         {
+            "name": "block-supports-classname-coverage",
+            "$comment": "M-7 — code, preformatted, verse, embed, accordion title/body (inside an accordion and standalone) print their author `className`, and with it the `ve-r-<hash>` responsive and `ve-fx-<hash>` effects scopes, on the element Blade puts `wrapperAttrs()` on, so the emitted rules actually apply.",
+            "tree": [
+                { "clientId": "cn-code", "name": "core/code", "attributes": { "content": "const a = 1;", "className": "mine", "artisanpackEffects": { "opacity": 50 }, "responsive": { "style.spacing.padding": { "mobile": "1rem" } } }, "innerBlocks": [] },
+                { "clientId": "cn-pre", "name": "core/preformatted", "attributes": { "content": "pre text", "className": "mine", "artisanpackEffects": { "opacity": 60 }, "responsive": { "style.spacing.padding": { "tablet": "2rem" } } }, "innerBlocks": [] },
+                { "clientId": "cn-verse", "name": "core/verse", "attributes": { "content": "verse text", "textAlign": "center", "className": "mine", "artisanpackEffects": { "opacity": 70 }, "responsive": { "style.spacing.margin": { "mobile": "1rem" } } }, "innerBlocks": [] },
+                { "clientId": "cn-embed", "name": "core/embed", "attributes": { "url": "https://www.youtube.com/watch?v=x", "providerNameSlug": "YouTube", "type": "video", "aspectRatio": "16/9", "className": "mine", "artisanpackEffects": { "opacity": 80 }, "responsive": { "style.spacing.padding": { "mobile": "1rem" } } }, "innerBlocks": [] },
+                {
+                    "clientId": "cn-accordion",
+                    "name": "artisanpack/accordion",
+                    "attributes": { "panelId": "panel-1", "className": "acc" },
+                    "innerBlocks": [
+                        {
+                            "clientId": "cn-acc-title",
+                            "name": "artisanpack/accordion-title",
+                            "attributes": { "className": "acc-title", "artisanpackEffects": { "opacity": 90 }, "responsive": { "style.spacing.padding": { "mobile": "3px" } } },
+                            "innerBlocks": [ { "clientId": "cn-acc-title-p", "name": "core/paragraph", "attributes": { "content": "Question" }, "innerBlocks": [] } ]
+                        },
+                        {
+                            "clientId": "cn-acc-body",
+                            "name": "artisanpack/accordion-body",
+                            "attributes": { "className": "acc-body", "anchor": "ignored", "artisanpackEffects": { "opacity": 40 }, "responsive": { "style.spacing.padding": { "tablet": "4px" } } },
+                            "innerBlocks": [ { "clientId": "cn-acc-body-p", "name": "core/paragraph", "attributes": { "content": "Answer" }, "innerBlocks": [] } ]
+                        }
+                    ]
+                },
+                {
+                    "clientId": "cn-title-solo",
+                    "name": "artisanpack/accordion-title",
+                    "attributes": { "className": "solo-title", "artisanpackEffects": { "opacity": 30 }, "responsive": { "style.spacing.padding": { "mobile": "5px" } } },
+                    "innerBlocks": [ { "clientId": "cn-title-solo-p", "name": "core/paragraph", "attributes": { "content": "Solo title" }, "innerBlocks": [] } ]
+                },
+                {
+                    "clientId": "cn-body-solo",
+                    "name": "artisanpack/accordion-body",
+                    "attributes": { "className": "solo-body", "artisanpackEffects": { "opacity": 20 }, "responsive": { "style.spacing.padding": { "mobile": "6px" } } },
+                    "innerBlocks": [ { "clientId": "cn-body-solo-p", "name": "core/paragraph", "attributes": { "content": "Solo body" }, "innerBlocks": [] } ]
+                }
+            ]
+        },
+        {
+            "name": "cover-inner-layout",
+            "$comment": "F-3 — cover's layout applies to its inner container: the layout pair plus a `wp-container-*` scope keyed on `.wp-block-cover__inner-container` for its content size and the cover's Block spacing.",
+            "tree": [
+                {
+                    "clientId": "cover-lay",
+                    "name": "core/cover",
+                    "attributes": {
+                        "layout": {
+                            "type": "constrained",
+                            "contentSize": "600px"
+                        },
+                        "style": {
+                            "spacing": {
+                                "blockGap": "3rem"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "cover-lay-a",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "One"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "cover-lay-b",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Two"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "quote-details-block-gap",
+            "$comment": "F-3 — quote and details are flow layouts: the layout pair, and a `wp-container-*` scope for their own Block spacing.",
+            "tree": [
+                {
+                    "clientId": "quote-gap",
+                    "name": "core/quote",
+                    "attributes": {
+                        "style": {
+                            "spacing": {
+                                "blockGap": "2rem"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "quote-gap-a",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "One"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "quote-gap-b",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Two"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                },
+                {
+                    "clientId": "details-gap",
+                    "name": "core/details",
+                    "attributes": {
+                        "summary": "More",
+                        "style": {
+                            "spacing": {
+                                "blockGap": "1rem"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "details-gap-a",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Hidden"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "comments-pagination-layout",
+            "$comment": "F-3 — comments pagination is always a flex layout: the layout pair, a `wp-container-*` scope for justification and wrap, and the layout modifier classes. Query pagination keeps its own grid layout (#599), so it gets none of them.",
+            "tree": [
+                {
+                    "clientId": "qp-lay",
+                    "name": "core/query-pagination",
+                    "attributes": {
+                        "layout": {
+                            "type": "flex",
+                            "justifyContent": "space-between"
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "cp-lay",
+                    "name": "artisanpack/comments-pagination",
+                    "attributes": {
+                        "layout": {
+                            "type": "flex",
+                            "justifyContent": "center",
+                            "flexWrap": "nowrap"
+                        }
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "name": "query-layout",
+            "$comment": "F-3 — the query block carries its layout pair and a `wp-container-*` scope.",
+            "tree": [
+                {
+                    "clientId": "query-lay",
+                    "name": "core/query",
+                    "attributes": {
+                        "layout": {
+                            "type": "constrained",
+                            "contentSize": "800px"
+                        }
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
             "name": "heading",
             "$comment": "#888 — heading preset colour and font-size classes and the anchor id match across renderers. Auto anchors are unique across the tree (an author anchor claims its slug first-come), accents and entities fold out of the slug, and a hostile author anchor is reduced to `[A-Za-z0-9_:.-]` — and it is that rendered id a later auto anchor (`Badidxyz` → `badidxyz-1`) must avoid. Named HTML 4 entities decode before slugging.",
             "tree": [
@@ -2532,7 +3258,30 @@
                     "name": "core/heading",
                     "attributes": { "content": "Cr&egrave;me &frac12; x", "level": 2 },
                     "innerBlocks": []
-                }
+                },
+                { "clientId": "heading-7", "name": "core/heading", "attributes": { "content": "Crème ¼ x", "level": 2 }, "innerBlocks": [] },
+                { "clientId": "heading-8", "name": "core/heading", "attributes": { "content": "日本語", "level": 2 }, "innerBlocks": [] },
+                { "clientId": "heading-9", "name": "core/heading", "attributes": { "content": "Résumé 日本", "level": 2 }, "innerBlocks": [] },
+                { "clientId": "heading-10", "name": "artisanpack/heading", "attributes": { "content": "Résumé 中文", "level": 3, "textColor": "primary" }, "innerBlocks": [] },
+                { "clientId": "heading-11", "name": "artisanpack/heading", "attributes": { "content": "中文", "level": 2 }, "innerBlocks": [] },
+                { "clientId": "heading-12", "name": "core/heading", "attributes": { "content": "Numbered", "level": 2, "anchor": 42 }, "innerBlocks": [] },
+                { "clientId": "heading-13", "name": "core/heading", "attributes": { "content": "42", "level": 2 }, "innerBlocks": [] },
+                { "clientId": "heading-14", "name": "core/heading", "attributes": { "content": "a < b > c", "level": 2 }, "innerBlocks": [] }
+            ]
+        },
+        {
+            "name": "heading-post-content",
+            "$comment": "M-14 / F-7 — post-content headings take part in the anchor pass in document order, as Blade's `TocResolver::stampContentHeadings()` does: an existing `id` is claimed (the later block heading `Intro` becomes `intro-1`), and a heading without one gets a unique, id-safe auto anchor injected into the content HTML.",
+            "tree": [
+                {
+                    "clientId": "hpc-content",
+                    "name": "core/post-content",
+                    "attributes": { "_resolvedContent": "<h2 id=\"intro\">Intro</h2><p>Body</p><h2 class=\"wp-block-heading\">Details</h2><h3>日本語</h3>" },
+                    "innerBlocks": []
+                },
+                { "clientId": "hpc-heading-1", "name": "core/heading", "attributes": { "content": "Intro", "level": 2 }, "innerBlocks": [] },
+                { "clientId": "hpc-heading-2", "name": "core/heading", "attributes": { "content": "Details", "level": 2 }, "innerBlocks": [] },
+                { "clientId": "hpc-heading-3", "name": "core/heading", "attributes": { "content": "中文", "level": 2 }, "innerBlocks": [] }
             ]
         },
         {

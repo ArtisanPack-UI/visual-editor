@@ -105,6 +105,13 @@ class PostCoreSource implements BlockBindingSource
 		// Defer to the model's accessor so casts and mutators apply.
 		$value = $model->getAttribute( $key );
 
+		// With the opt-in allowlist enforced (#869), a field whose
+		// accessor returns a record (e.g. a `featured_image` relation to
+		// a media model) can't publish it wholesale.
+		if ( BindingAttributeAllowlist::isEnforced() && BindingAttributeAllowlist::containsModel( $value ) ) {
+			return null;
+		}
+
 		return $value;
 	}
 

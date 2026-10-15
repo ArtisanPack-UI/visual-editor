@@ -25,6 +25,7 @@ use ArtisanPackUI\VisualEditor\Http\Requests\BlockPreviewRequest;
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
 use ArtisanPackUI\VisualEditor\Resources\ResourceResolver;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
+use ArtisanPackUI\VisualEditor\Services\Bindings\BindingRecordAccess;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingResolver;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Model;
@@ -32,6 +33,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use InvalidArgumentException;
 use Stringable;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
 
@@ -193,7 +195,11 @@ class BlockPreviewController extends Controller
 	 * forwarded verbatim so the source drivers can prefer unsaved
 	 * editor edits over saved values.
 	 *
+	 * A record whose model has a policy needs the user's `view` ability,
+	 * or the request fails with 403 (F-13).
+	 *
 	 * @since 1.1.0
+	 * @since 1.15.0 Requires the `view` ability when the model has a policy.
 	 */
 	protected function buildContext( BlockPreviewRequest $request ): BindingContext
 	{
@@ -210,6 +216,11 @@ class BlockPreviewController extends Controller
 			} catch ( NotFoundHttpException | InvalidArgumentException $e ) {
 				$model = null;
 			}
+		}
+
+		// F-13: a record the host guards with a policy needs `view`.
+		if ( null !== $model && ! BindingRecordAccess::allows( $model ) ) {
+			abort( Response::HTTP_FORBIDDEN );
 		}
 
 		return new BindingContext(

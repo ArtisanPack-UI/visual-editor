@@ -1,9 +1,9 @@
-<div class="wp-block-group is-layout-flow wp-block-group-is-layout-flow" style="background-image: url('https://example.com/hero.jpg'); background-size: contain; background-position: 50% 50%; background-repeat: no-repeat; background-attachment: fixed; --wp--style--block-gap: 2rem; min-height: 300px">
+<div class="wp-block-group is-layout-flow wp-block-group-is-layout-flow wp-container-e88e10f15c13" style="background-image: url('https://example.com/hero.jpg'); background-size: contain; background-position: 50% 50%; background-repeat: no-repeat; background-attachment: fixed; --wp--style--block-gap: 2rem; min-height: 300px">
   <p class="wp-block-paragraph">
     "Group"
   </p>
 </div>
-<blockquote class="wp-block-quote" style="background-image: url('/img/quote.png'); background-size: 200px auto; background-position: 25% 75%">
+<blockquote class="wp-block-quote is-layout-flow wp-block-quote-is-layout-flow" style="background-image: url('/img/quote.png'); background-size: 200px auto; background-position: 25% 75%">
   <p class="wp-block-paragraph">
     "Quote"
   </p>
@@ -21,3 +21,5 @@
     "Body"
   </p>
 </div>
+@@ renderer-instance-css @@
+.wp-block-group.wp-block-group-is-layout-flow.wp-container-e88e10f15c13 > * + *{margin-block-start:2rem;margin-block-end:0;}

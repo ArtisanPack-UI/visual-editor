@@ -11,6 +11,7 @@
 import type { ReactElement } from 'react';
 import clsx from 'clsx';
 import { __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import {
     Notice,
     RangeControl,
@@ -43,7 +44,7 @@ import {
 } from './utils';
 
 import { getActiveBreakpoint, BASE_KEY } from '../../responsive';
-import { BreakpointRegistry } from '../../responsive/registry';
+import { getResponsiveRegistry } from '../../responsive/registry';
 import {
     FlexContainerControls,
     serializeFlex,
@@ -156,7 +157,7 @@ function ColumnInspectorControls({
 
     return (
         <ToolsPanel
-            label={__('Settings')}
+            label={__('Settings', TEXT_DOMAIN)}
             resetAll={() => setAttributes({ isStackedOnMobile: true })}
         >
             {canInsertColumnBlock && (
@@ -164,7 +165,7 @@ function ColumnInspectorControls({
                     <RangeControl
                         // @ts-expect-error - upstream prop
                         __next40pxDefaultSize
-                        label={__('Columns')}
+                        label={__('Columns', TEXT_DOMAIN)}
                         // The HOC merges responsive overrides into the
                         // `columnCount` attribute, so `columnCount`
                         // reflects the resolved value for the active
@@ -196,14 +197,15 @@ function ColumnInspectorControls({
                     {(columnCount ?? count) > 6 && (
                         <Notice status="warning" isDismissible={false}>
                             {__(
-                                'This column count exceeds the recommended amount and may cause visual breakage.'
+                                'This column count exceeds the recommended amount and may cause visual breakage.',
+                                TEXT_DOMAIN
                             )}
                         </Notice>
                     )}
                 </VStack>
             )}
             <ToolsPanelItem
-                label={__('Stack on mobile')}
+                label={__('Stack on mobile', TEXT_DOMAIN)}
                 isShownByDefault
                 hasValue={() => isStackedOnMobile !== true}
                 onDeselect={() => setAttributes({ isStackedOnMobile: true })}
@@ -211,7 +213,7 @@ function ColumnInspectorControls({
                 <ToggleControl
                     // @ts-expect-error - upstream prop
                     __nextHasNoMarginBottom
-                    label={__('Stack on mobile')}
+                    label={__('Stack on mobile', TEXT_DOMAIN)}
                     checked={!!isStackedOnMobile}
                     onChange={() =>
                         setAttributes({
@@ -239,7 +241,10 @@ function ColumnsEditContainer({
     const { getBlockOrder } = useSelect(blockEditorStore) as any;
     const { updateBlockAttributes } = useDispatch(blockEditorStore) as any;
 
-    const flexRegistry = new BreakpointRegistry();
+    // The host's configured breakpoints (M-17), like Blade's FlexSupport.
+    // `save` keeps the package defaults so saved markup doesn't depend
+    // on host config.
+    const flexRegistry = getResponsiveRegistry();
     const flexResult = serializeFlex(
         attributes.artisanpackFlex ?? null,
         flexRegistry,
@@ -340,7 +345,7 @@ function Placeholder({
                 icon={blockType?.icon?.src}
                 label={blockType?.title}
                 variations={variations}
-                instructions={__('Divide into columns. Select a layout:')}
+                instructions={__('Divide into columns. Select a layout:', TEXT_DOMAIN)}
                 onSelect={(nextVariation: any = defaultVariation) => {
                     if (nextVariation?.attributes) {
                         setAttributes(nextVariation.attributes);

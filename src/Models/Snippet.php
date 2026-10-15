@@ -20,6 +20,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Models;
 
+use ArtisanPackUI\VisualEditor\Effects\CustomCssModelGuard;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -54,6 +55,16 @@ class Snippet extends Model
 	public static function slugPattern(): string
 	{
 		return '/^[a-z][a-z0-9_]{0,63}$/';
+	}
+
+	/**
+	 * Guard the block tree's Custom CSS on every save (H-2).
+	 *
+	 * @since 1.15.0
+	 */
+	protected static function booted(): void
+	{
+		CustomCssModelGuard::watch( static::class, 'blocks' );
 	}
 
 	protected function casts(): array

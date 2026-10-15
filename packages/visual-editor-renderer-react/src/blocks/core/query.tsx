@@ -19,14 +19,18 @@ import {
     attrRecord,
     attrString,
     classList,
+    layoutClass,
     layoutPair,
     postTemplateItemSpanClasses,
 } from '../../support/attributes';
+import { applyBlockGap } from '../../support/blockGap';
+import { layoutWrapperClasses } from '../../support/layoutContainer';
 import type { BlockRendererProps } from '../../types';
 
 interface WrapperProps {
     children: ReactNode;
     className: string;
+    style?: React.CSSProperties;
     'data-ve-resolution-error'?: string;
 }
 
@@ -92,12 +96,22 @@ export function QueryBlock({ attributes, children }: BlockRendererProps): JSX.El
     const className = attrString(attributes.className);
     const resolutionError = attrString(attributes._resolutionError);
     const hasError = resolutionError !== '';
-    const baseClasses = classList(['wp-block-query', className]);
+    // F-3 — layout pair, per-instance scope and modifiers, as in `query.blade.php`.
+    const baseClasses = classList([
+        'wp-block-query',
+        ...layoutWrapperClasses(attributes, 'query', layoutClass(attributes)),
+        className,
+    ]);
 
     const wrapperProps: WrapperProps = {
         children: hasError ? null : children,
         className: baseClasses,
     };
+    const gapStyle = applyBlockGap(attributes);
+
+    if (Object.keys(gapStyle).length > 0) {
+        wrapperProps.style = gapStyle as React.CSSProperties;
+    }
 
     if (hasError && isDevelopment()) {
         wrapperProps['data-ve-resolution-error'] = resolutionError;

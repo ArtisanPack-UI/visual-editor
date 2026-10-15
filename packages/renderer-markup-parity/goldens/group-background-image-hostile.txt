@@ -13,7 +13,7 @@
     "C"
   </p>
 </div>
-<blockquote class="wp-block-quote">
+<blockquote class="wp-block-quote is-layout-flow wp-block-quote-is-layout-flow">
   <p class="wp-block-paragraph">
     "D"
   </p>

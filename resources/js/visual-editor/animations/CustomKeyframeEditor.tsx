@@ -17,6 +17,7 @@
 
 import { Button, TextControl } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../vendor/i18n';
 
 import type { CustomKeyframe, CustomKeyframeStop } from './types';
 
@@ -109,19 +110,19 @@ export function CustomKeyframeEditor( {
 
 	function nameError( name: string, index: number ): string | null {
 		if ( '' === name ) {
-			return __( 'Required.', 'visual-editor' );
+			return __( 'Required.', TEXT_DOMAIN );
 		}
 		if ( ! NAME_PATTERN.test( name ) ) {
-			return __( 'Use letters, numbers, hyphens, or underscores.', 'visual-editor' );
+			return __( 'Use letters, numbers, hyphens, or underscores.', TEXT_DOMAIN );
 		}
 		if ( reserved.has( name.toLowerCase() ) ) {
-			return __( 'This name is reserved by a built-in.', 'visual-editor' );
+			return __( 'This name is reserved by a built-in.', TEXT_DOMAIN );
 		}
 		const duplicate = value.findIndex(
 			( kf, i ) => i !== index && kf.name.toLowerCase() === name.toLowerCase()
 		);
 		if ( -1 !== duplicate ) {
-			return __( 'Already used by another keyframe.', 'visual-editor' );
+			return __( 'Already used by another keyframe.', TEXT_DOMAIN );
 		}
 		return null;
 	}
@@ -129,10 +130,10 @@ export function CustomKeyframeEditor( {
 	function stopAtError( at: string ): string | null {
 		const trimmed = at.trim();
 		if ( '' === trimmed ) {
-			return __( 'Required.', 'visual-editor' );
+			return __( 'Required.', TEXT_DOMAIN );
 		}
 		if ( ! STOP_AT_PATTERN.test( trimmed ) ) {
-			return __( 'Use a percentage from 0 to 100 (e.g. 50 or 50%).', 'visual-editor' );
+			return __( 'Use a percentage from 0 to 100 (e.g. 50 or 50%).', TEXT_DOMAIN );
 		}
 		return null;
 	}
@@ -142,7 +143,7 @@ export function CustomKeyframeEditor( {
 			<p>
 				{ __(
 					'Author named @keyframes blocks. They become available in the entrance and continuous dropdowns.',
-					'visual-editor'
+					TEXT_DOMAIN
 				) }
 			</p>
 
@@ -151,7 +152,7 @@ export function CustomKeyframeEditor( {
 				return (
 					<div key={ index } className="ap-custom-keyframes__row">
 						<TextControl
-							label={ __( 'Name', 'visual-editor' ) }
+							label={ __( 'Name', TEXT_DOMAIN ) }
 							value={ keyframe.name }
 							onChange={ ( next: string ) => setName( index, next ) }
 							help={ error ?? undefined }
@@ -160,11 +161,11 @@ export function CustomKeyframeEditor( {
 						{ keyframe.stops.map( ( stop, stopIndex ) => (
 							<fieldset key={ stopIndex } className="ap-custom-keyframes__stop">
 								<legend>
-									{ __( 'Stop', 'visual-editor' ) } { stopIndex + 1 }
+									{ __( 'Stop', TEXT_DOMAIN ) } { stopIndex + 1 }
 								</legend>
 
 								<TextControl
-									label={ __( 'At', 'visual-editor' ) }
+									label={ __( 'At', TEXT_DOMAIN ) }
 									value={ stop.at }
 									onChange={ ( next: string ) => setStop( index, stopIndex, { at: next } ) }
 									help={ stopAtError( stop.at ) ?? undefined }
@@ -187,24 +188,24 @@ export function CustomKeyframeEditor( {
 									onClick={ () => removeStop( index, stopIndex ) }
 									disabled={ keyframe.stops.length <= 2 }
 								>
-									{ __( 'Remove stop', 'visual-editor' ) }
+									{ __( 'Remove stop', TEXT_DOMAIN ) }
 								</Button>
 							</fieldset>
 						) ) }
 
 						<Button variant="secondary" onClick={ () => addStop( index ) }>
-							{ __( '+ Add stop', 'visual-editor' ) }
+							{ __( '+ Add stop', TEXT_DOMAIN ) }
 						</Button>
 
 						<Button variant="tertiary" isDestructive onClick={ () => removeKeyframe( index ) }>
-							{ __( 'Delete keyframe', 'visual-editor' ) }
+							{ __( 'Delete keyframe', TEXT_DOMAIN ) }
 						</Button>
 					</div>
 				);
 			} ) }
 
 			<Button variant="primary" onClick={ addKeyframe }>
-				{ __( '+ Add custom keyframe', 'visual-editor' ) }
+				{ __( '+ Add custom keyframe', TEXT_DOMAIN ) }
 			</Button>
 		</div>
 	);

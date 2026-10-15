@@ -1,4 +1,4 @@
-<nav class="wp-block-navigation is-horizontal is-responsive">
+<nav class="wp-block-navigation is-layout-flex wp-block-navigation-is-layout-flex is-horizontal is-responsive">
   <button aria-expanded="false" aria-haspopup="dialog" aria-label="Menu" class="wp-block-navigation__responsive-container-open always-shown" type="button">
     <svg aria-hidden="true" focusable="false" height="24" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
       <rect height="1.5" width="16" x="4" y="7.5">

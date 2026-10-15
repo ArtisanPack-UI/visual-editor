@@ -37,6 +37,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditor\Services\Bindings;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Enumerable;
 
 final class BindingAttributeAllowlist
 {
@@ -112,7 +113,44 @@ final class BindingAttributeAllowlist
 	}
 
 	/**
+	 * True when `$value` is a model, or a list that holds one at any
+	 * depth: an array or any `Enumerable` (Eloquent and support
+	 * collections, lazy collections). With the allowlist enforced, a
+	 * binding source returns nothing for such a value, since publishing
+	 * it would serialize every attribute of the record and bypass the
+	 * per-attribute check.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  mixed  $value  A resolved binding value.
+	 */
+	public static function containsModel( mixed $value ): bool
+	{
+		if ( $value instanceof Model ) {
+			return true;
+		}
+
+		if ( $value instanceof Enumerable ) {
+			$value = $value->all();
+		}
+
+		if ( ! is_array( $value ) ) {
+			return false;
+		}
+
+		foreach ( $value as $item ) {
+			if ( self::containsModel( $item ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
 	 * Keep only non-empty string entries, de-duplicated.
+	 *
+	 * @since 1.15.0
 	 *
 	 * @param  array<mixed>  $list
 	 *

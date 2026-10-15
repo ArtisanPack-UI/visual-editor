@@ -73,7 +73,7 @@ class RelationSource implements BlockBindingSource
 		// related record (or a list of them) would publish every
 		// attribute that record serializes, bypassing the per-attribute
 		// check. Only scalar leaves are allowed.
-		if ( BindingAttributeAllowlist::isEnforced() && $this->containsModel( $current ) ) {
+		if ( BindingAttributeAllowlist::isEnforced() && BindingAttributeAllowlist::containsModel( $current ) ) {
 			return null;
 		}
 
@@ -194,33 +194,5 @@ class RelationSource implements BlockBindingSource
 		}
 
 		return null;
-	}
-
-	/**
-	 * True when `$value` is a model, or a list that holds one at any depth.
-	 *
-	 * @since 1.15.0
-	 */
-	protected function containsModel( mixed $value ): bool
-	{
-		if ( $value instanceof Model ) {
-			return true;
-		}
-
-		if ( $value instanceof Collection ) {
-			$value = $value->all();
-		}
-
-		if ( ! is_array( $value ) ) {
-			return false;
-		}
-
-		foreach ( $value as $item ) {
-			if ( $this->containsModel( $item ) ) {
-				return true;
-			}
-		}
-
-		return false;
 	}
 }

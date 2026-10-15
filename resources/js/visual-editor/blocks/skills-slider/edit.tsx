@@ -106,20 +106,20 @@ export default function SkillsSliderEdit({
                     />
                 </PanelBody>
                 <PanelColorSettings
-                    title={__('Colour', TEXT_DOMAIN)}
+                    title={__('Color', TEXT_DOMAIN)}
                     initialOpen={false}
                     colorSettings={[
                         {
                             value: barColor,
                             onChange: (value: string | undefined) =>
                                 setAttributes({ barColor: value ?? '' }),
-                            label: __('Bar colour', TEXT_DOMAIN),
+                            label: __('Bar color', TEXT_DOMAIN),
                         },
                         {
                             value: trackColor,
                             onChange: (value: string | undefined) =>
                                 setAttributes({ trackColor: value ?? '' }),
-                            label: __('Track colour', TEXT_DOMAIN),
+                            label: __('Track color', TEXT_DOMAIN),
                         },
                     ]}
                 />

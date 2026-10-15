@@ -9,6 +9,7 @@
 
 import type { ReactElement } from 'react';
 import { __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 
 const COLUMN_BLOCK = 'artisanpack/column';
 
@@ -28,8 +29,8 @@ function svg(path: string): ReactElement {
 const variations = [
     {
         name: 'one-column-full',
-        title: __('100'),
-        description: __('One column'),
+        title: __('100', TEXT_DOMAIN),
+        description: __('One column', TEXT_DOMAIN),
         icon: svg(
             'M0 10a2 2 0 0 1 2-2h44a2 2 0 0 1 2 2v28a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V10Z'
         ),
@@ -38,8 +39,8 @@ const variations = [
     },
     {
         name: 'two-columns-equal',
-        title: __('50 / 50'),
-        description: __('Two columns; equal split'),
+        title: __('50 / 50', TEXT_DOMAIN),
+        description: __('Two columns; equal split', TEXT_DOMAIN),
         icon: svg(
             'M0 10a2 2 0 0 1 2-2h19a2 2 0 0 1 2 2v28a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V10Zm25 0a2 2 0 0 1 2-2h19a2 2 0 0 1 2 2v28a2 2 0 0 1-2 2H27a2 2 0 0 1-2-2V10Z'
         ),
@@ -49,8 +50,8 @@ const variations = [
     },
     {
         name: 'two-columns-one-third-two-thirds',
-        title: __('33 / 66'),
-        description: __('Two columns; one-third, two-thirds split'),
+        title: __('33 / 66', TEXT_DOMAIN),
+        description: __('Two columns; one-third, two-thirds split', TEXT_DOMAIN),
         icon: svg(
             'M0 10a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v28a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V10Zm17 0a2 2 0 0 1 2-2h27a2 2 0 0 1 2 2v28a2 2 0 0 1-2 2H19a2 2 0 0 1-2-2V10Z'
         ),
@@ -62,8 +63,8 @@ const variations = [
     },
     {
         name: 'two-columns-two-thirds-one-third',
-        title: __('66 / 33'),
-        description: __('Two columns; two-thirds, one-third split'),
+        title: __('66 / 33', TEXT_DOMAIN),
+        description: __('Two columns; two-thirds, one-third split', TEXT_DOMAIN),
         icon: svg(
             'M0 10a2 2 0 0 1 2-2h27a2 2 0 0 1 2 2v28a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V10Zm33 0a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v28a2 2 0 0 1-2 2H35a2 2 0 0 1-2-2V10Z'
         ),
@@ -75,8 +76,8 @@ const variations = [
     },
     {
         name: 'three-columns-equal',
-        title: __('33 / 33 / 33'),
-        description: __('Three columns; equal split'),
+        title: __('33 / 33 / 33', TEXT_DOMAIN),
+        description: __('Three columns; equal split', TEXT_DOMAIN),
         icon: svg(
             'M0 10a2 2 0 0 1 2-2h10.531c1.105 0 1.969.895 1.969 2v28c0 1.105-.864 2-1.969 2H2a2 2 0 0 1-2-2V10Zm16.5 0c0-1.105.864-2 1.969-2H29.53c1.105 0 1.969.895 1.969 2v28c0 1.105-.864 2-1.969 2H18.47c-1.105 0-1.969-.895-1.969-2V10Zm17 0c0-1.105.864-2 1.969-2H46a2 2 0 0 1 2 2v28a2 2 0 0 1-2 2H35.469c-1.105 0-1.969-.895-1.969-2V10Z'
         ),
@@ -85,8 +86,8 @@ const variations = [
     },
     {
         name: 'three-columns-wider-center',
-        title: __('25 / 50 / 25'),
-        description: __('Three columns; wide center column'),
+        title: __('25 / 50 / 25', TEXT_DOMAIN),
+        description: __('Three columns; wide center column', TEXT_DOMAIN),
         icon: svg(
             'M0 10a2 2 0 0 1 2-2h7.531c1.105 0 1.969.895 1.969 2v28c0 1.105-.864 2-1.969 2H2a2 2 0 0 1-2-2V10Zm13.5 0c0-1.105.864-2 1.969-2H32.53c1.105 0 1.969.895 1.969 2v28c0 1.105-.864 2-1.969 2H15.47c-1.105 0-1.969-.895-1.969-2V10Zm23 0c0-1.105.864-2 1.969-2H46a2 2 0 0 1 2 2v28a2 2 0 0 1-2 2h-7.531c-1.105 0-1.969-.895-1.969-2V10Z'
         ),

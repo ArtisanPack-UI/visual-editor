@@ -7,9 +7,11 @@
  */
 
 import { defineComponent, h } from 'vue';
-import { attrBoolean, attrInt, attrRecord, attrString, classList, phpTrim } from '../../support/attributes';
+import { attrBoolean, attrInt, attrRecord, attrString, classList, layoutClass, phpTrim } from '../../support/attributes';
 import { applyBackground } from '../../support/background';
+import { applyBlockGap } from '../../support/blockGap';
 import { applyDimensions, hasDimensionStyle } from '../../support/dimensions';
+import { layoutWrapperClasses } from '../../support/layoutContainer';
 import { resolveAnchor } from '../../support/headingAnchors';
 import { presetClasses } from '../../support/presetClasses';
 import { blockRendererProps } from '../shared';
@@ -145,7 +147,13 @@ export const QuoteBlock = defineComponent({
         return () => {
             const className = attrString(props.attributes.className);
             const citation = attrString(props.attributes.citation);
-            const classes = classList(['wp-block-quote', className]);
+            // F-3 — layout pair, per-instance scope and modifiers, as in
+            // `quote.blade.php`.
+            const classes = classList([
+                'wp-block-quote',
+                ...layoutWrapperClasses(props.attributes, 'quote', layoutClass(props.attributes)),
+                className,
+            ]);
             const children = slots.default ? slots.default() : [];
             const nodes = [...children];
 
@@ -153,10 +161,16 @@ export const QuoteBlock = defineComponent({
                 nodes.push(h('cite', { innerHTML: citation }));
             }
 
-            const wrapperStyle = backgroundAndDimensions(props.attributes);
+            // `BlockSupports::compile()` order: background image (F-4),
+            // then Block spacing, then dimensions.
+            const wrapperStyle = {
+                ...applyBackground(props.attributes),
+                ...applyBlockGap(props.attributes),
+                ...applyDimensions(props.attributes),
+            };
             const nodeProps: Record<string, unknown> = { class: classes };
 
-            if (wrapperStyle !== undefined) {
+            if (Object.keys(wrapperStyle).length > 0) {
                 nodeProps.style = wrapperStyle;
             }
 
@@ -171,8 +185,10 @@ export const CodeBlock = defineComponent({
     setup(props) {
         return () => {
             const content = attrString(props.attributes.content);
+            // `className` carries the `ve-r-*` / `ve-fx-*` scopes too (M-7).
+            const classes = classList(['wp-block-code', attrString(props.attributes.className)]);
 
-            return h('pre', { class: 'wp-block-code' }, h('code', { innerHTML: content }));
+            return h('pre', { class: classes }, h('code', { innerHTML: content }));
         };
     },
 });
@@ -184,7 +200,9 @@ export const PreformattedBlock = defineComponent({
         return () => {
             const content = attrString(props.attributes.content);
 
-            return h('pre', { class: 'wp-block-preformatted', innerHTML: content });
+            const classes = classList(['wp-block-preformatted', attrString(props.attributes.className)]);
+
+            return h('pre', { class: classes, innerHTML: content });
         };
     },
 });
@@ -199,6 +217,7 @@ export const VerseBlock = defineComponent({
             const classes = classList([
                 'wp-block-verse',
                 textAlign !== '' ? `has-text-align-${textAlign}` : null,
+                attrString(props.attributes.className),
             ]);
 
             const wrapperStyle = backgroundAndDimensions(props.attributes);

@@ -104,7 +104,7 @@ it( 'renders a quote block with citation', function (): void {
 
 	$html = $this->normalizeHtml( makeRenderer()->render( $tree ) );
 
-	expect( $html )->toContain( '<blockquote class="wp-block-quote">' )
+	expect( $html )->toContain( '<blockquote class="wp-block-quote is-layout-flow wp-block-quote-is-layout-flow">' )
 		->toContain( '<p class="wp-block-paragraph">Quoted text</p>' )
 		->toContain( '<cite>Someone Famous</cite>' );
 } );

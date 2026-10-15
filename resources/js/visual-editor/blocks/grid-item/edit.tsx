@@ -24,7 +24,7 @@ import {
     serializeFlex,
     type ArtisanpackFlexAttribute,
 } from '../_shared/flex-controls';
-import { BreakpointRegistry } from '../../responsive/registry';
+import { getResponsiveRegistry } from '../../responsive/registry';
 
 type InnerLayout = 'normal' | 'equal' | 'center' | 'bottom' | 'last-bottom';
 
@@ -82,7 +82,10 @@ export default function GridItemEdit({
         : 'normal';
     const isMasonryParent = 'masonry' === context['artisanpack/gridLayoutMode'];
 
-    const flexRegistry = new BreakpointRegistry();
+    // The host's configured breakpoints (M-17), like Blade's FlexSupport.
+    // `save` keeps the package defaults so saved markup doesn't depend
+    // on host config.
+    const flexRegistry = getResponsiveRegistry();
     const flexResult = serializeFlex(
         attributes.artisanpackFlex ?? null,
         flexRegistry,

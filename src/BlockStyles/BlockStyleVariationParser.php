@@ -33,6 +33,13 @@ use JsonException;
 class BlockStyleVariationParser
 {
 	/**
+	 * Prefix of the per-directory cache key {@see self::fromDirectory()} uses.
+	 *
+	 * @since 1.15.0
+	 */
+	public const CACHE_PREFIX = 'artisanpack.visual-editor.block-styles.';
+
+	/**
 	 * Variations declared under `styles.blocks.*.variations`.
 	 *
 	 * @since 1.15.0
@@ -119,6 +126,10 @@ class BlockStyleVariationParser
 	 * or malformed files are skipped. The parsed result is cached until
 	 * a file is added, removed or its contents change.
 	 *
+	 * The cache holds one entry per directory, storing the partials'
+	 * signature next to the parsed variations, so editing a partial
+	 * replaces the entry instead of leaving the old one behind.
+	 *
 	 * @since 1.15.0
 	 *
 	 * @return list<array{block: string, slug: string, label: string, style: array<string, mixed>, isDefault: bool}>
@@ -129,7 +140,7 @@ class BlockStyleVariationParser
 			return [];
 		}
 
-		$files = glob( rtrim( $directory, '/' ) . '/*.json' );
+		$files = glob( self::escapeGlob( rtrim( $directory, '/' ) ) . '/*.json' );
 
 		if ( false === $files ) {
 			return [];
@@ -137,7 +148,11 @@ class BlockStyleVariationParser
 
 		sort( $files );
 
-		// Partials are re-parsed only when one changes: the cache key
+		if ( ! function_exists( 'app' ) || ! app()->bound( 'cache' ) ) {
+			return $this->parseFiles( $files );
+		}
+
+		// Partials are re-parsed only when one changes: the signature
 		// covers every file's path and a hash of its contents, so an edit
 		// inside the filesystem's mtime resolution still busts it.
 		$signature = [];
@@ -146,13 +161,33 @@ class BlockStyleVariationParser
 			$signature[ $file ] = is_readable( $file ) ? hash_file( 'xxh3', $file ) : false;
 		}
 
-		$key = 'artisanpack.visual-editor.block-styles.' . hash( 'xxh3', $directory . '|' . serialize( $signature ) );
+		$signature = hash( 'xxh3', serialize( $signature ) );
+		$key       = self::CACHE_PREFIX . hash( 'xxh3', $directory );
+		$cache     = app( 'cache' );
+		$cached    = $cache->get( $key );
 
-		if ( function_exists( 'app' ) && app()->bound( 'cache' ) ) {
-			return app( 'cache' )->rememberForever( $key, fn (): array => $this->parseFiles( $files ) );
+		if ( is_array( $cached ) && ( $cached['signature'] ?? null ) === $signature && is_array( $cached['entries'] ?? null ) ) {
+			return $cached['entries'];
 		}
 
-		return $this->parseFiles( $files );
+		$entries = $this->parseFiles( $files );
+
+		$cache->forever( $key, [ 'signature' => $signature, 'entries' => $entries ] );
+
+		return $entries;
+	}
+
+	/**
+	 * Escape the `glob()` wildcards (`*`, `?`, `[`) in a literal path, so
+	 * a directory whose name contains them is matched as written. Each is
+	 * wrapped in a one-character class (`[*]`) rather than backslashed,
+	 * which `glob()` doesn't honour on Windows.
+	 *
+	 * @since 1.15.0
+	 */
+	public static function escapeGlob( string $path ): string
+	{
+		return strtr( $path, [ '[' => '[[]', '*' => '[*]', '?' => '[?]' ] );
 	}
 
 	/**
@@ -211,6 +246,8 @@ class BlockStyleVariationParser
 	/**
 	 * Variations from a list of partial files.
 	 *
+	 * @since 1.15.0
+	 *
 	 * @param  list<string>  $files
 	 *
 	 * @return list<array{block: string, slug: string, label: string, style: array<string, mixed>, isDefault: bool}>
@@ -241,6 +278,10 @@ class BlockStyleVariationParser
 	}
 
 	/**
+	 * One normalised variation entry.
+	 *
+	 * @since 1.15.0
+	 *
 	 * @param  array<string, mixed>  $style
 	 *
 	 * @return array{block: string, slug: string, label: string, style: array<string, mixed>, isDefault: bool}

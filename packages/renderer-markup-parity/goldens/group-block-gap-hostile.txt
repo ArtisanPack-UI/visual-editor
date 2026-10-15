@@ -1,0 +1,17 @@
+<div class="wp-block-group is-layout-flex wp-block-group-is-layout-flex">
+  <p class="wp-block-paragraph">
+    "A"
+  </p>
+</div>
+<div class="wp-block-group is-layout-flow wp-block-group-is-layout-flow" style="column-gap: var(--wp--preset--spacing--40)">
+  <p class="wp-block-paragraph">
+    "A"
+  </p>
+</div>
+<div class="wp-block-group is-layout-grid wp-block-group-is-layout-grid wp-container-4f8338a0eb92">
+  <p class="wp-block-paragraph">
+    "A"
+  </p>
+</div>
+@@ renderer-instance-css @@
+.wp-block-group.wp-block-group-is-layout-grid.wp-container-4f8338a0eb92{grid-template-columns:repeat(auto-fill, minmax(min(12rem, 100%), 1fr));container-type:inline-size;}

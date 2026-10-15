@@ -38,6 +38,7 @@ import {
     useBlockEditingMode,
 } from '@wordpress/block-editor';
 import { __, _x } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { useDispatch } from '@wordpress/data';
 import { audio as icon } from '@wordpress/icons';
 import { store as noticesStore } from '@wordpress/notices';
@@ -71,7 +72,7 @@ interface AudioEditProps {
 
 function getAutoplayHelp(checked: boolean): string | null {
     return checked
-        ? __('Autoplay may cause usability issues for some users.')
+        ? __('Autoplay may cause usability issues for some users.', TEXT_DOMAIN)
         : null;
 }
 
@@ -162,7 +163,7 @@ export default function AudioEdit({
             )}
             <InspectorControls>
                 <ToolsPanel
-                    label={__('Settings')}
+                    label={__('Settings', TEXT_DOMAIN)}
                     resetAll={() => {
                         setAttributes({
                             autoplay: false,
@@ -172,39 +173,39 @@ export default function AudioEdit({
                     }}
                 >
                     <ToolsPanelItem
-                        label={__('Autoplay')}
+                        label={__('Autoplay', TEXT_DOMAIN)}
                         isShownByDefault
                         hasValue={() => !!autoplay}
                         onDeselect={() => setAttributes({ autoplay: false })}
                     >
                         <ToggleControl
-                            label={__('Autoplay')}
+                            label={__('Autoplay', TEXT_DOMAIN)}
                             onChange={toggleAttribute('autoplay')}
                             checked={!!autoplay}
                             help={getAutoplayHelp}
                         />
                     </ToolsPanelItem>
                     <ToolsPanelItem
-                        label={__('Loop')}
+                        label={__('Loop', TEXT_DOMAIN)}
                         isShownByDefault
                         hasValue={() => !!loop}
                         onDeselect={() => setAttributes({ loop: false })}
                     >
                         <ToggleControl
-                            label={__('Loop')}
+                            label={__('Loop', TEXT_DOMAIN)}
                             onChange={toggleAttribute('loop')}
                             checked={!!loop}
                         />
                     </ToolsPanelItem>
                     <ToolsPanelItem
-                        label={__('Preload')}
+                        label={__('Preload', TEXT_DOMAIN)}
                         isShownByDefault
                         hasValue={() => !!preload}
                         onDeselect={() => setAttributes({ preload: undefined })}
                     >
                         <SelectControl
                             __next40pxDefaultSize
-                            label={_x('Preload', 'noun; Audio block parameter')}
+                            label={_x('Preload', 'noun; Audio block parameter', TEXT_DOMAIN)}
                             value={preload || ''}
                             onChange={(value: string) =>
                                 setAttributes({
@@ -212,12 +213,12 @@ export default function AudioEdit({
                                 })
                             }
                             options={[
-                                { value: '', label: __('Browser default') },
-                                { value: 'auto', label: __('Auto') },
-                                { value: 'metadata', label: __('Metadata') },
+                                { value: '', label: __('Browser default', TEXT_DOMAIN) },
+                                { value: 'auto', label: __('Auto', TEXT_DOMAIN) },
+                                { value: 'metadata', label: __('Metadata', TEXT_DOMAIN) },
                                 {
                                     value: 'none',
-                                    label: _x('None', 'Preload value'),
+                                    label: _x('None', 'Preload value', TEXT_DOMAIN),
                                 },
                             ]}
                         />
@@ -233,8 +234,8 @@ export default function AudioEdit({
                     <RichText
                         identifier="caption"
                         tagName="figcaption"
-                        aria-label={__('Audio caption text')}
-                        placeholder={__('Add caption')}
+                        aria-label={__('Audio caption text', TEXT_DOMAIN)}
+                        placeholder={__('Add caption', TEXT_DOMAIN)}
                         value={caption ?? ''}
                         onChange={(value: string) =>
                             setAttributes({ caption: value })

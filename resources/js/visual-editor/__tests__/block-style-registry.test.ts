@@ -18,6 +18,7 @@ import {
     parseBlockStyles,
     refreshThemeBlockStyles,
     registerThemeBlockStyles,
+    setThemeBlockStyles,
 } from '../block-style-registry';
 
 describe('block style registry (#876)', () => {
@@ -52,6 +53,23 @@ describe('block style registry (#876)', () => {
         expect(parseBlockStyles('')).toEqual([]);
         expect(parseBlockStyles('{nope')).toEqual([]);
         expect(parseBlockStyles('{"a":1}')).toEqual([]);
+    });
+
+    it('uses a host-supplied list over the mount attribute, dropping malformed entries (R-17)', () => {
+        document.body.innerHTML = `<div data-ap-visual-editor data-block-styles='[{"name":"core/quote","slug":"neon","label":"Neon"}]'></div>`;
+
+        setThemeBlockStyles([
+            { name: 'core/group', slug: 'card', label: 'Card', isDefault: true },
+            { name: 'group', slug: 'x', label: 'X' },
+        ]);
+
+        expect(getThemeBlockStyles()).toEqual([
+            { name: 'core/group', slug: 'card', label: 'Card', isDefault: true },
+        ]);
+
+        setThemeBlockStyles('nope');
+
+        expect(getThemeBlockStyles()).toEqual([]);
     });
 
     it('maps core and artisanpack names to each other', () => {

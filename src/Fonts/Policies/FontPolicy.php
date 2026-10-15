@@ -37,6 +37,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Fonts\Policies;
 
+use ArtisanPackUI\VisualEditor\Support\CapabilityCheck;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Illuminate\Contracts\Auth\Authenticatable;
 
@@ -89,24 +90,21 @@ class FontPolicy
 	 * Resolve the capability against whichever RBAC contract the host user
 	 * model exposes.
 	 *
-	 * The candidate methods are probed in priority order — the WordPress-style
-	 * `hasCapability()` first, then the rbac `hasPermissionTo()` and its
+	 * The candidate methods are probed in priority order — Spatie's
+	 * non-throwing `checkPermissionTo()`, the WordPress-style
+	 * `hasCapability()`, then the rbac `hasPermissionTo()` and its
 	 * `hasPermission()` alias, which is what cms-framework's users actually
-	 * expose. Each candidate is guarded with `method_exists()` first, and the
-	 * first one the model defines decides the outcome, so a host model that
-	 * composes none of them degrades to a plain denial instead of fataling with
-	 * "Call to undefined method".
+	 * expose (see {@see CapabilityCheck}). Each candidate is guarded with
+	 * `method_exists()` first, and the first one the model defines decides
+	 * the outcome, so a host model that composes none of them degrades to a
+	 * plain denial instead of fataling with "Call to undefined method". A
+	 * permission backend that throws is reported and denies.
 	 *
 	 * @since 1.7.0
+	 * @since 1.15.0 Prefers `checkPermissionTo()` and denies when the permission backend throws.
 	 */
 	protected function userHasCapability( Authenticatable $user, string $capability ): bool
 	{
-		foreach ( [ 'hasCapability', 'hasPermissionTo', 'hasPermission' ] as $method ) {
-			if ( method_exists( $user, $method ) ) {
-				return (bool) $user->{$method}( $capability );
-			}
-		}
-
-		return false;
+		return true === CapabilityCheck::check( $user, $capability );
 	}
 }

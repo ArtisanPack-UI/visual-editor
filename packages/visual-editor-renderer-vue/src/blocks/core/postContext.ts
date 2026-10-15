@@ -14,9 +14,10 @@ import {
     attrInt,
     attrString,
     classList,
-    layoutWrapperForBlock,
+    layoutClass,
 } from '../../support/attributes';
 import { applyBackground } from '../../support/background';
+import { layoutWrapperClasses } from '../../support/layoutContainer';
 import { applyDimensions, hasDimensionStyle } from '../../support/dimensions';
 import { safeUrl } from '../../support/urlSanitizer';
 import { blockRendererProps } from '../shared';
@@ -96,9 +97,9 @@ export const PostContentBlock = defineComponent({
             const classes = classList([
                 'entry-content',
                 'wp-block-post-content',
-                ...layoutWrapperForBlock(props.attributes, 'post-content'),
-                // Per-instance layout scope stamped by `stampLayoutScopes()` (#871).
-                attrString(props.attributes._veLayoutScope) || null,
+                // Per-instance layout scope stamped by `stampLayoutScopes()`
+                // (#871), then the layout modifier classes (F-3).
+                ...layoutWrapperClasses(props.attributes, 'post-content', layoutClass(props.attributes)),
                 align !== '' ? `has-text-align-${align}` : null,
                 className,
             ]);

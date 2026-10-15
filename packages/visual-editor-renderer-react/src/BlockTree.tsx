@@ -107,6 +107,15 @@ export interface BlockTreeProps {
      */
     queryResults?: ResolvedQuery[];
     /**
+     * Whether a block's Custom CSS may load resources (`url(`,
+     * `image-set(`, `image(`, `src(`). Pass the host's config
+     * `effects.custom_css_allow_urls` so the page matches Blade; Custom
+     * CSS that loads one is dropped when `false`. Defaults to `true`.
+     *
+     * @since 1.15.0
+     */
+    customCssAllowUrls?: boolean;
+    /**
      * The theme's duotone presets (`settings.color.duotone`, flat or
      * origin-keyed), so `var:preset|duotone|…` picks resolve the way the
      * Blade renderer resolves them against the active theme. Custom stop
@@ -129,6 +138,7 @@ export function BlockTree({
     globalStylesCss,
     siteMeta,
     queryResults,
+    customCssAllowUrls = true,
     duotonePresets,
 }: BlockTreeProps): ReactElement {
     const blocks = useMemo(() => {
@@ -257,8 +267,8 @@ export function BlockTree({
     // scope to each block's `className` and emit the rules Blade pushes
     // from `BlockSupports::compile()`.
     const { tree: effectsTree, css: effectsCss } = useMemo(() => {
-        return stampEffectsScopes(responsiveTree);
-    }, [responsiveTree]);
+        return stampEffectsScopes(responsiveTree, { allowCustomCssUrls: customCssAllowUrls });
+    }, [responsiveTree, customCssAllowUrls]);
 
     // Duotone (#873, F-4) — stamp the `wp-duotone-*` scope on image,
     // featured image, cover, avatar, site logo and post author blocks
