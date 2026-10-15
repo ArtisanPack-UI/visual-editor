@@ -170,8 +170,10 @@ export const CodeBlock = defineComponent({
     setup(props) {
         return () => {
             const content = attrString(props.attributes.content);
+            // `className` carries the `ve-r-*` / `ve-fx-*` scopes too (M-7).
+            const classes = classList(['wp-block-code', attrString(props.attributes.className)]);
 
-            return h('pre', { class: 'wp-block-code' }, h('code', { innerHTML: content }));
+            return h('pre', { class: classes }, h('code', { innerHTML: content }));
         };
     },
 });
@@ -183,7 +185,9 @@ export const PreformattedBlock = defineComponent({
         return () => {
             const content = attrString(props.attributes.content);
 
-            return h('pre', { class: 'wp-block-preformatted', innerHTML: content });
+            const classes = classList(['wp-block-preformatted', attrString(props.attributes.className)]);
+
+            return h('pre', { class: classes, innerHTML: content });
         };
     },
 });
@@ -198,6 +202,7 @@ export const VerseBlock = defineComponent({
             const classes = classList([
                 'wp-block-verse',
                 textAlign !== '' ? `has-text-align-${textAlign}` : null,
+                attrString(props.attributes.className),
             ]);
 
             const dimensionStyle = applyDimensions(props.attributes);

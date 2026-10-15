@@ -137,9 +137,11 @@ export function QuoteBlock({ attributes, children }: BlockRendererProps): JSX.El
 
 export function CodeBlock({ attributes }: BlockRendererProps): JSX.Element {
     const content = attrString(attributes.content);
+    // `className` carries the `ve-r-*` / `ve-fx-*` scopes too (M-7).
+    const classes = classList(['wp-block-code', attrString(attributes.className)]);
 
     return (
-        <pre className="wp-block-code">
+        <pre className={classes}>
             <code dangerouslySetInnerHTML={{ __html: content }} />
         </pre>
     );
@@ -148,9 +150,9 @@ export function CodeBlock({ attributes }: BlockRendererProps): JSX.Element {
 export function PreformattedBlock({ attributes }: BlockRendererProps): JSX.Element {
     const content = attrString(attributes.content);
 
-    return (
-        <pre className="wp-block-preformatted" dangerouslySetInnerHTML={{ __html: content }} />
-    );
+    const classes = classList(['wp-block-preformatted', attrString(attributes.className)]);
+
+    return <pre className={classes} dangerouslySetInnerHTML={{ __html: content }} />;
 }
 
 export function VerseBlock({ attributes }: BlockRendererProps): JSX.Element {
@@ -159,6 +161,7 @@ export function VerseBlock({ attributes }: BlockRendererProps): JSX.Element {
     const classes = classList([
         'wp-block-verse',
         textAlign !== '' ? `has-text-align-${textAlign}` : null,
+        attrString(attributes.className),
     ]);
     const dimensionStyle = applyDimensions(attributes);
     const style = hasDimensionStyle(dimensionStyle) ? dimensionStyle : undefined;

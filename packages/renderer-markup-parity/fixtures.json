@@ -1886,6 +1886,47 @@
             ]
         },
         {
+            "name": "block-supports-classname-coverage",
+            "$comment": "M-7 — code, preformatted, verse, embed, accordion title/body (inside an accordion and standalone) print their author `className`, and with it the `ve-r-<hash>` responsive and `ve-fx-<hash>` effects scopes, on the element Blade puts `wrapperAttrs()` on, so the emitted rules actually apply.",
+            "tree": [
+                { "clientId": "cn-code", "name": "core/code", "attributes": { "content": "const a = 1;", "className": "mine", "artisanpackEffects": { "opacity": 50 }, "responsive": { "style.spacing.padding": { "mobile": "1rem" } } }, "innerBlocks": [] },
+                { "clientId": "cn-pre", "name": "core/preformatted", "attributes": { "content": "pre text", "className": "mine", "artisanpackEffects": { "opacity": 60 }, "responsive": { "style.spacing.padding": { "tablet": "2rem" } } }, "innerBlocks": [] },
+                { "clientId": "cn-verse", "name": "core/verse", "attributes": { "content": "verse text", "textAlign": "center", "className": "mine", "artisanpackEffects": { "opacity": 70 }, "responsive": { "style.spacing.margin": { "mobile": "1rem" } } }, "innerBlocks": [] },
+                { "clientId": "cn-embed", "name": "core/embed", "attributes": { "url": "https://www.youtube.com/watch?v=x", "providerNameSlug": "YouTube", "type": "video", "aspectRatio": "16/9", "className": "mine", "artisanpackEffects": { "opacity": 80 }, "responsive": { "style.spacing.padding": { "mobile": "1rem" } } }, "innerBlocks": [] },
+                {
+                    "clientId": "cn-accordion",
+                    "name": "artisanpack/accordion",
+                    "attributes": { "panelId": "panel-1", "className": "acc" },
+                    "innerBlocks": [
+                        {
+                            "clientId": "cn-acc-title",
+                            "name": "artisanpack/accordion-title",
+                            "attributes": { "className": "acc-title", "artisanpackEffects": { "opacity": 90 }, "responsive": { "style.spacing.padding": { "mobile": "3px" } } },
+                            "innerBlocks": [ { "clientId": "cn-acc-title-p", "name": "core/paragraph", "attributes": { "content": "Question" }, "innerBlocks": [] } ]
+                        },
+                        {
+                            "clientId": "cn-acc-body",
+                            "name": "artisanpack/accordion-body",
+                            "attributes": { "className": "acc-body", "anchor": "ignored", "artisanpackEffects": { "opacity": 40 }, "responsive": { "style.spacing.padding": { "tablet": "4px" } } },
+                            "innerBlocks": [ { "clientId": "cn-acc-body-p", "name": "core/paragraph", "attributes": { "content": "Answer" }, "innerBlocks": [] } ]
+                        }
+                    ]
+                },
+                {
+                    "clientId": "cn-title-solo",
+                    "name": "artisanpack/accordion-title",
+                    "attributes": { "className": "solo-title", "artisanpackEffects": { "opacity": 30 }, "responsive": { "style.spacing.padding": { "mobile": "5px" } } },
+                    "innerBlocks": [ { "clientId": "cn-title-solo-p", "name": "core/paragraph", "attributes": { "content": "Solo title" }, "innerBlocks": [] } ]
+                },
+                {
+                    "clientId": "cn-body-solo",
+                    "name": "artisanpack/accordion-body",
+                    "attributes": { "className": "solo-body", "artisanpackEffects": { "opacity": 20 }, "responsive": { "style.spacing.padding": { "mobile": "6px" } } },
+                    "innerBlocks": [ { "clientId": "cn-body-solo-p", "name": "core/paragraph", "attributes": { "content": "Solo body" }, "innerBlocks": [] } ]
+                }
+            ]
+        },
+        {
             "name": "heading",
             "$comment": "#888 — heading preset colour and font-size classes and the anchor id match across renderers. Auto anchors are unique across the tree (an author anchor claims its slug first-come), accents and entities fold out of the slug, and a hostile author anchor is reduced to `[A-Za-z0-9_:.-]` — and it is that rendered id a later auto anchor (`Badidxyz` → `badidxyz-1`) must avoid. Named HTML 4 entities decode before slugging.",
             "tree": [
