@@ -134,3 +134,52 @@ it( 'drops non-scalar overrides instead of casting them to garbage strings', fun
 
 	expect( $css )->toBe( '' );
 } );
+
+it( 'appends a reduced-motion guard that stops transitions and hover transforms', function (): void {
+	$emitter = makeEmitter();
+
+	$css = $emitter->emit( '.s', [
+		'transform' => [ 'hover' => 'scale(1.05)' ],
+	] );
+
+	expect( $css )->toBe(
+		'.s { transition: all 150ms ease; } '
+		. '@media (hover: hover) { .s:hover { transform: scale(1.05) !important; } } '
+		. '@media (prefers-reduced-motion: reduce) { .s { transition: none !important; } '
+		. '.s:hover { transform: none !important; } }',
+	);
+} );
+
+it( 'holds a state transform at the authored idle transform for reduced motion', function (): void {
+	$emitter = makeEmitter();
+
+	$css = $emitter->emit( '.s', [
+		'transform' => [ 'idle' => 'rotate(2deg)', 'focus' => 'rotate(2deg) scale(1.1)' ],
+	] );
+
+	expect( $css )->toEndWith(
+		'@media (prefers-reduced-motion: reduce) { .s { transition: none !important; } '
+		. '.s:focus { transform: rotate(2deg) !important; } }',
+	);
+} );
+
+it( 'turns off a transition authored on a non-idle state for reduced motion', function (): void {
+	$emitter = makeEmitter();
+
+	$css = $emitter->emit( '.s', [
+		'background-color' => [ 'idle' => 'red', 'hover' => 'blue' ],
+		'transition'       => [ 'idle' => 'color 1s', 'hover' => 'background-color 2s' ],
+	] );
+
+	expect( $css )->toEndWith(
+		'@media (prefers-reduced-motion: reduce) { .s { transition: none !important; } '
+		. '.s:hover { transition: none !important; } }',
+	);
+} );
+
+it( 'emits no reduced-motion guard when nothing can animate or move', function (): void {
+	$emitter = makeEmitter();
+
+	expect( $emitter->emit( '.s', [ 'background-color' => 'red' ] ) )
+		->toBe( '.s { background-color: red !important; }' );
+} );
