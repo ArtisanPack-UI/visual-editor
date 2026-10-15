@@ -351,8 +351,8 @@ Since v1.15.0, `POST /visual-editor/api/bindings/resolve` and
 record being edited when its model has a registered policy. An editor
 who can open the editor but whose policy denies `view` on that record
 gets `403`: the canvas shows the blocks' static values instead of the
-bound ones, and server-rendered block previews for that record don't
-load. Allow `view` in the policy for those users. Models
+bound ones, and server-rendered block previews for that record show the
+request's error message instead of the preview. Allow `view` in the policy for those users. Models
 without a policy are unaffected. See
 [Block Bindings](block-bindings.md#record-access-check).
 
