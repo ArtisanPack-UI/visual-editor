@@ -35,7 +35,7 @@ import {
     serializeFlex,
     type ArtisanpackFlexAttribute,
 } from '../_shared/flex-controls';
-import { BreakpointRegistry } from '../../responsive/registry';
+import { getResponsiveRegistry } from '../../responsive/registry';
 
 interface ColumnAttributes {
     readonly verticalAlignment?: string;
@@ -98,7 +98,10 @@ export default function ColumnEdit({
     clientId,
 }: ColumnEditProps): ReactElement {
     const { verticalAlignment, width, templateLock, allowedBlocks } = attributes;
-    const flexRegistry = new BreakpointRegistry();
+    // The host's configured breakpoints (M-17), like Blade's FlexSupport.
+    // `save` keeps the package defaults so saved markup doesn't depend
+    // on host config.
+    const flexRegistry = getResponsiveRegistry();
     const flexResult = serializeFlex(
         attributes.artisanpackFlex ?? null,
         flexRegistry,

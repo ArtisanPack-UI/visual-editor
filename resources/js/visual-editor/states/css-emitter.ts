@@ -31,6 +31,7 @@
 import type { StateRegistry } from './registry'
 import { distinctStateOverrides } from './resolver'
 import { BASE_KEY, type StatefulAttribute } from './types'
+import { presetSlug } from '../support/preset-slug'
 
 export const DEFAULT_TRANSITION = 'all 150ms ease'
 
@@ -57,6 +58,15 @@ export interface EmitStateCssOptions {
 	 * Releases before 1.15.0 emitted none. Default `true`.
 	 */
 	reducedMotionGuard?: boolean
+
+	/**
+	 * Slug expanded preset segments the way 1.15 development builds
+	 * did: Unicode `toLowerCase()` and one `-` per UTF-16 unit. 1.15.0
+	 * slugs byte-wise like PHP (R-19), which differs only for slugs
+	 * with non-ASCII characters (`İnk`: `i-nk` before, `--nk` now).
+	 * Only matters with `expandPresets`. Default `false`.
+	 */
+	legacyPresetSlugs?: boolean
 }
 
 /**
@@ -125,22 +135,31 @@ const PRESET_REFERENCE_PREFIX = 'var:preset|'
  * Expand Gutenberg's `var:preset|{kind}|{slug}` shorthand — what a
  * palette swatch writes into `color.background`, `border.color`,
  * `shadow`, … — into `var(--wp--preset--{kind}--{slug})` (#875). Same
- * segment rule as `BlockSupports::presetSlug()` on the PHP side: split
- * camelCase, lowercase, and map anything outside `[a-z0-9-]` to `-`.
+ * segment rule as `BlockSupports::presetSlug()` on the PHP side (see
+ * {@link presetSlug}: byte-wise, ASCII-only lowercase, R-19).
  */
-function expandPresetReference( value: string ): string {
+function expandPresetReference( value: string, legacySlugs = false ): string {
 	const segments = value
 		.slice( PRESET_REFERENCE_PREFIX.length )
 		.split( '|' )
-		.map( ( segment ) => segment
-			.replace( /([a-z])([A-Z])/g, '$1-$2' )
-			.toLowerCase()
-			.replace( /[^a-z0-9-]/g, '-' ) )
+		.map( legacySlugs ? legacyPresetSlug : presetSlug )
 
 	return `var(--wp--preset--${ segments.join( '--' ) })`
 }
 
-function stringifyValue( value: unknown, config: PathConfig, expandPresets: boolean ): string | null {
+/**
+ * The segment rule 1.15 development builds saved with (Unicode
+ * lowercase, one `-` per UTF-16 unit). Kept only so the state-CSS save
+ * deprecation can reproduce that markup.
+ */
+function legacyPresetSlug( segment: string ): string {
+	return segment
+		.replace( /([a-z])([A-Z])/g, '$1-$2' )
+		.toLowerCase()
+		.replace( /[^a-z0-9-]/g, '-' )
+}
+
+function stringifyValue( value: unknown, config: PathConfig, expandPresets: boolean, legacySlugs = false ): string | null {
 	if ( null === value || undefined === value ) {
 		return null
 	}
@@ -154,7 +173,7 @@ function stringifyValue( value: unknown, config: PathConfig, expandPresets: bool
 	}
 
 	if ( expandPresets && value.startsWith( PRESET_REFERENCE_PREFIX ) ) {
-		return expandPresetReference( value )
+		return expandPresetReference( value, legacySlugs )
 	}
 
 	if ( config.preset && SLUG_RE.test( value ) ) {
@@ -170,7 +189,7 @@ interface BucketsByState {
 	[stateKey: string]: Record<string, string>
 }
 
-function bucketByState( states: StatesByPath, registry: StateRegistry, expandPresets: boolean ): BucketsByState {
+function bucketByState( states: StatesByPath, registry: StateRegistry, expandPresets: boolean, legacySlugs = false ): BucketsByState {
 	const buckets: BucketsByState = {}
 
 	for ( const path of Object.keys( states ) ) {
@@ -187,7 +206,7 @@ function bucketByState( states: StatesByPath, registry: StateRegistry, expandPre
 		const overrides = distinctStateOverrides( stateful, registry )
 
 		for ( const stateKey of Object.keys( overrides ) ) {
-			const value = stringifyValue( overrides[ stateKey ], config, expandPresets )
+			const value = stringifyValue( overrides[ stateKey ], config, expandPresets, legacySlugs )
 			if ( null === value ) {
 				continue
 			}
@@ -326,9 +345,13 @@ export function emitStateCss(
 		return ''
 	}
 
-	const { expandPresets = true, reducedMotionGuard: withGuard = true } = options
+	const {
+		expandPresets = true,
+		reducedMotionGuard: withGuard = true,
+		legacyPresetSlugs = false,
+	} = options
 
-	const buckets = bucketByState( states, registry, expandPresets )
+	const buckets = bucketByState( states, registry, expandPresets, legacyPresetSlugs )
 
 	if ( 0 === Object.keys( buckets ).length ) {
 		return ''
