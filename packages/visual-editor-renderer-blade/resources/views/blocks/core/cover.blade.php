@@ -2,6 +2,8 @@
 	use ArtisanPackUI\VisualEditorRendererBlade\Animations\AnimationMarkupResolver;
 	use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\DuotoneSupport;
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\UrlSanitizer;
 
 	$url    = (string) ( $attributes['url'] ?? '' );
 	$alt    = (string) ( $attributes['alt'] ?? '' );
@@ -69,6 +71,14 @@
 
 	if ( $hasCustomContentPos ) {
 		$baseClasses[] = 'has-custom-content-position';
+	}
+
+	// F-2 — duotone filter on the background image
+	// (`selectors.filter.duotone`), only when one renders.
+	$duotoneClass = '' !== UrlSanitizer::safe( $url ) ? DuotoneSupport::apply( $attributes, DuotoneSupport::TARGETS['core/cover'] ) : '';
+
+	if ( '' !== $duotoneClass ) {
+		$baseClasses[] = $duotoneClass;
 	}
 
 	// Merge cover's own `min-height` declaration with whatever

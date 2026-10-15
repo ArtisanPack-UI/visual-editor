@@ -88,6 +88,33 @@ describe( 'image aspect ratio, scale and duotone (#873)', function (): void {
 			->and( $html )->toContain( '<feFuncR type="table" tableValues="0 1"/>' );
 	} );
 
+	it( 'prints each duotone filter once across two renders on a page (R-10)', function (): void {
+		$tree = [ [ 'clientId' => 'a', 'name' => 'core/image', 'attributes' => [ 'url' => '/a.jpg', 'style' => [ 'color' => [ 'duotone' => [ '#000000', '#ff0000' ] ] ] ], 'innerBlocks' => [] ] ];
+
+		$html = Blade::render( '<x-ve-blocks :tree="$tree" /><x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+		preg_match_all( '/<filter id="([^"]+)">/', $html, $matches );
+
+		expect( $matches[1] )->toHaveCount( 1 )
+			->and( substr_count( $html, 'class="wp-block-image wp-duotone-' ) )->toBe( 2 );
+	} );
+
+	it( 'emits no duotone for a featured image block without an image (R-11)', function (): void {
+		$html = renderSupportParityBlock( 'core/post-featured-image', [
+			'style' => [ 'color' => [ 'duotone' => [ '#000000', '#ff0000' ] ] ],
+		] );
+
+		expect( $html )->not->toContain( 'wp-duotone-' )
+			->not->toContain( 'data-ve-duotone' )
+			->not->toContain( '<svg' );
+	} );
+
+	it( 'emits no duotone for an image block without a url', function (): void {
+		expect( renderSupportParityBlock( 'core/image', [ 'style' => [ 'color' => [ 'duotone' => [ '#000', '#f00' ] ] ] ] ) )
+			->not->toContain( 'wp-duotone-' )
+			->not->toContain( 'data-ve-duotone' );
+	} );
+
 	it( 'applies duotone to the post featured image too', function (): void {
 		$html = renderSupportParityBlock( 'core/post-featured-image', [
 			'_resolvedImageUrl' => '/a.jpg',
@@ -97,6 +124,41 @@ describe( 'image aspect ratio, scale and duotone (#873)', function (): void {
 		expect( $html )->toContain( 'wp-duotone-unset' )
 			->toContain( '.wp-duotone-unset img{filter:none !important}' );
 	} );
+} );
+
+describe( 'duotone on cover, avatar, site logo and post author (F-2)', function (): void {
+	it( 'applies the filter to each block\'s media', function ( string $name, array $attributes, string $wrapperStart, string $target ): void {
+		$attributes['style'] = [ 'color' => [ 'duotone' => [ '#000000', '#ff0000' ] ] ];
+
+		$html = renderSupportParityBlock( $name, $attributes );
+
+		preg_match( '/(wp-duotone-[0-9a-f]{10})/', $html, $matches );
+		$class = $matches[1] ?? '';
+
+		expect( $class )->not->toBe( '' )
+			->and( $html )->toContain( $wrapperStart . ' ' . $class )
+			->toContain( '<style data-ve-duotone>' . str_replace( '{c}', $class, $target ) . '{filter:url(#' . $class . ') !important}</style>' )
+			->toContain( '<filter id="' . $class . '">' );
+	} )->with( [
+		'cover'       => [ 'core/cover', [ 'url' => '/bg.jpg' ], 'class="wp-block-cover is-dark is-layout-flex wp-block-cover-is-layout-flex', '.{c} > .wp-block-cover__image-background,.{c} > .wp-block-cover__video-background' ],
+		'avatar'      => [ 'core/avatar', [ '_resolvedAuthorAvatar' => '/a.png' ], 'class="wp-block-avatar', '.{c} img' ],
+		'site logo'   => [ 'core/site-logo', [ '_resolvedLogoUrl' => '/logo.png' ], 'class="wp-block-site-logo is-default-size', '.{c} img' ],
+		'post author' => [ 'core/post-author', [ '_resolvedAuthorAvatar' => '/a.png', '_resolvedAuthorName' => 'Ada' ], 'class="wp-block-post-author', '.{c} .wp-block-post-author__avatar img' ],
+	] );
+
+	it( 'skips the filter when the media is not rendered', function ( string $name, array $attributes ): void {
+		$attributes['style'] = [ 'color' => [ 'duotone' => [ '#000000', '#ff0000' ] ] ];
+
+		expect( renderSupportParityBlock( $name, $attributes ) )
+			->not->toContain( 'wp-duotone-' )
+			->not->toContain( 'data-ve-duotone' );
+	} )->with( [
+		'cover without url'          => [ 'core/cover', [] ],
+		'cover with hostile url'     => [ 'core/cover', [ 'url' => 'javascript:alert(1)' ] ],
+		'avatar without image'       => [ 'core/avatar', [] ],
+		'site logo without image'    => [ 'core/site-logo', [] ],
+		'post author, avatar hidden' => [ 'core/post-author', [ '_resolvedAuthorAvatar' => '/a.png', 'showAvatar' => false ] ],
+	] );
 } );
 
 describe( 'dynamic block supports (#874)', function (): void {
