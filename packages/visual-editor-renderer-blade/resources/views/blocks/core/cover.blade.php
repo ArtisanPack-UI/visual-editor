@@ -114,7 +114,7 @@
 	$style    = '' !== $split['wrapper']['style'] ? rtrim( $split['wrapper']['style'], ';' ) : '';
 
 	if ( null !== $minHeight ) {
-		$style = ( '' !== $style ? $style . '; ' : '' ) . sprintf( 'min-height: %s%s', (string) $minHeight, $minHeightUnit );
+		$style = ( '' !== $style ? $style . '; ' : '' ) . sprintf( 'min-height: %s%s', BlockSupports::cssNumber( $minHeight ), $minHeightUnit );
 	}
 
 	$styleAttr = '' !== $style ? sprintf( ' style="%s"', e( $style . ';' ) ) : '';

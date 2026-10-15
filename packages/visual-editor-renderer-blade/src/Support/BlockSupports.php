@@ -1012,6 +1012,35 @@ class BlockSupports
 	}
 
 	/**
+	 * Format a number for a CSS value (R-13). PHP's own float-to-string
+	 * conversion is kept, except where it switches to exponent notation
+	 * (`1.0E-8`, `1.0E+14`), which CSS doesn't parse: tiny values are
+	 * written to four decimals (so `1e-8` becomes `0`) and huge ones as
+	 * whole numbers. Mirrored by `cssNumber()` in the React and Vue
+	 * renderers' `support/cssNumber.ts`.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  float  $value  Number to format.
+	 */
+	public static function cssNumber( float $value ): string
+	{
+		$string = (string) $value;
+
+		if ( ! str_contains( $string, 'E' ) ) {
+			return $string;
+		}
+
+		if ( abs( $value ) >= 1 ) {
+			return number_format( $value, 0, '.', '' );
+		}
+
+		$formatted = rtrim( rtrim( number_format( $value, 4, '.', '' ), '0' ), '.' );
+
+		return '' === $formatted || '-0' === $formatted ? '0' : $formatted;
+	}
+
+	/**
 	 * Turn a stored responsive override into the CSS value the generic
 	 * emitter writes (#877). Preset paths expand their slug into the
 	 * `var:preset|…` shorthand {@see self::responsiveDeclarations()}
@@ -1055,7 +1084,7 @@ class BlockSupports
 			$unit = $fallbackUnit;
 		}
 
-		return max( 0.0, (float) $value ) . $unit;
+		return self::cssNumber( max( 0.0, (float) $value ) ) . $unit;
 	}
 
 	/**

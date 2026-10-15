@@ -16,6 +16,7 @@ import {
     attrString,
     classList,
 } from '../../support/attributes';
+import { cssNumber } from '../../support/cssNumber';
 import { safeUrl } from '../../support/urlSanitizer';
 import type { BlockRendererProps } from '../../types';
 
@@ -86,7 +87,7 @@ export function CoverBlock({ attributes, children }: BlockRendererProps): JSX.El
             ? requestedUnit
             : 'px';
 
-        style = { minHeight: `${minHeight}${unit}` };
+        style = { minHeight: `${cssNumber(minHeight)}${unit}` };
     }
 
     return (

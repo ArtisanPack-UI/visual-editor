@@ -17,6 +17,7 @@ import {
     attrString,
     classList,
 } from '../../support/attributes';
+import { cssNumber } from '../../support/cssNumber';
 import { safeUrl } from '../../support/urlSanitizer';
 import { blockRendererProps } from '../shared';
 
@@ -108,7 +109,7 @@ export const CoverBlock = defineComponent({
                     ? requestedUnit
                     : 'px';
 
-                outerStyle = { 'min-height': `${minHeight}${unit}` };
+                outerStyle = { 'min-height': `${cssNumber(minHeight)}${unit}` };
             }
 
             const children: VNode[] = [

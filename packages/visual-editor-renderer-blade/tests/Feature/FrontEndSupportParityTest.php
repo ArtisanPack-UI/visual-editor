@@ -231,3 +231,9 @@ describe( 'dynamic block supports (#874)', function (): void {
 			->and( substr_count( $html, 'has-background' ) )->toBe( 1 );
 	} );
 } );
+
+it( 'writes a tiny cover min-height without exponent notation (R-13)', function (): void {
+	expect( renderSupportParityBlock( 'core/cover', [ 'minHeight' => 1e-8, 'minHeightUnit' => 'vh' ] ) )
+		->toContain( 'min-height: 0vh;' )
+		->not->toContain( 'E-8' );
+} );
