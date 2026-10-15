@@ -44,7 +44,7 @@ import {
 } from './utils';
 
 import { getActiveBreakpoint, BASE_KEY } from '../../responsive';
-import { BreakpointRegistry } from '../../responsive/registry';
+import { getResponsiveRegistry } from '../../responsive/registry';
 import {
     FlexContainerControls,
     serializeFlex,
@@ -241,7 +241,10 @@ function ColumnsEditContainer({
     const { getBlockOrder } = useSelect(blockEditorStore) as any;
     const { updateBlockAttributes } = useDispatch(blockEditorStore) as any;
 
-    const flexRegistry = new BreakpointRegistry();
+    // The host's configured breakpoints (M-17), like Blade's FlexSupport.
+    // `save` keeps the package defaults so saved markup doesn't depend
+    // on host config.
+    const flexRegistry = getResponsiveRegistry();
     const flexResult = serializeFlex(
         attributes.artisanpackFlex ?? null,
         flexRegistry,

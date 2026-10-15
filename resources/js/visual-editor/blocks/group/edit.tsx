@@ -36,7 +36,7 @@ import {
     getPhotoGridWrapperProps,
     type PhotoGridAttribute,
 } from '../_shared/photo-grid';
-import { BreakpointRegistry } from '../../responsive/registry';
+import { getResponsiveRegistry } from '../../responsive/registry';
 
 interface GroupAttributes {
     readonly tagName?: string;
@@ -118,7 +118,10 @@ export default function GroupEdit({
         themeSupportsLayout || type === 'flex' || type === 'grid';
 
     const ref = useRef<HTMLElement | undefined>(undefined);
-    const flexRegistry = new BreakpointRegistry();
+    // The host's configured breakpoints (M-17), like Blade's FlexSupport.
+    // `save` keeps the package defaults so saved markup doesn't depend
+    // on host config.
+    const flexRegistry = getResponsiveRegistry();
     const flexResult = serializeFlex(
         attributes.artisanpackFlex ?? null,
         flexRegistry,
