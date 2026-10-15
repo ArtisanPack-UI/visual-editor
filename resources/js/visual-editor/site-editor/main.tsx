@@ -54,7 +54,7 @@ ensureMediaBridgeFilter();
 
 import '../a11y.css';
 import type { BreakpointRegistrySnapshot } from '../responsive/types';
-import { setBlockCssAccess } from '../effects/access';
+import { setBlockCssAccess, setCustomCssUrlAccess } from '../effects/access';
 
 const MOUNT_SELECTOR = '[data-ap-site-editor]';
 const ROOT_SYMBOL: unique symbol = Symbol('ap-site-editor-root');
@@ -289,6 +289,10 @@ async function mount(element: MountableElement): Promise<void> {
     // #881 — the host stamps `data-can-edit-block-css="true"` for users
     // with the block-CSS ability; it only controls the Custom CSS field.
     setBlockCssAccess(element.dataset.canEditBlockCss === 'true');
+    // F-11 — `data-custom-css-allow-urls="false"` mirrors config
+    // `effects.custom_css_allow_urls`, so the canvas previews what the
+    // front end prints.
+    setCustomCssUrlAccess(element.dataset.customCssAllowUrls !== 'false');
 
     try {
         await mountSiteEditor(element, config).ready;
