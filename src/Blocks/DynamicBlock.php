@@ -95,10 +95,17 @@ abstract class DynamicBlock
 	 * wrapper.
 	 *
 	 * The default `false` lets the front-end renderer merge
-	 * `BlockSupports::compile()` output into the first opening tag of the
-	 * rendered HTML, so a dynamic block gets every support its block.json
-	 * declares, the same as a Blade-partial block (#874). Return `true`
-	 * when the block builds its wrapper through
+	 * `BlockSupports::compile()` output into the wrapper of the rendered
+	 * HTML, so a dynamic block gets every support its block.json declares,
+	 * the same as a Blade-partial block (#874). The wrapper is the element
+	 * carrying a `data-ve-wrapper` attribute when the output marks one;
+	 * otherwise the first element, after any leading `<style>`, `<script>`,
+	 * `<template>`, `<noscript>`, `<link>` or `<meta>`, any leading `<svg>`
+	 * and any leading element with `aria-hidden="true"`, so the supports
+	 * never land on an asset or a decorative icon. The merge never
+	 * overrides the output's own classes, `id` or inline declarations.
+	 *
+	 * Return `true` when the block builds its wrapper through
 	 * `BlockSupports::wrapperAttrs()` itself, or renders no wrapper of
 	 * its own (e.g. it only renders an inner block tree), so the supports
 	 * aren't applied twice or onto the wrong element.
@@ -114,10 +121,16 @@ abstract class DynamicBlock
 	 * The attribute bag the front-end renderer compiles supports from
 	 * when {@see appliesOwnSupports()} is `false`.
 	 *
-	 * Receives the raw attributes overlaid with {@see validateAttrs()}'s
-	 * output. Override to drop or rewrite keys the block stores in a
-	 * shape the supports compiler would misread (e.g. a legacy hex value
-	 * in a palette-slug slot).
+	 * Receives {@see validateAttrs()}'s output plus the stored block-support
+	 * keys it doesn't return (`anchor`, `className`, `align`, `style`, the
+	 * color / typography presets, `layout`, `responsive`, `states`,
+	 * `artisanpackEffects`, `artisanpackAnimations`, …; the Blade
+	 * renderer's `BlockRenderer::SUPPORT_ATTRIBUTE_KEYS`). Any other key
+	 * the validator drops stays dropped, and a support key the validator
+	 * returns, even as `''` or `null`, wins over the stored value, which is
+	 * how a block removes one. Override to drop or rewrite keys the block
+	 * stores in a shape the supports compiler would misread (e.g. a legacy
+	 * hex value in a palette-slug slot).
 	 *
 	 * @since 1.15.0
 	 *

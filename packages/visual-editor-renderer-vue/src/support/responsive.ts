@@ -19,6 +19,7 @@
 import { getBreakpoints, getDeviceBreakpoints } from '../visibility';
 import type { Block } from '../types';
 import { phpTrim } from './attributes';
+import { cssNumber } from './cssNumber';
 import { expandPresetReference } from './presetReference';
 import { xxh3_64_hex } from './xxh3';
 
@@ -426,7 +427,8 @@ function normaliseResponsiveValue(
         unit = fallbackUnit;
     }
 
-    return phpNumberString(Math.max(0, Number(typeof value === 'string' ? value.trim() : value))) + unit;
+    // `BlockSupports::cssNumber()` twin: never an exponent (R-13).
+    return cssNumber(Math.max(0, Number(typeof value === 'string' ? value.trim() : value))) + unit;
 }
 
 /**
