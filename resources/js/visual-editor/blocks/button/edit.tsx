@@ -37,6 +37,7 @@ import {
 } from '@wordpress/components';
 import { useRef, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { link as linkIcon, linkOff as linkOffIcon } from '@wordpress/icons';
 
 import { ArtisanPackLinkControl } from '../../dynamic-content/link-control';
@@ -120,8 +121,8 @@ export default function ButtonEdit({
             <div {...blockProps} className={classes}>
                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 <RichText
-                    aria-label={__('Button text')}
-                    placeholder={placeholder || __('Add text…')}
+                    aria-label={__('Button text', TEXT_DOMAIN)}
+                    placeholder={placeholder || __('Add text…', TEXT_DOMAIN)}
                     value={text}
                     onChange={(value: string) =>
                         setAttributes({ text: value })
@@ -146,7 +147,7 @@ export default function ButtonEdit({
                             // @ts-expect-error - upstream prop
                             name="link"
                             icon={linkIcon}
-                            title={__('Link')}
+                            title={__('Link', TEXT_DOMAIN)}
                             shortcut="mod+k"
                             onClick={() => setIsLinkPickerOpen(true)}
                             isActive={!!url}
@@ -156,7 +157,7 @@ export default function ButtonEdit({
                                 // @ts-expect-error - upstream prop
                                 name="unlink"
                                 icon={linkOffIcon}
-                                title={__('Unlink')}
+                                title={__('Unlink', TEXT_DOMAIN)}
                                 shortcut="mod+shift+k"
                                 onClick={unlinkButton}
                             />
@@ -206,10 +207,10 @@ export default function ButtonEdit({
             )}
             <InspectorControls group="advanced">
                 <SelectControl
-                    label={__('HTML element')}
+                    label={__('HTML element', TEXT_DOMAIN)}
                     value={tagName ?? 'a'}
                     options={[
-                        { label: __('Default (<a>)'), value: 'a' },
+                        { label: __('Default (<a>)', TEXT_DOMAIN), value: 'a' },
                         { label: '<button>', value: 'button' },
                     ]}
                     onChange={(value: string) =>
@@ -222,7 +223,7 @@ export default function ButtonEdit({
                     <TextControl
                         // @ts-expect-error - upstream prop
                         __next40pxDefaultSize
-                        label={__('Link relation')}
+                        label={__('Link relation', TEXT_DOMAIN)}
                         value={rel ?? ''}
                         onChange={(value: string) =>
                             setAttributes({ rel: value })

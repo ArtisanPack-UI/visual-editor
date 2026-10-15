@@ -48,6 +48,7 @@ import {
 } from '@wordpress/block-editor';
 import { useEffect, useMemo } from '@wordpress/element';
 import { __, _x, sprintf } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { useSelect, useDispatch } from '@wordpress/data';
 import { createBlock } from '@wordpress/blocks';
 import { createBlobURL } from '@wordpress/blob';
@@ -93,41 +94,42 @@ interface LinkOption {
 const LINK_OPTIONS: LinkOption[] = [
     {
         icon: customLink,
-        label: __('Link images to attachment pages'),
+        label: __('Link images to attachment pages', TEXT_DOMAIN),
         value: LINK_DESTINATION_ATTACHMENT,
-        noticeText: __('Attachment Pages'),
+        noticeText: __('Attachment Pages', TEXT_DOMAIN),
     },
     {
         icon: imageIcon,
-        label: __('Link images to media files'),
+        label: __('Link images to media files', TEXT_DOMAIN),
         value: LINK_DESTINATION_MEDIA,
-        noticeText: __('Media Files'),
+        noticeText: __('Media Files', TEXT_DOMAIN),
     },
     {
         icon: fullscreen,
-        label: __('Enlarge on click'),
+        label: __('Enlarge on click', TEXT_DOMAIN),
         value: LINK_DESTINATION_LIGHTBOX,
-        noticeText: __('Lightbox effect'),
-        infoText: __('Scale images with a lightbox effect'),
+        noticeText: __('Lightbox effect', TEXT_DOMAIN),
+        infoText: __('Scale images with a lightbox effect', TEXT_DOMAIN),
     },
     {
         icon: linkOff,
-        label: _x('None', 'Media item link option'),
+        label: _x('None', 'Media item link option', TEXT_DOMAIN),
         value: LINK_DESTINATION_NONE,
-        noticeText: __('None'),
+        noticeText: __('None', TEXT_DOMAIN),
     },
 ];
 
 const NAVIGATION_BUTTON_TYPE_OPTIONS = [
-    { label: __('Icon'), value: 'icon' },
-    { label: __('Text'), value: 'text' },
-    { label: __('Both'), value: 'both' },
+    { label: __('Icon', TEXT_DOMAIN), value: 'icon' },
+    { label: __('Text', TEXT_DOMAIN), value: 'text' },
+    { label: __('Both', TEXT_DOMAIN), value: 'both' },
 ];
 
 const ALLOWED_MEDIA_TYPES = ['image'];
 
 const PLACEHOLDER_TEXT = __(
-    'Drag and drop images, upload, or choose from your library.'
+    'Drag and drop images, upload, or choose from your library.',
+    TEXT_DOMAIN
 );
 
 const DEFAULT_BLOCK = { name: 'core/image' };
@@ -365,7 +367,7 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
     }));
     const aspectRatioOptions = [
         {
-            label: _x('Original', 'Aspect ratio option for dimensions control'),
+            label: _x('Original', 'Aspect ratio option for dimensions control', TEXT_DOMAIN),
             value: 'auto',
         },
         ...(showDefaultRatios ? defaultOptions || [] : []),
@@ -485,7 +487,8 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
         if (!imageArray.every(isValidFileType)) {
             createErrorNotice(
                 __(
-                    'If uploading to a gallery all files need to be image formats'
+                    'If uploading to a gallery all files need to be image formats',
+                    TEXT_DOMAIN
                 ),
                 { id: 'gallery-upload-invalid-file', type: 'snackbar' }
             );
@@ -592,7 +595,7 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
         createSuccessNotice(
             sprintf(
                 /* translators: %s: image size settings */
-                __('All gallery image links updated to: %s'),
+                __('All gallery image links updated to: %s', TEXT_DOMAIN),
                 linkToText?.noticeText ?? value
             ),
             {
@@ -630,8 +633,8 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
             uniqueByBlock: true,
         });
         const noticeText = openInNewTab
-            ? __('All gallery images updated to open in new tab')
-            : __('All gallery images updated to not open in new tab');
+            ? __('All gallery images updated to open in new tab', TEXT_DOMAIN)
+            : __('All gallery images updated to not open in new tab', TEXT_DOMAIN);
         createSuccessNotice(noticeText, {
             id: 'gallery-attributes-openInNewTab',
             type: 'snackbar',
@@ -665,7 +668,7 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
         createSuccessNotice(
             sprintf(
                 /* translators: %s: image size settings */
-                __('All gallery image sizes updated to: %s'),
+                __('All gallery image sizes updated to: %s', TEXT_DOMAIN),
                 imageSize?.label ?? newSizeSlug
             ),
             {
@@ -697,7 +700,7 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
         createSuccessNotice(
             sprintf(
                 /* translators: %s: aspect ratio setting */
-                __('All gallery images updated to aspect ratio: %s'),
+                __('All gallery images updated to aspect ratio: %s', TEXT_DOMAIN),
                 aspectRatioText?.label || value
             ),
             {
@@ -743,7 +746,7 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
             handleUpload={false}
             icon={sharedIcon}
             labels={{
-                title: __('Gallery'),
+                title: __('Gallery', TEXT_DOMAIN),
                 instructions: PLACEHOLDER_TEXT,
             }}
             onSelect={
@@ -786,7 +789,7 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
         <>
             <InspectorControls>
                 <ToolsPanel
-                    label={__('Settings')}
+                    label={__('Settings', TEXT_DOMAIN)}
                     resetAll={() => {
                         setAttributes({
                             navigationButtonType: 'icon',
@@ -810,14 +813,14 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
                     {images.length > 1 && (
                         <ToolsPanelItem
                             isShownByDefault
-                            label={__('Columns')}
+                            label={__('Columns', TEXT_DOMAIN)}
                             hasValue={() =>
                                 !!columns && columns !== images.length
                             }
                             onDeselect={() => setColumnsNumber(undefined)}
                         >
                             <RangeControl
-                                label={__('Columns')}
+                                label={__('Columns', TEXT_DOMAIN)}
                                 value={
                                     columns
                                         ? columns
@@ -836,16 +839,17 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
                     {(imageSizeOptions?.length ?? 0) > 0 && (
                         <ToolsPanelItem
                             isShownByDefault
-                            label={__('Resolution')}
+                            label={__('Resolution', TEXT_DOMAIN)}
                             hasValue={() => sizeSlug !== DEFAULT_MEDIA_SIZE_SLUG}
                             onDeselect={() =>
                                 updateImagesSize(DEFAULT_MEDIA_SIZE_SLUG)
                             }
                         >
                             <SelectControl
-                                label={__('Resolution')}
+                                label={__('Resolution', TEXT_DOMAIN)}
                                 help={__(
-                                    'Select the size of the source images.'
+                                    'Select the size of the source images.',
+                                    TEXT_DOMAIN
                                 )}
                                 value={sizeSlug}
                                 options={
@@ -862,24 +866,24 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
                     )}
                     <ToolsPanelItem
                         isShownByDefault
-                        label={__('Crop images to fit')}
+                        label={__('Crop images to fit', TEXT_DOMAIN)}
                         hasValue={() => !imageCrop}
                         onDeselect={() => setAttributes({ imageCrop: true })}
                     >
                         <ToggleControl
-                            label={__('Crop images to fit')}
+                            label={__('Crop images to fit', TEXT_DOMAIN)}
                             checked={!!imageCrop}
                             onChange={toggleImageCrop}
                         />
                     </ToolsPanelItem>
                     <ToolsPanelItem
                         isShownByDefault
-                        label={__('Randomize order')}
+                        label={__('Randomize order', TEXT_DOMAIN)}
                         hasValue={() => !!randomOrder}
                         onDeselect={() => setAttributes({ randomOrder: false })}
                     >
                         <ToggleControl
-                            label={__('Randomize order')}
+                            label={__('Randomize order', TEXT_DOMAIN)}
                             checked={!!randomOrder}
                             onChange={toggleRandomOrder}
                         />
@@ -887,12 +891,12 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
                     {hasLinkTo && (
                         <ToolsPanelItem
                             isShownByDefault
-                            label={__('Open images in new tab')}
+                            label={__('Open images in new tab', TEXT_DOMAIN)}
                             hasValue={() => !!linkTarget}
                             onDeselect={() => toggleOpenInNewTab(false)}
                         >
                             <ToggleControl
-                                label={__('Open images in new tab')}
+                                label={__('Open images in new tab', TEXT_DOMAIN)}
                                 checked={linkTarget === '_blank'}
                                 onChange={toggleOpenInNewTab}
                             />
@@ -903,15 +907,16 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
                             hasValue={() =>
                                 !!aspectRatio && aspectRatio !== 'auto'
                             }
-                            label={__('Aspect ratio')}
+                            label={__('Aspect ratio', TEXT_DOMAIN)}
                             onDeselect={() => setAspectRatio('auto')}
                             isShownByDefault
                         >
                             <SelectControl
                                 __next40pxDefaultSize
-                                label={__('Aspect ratio')}
+                                label={__('Aspect ratio', TEXT_DOMAIN)}
                                 help={__(
-                                    'Set a consistent aspect ratio for all images in the gallery.'
+                                    'Set a consistent aspect ratio for all images in the gallery.',
+                                    TEXT_DOMAIN
                                 )}
                                 value={aspectRatio}
                                 options={aspectRatioOptions}
@@ -920,7 +925,7 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
                         </ToolsPanelItem>
                     )}
                     <ToolsPanelItem
-                        label={__('Navigation button type')}
+                        label={__('Navigation button type', TEXT_DOMAIN)}
                         isShownByDefault
                         hasValue={() => navigationButtonType !== 'icon'}
                         onDeselect={() =>
@@ -929,7 +934,7 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
                     >
                         {hasLightboxImages && (
                             <ToggleGroupControl
-                                label={__('Navigation button type')}
+                                label={__('Navigation button type', TEXT_DOMAIN)}
                                 value={navigationButtonType}
                                 onChange={(value: string | number) =>
                                     setAttributes({
@@ -939,7 +944,8 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
                                 isBlock
                                 __next40pxDefaultSize
                                 help={__(
-                                    'Adjust the appearance of buttons in the lightbox.'
+                                    'Adjust the appearance of buttons in the lightbox.',
+                                    TEXT_DOMAIN
                                 )}
                             >
                                 {NAVIGATION_BUTTON_TYPE_OPTIONS.map(
@@ -957,7 +963,7 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
                 </ToolsPanel>
             </InspectorControls>
             <BlockControls group="block">
-                <ToolbarDropdownMenu icon={linkIcon} label={__('Link')}>
+                <ToolbarDropdownMenu icon={linkIcon} label={__('Link', TEXT_DOMAIN)}>
                     {({ onClose }: { onClose: () => void }) => (
                         <MenuGroup>
                             {linkOptions.map((linkItem) => {
@@ -1003,7 +1009,7 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
                                 media: unknown
                             ) => void
                         }
-                        name={__('Add')}
+                        name={__('Add', TEXT_DOMAIN)}
                         multiple
                         mediaIds={images
                             .filter((image) => image.id)
@@ -1048,8 +1054,8 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
                         identifier="caption"
                         tagName="figcaption"
                         className="blocks-gallery-caption"
-                        aria-label={__('Gallery caption text')}
-                        placeholder={__('Add gallery caption')}
+                        aria-label={__('Gallery caption text', TEXT_DOMAIN)}
+                        placeholder={__('Add gallery caption', TEXT_DOMAIN)}
                         value={caption ?? ''}
                         onChange={(value: string) =>
                             setAttributes({ caption: value })

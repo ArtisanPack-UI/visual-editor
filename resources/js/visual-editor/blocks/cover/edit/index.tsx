@@ -27,6 +27,7 @@ import {
     useBlockEditingMode,
 } from '@wordpress/block-editor';
 import { __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../../vendor/i18n';
 import { useSelect, useDispatch } from '@wordpress/data';
 import { isBlobURL } from '@wordpress/blob';
 import { store as noticesStore } from '@wordpress/notices';
@@ -113,7 +114,7 @@ function getInnerBlocksTemplate(
                         textAlign: 'center',
                     },
                 },
-                placeholder: __('Write title…'),
+                placeholder: __('Write title…', TEXT_DOMAIN),
                 ...attributes,
             },
         ],
@@ -749,7 +750,7 @@ function CoverEdit({
                                 onChange={onSetOverlayColor}
                                 clearable={false}
                                 asButtons
-                                aria-label={__('Overlay color')}
+                                aria-label={__('Overlay color', TEXT_DOMAIN)}
                             />
                         </div>
                     </CoverPlaceholder>

@@ -1,9 +1,9 @@
 /**
- * Glow colour mapping for the Hover animation panel (#878).
+ * Glow color mapping for the Hover animation panel (#878).
  *
  * The panel stores a palette pick as a `var:preset|color|{slug}`
  * reference, so the glow follows later palette edits, and a custom
- * colour raw. `AnimationCssEmitter::hoverColor()` resolves both.
+ * color raw. `AnimationCssEmitter::hoverColor()` resolves both.
  *
  * @package @artisanpack-ui/visual-editor
  * @since 1.15.0
@@ -18,8 +18,8 @@ export interface PaletteColor {
 const PRESET_COLOR_PREFIX = 'var:preset|color|';
 
 /**
- * Resolve a stored glow colour into the hex `ColorPalette` shows as
- * selected: a palette reference maps back to its colour, a raw colour
+ * Resolve a stored glow color into the hex `ColorPalette` shows as
+ * selected: a palette reference maps back to its color, a raw color
  * passes through.
  */
 export function glowColorDisplayValue( stored: string | undefined, palette: PaletteColor[] ): string | undefined {
@@ -34,9 +34,9 @@ export function glowColorDisplayValue( stored: string | undefined, palette: Pale
 }
 
 /**
- * Turn a `ColorPalette` pick into the stored value: a palette colour is
+ * Turn a `ColorPalette` pick into the stored value: a palette color is
  * kept as a preset reference so it follows later palette edits, and a
- * custom colour is stored raw.
+ * custom color is stored raw.
  */
 export function glowColorStoredValue( picked: string | undefined, palette: PaletteColor[] ): string | undefined {
 	if ( ! picked ) {

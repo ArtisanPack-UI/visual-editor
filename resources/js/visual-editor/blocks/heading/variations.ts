@@ -9,6 +9,7 @@
  */
 
 import { __, sprintf } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import {
     headingLevel1,
     headingLevel2,
@@ -46,11 +47,12 @@ const variations: Variation[] = [1, 2, 3, 4, 5, 6].map((level) => ({
     name: `h${level}`,
     title: sprintf(
         /* translators: %d: heading level e.g: "1", "2", "3" */
-        __('Heading %d'),
+        __('Heading %d', TEXT_DOMAIN),
         level,
     ),
     description: __(
         'Introduce new sections and organize content to help visitors (and search engines) understand the structure of your content.',
+        TEXT_DOMAIN,
     ),
     icon: LEVEL_ICONS[level - 1],
     attributes: { level },

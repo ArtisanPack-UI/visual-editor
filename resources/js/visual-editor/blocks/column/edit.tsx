@@ -27,6 +27,7 @@ import {
 } from '@wordpress/components';
 import { useSelect, useDispatch } from '@wordpress/data';
 import { sprintf, __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 
 import {
     FlexContainerControls,
@@ -63,17 +64,17 @@ function ColumnInspectorControls({
     });
     return (
         <ToolsPanel
-            label={__('Settings')}
+            label={__('Settings', TEXT_DOMAIN)}
             resetAll={() => setAttributes({ width: undefined })}
         >
             <ToolsPanelItem
                 hasValue={() => width !== undefined}
-                label={__('Width')}
+                label={__('Width', TEXT_DOMAIN)}
                 onDeselect={() => setAttributes({ width: undefined })}
                 isShownByDefault
             >
                 <UnitControl
-                    label={__('Width')}
+                    label={__('Width', TEXT_DOMAIN)}
                     // @ts-expect-error - upstream prop
                     __unstableInputWidth="calc(50% - 8px)"
                     // @ts-expect-error - upstream prop
@@ -143,7 +144,7 @@ export default function ColumnEdit({
 
     const label = sprintf(
         /* translators: 1: Block label, 2: Position, 3: Total */
-        __('%1$s (%2$d of %3$d)'),
+        __('%1$s (%2$d of %3$d)', TEXT_DOMAIN),
         blockProps['aria-label'],
         currentColumnPosition,
         columnsCount

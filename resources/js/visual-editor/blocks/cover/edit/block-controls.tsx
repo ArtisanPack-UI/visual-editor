@@ -20,6 +20,7 @@ import {
     __experimentalBlockFullHeightAligmentControl as FullHeightAlignmentControl,
 } from '@wordpress/block-editor';
 import { __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../../vendor/i18n';
 import { MenuItem } from '@wordpress/components';
 import { link } from '@wordpress/icons';
 
@@ -150,7 +151,7 @@ export default function CoverBlockControls({
             {!isContentOnlyMode && (
                 <BlockControls group="block">
                     <BlockAlignmentMatrixControl
-                        label={__('Change content position')}
+                        label={__('Change content position', TEXT_DOMAIN)}
                         value={contentPosition}
                         onChange={(nextPosition: string) =>
                             setAttributes({ contentPosition: nextPosition })
@@ -172,7 +173,7 @@ export default function CoverBlockControls({
                     onSelect={onSelectMedia}
                     onToggleFeaturedImage={toggleUseFeaturedImage}
                     useFeaturedImage={useFeaturedImage}
-                    name={!url ? __('Add media') : __('Replace')}
+                    name={!url ? __('Add media', TEXT_DOMAIN) : __('Replace', TEXT_DOMAIN)}
                     onReset={onClearMedia}
                     variant="toolbar"
                 >
@@ -184,7 +185,7 @@ export default function CoverBlockControls({
                                 onClose();
                             }}
                         >
-                            {__('Embed video from URL')}
+                            {__('Embed video from URL', TEXT_DOMAIN)}
                         </MenuItem>
                     )}
                 </MediaReplaceFlow>
