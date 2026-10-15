@@ -7,6 +7,7 @@
  */
 
 import { _x } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 
 export const DEFAULT_MEDIA_SIZE_SLUG = 'full';
 export const WIDTH_CONSTRAINT_PERCENTAGE = 15;
@@ -18,7 +19,7 @@ export const TEMPLATE: ReadonlyArray<readonly [string, Record<string, unknown>]>
     [
         'core/paragraph',
         {
-            placeholder: _x('Content…', 'content placeholder'),
+            placeholder: _x('Content…', 'content placeholder', TEXT_DOMAIN),
         },
     ],
 ];

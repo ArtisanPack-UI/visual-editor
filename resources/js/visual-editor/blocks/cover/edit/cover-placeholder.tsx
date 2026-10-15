@@ -9,6 +9,7 @@
 import type { ReactElement, ReactNode } from 'react';
 import { BlockIcon, MediaPlaceholder } from '@wordpress/block-editor';
 import { __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../../vendor/i18n';
 import { createBlobURL } from '@wordpress/blob';
 
 import { ALLOWED_MEDIA_TYPES } from '../shared';
@@ -41,7 +42,7 @@ export default function CoverPlaceholder({
         <MediaPlaceholder
             icon={<BlockIcon icon={<CoverInserterIcon />} />}
             labels={{
-                title: __('Cover'),
+                title: __('Cover', TEXT_DOMAIN),
             }}
             onSelect={onSelectMedia}
             allowedTypes={ALLOWED_MEDIA_TYPES as unknown as string[]}

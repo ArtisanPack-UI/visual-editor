@@ -40,6 +40,7 @@ import {
 import { useDispatch } from '@wordpress/data';
 import { useState, useEffect, useRef } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { image as icon } from '@wordpress/icons';
 import { store as noticesStore } from '@wordpress/notices';
 
@@ -143,7 +144,7 @@ function ImageEdit({
             );
             if (files.length && files.some((f) => !isValidFileType(f))) {
                 createErrorNotice(
-                    __('Only image files can be uploaded here.'),
+                    __('Only image files can be uploaded here.', TEXT_DOMAIN),
                     { type: 'snackbar' }
                 );
             }

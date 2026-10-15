@@ -26,6 +26,7 @@ import {
     __experimentalToolsPanelItem as ToolsPanelItem,
 } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { useState } from '@wordpress/element';
 import { useSelect } from '@wordpress/data';
 
@@ -41,7 +42,7 @@ const TEMPLATE: Array<[string, Record<string, unknown>]> = [
     [
         'core/paragraph',
         {
-            placeholder: __('Type / to add a hidden block'),
+            placeholder: __('Type / to add a hidden block', TEXT_DOMAIN),
         },
     ],
 ];
@@ -101,7 +102,7 @@ export default function DetailsEdit({
             <InspectorControls>
                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 <ToolsPanel
-                    label={__('Settings')}
+                    label={__('Settings', TEXT_DOMAIN)}
                     resetAll={() => {
                         setAttributes({
                             showContent: false,
@@ -112,7 +113,7 @@ export default function DetailsEdit({
                     {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     <ToolsPanelItem
                         isShownByDefault
-                        label={__('Open by default')}
+                        label={__('Open by default', TEXT_DOMAIN)}
                         hasValue={() => !!showContent}
                         onDeselect={() => {
                             setAttributes({
@@ -124,7 +125,7 @@ export default function DetailsEdit({
                         <ToggleControl
                             // @ts-expect-error - upstream prop
                             __nextHasNoMarginBottom
-                            label={__('Open by default')}
+                            label={__('Open by default', TEXT_DOMAIN)}
                             checked={!!showContent}
                             onChange={() => {
                                 const next = !showContent;
@@ -139,13 +140,14 @@ export default function DetailsEdit({
                 <TextControl
                     // @ts-expect-error - upstream prop
                     __next40pxDefaultSize
-                    label={__('Name attribute')}
+                    label={__('Name attribute', TEXT_DOMAIN)}
                     value={name || ''}
                     onChange={(newName: string) =>
                         setAttributes({ name: newName })
                     }
                     help={__(
-                        'Enables multiple Details blocks with the same name attribute to be connected, with only one open at a time.'
+                        'Enables multiple Details blocks with the same name attribute to be connected, with only one open at a time.',
+                        TEXT_DOMAIN
                     )}
                 />
             </InspectorControls>
@@ -165,9 +167,10 @@ export default function DetailsEdit({
                     <RichText
                         identifier="summary"
                         aria-label={__(
-                            'Write summary. Press Enter to expand or collapse the details.'
+                            'Write summary. Press Enter to expand or collapse the details.',
+                            TEXT_DOMAIN
                         )}
-                        placeholder={placeholder || __('Write summary…')}
+                        placeholder={placeholder || __('Write summary…', TEXT_DOMAIN)}
                         withoutInteractiveFormatting
                         value={summary}
                         onChange={(newSummary: string) =>

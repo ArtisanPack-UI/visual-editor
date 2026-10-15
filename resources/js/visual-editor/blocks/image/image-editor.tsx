@@ -38,6 +38,7 @@ import {
     RichText,
 } from '@wordpress/block-editor';
 import { __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 
 import {
     ALLOWED_MEDIA_TYPES,
@@ -283,7 +284,7 @@ export default function Image(props: ImageEditorProps): ReactElement {
             )}
             <InspectorControls>
                 <ToolsPanel
-                    label={__('Settings')}
+                    label={__('Settings', TEXT_DOMAIN)}
                     resetAll={() =>
                         setAttributes({
                             alt: '',
@@ -296,25 +297,26 @@ export default function Image(props: ImageEditorProps): ReactElement {
                     }
                 >
                     <ToolsPanelItem
-                        label={__('Alternative text')}
+                        label={__('Alternative text', TEXT_DOMAIN)}
                         isShownByDefault
                         hasValue={() => !!alt}
                         onDeselect={() => setAttributes({ alt: '' })}
                     >
                         <TextareaControl
                             __nextHasNoMarginBottom
-                            label={__('Alternative text')}
+                            label={__('Alternative text', TEXT_DOMAIN)}
                             value={alt ?? ''}
                             onChange={(value: string) =>
                                 setAttributes({ alt: value })
                             }
                             help={__(
-                                'Describe the purpose of the image. Leave empty if decorative.'
+                                'Describe the purpose of the image. Leave empty if decorative.',
+                                TEXT_DOMAIN
                             )}
                         />
                     </ToolsPanelItem>
                     <ToolsPanelItem
-                        label={__('Image dimensions')}
+                        label={__('Image dimensions', TEXT_DOMAIN)}
                         isShownByDefault
                         hasValue={() => !!width}
                         onDeselect={() =>
@@ -331,14 +333,14 @@ export default function Image(props: ImageEditorProps): ReactElement {
                         />
                     </ToolsPanelItem>
                     <ToolsPanelItem
-                        label={__('Title attribute')}
+                        label={__('Title attribute', TEXT_DOMAIN)}
                         hasValue={() => !!title}
                         onDeselect={() => setAttributes({ title: undefined })}
                     >
                         <TextControl
                             __nextHasNoMarginBottom
                             __next40pxDefaultSize
-                            label={__('Title attribute')}
+                            label={__('Title attribute', TEXT_DOMAIN)}
                             value={title ?? ''}
                             onChange={(value: string) =>
                                 setAttributes({
@@ -355,8 +357,8 @@ export default function Image(props: ImageEditorProps): ReactElement {
                 <RichText
                     identifier="caption"
                     tagName="figcaption"
-                    aria-label={__('Image caption text')}
-                    placeholder={__('Add caption')}
+                    aria-label={__('Image caption text', TEXT_DOMAIN)}
+                    placeholder={__('Add caption', TEXT_DOMAIN)}
                     value={caption ?? ''}
                     onChange={(value: string) =>
                         setAttributes({ caption: value } as Partial<ImageEditorAttributes> & {

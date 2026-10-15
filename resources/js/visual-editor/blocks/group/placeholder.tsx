@@ -10,6 +10,7 @@ import type { ReactElement } from 'react';
 import { useSelect } from '@wordpress/data';
 import { useBlockProps } from '@wordpress/block-editor';
 import { __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { store as blocksStore } from '@wordpress/blocks';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 import { Button, Placeholder } from '@wordpress/components';
@@ -142,12 +143,12 @@ export default function GroupPlaceHolder({
         <div {...blockProps}>
             <Placeholder
                 // @ts-expect-error - upstream prop
-                instructions={__('Group blocks together. Select a layout:')}
+                instructions={__('Group blocks together. Select a layout:', TEXT_DOMAIN)}
             >
                 <ul
                     role="list"
                     className="wp-block-group-placeholder__variations"
-                    aria-label={__('Block variations')}
+                    aria-label={__('Block variations', TEXT_DOMAIN)}
                 >
                     {variations.map((variation) => (
                         <li key={variation.name}>

@@ -22,6 +22,7 @@ import {
     useInnerBlocksProps,
 } from '@wordpress/block-editor';
 import { __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { compose } from '@wordpress/compose';
 
 import {
@@ -1298,7 +1299,7 @@ const v3 = {
                         },
                     },
                     fontSize: 'large',
-                    placeholder: __('Write title…'),
+                    placeholder: __('Write title…', TEXT_DOMAIN),
                 }),
             ],
         ];
@@ -1373,7 +1374,7 @@ const v2 = {
                         },
                     },
                     fontSize: 'large',
-                    placeholder: __('Write title…'),
+                    placeholder: __('Write title…', TEXT_DOMAIN),
                 }),
             ],
         ];
@@ -1424,7 +1425,7 @@ const v1 = {
                         },
                     },
                     fontSize: 'large',
-                    placeholder: __('Write title…'),
+                    placeholder: __('Write title…', TEXT_DOMAIN),
                 }),
             ],
         ];

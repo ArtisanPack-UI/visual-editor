@@ -11,6 +11,7 @@
 
 import type { ReactElement } from 'react';
 import { __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import {
     ToolbarButton,
     ToggleControl,
@@ -33,10 +34,12 @@ interface EmbedControlsProps {
 function getResponsiveHelp(checked: boolean): string {
     return checked
         ? __(
-              'This embed will preserve its aspect ratio when the browser is resized.'
+              'This embed will preserve its aspect ratio when the browser is resized.',
+              TEXT_DOMAIN
           )
         : __(
-              'This embed may not preserve its aspect ratio when the browser is resized.'
+              'This embed may not preserve its aspect ratio when the browser is resized.',
+              TEXT_DOMAIN
           );
 }
 
@@ -55,7 +58,7 @@ export default function EmbedControls({
                     {showEditButton && (
                         <ToolbarButton
                             className="components-toolbar__control"
-                            label={__('Edit URL')}
+                            label={__('Edit URL', TEXT_DOMAIN)}
                             icon={pencil}
                             onClick={switchBackToURLInput}
                         />
@@ -65,13 +68,13 @@ export default function EmbedControls({
             {themeSupportsResponsive && blockSupportsResponsive && (
                 <InspectorControls>
                     <ToolsPanel
-                        label={__('Media settings')}
+                        label={__('Media settings', TEXT_DOMAIN)}
                         resetAll={() => {
                             toggleResponsive(true);
                         }}
                     >
                         <ToolsPanelItem
-                            label={__('Media settings')}
+                            label={__('Media settings', TEXT_DOMAIN)}
                             isShownByDefault
                             hasValue={() => !allowResponsive}
                             onDeselect={() => {
@@ -79,7 +82,7 @@ export default function EmbedControls({
                             }}
                         >
                             <ToggleControl
-                                label={__('Resize for smaller devices')}
+                                label={__('Resize for smaller devices', TEXT_DOMAIN)}
                                 checked={allowResponsive}
                                 help={getResponsiveHelp}
                                 onChange={toggleResponsive}

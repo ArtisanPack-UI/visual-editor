@@ -21,6 +21,7 @@ import {
 import { useRef } from '@wordpress/element';
 import { SelectControl } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import clsx from 'clsx';
 
 import GroupPlaceHolder, { useShouldShowPlaceHolder } from './placeholder';
@@ -62,11 +63,11 @@ function GroupEditControls({
     return (
         <InspectorControls group="advanced">
             <SelectControl
-                label={__('HTML element')}
+                label={__('HTML element', TEXT_DOMAIN)}
                 value={tagName}
                 onChange={onSelectTagName}
                 options={[
-                    { label: __('Default (<div>)'), value: 'div' },
+                    { label: __('Default (<div>)', TEXT_DOMAIN), value: 'div' },
                     { label: '<header>', value: 'header' },
                     { label: '<main>', value: 'main' },
                     { label: '<section>', value: 'section' },

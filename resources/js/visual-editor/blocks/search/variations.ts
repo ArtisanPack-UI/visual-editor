@@ -7,12 +7,13 @@
  */
 
 import { __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 
 const variations = [
     {
         name: 'default',
         isDefault: true,
-        attributes: { buttonText: __( 'Search' ), label: __( 'Search' ) },
+        attributes: { buttonText: __( 'Search', TEXT_DOMAIN ), label: __( 'Search', TEXT_DOMAIN ) },
     },
 ];
 
