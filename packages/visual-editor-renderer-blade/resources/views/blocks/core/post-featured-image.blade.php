@@ -1,5 +1,6 @@
 @php
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\DuotoneSupport;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\UrlSanitizer;
 
 	$isLink     = ! empty( $attributes['isLink'] );
@@ -19,6 +20,13 @@
 
 	if ( '' !== $sizeSlug ) {
 		$baseClasses[] = 'size-' . $sizeSlug;
+	}
+
+	// #873 — duotone filter, scoped to the featured `<img>`.
+	$duotoneClass = DuotoneSupport::apply( $attributes, 'img' );
+
+	if ( '' !== $duotoneClass ) {
+		$baseClasses[] = $duotoneClass;
 	}
 
 	$styleParts = [];

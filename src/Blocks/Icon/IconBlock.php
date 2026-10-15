@@ -95,6 +95,7 @@ class IconBlock extends DynamicBlock
 			// attrs; custom hex values land inside `style`.
 			'paletteBackground'   => $this->normalizePaletteSlug( $attrs['backgroundColor'] ?? null ),
 			'paletteBorderColor'  => $this->normalizePaletteSlug( $attrs['borderColor'] ?? null ),
+			'paletteGradient'     => $this->normalizePaletteSlug( $attrs['gradient'] ?? null ),
 			'rotation'            => $rotation,
 			'flipH'               => (bool) ( $attrs['flipH'] ?? false ),
 			'flipV'               => (bool) ( $attrs['flipV'] ?? false ),
@@ -107,6 +108,35 @@ class IconBlock extends DynamicBlock
 			'className'           => is_string( $attrs['className'] ?? null ) ? (string) $attrs['className'] : '',
 			'style'               => is_array( $attrs['style'] ?? null ) ? $attrs['style'] : [],
 		];
+	}
+
+	/**
+	 * Shape the attribute bag the renderer compiles block supports from
+	 * (#874). That merge supplies what this block doesn't build itself
+	 * (gradient, anchor, align, `var:preset|…` spacing, shadow, states, …).
+	 *
+	 * - The top-level `backgroundColor` / `borderColor` slots double as
+	 *   legacy hex storage, so only the validated palette slugs are kept
+	 *   there. A hex value isn't misread as a `has-{slug}-*` class.
+	 * - `style.color.text` is dropped because the icon paints its
+	 *   foreground on the body span (see `bodyStyle()`), not the wrapper.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  array<string, mixed>  $attrs
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function supportAttributes( array $attrs ): array
+	{
+		$attrs['backgroundColor'] = $attrs['paletteBackground'] ?? $this->normalizePaletteSlug( $attrs['backgroundColor'] ?? null );
+		$attrs['borderColor']     = $attrs['paletteBorderColor'] ?? $this->normalizePaletteSlug( $attrs['borderColor'] ?? null );
+
+		if ( isset( $attrs['style']['color'] ) && is_array( $attrs['style']['color'] ) ) {
+			unset( $attrs['style']['color']['text'] );
+		}
+
+		return $attrs;
 	}
 
 	public function render( array $attrs ): string
@@ -254,6 +284,18 @@ class IconBlock extends DynamicBlock
 			$classes[] = 'has-background';
 		}
 
+		// `supports.color.gradients` (#874) — palette gradient slug as
+		// `has-{slug}-gradient-background`; a custom gradient is inlined
+		// by `wrapperStyle()`. Both share the `has-background` marker.
+		if ( '' !== ( $attrs['paletteGradient'] ?? '' ) ) {
+			$classes[] = sprintf( 'has-%s-gradient-background', $attrs['paletteGradient'] );
+			$classes[] = 'has-background';
+		} elseif ( null !== $this->normalizeGradient( $style['color']['gradient'] ?? null ) ) {
+			$classes[] = 'has-background';
+		}
+
+		$classes = array_values( array_unique( $classes ) );
+
 		// `supports.__experimentalBorder` mirrors the same palette/custom
 		// split for border color.
 		if ( '' !== $attrs['paletteBorderColor'] ) {
@@ -336,6 +378,13 @@ class IconBlock extends DynamicBlock
 		$background   = '' === $attrs['paletteBackground'] ? ( $wpBackground ?? $attrs['backgroundColor'] ) : null;
 		if ( null !== $background ) {
 			$parts[] = 'background-color: ' . $background;
+		}
+
+		// Custom gradient (#874). The palette slug case is the
+		// `has-{slug}-gradient-background` class in `wrapperClasses()`.
+		$gradient = '' === ( $attrs['paletteGradient'] ?? '' ) ? $this->normalizeGradient( $style['color']['gradient'] ?? null ) : null;
+		if ( null !== $gradient ) {
+			$parts[] = 'background: ' . $gradient;
 		}
 
 		foreach ( $this->borderDeclarations( $style['border'] ?? null ) as $decl ) {
@@ -618,6 +667,41 @@ class IconBlock extends DynamicBlock
 			return '';
 		}
 		return $trimmed;
+	}
+
+	/**
+	 * Allowlist a custom gradient value: a `linear` / `radial` / `conic`
+	 * (optionally `repeating-`) gradient function, a `var(--token)`, or a
+	 * `var:preset|gradient|{slug}` reference (expanded to its custom
+	 * property). Characters that could close the declaration or the
+	 * attribute (`;`, braces, angle brackets, quotes, backslash), and any
+	 * `url(` layer, reject the whole value.
+	 *
+	 * @since 1.15.0
+	 */
+	private function normalizeGradient( mixed $value ): ?string
+	{
+		if ( ! is_string( $value ) ) {
+			return null;
+		}
+
+		$trimmed = trim( $value );
+
+		if ( 1 === preg_match( '/^var:preset\|gradient\|([a-z0-9_-]+)$/i', $trimmed, $matches ) ) {
+			return sprintf( 'var(--wp--preset--gradient--%s)', strtolower( str_replace( '_', '-', $matches[1] ) ) );
+		}
+
+		if ( 1 === preg_match( '/^var\(--[a-z0-9_-]+\)$/i', $trimmed ) ) {
+			return $trimmed;
+		}
+
+		// `url(` is rejected so a stored gradient can't smuggle in an
+		// extra fetching layer (`…), url(https://…)`).
+		if ( 1 === preg_match( '/^(?:repeating-)?(?:linear|radial|conic)-gradient\([^;{}<>"\'\\\\]+\)$/i', $trimmed ) && false === stripos( $trimmed, 'url(' ) ) {
+			return $trimmed;
+		}
+
+		return null;
 	}
 
 	private function normalizeColor( mixed $value ): ?string

@@ -39,6 +39,23 @@
         }
     },
     "supports": {
+        "artisanpackStates": {
+            "attributes": [
+                "backgroundColor",
+                "textColor",
+                "gradient",
+                "color.background",
+                "color.text",
+                "color.gradient",
+                "border.color",
+                "border.width",
+                "border.style",
+                "border.radius",
+                "shadow",
+                "dimensions.transform",
+                "transition"
+            ]
+        },
         "artisanpackAnimations": true,
         "__experimentalOnEnter": true,
         "__experimentalOnMerge": true,

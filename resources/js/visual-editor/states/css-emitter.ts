@@ -90,6 +90,27 @@ function configFor( path: string ): PathConfig | null {
 // `rgb(…)`, and `linear-gradient(…)` from being double-wrapped.
 const SLUG_RE = /^[a-z0-9][a-z0-9_-]*$/i
 
+const PRESET_REFERENCE_PREFIX = 'var:preset|'
+
+/**
+ * Expand Gutenberg's `var:preset|{kind}|{slug}` shorthand — what a
+ * palette swatch writes into `color.background`, `border.color`,
+ * `shadow`, … — into `var(--wp--preset--{kind}--{slug})` (#875). Same
+ * segment rule as `BlockSupports::presetSlug()` on the PHP side: split
+ * camelCase, lowercase, and map anything outside `[a-z0-9-]` to `-`.
+ */
+function expandPresetReference( value: string ): string {
+	const segments = value
+		.slice( PRESET_REFERENCE_PREFIX.length )
+		.split( '|' )
+		.map( ( segment ) => segment
+			.replace( /([a-z])([A-Z])/g, '$1-$2' )
+			.toLowerCase()
+			.replace( /[^a-z0-9-]/g, '-' ) )
+
+	return `var(--wp--preset--${ segments.join( '--' ) })`
+}
+
 function stringifyValue( value: unknown, config: PathConfig ): string | null {
 	if ( null === value || undefined === value ) {
 		return null
@@ -101,6 +122,10 @@ function stringifyValue( value: unknown, config: PathConfig ): string | null {
 
 	if ( 'string' !== typeof value || '' === value ) {
 		return null
+	}
+
+	if ( value.startsWith( PRESET_REFERENCE_PREFIX ) ) {
+		return expandPresetReference( value )
 	}
 
 	if ( config.preset && SLUG_RE.test( value ) ) {

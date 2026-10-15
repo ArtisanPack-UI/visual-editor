@@ -161,4 +161,22 @@ describe( 'emitStateCss', () => {
 
 		expect( css ).toContain( 'background: var(--wp--preset--gradient--blush-bordeaux) !important;' )
 	} )
+	it( 'expands var:preset references on every path (#875)', () => {
+		const css = emitStateCss(
+			'.scope',
+			{
+				'style.color.background': { hover: 'var:preset|color|primary' },
+				'border.color':           { hover: 'var:preset|color|accentDark' },
+				'shadow':                 { focus: 'var:preset|shadow|natural' },
+				'gradient':               { hover: 'var:preset|gradient|sunset_glow' },
+			},
+			registry,
+		)
+
+		expect( css ).toContain( 'background-color: var(--wp--preset--color--primary) !important;' )
+		expect( css ).toContain( 'border-color: var(--wp--preset--color--accent-dark) !important;' )
+		expect( css ).toContain( 'box-shadow: var(--wp--preset--shadow--natural) !important;' )
+		expect( css ).toContain( 'background: var(--wp--preset--gradient--sunset-glow) !important;' )
+		expect( css ).not.toContain( 'var:preset' )
+	} )
 } )

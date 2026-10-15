@@ -7,8 +7,36 @@
 import { defineComponent, h } from 'vue';
 import type { VNode } from 'vue';
 import { attrBoolean, attrInt, attrString, classList } from '../../support/attributes';
+import { safeCssValue } from '../../support/cssValue';
 import { safeUrl } from '../../support/urlSanitizer';
 import { blockRendererProps } from '../shared';
+
+/**
+ * Object-fit keywords the image block's Scale control writes (#873).
+ */
+const IMAGE_SCALES = ['cover', 'contain', 'fill', 'none', 'scale-down'];
+
+/**
+ * The `<img>` style for the image block's `aspectRatio` + `scale`
+ * attributes (#873), mirroring `image.blade.php`: the ratio must pass
+ * `safeCssValue`, the scale must be a known object-fit keyword.
+ */
+function imageStyle(attributes: Record<string, unknown>): Record<string, string> | undefined {
+    const style: Record<string, string> = {};
+    const aspectRatio =
+        typeof attributes.aspectRatio === 'string' ? safeCssValue(attributes.aspectRatio) : null;
+    const scale = attributes.scale;
+
+    if (aspectRatio !== null) {
+        style.aspectRatio = aspectRatio.trim();
+    }
+
+    if (typeof scale === 'string' && IMAGE_SCALES.includes(scale)) {
+        style.objectFit = scale;
+    }
+
+    return Object.keys(style).length > 0 ? style : undefined;
+}
 
 export const ImageBlock = defineComponent({
     name: 'ImageBlock',
@@ -50,6 +78,12 @@ export const ImageBlock = defineComponent({
 
             if (height !== undefined) {
                 imgProps.height = height;
+            }
+
+            const style = imageStyle(props.attributes);
+
+            if (style !== undefined) {
+                imgProps.style = style;
             }
 
             const img: VNode | null = url === '' ? null : h('img', imgProps);

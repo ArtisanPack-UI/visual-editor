@@ -22,6 +22,8 @@
  *                    style, width; plus per-side
  *                    `style.border.{top|right|bottom|left}` objects.
  *                    Palette slugs via `borderColor`.
+ * - `background`   → `style.background.*` image, size, position,
+ *                    repeat and attachment (#873).
  * - `typography`   → custom values from `style.typography.*`;
  *                    palette slugs from `fontSize` / `fontFamily`.
  * - `align (text)` → `textAlign` attribute → inline `text-align`.
@@ -173,6 +175,7 @@ class BlockSupports
 		self::applyAlign( $attributes, $classes );
 		self::applyTextAlign( $attributes, $classes );
 		self::applyColor( $attributes, $classes, $style );
+		self::applyBackground( $attributes, $style );
 		self::applySpacing( $attributes, $style );
 		self::applyBorder( $attributes, $classes, $style );
 		self::applyTypography( $attributes, $classes, $style );
@@ -513,6 +516,109 @@ class BlockSupports
 		self::pushGradientBorder( $compiled['class'], $compiled['rules'] );
 
 		return self::injectClassIntoFirstTag( $html, $compiled['class'] );
+	}
+
+	/**
+	 * Merge a block's compiled supports into an already-rendered dynamic
+	 * block's wrapper (#874).
+	 *
+	 * Blade-partial blocks get their supports from {@see wrapperAttrs}.
+	 * Dynamic blocks render their own HTML, so the renderer pipes the
+	 * output through here instead: {@see compile} (plus animations) runs
+	 * against `$attributes` and the result is merged into the first
+	 * element of `$html`. Leading whitespace, comments, `<style>`,
+	 * `<script>`, `<template>`, `<noscript>`, `<link>` and `<meta>` are
+	 * skipped so a block that prints its own assets first still has its
+	 * real wrapper targeted.
+	 *
+	 * The merge never overrides the handler's own output:
+	 * - classes are appended and deduped;
+	 * - a declaration is added only when the wrapper's `style` doesn't
+	 *   already set that property;
+	 * - `id` and the animation `data-*` attributes are added only when
+	 *   absent.
+	 *
+	 * That keeps the merge idempotent for a handler that already applied
+	 * some supports itself. Returns `$html` unchanged when there is no
+	 * wrapper element to target or nothing to merge.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  string                $html        Block's pre-rendered HTML.
+	 * @param  array<string, mixed>  $attributes  Attribute payload to
+	 *                                            compile supports from.
+	 */
+	public static function applyToRenderedHtml( string $html, array $attributes ): string
+	{
+		$tag = self::locateWrapperTag( $html );
+
+		if ( null === $tag ) {
+			return $html;
+		}
+
+		$compiled   = self::compile( $attributes );
+		$animations = self::resolveAnimations( $attributes );
+
+		$classes = $compiled['classes'];
+		$extra   = [];
+
+		if ( null !== $animations ) {
+			$classes = array_merge( $classes, $animations['classes'] );
+
+			preg_match_all( '/([a-zA-Z0-9_:.-]+)="([^"]*)"/', $animations['dataString'], $pairs, PREG_SET_ORDER );
+
+			foreach ( $pairs as $pair ) {
+				$extra[ strtolower( $pair[1] ) ] = [ $pair[1], $pair[2] ];
+			}
+		}
+
+		if ( [] === $classes && '' === $compiled['style'] && null === $compiled['id'] && [] === $extra ) {
+			return $html;
+		}
+
+		$attrs = self::parseTagAttributes( $tag['attributes'] );
+
+		if ( [] !== $classes ) {
+			$existing = isset( $attrs['class'] ) ? html_entity_decode( (string) $attrs['class'][1], ENT_QUOTES | ENT_HTML5 ) : '';
+			$tokens   = preg_split( '/\s+/', trim( $existing ) ) ?: [];
+			$merged   = array_values( array_unique( array_filter(
+				array_merge( $tokens, $classes ),
+				static fn ( string $class ): bool => '' !== trim( $class ),
+			) ) );
+
+			$attrs['class'] = [ $attrs['class'][0] ?? 'class', e( implode( ' ', $merged ) ) ];
+		}
+
+		if ( '' !== $compiled['style'] ) {
+			$existing = isset( $attrs['style'] ) ? html_entity_decode( (string) $attrs['style'][1], ENT_QUOTES | ENT_HTML5 ) : '';
+			$merged   = self::mergeStyleDeclarations( $existing, $compiled['style'] );
+
+			if ( '' !== $merged ) {
+				$attrs['style'] = [ $attrs['style'][0] ?? 'style', e( $merged ) ];
+			}
+		}
+
+		if ( null !== $compiled['id'] && ! isset( $attrs['id'] ) ) {
+			$attrs['id'] = [ 'id', e( $compiled['id'] ) ];
+		}
+
+		foreach ( $extra as $key => $pair ) {
+			if ( ! isset( $attrs[ $key ] ) ) {
+				$attrs[ $key ] = $pair;
+			}
+		}
+
+		$parts = [];
+
+		foreach ( $attrs as $pair ) {
+			$parts[] = null === $pair[1]
+				? $pair[0]
+				: sprintf( '%s="%s"', $pair[0], str_replace( '"', '&quot;', $pair[1] ) );
+		}
+
+		$rebuilt = '<' . $tag['name'] . ( [] === $parts ? '' : ' ' . implode( ' ', $parts ) ) . ( $tag['selfClosing'] ? ' />' : '>' );
+
+		return substr( $html, 0, $tag['offset'] ) . $rebuilt . substr( $html, $tag['offset'] + $tag['length'] );
 	}
 
 	/**
@@ -1003,6 +1109,136 @@ class BlockSupports
 	}
 
 	/**
+	 * Find the first wrapper element in rendered HTML, skipping leading
+	 * whitespace, comments and non-visual asset elements. Returns the
+	 * opening tag's byte offset / length, element name, raw attribute
+	 * string and whether it was written self-closing — or `null` when
+	 * the output doesn't start with an element.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @return array{offset: int, length: int, name: string, attributes: string, selfClosing: bool}|null
+	 */
+	protected static function locateWrapperTag( string $html ): ?array
+	{
+		$offset = 0;
+		$length = strlen( $html );
+
+		while ( $offset < $length ) {
+			if ( 1 === preg_match( '/\G\s+/', $html, $match, 0, $offset ) ) {
+				$offset += strlen( $match[0] );
+
+				continue;
+			}
+
+			if ( 1 === preg_match( '/\G<!--.*?-->/s', $html, $match, 0, $offset )
+				|| 1 === preg_match( '/\G<(style|script|template|noscript)\b[^>]*>.*?<\/\1\s*>/is', $html, $match, 0, $offset )
+				|| 1 === preg_match( '/\G<(?:link|meta)\b[^>]*>/i', $html, $match, 0, $offset )
+			) {
+				$offset += strlen( $match[0] );
+
+				continue;
+			}
+
+			break;
+		}
+
+		$pattern = '/\G<([a-zA-Z][a-zA-Z0-9-]*)((?:\s+[^\s=\/>"\']+(?:\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s"\'=<>`]+))?)*)\s*(\/?)>/';
+
+		if ( 1 !== preg_match( $pattern, $html, $match, 0, $offset ) ) {
+			return null;
+		}
+
+		return [
+			'offset'      => $offset,
+			'length'      => strlen( $match[0] ),
+			'name'        => $match[1],
+			'attributes'  => $match[2],
+			'selfClosing' => '/' === $match[3],
+		];
+	}
+
+	/**
+	 * Parse an opening tag's raw attribute string into an ordered map
+	 * keyed by lowercased name. Each entry is `[name, rawValue]`, where
+	 * `rawValue` is the still-escaped source text (or `null` for a bare
+	 * boolean attribute). The first occurrence of a duplicate wins, as
+	 * it does in the browser.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @return array<string, array{0: string, 1: ?string}>
+	 */
+	protected static function parseTagAttributes( string $attributes ): array
+	{
+		preg_match_all(
+			'/([^\s=\/>"\']+)(?:\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s"\'=<>`]+)))?/',
+			$attributes,
+			$matches,
+			PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL,
+		);
+
+		$parsed = [];
+
+		foreach ( $matches as $match ) {
+			$key = strtolower( (string) $match[1] );
+
+			if ( isset( $parsed[ $key ] ) ) {
+				continue;
+			}
+
+			$parsed[ $key ] = [ (string) $match[1], $match[2] ?? $match[3] ?? $match[4] ?? null ];
+		}
+
+		return $parsed;
+	}
+
+	/**
+	 * Append the compiled declarations whose property the existing
+	 * inline style doesn't set yet. The existing style is kept verbatim
+	 * — it is only scanned for property names — so a value holding a
+	 * `;` (e.g. a `data:` URI) survives untouched. Returns the merged
+	 * declaration list.
+	 *
+	 * @since 1.15.0
+	 */
+	protected static function mergeStyleDeclarations( string $existing, string $compiled ): string
+	{
+		$existing = trim( $existing );
+
+		preg_match_all( '/(?:^|;)\s*([a-zA-Z-]+)\s*:/', $existing, $matches );
+
+		$properties = array_fill_keys( array_map( 'strtolower', $matches[1] ), true );
+		$additions  = [];
+
+		foreach ( explode( ';', $compiled ) as $declaration ) {
+			$declaration = trim( $declaration );
+			$colon       = strpos( $declaration, ':' );
+
+			if ( '' === $declaration || false === $colon ) {
+				continue;
+			}
+
+			$property = strtolower( trim( substr( $declaration, 0, $colon ) ) );
+
+			if ( isset( $properties[ $property ] ) ) {
+				continue;
+			}
+
+			$properties[ $property ] = true;
+			$additions[]             = $declaration;
+		}
+
+		if ( [] === $additions ) {
+			return $existing;
+		}
+
+		$prefix = '' === $existing ? '' : rtrim( $existing, '; ' ) . '; ';
+
+		return $prefix . implode( '; ', $additions ) . ';';
+	}
+
+	/**
 	 * Compile the `attributes.states` payload into a `{class, rules}`
 	 * pair the wrapper can merge in and the accumulator can dedupe (#488).
 	 *
@@ -1171,6 +1407,16 @@ class BlockSupports
 	}
 
 	/**
+	 * Convert one stored state value into its CSS form. A Gutenberg
+	 * `var:preset|{kind}|{slug}` reference is expanded on every path
+	 * (#875) — palette swatches picked for `color.background`,
+	 * `border.color`, `shadow`, … are stored that way — before the
+	 * bare-slug expansion the `preset`-flagged paths apply.
+	 *
+	 * @since 1.0.0
+	 * @since 1.15.0 Expands `var:preset|…` references on every path and
+	 *               drops values that fail {@see self::safeCssValue()}.
+	 *
 	 * @param  array{property: string, preset?: string}  $entry
 	 */
 	protected static function convertStateValue( mixed $raw, array $entry ): mixed
@@ -1187,11 +1433,19 @@ class BlockSupports
 			return null;
 		}
 
+		if ( str_starts_with( $raw, 'var:preset|' ) ) {
+			return self::expandPresetReference( $raw );
+		}
+
 		if ( isset( $entry['preset'] ) && 1 === preg_match( '/^[a-z0-9][a-z0-9_-]*$/i', $raw ) ) {
 			return sprintf( 'var(--wp--preset--%s--%s)', $entry['preset'], $raw );
 		}
 
-		return $raw;
+		// State rules are spliced raw into `<style data-ve-states>`, so a
+		// value carrying CSS-structural characters (`;`, braces, `<`,
+		// quotes, `:` …) could inject rules or close the tag. Drop it,
+		// like the responsive emitter does (#875).
+		return self::safeCssValue( $raw );
 	}
 
 	protected static function resolveStateRegistry(): StateRegistry
@@ -1810,6 +2064,75 @@ class BlockSupports
 		} elseif ( '' !== $customText ) {
 			$style[]   = 'color: ' . self::expandPresetReference( $customText );
 			$classes[] = 'has-text-color';
+		}
+	}
+
+	/**
+	 * Background support (#873): `style.background.backgroundImage`
+	 * (an `{url, id, source, title}` object or a bare URL string) plus
+	 * `backgroundSize`, `backgroundPosition`, `backgroundRepeat` and
+	 * `backgroundAttachment` become inline declarations.
+	 *
+	 * Mirrors WordPress core's `wp_render_background_support()` defaults:
+	 * an image with no size is `cover`, and a `contain` image with no
+	 * position is centred. The URL runs through {@see UrlSanitizer} and
+	 * is percent-encoded so it can't close the `url('…')` token; the
+	 * other values must pass {@see self::safeCssValue()}. Without an image
+	 * the size / position / repeat / attachment keys emit nothing, again
+	 * matching core.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 * @param  array<int, string>   &$style
+	 */
+	protected static function applyBackground( array $attributes, array &$style ): void
+	{
+		$background = $attributes['style']['background'] ?? null;
+
+		if ( ! is_array( $background ) ) {
+			return;
+		}
+
+		$image = $background['backgroundImage'] ?? null;
+		$url   = is_array( $image ) ? ( $image['url'] ?? null ) : $image;
+		$url   = is_string( $url ) ? UrlSanitizer::safe( $url ) : '';
+
+		if ( '' === $url ) {
+			return;
+		}
+
+		$encoded = (string) preg_replace_callback(
+			'/[\s\'"()\\\\<>;]/',
+			static fn ( array $matches ): string => rawurlencode( $matches[0] ),
+			$url,
+		);
+
+		$style[] = "background-image: url('" . $encoded . "')";
+
+		$size     = self::safeCssValue( self::stringAttr( $background['backgroundSize'] ?? null ) ) ?? 'cover';
+		$position = self::safeCssValue( self::stringAttr( $background['backgroundPosition'] ?? null ) );
+
+		if ( null === $position && 'contain' === $size ) {
+			$position = '50% 50%';
+		}
+
+		$style[] = 'background-size: ' . $size;
+
+		if ( null !== $position ) {
+			$style[] = 'background-position: ' . $position;
+		}
+
+		$repeat = self::safeCssValue( self::stringAttr( $background['backgroundRepeat'] ?? null ) );
+
+		if ( null !== $repeat ) {
+			$style[] = 'background-repeat: ' . $repeat;
+		}
+
+		$attachment = self::stringAttr( $background['backgroundAttachment'] ?? null );
+
+		if ( in_array( $attachment, [ 'scroll', 'fixed', 'local' ], true ) ) {
+			$style[] = 'background-attachment: ' . $attachment;
 		}
 	}
 

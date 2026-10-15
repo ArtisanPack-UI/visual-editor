@@ -1694,6 +1694,38 @@
                     "innerBlocks": []
                 }
             ]
+        },
+        {
+            "name": "image-aspect-ratio-scale",
+            "tree": [
+                {
+                    "clientId": "i1",
+                    "name": "core/image",
+                    "attributes": {
+                        "url": "https://example.com/photo.jpg",
+                        "alt": "A photo",
+                        "aspectRatio": "16/9",
+                        "scale": "cover"
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "name": "image-hostile-aspect-ratio-scale",
+            "tree": [
+                {
+                    "clientId": "i1",
+                    "name": "core/image",
+                    "attributes": {
+                        "url": "https://example.com/photo.jpg",
+                        "alt": "A photo",
+                        "aspectRatio": "16/9;position:fixed",
+                        "scale": "cover;top:0"
+                    },
+                    "innerBlocks": []
+                }
+            ]
         }
     ]
 }

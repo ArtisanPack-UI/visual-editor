@@ -263,10 +263,15 @@ class VisualEditor
 	 *          'searchableText' => fn (array $attrs) => $attrs['title'] ?? '',
 	 *      ]);`
 	 *
+	 *      The front-end renderer merges the block's supports (color,
+	 *      spacing, anchor, …) into the first tag the render callback
+	 *      returns. Pass `'appliesOwnSupports' => true` when the callback
+	 *      already applies them via `BlockSupports::wrapperAttrs()` (#874).
+	 *
 	 * @since 1.0.0
 	 *
 	 * @param  class-string<DynamicBlock>|DynamicBlock|string  $blockOrName
-	 * @param  array<string, callable>|null                    $config
+	 * @param  array<string, bool|callable>|null               $config
 	 */
 	public function registerDynamicBlock( $blockOrName, ?array $config = null ): DynamicBlock
 	{
@@ -499,6 +504,7 @@ class VisualEditor
 			searchCallback: $this->optionalCallback( $name, $config, 'searchableText' ),
 			validateCallback: $this->optionalCallback( $name, $config, 'validateAttrs' ),
 			authorizeCallback: $this->optionalCallback( $name, $config, 'authorize' ),
+			ownSupports: true === ( $config['appliesOwnSupports'] ?? false ),
 		);
 	}
 

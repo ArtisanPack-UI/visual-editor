@@ -37,6 +37,7 @@ use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\LoginoutResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\SiteMetaResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\BoxShadowCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\DuotoneCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ElementsCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\PositionCssAccumulator;
@@ -428,6 +429,7 @@ class BlockRenderer
 			$this->drainAccumulator( BoxShadowCssAccumulator::class ),
 			$this->drainAccumulator( PositionCssAccumulator::class ),
 			$this->drainAccumulator( ElementsCssAccumulator::class ),
+			$this->drainAccumulator( DuotoneCssAccumulator::class ),
 		], static fn ( mixed $chunk ): bool => is_string( $chunk ) && '' !== $chunk ) );
 
 		$scripts = true === ( $animations['runtimeNeeded'] ?? false )
@@ -774,18 +776,27 @@ class BlockRenderer
 
 			$html = $this->coerceToString( $result );
 
-			// #490 — dynamic blocks build their own wrapper HTML and
-			// don't go through `BlockSupports::compile`, so the
-			// gradient-border pipeline never sees them by default.
-			// Post-process the rendered HTML to push the rule into the
-			// per-request accumulator AND stamp the scope class onto
-			// the first opening tag. Use `$validated` (not raw
-			// `$attributes`) so the scope class + emitted CSS stay
-			// aligned with the input the dynamic block actually
-			// rendered from — keeping editor preview and saved markup
-			// in lockstep across attribute normalization passes.
-			// No-op when the block has no gradient configured.
-			$html = BlockSupports::applyGradientBorder( $html, $validated );
+			// #874 — dynamic blocks build their own wrapper HTML and
+			// don't go through `BlockSupports::wrapperAttrs`, so merge
+			// the compiled supports (color, spacing, border, anchor,
+			// className, states, responsive, shadow, position, …) into
+			// the first opening tag, exactly as a Blade-partial block
+			// gets them. The raw attributes are overlaid with the
+			// validated ones so the handler's normalization wins while
+			// support keys it doesn't model (e.g. `anchor`) survive.
+			//
+			// Blocks that apply supports themselves (or render no
+			// wrapper of their own) opt out; they keep the #490
+			// gradient-border post-process, which stamps only the
+			// scope class and stays aligned with `$validated`.
+			if ( $block->appliesOwnSupports() ) {
+				$html = BlockSupports::applyGradientBorder( $html, $validated );
+			} else {
+				$html = BlockSupports::applyToRenderedHtml(
+					$html,
+					$block->supportAttributes( array_merge( $attributes, $validated ) ),
+				);
+			}
 
 			return $html;
 		} catch ( Throwable $e ) {
