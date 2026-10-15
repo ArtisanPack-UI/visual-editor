@@ -10,7 +10,9 @@
  */
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { __ } from '@wordpress/i18n';
 
+import { TEXT_DOMAIN } from '../vendor/i18n';
 import { ApiError, previewBlock, type PreviewBlockConfig } from './api-client';
 
 export type ServerSideRenderStatus = 'idle' | 'loading' | 'ready' | 'error';
@@ -142,7 +144,7 @@ export function ServerSideRender({
     if (html === null) {
         return (
             <div className={className} data-status={status}>
-                {loadingPlaceholder ?? <p>Loading preview…</p>}
+                {loadingPlaceholder ?? <p>{__('Loading preview…', TEXT_DOMAIN)}</p>}
             </div>
         );
     }
