@@ -109,7 +109,7 @@ describe('Core text blocks', () => {
 
         const html = renderTree(tree);
 
-        expect(html).toContain('<blockquote class="wp-block-quote">');
+        expect(html).toContain('<blockquote class="wp-block-quote is-layout-flow wp-block-quote-is-layout-flow">');
         expect(html).toContain('<p class="wp-block-paragraph">Quoted text</p>');
         expect(html).toContain('<cite>Someone Famous</cite>');
     });
@@ -543,7 +543,7 @@ describe('Core design blocks', () => {
 
         const html = renderTree(tree);
 
-        expect(html).toMatch(/<details class="wp-block-details" open(="")?>/);
+        expect(html).toMatch(/<details class="wp-block-details is-layout-flow wp-block-details-is-layout-flow" open(="")?>/);
         expect(html).toContain('<summary>Click me</summary>');
         expect(html).toContain('Hidden');
     });

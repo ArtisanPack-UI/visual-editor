@@ -2,6 +2,7 @@
 	use ArtisanPackUI\VisualEditorRendererBlade\Animations\AnimationMarkupResolver;
 	use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\LayoutSupport;
 
 	$url    = (string) ( $attributes['url'] ?? '' );
 	$alt    = (string) ( $attributes['alt'] ?? '' );
@@ -131,6 +132,20 @@
 
 	$overlayStyle = implode( '; ', $overlayStyleDeclarations ) . ';';
 
+	// F-3 — cover's layout (flow by default; constrained with a content
+	// width) applies to its inner container, as in WordPress, which adds
+	// the layout classes to the element that wraps the inner blocks. The
+	// container's own sizes and the cover's Block spacing (M-15) ride on a
+	// `wp-container-*` scope keyed on the inner container class. Cover
+	// doesn't allow justification, so no justification class is added.
+	$innerLayoutClass      = LayoutSupport::layoutClass( $attributes );
+	$innerContainerClasses = array_merge(
+		[ 'wp-block-cover__inner-container' ],
+		LayoutSupport::pair( 'cover', $innerLayoutClass ),
+		LayoutSupport::containerClasses( $attributes, 'cover', $innerLayoutClass, 'wp-block-cover__inner-container' ),
+		LayoutSupport::modifierClasses( $attributes, true, false )
+	);
+
 	// #489 — resolve any block-animation attribute bag, attach the
 	// wrapper classes + data attributes, and push the per-block CSS
 	// into the accumulator so the BlocksComponent emits a single
@@ -181,7 +196,7 @@
 	@if ( '' !== $url )
 		<img class="wp-block-cover__image-background" alt="{{ $alt }}" src="{{ $url }}"/>
 	@endif
-	<div class="wp-block-cover__inner-container">
+	<div class="{{ implode( ' ', $innerContainerClasses ) }}">
 		{!! $innerBlocksHtml !!}
 	</div>
 </div>

@@ -9,13 +9,14 @@
  *   (`left`) directly.
  *
  * Preset references (`var:preset|spacing|40`) expand to their CSS
- * custom property, same as the Blade twin. Empty object when unset.
+ * custom property, same as the Blade twin, and unsafe values are dropped
+ * through `blockGapValue()` (F-10). Empty object when unset.
  *
  * @since 1.12.0
  */
 
 import { attrRecord } from './attributes';
-import { expandPresetReference } from './presetReference';
+import { blockGapValue } from './layoutContainer';
 
 export interface BlockGapStyle {
     '--wp--style--block-gap'?: string;
@@ -23,21 +24,10 @@ export interface BlockGapStyle {
     columnGap?: string;
 }
 
-function stringAttr(value: unknown): string {
-    if (typeof value === 'string') {
-        return value.trim();
-    }
-
-    if (typeof value === 'number' && Number.isFinite(value)) {
-        return String(value);
-    }
-
-    return '';
-}
-
 /**
  * Return the React style fragment derived from
- * `attributes.style.spacing.blockGap`.
+ * `attributes.style.spacing.blockGap`. Values that could add declarations
+ * (`1rem;position:fixed`) are dropped (F-10), as in the Blade twin.
  */
 export function applyBlockGap(attributes: Record<string, unknown>): BlockGapStyle {
     const spacing = attrRecord(attrRecord(attributes.style).spacing);
@@ -45,23 +35,25 @@ export function applyBlockGap(attributes: Record<string, unknown>): BlockGapStyl
     const out: BlockGapStyle = {};
 
     if (typeof blockGap === 'string') {
-        if (blockGap !== '') {
-            out['--wp--style--block-gap'] = expandPresetReference(blockGap);
+        const gap = blockGapValue(blockGap);
+
+        if (gap !== null) {
+            out['--wp--style--block-gap'] = gap;
         }
 
         return out;
     }
 
     const axes = attrRecord(blockGap);
-    const top = stringAttr(axes.top);
-    const left = stringAttr(axes.left);
+    const top = blockGapValue(axes.top);
+    const left = blockGapValue(axes.left);
 
-    if (top !== '') {
-        out.rowGap = expandPresetReference(top);
+    if (top !== null) {
+        out.rowGap = top;
     }
 
-    if (left !== '') {
-        out.columnGap = expandPresetReference(left);
+    if (left !== null) {
+        out.columnGap = left;
     }
 
     return out;

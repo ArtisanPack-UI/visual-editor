@@ -14,6 +14,8 @@ import { useId } from 'react';
 import type { JSX } from 'react';
 
 import { attrBoolean, attrInt, attrString, classList } from '../../support/attributes';
+import { applyBlockGap } from '../../support/blockGap';
+import { layoutWrapperClasses } from '../../support/layoutContainer';
 import { safeUrl } from '../../support/urlSanitizer';
 import type { BlockRendererProps } from '../../types';
 
@@ -271,9 +273,19 @@ export function PostCommentsTitleBlock({ attributes }: BlockRendererProps): JSX.
 
 export function CommentsPaginationBlock({ attributes, children }: BlockRendererProps): JSX.Element {
     const className = attrString(attributes.className);
-    const classes = classList(['wp-block-comments-pagination', className]);
+    // F-3 — always a flex layout, as in `comments-pagination.blade.php`.
+    const classes = classList([
+        'wp-block-comments-pagination',
+        ...layoutWrapperClasses(attributes, 'comments-pagination', 'is-layout-flex'),
+        className,
+    ]);
+    const gapStyle = applyBlockGap(attributes);
     return (
-        <nav className={classes} aria-label="Comments pagination">
+        <nav
+            className={classes}
+            aria-label="Comments pagination"
+            style={Object.keys(gapStyle).length > 0 ? (gapStyle as React.CSSProperties) : undefined}
+        >
             {children}
         </nav>
     );

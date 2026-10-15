@@ -1,0 +1,10 @@
+<div class="wp-block-group is-layout-flex wp-block-group-is-layout-flex wp-container-57bf12b43b28 is-vertical is-content-justification-stretch">
+  <p class="wp-block-paragraph">
+    "A"
+  </p>
+  <p class="wp-block-paragraph">
+    "B"
+  </p>
+</div>
+@@ renderer-instance-css @@
+.wp-block-group.wp-block-group-is-layout-flex.wp-container-57bf12b43b28{flex-direction:column;align-items:stretch;justify-content:flex-start;}

@@ -1,4 +1,4 @@
-<div class="wp-block-group is-layout-constrained wp-block-group-is-layout-constrained wp-container-f64cfa736147">
+<div class="wp-block-group is-layout-constrained wp-block-group-is-layout-constrained wp-container-f64cfa736147 is-content-justification-left">
   <p class="wp-block-paragraph">
     "One"
   </p>

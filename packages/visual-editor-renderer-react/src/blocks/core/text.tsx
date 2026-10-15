@@ -6,8 +6,10 @@
  * React-rendered pages ship identical markup.
  */
 
-import { attrBoolean, attrInt, attrRecord, attrString, classList } from '../../support/attributes';
+import { attrBoolean, attrInt, attrRecord, attrString, classList, layoutClass } from '../../support/attributes';
+import { applyBlockGap } from '../../support/blockGap';
 import { applyDimensions, hasDimensionStyle } from '../../support/dimensions';
+import { layoutWrapperClasses } from '../../support/layoutContainer';
 import { resolveAnchor } from '../../support/headingAnchors';
 import { presetClasses } from '../../support/presetClasses';
 import type { BlockRendererProps } from '../../types';
@@ -121,9 +123,15 @@ export function ListItemBlock({ attributes, children }: BlockRendererProps): JSX
 export function QuoteBlock({ attributes, children }: BlockRendererProps): JSX.Element {
     const className = attrString(attributes.className);
     const citation = attrString(attributes.citation);
-    const classes = classList(['wp-block-quote', className]);
-    const dimensionStyle = applyDimensions(attributes);
-    const style = hasDimensionStyle(dimensionStyle) ? dimensionStyle : undefined;
+    // F-3 — layout pair, per-instance scope and modifiers, as in `quote.blade.php`.
+    const classes = classList([
+        'wp-block-quote',
+        ...layoutWrapperClasses(attributes, 'quote', layoutClass(attributes)),
+        className,
+    ]);
+    // Block spacing rides first, in `BlockSupports` order.
+    const wrapperStyle = { ...applyBlockGap(attributes), ...applyDimensions(attributes) };
+    const style = Object.keys(wrapperStyle).length > 0 ? (wrapperStyle as React.CSSProperties) : undefined;
 
     return (
         <blockquote className={classes} style={style}>

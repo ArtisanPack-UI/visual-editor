@@ -4,10 +4,14 @@
  * Mirrors `LayoutSupport::container()` on the Blade renderer. The shared
  * `is-layout-{type}` class only carries a layout's defaults; the values an
  * author sets in the layout panel (content / wide size, justification,
- * orientation, wrap, grid columns) become a rule scoped to one wrapper
- * through a hashed `wp-container-<12-char-sha1>` class, the way WordPress's
- * `wp_get_layout_style()` does. The rules are pushed into a per-tree
- * accumulator that `BlockTree` flushes as one `<style data-ve-layout>` block.
+ * orientation, wrap, grid columns) and the block's own Block spacing (M-15)
+ * become a rule scoped to one wrapper through a hashed
+ * `wp-container-<12-char-sha1>` class, the way WordPress's
+ * `wp_get_layout_style()` does. Every block whose block.json declares
+ * `supports.layout` gets one (F-3), except columns, gallery, post-template
+ * and query pagination, which lay themselves out. The rules are pushed into a
+ * per-tree accumulator that `BlockTree` flushes as one
+ * `<style data-ve-layout>` block.
  *
  * The scope is hashed from the rule body with {@link sha1Hex} exactly as
  * Blade hashes it, so the token matches byte-for-byte (kept honest by the
@@ -19,7 +23,8 @@
  * @since 1.15.0
  */
 
-import { attrRecord, layoutClass, phpTrim } from './attributes';
+import { attrRecord, attrString, layoutClass, layoutPair, phpTrim } from './attributes';
+import { presetSlug } from './presetReference';
 import { safeCssValue } from './cssValue';
 import { flexClassNames } from './flex-serializer';
 import { sha1Hex } from './sha1';
@@ -34,16 +39,66 @@ export const MAX_COLUMN_COUNT = 64;
 /** Mirrors `LayoutSupport::CONSTRAINED_CHILD_SELECTOR`. */
 const CONSTRAINED_CHILD_SELECTOR = ' > :where(:not(.alignleft):not(.alignright):not(.alignfull))';
 
+/** Mirrors `LayoutSupport::DEFAULT_BLOCK_GAP_FALLBACK`. */
+export const DEFAULT_BLOCK_GAP_FALLBACK = '0.5em';
+
+/** Mirrors `LayoutSupport::JUSTIFICATION_CLASSES`. */
+const JUSTIFICATION_CLASSES: ReadonlyArray<string> = ['left', 'center', 'right', 'space-between', 'stretch'];
+
+/** Mirrors `LayoutSupport::ORIENTATION_CLASSES`. */
+const ORIENTATION_CLASSES: ReadonlyArray<string> = ['horizontal', 'vertical'];
+
 /**
- * Block names whose wrapper carries a per-instance layout scope, keyed to
- * the wrapper slug. Matches the Blade partials that call
- * `LayoutSupport::containerClasses()`.
+ * How a block's wrapper resolves its layout scope. Matches the Blade
+ * partials that call `LayoutSupport::containerClasses()`.
  */
-const LAYOUT_SCOPE_BLOCKS: Readonly<Record<string, string>> = {
-    'core/group': 'group',
-    'artisanpack/group': 'group',
-    'core/post-content': 'post-content',
-    'artisanpack/post-content': 'post-content',
+interface LayoutScopeBlock {
+    /** Wrapper slug without the `wp-block-` prefix. */
+    slug: string;
+    /**
+     * The layout class the wrapper renders with: `'flex'` for blocks whose
+     * block.json disallows switching away from flex, `'panel'` for the
+     * group / column default that the Flex panel can flip to flex, or
+     * `'stored'` for the stored `layout.type` with a flow default.
+     */
+    type: 'flex' | 'panel' | 'stored';
+    /** Class the layout element carries instead of `wp-block-{slug}`. */
+    wrapperClass?: string;
+    /** Whether the block allows vertical alignment (navigation doesn't). */
+    noVerticalAlignment?: boolean;
+}
+
+const GROUP: LayoutScopeBlock = { slug: 'group', type: 'panel' };
+const POST_CONTENT: LayoutScopeBlock = { slug: 'post-content', type: 'stored' };
+const BUTTONS: LayoutScopeBlock = { slug: 'buttons', type: 'flex' };
+const COLUMN: LayoutScopeBlock = { slug: 'column', type: 'panel' };
+const COVER: LayoutScopeBlock = { slug: 'cover', type: 'stored', wrapperClass: 'wp-block-cover__inner-container' };
+const NAVIGATION: LayoutScopeBlock = { slug: 'navigation', type: 'flex', noVerticalAlignment: true };
+const QUERY: LayoutScopeBlock = { slug: 'query', type: 'stored' };
+const QUOTE: LayoutScopeBlock = { slug: 'quote', type: 'stored' };
+const DETAILS: LayoutScopeBlock = { slug: 'details', type: 'stored' };
+const COMMENTS_PAGINATION: LayoutScopeBlock = { slug: 'comments-pagination', type: 'flex' };
+
+const LAYOUT_SCOPE_BLOCKS: Readonly<Record<string, LayoutScopeBlock>> = {
+    'core/group': GROUP,
+    'artisanpack/group': GROUP,
+    'core/post-content': POST_CONTENT,
+    'artisanpack/post-content': POST_CONTENT,
+    'core/buttons': BUTTONS,
+    'artisanpack/buttons': BUTTONS,
+    'core/column': COLUMN,
+    'artisanpack/column': COLUMN,
+    'core/cover': COVER,
+    'artisanpack/cover': COVER,
+    'core/navigation': NAVIGATION,
+    'artisanpack/navigation': NAVIGATION,
+    'core/query': QUERY,
+    'artisanpack/query': QUERY,
+    'core/quote': QUOTE,
+    'artisanpack/quote': QUOTE,
+    'core/details': DETAILS,
+    'artisanpack/details': DETAILS,
+    'artisanpack/comments-pagination': COMMENTS_PAGINATION,
 };
 
 type LayoutRule = [suffix: string, declarations: string[]];
@@ -63,7 +118,9 @@ export interface LayoutContainer {
 export function layoutContainer(
     attributes: Record<string, unknown>,
     blockSlug: string,
-    resolvedLayoutClass: string
+    resolvedLayoutClass: string,
+    wrapperClass: string | null = null,
+    gapFallback: string = DEFAULT_BLOCK_GAP_FALLBACK
 ): LayoutContainer | null {
     const layout = attrRecord(attributes.layout);
     const type = resolvedLayoutClass.startsWith('is-layout-')
@@ -80,13 +137,17 @@ export function layoutContainer(
         rules = gridRules(layout);
     }
 
+    rules = withGapRules(rules, type, attributes, gapFallback);
+
     if (rules.length === 0) {
         return null;
     }
 
     const body = rules.map(([suffix, declarations]) => `${suffix}{${declarations.join(';')};}`).join('');
-    const scope = `wp-container-${sha1Hex(`${blockSlug}|${resolvedLayoutClass}|${body}`).slice(0, 12)}`;
-    const selector = `.wp-block-${blockSlug}.wp-block-${blockSlug}-${resolvedLayoutClass}.${scope}`;
+    const hashKey = `${wrapperClass === null ? '' : `${wrapperClass}|`}${blockSlug}|${resolvedLayoutClass}|${body}`;
+    const scope = `wp-container-${sha1Hex(hashKey).slice(0, 12)}`;
+    const element = wrapperClass ?? `wp-block-${blockSlug}`;
+    const selector = `.${element}.wp-block-${blockSlug}-${resolvedLayoutClass}.${scope}`;
 
     return {
         className: scope,
@@ -95,10 +156,104 @@ export function layoutContainer(
 }
 
 /**
- * Walk a tree and stamp a `_veLayoutScope` class onto every group /
- * post-content block whose layout needs a per-instance rule. The class is
- * joined onto the wrapper by the block renderer; the accumulated CSS is
- * emitted once as a `<style data-ve-layout>` block.
+ * The `is-{orientation}`, `is-content-justification-{value}` and `is-nowrap`
+ * modifier classes WordPress adds to a layout wrapper (F-3). Mirrors
+ * `LayoutSupport::modifierClasses()`.
+ */
+export function layoutModifierClasses(
+    attributes: Record<string, unknown>,
+    orientation = true,
+    justification = true
+): string[] {
+    const layout = attrRecord(attributes.layout);
+    const classes: string[] = [];
+
+    if (orientation && typeof layout.orientation === 'string' && ORIENTATION_CLASSES.includes(layout.orientation)) {
+        classes.push(`is-${layout.orientation}`);
+    }
+
+    if (
+        justification &&
+        typeof layout.justifyContent === 'string' &&
+        JUSTIFICATION_CLASSES.includes(layout.justifyContent)
+    ) {
+        classes.push(`is-content-justification-${layout.justifyContent}`);
+    }
+
+    if (layout.flexWrap === 'nowrap') {
+        classes.push('is-nowrap');
+    }
+
+    return classes;
+}
+
+/**
+ * The layout classes a wrapper carries, in the Blade partials' order: the
+ * shared modifier and its per-block compound, the `wp-container-*` scope
+ * stamped by {@link stampLayoutScopes}, then the layout modifier classes
+ * (F-3).
+ */
+export function layoutWrapperClasses(
+    attributes: Record<string, unknown>,
+    blockSlug: string,
+    resolvedLayoutClass: string,
+    orientation = true,
+    justification = true
+): string[] {
+    const scope = attrString(attributes._veLayoutScope);
+
+    return [
+        ...layoutPair(blockSlug, resolvedLayoutClass),
+        ...(scope !== '' ? [scope] : []),
+        ...layoutModifierClasses(attributes, orientation, justification),
+    ];
+}
+
+/**
+ * The layout class a group or column wrapper renders with: the stored type,
+ * or flex when the #595 Flex panel is active at the base breakpoint and no
+ * type is stored. Mirrors `group.blade.php` / `column.blade.php`.
+ */
+export function panelLayoutClass(attrs: Record<string, unknown>): string {
+    const rawType = attrRecord(attrs.layout).type;
+    const storedType = typeof rawType === 'string' ? phpTrim(rawType) : '';
+
+    if (storedType === '' && flexClassNames(attrs.artisanpackFlex).includes('ap-flex')) {
+        return 'is-layout-flex';
+    }
+
+    return layoutClass(attrs);
+}
+
+/**
+ * A `blockGap` value that is safe to print, with a preset reference
+ * expanded, or `null` (F-10). Mirrors `LayoutSupport::blockGapValue()`.
+ */
+export function blockGapValue(value: unknown): string | null {
+    let raw: unknown = value;
+
+    if (typeof raw === 'number' && Number.isFinite(raw)) {
+        raw = String(raw);
+    }
+
+    if (typeof raw !== 'string') {
+        return null;
+    }
+
+    let gap = phpTrim(raw);
+
+    if (gap.startsWith('var:preset|')) {
+        gap = `var(--wp--preset--${gap.slice('var:preset|'.length).split('|').map(presetSlug).join('--')})`;
+    }
+
+    return cssLength(gap);
+}
+
+/**
+ * Walk a tree and stamp a `_veLayoutScope` class onto every layout block
+ * whose layout needs a per-instance rule. The class is joined onto the
+ * wrapper by the block renderer; the accumulated CSS is emitted once as a
+ * `<style data-ve-layout>` block.
  */
 export function stampLayoutScopes(tree: Block[]): { tree: Block[]; css: string } {
     const seen = new Set<string>();
@@ -119,13 +274,20 @@ export function stampLayoutScopes(tree: Block[]): { tree: Block[]; css: string }
             // value that arrived on the input tree so an author-crafted
             // block can't inject class tokens through it.
             const attrs = stripLayoutScope(attributesOf(block));
-            const blockSlug = LAYOUT_SCOPE_BLOCKS[name];
+            const scopeBlock = Object.prototype.hasOwnProperty.call(LAYOUT_SCOPE_BLOCKS, name)
+                ? LAYOUT_SCOPE_BLOCKS[name]
+                : undefined;
 
-            if (blockSlug === undefined || attrs === null) {
+            if (scopeBlock === undefined || attrs === null) {
                 return withAttributes(block, attrs, innerBlocks);
             }
 
-            const container = layoutContainer(attrs, blockSlug, wrapperLayoutClass(attrs, blockSlug));
+            const container = layoutContainer(
+                scopeAttributes(attrs, scopeBlock),
+                scopeBlock.slug,
+                wrapperLayoutClass(attrs, scopeBlock),
+                scopeBlock.wrapperClass ?? null
+            );
 
             if (container === null) {
                 return withAttributes(block, attrs, innerBlocks);
@@ -148,21 +310,105 @@ export function stampLayoutScopes(tree: Block[]): { tree: Block[]; css: string }
 }
 
 /**
- * The layout class the wrapper renders with. A group whose Flex Layout
- * panel is active at the base breakpoint and stores no `layout.type`
- * renders `is-layout-flex` (#595 / #711), mirroring `group.blade.php`.
+ * The layout class the wrapper renders with, mirroring each Blade partial.
  */
-function wrapperLayoutClass(attrs: Record<string, unknown>, blockSlug: string): string {
-    if (blockSlug === 'group') {
-        const rawType = attrRecord(attrs.layout).type;
-        const storedType = typeof rawType === 'string' ? phpTrim(rawType) : '';
+function wrapperLayoutClass(attrs: Record<string, unknown>, scopeBlock: LayoutScopeBlock): string {
+    if (scopeBlock.type === 'flex') {
+        return 'is-layout-flex';
+    }
 
-        if (storedType === '' && flexClassNames(attrs.artisanpackFlex).includes('ap-flex')) {
-            return 'is-layout-flex';
-        }
+    if (scopeBlock.type === 'panel') {
+        return panelLayoutClass(attrs);
     }
 
     return layoutClass(attrs);
+}
+
+/**
+ * The attributes the scope is built from. Navigation drops the vertical
+ * alignment its block.json doesn't allow, and its legacy top-level
+ * `orientation` / `itemsJustification` attributes fill in for the layout
+ * values they predate, mirroring `navigation.blade.php`.
+ */
+function scopeAttributes(attrs: Record<string, unknown>, scopeBlock: LayoutScopeBlock): Record<string, unknown> {
+    if (scopeBlock.noVerticalAlignment !== true) {
+        return attrs;
+    }
+
+    const layout = { ...attrRecord(attrs.layout) };
+    delete layout.verticalAlignment;
+
+    if (layout.orientation === undefined || layout.orientation === null) {
+        if (typeof attrs.orientation === 'string') {
+            layout.orientation = attrs.orientation;
+        }
+    }
+
+    if (layout.justifyContent === undefined || layout.justifyContent === null) {
+        const legacy = attrs.itemsJustification;
+
+        if (typeof legacy === 'string' && legacy !== '') {
+            layout.justifyContent = legacy;
+        }
+    }
+
+    return { ...attrs, layout };
+}
+
+/**
+ * Add the block's own `style.spacing.blockGap` to its layout rules (M-15).
+ * Mirrors `LayoutSupport::withGapRules()`.
+ */
+function withGapRules(
+    rules: LayoutRule[],
+    type: string,
+    attributes: Record<string, unknown>,
+    gapFallback: string
+): LayoutRule[] {
+    const gap = attrRecord(attrRecord(attributes.style).spacing).blockGap;
+    const isAxes = gap !== null && typeof gap === 'object';
+    const axes = isAxes ? attrRecord(gap) : {};
+
+    if (type === 'flex' || type === 'grid') {
+        let value: string | null;
+
+        if (isAxes) {
+            let row = blockGapValue(axes.top);
+            let column = blockGapValue(axes.left);
+
+            if (row === null && column === null) {
+                return rules;
+            }
+
+            row ??= gapFallback;
+            column ??= gapFallback;
+            value = row === column ? row : `${row} ${column}`;
+        } else {
+            value = typeof gap === 'string' ? blockGapValue(gap) : null;
+        }
+
+        if (value === null) {
+            return rules;
+        }
+
+        const index = rules.findIndex(([suffix]) => suffix === '');
+
+        if (index !== -1) {
+            return rules.map((rule, i): LayoutRule => (i === index ? [rule[0], [...rule[1], `gap:${value}`]] : rule));
+        }
+
+        return [...rules, ['', [`gap:${value}`]]];
+    }
+
+    if (type === 'flow' || type === 'constrained') {
+        const value = isAxes ? blockGapValue(axes.top) : typeof gap === 'string' ? blockGapValue(gap) : null;
+
+        if (value !== null) {
+            return [...rules, [' > * + *', [`margin-block-start:${value}`, 'margin-block-end:0']]];
+        }
+    }
+
+    return rules;
 }
 
 function constrainedRules(layout: Record<string, unknown>): LayoutRule[] {
@@ -259,7 +505,7 @@ function gridRules(layout: Record<string, unknown>): LayoutRule[] {
  * A stored length that is safe to splice into a `<style>` block, or
  * `null`. Mirrors `LayoutSupport::cssLength()`.
  */
-function cssLength(value: unknown): string | null {
+export function cssLength(value: unknown): string | null {
     if (typeof value !== 'string') {
         return null;
     }

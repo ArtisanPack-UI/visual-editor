@@ -257,7 +257,7 @@ it( 'renders a navigation block with menu items', function (): void {
 
 	$rendered = $this->stripGlobalStyles( renderTree( $tree ) );
 
-	expect( $rendered )->toContain( '<nav class="wp-block-navigation is-horizontal is-responsive"' );
+	expect( $rendered )->toContain( '<nav class="wp-block-navigation is-layout-flex wp-block-navigation-is-layout-flex is-horizontal is-responsive"' );
 	expect( $rendered )->toContain( 'aria-label="Primary"' );
 	expect( $rendered )->toContain( '<ul class="wp-block-navigation__container">' );
 	expect( $rendered )->toContain( 'href="https://example.test/about"' );

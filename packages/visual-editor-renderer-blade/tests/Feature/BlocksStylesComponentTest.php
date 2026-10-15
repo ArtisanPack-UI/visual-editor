@@ -326,3 +326,13 @@ describe( 'default styles scope (#821)', function (): void {
 		expect( Blade::render( '<x-ve-blocks-styles />' ) )->not->toContain( 'data-ve-default-styles' );
 	} );
 } );
+
+it( 'resets the inherited block gap on every layout container (M-15)', function (): void {
+	// A container's own Block spacing is inline `--wp--style--block-gap`,
+	// an inherited property, so without the reset a nested Row or Grid
+	// picked up its ancestor's spacing as its own `gap`.
+	expect( Blade::render( '<x-ve-blocks-styles />' ) )
+		->toContain( ':where(body) { --ap-root-block-gap: var(--wp--style--block-gap); }' )
+		->toContain( ':where(.is-layout-flow, .is-layout-constrained, .is-layout-flex, .is-layout-grid) { --wp--style--block-gap: var(--ap-root-block-gap); }' )
+		->toContain( ':where(.wp-block-columns) { --ap-columns-gap: var(--wp--style--block-gap); }' );
+} );

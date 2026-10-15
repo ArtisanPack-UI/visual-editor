@@ -332,6 +332,11 @@ export function normalizeBasis( value: unknown ): NormalizedBasis | null {
  * `calc(X% - var(--wp--style--block-gap, 0.5em) * factor)` pattern WP uses,
  * so a themed `gap` on `.wp-block-columns` cannot push the row past 100% and
  * wrap. Mirrors `$basisExpr` in the Blade partial.
+ *
+ * M-15 — the column is a layout container, so the layout baseline resets its
+ * own `--wp--style--block-gap`; the Columns gap reaches it as
+ * `--ap-columns-gap`, falling back to the inherited property where the
+ * baseline isn't loaded.
  */
 function basisExpr( normalized: NormalizedBasis ): string {
 	if ( normalized.percent === null ) {
@@ -345,7 +350,7 @@ function basisExpr( normalized: NormalizedBasis ): string {
 		return normalized.basis;
 	}
 
-	return `calc(${ normalized.basis } - var(--wp--style--block-gap, 0.5em) * ${ formattedFactor })`;
+	return `calc(${ normalized.basis } - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * ${ formattedFactor })`;
 }
 
 /**

@@ -199,6 +199,14 @@ export const LAYOUT_BASELINE_CSS =
     // specificity; mirrors the Blade baseline.
     ':where(.is-layout-flex) { gap: var(--wp--style--block-gap, 0.5em); }\n' +
     ':where(.is-layout-grid) { gap: var(--wp--style--block-gap, 0.5em); }\n' +
+    // M-15 — every layout container resets the inherited block gap to the
+    // root value, so an ancestor's Block spacing doesn't reach a nested
+    // container; its own inline value, a theme's per-block value and any
+    // block style still win. The Columns gap stays readable by its
+    // columns' width calc as `--ap-columns-gap`. Mirrors the Blade baseline.
+    ':where(body) { --ap-root-block-gap: var(--wp--style--block-gap); }\n' +
+    ':where(.is-layout-flow, .is-layout-constrained, .is-layout-flex, .is-layout-grid) { --wp--style--block-gap: var(--ap-root-block-gap); }\n' +
+    ':where(.wp-block-columns) { --ap-columns-gap: var(--wp--style--block-gap); }\n' +
     // #702 — constrained-group containment, mirroring rule set C in the
     // Blade renderer's `ThemeJsonTokensCompiler::compileLayoutRules()`.
     // Keyed on the per-block compound rather than the shared modifier so

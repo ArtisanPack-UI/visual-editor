@@ -72,3 +72,31 @@ describe('colorUtilitySelector (mirrors PresetRegistry::colorUtilitySelector)', 
         ]);
     });
 });
+
+describe('LayoutBaseline nested block gap reset (M-15)', () => {
+    const resetRules = [
+        ':where(body) { --ap-root-block-gap: var(--wp--style--block-gap); }',
+        ':where(.is-layout-flow, .is-layout-constrained, .is-layout-flex, .is-layout-grid) { --wp--style--block-gap: var(--ap-root-block-gap); }',
+        ':where(.wp-block-columns) { --ap-columns-gap: var(--wp--style--block-gap); }',
+    ];
+
+    it('resets the inherited block gap on every layout container at zero specificity', () => {
+        for (const rule of resetRules) {
+            expect(LAYOUT_BASELINE_CSS).toContain(rule);
+        }
+    });
+
+    it('emits the reset after the flex / grid gap rules, matching the Blade baseline', async () => {
+        const { readFileSync } = await import('node:fs');
+        const { resolve } = await import('node:path');
+        const blade = readFileSync(
+            resolve(__dirname, '../../visual-editor-renderer-blade/resources/views/components/blocks-styles.blade.php'),
+            'utf8'
+        );
+        const gridGap = ':where(.is-layout-grid) { gap: var(--wp--style--block-gap, 0.5em); }';
+        const block = [gridGap, ...resetRules].join('\n');
+
+        expect(LAYOUT_BASELINE_CSS).toContain(block);
+        expect(blade).toContain(block);
+    });
+});

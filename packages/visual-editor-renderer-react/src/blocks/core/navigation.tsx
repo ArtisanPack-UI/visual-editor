@@ -19,6 +19,7 @@ import { attrBoolean, attrString, classList, phpTrim } from '../../support/attri
 import { applyBlockGap, hasBlockGapStyle } from '../../support/blockGap';
 import { safeCssValue } from '../../support/cssValue';
 import { presetPickClass } from '../../support/layoutBaselineCss';
+import { layoutModifierClasses } from '../../support/layoutContainer';
 import { safeUrl } from '../../support/urlSanitizer';
 import { NAVIGATION_OVERLAY_SLOT } from '../../templateParts';
 import type { BlockRendererProps } from '../../types';
@@ -210,11 +211,19 @@ export function NavigationBlock({ attributes, children, slots }: BlockRendererPr
         };
     }, [isOpen]);
 
+    // F-3 — navigation is always a flex layout: the layout pair and
+    // per-instance scope right after the block class, the justification /
+    // wrap modifiers after `items-justified-*`, as in `navigation.blade.php`.
+    const layoutScope = attrString(attributes._veLayoutScope);
     const classes = classList([
         'wp-block-navigation',
+        'is-layout-flex',
+        'wp-block-navigation-is-layout-flex',
+        layoutScope !== '' ? layoutScope : null,
         orientation === 'vertical' ? 'is-vertical' : null,
         orientation === 'horizontal' ? 'is-horizontal' : null,
         itemsJustify !== '' ? `items-justified-${itemsJustify}` : null,
+        ...layoutModifierClasses(attributes, false),
         wantsOverlay ? 'is-responsive' : null,
         className,
     ]);

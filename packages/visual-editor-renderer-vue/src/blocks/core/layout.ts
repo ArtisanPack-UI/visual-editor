@@ -11,15 +11,14 @@ import {
     attrRecord,
     attrString,
     classList,
-    layoutClass,
     layoutPair,
-    phpTrim,
 } from '../../support/attributes';
 import { isNonEmptyWidth, normalizeBasis } from '../../support/columnWidth';
 import { flexClassNames } from '../../support/flex-serializer';
 import { safeCssValue } from '../../support/cssValue';
 import { applyBlockGap } from '../../support/blockGap';
 import { applyDimensions } from '../../support/dimensions';
+import { layoutModifierClasses, panelLayoutClass } from '../../support/layoutContainer';
 import { safeUrl } from '../../support/urlSanitizer';
 import { blockRendererProps } from '../shared';
 
@@ -55,13 +54,7 @@ export const GroupBlock = defineComponent({
             // non-string as `''` (not coerced via `String()`, which would
             // turn a numeric `5` into `'5'` and skip the override where
             // Blade fires it), and trim with PHP's whitespace set.
-            const rawLayoutType = attrRecord(props.attributes.layout).type;
-            const storedLayoutType = typeof rawLayoutType === 'string' ? phpTrim(rawLayoutType) : '';
-            let groupLayoutClass = layoutClass(props.attributes);
-
-            if (storedLayoutType === '' && flexClasses.includes('ap-flex')) {
-                groupLayoutClass = 'is-layout-flex';
-            }
+            const groupLayoutClass = panelLayoutClass(props.attributes);
 
             // #702 — the block-library CSS targets the per-block compound
             // (`wp-block-group-is-layout-constrained`), so emit it alongside
@@ -73,13 +66,15 @@ export const GroupBlock = defineComponent({
             // into `$wrapperBaseClasses`.
             const photoGridScope = attrString(props.attributes._vePhotoGridScope);
             // Per-instance layout scope stamped by `stampLayoutScopes()`
-            // (#871), right after the layout pair as in `group.blade.php`.
+            // (#871), right after the layout pair as in `group.blade.php`,
+            // then the layout modifier classes (F-3).
             const layoutScope = attrString(props.attributes._veLayoutScope);
 
             const classes = classList([
                 'wp-block-group',
                 ...layoutPair('group', groupLayoutClass),
                 layoutScope !== '' ? layoutScope : null,
+                ...layoutModifierClasses(props.attributes),
                 ...flexClasses,
                 photoGridScope !== '' ? photoGridScope : null,
                 className,
@@ -196,9 +191,15 @@ export const ColumnBlock = defineComponent({
             // token lands in the same position the Blade partial emits it
             // (after every base / block-support class).
             const widthScope = attrString(props.attributes._veColumnWidthScope);
+            // F-3 — the column's layout pair, per-instance scope and
+            // modifiers, in `column.blade.php` order.
+            const layoutScope = attrString(props.attributes._veLayoutScope);
 
             const classes = classList([
                 'wp-block-column',
+                ...layoutPair('column', panelLayoutClass(props.attributes)),
+                layoutScope !== '' ? layoutScope : null,
+                ...layoutModifierClasses(props.attributes),
                 verticalAlignment !== '' ? `is-vertically-aligned-${verticalAlignment}` : null,
                 ...flexClasses,
                 className,
@@ -206,7 +207,9 @@ export const ColumnBlock = defineComponent({
             ]);
 
             const width = props.attributes.width;
-            let style: Record<string, string> | undefined;
+            // The column's own Block spacing rides first, in
+            // `BlockSupports` order.
+            let style: Record<string, string> = { ...applyBlockGap(props.attributes) };
 
             // Mirror the Blade partial's inline `flex-basis`: gate on PHP
             // `empty()` semantics (`isNonEmptyWidth` drops
@@ -217,13 +220,13 @@ export const ColumnBlock = defineComponent({
                 const normalized = normalizeBasis(width);
 
                 if (normalized !== null && safeCssValue(normalized.basis) !== null) {
-                    style = { 'flex-basis': normalized.basis };
+                    style = { ...style, 'flex-basis': normalized.basis };
                 }
             }
 
             const divProps: Record<string, unknown> = { class: classes };
 
-            if (style !== undefined) {
+            if (Object.keys(style).length > 0) {
                 divProps.style = style;
             }
 
@@ -257,15 +260,28 @@ export const ButtonsBlock = defineComponent({
                 ? rawJustify
                 : 'left';
             const className = attrString(props.attributes.className);
+            // F-3 — per-instance scope stamped by `stampLayoutScopes()`,
+            // then the orientation / wrap modifiers, in `buttons.blade.php`
+            // order.
+            const layoutScope = attrString(props.attributes._veLayoutScope);
 
             const classes = classList([
                 'wp-block-buttons',
                 ...layoutPair('buttons', 'is-layout-flex'),
+                layoutScope !== '' ? layoutScope : null,
                 `is-content-justification-${justify}`,
+                ...layoutModifierClasses(props.attributes, true, false),
                 className,
             ]);
 
-            return h('div', { class: classes }, slots.default ? slots.default() : []);
+            const gapStyle = applyBlockGap(props.attributes);
+            const divProps: Record<string, unknown> = { class: classes };
+
+            if (Object.keys(gapStyle).length > 0) {
+                divProps.style = gapStyle;
+            }
+
+            return h('div', divProps, slots.default ? slots.default() : []);
         };
     },
 });

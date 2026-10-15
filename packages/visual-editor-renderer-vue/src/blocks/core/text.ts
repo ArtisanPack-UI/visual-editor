@@ -7,8 +7,10 @@
  */
 
 import { defineComponent, h } from 'vue';
-import { attrBoolean, attrInt, attrRecord, attrString, classList } from '../../support/attributes';
+import { attrBoolean, attrInt, attrRecord, attrString, classList, layoutClass } from '../../support/attributes';
+import { applyBlockGap } from '../../support/blockGap';
 import { applyDimensions, hasDimensionStyle } from '../../support/dimensions';
+import { layoutWrapperClasses } from '../../support/layoutContainer';
 import { resolveAnchor } from '../../support/headingAnchors';
 import { presetClasses } from '../../support/presetClasses';
 import { blockRendererProps } from '../shared';
@@ -144,7 +146,13 @@ export const QuoteBlock = defineComponent({
         return () => {
             const className = attrString(props.attributes.className);
             const citation = attrString(props.attributes.citation);
-            const classes = classList(['wp-block-quote', className]);
+            // F-3 — layout pair, per-instance scope and modifiers, as in
+            // `quote.blade.php`.
+            const classes = classList([
+                'wp-block-quote',
+                ...layoutWrapperClasses(props.attributes, 'quote', layoutClass(props.attributes)),
+                className,
+            ]);
             const children = slots.default ? slots.default() : [];
             const nodes = [...children];
 
@@ -152,11 +160,12 @@ export const QuoteBlock = defineComponent({
                 nodes.push(h('cite', { innerHTML: citation }));
             }
 
-            const dimensionStyle = applyDimensions(props.attributes);
+            // Block spacing rides first, in `BlockSupports` order.
+            const wrapperStyle = { ...applyBlockGap(props.attributes), ...applyDimensions(props.attributes) };
             const nodeProps: Record<string, unknown> = { class: classes };
 
-            if (hasDimensionStyle(dimensionStyle)) {
-                nodeProps.style = dimensionStyle;
+            if (Object.keys(wrapperStyle).length > 0) {
+                nodeProps.style = wrapperStyle;
             }
 
             return h('blockquote', nodeProps, nodes);

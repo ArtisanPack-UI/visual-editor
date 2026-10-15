@@ -1,0 +1,5 @@
+<div class="wp-block-query is-layout-constrained wp-block-query-is-layout-constrained wp-container-6ded71a7be03">
+</div>
+@@ renderer-instance-css @@
+.wp-block-query.wp-block-query-is-layout-constrained.wp-container-6ded71a7be03 > .alignwide{max-width:800px;}
+.wp-block-query.wp-block-query-is-layout-constrained.wp-container-6ded71a7be03 > :where(:not(.alignleft):not(.alignright):not(.alignfull)){max-width:800px;margin-left:auto !important;margin-right:auto !important;}

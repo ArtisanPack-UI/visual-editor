@@ -15,7 +15,10 @@ import {
     attrRecord,
     attrString,
     classList,
+    layoutClass,
 } from '../../support/attributes';
+import { applyBlockGap } from '../../support/blockGap';
+import { layoutWrapperClasses } from '../../support/layoutContainer';
 import { safeUrl } from '../../support/urlSanitizer';
 import type { BlockRendererProps } from '../../types';
 
@@ -77,7 +80,8 @@ export function CoverBlock({ attributes, children }: BlockRendererProps): JSX.El
         className,
     ]);
 
-    let style: React.CSSProperties | undefined;
+    // The cover's own Block spacing rides first, in `cover.blade.php` order.
+    let style: Record<string, string> = { ...applyBlockGap(attributes) };
 
     if (attributes.minHeight !== undefined && attributes.minHeight !== null) {
         const minHeight = Math.max(0, attrFloat(attributes.minHeight));
@@ -86,11 +90,18 @@ export function CoverBlock({ attributes, children }: BlockRendererProps): JSX.El
             ? requestedUnit
             : 'px';
 
-        style = { minHeight: `${minHeight}${unit}` };
+        style = { ...style, minHeight: `${minHeight}${unit}` };
     }
 
+    // F-3 — cover's layout applies to its inner container, as in
+    // `cover.blade.php`; cover doesn't allow justification.
+    const innerClasses = classList([
+        'wp-block-cover__inner-container',
+        ...layoutWrapperClasses(attributes, 'cover', layoutClass(attributes), true, false),
+    ]);
+
     return (
-        <div className={classes} style={style}>
+        <div className={classes} style={Object.keys(style).length > 0 ? (style as React.CSSProperties) : undefined}>
             <span
                 aria-hidden="true"
                 className="wp-block-cover__background has-background-dim"
@@ -99,7 +110,7 @@ export function CoverBlock({ attributes, children }: BlockRendererProps): JSX.El
             {url === '' ? null : (
                 <img className="wp-block-cover__image-background" alt="" src={url} />
             )}
-            <div className="wp-block-cover__inner-container">{children}</div>
+            <div className={innerClasses}>{children}</div>
         </div>
     );
 }
@@ -218,10 +229,20 @@ export function DetailsBlock({ attributes, children }: BlockRendererProps): JSX.
     const summary = attrString(attributes.summary);
     const showContent = attrBoolean(attributes.showContent);
     const className = attrString(attributes.className);
-    const classes = classList(['wp-block-details', className]);
+    // F-3 — layout pair, per-instance scope and modifiers, as in `details.blade.php`.
+    const classes = classList([
+        'wp-block-details',
+        ...layoutWrapperClasses(attributes, 'details', layoutClass(attributes)),
+        className,
+    ]);
+    const gapStyle = applyBlockGap(attributes);
 
     return (
-        <details className={classes} open={showContent}>
+        <details
+            className={classes}
+            open={showContent}
+            style={Object.keys(gapStyle).length > 0 ? (gapStyle as React.CSSProperties) : undefined}
+        >
             <summary dangerouslySetInnerHTML={{ __html: summary }} />
             {children}
         </details>
