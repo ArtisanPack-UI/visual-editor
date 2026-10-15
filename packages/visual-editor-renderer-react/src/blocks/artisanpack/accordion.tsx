@@ -11,7 +11,7 @@
  * still produce reasonable markup if rendered outside an accordion.
  */
 
-import { Children, isValidElement, type JSX, type ReactNode } from 'react';
+import { Children, Fragment, isValidElement, type JSX, type ReactNode } from 'react';
 
 import { attrString, classList } from '../../support/attributes';
 import type { Block, BlockRendererProps } from '../../types';
@@ -37,7 +37,15 @@ function findChildByName(
         return null;
     }
 
-    const childArray = Children.toArray(children);
+    // `BlockTree` hands the rendered children over wrapped in a single
+    // `<Fragment>`; `Children.toArray()` doesn't flatten fragments, so
+    // unwrap it to index the title / body by their inner-block position.
+    let childArray = Children.toArray(children);
+
+    if (childArray.length === 1 && isValidElement(childArray[0]) && childArray[0].type === Fragment) {
+        childArray = Children.toArray((childArray[0].props as { children?: ReactNode }).children);
+    }
+
     const child = childArray[index];
 
     if (!isValidElement(child)) {
@@ -51,6 +59,21 @@ function findChildByName(
     // already produced.
     const props = child.props as { children?: ReactNode };
     return props.children ?? null;
+}
+
+/**
+ * The stored `className` of the first inner block with this name. The
+ * accordion re-wraps its title and body, so their classes (and with
+ * them the `ve-r-*` / `ve-fx-*` scopes, M-7) go on the re-wrapped
+ * elements, as `accordion.blade.php` does.
+ */
+function childClassName(innerBlocks: Block[], name: string): string {
+    const child = innerBlocks.find((block) => block.name === name);
+    const attributes = child?.attributes;
+
+    return attributes !== null && typeof attributes === 'object' && !Array.isArray(attributes)
+        ? attrString((attributes as Record<string, unknown>).className)
+        : '';
 }
 
 export function AccordionsBlock({ attributes, children }: BlockRendererProps): JSX.Element {
@@ -93,7 +116,7 @@ export function AccordionBlock({
     }
 
     const bodyAttrs: Record<string, unknown> = {
-        className: 'ap-accordion__body',
+        className: classList(['ap-accordion__body', childClassName(innerBlocks, 'artisanpack/accordion-body')]),
         role: 'region',
         hidden: true,
     };
@@ -104,7 +127,7 @@ export function AccordionBlock({
 
     return (
         <div {...wrapperAttrs}>
-            <div className="ap-accordion__title">
+            <div className={classList(['ap-accordion__title', childClassName(innerBlocks, 'artisanpack/accordion-title')])}>
                 <div {...triggerAttrs}>{titleContent}</div>
                 <span
                     className={`ap-accordion__icon ap-accordion__icon--${panelIcon}`}
@@ -120,10 +143,10 @@ export function AccordionBlock({
 // wrapper reaches through `children` and rewraps them, so these only
 // surface when something else renders the title/body in isolation.
 
-export function AccordionTitleBlock({ children }: BlockRendererProps): JSX.Element {
-    return <div className="ap-accordion__title">{children}</div>;
+export function AccordionTitleBlock({ attributes, children }: BlockRendererProps): JSX.Element {
+    return <div className={classList(['ap-accordion__title', attrString(attributes.className)])}>{children}</div>;
 }
 
-export function AccordionBodyBlock({ children }: BlockRendererProps): JSX.Element {
-    return <div className="ap-accordion__body">{children}</div>;
+export function AccordionBodyBlock({ attributes, children }: BlockRendererProps): JSX.Element {
+    return <div className={classList(['ap-accordion__body', attrString(attributes.className)])}>{children}</div>;
 }

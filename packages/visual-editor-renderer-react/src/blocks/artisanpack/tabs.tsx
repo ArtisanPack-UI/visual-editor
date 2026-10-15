@@ -47,8 +47,9 @@ function normalizeSpacing(value: unknown): TabsSpacing {
  * slugify, with a positional fallback when the result is empty.
  */
 function sanitizeTabId(raw: string, sectionIndex: number): string {
+    // ASCII-only lowercase, like the Blade partial's `strtolower()`.
     const slug = raw
-        .toLowerCase()
+        .replace(/[A-Z]/g, (char) => char.toLowerCase())
         .replace(/[^a-z0-9-]+/g, '-')
         .replace(/^-+|-+$/g, '');
     return slug === '' ? `tab-${sectionIndex}` : slug;

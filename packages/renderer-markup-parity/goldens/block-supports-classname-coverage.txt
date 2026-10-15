@@ -1,0 +1,58 @@
+<pre class="wp-block-code mine ve-r-141e8250b1 ve-fx-7debb3202da2">
+  <code>
+    "const a = 1;"
+  </code>
+</pre>
+<pre class="wp-block-preformatted mine ve-r-839074a52c ve-fx-ad1482697f96">
+  "pre text"
+</pre>
+<pre class="wp-block-verse has-text-align-center mine ve-r-6f5ec758cb ve-fx-5a38d43c2740">
+  "verse text"
+</pre>
+<figure class="wp-block-embed is-provider-YouTube wp-block-embed-YouTube is-type-video wp-embed-aspect-16-9 wp-has-aspect-ratio mine ve-r-141e8250b1 ve-fx-f53c7abbb973">
+  <div class="wp-block-embed__wrapper">
+    "https://www.youtube.com/watch?v=x"
+  </div>
+</figure>
+<div class="ap-accordion acc" data-panel-icon="plus-minus" data-panel-id="panel-1">
+  <div class="ap-accordion__title acc-title ve-r-d0a8038c7e ve-fx-34e2f8ba482e">
+    <div aria-controls="panel-1" aria-expanded="false" class="ap-accordion__title-content" id="panel-1-control" role="button" tabindex="0">
+      <p class="wp-block-paragraph">
+        "Question"
+      </p>
+    </div>
+    <span aria-hidden="true" class="ap-accordion__icon ap-accordion__icon--plus-minus">
+    </span>
+  </div>
+  <div aria-labelledby="panel-1-control" class="ap-accordion__body acc-body ve-r-ff115df169 ve-fx-675e60819267" hidden="" id="panel-1" role="region">
+    <p class="wp-block-paragraph">
+      "Answer"
+    </p>
+  </div>
+</div>
+<div class="ap-accordion__title solo-title ve-r-570c2238b3 ve-fx-ce4117d58d5b">
+  <p class="wp-block-paragraph">
+    "Solo title"
+  </p>
+</div>
+<div class="ap-accordion__body solo-body ve-r-d7623f9001 ve-fx-4db5d2a40eb2">
+  <p class="wp-block-paragraph">
+    "Solo body"
+  </p>
+</div>
+@@ renderer-instance-css @@
+.ve-fx-34e2f8ba482e{opacity:0.9}
+.ve-fx-4db5d2a40eb2{opacity:0.2}
+.ve-fx-5a38d43c2740{opacity:0.7}
+.ve-fx-675e60819267{opacity:0.4}
+.ve-fx-7debb3202da2{opacity:0.5}
+.ve-fx-ad1482697f96{opacity:0.6}
+.ve-fx-ce4117d58d5b{opacity:0.3}
+.ve-fx-f53c7abbb973{opacity:0.8}
+@media (max-width:1023px){.ve-r-839074a52c.ve-r-839074a52c.ve-r-839074a52c{padding:2rem!important}}
+@media (max-width:1023px){.ve-r-ff115df169.ve-r-ff115df169.ve-r-ff115df169{padding:4px!important}}
+@media (max-width:767px){.ve-r-141e8250b1.ve-r-141e8250b1.ve-r-141e8250b1{padding:1rem!important}}
+@media (max-width:767px){.ve-r-570c2238b3.ve-r-570c2238b3.ve-r-570c2238b3{padding:5px!important}}
+@media (max-width:767px){.ve-r-6f5ec758cb.ve-r-6f5ec758cb.ve-r-6f5ec758cb{margin:1rem!important}}
+@media (max-width:767px){.ve-r-d0a8038c7e.ve-r-d0a8038c7e.ve-r-d0a8038c7e{padding:3px!important}}
+@media (max-width:767px){.ve-r-d7623f9001.ve-r-d7623f9001.ve-r-d7623f9001{padding:6px!important}}

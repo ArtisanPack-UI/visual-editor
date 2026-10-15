@@ -1,0 +1,5 @@
+<div aria-hidden="true" class="wp-block-spacer ve-r-6eb9361b10" style="height: 120px">
+</div>
+@@ renderer-instance-css @@
+@media (max-width:1023px){.ve-r-6eb9361b10.ve-r-6eb9361b10.ve-r-6eb9361b10{height:80px!important}}
+@media (max-width:767px){.ve-r-6eb9361b10.ve-r-6eb9361b10.ve-r-6eb9361b10{height:40px!important}}

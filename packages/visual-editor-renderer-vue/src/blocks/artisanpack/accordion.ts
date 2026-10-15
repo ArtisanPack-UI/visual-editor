@@ -52,6 +52,24 @@ function findChildBlockVnode(
     return slotVnodes[index] ?? null;
 }
 
+/**
+ * The stored `className` of the first inner block with this name. The
+ * accordion re-wraps its title and body, so their classes (and with
+ * them the `ve-r-*` / `ve-fx-*` scopes, M-7) go on the re-wrapped
+ * elements, as `accordion.blade.php` does.
+ */
+function childClassName(
+    innerBlocks: ReadonlyArray<{ name?: string; attributes?: unknown }>,
+    name: string
+): string {
+    const child = innerBlocks.find((block) => block?.name === name);
+    const attributes = child?.attributes;
+
+    return attributes !== null && typeof attributes === 'object' && !Array.isArray(attributes)
+        ? attrString((attributes as Record<string, unknown>).className)
+        : '';
+}
+
 export const AccordionsBlock = defineComponent({
     name: 'AccordionsBlock',
     props: blockRendererProps,
@@ -111,7 +129,7 @@ export const AccordionBlock = defineComponent({
             }
 
             const bodyAttrs: Record<string, unknown> = {
-                class: 'ap-accordion__body',
+                class: classList(['ap-accordion__body', childClassName(props.innerBlocks, 'artisanpack/accordion-body')]),
                 role: 'region',
                 hidden: '',
             };
@@ -124,7 +142,7 @@ export const AccordionBlock = defineComponent({
             const bodyContent = extractSlotContent(bodyVnode) as VNode[] | null;
 
             return h('div', wrapperAttrs, [
-                h('div', { class: 'ap-accordion__title' }, [
+                h('div', { class: classList(['ap-accordion__title', childClassName(props.innerBlocks, 'artisanpack/accordion-title')]) }, [
                     h('div', triggerAttrs, titleContent ?? []),
                     h('span', {
                         class: `ap-accordion__icon ap-accordion__icon--${panelIcon}`,
@@ -144,11 +162,11 @@ export const AccordionBlock = defineComponent({
 export const AccordionTitleBlock = defineComponent({
     name: 'AccordionTitleBlock',
     props: blockRendererProps,
-    setup(_props, { slots }) {
+    setup(props, { slots }) {
         return () =>
             h(
                 'div',
-                { class: 'ap-accordion__title' },
+                { class: classList(['ap-accordion__title', attrString(props.attributes.className)]) },
                 slots.default ? slots.default() : []
             );
     },
@@ -157,11 +175,11 @@ export const AccordionTitleBlock = defineComponent({
 export const AccordionBodyBlock = defineComponent({
     name: 'AccordionBodyBlock',
     props: blockRendererProps,
-    setup(_props, { slots }) {
+    setup(props, { slots }) {
         return () =>
             h(
                 'div',
-                { class: 'ap-accordion__body' },
+                { class: classList(['ap-accordion__body', attrString(props.attributes.className)]) },
                 slots.default ? slots.default() : []
             );
     },

@@ -1,4 +1,5 @@
 @php
+	use ArtisanPackUI\VisualEditor\Support\BlockShape;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 
 	$renderer = app( \ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer::class );
@@ -31,11 +32,20 @@
 			? $renderer->render( $child['innerBlocks'] )
 			: '';
 
+		// The title and body are re-wrapped here, so their own supports
+		// (className and the `ve-r-*` / `ve-fx-*` scopes with their CSS,
+		// M-7) go on the re-wrapped elements, as their standalone
+		// partials do. Their anchor is dropped: the body already carries
+		// the panel id.
+		$childAttributes = BlockShape::readAttrs( $child )[1];
+		unset( $childAttributes['anchor'] );
+
 		if ( 'artisanpack/accordion-title' === $child['name'] ) {
 			$titleControlsAttr = '' === $panelId ? '' : ' aria-controls="' . $panelIdSafe . '"';
 			$titleIdAttr       = '' === $controlId ? '' : ' id="' . $controlId . '"';
 			$titleHtml = sprintf(
-				'<div class="ap-accordion__title"><div class="ap-accordion__title-content" role="button" tabindex="0" aria-expanded="false"%s%s>%s</div><span class="ap-accordion__icon ap-accordion__icon--%s" aria-hidden="true"></span></div>',
+				'<div%s><div class="ap-accordion__title-content" role="button" tabindex="0" aria-expanded="false"%s%s>%s</div><span class="ap-accordion__icon ap-accordion__icon--%s" aria-hidden="true"></span></div>',
+				BlockSupports::wrapperAttrs( $childAttributes, [ 'ap-accordion__title' ] ),
 				$titleIdAttr,
 				$titleControlsAttr,
 				$childInner,
@@ -48,7 +58,8 @@
 			$bodyIdAttr         = '' === $panelId ? '' : ' id="' . $panelIdSafe . '"';
 			$bodyLabelledByAttr = '' === $controlId ? '' : ' aria-labelledby="' . $controlId . '"';
 			$bodyHtml = sprintf(
-				'<div class="ap-accordion__body"%s role="region"%s hidden>%s</div>',
+				'<div%s%s role="region"%s hidden>%s</div>',
+				BlockSupports::wrapperAttrs( $childAttributes, [ 'ap-accordion__body' ] ),
 				$bodyIdAttr,
 				$bodyLabelledByAttr,
 				$childInner

@@ -1750,6 +1750,48 @@
             ]
         },
         {
+            "name": "responsive-overrides-spacer-numeric",
+            "$comment": "F-5 — a numeric spacer `height` (base and per breakpoint) takes the `px` fallback unit in every renderer, and joins the scope hash as a number.",
+            "tree": [
+                { "clientId": "resp-spacer-num", "name": "core/spacer", "attributes": { "height": 120, "responsive": { "height": { "tablet": 80, "mobile": 40 } } }, "innerBlocks": [] }
+            ]
+        },
+        {
+            "name": "responsive-overrides-coverage",
+            "$comment": "F-5 — per-breakpoint border width / colour / style, group `minHeight`, a `backgroundColor` preset slug, the `base` key, a legacy (`md`) and a device (`mobile`) key on the same property, and hostile values: a `</style><script>` colour and a `;}` breakout width are dropped (or reduced to the CSS-value whitelist) identically in every renderer.",
+            "tree": [
+                {
+                    "clientId": "resp-cov-group",
+                    "name": "core/group",
+                    "attributes": {
+                        "layout": { "type": "flow" },
+                        "responsive": {
+                            "style.border.width": { "tablet": "2px", "mobile": "1px;}body{color:red" },
+                            "style.border.color": { "tablet": "#ff0000", "mobile": "red</style><script>alert(1)</script>" },
+                            "style.border.style": { "mobile": "dashed" },
+                            "style.dimensions.minHeight": { "tablet": "50vh", "mobile": "320px" },
+                            "backgroundColor": { "mobile": "accent" },
+                            "style.spacing.padding": { "base": "1rem", "md": "2rem", "mobile": "0.5rem" }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "resp-cov-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Legacy and device",
+                                "responsive": {
+                                    "style.typography.fontSize": { "md": "1.5rem", "mobile": "1rem" },
+                                    "style.color.text": { "base": "#111111", "lg": "#222222", "tablet": "#333333" }
+                                }
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
             "name": "responsive-overrides-paragraph",
             "$comment": "#877 · #886 — paragraph font size and colour overrides (preset slug and custom value) at Tablet and Mobile, grouped by CSS property so the narrower breakpoint wins in every renderer.",
             "tree": [
@@ -1899,6 +1941,47 @@
             ]
         },
         {
+            "name": "block-supports-classname-coverage",
+            "$comment": "M-7 — code, preformatted, verse, embed, accordion title/body (inside an accordion and standalone) print their author `className`, and with it the `ve-r-<hash>` responsive and `ve-fx-<hash>` effects scopes, on the element Blade puts `wrapperAttrs()` on, so the emitted rules actually apply.",
+            "tree": [
+                { "clientId": "cn-code", "name": "core/code", "attributes": { "content": "const a = 1;", "className": "mine", "artisanpackEffects": { "opacity": 50 }, "responsive": { "style.spacing.padding": { "mobile": "1rem" } } }, "innerBlocks": [] },
+                { "clientId": "cn-pre", "name": "core/preformatted", "attributes": { "content": "pre text", "className": "mine", "artisanpackEffects": { "opacity": 60 }, "responsive": { "style.spacing.padding": { "tablet": "2rem" } } }, "innerBlocks": [] },
+                { "clientId": "cn-verse", "name": "core/verse", "attributes": { "content": "verse text", "textAlign": "center", "className": "mine", "artisanpackEffects": { "opacity": 70 }, "responsive": { "style.spacing.margin": { "mobile": "1rem" } } }, "innerBlocks": [] },
+                { "clientId": "cn-embed", "name": "core/embed", "attributes": { "url": "https://www.youtube.com/watch?v=x", "providerNameSlug": "YouTube", "type": "video", "aspectRatio": "16/9", "className": "mine", "artisanpackEffects": { "opacity": 80 }, "responsive": { "style.spacing.padding": { "mobile": "1rem" } } }, "innerBlocks": [] },
+                {
+                    "clientId": "cn-accordion",
+                    "name": "artisanpack/accordion",
+                    "attributes": { "panelId": "panel-1", "className": "acc" },
+                    "innerBlocks": [
+                        {
+                            "clientId": "cn-acc-title",
+                            "name": "artisanpack/accordion-title",
+                            "attributes": { "className": "acc-title", "artisanpackEffects": { "opacity": 90 }, "responsive": { "style.spacing.padding": { "mobile": "3px" } } },
+                            "innerBlocks": [ { "clientId": "cn-acc-title-p", "name": "core/paragraph", "attributes": { "content": "Question" }, "innerBlocks": [] } ]
+                        },
+                        {
+                            "clientId": "cn-acc-body",
+                            "name": "artisanpack/accordion-body",
+                            "attributes": { "className": "acc-body", "anchor": "ignored", "artisanpackEffects": { "opacity": 40 }, "responsive": { "style.spacing.padding": { "tablet": "4px" } } },
+                            "innerBlocks": [ { "clientId": "cn-acc-body-p", "name": "core/paragraph", "attributes": { "content": "Answer" }, "innerBlocks": [] } ]
+                        }
+                    ]
+                },
+                {
+                    "clientId": "cn-title-solo",
+                    "name": "artisanpack/accordion-title",
+                    "attributes": { "className": "solo-title", "artisanpackEffects": { "opacity": 30 }, "responsive": { "style.spacing.padding": { "mobile": "5px" } } },
+                    "innerBlocks": [ { "clientId": "cn-title-solo-p", "name": "core/paragraph", "attributes": { "content": "Solo title" }, "innerBlocks": [] } ]
+                },
+                {
+                    "clientId": "cn-body-solo",
+                    "name": "artisanpack/accordion-body",
+                    "attributes": { "className": "solo-body", "artisanpackEffects": { "opacity": 20 }, "responsive": { "style.spacing.padding": { "mobile": "6px" } } },
+                    "innerBlocks": [ { "clientId": "cn-body-solo-p", "name": "core/paragraph", "attributes": { "content": "Solo body" }, "innerBlocks": [] } ]
+                }
+            ]
+        },
+        {
             "name": "heading",
             "$comment": "#888 — heading preset colour and font-size classes and the anchor id match across renderers. Auto anchors are unique across the tree (an author anchor claims its slug first-come), accents and entities fold out of the slug, and a hostile author anchor is reduced to `[A-Za-z0-9_:.-]` — and it is that rendered id a later auto anchor (`Badidxyz` → `badidxyz-1`) must avoid. Named HTML 4 entities decode before slugging.",
             "tree": [
@@ -1940,7 +2023,30 @@
                     "name": "core/heading",
                     "attributes": { "content": "Cr&egrave;me &frac12; x", "level": 2 },
                     "innerBlocks": []
-                }
+                },
+                { "clientId": "heading-7", "name": "core/heading", "attributes": { "content": "Crème ¼ x", "level": 2 }, "innerBlocks": [] },
+                { "clientId": "heading-8", "name": "core/heading", "attributes": { "content": "日本語", "level": 2 }, "innerBlocks": [] },
+                { "clientId": "heading-9", "name": "core/heading", "attributes": { "content": "Résumé 日本", "level": 2 }, "innerBlocks": [] },
+                { "clientId": "heading-10", "name": "artisanpack/heading", "attributes": { "content": "Résumé 中文", "level": 3, "textColor": "primary" }, "innerBlocks": [] },
+                { "clientId": "heading-11", "name": "artisanpack/heading", "attributes": { "content": "中文", "level": 2 }, "innerBlocks": [] },
+                { "clientId": "heading-12", "name": "core/heading", "attributes": { "content": "Numbered", "level": 2, "anchor": 42 }, "innerBlocks": [] },
+                { "clientId": "heading-13", "name": "core/heading", "attributes": { "content": "42", "level": 2 }, "innerBlocks": [] },
+                { "clientId": "heading-14", "name": "core/heading", "attributes": { "content": "a < b > c", "level": 2 }, "innerBlocks": [] }
+            ]
+        },
+        {
+            "name": "heading-post-content",
+            "$comment": "M-14 / F-7 — post-content headings take part in the anchor pass in document order, as Blade's `TocResolver::stampContentHeadings()` does: an existing `id` is claimed (the later block heading `Intro` becomes `intro-1`), and a heading without one gets a unique, id-safe auto anchor injected into the content HTML.",
+            "tree": [
+                {
+                    "clientId": "hpc-content",
+                    "name": "core/post-content",
+                    "attributes": { "_resolvedContent": "<h2 id=\"intro\">Intro</h2><p>Body</p><h2 class=\"wp-block-heading\">Details</h2><h3>日本語</h3>" },
+                    "innerBlocks": []
+                },
+                { "clientId": "hpc-heading-1", "name": "core/heading", "attributes": { "content": "Intro", "level": 2 }, "innerBlocks": [] },
+                { "clientId": "hpc-heading-2", "name": "core/heading", "attributes": { "content": "Details", "level": 2 }, "innerBlocks": [] },
+                { "clientId": "hpc-heading-3", "name": "core/heading", "attributes": { "content": "中文", "level": 2 }, "innerBlocks": [] }
             ]
         },
         {

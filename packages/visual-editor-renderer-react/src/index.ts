@@ -73,8 +73,14 @@ export type { SiteMeta } from './siteMeta';
 export {
     filterVisibleBlocks,
     getBreakpoints,
+    getDeviceBreakpoints,
     setBreakpoints,
     stampVisibilityScopes,
 } from './visibility';
-export type { BreakpointDefinition } from './visibility';
+export type {
+    BreakpointDefinition,
+    BreakpointInput,
+    BreakpointMap,
+    DeviceBreakpointDefinition,
+} from './visibility';
 export type { Block, BlockRenderer, BlockRendererProps } from './types';
