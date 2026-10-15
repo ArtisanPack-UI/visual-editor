@@ -35,6 +35,7 @@ import { ensureMediaBridgeFilter } from '../media-bridge';
 import { useThemedEditorSettings } from '../use-themed-editor-settings';
 
 import { registerArtisanPackBlocks } from '../blocks';
+import { registerThemeBlockStyles } from '../block-style-registry';
 
 import { BlockLibrarySidebar } from './block-library-sidebar';
 import {
@@ -217,6 +218,8 @@ function registerOnce(): void {
     // I7 (#415): register all artisanpack/* blocks and set the default
     // block to artisanpack/paragraph. Core blocks are no longer loaded.
     registerArtisanPackBlocks();
+    // #876 — theme block style variations into the Styles picker.
+    registerThemeBlockStyles();
     blocksRegistered = true;
 }
 

@@ -125,6 +125,7 @@ class BlocksStylesComponent extends Component
 		?string $assetBase = null,
 		bool $bundle = true,
 		bool $interactive = true,
+		bool $blockStyleVariations = true,
 	) {
 		$base = $this->normaliseBase( $assetBase ?? self::DEFAULT_ASSET_BASE );
 
@@ -147,7 +148,7 @@ class BlocksStylesComponent extends Component
 		$this->interactivityScriptSrc   = $base . '/frontend/interactivity.js';
 		$this->emitBlockLibrary         = $bundle;
 		$this->emitInteractive          = $interactive;
-		$this->themeTokensCss           = null === $themeJson ? '' : $this->compiler->compile( $themeJson );
+		$this->themeTokensCss           = null === $themeJson ? '' : $this->compiler->compile( $themeJson, $blockStyleVariations );
 		$this->spacingPresetsCss        = $this->compiler->compileSpacingPresets( $themeJson );
 		$this->defaultTokensCss         = $this->compiler->compileDefaults( $themeJson );
 		$this->defaultStylesCss         = DefaultStyles::enabled( $themeJson ) ? DefaultStyles::CSS : '';

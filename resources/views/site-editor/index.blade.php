@@ -52,6 +52,8 @@
 		     `useThemedEditorSettings`; host entries override same-slug
 		     entries from either theme.json or the package defaults. --}}
 		data-presets="{{ json_encode( \ArtisanPackUI\VisualEditor\Resources\PresetRegistry::fromConfig(), JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS ) }}"
+		{{-- #876 — block style variations for the Styles picker. --}}
+		data-block-styles="{{ json_encode( app( \ArtisanPackUI\VisualEditor\BlockStyles\BlockStyleResolver::class )->editorPayload(), JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS ) }}"
 	></div>
 </body>
 </html>

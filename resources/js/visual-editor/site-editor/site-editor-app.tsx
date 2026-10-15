@@ -58,6 +58,7 @@ import { registerBackgroundControls } from '../background-controls';
 import { registerBindingsAttribute } from '../bindings/register-attribute';
 import { registerBindingsPanel } from '../bindings/with-bindings-panel';
 import { registerArtisanPackBlocks } from '../blocks';
+import { registerThemeBlockStyles } from '../block-style-registry';
 import { registerDynamicContent } from '../dynamic-content';
 import { registerDynamicLinkFormat } from '../formats/dynamic-link/register';
 import { registerInlineIconFormat } from '../formats/inline-icon/register';
@@ -296,6 +297,8 @@ function ensureEditorBoot(): void {
     // I7 (#415): register all artisanpack/* blocks and set the default
     // block to artisanpack/paragraph. Core blocks are no longer loaded.
     registerArtisanPackBlocks();
+    // #876 — theme block style variations into the Styles picker.
+    registerThemeBlockStyles();
 
     editorBooted = true;
 }

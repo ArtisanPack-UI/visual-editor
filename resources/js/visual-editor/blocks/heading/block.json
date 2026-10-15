@@ -97,6 +97,15 @@
         "__experimentalSlashInserter": true,
         "interactivity": {
             "clientNavigation": true
+        },
+        "artisanpackResponsive": {
+            "attributes": [
+                "fontSize",
+                "textColor",
+                "style.color.text",
+                "backgroundColor",
+                "style.color.background"
+            ]
         }
     },
     "editorStyle": "wp-block-heading-editor",

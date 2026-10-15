@@ -60,6 +60,7 @@ use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use ArtisanPackUI\VisualEditor\States\StateCssEmitter;
 use ArtisanPackUI\VisualEditor\States\StateRegistry;
 use ArtisanPackUI\VisualEditor\States\StateValueResolver;
+use ArtisanPackUI\VisualEditor\Support\CssValue;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\BoxShadowCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ElementsCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
@@ -85,6 +86,20 @@ class BlockSupports
 		'style.border.width'     => 'border-width',
 		'style.border.style'     => 'border-style',
 		'style.border.color'     => 'border-color',
+		// #877 — typography, colour and dimension overrides. The bare
+		// `fontSize` / `textColor` / `backgroundColor` paths carry a
+		// preset slug ({@see self::RESPONSIVE_PRESET_PATHS}); `height`
+		// (spacer) and `minHeight` (cover) carry the block's own
+		// attribute ({@see self::RESPONSIVE_UNIT_PATHS}).
+		'style.typography.fontSize'  => 'font-size',
+		'fontSize'                   => 'font-size',
+		'style.color.text'           => 'color',
+		'textColor'                  => 'color',
+		'style.color.background'     => 'background-color',
+		'backgroundColor'            => 'background-color',
+		'style.dimensions.minHeight' => 'min-height',
+		'height'                     => 'height',
+		'minHeight'                  => 'min-height',
 		// `width` is intentionally absent. The artisanpack/column block
 		// translates its `width` attribute to a `flex-basis` declaration
 		// (not `width`), and the WP core `.wp-block-columns:not(.is-not-stacked-on-mobile) > .wp-block-column { flex-basis: 100% !important }`
@@ -93,6 +108,42 @@ class BlockSupports
 		// `responsive.width` itself (see column.blade.php) — same
 		// pattern as columns.blade.php handles `responsive.columnCount`.
 	];
+
+	/**
+	 * Responsive paths whose value is a preset slug, mapped to the
+	 * preset category it expands under (#877): a `fontSize` override of
+	 * `small` emits `font-size: var(--wp--preset--font-size--small)`.
+	 *
+	 * @since 1.15.0
+	 */
+	protected const RESPONSIVE_PRESET_PATHS = [
+		'fontSize'        => 'font-size',
+		'textColor'       => 'color',
+		'backgroundColor' => 'color',
+	];
+
+	/**
+	 * Responsive paths whose numeric value takes its unit from a sibling
+	 * attribute (#877), with the fallback unit when none resolves. Cover
+	 * stores `minHeight: 50` next to `minHeightUnit: 'vh'`; spacer
+	 * heights are strings, but a legacy numeric height means pixels.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @var array<string, array{0: string|null, 1: string}>
+	 */
+	protected const RESPONSIVE_UNIT_PATHS = [
+		'minHeight' => [ 'minHeightUnit', 'px' ],
+		'height'    => [ null, 'px' ],
+	];
+
+	/**
+	 * Units a numeric {@see self::RESPONSIVE_UNIT_PATHS} value may take.
+	 * Mirrors the cover partial's own list.
+	 *
+	 * @since 1.15.0
+	 */
+	protected const RESPONSIVE_ALLOWED_UNITS = [ 'px', 'em', 'rem', 'vh', 'vw', '%' ];
 
 	/**
 	 * Recognized values for the block-level `align` attribute. Values
@@ -646,18 +697,25 @@ class BlockSupports
 	 * tags inline.
 	 *
 	 * @since 1.0.0
+	 * @since 1.15.0 Accepts a `$propertyMap` so a partial can emit its
+	 *               own paths (spacer `width`) through the same emitter.
 	 *
-	 * @param  array<string, mixed>  $attributes
+	 * @param  array<string, mixed>         $attributes
+	 * @param  array<string, string>|null  $propertyMap  Path → CSS property;
+	 *                                                   `null` uses
+	 *                                                   {@see self::RESPONSIVE_CSS_PROPERTY_MAP}.
 	 *
 	 * @return array{class: string, rules: string}
 	 */
-	public static function compileResponsive( array $attributes ): array
+	public static function compileResponsive( array $attributes, ?array $propertyMap = null ): array
 	{
 		$responsive = $attributes['responsive'] ?? null;
 
 		if ( ! is_array( $responsive ) || [] === $responsive ) {
 			return [ 'class' => '', 'rules' => '' ];
 		}
+
+		$propertyMap ??= self::RESPONSIVE_CSS_PROPERTY_MAP;
 
 		// Pull the request-scoped registry from the container so
 		// host-configured breakpoints (theme.json → config) are
@@ -671,7 +729,7 @@ class BlockSupports
 			? self::resolveRegistry()
 			: BreakpointRegistry::fromLayers();
 		$rules    = [];
-		$scope    = self::generateResponsiveScopeClass( $responsive );
+		$scope    = self::generateResponsiveScopeClass( self::responsiveHashInput( $responsive, $attributes, $propertyMap ) );
 
 		// Tripled scope class boosts the rule's specificity to
 		// (0,0,3,0), matching WP core's own
@@ -681,24 +739,55 @@ class BlockSupports
 		// the wrapper, after every WP core stylesheet, so we win.
 		$selector = sprintf( '.%1$s.%1$s.%1$s', $scope );
 
+		// A unit-only override still needs its value path walked (#877).
+		foreach ( self::RESPONSIVE_UNIT_PATHS as $path => [ $unitPath ] ) {
+			if ( null !== $unitPath && isset( $propertyMap[ $path ], $responsive[ $unitPath ] ) && ! isset( $responsive[ $path ] ) ) {
+				$responsive[ $path ] = [];
+			}
+		}
+
+		// Group the overrides by CSS property (#877): a preset path and
+		// its custom twin (`fontSize` / `style.typography.fontSize`)
+		// write the same property, so each breakpoint keeps one value —
+		// the later-stored path when both set the same breakpoint — and
+		// the rules come out in breakpoint order, letting the narrower
+		// override win whichever path holds it.
+		$byProperty = [];
+
 		foreach ( $responsive as $path => $overrides ) {
 			if ( ! is_array( $overrides ) ) {
 				continue;
 			}
 
-			if ( ! isset( self::RESPONSIVE_CSS_PROPERTY_MAP[ $path ] ) ) {
+			if ( ! isset( $propertyMap[ $path ] ) ) {
 				continue;
 			}
 
-			$property = self::RESPONSIVE_CSS_PROPERTY_MAP[ $path ];
+			$overrides = self::withUnitOnlyOverrides( (string) $path, $overrides, $attributes, $registry );
 
+			foreach ( $overrides as $breakpoint => $value ) {
+				if ( null === $value || '' === $value ) {
+					continue;
+				}
+
+				$byProperty[ $propertyMap[ $path ] ][ $breakpoint ] = [ (string) $path, $value ];
+			}
+		}
+
+		foreach ( $byProperty as $property => $overrides ) {
 			// Registry emission order, not storage order: legacy min-width
 			// rules ascending, then desktop-first max-width rules from
 			// largest to smallest so the narrower override wins (#820).
 			foreach ( $registry->keysWithBase() as $breakpoint ) {
-				$value = $overrides[ $breakpoint ] ?? null;
+				if ( ! isset( $overrides[ $breakpoint ] ) ) {
+					continue;
+				}
 
-				if ( null === $value || '' === $value ) {
+				[ $path, $value ] = $overrides[ $breakpoint ];
+
+				$value = self::normaliseResponsiveValue( $path, $value, $breakpoint, $attributes, $registry );
+
+				if ( null === $value ) {
 					continue;
 				}
 
@@ -894,6 +983,163 @@ class BlockSupports
 		$value = trim( (string) $value, '-' );
 
 		return $value;
+	}
+
+	/**
+	 * Turn a stored responsive override into the CSS value the generic
+	 * emitter writes (#877). Preset paths expand their slug into the
+	 * `var:preset|…` shorthand {@see self::responsiveDeclarations()}
+	 * resolves; unit paths append the unit that applies at the
+	 * breakpoint to a numeric value. Every other value passes through.
+	 * Returns `null` to drop the override.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 */
+	protected static function normaliseResponsiveValue( string $path, mixed $value, string $breakpoint, array $attributes, BreakpointRegistry $registry ): mixed
+	{
+		if ( isset( self::RESPONSIVE_PRESET_PATHS[ $path ] ) ) {
+			if ( ! is_string( $value ) || '' === trim( $value ) ) {
+				return null;
+			}
+
+			return 'var:preset|' . self::RESPONSIVE_PRESET_PATHS[ $path ] . '|' . trim( $value );
+		}
+
+		if ( ! isset( self::RESPONSIVE_UNIT_PATHS[ $path ] ) ) {
+			return $value;
+		}
+
+		if ( is_string( $value ) && ! is_numeric( $value ) ) {
+			return $value;
+		}
+
+		if ( ! is_int( $value ) && ! is_float( $value ) && ! is_numeric( $value ) ) {
+			return null;
+		}
+
+		[ $unitPath, $fallbackUnit ] = self::RESPONSIVE_UNIT_PATHS[ $path ];
+
+		$unit = null === $unitPath
+			? $fallbackUnit
+			: self::cascadeResponsiveValue( $attributes, $unitPath, $breakpoint, $registry );
+
+		if ( ! is_string( $unit ) || ! in_array( $unit, self::RESPONSIVE_ALLOWED_UNITS, true ) ) {
+			$unit = $fallbackUnit;
+		}
+
+		return max( 0.0, (float) $value ) . $unit;
+	}
+
+	/**
+	 * The payload the responsive scope class is hashed from. Normally
+	 * just `attributes.responsive`, but a unit path's rules also read the
+	 * block's base value and unit (#877), so those join the hash
+	 * whenever a unit path is overridden — otherwise two covers with the
+	 * same overrides but different base heights would share a scope and
+	 * the accumulator would keep only the first one's rules.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  array<mixed>           $responsive
+	 * @param  array<string, mixed>   $attributes
+	 * @param  array<string, string>  $propertyMap
+	 *
+	 * @return array<mixed>
+	 */
+	protected static function responsiveHashInput( array $responsive, array $attributes, array $propertyMap ): array
+	{
+		$base = [];
+
+		foreach ( self::RESPONSIVE_UNIT_PATHS as $path => [ $unitPath ] ) {
+			if ( null === $unitPath || ! isset( $propertyMap[ $path ] ) ) {
+				continue;
+			}
+
+			if ( ! isset( $responsive[ $path ] ) && ! isset( $responsive[ $unitPath ] ) ) {
+				continue;
+			}
+
+			$base[ $path ]     = $attributes[ $path ] ?? null;
+			$base[ $unitPath ] = $attributes[ $unitPath ] ?? null;
+		}
+
+		return [] === $base ? $responsive : [ 'responsive' => $responsive, 'base' => $base ];
+	}
+
+	/**
+	 * Fill in a value override at every breakpoint that overrides only
+	 * the unit (#877): a cover whose Mobile override switches
+	 * `minHeightUnit` to `vh` but keeps the inherited `minHeight` still
+	 * needs a Mobile `min-height` rule.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  array<mixed>          $overrides
+	 * @param  array<string, mixed>  $attributes
+	 *
+	 * @return array<mixed>
+	 */
+	protected static function withUnitOnlyOverrides( string $path, array $overrides, array $attributes, BreakpointRegistry $registry ): array
+	{
+		$unitPath = self::RESPONSIVE_UNIT_PATHS[ $path ][0] ?? null;
+
+		if ( null === $unitPath ) {
+			return $overrides;
+		}
+
+		$unitOverrides = $attributes['responsive'][ $unitPath ] ?? null;
+
+		if ( ! is_array( $unitOverrides ) ) {
+			return $overrides;
+		}
+
+		foreach ( $unitOverrides as $breakpoint => $unit ) {
+			if ( ! is_string( $breakpoint ) || null === $unit || '' === $unit || isset( $overrides[ $breakpoint ] ) ) {
+				continue;
+			}
+
+			$value = self::cascadeResponsiveValue( $attributes, $path, $breakpoint, $registry );
+
+			if ( null !== $value && '' !== $value ) {
+				$overrides[ $breakpoint ] = $value;
+			}
+		}
+
+		return $overrides;
+	}
+
+	/**
+	 * The value of a top-level attribute that applies at a breakpoint:
+	 * the first override along the registry cascade, then the base
+	 * attribute. Mirrors the editor's read view.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 */
+	protected static function cascadeResponsiveValue( array $attributes, string $path, string $breakpoint, BreakpointRegistry $registry ): mixed
+	{
+		$overrides = $attributes['responsive'][ $path ] ?? null;
+
+		if ( is_array( $overrides ) ) {
+			foreach ( $registry->cascade( $breakpoint ) as $key ) {
+				if ( BreakpointRegistry::BASE_KEY === $key ) {
+					break;
+				}
+
+				if ( isset( $overrides[ $key ] ) && '' !== $overrides[ $key ] ) {
+					return $overrides[ $key ];
+				}
+			}
+
+			if ( isset( $overrides[ BreakpointRegistry::BASE_KEY ] ) && '' !== $overrides[ BreakpointRegistry::BASE_KEY ] ) {
+				return $overrides[ BreakpointRegistry::BASE_KEY ];
+			}
+		}
+
+		return $attributes[ $path ] ?? null;
 	}
 
 	/**
@@ -1784,13 +2030,17 @@ class BlockSupports
 	 * class-based rules on specificity, so without `!important` the
 	 * per-breakpoint overrides emit but never apply on the front end.
 	 * #509 (consolidated emission) will keep the same suffix.
+	 *
+	 * A value with a comment delimiter or unbalanced parentheses is
+	 * dropped (#877): every block's rules share one `<style>` block, so
+	 * a stray `/*` or `calc(` would swallow every rule after it.
 	 */
 	protected static function responsiveDeclarations( string $property, $value ): string
 	{
 		if ( is_scalar( $value ) ) {
 			$resolved = self::sanitizeCssValue( self::resolvePresetVar( (string) $value ) );
 
-			if ( '' === $resolved ) {
+			if ( '' === $resolved || ! CssValue::isBalanced( $resolved ) ) {
 				return '';
 			}
 
@@ -1810,7 +2060,7 @@ class BlockSupports
 
 			$resolved = self::sanitizeCssValue( self::resolvePresetVar( (string) $value[ $side ] ) );
 
-			if ( '' === $resolved ) {
+			if ( '' === $resolved || ! CssValue::isBalanced( $resolved ) ) {
 				continue;
 			}
 

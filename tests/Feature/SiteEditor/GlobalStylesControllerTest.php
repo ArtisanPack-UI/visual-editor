@@ -228,6 +228,34 @@ describe( 'GET /visual-editor/api/global-styles/css', function (): void {
 			->toContain( 'color: #111827;' );
 	} );
 
+	it( 'appends theme and code block style variation CSS (#876)', function (): void {
+		$this->mock( ThemeManager::class, function ( $mock ): void {
+			$mock->shouldReceive( 'getActiveTheme' )->andReturn( [
+				'name'     => 'Digital Shopfront',
+				'slug'     => 'digital-shopfront',
+				'settings' => [ 'color' => [ 'palette' => [ [ 'slug' => 'primary', 'color' => '#0f172a' ] ] ] ],
+				'styles'   => [
+					'blocks' => [
+						'core/button' => [
+							'color'      => [ 'text' => '#ffffff' ],
+							'variations' => [ 'hollow' => [ 'color' => [ 'background' => 'transparent' ] ] ],
+						],
+					],
+				],
+			] );
+			stubThemeManagerHelpersForGlobalStylesTest( $mock );
+		} );
+
+		rebuildSiteEditorResolversForGlobalStylesTest();
+
+		ArtisanPackUI\VisualEditor\Facades\VisualEditor::registerBlockStyle( 'core/group', 'card', 'Card', [ 'border' => [ 'radius' => '12px' ] ] );
+
+		expect( $this->get( '/visual-editor/api/global-styles/css' )->assertOk()->getContent() )
+			->toContain( ':root :where(.wp-block-button.is-style-hollow .wp-block-button__link) {' )
+			->toContain( 'background-color: transparent;' )
+			->toContain( ':root :where(.wp-block-group.is-style-card) {' );
+	} );
+
 	it( 'declares the default spacing presets when the theme ships no spacingSizes (#814)', function (): void {
 		$this->mock( ThemeManager::class, function ( $mock ): void {
 			$mock->shouldReceive( 'getActiveTheme' )->andReturn( [

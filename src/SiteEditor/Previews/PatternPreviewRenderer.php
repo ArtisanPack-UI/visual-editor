@@ -131,7 +131,9 @@ class PatternPreviewRenderer
 		}
 
 		$parts = [
-			Blade::render( '<x-ve-blocks-styles :theme-json="$themeJson" />', [
+			// #876 — the global styles below already carry the theme's
+			// block style variations, so don't compile them twice.
+			Blade::render( '<x-ve-blocks-styles :theme-json="$themeJson" :block-style-variations="false" />', [
 				'themeJson' => $this->activeThemeJson(),
 			] ),
 		];

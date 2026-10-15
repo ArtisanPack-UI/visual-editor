@@ -71,6 +71,11 @@ export interface HoverAttribute {
 	duration?: number;
 	delay?: number;
 	easing?: string;
+	/**
+	 * Glow colour (#878): a `var:preset|color|{slug}` palette reference
+	 * or a raw colour. Unset falls back to the theme's glow colour.
+	 */
+	color?: string;
 }
 
 export interface ContinuousAttribute {

@@ -102,3 +102,23 @@ it( 'prepends font-size, palette and layout defaults when the theme ships none (
 		// Emitter output stays last so theme / user values win.
 		->toEndWith( ":root {\n\t--wp--preset--color--primary: #000;\n}" );
 } );
+
+it( 'appends block style variation CSS after the emitter output (#876)', function (): void {
+	fakeGlobalStylesEmitter( ":root {\n\t--wp--preset--color--primary: #000;\n}\n" );
+	fakeResolvedSpacingSizes( null );
+
+	ArtisanPackUI\VisualEditor\Facades\VisualEditor::registerBlockStyle( 'core/button', 'pill', 'Pill', [ 'border' => [ 'radius' => '999px' ] ] );
+
+	$css = ( new GlobalStylesEmissionResolver() )->emit();
+
+	expect( $css )->toEndWith( "border-radius: 999px;\n}" )
+		->and( strpos( $css, '.wp-block-button.is-style-pill' ) )->toBeGreaterThan( strpos( $css, '--wp--preset--color--primary: #000;' ) );
+} );
+
+it( 'emits block style variation CSS when the emitter has nothing (#876)', function (): void {
+	fakeGlobalStylesEmitter( '' );
+
+	ArtisanPackUI\VisualEditor\Facades\VisualEditor::registerBlockStyle( 'core/button', 'pill', 'Pill', [ 'border' => [ 'radius' => '999px' ] ] );
+
+	expect( ( new GlobalStylesEmissionResolver() )->emit() )->toStartWith( ':root :where(.wp-block-button.is-style-pill .wp-block-button__link) {' );
+} );

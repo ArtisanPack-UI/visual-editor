@@ -716,6 +716,24 @@ return [
 
 	/*
 	|--------------------------------------------------------------------------
+	| Block style variations (#876)
+	|--------------------------------------------------------------------------
+	|
+	| Extra directories of WordPress-style `*.json` partials to read block
+	| style variations from. Only partials that declare `blockTypes` are
+	| used. The active cms-framework theme's `styles/` directory and its
+	| `theme.json` `styles.blocks.*.variations` are read automatically;
+	| code can also call `VisualEditor::registerBlockStyle()` or hook the
+	| `ap.visualEditor.blockStyles` filter.
+	|
+	*/
+
+	'block_styles' => [
+		'directories' => [],
+	],
+
+	/*
+	|--------------------------------------------------------------------------
 	| Custom keyframes (#489)
 	|--------------------------------------------------------------------------
 	|

@@ -27,6 +27,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditorRendererBlade\Services;
 
+use ArtisanPackUI\VisualEditor\BlockStyles\BlockStyleResolver;
 use ArtisanPackUI\VisualEditor\Resources\PresetRegistry;
 
 class GlobalStylesEmissionResolver
@@ -43,14 +44,21 @@ class GlobalStylesEmissionResolver
 	 * Return the compiled global-styles CSS for the active theme, or an
 	 * empty string when cms-framework isn't installed (or its emitter
 	 * resolves to an empty document — no active theme, no global-styles
-	 * record).
+	 * record) and no block style variations are registered.
 	 *
 	 * @since 1.0.0
+	 * @since 1.15.0 Appends block style variation CSS.
 	 */
 	public function emit(): string
 	{
+		// #876 — block style variations (`.is-style-*`). Emitted even
+		// without cms-framework so variations registered in code still
+		// style the front end, and after the emitter's `styles.blocks`
+		// rules so a variation overrides the block's base styles.
+		$variations = app( BlockStyleResolver::class )->css();
+
 		if ( ! class_exists( self::EMITTER_CLASS ) ) {
-			return '';
+			return $variations;
 		}
 
 		$css = app( self::EMITTER_CLASS )->emit();
@@ -59,7 +67,7 @@ class GlobalStylesEmissionResolver
 		// No active theme / global-styles record → nothing to emit (#434
 		// dropped the old bundled-defaults fallback on purpose).
 		if ( '' === $css ) {
-			return '';
+			return $variations;
 		}
 
 		// #814 — the emitter only declares the spacing presets the resolved
@@ -82,6 +90,6 @@ class GlobalStylesEmissionResolver
 			PresetRegistry::presetDefaultsCss( $settings ),
 		], static fn ( string $part ): bool => '' !== $part );
 
-		return implode( "\n\n", [ ...$defaults, $css ] );
+		return implode( "\n\n", array_filter( [ ...$defaults, $css, $variations ], static fn ( string $part ): bool => '' !== $part ) );
 	}
 }

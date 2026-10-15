@@ -20,6 +20,10 @@ vi.mock('../../blocks', () => ({
     registerArtisanPackBlocks: vi.fn(),
 }));
 
+vi.mock('../../block-style-registry', () => ({
+    registerThemeBlockStyles: vi.fn(),
+}));
+
 vi.mock('../../background-controls', () => ({
     registerBackgroundControls: vi.fn(),
 }));
@@ -197,6 +201,7 @@ describe('site-editor boot parity (#799)', () => {
         const dynamicLink = await import('../../formats/dynamic-link/register');
         const contrastWarning = await import('../../editor/contrast-warning');
         const navigationBlockGap = await import('../../editor/navigation-block-gap');
+        const blockStyles = await import('../../block-style-registry');
 
         render(<SiteEditorApp routeBase={ROUTE_BASE} apiBase="/visual-editor/api" />);
 
@@ -215,5 +220,7 @@ describe('site-editor boot parity (#799)', () => {
         expect(contrastWarning.registerContrastWarning).toHaveBeenCalledTimes(1);
         // #814 — the inline canvas needs the nav block-gap filter too.
         expect(navigationBlockGap.registerNavigationBlockGap).toHaveBeenCalledTimes(1);
+        // #876 — theme block style variations reach the Styles picker.
+        expect(blockStyles.registerThemeBlockStyles).toHaveBeenCalledTimes(1);
     });
 });

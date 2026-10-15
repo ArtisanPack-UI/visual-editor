@@ -1,0 +1,2 @@
+<div aria-hidden="true" class="wp-block-spacer" style="height: 120px">
+</div>

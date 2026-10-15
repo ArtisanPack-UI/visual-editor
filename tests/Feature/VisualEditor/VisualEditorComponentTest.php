@@ -427,3 +427,24 @@ describe( 'ap.visualEditor.editorConfig filter', function (): void {
 			->and( $html )->toContain( 'data-resource="posts"' );
 	} );
 } );
+
+it( 'stamps registered block style variations on the mount (#876)', function (): void {
+	ArtisanPackUI\VisualEditor\Facades\VisualEditor::registerBlockStyle( 'core/group', 'card', 'Card <b>', [ 'border' => [ 'radius' => '12px' ] ] );
+
+	$model = TestBlockContentModel::create( [
+		'title'   => 'Block styles',
+		'status'  => 'published',
+		'content' => [],
+	] );
+
+	$html = Blade::render(
+		'<x-visual-editor :model="$model" />',
+		[ 'model' => $model ],
+	);
+
+	expect( $html )->toContain( 'data-block-styles=' )
+		->and( $html )->toContain( 'core\/group' )
+		->and( $html )->toContain( 'card' )
+		->and( $html )->not->toContain( 'Card <b>' )
+		->and( $html )->not->toContain( 'radius' );
+} );

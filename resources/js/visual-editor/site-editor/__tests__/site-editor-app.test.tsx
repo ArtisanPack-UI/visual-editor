@@ -10,6 +10,10 @@ vi.mock('../../blocks', () => ({
     registerArtisanPackBlocks: (): void => undefined,
 }));
 
+vi.mock('../../block-style-registry', () => ({
+    registerThemeBlockStyles: (): void => undefined,
+}));
+
 // #649 — same reason as the BlockEditorBoundary + BlockLibrarySidebar
 // stubs below: the real background-controls barrel pulls
 // `@wordpress/block-editor` (and its `block-compare` → `diff` subpath)
