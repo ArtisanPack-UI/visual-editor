@@ -100,8 +100,12 @@ once per request:
   `<x-ve-blocks>` / `<x-ve-template>` queue the styles on the
   `ve-global-styles` Blade stack, and `<x-ve-blocks-styles />` prints that
   stack, so they still land in `<head>`.
-- A layout without `<x-ve-blocks-styles />` should print
-  `@stack('ve-global-styles')` in its `<head>`, or set
+- A layout without `<x-ve-blocks-styles />` can print
+  `@stack('ve-global-styles')` in its `<head>`. If it prints neither, the
+  package's `InjectQueuedGlobalStyles` middleware (on the `web` group) puts
+  the queued styles into the HTML response's `<head>`, before its first
+  stylesheet. For output that never becomes an HTTP response (mail,
+  `Blade::render()` into a string), set
   `artisanpack.visual-editor.global_styles_in_head` to `false`, which makes
   the first `<x-ve-blocks>` / `<x-ve-template>` print them inline in the body.
 

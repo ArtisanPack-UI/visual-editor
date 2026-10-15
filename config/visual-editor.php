@@ -858,8 +858,11 @@ return [
 	| layout's slot (they are queued on the `ve-global-styles` stack).
 	|
 	| A layout that renders blocks inside a section or slot but has no
-	| `<x-ve-blocks-styles>` in its head must print
-	| `@stack('ve-global-styles')` there itself, or set this to `false`.
+	| `<x-ve-blocks-styles>` (or `@stack('ve-global-styles')`) in its head
+	| still gets the styles on HTML responses: the renderer's middleware on
+	| the `web` group injects them into `<head>`. Output that never becomes
+	| an HTTP response (mail, `Blade::render()` into a string) doesn't, so
+	| set this to `false` there.
 	|
 	| `false`: the first `<x-ve-blocks>` / `<x-ve-template>` prints the
 	| global styles inline in the body, as in 1.14.
