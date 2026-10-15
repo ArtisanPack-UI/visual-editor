@@ -372,7 +372,7 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   Strings that block `save()` functions serialize stay untranslated
   literals, so saved markup is identical in every locale. The editor
   translation template (`languages/artisanpack-visual-editor.pot`) is
-  regenerated and lists N strings. "colour" and "neighbours" are now
+  regenerated and lists 1,288 strings. "colour" and "neighbours" are now
   spelled "color" and "neighbors".
 
 ### Fixed
