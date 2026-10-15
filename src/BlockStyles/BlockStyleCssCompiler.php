@@ -168,7 +168,7 @@ class BlockStyleCssCompiler
 					}
 				}
 
-				array_push( $rules, ...$this->compileNode( $innerStyle, $descendants ) );
+				array_push( $rules, ...$this->compileNode( $innerStyle, $descendants, $this->featureSelectors( $inner, $descendants ) ) );
 			}
 		}
 
@@ -340,8 +340,10 @@ class BlockStyleCssCompiler
 			'outline'    => [],
 		];
 
-		$this->push( $groups['color'], 'background-color', $color['background'] ?? null );
+		// The `background` shorthand resets `background-color`, so the
+		// gradient goes first, in WordPress's `PROPERTIES_METADATA` order.
 		$this->push( $groups['color'], 'background', $color['gradient'] ?? null );
+		$this->push( $groups['color'], 'background-color', $color['background'] ?? null );
 		$this->push( $groups['color'], 'color', $color['text'] ?? null );
 
 		foreach ( self::TYPOGRAPHY as $key => $property ) {
