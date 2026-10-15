@@ -59,6 +59,20 @@ it( 'returns the post_core catalog even when no resource is supplied', function 
 	expect( $keys )->toContain( 'title' );
 } );
 
+it( 'drops author_name from the post_core catalog when the allowlist denies the author name (#869)', function (): void {
+	config()->set( 'artisanpack.visual-editor.bindings.enforce_allowlist', true );
+
+	$keys = collect( $this->getJson( '/visual-editor/api/bindings/sources/post_core/fields?resource=bindings' )->assertOk()->json( 'fields' ) )->pluck( 'key' )->all();
+
+	expect( $keys )->toContain( 'title' )->not->toContain( 'author_name' );
+
+	config()->set( 'artisanpack.visual-editor.bindings.allowed_attributes', [ TestUser::class => [ 'name' ] ] );
+
+	$keys = collect( $this->getJson( '/visual-editor/api/bindings/sources/post_core/fields?resource=bindings' )->assertOk()->json( 'fields' ) )->pluck( 'key' )->all();
+
+	expect( $keys )->toContain( 'author_name' );
+} );
+
 it( 'returns an empty field catalog for the relation source', function (): void {
 	$response = $this->getJson( '/visual-editor/api/bindings/sources/relation/fields?resource=bindings' );
 
