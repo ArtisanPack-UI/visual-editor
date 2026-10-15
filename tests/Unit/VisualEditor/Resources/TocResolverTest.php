@@ -635,3 +635,52 @@ it( 'auto-anchors a heading whose author anchor sanitizes to nothing (#888)', fu
 
 	expect( $resolved[0]['attributes']['anchor'] )->toBe( 'quoted' );
 } );
+
+it( 'reduces auto anchors to their rendered id before the uniqueness check (M-13)', function (): void {
+	$resolver = new TocResolver();
+
+	$resolved = $resolver->resolveTree( [
+		tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Crème ½ x' ] ),
+		tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Crème ¼ x' ] ),
+		tocBlock( 'core/heading', [ 'level' => 2, 'content' => '日本語' ] ),
+		tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Résumé 日本' ] ),
+		tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Résumé 中文' ] ),
+		tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Привет' ] ),
+		tocBlock( 'artisanpack/toc' ),
+	] );
+
+	$anchors = array_map( fn ( array $block ): ?string => $block['attributes']['anchor'] ?? null, array_slice( $resolved, 0, 6 ) );
+
+	expect( $anchors )->toBe( [ 'creme-x', 'creme-x-1', 'heading', 'resume', 'resume-1', 'heading-1' ] )
+		->and( array_column( $resolved[6]['attributes']['_resolvedItems'], 'anchor' ) )->toBe( $anchors );
+} );
+
+it( 'still skips a heading whose text has no letters or numbers (M-13)', function (): void {
+	$resolved = ( new TocResolver() )->resolveTree( [
+		tocBlock( 'core/heading', [ 'level' => 2, 'content' => '— ? —' ] ),
+	] );
+
+	expect( $resolved[0]['attributes'] )->not->toHaveKey( 'anchor' );
+} );
+
+it( 'stamps id-safe anchors into post-content headings (M-13)', function (): void {
+	$resolved = ( new TocResolver() )->resolveTree( [
+		tocBlock( 'core/post-content', [ '_resolvedContent' => '<h2>日本語</h2><h2>中文</h2>' ] ),
+		tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Ελληνικά' ] ),
+	] );
+
+	expect( $resolved[0]['attributes']['_resolvedContent'] )->toBe( '<h2 id="heading">日本語</h2><h2 id="heading-1">中文</h2>' )
+		->and( $resolved[1]['attributes']['anchor'] )->toBe( 'heading-2' );
+} );
+
+it( 'claims a numeric author anchor as the id it renders (F-5)', function (): void {
+	$resolved = ( new TocResolver() )->resolveTree( [
+		tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Numbered', 'anchor' => 42 ] ),
+		tocBlock( 'core/heading', [ 'level' => 2, 'content' => '42' ] ),
+		tocBlock( 'artisanpack/toc' ),
+	] );
+
+	expect( $resolved[0]['attributes']['anchor'] )->toBe( 42 )
+		->and( $resolved[1]['attributes']['anchor'] )->toBe( '42-1' )
+		->and( array_column( $resolved[2]['attributes']['_resolvedItems'], 'anchor' ) )->toBe( [ '42', '42-1' ] );
+} );

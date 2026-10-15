@@ -1927,7 +1927,30 @@
                     "name": "core/heading",
                     "attributes": { "content": "Cr&egrave;me &frac12; x", "level": 2 },
                     "innerBlocks": []
-                }
+                },
+                { "clientId": "heading-7", "name": "core/heading", "attributes": { "content": "Crème ¼ x", "level": 2 }, "innerBlocks": [] },
+                { "clientId": "heading-8", "name": "core/heading", "attributes": { "content": "日本語", "level": 2 }, "innerBlocks": [] },
+                { "clientId": "heading-9", "name": "core/heading", "attributes": { "content": "Résumé 日本", "level": 2 }, "innerBlocks": [] },
+                { "clientId": "heading-10", "name": "artisanpack/heading", "attributes": { "content": "Résumé 中文", "level": 3, "textColor": "primary" }, "innerBlocks": [] },
+                { "clientId": "heading-11", "name": "artisanpack/heading", "attributes": { "content": "中文", "level": 2 }, "innerBlocks": [] },
+                { "clientId": "heading-12", "name": "core/heading", "attributes": { "content": "Numbered", "level": 2, "anchor": 42 }, "innerBlocks": [] },
+                { "clientId": "heading-13", "name": "core/heading", "attributes": { "content": "42", "level": 2 }, "innerBlocks": [] },
+                { "clientId": "heading-14", "name": "core/heading", "attributes": { "content": "a < b > c", "level": 2 }, "innerBlocks": [] }
+            ]
+        },
+        {
+            "name": "heading-post-content",
+            "$comment": "M-14 / F-7 — post-content headings take part in the anchor pass in document order, as Blade's `TocResolver::stampContentHeadings()` does: an existing `id` is claimed (the later block heading `Intro` becomes `intro-1`), and a heading without one gets a unique, id-safe auto anchor injected into the content HTML.",
+            "tree": [
+                {
+                    "clientId": "hpc-content",
+                    "name": "core/post-content",
+                    "attributes": { "_resolvedContent": "<h2 id=\"intro\">Intro</h2><p>Body</p><h2 class=\"wp-block-heading\">Details</h2><h3>日本語</h3>" },
+                    "innerBlocks": []
+                },
+                { "clientId": "hpc-heading-1", "name": "core/heading", "attributes": { "content": "Intro", "level": 2 }, "innerBlocks": [] },
+                { "clientId": "hpc-heading-2", "name": "core/heading", "attributes": { "content": "Details", "level": 2 }, "innerBlocks": [] },
+                { "clientId": "hpc-heading-3", "name": "core/heading", "attributes": { "content": "中文", "level": 2 }, "innerBlocks": [] }
             ]
         },
         {
