@@ -159,3 +159,41 @@ it( 're-reads a partial edited without a new modification time', function (): vo
 
 	expect( $label )->toBe( 'Capsule' );
 } );
+
+it( 'keeps one cache entry per directory however often its partials change (R-4)', function (): void {
+	config()->set( 'cache.default', 'array' );
+	app()->forgetInstance( 'cache' );
+	app()->forgetInstance( 'cache.store' );
+
+	$directory = sys_get_temp_dir() . '/ve-block-styles-' . uniqid();
+	mkdir( $directory );
+	$file = $directory . '/pill.json';
+
+	foreach ( [ 'Pill', 'Capsule', 'Lozenge' ] as $title ) {
+		file_put_contents( $file, json_encode( [ 'title' => $title, 'blockTypes' => [ 'core/button' ] ] ) );
+
+		expect( $this->parser->fromDirectory( $directory )[0]['label'] )->toBe( $title );
+	}
+
+	unlink( $file );
+	rmdir( $directory );
+
+	$storage = ( fn (): array => $this->storage )->call( app( 'cache' )->store()->getStore() );
+	$keys    = array_filter( array_keys( $storage ), static fn ( string $key ): bool => str_starts_with( $key, BlockStyleVariationParser::CACHE_PREFIX ) );
+
+	expect( $keys )->toHaveCount( 1 );
+} );
+
+it( 'reads a directory whose name contains glob wildcards (R-4)', function (): void {
+	$directory = sys_get_temp_dir() . '/ve-block-styles-[x]*?-' . uniqid();
+	mkdir( $directory );
+	file_put_contents( $directory . '/pill.json', json_encode( [ 'title' => 'Pill', 'blockTypes' => [ 'core/button' ] ] ) );
+
+	$entries = $this->parser->fromDirectory( $directory );
+
+	unlink( $directory . '/pill.json' );
+	rmdir( $directory );
+
+	expect( $entries )->toHaveCount( 1 )
+		->and( BlockStyleVariationParser::escapeGlob( '/a/[b]*?/' ) )->toBe( '/a/[[]b][*][?]/' );
+} );

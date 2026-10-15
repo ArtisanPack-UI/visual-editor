@@ -15,15 +15,17 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Effects;
 
+use ArtisanPackUI\VisualEditor\Support\CapabilityCheck;
 use Illuminate\Contracts\Auth\Authenticatable;
 
 /**
  * Who may write a block's Custom CSS (#881). The CSS is printed unescaped
  * on the public site, so access is denied by default: the user needs the
  * `artisanpack.visual-editor.effects.custom_css_capability` capability
- * (default `edit_block_css`) through an RBAC `hasCapability()` /
- * `hasPermissionTo()` / `hasPermission()` method. Hosts can redefine the
- * {@see self::ABILITY} gate instead.
+ * (default `edit_block_css`) through an RBAC `checkPermissionTo()` /
+ * `hasCapability()` / `hasPermissionTo()` / `hasPermission()` method (see
+ * {@see CapabilityCheck}). A permission backend that throws denies instead
+ * of erroring. Hosts can redefine the {@see self::ABILITY} gate instead.
  *
  * Without the ability the editor hides the field, and every save path
  * runs the incoming blocks through {@see CustomCssGuard}, which keeps only
@@ -56,6 +58,8 @@ class BlockCssAccess
 	 * @since 1.15.0
 	 *
 	 * @param  Authenticatable|null  $user  Current user.
+	 *
+	 * @return bool Whether the user may write Custom CSS.
 	 */
 	public static function allows( ?Authenticatable $user ): bool
 	{
@@ -69,12 +73,6 @@ class BlockCssAccess
 			return false;
 		}
 
-		foreach ( [ 'hasCapability', 'hasPermissionTo', 'hasPermission' ] as $method ) {
-			if ( method_exists( $user, $method ) ) {
-				return (bool) $user->{$method}( $capability );
-			}
-		}
-
-		return false;
+		return true === CapabilityCheck::check( $user, $capability );
 	}
 }
