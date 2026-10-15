@@ -29,7 +29,6 @@ use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BlockBindingSource;
 use ArtisanPackUI\VisualEditor\Services\Bindings\ModelAttributeVisibility;
 use BackedEnum;
-use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\QueryException;
 use Throwable;
@@ -88,9 +87,11 @@ class CustomFieldSource implements BlockBindingSource
 		$value = $model->getAttribute( $key );
 
 		// The parent's own fields stay readable, but with the opt-in
-		// allowlist enforced (#869) a key naming a relation can't publish
-		// the related record wholesale; bind through `relation` instead.
-		if ( BindingAttributeAllowlist::isEnforced() && ( $value instanceof Model || $value instanceof EloquentCollection ) ) {
+		// allowlist enforced (#869) a key naming a relation, or an
+		// accessor returning models in an array or collection, can't
+		// publish the related records wholesale; bind through `relation`
+		// instead.
+		if ( BindingAttributeAllowlist::isEnforced() && BindingAttributeAllowlist::containsModel( $value ) ) {
 			return null;
 		}
 
