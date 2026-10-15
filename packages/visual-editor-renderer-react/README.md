@@ -53,7 +53,7 @@ export default function Post({ post }) {
 | `patterns` | `PatternRecord[]` | — | Synced-pattern records; replaces `core/block` references with the pattern's blocks. |
 | `defaultTheme` | `string` | — | Theme assumed for template-part references that don't name one. |
 | `duotonePresets` | `DuotonePresets` | — | The theme's `settings.color.duotone` (flat list or `{ theme, custom, default }`). Needed for `var:preset\|duotone\|…` picks; custom stops work without it. Since 1.15.0. |
-| `customCssAllowUrls` | `boolean` | `true` | Mirror the server's `effects.custom_css_allow_urls`. When `false`, Custom CSS that loads a resource (`url(`, `image-set(`, `image(`, `src(`) is dropped. `<BlockTree>` only. Since 1.15.0. |
+| `customCssAllowUrls` | `boolean` | `true` | Mirror the server's `effects.custom_css_allow_urls`. When `false`, Custom CSS that loads a resource (`url(`, `image-set(`, `image(`, `src(`) is dropped. Also accepted by `<Template>`. Since 1.15.0. |
 
 ## Server config: duotone, Custom CSS and breakpoints
 

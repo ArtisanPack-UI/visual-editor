@@ -525,7 +525,7 @@ Two `<BlockTree>` props control the parts that depend on server config:
 | Prop | Type | Default | Notes |
 |------|------|---------|-------|
 | `duotonePresets` | `DuotonePresets` | — | The theme's `settings.color.duotone`, as a flat list or keyed by origin (`{ theme, custom, default }`). Without it, `var:preset\|duotone\|…` picks render no filter; custom stops still work. Also accepted by `<Template>`. |
-| `customCssAllowUrls` | `boolean` | `true` | Pass the host's [`effects.custom_css_allow_urls`](Configuration.md#effects). When `false`, Custom CSS that loads a resource (`url(`, `image-set(`, `image(`, `src(`) is dropped, as Blade drops it. `<BlockTree>` only; `<Template>` doesn't forward it, so trees it renders always allow URLs. |
+| `customCssAllowUrls` | `boolean` | `true` | Pass the host's [`effects.custom_css_allow_urls`](Configuration.md#effects). When `false`, Custom CSS that loads a resource (`url(`, `image-set(`, `image(`, `src(`) is dropped, as Blade drops it. `<Template>` takes the same prop and forwards it. |
 
 Resolve both on the server and pass them in the page props:
 

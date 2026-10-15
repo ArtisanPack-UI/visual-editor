@@ -41,7 +41,7 @@ public function edit(Post $post)
 ```tsx
 // resources/js/Pages/Posts/Edit.tsx
 import { useEffect, useRef } from 'react';
-import { mountVisualEditor } from '@artisanpack-ui/visual-editor';
+import { mountEditor } from '@artisanpack-ui/visual-editor';
 
 export default function PostEditor({ post }) {
     const mountRef = useRef<HTMLDivElement>(null);
@@ -49,10 +49,10 @@ export default function PostEditor({ post }) {
     useEffect(() => {
         if (!mountRef.current) return;
 
-        const editor = mountVisualEditor(mountRef.current, {
+        const editor = mountEditor(mountRef.current, {
+            apiBase: '/visual-editor/api',
             resource: 'posts',
             id: String(post.id),
-            apiBase: '/visual-editor/api',
             initialTitle: post.title,
             initialSlug: post.slug,
             initialStatus: post.status,
@@ -71,55 +71,80 @@ export default function PostEditor({ post }) {
 }
 ```
 
-The `mountVisualEditor(el, config)` helper is the imperative equivalent
-of the Blade component — pass the same config keys (camelCase). It returns
-an `{ unmount, save, getBlocks }` handle.
+`mountEditor(element, config)` is the imperative equivalent of the Blade
+component. It takes the same config keys in camelCase (`apiBase`,
+`resource` and `id` are required) and returns a `MountedEditor` handle:
+
+| Member | Description |
+|--------|-------------|
+| `unmount()` | Unmounts the React root and frees the element. Safe to call more than once. |
+| `ready` | A promise that resolves once the editor bundle has loaded and the first render is scheduled. It rejects if the bundle fails to load. |
+
+Mounting twice on the same element (React StrictMode, HMR) is a no-op
+that returns a handle for the existing editor.
 
 ### Bridging editor events
 
-The same `ve:editor:*` events the Blade component dispatches fire here.
-Listen in the page component:
+The editor dispatches `ve:editor:change`, `ve:editor:autosave` and
+`ve:editor:save` on `window`. Each `detail` carries `resource`, `id` and
+the current `blocks`; autosave and save also carry `updatedAt`. The
+event names are exported as `VE_EDITOR_CHANGE`, `VE_EDITOR_AUTOSAVE` and
+`VE_EDITOR_SAVE`. Filter on `resource` and `id` when a page mounts more
+than one editor:
 
 ```tsx
+import { VE_EDITOR_SAVE, type VeEditorSaveEvent } from '@artisanpack-ui/visual-editor';
+
 useEffect(() => {
-    const onSave = (event: CustomEvent) => {
+    const onSave = (event: VeEditorSaveEvent) => {
         if (event.detail.resource !== 'posts') return;
         if (event.detail.id !== String(post.id)) return;
-        // Sync Inertia state, show toast, etc.
+        // Sync Inertia state, show a toast, etc.
     };
 
-    window.addEventListener('ve:editor:save', onSave as EventListener);
-    return () => window.removeEventListener('ve:editor:save', onSave as EventListener);
+    window.addEventListener(VE_EDITOR_SAVE, onSave as EventListener);
+    return () => window.removeEventListener(VE_EDITOR_SAVE, onSave as EventListener);
 }, [post.id]);
 ```
 
-### Inertia navigation and `wire:ignore`-equivalent
+### Inertia navigation
 
-Inertia doesn't have `wire:ignore` — when navigating between Inertia
-pages, the React tree unmounts entirely. The cleanup function in the
-`useEffect` handles this; the editor's autosave debounce flushes before
-unmount.
+Inertia has no `wire:ignore`. When you navigate between Inertia pages,
+the React tree unmounts entirely, and the cleanup function in the
+`useEffect` above unmounts the editor.
 
-To preserve unsaved edits during programmatic navigation, gate
-`Inertia.visit()` on the editor's `getBlocks()` returning a clean state:
-
-Inside the `useEffect`, hold the editor handle in a ref so it survives
-between renders:
+The handle has no dirty flag. To warn before leaving with unsaved edits,
+track it from the events: a `ve:editor:change` marks the page dirty, and
+a `ve:editor:save` or `ve:editor:autosave` marks it clean.
 
 ```tsx
-const editorRef = useRef<ReturnType<typeof mountVisualEditor>>();
+import { router } from '@inertiajs/react';
+import { VE_EDITOR_AUTOSAVE, VE_EDITOR_CHANGE, VE_EDITOR_SAVE } from '@artisanpack-ui/visual-editor';
+
+const dirty = useRef(false);
 
 useEffect(() => {
-    if (!mountRef.current) return;
-    editorRef.current = mountVisualEditor(mountRef.current, { /* …config */ });
-    return () => editorRef.current?.unmount();
+    const isSelf = (event: Event) => {
+        const detail = (event as CustomEvent<{ resource: string; id: string }>).detail;
+        return detail?.resource === 'posts' && detail?.id === String(post.id);
+    };
+    const markDirty = (event: Event) => { if (isSelf(event)) dirty.current = true; };
+    const markClean = (event: Event) => { if (isSelf(event)) dirty.current = false; };
+
+    window.addEventListener(VE_EDITOR_CHANGE, markDirty);
+    window.addEventListener(VE_EDITOR_AUTOSAVE, markClean);
+    window.addEventListener(VE_EDITOR_SAVE, markClean);
+
+    return () => {
+        window.removeEventListener(VE_EDITOR_CHANGE, markDirty);
+        window.removeEventListener(VE_EDITOR_AUTOSAVE, markClean);
+        window.removeEventListener(VE_EDITOR_SAVE, markClean);
+    };
 }, [post.id]);
 
 const handleNavigate = (href: string) => {
-    if (editorRef.current?.isDirty()) {
-        if (!confirm('You have unsaved changes. Leave?')) return;
-    }
-    Inertia.visit(href);
+    if (dirty.current && !confirm('You have unsaved changes. Leave?')) return;
+    router.visit(href);
 };
 ```
 
@@ -128,13 +153,13 @@ const handleNavigate = (href: string) => {
 ## 2. Inertia + Vue
 
 The Vue wrapper at `@artisanpack-ui/visual-editor/vue` exports a
-`<VisualEditor>` Vue component that wraps the React editor in a Vue tree
-(the editor itself stays React; Vue manages mount/unmount + prop
-reactivity).
+`<VisualEditor>` Vue component that wraps the React editor in a Vue tree.
+The editor itself stays React; Vue manages mount, unmount and prop
+updates.
 
 ### Server-side: same Inertia page
 
-The controller is identical to the React recipe — Inertia doesn't care
+The controller is identical to the React recipe. Inertia doesn't care
 which client renderer the page uses.
 
 ### Client-side: the Vue page
@@ -144,7 +169,7 @@ which client renderer the page uses.
 <script setup lang="ts">
 import { VisualEditor } from '@artisanpack-ui/visual-editor/vue';
 
-defineProps<{
+const props = defineProps<{
     post: {
         id: number;
         title: string;
@@ -154,43 +179,57 @@ defineProps<{
     };
 }>();
 
-const onSave = (detail) => {
-    // Sync Inertia state, show toast, etc.
+const onSaved = (detail) => {
+    // Sync Inertia state, show a toast, etc.
 };
 
-const onChange = (detail) => {
-    // Edits in-flight — mark dirty, defer navigation, etc.
+const onChanged = (detail) => {
+    // Edits in flight: mark the page dirty, defer navigation, etc.
 };
 </script>
 
 <template>
     <Layout>
         <VisualEditor
+            api-base="/visual-editor/api"
             resource="posts"
-            :id="String(post.id)"
-            :initial-title="post.title"
-            :initial-slug="post.slug"
-            :initial-status="post.status"
+            :model="{
+                id: post.id,
+                title: post.title,
+                slug: post.slug,
+                status: post.status,
+            }"
             :preview-url="post.previewUrl"
             :supports="{ excerpt: true, featuredImage: true }"
-            @save="onSave"
-            @autosave="onSave"
-            @change="onChange"
+            @saved="onSaved"
+            @autosaved="onSaved"
+            @changed="onChanged"
         />
     </Layout>
 </template>
 ```
 
-The Vue component re-emits `ve:editor:*` browser events as Vue
-component events (`save`, `autosave`, `change`) so you can wire them
-declaratively.
+| Prop | Required | Description |
+|------|----------|-------------|
+| `model` | yes | The record: `id` plus any of `title`, `slug`, `status`, `excerpt`, `featuredImage`, `authorId`, `commentsOpen`. They become the editor's `initial*` config. |
+| `api-base` | yes | The editor API base, e.g. `/visual-editor/api`. |
+| `resource` | yes | The resource key, e.g. `posts`. |
+| `preview-url` | no | The Preview button's URL. |
+| `author-options` | no | Authors for the author picker. |
+| `supports` | no | Which document panels to show. |
+| `can-edit-block-css`, `custom-css-allow-urls`, `block-styles` | no | *Since v1.15.0.* See below. |
+
+The component listens for the `ve:editor:*` browser events, keeps only
+the ones for its own `resource` and `model.id`, and re-emits them as Vue
+events: `changed`, `autosaved` and `saved`, each with the event's
+`detail`.
 
 ### Vue → React data flow
 
-Props on `<VisualEditor>` map 1:1 to the React editor's config. Changing
-a prop after mount re-renders the React tree with the new config — but
-the editor doesn't reload content on a re-render. Change `:id` or
-`:resource` and the editor will detect it and fetch the new entity.
+Changing `resource`, `model.id` or `api-base` after mount unmounts the
+editor and mounts a fresh one for the new record. The other props are
+read at mount time. To apply new values, re-key the component
+(`:key="post.id"`).
 
 ### Custom CSS access and theme block styles
 
