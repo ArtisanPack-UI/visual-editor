@@ -33,7 +33,12 @@ namespace ArtisanPackUI\VisualEditor\Effects;
  *                       so a zero-specificity `position: relative` comes
  *                       with it — any theme or Positioning rule wins over it
  *  - `clipShape`        one of {@see self::CLIP_SHAPES}
- *  - `textClip`         bool — clips the background to the text (gradient text)
+ *  - `textClip`         bool — clips the background to the text (gradient
+ *                       text). Emitted only for a block that paints a
+ *                       gradient or background image
+ *                       ({@see self::hasBackgroundFill()}), since the text
+ *                       would otherwise be invisible, and paired with a
+ *                       `forced-colors` fallback in the text color
  *  - `customCss`        string, see {@see CustomCssSanitizer}
  *
  * The hash covers the compiled declarations and Custom CSS, so identical
@@ -114,15 +119,29 @@ class EffectsCompiler
 	];
 
 	/**
+	 * Config key that lets Custom CSS load resources (F-11).
+	 *
+	 * @since 1.15.0
+	 */
+	public const ALLOW_URLS_CONFIG = 'artisanpack.visual-editor.effects.custom_css_allow_urls';
+
+	/**
 	 * Compile a block's effects, or null when it sets none.
 	 *
 	 * @since 1.15.0
 	 *
-	 * @param  array<string, mixed>  $attributes  Raw block attributes.
+	 * @param  array<string, mixed>  $attributes          Raw block attributes.
+	 * @param  bool|null             $hasBackgroundFill   Whether the block paints a gradient
+	 *                                                    or background image for text clip to
+	 *                                                    show through. Null reads it from the
+	 *                                                    attributes ({@see self::hasBackgroundFill()}).
+	 * @param  bool|null             $allowCustomCssUrls  Whether Custom CSS may load resources.
+	 *                                                    Null reads config
+	 *                                                    `effects.custom_css_allow_urls`.
 	 *
 	 * @return array{class: string, css: string}|null
 	 */
-	public static function compile( array $attributes ): ?array
+	public static function compile( array $attributes, ?bool $hasBackgroundFill = null, ?bool $allowCustomCssUrls = null ): ?array
 	{
 		$effects = $attributes[ self::ATTRIBUTE ] ?? null;
 
@@ -130,8 +149,10 @@ class EffectsCompiler
 			return null;
 		}
 
-		$declarations = self::declarations( $effects );
-		$customCss    = CustomCssSanitizer::sanitize( $effects['customCss'] ?? null ) ?? '';
+		$allowCustomCssUrls ??= (bool) config( self::ALLOW_URLS_CONFIG, true );
+
+		$declarations = self::declarations( $effects, $hasBackgroundFill ?? self::hasBackgroundFill( $attributes ) );
+		$customCss    = CustomCssSanitizer::sanitize( $effects['customCss'] ?? null, $allowCustomCssUrls ) ?? '';
 
 		if ( [] === $declarations && '' === $customCss ) {
 			return null;
@@ -146,6 +167,13 @@ class EffectsCompiler
 			$css .= ':where(.' . $class . '){position:relative}';
 		}
 
+		// Forced-colors mode drops background images and gradients, so
+		// clipped text would be invisible: paint it in the text color.
+		if ( in_array( 'background-clip:text', $declarations, true ) ) {
+			$css .= '@media (forced-colors:active){.' . $class . '{-webkit-text-fill-color:currentColor;'
+				. '-webkit-background-clip:border-box;background-clip:border-box}}';
+		}
+
 		return [
 			'class' => $class,
 			'css'   => $css,
@@ -153,15 +181,40 @@ class EffectsCompiler
 	}
 
 	/**
+	 * Whether a block paints a gradient or a background image — what text
+	 * clip needs to show through. Reads the `gradient` preset,
+	 * `style.color.gradient` and `style.background.backgroundImage`.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  array<string, mixed>  $attributes  Raw block attributes.
+	 *
+	 * @return bool
+	 */
+	public static function hasBackgroundFill( array $attributes ): bool
+	{
+		$style = self::arrayValue( $attributes['style'] ?? null );
+		$image = self::arrayValue( $style['background'] ?? null )['backgroundImage'] ?? null;
+		$url   = is_string( $image ) ? $image : ( self::arrayValue( $image )['url'] ?? null );
+
+		return self::filled( $attributes['gradient'] ?? null )
+			|| self::filled( self::arrayValue( $style['color'] ?? null )['gradient'] ?? null )
+			|| self::filled( $url );
+	}
+
+	/**
 	 * The CSS declarations for an effects payload, in a fixed order.
 	 *
 	 * @since 1.15.0
 	 *
-	 * @param  array<string, mixed>  $effects
+	 * @param  array<string, mixed>  $effects  The `artisanpackEffects` payload.
+	 * @param  bool                  $hasFill  Whether the block paints a gradient or
+	 *                                         background image; text clip is dropped
+	 *                                         without one.
 	 *
 	 * @return array<int, string>
 	 */
-	public static function declarations( array $effects ): array
+	public static function declarations( array $effects, bool $hasFill = false ): array
 	{
 		$declarations = [];
 
@@ -218,7 +271,9 @@ class EffectsCompiler
 			$declarations[] = 'clip-path:' . self::CLIP_SHAPES[ $clip ];
 		}
 
-		if ( true === ( $effects['textClip'] ?? null ) ) {
+		// Without a gradient or image behind it, transparent text would
+		// simply vanish, so text clip needs the caller to confirm one.
+		if ( $hasFill && true === ( $effects['textClip'] ?? null ) ) {
 			$declarations[] = '-webkit-background-clip:text';
 			$declarations[] = 'background-clip:text';
 			$declarations[] = '-webkit-text-fill-color:transparent';
@@ -250,6 +305,28 @@ class EffectsCompiler
 		$int = (int) round( (float) $value, 0, PHP_ROUND_HALF_UP );
 
 		return max( $min, min( $max, $int ) );
+	}
+
+	/**
+	 * The value when it's an array, otherwise an empty array.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @return array<mixed>
+	 */
+	protected static function arrayValue( mixed $value ): array
+	{
+		return is_array( $value ) ? $value : [];
+	}
+
+	/**
+	 * Whether the value is a non-empty string.
+	 *
+	 * @since 1.15.0
+	 */
+	protected static function filled( mixed $value ): bool
+	{
+		return is_string( $value ) && '' !== $value;
 	}
 
 	/**

@@ -933,6 +933,13 @@ return [
 	*/
 	'effects' => [
 		'custom_css_capability' => 'edit_block_css',
+
+		// Whether Custom CSS may load resources: `url("…")`, `image-set(`,
+		// `image(` and `src(`. Set false to close the remaining
+		// exfiltration channel (attribute selectors plus a remote URL);
+		// Custom CSS that uses one is then dropped. URLs must be quoted
+		// either way.
+		'custom_css_allow_urls' => true,
 	],
 
 	'visibility' => [

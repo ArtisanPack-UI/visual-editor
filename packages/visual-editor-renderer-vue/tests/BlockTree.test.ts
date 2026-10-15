@@ -1541,3 +1541,26 @@ describe('Visibility scope on list-item blocks (#806)', () => {
         expect(html).toMatch(/<div class="ve-vis-\d+" data-ve-vis-scope="[^"]*" style="display: contents;"><p class="wp-block-paragraph">Hello<\/p><\/div>/);
     });
 });
+
+describe('BlockTree effects options', () => {
+    const tree = [
+        makeBlock('core/paragraph', {
+            content: 'Hi',
+            artisanpackEffects: { opacity: 50, customCss: 'background: url("a.png");' },
+        }),
+    ];
+
+    it('keeps Custom CSS URLs by default', () => {
+        const wrapper = mount(BlockTree, { props: { tree } });
+
+        expect(wrapper.find('style[data-ve-effects]').element.textContent).toContain('url("a.png")');
+    });
+
+    it('drops Custom CSS that loads a URL when customCssAllowUrls is false', () => {
+        const wrapper = mount(BlockTree, { props: { tree, customCssAllowUrls: false } });
+
+        expect(wrapper.find('style[data-ve-effects]').element.textContent).toMatch(
+            /^\.ve-fx-[0-9a-f]{12}\{opacity:0\.5\}$/
+        );
+    });
+});
