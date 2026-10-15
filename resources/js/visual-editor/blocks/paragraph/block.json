@@ -102,6 +102,15 @@
         "__unstablePasteTextInline": true,
         "interactivity": {
             "clientNavigation": true
+        },
+        "artisanpackResponsive": {
+            "attributes": [
+                "fontSize",
+                "textColor",
+                "style.color.text",
+                "backgroundColor",
+                "style.color.background"
+            ]
         }
     },
     "selectors": {

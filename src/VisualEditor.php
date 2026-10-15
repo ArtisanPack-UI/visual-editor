@@ -22,6 +22,8 @@ namespace ArtisanPackUI\VisualEditor;
 use ArtisanPackUI\VisualEditor\Blocks\ClosureDynamicBlock;
 use ArtisanPackUI\VisualEditor\Blocks\DynamicBlock;
 use ArtisanPackUI\VisualEditor\Blocks\ProvidesBlockMetadata;
+use ArtisanPackUI\VisualEditor\BlockStyles\BlockStyleRegistry;
+use ArtisanPackUI\VisualEditor\BlockStyles\BlockStyleResolver;
 use ArtisanPackUI\VisualEditor\DynamicContent\HostDynamicContentSource;
 use ArtisanPackUI\VisualEditor\Registries\BlockTypeRegistry;
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
@@ -211,6 +213,50 @@ class VisualEditor
 		$this->dynamicContentSourceRegistry()->register( $source );
 
 		return $source;
+	}
+
+	/**
+	 * Registers a block style variation (#876): an entry in the block's
+	 * Styles picker that adds `is-style-{slug}` to the block, styled on
+	 * the canvas and front end from `$style`.
+	 *
+	 * `$style` is a theme.json style node — the same shape as
+	 * `styles.blocks.{block}.variations.{slug}` (`color`, `typography`,
+	 * `spacing`, `border`, `shadow`, `elements`, nested `blocks`). Leave
+	 * it empty to label a variation the theme already styles. A code
+	 * registration wins over the theme's own on the same block + slug.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  string                $block      Block name, e.g. `core/group`.
+	 * @param  string                $slug       Variation slug.
+	 * @param  string                $label      Picker label.
+	 * @param  array<string, mixed>  $style      theme.json style node.
+	 * @param  bool                  $isDefault  Whether it is the block's default style.
+	 *
+	 * @throws InvalidArgumentException When the block name or slug is malformed.
+	 */
+	public function registerBlockStyle( string $block, string $slug, string $label, array $style = [], bool $isDefault = false ): void
+	{
+		app( BlockStyleRegistry::class )->register( $block, $slug, $label, $style, $isDefault );
+
+		if ( app()->resolved( BlockStyleResolver::class ) ) {
+			app( BlockStyleResolver::class )->flush();
+		}
+	}
+
+	/**
+	 * Removes a block style variation registered in code (#876).
+	 *
+	 * @since 1.15.0
+	 */
+	public function unregisterBlockStyle( string $block, string $slug ): void
+	{
+		app( BlockStyleRegistry::class )->unregister( $block, $slug );
+
+		if ( app()->resolved( BlockStyleResolver::class ) ) {
+			app( BlockStyleResolver::class )->flush();
+		}
 	}
 
 	/**

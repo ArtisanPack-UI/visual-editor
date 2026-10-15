@@ -844,3 +844,65 @@ describe( 'shadow, gradient and font-family presets (#872)', function (): void {
 		'comment'           => [ 'serif /* x' ],
 	] );
 } );
+
+it( 'flattens settings.custom into --wp--custom properties (#878)', function (): void {
+	$css = $this->compiler->compile( [
+		'settings' => [
+			'custom' => [
+				'animation' => [
+					'glowColor' => 'rgba(34, 211, 238, 0.6)',
+					'glowSize'  => '0',
+					'glowBlur'  => '24px',
+				],
+				'lineHeight' => [ 'tight' => 1.1 ],
+			],
+		],
+	] );
+
+	expect( $css )->toContain( '--wp--custom--animation--glow-color: rgba(34, 211, 238, 0.6);' )
+		->toContain( '--wp--custom--animation--glow-size: 0;' )
+		->toContain( '--wp--custom--animation--glow-blur: 24px;' )
+		->toContain( '--wp--custom--line-height--tight: 1.1;' );
+} );
+
+it( 'skips settings.custom values that could break out of the style block (#878)', function (): void {
+	$css = $this->compiler->compile( [
+		'settings' => [
+			'custom' => [
+				'animation' => [
+					'glowColor' => 'red; } body { display: none',
+					'flag'      => true,
+					'list'      => [ 'a', 'b' ],
+				],
+			],
+		],
+	] );
+
+	expect( $css )->not->toContain( 'glow-color' )
+		->not->toContain( '--wp--custom--animation--flag' )
+		->not->toContain( '--wp--custom--animation--list' );
+} );
+
+it( 'compiles styles.blocks.*.variations into is-style rules after the block rules (#876)', function (): void {
+	$css = $this->compiler->compile( [
+		'styles' => [
+			'blocks' => [
+				'core/group' => [
+					'color'      => [ 'background' => '#ffffff' ],
+					'variations' => [
+						'card' => [
+							'border'   => [ 'radius' => '12px' ],
+							'elements' => [ 'heading' => [ 'color' => [ 'text' => 'var:preset|color|primary' ] ] ],
+						],
+					],
+				],
+			],
+		],
+	] );
+
+	expect( $css )->toContain( ':root :where(.wp-block-group.is-style-card) {' )
+		->toContain( 'border-radius: 12px;' )
+		->toContain( ':root :where(.wp-block-group.is-style-card h1' )
+		->toContain( 'color: var(--wp--preset--color--primary);' )
+		->and( strpos( $css, '.wp-block-group.is-style-card' ) )->toBeGreaterThan( strpos( $css, ':root :where(.wp-block-group) {' ) );
+} );

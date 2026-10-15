@@ -21,7 +21,10 @@
  * @since 1.1.0
  */
 
+import { useSettings } from '@wordpress/block-editor';
 import {
+	BaseControl,
+	ColorPalette,
 	PanelBody,
 	SelectControl,
 	TextControl,
@@ -38,6 +41,7 @@ import type {
 	HoverAttribute,
 } from './types';
 import { FAMILY_CONTINUOUS, FAMILY_ENTRANCE, FAMILY_HOVER } from './types';
+import { glowColorDisplayValue, glowColorStoredValue, type PaletteColor } from './glow-color';
 
 export interface AnimationPanelProps {
 	registry: AnimationRegistry;
@@ -82,6 +86,36 @@ function parseNumber( next: unknown ): number | undefined {
 	}
 	const parsed = Number( next );
 	return Number.isFinite( parsed ) ? parsed : undefined;
+}
+
+function GlowColorControl( {
+	value,
+	onChange,
+}: {
+	value: string | undefined;
+	onChange: ( next: string | undefined ) => void;
+} ): JSX.Element {
+	const [ themePalette, defaultPalette ] = useSettings( 'color.palette.theme', 'color.palette.default' ) as [
+		PaletteColor[] | undefined,
+		PaletteColor[] | undefined,
+	];
+	const palette = [ ...( themePalette ?? [] ), ...( defaultPalette ?? [] ) ];
+
+	return (
+		<BaseControl
+			id="ap-animation-glow-color"
+			label={ __( 'Glow colour', 'visual-editor' ) }
+			help={ __( 'Leave unset to use the theme’s glow colour.', 'visual-editor' ) }
+			__nextHasNoMarginBottom
+		>
+			<ColorPalette
+				colors={ palette.map( ( entry ) => ( { name: entry.name ?? entry.slug, color: entry.color } ) ) }
+				value={ glowColorDisplayValue( value, palette ) }
+				onChange={ ( next?: string ) => onChange( glowColorStoredValue( next, palette ) ) }
+				clearable
+			/>
+		</BaseControl>
+	);
 }
 
 export function AnimationPanel( {
@@ -178,6 +212,12 @@ export function AnimationPanel( {
 						patchHover( { name: '' === next ? undefined : next } )
 					}
 				/>
+				{ 'glow' === registry.get( FAMILY_HOVER, baseString( hover.name ) )?.preset && (
+					<GlowColorControl
+						value={ hover.color }
+						onChange={ ( next ) => patchHover( { color: next } ) }
+					/>
+				) }
 				<NumberControl
 					label={ __( 'Duration (ms)', 'visual-editor' ) }
 					value={ hover.duration ?? '' }

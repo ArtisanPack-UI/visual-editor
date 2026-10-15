@@ -161,3 +161,88 @@ it( 'rejects easing values containing CSS-injection characters', function (): vo
 	expect( $css )->toContain( 'ease-out' );
 	expect( $css )->not->toContain( 'body {' );
 } );
+
+it( 'emits a themeable glow with the pre-1.15 indigo as the final fallback (#878)', function (): void {
+	$css = makeAnimEmitter()->emit( '.ap-block-x', [
+		'hover' => [ 'name' => 'glow' ],
+	] );
+
+	expect( $css )->toContain( 'var(--ap-anim-glow-color, var(--wp--custom--animation--glow-color, color-mix(in srgb, var(--wp--preset--color--primary, rgb(99,102,241)) 35%, transparent)))' );
+	expect( $css )->toContain( 'var(--ap-anim-glow-size, var(--wp--custom--animation--glow-size, 4px))' );
+	expect( $css )->toContain( 'var(--ap-anim-glow-blur, var(--wp--custom--animation--glow-blur, 0))' );
+	expect( $css )->not->toContain( 'rgba(99,102,241,0.35)' );
+	expect( $css )->toContain( '.ap-block-x:hover { --ap-anim-glow-color: initial;' );
+} );
+
+it( 'emits the lift shadow through a custom property (#878)', function (): void {
+	$css = makeAnimEmitter()->emit( '.ap-block-x', [
+		'hover' => [ 'name' => 'lift' ],
+	] );
+
+	expect( $css )->toContain( 'box-shadow: var(--ap-anim-lift-shadow, var(--wp--custom--animation--lift-shadow, 0 8px 24px rgba(0,0,0,0.12)));' );
+} );
+
+it( 'sets the block glow colour from a palette reference (#878)', function (): void {
+	$css = makeAnimEmitter()->emit( '.ap-block-x', [
+		'hover' => [ 'name' => 'glow', 'color' => 'var:preset|color|accent' ],
+	] );
+
+	expect( $css )->toContain( '.ap-block-x { transition: all 250ms ease-in-out; }' )
+		->toContain( '.ap-block-x:hover { --ap-anim-glow-color: var(--wp--preset--color--accent); box-shadow:' );
+} );
+
+it( 'sets the block glow colour from a raw colour (#878)', function ( string $color ): void {
+	$css = makeAnimEmitter()->emit( '.ap-block-x', [
+		'hover' => [ 'name' => 'glow', 'color' => $color ],
+	] );
+
+	expect( $css )->toContain( '--ap-anim-glow-color: ' . $color . ';' );
+} )->with( [
+	'hex'  => '#22d3ee',
+	'rgba' => 'rgba(34, 211, 238, 0.6)',
+	'name' => 'magenta',
+] );
+
+it( 'drops a glow colour that could break out of the declaration (#878)', function ( string $color ): void {
+	$css = makeAnimEmitter()->emit( '.ap-block-x', [
+		'hover' => [ 'name' => 'glow', 'color' => $color ],
+	] );
+
+	expect( $css )->toContain( '--ap-anim-glow-color: initial;' )
+		->not->toContain( $color );
+} )->with( [
+	'semicolon'     => 'red; background: url(x)',
+	'brace'         => 'red } body { display: none',
+	'nested parens' => 'rgb(1,2,3) url(http://x)',
+	'tag'           => '</style><script>',
+	'comment'       => 'rgb(/*)',
+	'escape'        => 'rgb(\\)',
+	'quote'         => 'rgb(")")',
+] );
+
+it( 'ignores a glow colour on non-glow presets (#878)', function (): void {
+	$css = makeAnimEmitter()->emit( '.ap-block-x', [
+		'hover' => [ 'name' => 'lift', 'color' => '#ff00ff' ],
+	] );
+
+	expect( $css )->not->toContain( '--ap-anim-glow-color:' );
+} );
+
+it( 'falls back to the default easing for values that corrupt the stylesheet', function ( string $easing ): void {
+	$css = makeAnimEmitter()->emit( '.ap-block-x', [
+		'hover' => [ 'name' => 'lift', 'easing' => $easing ],
+	] );
+
+	expect( $css )->toContain( 'transition: all 200ms ease-out;' );
+} )->with( [
+	'comment'  => 'cubic-bezier(/*)',
+	'escape'   => 'ease\\',
+	'quote'    => '"ease"',
+	'unclosed' => 'cubic-bezier(0, 0',
+] );
+
+it( 'keeps a valid custom easing', function (): void {
+	expect( makeAnimEmitter()->emit( '.ap-block-x', [
+		'hover' => [ 'name' => 'lift', 'easing' => 'cubic-bezier(0.2, 0, 0, 1)' ],
+	] ) )->toContain( 'transition: all 200ms cubic-bezier(0.2, 0, 0, 1);' );
+} );

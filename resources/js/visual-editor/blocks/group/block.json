@@ -141,7 +141,13 @@
         "artisanpackResponsive": {
             "attributes": [
                 "spacing",
-                "align"
+                "align",
+                "style.dimensions.minHeight",
+                "fontSize",
+                "textColor",
+                "style.color.text",
+                "backgroundColor",
+                "style.color.background"
             ]
         }
     },

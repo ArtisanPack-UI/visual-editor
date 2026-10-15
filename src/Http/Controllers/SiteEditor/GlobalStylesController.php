@@ -35,6 +35,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor;
 
+use ArtisanPackUI\VisualEditor\BlockStyles\BlockStyleResolver;
 use ArtisanPackUI\VisualEditor\Fonts\Services\FontsCssGenerator;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\UpdateGlobalStylesRequest;
 use ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\SiteEditor\GlobalStylesAdapter;
@@ -210,6 +211,11 @@ class GlobalStylesController extends Controller
 		}
 
 		$parts[] = $emitted;
+
+		// #876 — block style variations (`.is-style-*`), after the
+		// emitter's `styles.blocks` rules so a variation overrides the
+		// block's base styles, and before the theme stylesheets.
+		$parts[] = app( BlockStyleResolver::class )->css();
 
 		// #632 — enqueue the Font Library's generated bundle into the canvas
 		// iframe. Placed after the emitter's `--wp--preset--*` root block but

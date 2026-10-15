@@ -138,6 +138,11 @@ Currently declared (RN-12, navigation):
   `customBackgroundColor`, and `ElementsSupport` link colors
   (`wp-elements-*` class plus its `<style data-ve-elements>` rules). Delete these entries if the
   JS renderers gain support — the fixture will then pin the shared markup.
+- **Generic responsive overrides (`^responsive-overrides-`, #877).** Only
+  Blade compiles `attributes.responsive` (spacing, border, font size,
+  colours, spacer height/width, cover min-height) into a `ve-r-<hash>`
+  scope class plus `<style data-ve-responsive>` rules; the JS renderers
+  have no generic responsive emitter. The base markup is compared.
 
 The former class-token divergences have all converged: the `ve-w-<hash>`
 column-width scope (#712/#487) and the `has-photo-grid` /

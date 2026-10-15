@@ -20,6 +20,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\View\Components;
 
+use ArtisanPackUI\VisualEditor\BlockStyles\BlockStyleResolver;
 use ArtisanPackUI\VisualEditor\Resources\PresetRegistry;
 use ArtisanPackUI\VisualEditor\Resources\QueryPostTypeRegistry;
 use ArtisanPackUI\VisualEditor\Resources\TaxonomyRegistry;
@@ -156,6 +157,16 @@ class VisualEditorComponent extends Component
 	 */
 	public array $presets;
 
+	/**
+	 * Block style variations for the editor's Styles picker (#876),
+	 * from {@see BlockStyleResolver::editorPayload()}.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @var list<array{name: string, slug: string, label: string, isDefault: bool}>
+	 */
+	public array $blockStyles;
+
 	public function __construct(
 		public Model $model,
 		?string $resource = null,
@@ -202,6 +213,7 @@ class VisualEditorComponent extends Component
 		$this->queryPostTypes       = QueryPostTypeRegistry::resolve();
 		$this->breakpoints          = app( BreakpointRegistry::class )->toArray();
 		$this->presets              = PresetRegistry::fromConfig();
+		$this->blockStyles          = app( BlockStyleResolver::class )->editorPayload();
 
 		$this->applyEditorConfigFilter();
 	}
@@ -311,6 +323,7 @@ class VisualEditorComponent extends Component
 			'queryPostTypes'       => $queryPostTypes,
 			'breakpoints'          => $array,
 			'presets'              => $array,
+			'blockStyles'          => $array,
 		];
 	}
 

@@ -20,6 +20,10 @@ use ArtisanPackUI\VisualEditor\Blocks\DynamicContent\DynamicLoopBlock;
 use ArtisanPackUI\VisualEditor\Blocks\DynamicContent\SnippetBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Forms\FormBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Icon\IconBlock;
+use ArtisanPackUI\VisualEditor\BlockStyles\BlockStyleCssCompiler;
+use ArtisanPackUI\VisualEditor\BlockStyles\BlockStyleRegistry;
+use ArtisanPackUI\VisualEditor\BlockStyles\BlockStyleResolver;
+use ArtisanPackUI\VisualEditor\BlockStyles\BlockStyleVariationParser;
 use ArtisanPackUI\VisualEditor\BoxShadow\BoxShadowEmitter;
 use ArtisanPackUI\VisualEditor\Console\AuditBreakpointsCommand;
 use ArtisanPackUI\VisualEditor\Console\AuditScheduledBlocksCommand;
@@ -344,6 +348,22 @@ class VisualEditorServiceProvider extends ServiceProvider
 		// cms-framework's own DB-authored types.
 		$this->app->singleton( DynamicContentSourceRegistry::class, function () {
 			return new DynamicContentSourceRegistry();
+		} );
+
+		// #876 — block style variations. Code registrations live in a
+		// singleton so they survive from boot() to render; the resolver
+		// is scoped because it merges in the per-request global styles.
+		$this->app->singleton( BlockStyleRegistry::class, function () {
+			return new BlockStyleRegistry();
+		} );
+
+		$this->app->scoped( BlockStyleResolver::class, function ( $app ) {
+			return new BlockStyleResolver(
+				$app->make( BlockStyleRegistry::class ),
+				new BlockStyleVariationParser(),
+				new BlockStyleCssCompiler(),
+				array_values( (array) $app['config']->get( 'artisanpack.visual-editor.block_styles.directories', [] ) ),
+			);
 		} );
 
 		$this->app->singleton( VisualEditor::class, function ( $app ) {

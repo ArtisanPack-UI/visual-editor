@@ -15,7 +15,8 @@
  *      `color.palette[]`, `color.gradients[]` (with the legacy
  *      `color.gradient[]` key as a fallback), `typography.fontSizes[]`,
  *      `typography.fontFamilies[]`, `spacing.spacingSizes[]`,
- *      `shadow.presets[]`.
+ *      `shadow.presets[]`. `settings.custom` flattens to
+ *      `--wp--custom--{path}` properties.
  *
  *   2. `styles.*` → CSS rules at three levels:
  *      - Root styles (`styles.color`, `styles.typography`, `styles.spacing`,
@@ -29,7 +30,8 @@
  *        `.wp-block-<namespace>-<slug>` selectors. Nested
  *        `styles.blocks[X].elements.Y` produces descendant rules so a
  *        block can re-style its own headings/links without affecting
- *        the rest of the page.
+ *        the rest of the page. `styles.blocks[X].variations.{slug}`
+ *        produces `.wp-block-<slug>.is-style-<variation>` rules (#876).
  *      Element and block rules are wrapped in `:root :where(…)` like
  *      WordPress's global styles, so they share one (0,1,0) specificity.
  *
@@ -52,8 +54,11 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditorRendererBlade\Services;
 
+use ArtisanPackUI\VisualEditor\BlockStyles\BlockStyleCssCompiler;
+use ArtisanPackUI\VisualEditor\BlockStyles\BlockStyleVariationParser;
 use ArtisanPackUI\VisualEditor\Resources\PresetRegistry;
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
+use ArtisanPackUI\VisualEditor\Support\CssValue;
 use ArtisanPackUI\VisualEditorRendererBlade\Support\ElementsSupport;
 use ArtisanPackUI\VisualEditorRendererBlade\Support\StackingStyles;
 
@@ -104,6 +109,7 @@ class ThemeJsonTokensCompiler
 			$this->compilePresetList( $settings, [ 'spacing', 'spacingSizes' ], 'spacing', 'size' ),
 			$this->compilePresetList( $settings, [ 'shadow', 'presets' ], 'shadow', 'shadow' ),
 			$this->compileLayoutSizes( $settings ),
+			$this->compileCustomProperties( $settings ),
 		);
 
 		$root = [] === $declarations ? '' : ":root {\n\t" . implode( "\n\t", $declarations ) . "\n}";
@@ -114,7 +120,11 @@ class ThemeJsonTokensCompiler
 
 		$stylesCss = $this->compileStyles( $styles );
 
-		$parts = array_values( array_filter( [ $root, $layout, $utilities, $stylesCss ], static fn ( string $section ): bool => '' !== $section ) );
+		// #876 — `styles.blocks.*.variations` → `.is-style-*` rules,
+		// after the block rules so a variation overrides its block.
+		$variationsCss = ( new BlockStyleCssCompiler() )->compile( ( new BlockStyleVariationParser() )->fromStyles( $styles ) );
+
+		$parts = array_values( array_filter( [ $root, $layout, $utilities, $stylesCss, $variationsCss ], static fn ( string $section ): bool => '' !== $section ) );
 
 		return implode( "\n\n", $parts );
 	}
@@ -1030,6 +1040,67 @@ class ThemeJsonTokensCompiler
 	}
 
 	/**
+	 * Flatten `settings.custom` into `--wp--custom--{path}` custom
+	 * properties, as WordPress and cms-framework's `GlobalStylesEmitter`
+	 * do: `custom.animation.glowColor` becomes
+	 * `--wp--custom--animation--glow-color`. Hover animation presets read
+	 * these for their theme defaults (#878).
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  array<string, mixed>  $settings
+	 *
+	 * @return list<string>
+	 */
+	protected function compileCustomProperties( array $settings ): array
+	{
+		$custom = $settings['custom'] ?? null;
+
+		if ( ! is_array( $custom ) ) {
+			return [];
+		}
+
+		$declarations = [];
+
+		$this->flattenCustomProperties( $custom, '--wp--custom', $declarations );
+
+		return $declarations;
+	}
+
+	/**
+	 * @since 1.15.0
+	 *
+	 * @param  array<mixed>  $node
+	 * @param  list<string>  $declarations
+	 */
+	protected function flattenCustomProperties( array $node, string $prefix, array &$declarations ): void
+	{
+		foreach ( $node as $key => $value ) {
+			$name = $prefix . '--' . $this->slug( $this->kebabCase( (string) $key ) );
+
+			if ( is_array( $value ) ) {
+				if ( ! array_is_list( $value ) ) {
+					$this->flattenCustomProperties( $value, $name, $declarations );
+				}
+
+				continue;
+			}
+
+			if ( ! is_scalar( $value ) || is_bool( $value ) ) {
+				continue;
+			}
+
+			$value = trim( (string) $value );
+
+			if ( '' === $value || ! $this->isPrintablePresetValue( $value ) ) {
+				continue;
+			}
+
+			$declarations[] = $name . ': ' . $value . ';';
+		}
+	}
+
+	/**
 	 * Whether a preset value can be written into the `<style>` block
 	 * as-is. The compiled tokens are printed unescaped, so a value that
 	 * closes the declaration or rule (`; { }`), the element (`< >`),
@@ -1037,31 +1108,14 @@ class ThemeJsonTokensCompiler
 	 * dropped. Quotes stay allowed — font-family stacks and some
 	 * gradients need them — but each kind must be balanced, as must the
 	 * parentheses: an unterminated string or `(` swallows every rule
-	 * after it in the same block.
+	 * after it in the same block. Delegates to {@see CssValue::isPrintable()},
+	 * which tracks quotes so a `)` inside a string can't balance a `(`.
 	 *
 	 * @since 1.15.0
 	 */
 	protected function isPrintablePresetValue( string $value ): bool
 	{
-		if ( 1 === preg_match( '#[;{}<>\\\\\x00-\x1F\x7F]|/\*|\*/#', $value ) ) {
-			return false;
-		}
-
-		if ( 0 !== substr_count( $value, '"' ) % 2 || 0 !== substr_count( $value, "'" ) % 2 ) {
-			return false;
-		}
-
-		$depth = 0;
-
-		foreach ( str_split( $value ) as $char ) {
-			if ( '(' === $char ) {
-				++$depth;
-			} elseif ( ')' === $char && --$depth < 0 ) {
-				return false;
-			}
-		}
-
-		return 0 === $depth;
+		return CssValue::isPrintable( $value );
 	}
 
 	/**

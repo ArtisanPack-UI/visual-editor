@@ -77,6 +77,20 @@
             "fixturesMatching": "^navigation-layout-colors-elements$",
             "reason": "The scoped `.wp-elements-{hash} a:where(:not(.wp-element-button)) { color: … }` rules ElementsSupport pushes into the shared `<style data-ve-elements>` block (#852) — Blade-only, like its scope class.",
             "dropRendererStyleTag": "data-ve-elements"
+        },
+        {
+            "id": "responsive-overrides-scope-class",
+            "issue": "#877",
+            "fixturesMatching": "^responsive-overrides-",
+            "reason": "Only Blade compiles the generic `attributes.responsive` overrides (padding, margin, border, and since #877 font size, colours, spacer height/width and cover min-height) into a per-block `ve-r-{hash}` scope class; the React and Vue renderers have no generic responsive emitter. The base markup is still compared.",
+            "dropClassTokensMatching": "^ve-r-[0-9a-f]{10}$"
+        },
+        {
+            "id": "responsive-overrides-style",
+            "issue": "#877",
+            "fixturesMatching": "^responsive-overrides-",
+            "reason": "The `@media` rules for those overrides land in Blade's shared `<style data-ve-responsive>` block; Blade-only, like their scope class.",
+            "dropRendererStyleTag": "data-ve-responsive"
         }
     ],
     "fixtures": [
@@ -1722,6 +1736,56 @@
                         "alt": "A photo",
                         "aspectRatio": "16/9;position:fixed",
                         "scale": "cover;top:0"
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "name": "responsive-overrides-spacer",
+            "$comment": "#877 — spacer height and width with Mobile overrides. The base `height` is compared across renderers; the overrides are Blade-only (see `responsive-overrides-*` divergences).",
+            "tree": [
+                {
+                    "clientId": "resp-spacer",
+                    "name": "core/spacer",
+                    "attributes": {
+                        "height": "120px",
+                        "responsive": {
+                            "height": {
+                                "mobile": "40px"
+                            },
+                            "width": {
+                                "mobile": "24px"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "name": "responsive-overrides-paragraph",
+            "$comment": "#877 — paragraph font size and colour overrides (preset slug and custom value) at Tablet and Mobile. The overrides are Blade-only (see `responsive-overrides-*` divergences); the base markup is compared.",
+            "tree": [
+                {
+                    "clientId": "resp-paragraph",
+                    "name": "core/paragraph",
+                    "attributes": {
+                        "content": "Lead copy",
+                        "responsive": {
+                            "fontSize": {
+                                "mobile": "small"
+                            },
+                            "style.typography.fontSize": {
+                                "tablet": "1.25rem"
+                            },
+                            "textColor": {
+                                "mobile": "contrast"
+                            },
+                            "style.color.background": {
+                                "tablet": "#0f172a"
+                            }
+                        }
                     },
                     "innerBlocks": []
                 }

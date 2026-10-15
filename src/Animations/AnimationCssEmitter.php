@@ -32,6 +32,7 @@
  *             'duration' => 200,
  *             'delay'    => 0,
  *             'easing'   => 'ease-out',
+ *             'color'    => 'var:preset|color|accent' | '#22d3ee' | null,
  *         ],
  *         'continuous' => [
  *             'name'     => 'pulse' | null,
@@ -59,6 +60,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditor\Animations;
 
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
+use ArtisanPackUI\VisualEditor\Support\CssValue;
 
 class AnimationCssEmitter
 {
@@ -67,16 +69,39 @@ class AnimationCssEmitter
 	public const ROOT_CLASS = 'ap-anim';
 
 	/**
+	 * Fallback glow colour when neither the block, the theme's
+	 * `settings.custom.animation.glowColor`, nor a `primary` palette
+	 * preset supplies one (#878). Matches the pre-1.15 hard-coded glow.
+	 *
+	 * @since 1.15.0
+	 */
+	public const DEFAULT_GLOW_RGB = 'rgb(99,102,241)';
+
+	/**
 	 * Hover presets — composable CSS fragments the emitter snaps onto
 	 * the `:hover` rule when an editor picks one. The transition curve
 	 * controls timing; the preset controls the transform / shadow.
 	 *
+	 * Colours and shadows read custom properties so a theme can match
+	 * its brand without a CSS override (#878). Each chain is:
+	 * `--ap-anim-*` → `--wp--custom--animation--*` (theme.json
+	 * `settings.custom.animation`) → the pre-1.15 look. The glow
+	 * additionally tints from the `primary` palette preset at 35%.
+	 * `--ap-anim-glow-color` is the block's own pick, set on its
+	 * `:hover` rule (`initial` when unset), so a site-wide glow colour
+	 * belongs in `settings.custom.animation.glowColor`.
+	 *
 	 * @var array<string, array{transform?: string, box-shadow?: string, filter?: string}>
 	 */
 	protected const HOVER_PRESETS = [
-		'lift'  => [ 'transform' => 'translateY(-3px)', 'box-shadow' => '0 8px 24px rgba(0,0,0,0.12)' ],
+		'lift'  => [
+			'transform'  => 'translateY(-3px)',
+			'box-shadow' => 'var(--ap-anim-lift-shadow, var(--wp--custom--animation--lift-shadow, 0 8px 24px rgba(0,0,0,0.12)))',
+		],
 		'press' => [ 'transform' => 'translateY(1px) scale(0.99)' ],
-		'glow'  => [ 'box-shadow' => '0 0 0 4px rgba(99,102,241,0.35)' ],
+		'glow'  => [
+			'box-shadow' => '0 0 var(--ap-anim-glow-blur, var(--wp--custom--animation--glow-blur, 0)) var(--ap-anim-glow-size, var(--wp--custom--animation--glow-size, 4px)) var(--ap-anim-glow-color, var(--wp--custom--animation--glow-color, color-mix(in srgb, var(--wp--preset--color--primary, ' . self::DEFAULT_GLOW_RGB . ') 35%, transparent)))',
+		],
 	];
 
 	public function __construct(
@@ -464,6 +489,14 @@ class AnimationCssEmitter
 
 		if ( null !== $preset_decls ) {
 			$decls = [];
+
+			// #878 — the block's glow colour is set on the hovered
+			// element only, and reset to `initial` (so the theme chain
+			// applies) when unset, so a nested glow block never inherits
+			// an ancestor's colour.
+			if ( 'glow' === $preset ) {
+				$decls[] = sprintf( '--ap-anim-glow-color: %s;', $this->hoverColor( $hover['color'] ?? null ) ?? 'initial' );
+			}
 			foreach ( $preset_decls as $property => $value ) {
 				$decls[] = sprintf( '%s: %s;', $property, $value );
 			}
@@ -476,6 +509,43 @@ class AnimationCssEmitter
 		}
 
 		return $rule;
+	}
+
+	/**
+	 * Resolves a block's authored hover colour (#878) into a CSS value.
+	 * Accepts the `var:preset|color|{slug}` shorthand the editor stores
+	 * for palette picks, or a raw colour. Anything that could break out
+	 * of the declaration returns `null` so the theme chain applies.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  mixed  $value  The `hover.color` attribute.
+	 */
+	protected function hoverColor( $value ): ?string
+	{
+		if ( ! is_string( $value ) ) {
+			return null;
+		}
+
+		$trimmed = trim( $value );
+
+		if ( '' === $trimmed ) {
+			return null;
+		}
+
+		if ( 1 === preg_match( '/^var:preset\|color\|([a-zA-Z0-9_-]+)$/', $trimmed, $matches ) ) {
+			return sprintf( 'var(--wp--preset--color--%s)', strtolower( (string) preg_replace( '/([a-z])([A-Z])/', '$1-$2', $matches[1] ) ) );
+		}
+
+		if ( str_contains( $trimmed, '/*' ) || str_contains( $trimmed, '*/' ) ) {
+			return null;
+		}
+
+		if ( 1 !== preg_match( '/^(#[0-9a-fA-F]{3,8}|[a-zA-Z]+|(rgb|rgba|hsl|hsla|oklch|oklab)\([0-9a-zA-Z.,%\s\/+-]*\)|var\(--[a-zA-Z0-9_-]+\))$/', $trimmed ) ) {
+			return null;
+		}
+
+		return $trimmed;
 	}
 
 	/**
@@ -649,7 +719,7 @@ class AnimationCssEmitter
 
 		// Defence-in-depth: reject anything with characters that could
 		// break out of the `animation` shorthand.
-		if ( 1 === preg_match( '/[<>{};]/', $trimmed ) ) {
+		if ( 1 === preg_match( '/[<>{};\\\\"\']/', $trimmed ) || ! CssValue::isBalanced( $trimmed ) ) {
 			return $fallback;
 		}
 
