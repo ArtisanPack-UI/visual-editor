@@ -18,3 +18,9 @@
 <h2 class="wp-block-heading" id="badidxyz">
   "Hostile"
 </h2>
+<h2 class="wp-block-heading" id="badidxyz-1">
+  "Badidxyz"
+</h2>
+<h2 class="wp-block-heading" id="creme--x">
+  "Crème ½ ⟨x⟩"
+</h2>

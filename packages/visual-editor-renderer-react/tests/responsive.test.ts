@@ -134,6 +134,7 @@ describe.each([
         expect(impl.headingSlug('<em>Hello</em>, World! &#8212; 2026')).toBe('hello-world-2026');
         expect(impl.headingSlug('Привет мир')).toBe('привет-мир');
         expect(impl.headingSlug('<br>')).toBe('');
+        expect(impl.headingSlug('Cr&egrave;me &frac12; &AElig;on &bigstar;')).toBe('creme-½-æon-bigstar');
     });
 
     it('stamps unique anchors in document order, honouring author anchors', () => {
@@ -154,6 +155,17 @@ describe.each([
         expect(anchorOf(inner[1])).toBe('intro-2');
         expect(anchorOf(tree[2])).toBeUndefined();
         expect(anchorOf(tree[3])).toBeUndefined();
+    });
+
+    it('claims the rendered author id, and replaces one that sanitizes to nothing', () => {
+        const tree = impl.stampHeadingAnchors([
+            block('core/heading', { content: 'Author', anchor: 'foo bar' }),
+            block('core/heading', { content: 'Foobar' }),
+            block('core/heading', { content: 'Quoted', anchor: '"<>"' }),
+        ]);
+        const anchors = tree.map((node) => (node.attributes as Record<string, unknown>).anchor);
+
+        expect(anchors).toEqual(['foo bar', 'foobar-1', 'quoted']);
     });
 
     it('sanitizes the rendered id', () => {

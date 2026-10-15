@@ -5,8 +5,9 @@
  * `core/heading` / `artisanpack/heading` block without an author-set
  * `anchor` gets one generated from its text, unique across the tree
  * (duplicates take a `-1`, `-2`, … suffix). Author anchors are kept and
- * claim their slug first-come, in document order, exactly as Blade does,
- * so both renderers print the same `id` on every heading.
+ * claim their rendered (sanitized) id first-come, in document order,
+ * exactly as Blade does, so every renderer prints the same `id` on every
+ * heading and no two headings share one.
  *
  * Out of scope here (still server-side only): ids injected into
  * post-content `_resolvedContent` HTML and the `_resolvedItems` list on
@@ -20,29 +21,9 @@
 
 import type { Block } from '../types';
 import { phpTrim } from './attributes';
+import { NAMED_ENTITY_CODE_POINTS } from './htmlEntities';
 
 const HEADING_BLOCKS = ['core/heading', 'artisanpack/heading'];
-
-/**
- * Named entities decoded before slugging. `TocResolver` runs PHP's full
- * `html_entity_decode()`; rich text only stores these few as entities
- * (everything else is saved as UTF-8), so this set covers real content.
- */
-const NAMED_ENTITIES: Readonly<Record<string, string>> = {
-    amp: '&',
-    lt: '<',
-    gt: '>',
-    quot: '"',
-    apos: "'",
-    nbsp: ' ',
-    ndash: '–',
-    mdash: '—',
-    hellip: '…',
-    lsquo: '‘',
-    rsquo: '’',
-    ldquo: '“',
-    rdquo: '”',
-};
 
 /**
  * Walk a tree and stamp an auto-generated `anchor` onto every heading
@@ -99,11 +80,12 @@ function stampBlock(block: Block, used: Set<string>): Block {
     const raw = (block as { attributes?: unknown }).attributes;
     const attributes =
         raw !== null && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
-    const existing = typeof attributes.anchor === 'string' ? phpTrim(attributes.anchor) : '';
+    // The id the heading renders, not the raw value: `foo bar` renders
+    // `foobar`, so that is what a later auto anchor must avoid. An anchor
+    // that sanitizes to nothing renders no id and is replaced.
+    const existing = typeof attributes.anchor === 'string' ? (resolveAnchor(attributes.anchor) ?? '') : '';
 
     if (existing !== '') {
-        // Claim the slug so a later auto-generated anchor can't collide
-        // with an author-set one.
         used.add(existing);
 
         return block;
@@ -143,7 +125,7 @@ function plainText(content: string): string {
 }
 
 function decodeEntities(value: string): string {
-    return value.replace(/&(#\d+|#x[0-9a-f]+|[a-z]+);/gi, (match, entity: string) => {
+    return value.replace(/&(#\d+|#x[0-9a-f]+|[a-z][a-z0-9]*);/gi, (match, entity: string) => {
         if (entity[0] === '#') {
             const code = entity[1] === 'x' || entity[1] === 'X'
                 ? Number.parseInt(entity.slice(2), 16)
@@ -152,7 +134,9 @@ function decodeEntities(value: string): string {
             return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : match;
         }
 
-        return Object.prototype.hasOwnProperty.call(NAMED_ENTITIES, entity) ? NAMED_ENTITIES[entity] : match;
+        return Object.prototype.hasOwnProperty.call(NAMED_ENTITY_CODE_POINTS, entity)
+            ? String.fromCodePoint(NAMED_ENTITY_CODE_POINTS[entity])
+            : match;
     });
 }
 

@@ -1887,7 +1887,7 @@
         },
         {
             "name": "heading",
-            "$comment": "#888 — heading preset colour and font-size classes and the anchor id match across renderers. Auto anchors are unique across the tree (an author anchor claims its slug first-come), accents and entities fold out of the slug, and a hostile author anchor is reduced to `[A-Za-z0-9_:.-]`.",
+            "$comment": "#888 — heading preset colour and font-size classes and the anchor id match across renderers. Auto anchors are unique across the tree (an author anchor claims its slug first-come), accents and entities fold out of the slug, and a hostile author anchor is reduced to `[A-Za-z0-9_:.-]` — and it is that rendered id a later auto anchor (`Badidxyz` → `badidxyz-1`) must avoid. Named HTML 4 entities decode before slugging.",
             "tree": [
                 {
                     "clientId": "heading-1",
@@ -1914,6 +1914,18 @@
                     "clientId": "heading-4",
                     "name": "core/heading",
                     "attributes": { "content": "Hostile", "level": 2, "anchor": "  bad\" id=\"x y<z>  " },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "heading-5",
+                    "name": "core/heading",
+                    "attributes": { "content": "Badidxyz", "level": 2 },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "heading-6",
+                    "name": "core/heading",
+                    "attributes": { "content": "Cr&egrave;me &frac12; &lang;x&rang;", "level": 2 },
                     "innerBlocks": []
                 }
             ]
