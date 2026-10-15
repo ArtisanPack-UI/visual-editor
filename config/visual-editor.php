@@ -848,6 +848,31 @@ return [
 
 	/*
 	|--------------------------------------------------------------------------
+	| Global styles placement (#879)
+	|--------------------------------------------------------------------------
+	|
+	| `true` (default): the compiled global styles
+	| (`<style data-ve-global-styles>`) print in `<head>` through
+	| `<x-ve-blocks-styles>`, before the theme's own stylesheet, even when
+	| the blocks render first inside an `@extends` section or a component
+	| layout's slot (they are queued on the `ve-global-styles` stack).
+	|
+	| A layout that renders blocks inside a section or slot but has no
+	| `<x-ve-blocks-styles>` (or `@stack('ve-global-styles')`) in its head
+	| still gets the styles on HTML responses: the renderer's middleware on
+	| the `web` group injects them into `<head>`. Output that never becomes
+	| an HTTP response (mail, `Blade::render()` into a string) doesn't, so
+	| set this to `false` there.
+	|
+	| `false`: the first `<x-ve-blocks>` / `<x-ve-template>` prints the
+	| global styles inline in the body, as in 1.14.
+	|
+	*/
+
+	'global_styles_in_head' => true,
+
+	/*
+	|--------------------------------------------------------------------------
 	| AI features: access and payload limits (#828)
 	|--------------------------------------------------------------------------
 	|

@@ -33,6 +33,8 @@ import {
     NAVIGATION_OVERLAY_CSS,
     treeHasNavigationOverlay,
 } from './support/navigationOverlayCss';
+import { stampDuotoneScopes } from './support/duotone';
+import type { DuotonePresets } from './support/duotone';
 import { stampEffectsScopes } from './support/effects';
 import { stampHeadingAnchors } from './support/headingAnchors';
 import { stampLayoutScopes } from './support/layoutContainer';
@@ -112,6 +114,15 @@ export interface BlockTreeProps {
      * @since 1.15.0
      */
     customCssAllowUrls?: boolean;
+    /**
+     * The theme's duotone presets (`settings.color.duotone`, flat or
+     * origin-keyed), so `var:preset|duotone|…` picks resolve the way the
+     * Blade renderer resolves them against the active theme. Custom stop
+     * lists need no presets.
+     *
+     * @since 1.15.0
+     */
+    duotonePresets?: DuotonePresets;
 }
 
 export const BlockTree = defineComponent({
@@ -164,6 +175,10 @@ export const BlockTree = defineComponent({
         customCssAllowUrls: {
             type: Boolean,
             default: true,
+        },
+        duotonePresets: {
+            type: [Array, Object] as PropType<DuotonePresets>,
+            default: undefined,
         },
     },
     setup(props) {
@@ -289,7 +304,15 @@ export const BlockTree = defineComponent({
             stampEffectsScopes(responsive.value.tree, { allowCustomCssUrls: props.customCssAllowUrls })
         );
 
-        const hasNavigationOverlay = computed(() => treeHasNavigationOverlay(effects.value.tree));
+        // Duotone (#873, F-4) — stamp the `wp-duotone-*` scope on image,
+        // featured image, cover, avatar, site logo and post author blocks
+        // whose media renders, and print the rules plus the hidden SVG
+        // filter definitions Blade drains from `DuotoneCssAccumulator`.
+        const duotone = computed(() =>
+            stampDuotoneScopes(effects.value.tree, props.duotonePresets)
+        );
+
+        const hasNavigationOverlay = computed(() => treeHasNavigationOverlay(duotone.value.tree));
 
         return () => {
             const endpoint = props.dynamicBlockEndpoint ?? DEFAULT_ENDPOINT;
@@ -385,7 +408,36 @@ export const BlockTree = defineComponent({
                 );
             }
 
-            effects.value.tree
+            if (duotone.value.css !== '') {
+                // `innerHTML` so a `>` target combinator isn't escaped.
+                children.push(
+                    h('style', {
+                        'data-ve-duotone': '',
+                        innerHTML: duotone.value.css,
+                    })
+                );
+            }
+
+            if (duotone.value.filters !== '') {
+                children.push(
+                    h(
+                        'svg',
+                        {
+                            'data-ve-duotone': '',
+                            xmlns: 'http://www.w3.org/2000/svg',
+                            viewBox: '0 0 0 0',
+                            width: '0',
+                            height: '0',
+                            focusable: 'false',
+                            'aria-hidden': 'true',
+                            style: { visibility: 'hidden', position: 'absolute', left: '-9999px', overflow: 'hidden' },
+                        },
+                        [h('defs', { innerHTML: duotone.value.filters })]
+                    )
+                );
+            }
+
+            duotone.value.tree
                 .map((block, index) => renderBlock(block, index, endpoint, props.fetchOptions))
                 .filter((vnode): vnode is VNode => vnode !== null)
                 .forEach((vnode) => children.push(vnode));

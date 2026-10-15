@@ -20,6 +20,15 @@
  * into the per-request {@see DuotoneCssAccumulator} so a filter shared
  * by several blocks is emitted once.
  *
+ * Color stops may be hex (`#rgb[a]`, `#rrggbb[aa]`), `rgb[a]()`,
+ * `hsl[a]()` (comma or space syntax, with an optional `deg` / `rad` /
+ * `grad` / `turn` hue unit and `/ alpha`) or a CSS named color (F-8).
+ *
+ * Image, Featured Image, Cover, Avatar, Site Logo and Post Author apply it,
+ * each targeting the media its block.json `selectors.filter.duotone`
+ * names ({@see TARGETS}), and only when that media is rendered. The React
+ * and Vue renderers ship a byte-identical port (`support/duotone.ts`).
+ *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditorRendererBlade
  *
@@ -40,8 +49,32 @@ class DuotoneSupport
 {
 	/**
 	 * The scope class / filter id prefix WordPress core uses.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @var string
 	 */
 	public const PREFIX = 'wp-duotone-';
+
+	/**
+	 * Media each duotone-capable block points the filter at, relative to
+	 * the block wrapper that carries the scope class: the descendant part
+	 * of the block's block.json `selectors.filter.duotone`, without the
+	 * editor-only placeholder selectors. Comma-separated parts are each
+	 * scoped to the wrapper.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @var array<string, string>
+	 */
+	public const TARGETS = [
+		'core/image'               => 'img',
+		'core/post-featured-image' => 'img',
+		'core/cover'               => '> .wp-block-cover__image-background, > .wp-block-cover__video-background',
+		'core/avatar'              => 'img',
+		'core/site-logo'           => 'img',
+		'core/post-author'         => '.wp-block-post-author__avatar img',
+	];
 
 	/**
 	 * Compile a block's duotone pick and register it with the
@@ -56,7 +89,10 @@ class DuotoneSupport
 	 *                                                applies to (the
 	 *                                                block.json
 	 *                                                `selectors.filter.duotone`
-	 *                                                target).
+	 *                                                target, see
+	 *                                                {@see TARGETS}). May
+	 *                                                list several,
+	 *                                                comma-separated.
 	 */
 	public static function apply( array $attributes, string $targetSelector = 'img' ): string
 	{
@@ -106,7 +142,7 @@ class DuotoneSupport
 
 			return [
 				'class'    => $class,
-				'rules'    => sprintf( '.%s %s{filter:none !important}', $class, $targetSelector ),
+				'rules'    => self::scopedSelector( $class, $targetSelector ) . '{filter:none !important}',
 				'filterId' => '',
 				'filter'   => '',
 			];
@@ -128,10 +164,33 @@ class DuotoneSupport
 
 		return [
 			'class'    => $id,
-			'rules'    => sprintf( '.%1$s %2$s{filter:url(#%1$s) !important}', $id, $targetSelector ),
+			'rules'    => sprintf( '%s{filter:url(#%s) !important}', self::scopedSelector( $id, $targetSelector ), $id ),
 			'filterId' => $id,
 			'filter'   => self::filterSvg( $id, $stops ),
 		];
+	}
+
+	/**
+	 * Scope every comma-separated part of the target selector to the
+	 * wrapper's scope class: `.{class} {part}`, joined with `,`.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  string  $class           Scope class.
+	 * @param  string  $targetSelector  One or more comma-separated targets.
+	 */
+	protected static function scopedSelector( string $class, string $targetSelector ): string
+	{
+		$parts = array_values( array_filter(
+			array_map( 'trim', explode( ',', $targetSelector ) ),
+			static fn ( string $part ): bool => '' !== $part,
+		) );
+
+		if ( [] === $parts ) {
+			$parts = [ 'img' ];
+		}
+
+		return implode( ',', array_map( static fn ( string $part ): string => '.' . $class . ' ' . $part, $parts ) );
 	}
 
 	/**
@@ -183,19 +242,16 @@ class DuotoneSupport
 	 * shape the resolved global styles use. Theme presets are checked
 	 * first, then user-custom, then default.
 	 *
+	 * The presets are resolved once per request through the scoped
+	 * {@see DuotoneCssAccumulator} (M-16).
+	 *
 	 * @since 1.15.0
 	 *
 	 * @return array<int, mixed>|null
 	 */
 	protected static function presetColors( string $slug ): ?array
 	{
-		try {
-			$settings = PresetRegistry::activeThemeSettings();
-		} catch ( Throwable ) {
-			return null;
-		}
-
-		$presets = $settings['color']['duotone'] ?? null;
+		$presets = self::presets();
 
 		if ( ! is_array( $presets ) ) {
 			return null;
@@ -220,6 +276,39 @@ class DuotoneSupport
 		}
 
 		return null;
+	}
+
+	/**
+	 * The active theme's `settings.color.duotone` node, memoized on the
+	 * request's accumulator when the container is available.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @return array<mixed>|null
+	 */
+	protected static function presets(): ?array
+	{
+		$resolve = static function (): ?array {
+			try {
+				$settings = PresetRegistry::activeThemeSettings();
+			} catch ( Throwable ) {
+				return null;
+			}
+
+			$presets = $settings['color']['duotone'] ?? null;
+
+			return is_array( $presets ) ? $presets : null;
+		};
+
+		if ( function_exists( 'app' ) ) {
+			try {
+				return app( DuotoneCssAccumulator::class )->presets( $resolve );
+			} catch ( Throwable ) {
+				// Container not booted (isolated unit tests).
+			}
+		}
+
+		return $resolve();
 	}
 
 	/**
@@ -251,7 +340,8 @@ class DuotoneSupport
 	}
 
 	/**
-	 * Parse one `#rgb[a]` / `#rrggbb[aa]` / `rgb[a]()` color.
+	 * Parse one `#rgb[a]` / `#rrggbb[aa]` / `rgb[a]()` / `hsl[a]()` /
+	 * named color.
 	 *
 	 * @since 1.15.0
 	 *
@@ -259,6 +349,12 @@ class DuotoneSupport
 	 */
 	protected static function parseColor( string $color ): ?array
 	{
+		$named = CssNamedColors::hex( $color );
+
+		if ( null !== $named ) {
+			$color = $named;
+		}
+
 		if ( 1 === preg_match( '/^#([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i', $color, $matches ) ) {
 			$hex = $matches[1];
 
@@ -278,7 +374,72 @@ class DuotoneSupport
 			return [ $channel( $matches[1] ), $channel( $matches[2] ), $channel( $matches[3] ), $alpha ];
 		}
 
-		return null;
+		return self::parseHsl( $color );
+	}
+
+	/**
+	 * Parse an `hsl()` / `hsla()` color, in the legacy comma syntax
+	 * (`hsl(120, 50%, 25%)`, `hsla(120, 50%, 25%, 0.5)`) or the space
+	 * syntax (`hsl(120deg 50% 25% / 50%)`). The hue takes an optional
+	 * `deg`, `rad`, `grad` or `turn` unit and wraps around; saturation and
+	 * lightness clamp to 0–100%; alpha (a number or a percentage) clamps
+	 * to 0–1. Channels round to whole 0–255 values, like the hex and
+	 * `rgb()` forms.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @return array{0: float, 1: float, 2: float, 3: float}|null
+	 */
+	protected static function parseHsl( string $color ): ?array
+	{
+		$number = '([+-]?(?:\d+\.?\d*|\.\d+))';
+		$hue    = $number . '(deg|rad|grad|turn)?';
+		$comma  = '/^hsla?\(\s*' . $hue . '\s*,\s*' . $number . '%\s*,\s*' . $number . '%\s*(?:,\s*' . $number . '(%)?\s*)?\)$/i';
+		$space  = '/^hsla?\(\s*' . $hue . '\s+' . $number . '%\s+' . $number . '%\s*(?:\/\s*' . $number . '(%)?\s*)?\)$/i';
+
+		if ( 1 !== preg_match( $comma, $color, $matches ) && 1 !== preg_match( $space, $color, $matches ) ) {
+			return null;
+		}
+
+		$degrees = (float) $matches[1];
+
+		switch ( strtolower( $matches[2] ?? '' ) ) {
+			case 'rad':
+				$degrees = $degrees * 180 / M_PI;
+				break;
+			case 'grad':
+				$degrees = $degrees * 0.9;
+				break;
+			case 'turn':
+				$degrees = $degrees * 360;
+				break;
+		}
+
+		$hue        = fmod( fmod( $degrees, 360.0 ) + 360.0, 360.0 ) / 360;
+		$saturation = min( 100.0, max( 0.0, (float) $matches[3] ) ) / 100;
+		$lightness  = min( 100.0, max( 0.0, (float) $matches[4] ) ) / 100;
+		$alpha      = 1.0;
+
+		if ( isset( $matches[5] ) && '' !== $matches[5] ) {
+			$alpha = (float) $matches[5];
+
+			if ( '%' === ( $matches[6] ?? '' ) ) {
+				$alpha = $alpha / 100;
+			}
+
+			$alpha = min( 1.0, max( 0.0, $alpha ) );
+		}
+
+		$amount = $saturation * min( $lightness, 1 - $lightness );
+
+		$channel = static function ( float $shift ) use ( $hue, $amount, $lightness ): float {
+			$k     = fmod( $shift + $hue * 12, 12.0 );
+			$value = $lightness - $amount * max( -1.0, min( $k - 3, 9 - $k, 1.0 ) );
+
+			return floor( $value * 255 + 0.5 ) / 255;
+		};
+
+		return [ $channel( 0.0 ), $channel( 8.0 ), $channel( 4.0 ), $alpha ];
 	}
 
 	/**

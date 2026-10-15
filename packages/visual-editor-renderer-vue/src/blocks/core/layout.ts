@@ -16,6 +16,7 @@ import {
 import { isNonEmptyWidth, normalizeBasis } from '../../support/columnWidth';
 import { flexClassNames } from '../../support/flex-serializer';
 import { safeCssValue } from '../../support/cssValue';
+import { applyBackground } from '../../support/background';
 import { applyBlockGap } from '../../support/blockGap';
 import { applyDimensions } from '../../support/dimensions';
 import { layoutModifierClasses, panelLayoutClass } from '../../support/layoutContainer';
@@ -86,7 +87,10 @@ export const GroupBlock = defineComponent({
             // #883 — the block's own Block spacing rides first, in
             // `BlockSupports` order, so the flex/grid baseline `gap`
             // reads it.
+            // F-4 — the background image rides first, as
+            // `BlockSupports::compile()` emits it before spacing.
             const wrapperStyle = {
+                ...applyBackground(props.attributes),
                 ...applyBlockGap(props.attributes),
                 ...applyDimensions(props.attributes),
             };

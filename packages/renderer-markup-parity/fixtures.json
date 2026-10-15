@@ -1212,6 +1212,274 @@
             ]
         },
         {
+            "name": "group-background-image",
+            "$comment": "#873 · F-4 — `style.background.*` on group, quote, pullquote, verse and post-content, in BlockSupports::compile() order (background before block gap and dimensions). `contain` with no position centres; no size defaults to `cover`.",
+            "tree": [
+                {
+                    "clientId": "bg-group",
+                    "name": "core/group",
+                    "attributes": {
+                        "layout": {
+                            "type": "flow"
+                        },
+                        "style": {
+                            "background": {
+                                "backgroundImage": {
+                                    "url": "https://example.com/hero.jpg",
+                                    "id": 7,
+                                    "source": "file",
+                                    "title": "Hero"
+                                },
+                                "backgroundSize": "contain",
+                                "backgroundRepeat": "no-repeat",
+                                "backgroundAttachment": "fixed"
+                            },
+                            "spacing": {
+                                "blockGap": "2rem"
+                            },
+                            "dimensions": {
+                                "minHeight": "300px"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "bg-group-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Group"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                },
+                {
+                    "clientId": "bg-quote",
+                    "name": "core/quote",
+                    "attributes": {
+                        "style": {
+                            "background": {
+                                "backgroundImage": "/img/quote.png",
+                                "backgroundPosition": "25% 75%",
+                                "backgroundSize": "200px auto"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "bg-quote-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Quote"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                },
+                {
+                    "clientId": "bg-pullquote",
+                    "name": "core/pullquote",
+                    "attributes": {
+                        "value": "Pull",
+                        "style": {
+                            "background": {
+                                "backgroundImage": {
+                                    "url": "https://example.com/pull.png"
+                                },
+                                "backgroundRepeat": "repeat-x",
+                                "backgroundAttachment": "scroll"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "bg-verse",
+                    "name": "core/verse",
+                    "attributes": {
+                        "content": "Verse",
+                        "style": {
+                            "background": {
+                                "backgroundImage": {
+                                    "url": "https://example.com/verse.png"
+                                }
+                            },
+                            "dimensions": {
+                                "minHeight": "10rem"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "bg-content",
+                    "name": "core/post-content",
+                    "attributes": {
+                        "_resolvedContent": "<p>Body</p>",
+                        "style": {
+                            "background": {
+                                "backgroundImage": {
+                                    "url": "https://example.com/body.png"
+                                },
+                                "backgroundSize": "auto"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "name": "group-background-image-hostile",
+            "$comment": "#873 · F-4 — hostile background values. Quotes, parentheses, backslash, `<`, `>`, `;` and ASCII whitespace in the URL are percent-encoded so it can't close `url('…')`; `javascript:` (also with a tab or a leading control character), `data:` and non-string URLs emit nothing; unsafe size / position / repeat values fall back or drop; an unknown attachment drops.",
+            "tree": [
+                {
+                    "clientId": "h-quoted",
+                    "name": "core/group",
+                    "attributes": {
+                        "style": {
+                            "background": {
+                                "backgroundImage": {
+                                    "url": "https://example.com/a b'c\"d(e)f\\g<h>i;j\tk.png"
+                                },
+                                "backgroundSize": "cover;position:fixed",
+                                "backgroundPosition": "0 0}",
+                                "backgroundRepeat": "no-repeat;color:red",
+                                "backgroundAttachment": "evil"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "h-quoted-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "A"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                },
+                {
+                    "clientId": "h-js",
+                    "name": "core/group",
+                    "attributes": {
+                        "style": {
+                            "background": {
+                                "backgroundImage": {
+                                    "url": "javascript:alert(1)"
+                                },
+                                "backgroundSize": "contain"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "h-js-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "B"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                },
+                {
+                    "clientId": "h-js-tab",
+                    "name": "core/group",
+                    "attributes": {
+                        "style": {
+                            "background": {
+                                "backgroundImage": "java\tscript:alert(1)"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "h-js-tab-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "C"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                },
+                {
+                    "clientId": "h-js-c0",
+                    "name": "core/quote",
+                    "attributes": {
+                        "style": {
+                            "background": {
+                                "backgroundImage": "\u0001javascript:alert(1)"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "h-js-c0-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "D"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                },
+                {
+                    "clientId": "h-data",
+                    "name": "core/verse",
+                    "attributes": {
+                        "content": "E",
+                        "style": {
+                            "background": {
+                                "backgroundImage": {
+                                    "url": "data:image/svg+xml,<svg onload=alert(1)>"
+                                }
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "h-number",
+                    "name": "core/pullquote",
+                    "attributes": {
+                        "value": "F",
+                        "style": {
+                            "background": {
+                                "backgroundImage": {
+                                    "url": 42
+                                }
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "h-list",
+                    "name": "core/group",
+                    "attributes": {
+                        "style": {
+                            "background": [
+                                "https://example.com/x.png"
+                            ]
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "h-list-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "G"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
             "$comment": "RN-12 — default `overlayMenu` (`mobile`): hamburger open button (aria-haspopup=dialog, aria-expanded=false) plus the responsive container. The closed container carries no `aria-hidden` and the dialog carries no `role`/`aria-modal` until opened (RN-1/RN-5). Blade/React-only ids and Blade's `data-ap-nav-overlay-*` hooks are declared divergences.",
             "name": "navigation-overlay-mobile",
             "tree": [
@@ -1989,6 +2257,235 @@
             ]
         },
         {
+            "name": "image-duotone-custom",
+            "$comment": "#873 · F-4 · F-8 · R-10 · R-11 — custom duotone stops (hex, rgb(), hsl() and named colors) share one filter per stop list; `unset` turns the filter off; a hostile stop drops the pick; an image block or featured image with no image emits nothing.",
+            "tree": [
+                {
+                    "clientId": "d1",
+                    "name": "core/image",
+                    "attributes": {
+                        "url": "https://example.com/a.jpg",
+                        "alt": "",
+                        "style": {
+                            "color": {
+                                "duotone": [
+                                    "#000000",
+                                    "#ff0000"
+                                ]
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "d2",
+                    "name": "core/image",
+                    "attributes": {
+                        "url": "https://example.com/b.jpg",
+                        "alt": "",
+                        "style": {
+                            "color": {
+                                "duotone": [
+                                    "#000000",
+                                    "#ff0000"
+                                ]
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "d3",
+                    "name": "core/image",
+                    "attributes": {
+                        "url": "https://example.com/c.jpg",
+                        "alt": "",
+                        "style": {
+                            "color": {
+                                "duotone": [
+                                    "hsl(240 100% 50% / 50%)",
+                                    "rgba(255, 255, 0, 0.25)",
+                                    "White"
+                                ]
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "d4",
+                    "name": "core/image",
+                    "attributes": {
+                        "url": "https://example.com/d.jpg",
+                        "alt": "",
+                        "style": {
+                            "color": {
+                                "duotone": "unset"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "d5",
+                    "name": "core/image",
+                    "attributes": {
+                        "url": "https://example.com/e.jpg",
+                        "alt": "",
+                        "style": {
+                            "color": {
+                                "duotone": [
+                                    "#000",
+                                    "\"/><script>alert(1)</script>"
+                                ]
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "d6",
+                    "name": "core/image",
+                    "attributes": {
+                        "alt": "",
+                        "style": {
+                            "color": {
+                                "duotone": [
+                                    "#000000",
+                                    "#ff0000"
+                                ]
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "d7",
+                    "name": "core/post-featured-image",
+                    "attributes": {
+                        "style": {
+                            "color": {
+                                "duotone": [
+                                    "#000000",
+                                    "#00ff00"
+                                ]
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "d8",
+                    "name": "core/post-featured-image",
+                    "attributes": {
+                        "_resolvedImageUrl": "https://example.com/f.jpg",
+                        "sizeSlug": "large",
+                        "style": {
+                            "color": {
+                                "duotone": [
+                                    "#111111",
+                                    "#eeeeee"
+                                ]
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "name": "image-duotone-preset",
+            "$comment": "#873 · F-4 · M-16 — theme duotone presets, supplied to the JS renderers through `BlockTree`'s `duotonePresets` prop and to Blade as the resolved `settings.color.duotone`. Both reference forms resolve; theme presets win over default ones; an unknown slug emits nothing.",
+            "duotonePresets": {
+                "default": [
+                    {
+                        "slug": "midnight",
+                        "name": "Default midnight",
+                        "colors": [
+                            "#ffffff",
+                            "#000000"
+                        ]
+                    },
+                    {
+                        "slug": "dark_Grey",
+                        "name": "Dark grey",
+                        "colors": [
+                            "#000",
+                            "#7f7f7f"
+                        ]
+                    }
+                ],
+                "theme": [
+                    {
+                        "slug": "midnight",
+                        "name": "Midnight",
+                        "colors": [
+                            "#000",
+                            "#f00"
+                        ]
+                    }
+                ]
+            },
+            "tree": [
+                {
+                    "clientId": "p1",
+                    "name": "core/image",
+                    "attributes": {
+                        "url": "https://example.com/a.jpg",
+                        "alt": "",
+                        "style": {
+                            "color": {
+                                "duotone": "var:preset|duotone|midnight"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "p2",
+                    "name": "core/image",
+                    "attributes": {
+                        "url": "https://example.com/b.jpg",
+                        "alt": "",
+                        "style": {
+                            "color": {
+                                "duotone": "var(--wp--preset--duotone--midnight)"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "p3",
+                    "name": "core/image",
+                    "attributes": {
+                        "url": "https://example.com/c.jpg",
+                        "alt": "",
+                        "style": {
+                            "color": {
+                                "duotone": "var:preset|duotone|dark_Grey"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "p4",
+                    "name": "core/image",
+                    "attributes": {
+                        "url": "https://example.com/d.jpg",
+                        "alt": "",
+                        "style": {
+                            "color": {
+                                "duotone": "var:preset|duotone|missing"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
             "name": "responsive-overrides-spacer",
             "$comment": "#877 · #886 — spacer height and width with Mobile overrides. The height override rides the generic `ve-r-<hash>` scope; the width override gets its own spacer-only scope, appended after the compiled classes in every renderer.",
             "tree": [
@@ -2425,6 +2922,114 @@
                     "innerBlocks": [
                         { "clientId": "cover-1-p", "name": "core/paragraph", "attributes": { "content": "Cover copy" }, "innerBlocks": [] }
                     ]
+                }
+            ]
+        },
+        {
+            "name": "duotone-media-blocks",
+            "$comment": "F-2 — duotone on cover (background image), avatar, site logo and post author, each targeting its block.json `selectors.filter.duotone` media, nested inside a cover so the filters print in render order (inner blocks first). Blocks whose media doesn't render get no filter.",
+            "tree": [
+                {
+                    "clientId": "m-cover",
+                    "name": "core/cover",
+                    "attributes": {
+                        "url": "https://example.com/cover.jpg",
+                        "dimRatio": 30,
+                        "style": {
+                            "color": {
+                                "duotone": [
+                                    "#102030",
+                                    "#f0e0d0"
+                                ]
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "m-avatar",
+                            "name": "core/avatar",
+                            "attributes": {
+                                "_resolvedAuthorAvatar": "https://example.com/ada.png",
+                                "_resolvedAuthorName": "Ada",
+                                "style": {
+                                    "color": {
+                                        "duotone": [
+                                            "#000",
+                                            "#0ff"
+                                        ]
+                                    }
+                                }
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "m-logo",
+                            "name": "core/site-logo",
+                            "attributes": {
+                                "_resolvedLogoUrl": "https://example.com/logo.png",
+                                "_resolvedSiteUrl": "https://example.com",
+                                "_resolvedSiteTitle": "Site",
+                                "isLink": false,
+                                "style": {
+                                    "color": {
+                                        "duotone": [
+                                            "#000",
+                                            "#0ff"
+                                        ]
+                                    }
+                                }
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "m-author",
+                            "name": "core/post-author",
+                            "attributes": {
+                                "_resolvedAuthorAvatar": "https://example.com/ada.png",
+                                "_resolvedAuthorName": "Ada",
+                                "textAlign": "center",
+                                "style": {
+                                    "color": {
+                                        "duotone": "unset"
+                                    }
+                                }
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                },
+                {
+                    "clientId": "m-cover-empty",
+                    "name": "core/cover",
+                    "attributes": {
+                        "style": {
+                            "color": {
+                                "duotone": [
+                                    "#102030",
+                                    "#f0e0d0"
+                                ]
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "m-author-hidden",
+                    "name": "core/post-author",
+                    "attributes": {
+                        "_resolvedAuthorAvatar": "https://example.com/ada.png",
+                        "_resolvedAuthorName": "Ada",
+                        "showAvatar": false,
+                        "style": {
+                            "color": {
+                                "duotone": [
+                                    "#000",
+                                    "#0ff"
+                                ]
+                            }
+                        }
+                    },
+                    "innerBlocks": []
                 }
             ]
         },

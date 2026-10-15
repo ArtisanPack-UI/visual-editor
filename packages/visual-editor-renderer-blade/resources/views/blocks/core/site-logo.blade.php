@@ -1,5 +1,6 @@
 @php
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\DuotoneSupport;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\UrlSanitizer;
 
 	$width      = isset( $attributes['width'] ) ? (int) $attributes['width'] : 0;
@@ -14,6 +15,13 @@
 
 	if ( $width <= 0 ) {
 		$baseClasses[] = 'is-default-size';
+	}
+
+	// F-2 — duotone filter on the logo `<img>`, only when one renders.
+	$duotoneClass = '' !== $logoUrl ? DuotoneSupport::apply( $attributes, DuotoneSupport::TARGETS['core/site-logo'] ) : '';
+
+	if ( '' !== $duotoneClass ) {
+		$baseClasses[] = $duotoneClass;
 	}
 
 	$imgAttrs = sprintf( ' src="%s" alt="%s" class="custom-logo"', e( $logoUrl ), e( $alt ) );

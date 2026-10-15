@@ -18,8 +18,9 @@ import {
     classList,
     layoutClass,
 } from '../../support/attributes';
+import { applyBackground } from '../../support/background';
 import { layoutWrapperClasses } from '../../support/layoutContainer';
-import { applyDimensions, hasDimensionStyle } from '../../support/dimensions';
+import { applyDimensions } from '../../support/dimensions';
 import { safeUrl } from '../../support/urlSanitizer';
 import type { BlockRendererProps } from '../../types';
 
@@ -99,8 +100,9 @@ export function PostContentBlock({ attributes }: BlockRendererProps): JSX.Elemen
         className,
     ]);
 
-    const dimensionStyle = applyDimensions(attributes);
-    const style = hasDimensionStyle(dimensionStyle) ? dimensionStyle : undefined;
+    // Blade order: background image (F-4) before dimensions.
+    const wrapperStyle = { ...applyBackground(attributes), ...applyDimensions(attributes) };
+    const style = Object.keys(wrapperStyle).length > 0 ? (wrapperStyle as React.CSSProperties) : undefined;
 
     return <div className={classes} style={style} dangerouslySetInnerHTML={{ __html: content }} />;
 }
@@ -202,6 +204,8 @@ export function PostAuthorBlock({ attributes }: BlockRendererProps): JSX.Element
 
     const classes = classList([
         'wp-block-post-author',
+        // Duotone scope stamped by `stampDuotoneScopes()`.
+        attrString(attributes._veDuotone) || null,
         align !== '' ? `has-text-align-${align}` : null,
         className,
     ]);
@@ -281,7 +285,8 @@ export function AvatarBlock({ attributes }: BlockRendererProps): JSX.Element {
     const alt = attrString(attributes._resolvedAuthorName);
     const authorUrl = safeUrl(attrString(attributes._resolvedAuthorUrl));
 
-    const classes = classList(['wp-block-avatar', className]);
+    // Duotone scope stamped by `stampDuotoneScopes()`.
+    const classes = classList(['wp-block-avatar', attrString(attributes._veDuotone) || null, className]);
 
     if (avatarUrl === '') {
         return <div className={classes} />;
@@ -320,6 +325,8 @@ export function PostFeaturedImageBlock({ attributes }: BlockRendererProps): JSX.
     const classes = classList([
         'wp-block-post-featured-image',
         sizeSlug !== '' ? `size-${sizeSlug}` : null,
+        // Duotone scope stamped by `stampDuotoneScopes()`.
+        attrString(attributes._veDuotone) || null,
         className,
     ]);
 

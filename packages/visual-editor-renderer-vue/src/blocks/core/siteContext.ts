@@ -93,6 +93,8 @@ export const SiteLogoBlock = defineComponent({
             const classes = classList([
                 'wp-block-site-logo',
                 width <= 0 ? 'is-default-size' : null,
+                // Duotone scope stamped by `stampDuotoneScopes()`.
+                attrString(props.attributes._veDuotone) || null,
                 className,
             ]);
 

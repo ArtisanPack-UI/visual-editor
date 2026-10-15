@@ -428,6 +428,42 @@ describe( 'pattern preview resilience', function (): void {
 			->and( $two )->toBe( $one );
 	} );
 
+	it( 'emits the duotone filter in every pattern of a batch (R-10)', function (): void {
+		$image = '<!-- wp:image {"url":"/a.jpg","style":{"color":{"duotone":["#000000","#ff0000"]}}} -->'
+			. '<figure class="wp-block-image"><img src="/a.jpg" alt=""/></figure>'
+			. '<!-- /wp:image -->';
+
+		config()->set( 'artisanpack.visual-editor.site-editor.patterns', [
+			'photo-one' => [
+				'slug'        => 'photo-one',
+				'title'       => 'Photo one',
+				'source'      => 'theme',
+				'raw_content' => $image,
+			],
+			'photo-two' => [
+				'slug'        => 'photo-two',
+				'title'       => 'Photo two',
+				'source'      => 'theme',
+				'raw_content' => $image,
+			],
+		] );
+
+		rebuildSiteEditorResolversForPatternPreviewTest();
+
+		$response = $this->postJson( '/visual-editor/api/patterns/preview', [
+			'patterns' => [ 'photo-one', 'photo-two' ],
+		] )->assertOk();
+
+		$one = (string) $response->json( 'patterns.photo-one.html' );
+		$two = (string) $response->json( 'patterns.photo-two.html' );
+
+		// Each preview is its own iframe document, so each needs its own
+		// `<filter>` even though a page would print it once per request.
+		expect( $one )->toMatch( '/<filter id="wp-duotone-[0-9a-f]{10}">/' )
+			->and( $two )->toMatch( '/<filter id="wp-duotone-[0-9a-f]{10}">/' )
+			->and( $two )->toBe( $one );
+	} );
+
 	it( 'absolutizes relative urls in the theme stylesheet', function (): void {
 		Route::get( '/themes/{slug}/assets/{path}', fn () => '' )
 			->where( 'path', '.*' )

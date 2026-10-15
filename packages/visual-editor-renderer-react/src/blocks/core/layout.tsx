@@ -15,6 +15,7 @@ import {
 import { isNonEmptyWidth, normalizeBasis } from '../../support/columnWidth';
 import { flexClassNames } from '../../support/flex-serializer';
 import { safeCssValue } from '../../support/cssValue';
+import { applyBackground } from '../../support/background';
 import { applyBlockGap } from '../../support/blockGap';
 import { applyDimensions } from '../../support/dimensions';
 import { layoutModifierClasses, panelLayoutClass } from '../../support/layoutContainer';
@@ -77,7 +78,9 @@ export function GroupBlock({ attributes, children }: BlockRendererProps): JSX.El
     // matches the Blade renderer's inline style output. #883 — the
     // block's own Block spacing rides first, in `BlockSupports` order,
     // so the flex/grid baseline `gap` reads it.
-    const wrapperStyle = { ...applyBlockGap(attributes), ...applyDimensions(attributes) };
+    // F-4 — the background image rides first, as `BlockSupports::compile()`
+    // emits it before spacing.
+    const wrapperStyle = { ...applyBackground(attributes), ...applyBlockGap(attributes), ...applyDimensions(attributes) };
 
     if (Object.keys(wrapperStyle).length > 0) {
         return <Tag className={classes} style={wrapperStyle as React.CSSProperties}>{children}</Tag>;

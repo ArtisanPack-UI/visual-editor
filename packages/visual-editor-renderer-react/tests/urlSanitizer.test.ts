@@ -1,5 +1,9 @@
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { safeUrl } from '../src/support/urlSanitizer';
+import { safeUrl as vueSafeUrl } from '../../visual-editor-renderer-vue/src/support/urlSanitizer';
 
 describe('safeUrl', () => {
     it('returns an empty string for non-string input', () => {
@@ -34,5 +38,26 @@ describe('safeUrl', () => {
         expect(safeUrl('JAVASCRIPT:alert(1)')).toBe('');
         expect(safeUrl('data:text/html,abc')).toBe('');
         expect(safeUrl('vbscript:msgbox')).toBe('');
+    });
+});
+
+/*
+ * Shared with the Blade `UrlSanitizerTest`: the expected values are what
+ * PHP `UrlSanitizer::safe()` returns, so the twins can't drift. React and
+ * Vue ship byte-identical copies; both are exercised.
+ */
+const sharedCases: Array<[string, string]> = JSON.parse(
+    readFileSync(
+        resolve(dirname(fileURLToPath(import.meta.url)), '../../renderer-markup-parity/url-sanitizer-cases.json'),
+        'utf8'
+    )
+).cases;
+
+describe.each([
+    ['react', safeUrl],
+    ['vue', vueSafeUrl],
+])('%s safeUrl matches PHP UrlSanitizer::safe()', (_renderer, sanitize) => {
+    it.each(sharedCases)('%j → %j', (input, expected) => {
+        expect(sanitize(input)).toBe(expected);
     });
 });

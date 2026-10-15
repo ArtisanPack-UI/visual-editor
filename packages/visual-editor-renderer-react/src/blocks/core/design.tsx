@@ -18,6 +18,7 @@ import {
     layoutClass,
 } from '../../support/attributes';
 import { applyBlockGap } from '../../support/blockGap';
+import { cssNumber } from '../../support/cssNumber';
 import { layoutWrapperClasses } from '../../support/layoutContainer';
 import { safeUrl } from '../../support/urlSanitizer';
 import type { BlockRendererProps } from '../../types';
@@ -76,6 +77,8 @@ export function CoverBlock({ attributes, children }: BlockRendererProps): JSX.El
         // Cover always lays its inner container out as flex (#888).
         'is-layout-flex',
         'wp-block-cover-is-layout-flex',
+        // Duotone scope stamped by `stampDuotoneScopes()`.
+        attrString(attributes._veDuotone) || null,
         align !== '' ? `align${align}` : null,
         className,
     ]);
@@ -90,7 +93,7 @@ export function CoverBlock({ attributes, children }: BlockRendererProps): JSX.El
             ? requestedUnit
             : 'px';
 
-        style = { ...style, minHeight: `${minHeight}${unit}` };
+        style = { ...style, minHeight: `${cssNumber(minHeight)}${unit}` };
     }
 
     // F-3 — cover's layout applies to its inner container, as in

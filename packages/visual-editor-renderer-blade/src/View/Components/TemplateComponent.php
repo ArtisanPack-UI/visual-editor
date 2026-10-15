@@ -39,6 +39,7 @@ use ArtisanPackUI\VisualEditorRendererBlade\Services\BoxShadowCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\DuotoneCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ElementsCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesPlacement;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\PositionCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
@@ -234,18 +235,15 @@ class TemplateComponent extends Component
 	 * matching the dedupe behaviour of `<x-ve-blocks>` so a layout that
 	 * combines the two does not emit `<style>` twice.
 	 *
+	 * When the layout's `<head>` hasn't rendered yet, the CSS is queued
+	 * for `<x-ve-blocks-styles>` instead and null is returned; see
+	 * {@see GlobalStylesPlacement}.
+	 *
 	 * @since 1.0.0
+	 * @since 1.15.0 Queues the CSS for the head when the head renders later (#879).
 	 */
 	protected function resolveGlobalStylesCss(): ?string
 	{
-		if ( $this->emissionTracker->hasEmitted() ) {
-			return null;
-		}
-
-		$this->emissionTracker->markEmitted();
-
-		$css = $this->globalStyles->emit();
-
-		return '' === $css ? null : $css;
+		return app( GlobalStylesPlacement::class )->claimForBody( $this->emissionTracker, $this->globalStyles );
 	}
 }

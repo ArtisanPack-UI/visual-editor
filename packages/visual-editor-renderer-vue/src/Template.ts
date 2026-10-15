@@ -15,6 +15,7 @@
 import { Fragment, computed, defineComponent, h } from 'vue';
 import type { PropType } from 'vue';
 import { BlockTree } from './BlockTree';
+import type { DuotonePresets } from './support/duotone';
 import { GlobalStyles } from './GlobalStyles';
 import { DEFAULT_MAX_PATTERN_DEPTH } from './patterns';
 import type { PatternRecord } from './patterns';
@@ -62,6 +63,12 @@ export interface TemplateProps {
      * before the wrapper div.
      */
     globalStylesCss?: string | null;
+    /**
+     * The theme's duotone presets, forwarded to {@link BlockTree}.
+     *
+     * @since 1.15.0
+     */
+    duotonePresets?: DuotonePresets;
 }
 
 export const Template = defineComponent({
@@ -106,6 +113,10 @@ export const Template = defineComponent({
         globalStylesCss: {
             type: String as PropType<string | null | undefined>,
             default: null,
+        },
+        duotonePresets: {
+            type: [Array, Object] as PropType<DuotonePresets>,
+            default: undefined,
         },
     },
     setup(props) {
@@ -153,6 +164,7 @@ export const Template = defineComponent({
                         fetchOptions: props.fetchOptions,
                         maxTemplatePartDepth: props.maxTemplatePartDepth,
                         maxPatternDepth: props.maxPatternDepth,
+                        duotonePresets: props.duotonePresets,
                     }),
                 ]),
             ]);

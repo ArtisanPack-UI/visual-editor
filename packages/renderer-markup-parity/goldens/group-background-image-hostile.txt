@@ -1,0 +1,33 @@
+<div class="wp-block-group is-layout-flow wp-block-group-is-layout-flow" style="background-image: url('https://example.com/a%20b%27c%22d%28e%29f%5Cg%3Ch%3Ei%3Bj%09k.png'); background-size: cover">
+  <p class="wp-block-paragraph">
+    "A"
+  </p>
+</div>
+<div class="wp-block-group is-layout-flow wp-block-group-is-layout-flow">
+  <p class="wp-block-paragraph">
+    "B"
+  </p>
+</div>
+<div class="wp-block-group is-layout-flow wp-block-group-is-layout-flow">
+  <p class="wp-block-paragraph">
+    "C"
+  </p>
+</div>
+<blockquote class="wp-block-quote is-layout-flow wp-block-quote-is-layout-flow">
+  <p class="wp-block-paragraph">
+    "D"
+  </p>
+</blockquote>
+<pre class="wp-block-verse">
+  "E"
+</pre>
+<figure class="wp-block-pullquote">
+  <blockquote>
+    "F"
+  </blockquote>
+</figure>
+<div class="wp-block-group is-layout-flow wp-block-group-is-layout-flow">
+  <p class="wp-block-paragraph">
+    "G"
+  </p>
+</div>

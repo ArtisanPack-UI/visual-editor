@@ -122,6 +122,11 @@ A fixture may also carry `templateParts` (`slug`, `area`, `blocks`): the
 JS suite passes them to `BlockTree`'s `templateParts` prop, and the Pest
 suite serves them through a `TemplatePartResolver` stub.
 
+A fixture may also carry `duotonePresets` (a theme's
+`settings.color.duotone`, flat or origin-keyed): the JS suite passes them
+to `BlockTree`'s `duotonePresets` prop, and the Pest suite seeds them as the
+request's resolved presets through `DuotoneCssAccumulator::presets()`.
+
 Currently declared (RN-12, navigation):
 
 - **Overlay (`^navigation-overlay-`).** Element `id`s (Blade tracker ids,

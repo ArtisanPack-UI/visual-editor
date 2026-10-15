@@ -19,6 +19,7 @@ import {
     layoutClass,
 } from '../../support/attributes';
 import { applyBlockGap } from '../../support/blockGap';
+import { cssNumber } from '../../support/cssNumber';
 import { layoutWrapperClasses } from '../../support/layoutContainer';
 import { safeUrl } from '../../support/urlSanitizer';
 import { blockRendererProps } from '../shared';
@@ -98,6 +99,8 @@ export const CoverBlock = defineComponent({
                 // Cover always lays its inner container out as flex (#888).
                 'is-layout-flex',
                 'wp-block-cover-is-layout-flex',
+                // Duotone scope stamped by `stampDuotoneScopes()`.
+                attrString(props.attributes._veDuotone) || null,
                 align !== '' ? `align${align}` : null,
                 className,
             ]);
@@ -113,7 +116,7 @@ export const CoverBlock = defineComponent({
                     ? requestedUnit
                     : 'px';
 
-                outerStyle = { ...outerStyle, 'min-height': `${minHeight}${unit}` };
+                outerStyle = { ...outerStyle, 'min-height': `${cssNumber(minHeight)}${unit}` };
             }
 
             const children: VNode[] = [

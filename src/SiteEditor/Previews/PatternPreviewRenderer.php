@@ -34,6 +34,7 @@ use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedPattern;
 use ArtisanPackUI\VisualEditor\SiteEditor\ThemeStylesheets;
 use ArtisanPackUI\VisualEditor\Support\BlockMarkupHydrator;
 use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\DuotoneCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker;
 use Illuminate\Support\Facades\Blade;
@@ -177,8 +178,11 @@ class PatternPreviewRenderer
 		// render state (the navigation overlay's once-per-response CSS and
 		// script, its id counter) must start fresh for every pattern —
 		// otherwise only the batch's first overlay nav gets its CSS, and
-		// that order-dependent HTML is what gets cached.
+		// that order-dependent HTML is what gets cached. The duotone
+		// accumulator prints each `<filter>` once per request (R-10), so it
+		// starts fresh per pattern too.
 		$this->resetNavigationOverlayTracker();
+		$this->resetDuotoneAccumulator();
 
 		// Theme patterns ship serialized markup (and a parse-shape tree
 		// with no recovered text), so hydrate the markup; user patterns
@@ -218,6 +222,24 @@ class PatternPreviewRenderer
 		}
 
 		app()->forgetInstance( $trackerClass );
+	}
+
+	/**
+	 * Reset the Blade renderer's request-scoped duotone accumulator, so the
+	 * next pattern prints every `<filter>` it uses: each preview is its own
+	 * document, and a filter printed in an earlier one doesn't exist there.
+	 *
+	 * @since 1.15.0
+	 */
+	protected function resetDuotoneAccumulator(): void
+	{
+		$accumulatorClass = DuotoneCssAccumulator::class;
+
+		if ( ! class_exists( $accumulatorClass ) || ! app()->bound( $accumulatorClass ) ) {
+			return;
+		}
+
+		app( $accumulatorClass )->reset();
 	}
 
 	/**

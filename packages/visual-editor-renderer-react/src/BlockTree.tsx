@@ -33,6 +33,8 @@ import {
     NAVIGATION_OVERLAY_CSS,
     treeHasNavigationOverlay,
 } from './support/navigationOverlayCss';
+import { stampDuotoneScopes } from './support/duotone';
+import type { DuotonePresets } from './support/duotone';
 import { stampEffectsScopes } from './support/effects';
 import { stampHeadingAnchors } from './support/headingAnchors';
 import { stampLayoutScopes } from './support/layoutContainer';
@@ -113,6 +115,15 @@ export interface BlockTreeProps {
      * @since 1.15.0
      */
     customCssAllowUrls?: boolean;
+    /**
+     * The theme's duotone presets (`settings.color.duotone`, flat or
+     * origin-keyed), so `var:preset|duotone|…` picks resolve the way the
+     * Blade renderer resolves them against the active theme. Custom stop
+     * lists need no presets.
+     *
+     * @since 1.15.0
+     */
+    duotonePresets?: DuotonePresets;
 }
 
 export function BlockTree({
@@ -128,6 +139,7 @@ export function BlockTree({
     siteMeta,
     queryResults,
     customCssAllowUrls = true,
+    duotonePresets,
 }: BlockTreeProps): ReactElement {
     const blocks = useMemo(() => {
         const normalized = normalizeTree(tree);
@@ -254,9 +266,17 @@ export function BlockTree({
     // Block effects + Custom CSS (#881) — append the hashed `ve-fx-<hash>`
     // scope to each block's `className` and emit the rules Blade pushes
     // from `BlockSupports::compile()`.
-    const { tree: renderTree, css: effectsCss } = useMemo(() => {
+    const { tree: effectsTree, css: effectsCss } = useMemo(() => {
         return stampEffectsScopes(responsiveTree, { allowCustomCssUrls: customCssAllowUrls });
     }, [responsiveTree, customCssAllowUrls]);
+
+    // Duotone (#873, F-4) — stamp the `wp-duotone-*` scope on image,
+    // featured image, cover, avatar, site logo and post author blocks
+    // whose media renders, and print the rules plus the hidden SVG filter
+    // definitions Blade drains from `DuotoneCssAccumulator`.
+    const { tree: renderTree, css: duotoneCss, filters: duotoneFilters } = useMemo(() => {
+        return stampDuotoneScopes(effectsTree, duotonePresets);
+    }, [effectsTree, duotonePresets]);
 
     // Navigation overlay (#804) — the drawer's breakpoint + open-state
     // rules, emitted once when any navigation block has its overlay on.
@@ -298,6 +318,24 @@ export function BlockTree({
             )}
             {hasNavigationOverlay && (
                 <style data-ve-navigation-overlay="">{NAVIGATION_OVERLAY_CSS}</style>
+            )}
+            {duotoneCss !== '' && (
+                // Raw HTML so a `>` target combinator isn't escaped.
+                <style data-ve-duotone="" dangerouslySetInnerHTML={{ __html: duotoneCss }} />
+            )}
+            {duotoneFilters !== '' && (
+                <svg
+                    data-ve-duotone=""
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 0 0"
+                    width="0"
+                    height="0"
+                    focusable="false"
+                    aria-hidden="true"
+                    style={{ visibility: 'hidden', position: 'absolute', left: '-9999px', overflow: 'hidden' }}
+                >
+                    <defs dangerouslySetInnerHTML={{ __html: duotoneFilters }} />
+                </svg>
             )}
             {renderTree.map((block, index) =>
                 renderBlock(block, index, dynamicBlockEndpoint, fetchOptions)
