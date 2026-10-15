@@ -10,6 +10,8 @@
 import { defineComponent, getCurrentInstance, h } from 'vue';
 
 import { attrBoolean, attrInt, attrString, classList } from '../../support/attributes';
+import { applyBlockGap } from '../../support/blockGap';
+import { layoutWrapperClasses } from '../../support/layoutContainer';
 import { safeUrl } from '../../support/urlSanitizer';
 import { blockRendererProps } from '../shared';
 
@@ -331,14 +333,22 @@ export const CommentsPaginationBlock = defineComponent({
     setup(props, { slots }) {
         return () => {
             const className = attrString(props.attributes.className);
-            return h(
-                'nav',
-                {
-                    class: classList(['wp-block-comments-pagination', className]),
-                    'aria-label': 'Comments pagination',
-                },
-                slots.default?.()
-            );
+            // F-3 — always a flex layout, as in `comments-pagination.blade.php`.
+            const navProps: Record<string, unknown> = {
+                class: classList([
+                    'wp-block-comments-pagination',
+                    ...layoutWrapperClasses(props.attributes, 'comments-pagination', 'is-layout-flex'),
+                    className,
+                ]),
+                'aria-label': 'Comments pagination',
+            };
+            const gapStyle = applyBlockGap(props.attributes);
+
+            if (Object.keys(gapStyle).length > 0) {
+                navProps.style = gapStyle;
+            }
+
+            return h('nav', navProps, slots.default?.());
         };
     },
 });

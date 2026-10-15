@@ -127,8 +127,14 @@ export function layoutClass(attributes: Record<string, unknown>, fallback = 'flo
     // whitespace set — not `String.trim()`, which strips U+00A0/`\f` that
     // PHP keeps and would turn `"flex "` into `flex` where Blade falls
     // back to the default.
-    const rawType = attrRecord(attributes.layout).type;
-    const type = typeof rawType === 'string' ? phpTrim(rawType) : '';
+    const layout = attrRecord(attributes.layout);
+    const rawType = layout.type;
+    let type = typeof rawType === 'string' ? phpTrim(rawType) : '';
+
+    // A legacy `inherit: true` layout is a constrained layout (F-3).
+    if (type === '' && layout.inherit === true) {
+        type = 'constrained';
+    }
 
     if (supported.includes(type)) {
         return `is-layout-${type}`;

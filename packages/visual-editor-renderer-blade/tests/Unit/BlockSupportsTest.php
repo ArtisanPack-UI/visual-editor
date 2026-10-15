@@ -178,6 +178,30 @@ describe( 'BlockSupports::compile (spacing)', function (): void {
 		expect( $result['style'] )->toContain( 'column-gap: 2rem;' );
 	} );
 
+	it( 'drops blockGap values that could add declarations (F-10)', function ( mixed $blockGap, array $absent ): void {
+		$result = BlockSupports::compile( [
+			'style' => [ 'spacing' => [ 'blockGap' => $blockGap ] ],
+		] );
+
+		foreach ( $absent as $fragment ) {
+			expect( $result['style'] )->not->toContain( $fragment );
+		}
+	} )->with( [
+		'declaration break' => [ '1rem;position:fixed;inset:0', [ 'block-gap', 'position' ] ],
+		'rule break'        => [ '1rem}body{color:red', [ 'block-gap', 'color' ] ],
+		'unbalanced paren'  => [ 'calc(1rem', [ 'block-gap' ] ],
+		'axis break'        => [ [ 'top' => '1rem;position:fixed', 'left' => '2rem}' ], [ 'row-gap', 'column-gap', 'position' ] ],
+	] );
+
+	it( 'keeps the safe side of a per-axis blockGap (F-10)', function (): void {
+		$result = BlockSupports::compile( [
+			'style' => [ 'spacing' => [ 'blockGap' => [ 'top' => '1rem;position:fixed', 'left' => 'var:preset|spacing|40' ] ] ],
+		] );
+
+		expect( $result['style'] )
+			->toBe( 'column-gap: var(--wp--preset--spacing--40);' );
+	} );
+
 	it( 'expands preset references in spacing values', function (): void {
 		$result = BlockSupports::compile( [
 			'style' => [ 'spacing' => [ 'padding' => 'var:preset|spacing|40' ] ],

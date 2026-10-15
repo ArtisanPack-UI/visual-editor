@@ -1,0 +1,22 @@
+<div class="wp-block-group is-layout-constrained wp-block-group-is-layout-constrained wp-container-7d721e4fd937" style="row-gap: 2rem; column-gap: 1rem">
+  <p class="wp-block-paragraph">
+    "A"
+  </p>
+  <p class="wp-block-paragraph">
+    "B"
+  </p>
+</div>
+<div class="wp-block-group is-layout-flex wp-block-group-is-layout-flex wp-container-27de504a76b7" style="row-gap: 1rem">
+  <p class="wp-block-paragraph">
+    "A"
+  </p>
+</div>
+<div class="wp-block-group is-layout-grid wp-block-group-is-layout-grid wp-container-653365e24409" style="row-gap: var(--wp--preset--spacing--30); column-gap: 3rem">
+  <p class="wp-block-paragraph">
+    "A"
+  </p>
+</div>
+@@ renderer-instance-css @@
+.wp-block-group.wp-block-group-is-layout-constrained.wp-container-7d721e4fd937 > * + *{margin-block-start:2rem;margin-block-end:0;}
+.wp-block-group.wp-block-group-is-layout-flex.wp-container-27de504a76b7{gap:1rem 0.5em;}
+.wp-block-group.wp-block-group-is-layout-grid.wp-container-653365e24409{grid-template-columns:repeat(2, minmax(0, 1fr));gap:var(--wp--preset--spacing--30) 3rem;}

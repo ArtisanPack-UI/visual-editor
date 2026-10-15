@@ -2405,9 +2405,11 @@ class BlockSupports
 	/**
 	 * Spacing support: padding / margin (string or per-side object) +
 	 * `blockGap` (string or per-axis object → `--wp--style--block-gap`
-	 * custom property).
+	 * custom property). Gap values go through
+	 * {@see LayoutSupport::blockGapValue()}.
 	 *
 	 * @since 1.0.0
+	 * @since 1.15.0 Drops unsafe `blockGap` values (F-10).
 	 *
 	 * @param  array<string, mixed>  $attributes
 	 * @param  array<int, string>   &$style
@@ -2424,20 +2426,27 @@ class BlockSupports
 			self::applyBoxModel( $box, $spacing[ $box ] ?? null, $style );
 		}
 
+		// F-10 — a gap value lands in the inline style unescaped as CSS,
+		// so one that could add declarations (`1rem;position:fixed`) is
+		// dropped rather than printed.
 		$blockGap = $spacing['blockGap'] ?? null;
 
-		if ( is_string( $blockGap ) && '' !== $blockGap ) {
-			$style[] = '--wp--style--block-gap: ' . self::expandPresetReference( $blockGap );
-		} elseif ( is_array( $blockGap ) ) {
-			$top  = self::stringAttr( $blockGap['top'] ?? null );
-			$left = self::stringAttr( $blockGap['left'] ?? null );
+		if ( is_string( $blockGap ) ) {
+			$gap = LayoutSupport::blockGapValue( $blockGap );
 
-			if ( '' !== $top ) {
-				$style[] = 'row-gap: ' . self::expandPresetReference( $top );
+			if ( null !== $gap ) {
+				$style[] = '--wp--style--block-gap: ' . $gap;
+			}
+		} elseif ( is_array( $blockGap ) ) {
+			$top  = LayoutSupport::blockGapValue( $blockGap['top'] ?? null );
+			$left = LayoutSupport::blockGapValue( $blockGap['left'] ?? null );
+
+			if ( null !== $top ) {
+				$style[] = 'row-gap: ' . $top;
 			}
 
-			if ( '' !== $left ) {
-				$style[] = 'column-gap: ' . self::expandPresetReference( $left );
+			if ( null !== $left ) {
+				$style[] = 'column-gap: ' . $left;
 			}
 		}
 	}

@@ -1,0 +1,8 @@
+<div class="wp-block-group is-layout-constrained wp-block-group-is-layout-constrained wp-container-9213ce1a97e6">
+  <p class="wp-block-paragraph">
+    "A"
+  </p>
+</div>
+@@ renderer-instance-css @@
+.wp-block-group.wp-block-group-is-layout-constrained.wp-container-9213ce1a97e6 > .alignwide{max-width:1200px;}
+.wp-block-group.wp-block-group-is-layout-constrained.wp-container-9213ce1a97e6 > :where(:not(.alignleft):not(.alignright):not(.alignfull)){max-width:1200px;margin-left:auto !important;margin-right:auto !important;}

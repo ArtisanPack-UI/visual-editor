@@ -2,14 +2,35 @@
 	use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\FlexSupport;
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\LayoutSupport;
 
-	$baseClasses = [ 'wp-block-column' ];
+	$flexClasses = FlexSupport::wrapperForBlock( $attributes );
+
+	// F-3 — the column supports every layout type (flow by default), so it
+	// carries the layout pair, a `wp-container-*` scope for its own layout
+	// settings and Block spacing, and the layout modifiers. As for the
+	// group (#595), an active base-breakpoint Flex panel with no stored
+	// layout type makes it a flex layout, so the flow baseline's
+	// `margin-block-start` doesn't push its children apart.
+	$layoutClass = LayoutSupport::layoutClass( $attributes );
+	$storedType  = is_string( $attributes['layout']['type'] ?? null ) ? trim( $attributes['layout']['type'] ) : '';
+
+	if ( '' === $storedType && in_array( 'ap-flex', $flexClasses, true ) ) {
+		$layoutClass = 'is-layout-flex';
+	}
+
+	$baseClasses = array_merge(
+		[ 'wp-block-column' ],
+		LayoutSupport::pair( 'column', $layoutClass ),
+		LayoutSupport::containerClasses( $attributes, 'column', $layoutClass ),
+		LayoutSupport::modifierClasses( $attributes )
+	);
 
 	if ( ! empty( $attributes['verticalAlignment'] ) ) {
 		$baseClasses[] = 'is-vertically-aligned-' . $attributes['verticalAlignment'];
 	}
 
-	$baseClasses = array_merge( $baseClasses, FlexSupport::wrapperForBlock( $attributes ) );
+	$baseClasses = array_merge( $baseClasses, $flexClasses );
 
 	// `flex-basis` from the column's `width` attribute has to merge
 	// with any block-supports inline style — compile() lets us splice
@@ -59,6 +80,11 @@
 	// `50% + gap + 50%` past `100%` and the second column wraps to
 	// a new line — visually identical to the stacking the WP mobile
 	// rule produces.
+	//
+	// M-15 — the column is a layout container, so the layout baseline
+	// resets its own `--wp--style--block-gap`. The Columns gap reaches
+	// it as `--ap-columns-gap` instead, falling back to the inherited
+	// property where the baseline isn't loaded.
 	$basisExpr = static function ( array $normalized ) {
 		if ( null === $normalized['percent'] ) {
 			return $normalized['basis'];
@@ -72,7 +98,7 @@
 		}
 
 		return sprintf(
-			'calc(%s - var(--wp--style--block-gap, 0.5em) * %s)',
+			'calc(%s - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * %s)',
 			$normalized['basis'],
 			$formattedFactor
 		);
