@@ -143,7 +143,7 @@ describe( 'LayoutSupport::container (#871)', function (): void {
 			->toContain( 'minmax(min(12rem, 100%), 1fr)' );
 
 		expect( $css( [ 'type' => 'grid', 'columnCount' => 4, 'minimumColumnWidth' => '14rem' ], 'is-layout-grid' ) )
-			->toContain( 'minmax(max(min(14rem, 100%), (100% - (var(--wp--style--block-gap, 24px) * 3)) / 4), 1fr)' );
+			->toContain( 'minmax(max(min(14rem, 100%), (100% - (var(--wp--style--block-gap, 0.5em) * 3)) / 4), 1fr)' );
 	} );
 
 	it( 'accepts whole column counts and rejects the rest', function ( mixed $count, ?string $expected ) use ( $css ): void {

@@ -50,6 +50,7 @@ import { registerBackgroundControls } from '../background-controls';
 import { registerBoxShadows } from '../box-shadows/register';
 import { registerGradientBorders } from '../gradient-borders/register';
 import { registerPositioning } from '../positioning/register';
+import { registerEffects } from '../effects/register';
 import { registerStateStylesFilters } from '../states/with-state-styles';
 import { registerAnimationsAttribute } from '../animations/register-attribute';
 import { registerAnimationsPanel } from '../animations/with-animations-panel';
@@ -203,6 +204,8 @@ function registerOnce(): void {
     registerGradientBorders();
     registerBoxShadows();
     registerPositioning();
+    // #881 — block effects + Custom CSS (attribute, panel, canvas preview).
+    registerEffects();
     // #717 — register the inline-icon RichText format so authors can drop
     // an icon at the caret inside any editable rich-text field (headings,
     // paragraphs, buttons, list items, captions). Runs before blocks so

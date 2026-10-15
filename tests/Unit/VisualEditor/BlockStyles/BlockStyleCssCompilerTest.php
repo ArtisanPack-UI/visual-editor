@@ -70,12 +70,19 @@ it( 'drops values that could break out of the style block', function ( string $v
 	expect( $css )->toContain( 'background-color: #fff;' )
 		->not->toContain( 'color: ' . $value );
 } )->with( [
-	'semicolon' => 'red; display: none',
-	'brace'     => 'red } body { display: none',
-	'tag'       => '</style><script>alert(1)</script>',
-	'comment'   => 'red /* x',
-	'paren'     => 'rgb(1,2,3',
+	'semicolon'                 => 'red; display: none',
+	'brace'                     => 'red } body { display: none',
+	'tag'                       => '</style><script>alert(1)</script>',
+	'comment'                   => 'red /* x',
+	'paren'                     => 'rgb(1,2,3',
+	'interleaved double quotes' => '"a\' "b\'',
+	'interleaved single quotes' => '\'a" \'b"',
 ] );
+
+it( 'keeps values with a parenthesis inside a string (#885)', function (): void {
+	expect( compileVariation( 'core/group', 'quoted', [ 'typography' => [ 'fontFamily' => '"Smile :)", sans-serif' ] ] ) )
+		->toContain( 'font-family: "Smile :)", sans-serif;' );
+} );
 
 it( 'paints button variations on the inner link, as block.json selectors do', function (): void {
 	$css = compileVariation( 'core/button', 'pill', [

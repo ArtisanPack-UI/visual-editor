@@ -37,3 +37,10 @@ test( 'package routes register the /editor path', function () use ( $routesPath 
     expect( $contents )->toContain( "'apiBase'" );
     expect( $contents )->not->toContain( '/editor-spike' );
 } );
+
+test( 'editor mounts stamp the block-CSS ability for the Custom CSS field (#881)', function (): void {
+    foreach ( [ 'editor/mount', 'components/editor', 'site-editor/index' ] as $view ) {
+        expect( file_get_contents( __DIR__ . '/../../resources/views/' . $view . '.blade.php' ) )
+            ->toContain( '@can( \\ArtisanPackUI\\VisualEditor\\Effects\\BlockCssAccess::ABILITY ) data-can-edit-block-css="true" @endcan' );
+    }
+} );

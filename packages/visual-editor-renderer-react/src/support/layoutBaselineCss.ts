@@ -194,6 +194,11 @@ export const LAYOUT_BASELINE_CSS =
     '.is-layout-flex > :is(*, div) { margin: 0; }\n' +
     '.is-layout-grid { display: grid; }\n' +
     '.is-layout-grid > :is(*, div) { margin: 0; }\n' +
+    // #883 — flex/grid children are spaced by the block's own Block
+    // spacing or the theme's `styles.spacing.blockGap`, at zero
+    // specificity; mirrors the Blade baseline.
+    ':where(.is-layout-flex) { gap: var(--wp--style--block-gap, 0.5em); }\n' +
+    ':where(.is-layout-grid) { gap: var(--wp--style--block-gap, 0.5em); }\n' +
     // #702 — constrained-group containment, mirroring rule set C in the
     // Blade renderer's `ThemeJsonTokensCompiler::compileLayoutRules()`.
     // Keyed on the per-block compound rather than the shared modifier so

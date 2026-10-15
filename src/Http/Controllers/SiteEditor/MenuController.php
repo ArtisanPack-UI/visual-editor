@@ -32,6 +32,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor;
 
+use ArtisanPackUI\VisualEditor\Effects\CustomCssGuard;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\MenuContentBlocksRule;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\StoreMenuRequest;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\UpdateMenuRequest;
@@ -277,7 +278,7 @@ class MenuController extends Controller
 
 		$validated = $request->validated();
 		$blocks    = array_key_exists( 'content', $validated )
-			? $this->resolveContentBlocks( $validated['content'] )
+			? $this->resolveContentBlocks( $validated['content'], $this->storedItemBlocks( $menu ) )
 			: null;
 
 		try {
@@ -404,12 +405,16 @@ class MenuController extends Controller
 	 *     set (lossless); `raw` is parsed otherwise
 	 *
 	 * @since 1.0.0
+	 * @since 1.15.0 Takes the stored item blocks for the Custom CSS guard (#881).
+	 *
+	 * @param  array<int, mixed>|null  $storedBlocks  The menu's stored items as blocks.
 	 *
 	 * @return array<int, array<string, mixed>>
 	 */
-	protected function resolveContentBlocks( mixed $content ): array
+	protected function resolveContentBlocks( mixed $content, ?array $storedBlocks = null ): array
 	{
-		$blocks = $this->contentToBlocks( $content );
+		// #881 — only users with the block-CSS ability may add Custom CSS.
+		$blocks = app( CustomCssGuard::class )->filter( $this->contentToBlocks( $content ), $storedBlocks );
 
 		// `content.blocks` is already checked by the form request; this
 		// also bounds the trees parsed out of a `content` / `content.raw`
@@ -418,6 +423,34 @@ class MenuController extends Controller
 			[ 'content' => [ 'blocks' => $blocks ] ],
 			[ 'content.blocks' => [ new MenuContentBlocksRule() ] ],
 		)->validate();
+
+		return $blocks;
+	}
+
+	/**
+	 * The menu's stored items as flat blocks carrying their
+	 * `block_attributes`, which is where a menu item's Custom CSS lives —
+	 * enough for {@see CustomCssGuard} to know which values already exist.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @return array<int, array{attributes: array<string, mixed>}>
+	 */
+	protected function storedItemBlocks( mixed $menu ): array
+	{
+		$blocks = [];
+
+		foreach ( $menu->items ?? [] as $item ) {
+			$attributes = $item->block_attributes ?? null;
+
+			if ( is_string( $attributes ) ) {
+				$attributes = json_decode( $attributes, true );
+			}
+
+			if ( is_array( $attributes ) ) {
+				$blocks[] = [ 'attributes' => $attributes ];
+			}
+		}
 
 		return $blocks;
 	}

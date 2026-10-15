@@ -54,6 +54,7 @@ ensureMediaBridgeFilter();
 
 import '../a11y.css';
 import type { BreakpointRegistrySnapshot } from '../responsive/types';
+import { setBlockCssAccess } from '../effects/access';
 
 const MOUNT_SELECTOR = '[data-ap-site-editor]';
 const ROOT_SYMBOL: unique symbol = Symbol('ap-site-editor-root');
@@ -284,6 +285,10 @@ async function mount(element: MountableElement): Promise<void> {
         );
         return;
     }
+
+    // #881 — the host stamps `data-can-edit-block-css="true"` for users
+    // with the block-CSS ability; it only controls the Custom CSS field.
+    setBlockCssAccess(element.dataset.canEditBlockCss === 'true');
 
     try {
         await mountSiteEditor(element, config).ready;

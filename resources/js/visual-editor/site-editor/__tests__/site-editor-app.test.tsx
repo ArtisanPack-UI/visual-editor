@@ -237,6 +237,10 @@ vi.mock('../../positioning/register', () => ({
     registerPositioning: (): void => undefined,
 }));
 
+vi.mock('../../effects/register', () => ({
+    registerEffects: (): void => undefined,
+}));
+
 // #700: the responsive + state registrars pull in `@wordpress/blocks`
 // through their BlockEdit HOCs — same JSON-import-attribute trip under
 // jsdom. The shell tests don't exercise per-breakpoint or per-state

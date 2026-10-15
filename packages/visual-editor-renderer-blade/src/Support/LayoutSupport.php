@@ -353,7 +353,7 @@ class LayoutSupport
 		$minimum     = self::cssLength( $layout['minimumColumnWidth'] ?? null );
 
 		if ( null !== $columnCount && null !== $minimum ) {
-			$track = 'max(min(' . $minimum . ', 100%), (100% - (var(--wp--style--block-gap, 24px) * ' . ( $columnCount - 1 ) . ')) / ' . $columnCount . ')';
+			$track = 'max(min(' . $minimum . ', 100%), (100% - (var(--wp--style--block-gap, 0.5em) * ' . ( $columnCount - 1 ) . ')) / ' . $columnCount . ')';
 
 			return [ [ '', [ 'grid-template-columns:repeat(auto-fill, minmax(' . $track . ', 1fr))', 'container-type:inline-size' ] ] ];
 		}

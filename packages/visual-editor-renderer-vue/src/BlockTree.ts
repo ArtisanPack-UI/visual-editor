@@ -33,6 +33,7 @@ import {
     NAVIGATION_OVERLAY_CSS,
     treeHasNavigationOverlay,
 } from './support/navigationOverlayCss';
+import { stampEffectsScopes } from './support/effects';
 import { stampLayoutScopes } from './support/layoutContainer';
 import { stampPhotoGridScopes } from './support/photoGrid';
 import {
@@ -250,7 +251,14 @@ export const BlockTree = defineComponent({
             stampLayoutScopes(photoGrid.value.tree)
         );
 
-        const hasNavigationOverlay = computed(() => treeHasNavigationOverlay(layout.value.tree));
+        // Block effects + Custom CSS (#881) — append the hashed
+        // `ve-fx-<hash>` scope to each block's `className` and emit the
+        // rules Blade pushes from `BlockSupports::compile()`.
+        const effects = computed(() =>
+            stampEffectsScopes(layout.value.tree)
+        );
+
+        const hasNavigationOverlay = computed(() => treeHasNavigationOverlay(effects.value.tree));
 
         return () => {
             const endpoint = props.dynamicBlockEndpoint ?? DEFAULT_ENDPOINT;
@@ -312,6 +320,17 @@ export const BlockTree = defineComponent({
                 );
             }
 
+            if (effects.value.css !== '') {
+                // `innerHTML` so `>` in Custom CSS isn't escaped to `&gt;`.
+                // `sanitizeCustomCss()` rejects any `<`.
+                children.push(
+                    h('style', {
+                        'data-ve-effects': '',
+                        innerHTML: effects.value.css,
+                    })
+                );
+            }
+
             // Navigation overlay (#804) — the drawer's breakpoint +
             // open-state rules, emitted once when any navigation block
             // has its overlay on.
@@ -325,7 +344,7 @@ export const BlockTree = defineComponent({
                 );
             }
 
-            layout.value.tree
+            effects.value.tree
                 .map((block, index) => renderBlock(block, index, endpoint, props.fetchOptions))
                 .filter((vnode): vnode is VNode => vnode !== null)
                 .forEach((vnode) => children.push(vnode));

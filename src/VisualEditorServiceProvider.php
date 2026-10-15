@@ -754,6 +754,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->registerAiLivewireComponents();
 		$this->registerAiGate();
 		$this->registerContentGate();
+		$this->registerBlockCssGate();
 
 		Gate::policy( VisualEditorPost::class, VisualEditorPostPolicy::class );
 
@@ -1686,6 +1687,25 @@ class VisualEditorServiceProvider extends ServiceProvider
 		Gate::define(
 			Ai\Support\AiAccess::ABILITY,
 			static fn ( ?\Illuminate\Contracts\Auth\Authenticatable $user ): bool => Ai\Support\AiAccess::allows( $user ),
+		);
+	}
+
+	/**
+	 * Define the default `visual-editor.edit-block-css` gate unless the
+	 * host already has (#881). Denies by default; see
+	 * {@see Effects\BlockCssAccess}.
+	 *
+	 * @since 1.15.0
+	 */
+	protected function registerBlockCssGate(): void
+	{
+		if ( Gate::has( Effects\BlockCssAccess::ABILITY ) ) {
+			return;
+		}
+
+		Gate::define(
+			Effects\BlockCssAccess::ABILITY,
+			static fn ( ?\Illuminate\Contracts\Auth\Authenticatable $user ): bool => Effects\BlockCssAccess::allows( $user ),
 		);
 	}
 

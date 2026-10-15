@@ -33,6 +33,7 @@ import {
     NAVIGATION_OVERLAY_CSS,
     treeHasNavigationOverlay,
 } from './support/navigationOverlayCss';
+import { stampEffectsScopes } from './support/effects';
 import { stampLayoutScopes } from './support/layoutContainer';
 import { stampPhotoGridScopes } from './support/photoGrid';
 import {
@@ -219,9 +220,16 @@ export function BlockTree({
     // content / wide size, justification, orientation, wrap or grid
     // columns, and emit the matching rules the Blade renderer pushes from
     // `LayoutSupport::containerClasses()`.
-    const { tree: renderTree, css: layoutCss } = useMemo(() => {
+    const { tree: layoutTree, css: layoutCss } = useMemo(() => {
         return stampLayoutScopes(photoGridTree);
     }, [photoGridTree]);
+
+    // Block effects + Custom CSS (#881) — append the hashed `ve-fx-<hash>`
+    // scope to each block's `className` and emit the rules Blade pushes
+    // from `BlockSupports::compile()`.
+    const { tree: renderTree, css: effectsCss } = useMemo(() => {
+        return stampEffectsScopes(layoutTree);
+    }, [layoutTree]);
 
     // Navigation overlay (#804) — the drawer's breakpoint + open-state
     // rules, emitted once when any navigation block has its overlay on.
@@ -250,6 +258,11 @@ export function BlockTree({
                 // `&gt;` inside the style element. The rule values are
                 // whitelisted by `layoutContainer()` and carry no `<`.
                 <style data-ve-layout="" dangerouslySetInnerHTML={{ __html: layoutCss }} />
+            )}
+            {effectsCss !== '' && (
+                // Raw HTML so `>` in Custom CSS isn't escaped to `&gt;`.
+                // `sanitizeCustomCss()` rejects any `<`.
+                <style data-ve-effects="" dangerouslySetInnerHTML={{ __html: effectsCss }} />
             )}
             {hasNavigationOverlay && (
                 <style data-ve-navigation-overlay="">{NAVIGATION_OVERLAY_CSS}</style>

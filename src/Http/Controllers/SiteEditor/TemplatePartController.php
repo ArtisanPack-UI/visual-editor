@@ -29,6 +29,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor;
 
+use ArtisanPackUI\VisualEditor\Effects\CustomCssGuard;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\StoreTemplatePartRequest;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\UpdateTemplatePartRequest;
 use ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\SiteEditor\TemplatePartAdapter;
@@ -296,7 +297,7 @@ class TemplatePartController extends Controller
 
 			unset( $validated['slug'] );
 
-			$existing->update( $this->modelAttributesFromRequest( $validated ) );
+			$existing->update( $this->modelAttributesFromRequest( $validated, $existing->block_content ) );
 
 			$resolverKey = (string) $existing->slug;
 		} else {
@@ -340,7 +341,7 @@ class TemplatePartController extends Controller
 
 				$attributes = array_merge(
 					$fileDefaults,
-					$this->modelAttributesFromRequest( $validated ),
+					$this->modelAttributesFromRequest( $validated, $this->fileSourceBlocks( $slug ) ),
 				);
 				$attributes['slug']  = $slug;
 				$attributes['theme'] = $theme;
@@ -371,10 +372,10 @@ class TemplatePartController extends Controller
 						throw $e;
 					}
 
-					$existing->update( $this->modelAttributesFromRequest( $validated ) );
+					$existing->update( $this->modelAttributesFromRequest( $validated, $existing->block_content ) );
 				}
 			} else {
-				$existing->update( $this->modelAttributesFromRequest( $validated ) );
+				$existing->update( $this->modelAttributesFromRequest( $validated, $existing->block_content ) );
 			}
 
 			$resolverKey = $slug;
@@ -537,6 +538,21 @@ class TemplatePartController extends Controller
 	}
 
 	/**
+	 * The theme file's block tree for a slug, so a file→DB upsert keeps
+	 * the Custom CSS the theme ships (#881).
+	 *
+	 * @since 1.15.0
+	 *
+	 * @return array<int, mixed>|null
+	 */
+	protected function fileSourceBlocks( string $slug ): ?array
+	{
+		$resolved = $this->resolver->find( $slug );
+
+		return $resolved instanceof ResolvedTemplatePart ? $resolved->blocks : null;
+	}
+
+	/**
 	 * Resolve the active theme slug through cms-framework's `ThemeManager`
 	 * when available. Used as the fallback for slug-branch upserts and
 	 * destroys when the request omits an explicit theme. Mirrors
@@ -575,12 +591,14 @@ class TemplatePartController extends Controller
 
 	/**
 	 * @since 1.0.0
+	 * @since 1.15.0 Takes the stored blocks for the Custom CSS guard (#881).
 	 *
 	 * @param  array<string, mixed>  $validated
+	 * @param  mixed  $storedBlocks  The record's stored block tree, or null for a new record.
 	 *
 	 * @return array<string, mixed>
 	 */
-	protected function modelAttributesFromRequest( array $validated ): array
+	protected function modelAttributesFromRequest( array $validated, mixed $storedBlocks = null ): array
 	{
 		$attributes = [];
 
@@ -618,6 +636,11 @@ class TemplatePartController extends Controller
 			)->validate();
 
 			$attributes['block_content'] = $blocks;
+		}
+
+		// #881 — only users with the block-CSS ability may add Custom CSS.
+		if ( array_key_exists( 'block_content', $attributes ) ) {
+			$attributes['block_content'] = app( CustomCssGuard::class )->filter( $attributes['block_content'], $storedBlocks );
 		}
 
 		return $attributes;

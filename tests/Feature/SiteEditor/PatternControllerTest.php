@@ -371,6 +371,34 @@ describe( 'PUT /visual-editor/api/patterns/{slug}', function (): void {
 			->assertJsonPath( 'categories.1', 'pricing' );
 	} );
 
+	it( 'keeps stored Custom CSS but strips new values for users without the block-CSS ability (#881)', function (): void {
+		$styled = static fn ( string $css ): array => [
+			'name'        => 'core/group',
+			'attributes'  => [ 'artisanpackEffects' => [ 'customCss' => $css ] ],
+			'innerBlocks' => [],
+		];
+
+		$pattern = BlockPattern::create( [
+			'slug'          => 'cta',
+			'title'         => 'CTA',
+			'source'        => 'user',
+			'synced'        => true,
+			'categories'    => [],
+			'block_types'   => [],
+			'block_content' => [ $styled( 'color: red;' ) ],
+			'author_id'     => null,
+		] );
+
+		$this->putJson( '/visual-editor/api/patterns/user/cta', [
+			'content' => [ 'raw' => '', 'blocks' => [ $styled( 'color: red;' ), $styled( 'display: none;' ) ] ],
+		] )->assertOk();
+
+		$stored = $pattern->fresh()->block_content;
+
+		expect( $stored[0]['attributes']['artisanpackEffects'] )->toBe( [ 'customCss' => 'color: red;' ] )
+			->and( $stored[1]['attributes']['artisanpackEffects'] )->toBe( [] );
+	} );
+
 	it( 'returns 404 when the slug does not match an existing user pattern', function (): void {
 		$this->putJson( '/visual-editor/api/patterns/user/missing', [
 			'title' => 'Nope',

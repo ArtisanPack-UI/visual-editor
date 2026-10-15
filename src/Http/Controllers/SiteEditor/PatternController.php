@@ -25,6 +25,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor;
 
+use ArtisanPackUI\VisualEditor\Effects\CustomCssGuard;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\StorePatternRequest;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\UpdatePatternRequest;
 use ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\SiteEditor\PatternAdapter;
@@ -205,7 +206,7 @@ class PatternController extends Controller
 
 		unset( $validated['slug'] );
 
-		$existing->update( $this->modelAttributesFromRequest( $validated ) );
+		$existing->update( $this->modelAttributesFromRequest( $validated, $existing->block_content ) );
 
 		// #832 — drop every cached card preview, not just this pattern's:
 		// any other pattern may embed this one as a synced `core/block` ref.
@@ -395,12 +396,14 @@ class PatternController extends Controller
 
 	/**
 	 * @since 1.0.0
+	 * @since 1.15.0 Takes the stored blocks for the Custom CSS guard (#881).
 	 *
 	 * @param  array<string, mixed>  $validated
+	 * @param  mixed  $storedBlocks  The record's stored block tree, or null for a new record.
 	 *
 	 * @return array<string, mixed>
 	 */
-	protected function modelAttributesFromRequest( array $validated ): array
+	protected function modelAttributesFromRequest( array $validated, mixed $storedBlocks = null ): array
 	{
 		$attributes = [];
 
@@ -427,6 +430,11 @@ class PatternController extends Controller
 		// must leave existing blocks intact.
 		if ( isset( $validated['content']['blocks'] ) && is_array( $validated['content']['blocks'] ) ) {
 			$attributes['block_content'] = array_values( $validated['content']['blocks'] );
+		}
+
+		// #881 — only users with the block-CSS ability may add Custom CSS.
+		if ( array_key_exists( 'block_content', $attributes ) ) {
+			$attributes['block_content'] = app( CustomCssGuard::class )->filter( $attributes['block_content'], $storedBlocks );
 		}
 
 		return $attributes;
