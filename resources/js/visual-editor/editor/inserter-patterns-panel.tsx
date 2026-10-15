@@ -16,6 +16,10 @@
  *     reference is created; subsequent edits to the pattern do not
  *     propagate. The brief commits to "pure block-tree copy" for V1
  *     unsynced patterns (no bindings — plan §8 closed).
+ *
+ * Patterns registered with `inserter: false` are left out, and the
+ * search field matches titles, slugs, categories and `keywords`, as in
+ * Gutenberg's inserter (see `inserter-pattern-filters.ts`).
  */
 
 import {
@@ -37,6 +41,7 @@ import {
 } from 'react';
 
 import { TEXT_DOMAIN } from '../vendor/i18n';
+import { isInserterPattern, patternMatchesSearch } from './inserter-pattern-filters';
 import {
     listPatterns,
     SiteEditorApiError,
@@ -259,7 +264,9 @@ export function InserterPatternsPanel(
     const [unsynced, setUnsynced] = useState<readonly PatternRecord[]>([]);
     const [status, setStatus] = useState<LoadStatus>('idle');
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [search, setSearch] = useState('');
     const requestRef = useRef(0);
+    const searchId = useId();
     const scrollRootRef = useRef<HTMLDivElement | null>(null);
 
     const apiConfig = useMemo(() => ({ apiBase }), [apiBase]);
@@ -465,10 +472,30 @@ export function InserterPatternsPanel(
         []
     );
 
+    // `inserter: false` patterns stay registered (core/block references
+    // and code can still reach them) but aren't offered here.
+    const inserterSynced = useMemo(() => synced.filter(isInserterPattern), [synced]);
+    const inserterUnsynced = useMemo(() => unsynced.filter(isInserterPattern), [unsynced]);
+    const visibleSynced = useMemo(
+        () => inserterSynced.filter((pattern) => patternMatchesSearch(pattern, search)),
+        [inserterSynced, search]
+    );
+    const visibleUnsynced = useMemo(
+        () => inserterUnsynced.filter((pattern) => patternMatchesSearch(pattern, search)),
+        [inserterUnsynced, search]
+    );
+
     const isLoading = status === 'loading' || status === 'idle';
     const isError = status === 'error';
     const isEmpty =
-        status === 'ready' && synced.length === 0 && unsynced.length === 0;
+        status === 'ready' &&
+        inserterSynced.length === 0 &&
+        inserterUnsynced.length === 0;
+    const hasNoResults =
+        status === 'ready' &&
+        !isEmpty &&
+        visibleSynced.length === 0 &&
+        visibleUnsynced.length === 0;
 
     return (
         <PatternPreviewScrollRootContext.Provider value={scrollRootRef}>
@@ -484,6 +511,25 @@ export function InserterPatternsPanel(
                 >
                     {__('Patterns', TEXT_DOMAIN)}
                 </h3>
+
+                {status === 'ready' && !isEmpty ? (
+                    <div className="ap-inserter-patterns__search">
+                        <label
+                            htmlFor={searchId}
+                            className="ap-inserter-patterns__search-label"
+                        >
+                            {__('Search patterns', TEXT_DOMAIN)}
+                        </label>
+                        <input
+                            id={searchId}
+                            type="search"
+                            className="ap-inserter-patterns__search-input"
+                            data-testid="ap-inserter-patterns-search"
+                            value={search}
+                            onChange={(event) => setSearch(event.target.value)}
+                        />
+                    </div>
+                ) : null}
 
                 {isLoading ? (
                     <p
@@ -528,7 +574,23 @@ export function InserterPatternsPanel(
                     </p>
                 ) : null}
 
-                {status === 'ready' && synced.length > 0 ? (
+                {/* The live region stays mounted while the search is shown,
+                    so screen readers announce the message when a search
+                    stops matching. */}
+                {status === 'ready' && !isEmpty ? (
+                    <div role="status" aria-live="polite">
+                        {hasNoResults ? (
+                            <p
+                                className="ap-inserter-patterns__empty"
+                                data-testid="ap-inserter-patterns-no-results"
+                            >
+                                {__('No patterns match your search.', TEXT_DOMAIN)}
+                            </p>
+                        ) : null}
+                    </div>
+                ) : null}
+
+                {status === 'ready' && visibleSynced.length > 0 ? (
                     <section className="ap-inserter-patterns__group">
                         <h4 className="ap-inserter-patterns__group-title">
                             {__('Synced patterns', TEXT_DOMAIN)}
@@ -538,7 +600,7 @@ export function InserterPatternsPanel(
                             data-ap-inserter-pattern-list=""
                             data-testid="ap-inserter-patterns-list-synced"
                         >
-                            {synced.map((pattern) => (
+                            {visibleSynced.map((pattern) => (
                                 <li key={pattern.id}>
                                     <PatternPreviewCard
                                         pattern={pattern}
@@ -561,7 +623,7 @@ export function InserterPatternsPanel(
                     </section>
                 ) : null}
 
-                {status === 'ready' && unsynced.length > 0 ? (
+                {status === 'ready' && visibleUnsynced.length > 0 ? (
                     <section className="ap-inserter-patterns__group">
                         <h4 className="ap-inserter-patterns__group-title">
                             {__('Unsynced patterns', TEXT_DOMAIN)}
@@ -571,7 +633,7 @@ export function InserterPatternsPanel(
                             data-ap-inserter-pattern-list=""
                             data-testid="ap-inserter-patterns-list-unsynced"
                         >
-                            {unsynced.map((pattern) => (
+                            {visibleUnsynced.map((pattern) => (
                                 <li key={pattern.id}>
                                     <PatternPreviewCard
                                         pattern={pattern}

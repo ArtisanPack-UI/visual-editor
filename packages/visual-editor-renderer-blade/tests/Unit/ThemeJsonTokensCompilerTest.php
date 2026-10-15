@@ -692,6 +692,132 @@ describe( 'styles.elements pseudo-states and selectors (#852)', function (): voi
 	} );
 } );
 
+describe( 'WordPress element pseudo states, link selector and outline (cms-framework 2.15 parity)', function (): void {
+	it( 'compiles the link and button :link / :any-link / :visited states in WordPress\'s order', function (): void {
+		$node = [];
+
+		foreach ( [ ':active', ':focus-visible', ':focus', ':hover', ':visited', ':any-link', ':link' ] as $index => $state ) {
+			$node[ $state ] = [ 'color' => [ 'text' => '#00000' . $index ] ];
+		}
+
+		$css = ( new ThemeJsonTokensCompiler() )->compile( [ 'styles' => [ 'elements' => [ 'link' => $node, 'button' => $node ] ] ] );
+
+		$link      = 'a:where(:not(.wp-element-button))';
+		$positions = [];
+
+		foreach ( ThemeJsonTokensCompiler::ELEMENT_PSEUDO_STATES as $state ) {
+			$positions[] = strpos( $css, ":root :where({$link}{$state}) {" );
+
+			expect( $css )->toContain( ":root :where(.wp-element-button{$state}, .wp-block-button__link{$state}) {" );
+		}
+
+		$sorted = $positions;
+		sort( $sorted );
+
+		expect( ThemeJsonTokensCompiler::ELEMENT_PSEUDO_STATES )->toBe( [ ':link', ':any-link', ':visited', ':hover', ':focus', ':focus-visible', ':active' ] )
+			->and( $positions )->not->toContain( false )
+			->and( $positions )->toBe( $sorted );
+	} );
+
+	it( 'ignores pseudo sub-nodes on heading, h1–h6, caption and cite elements', function (): void {
+		$hover = [ 'color' => [ 'text' => '#123456' ] ];
+		$css   = ( new ThemeJsonTokensCompiler() )->compile( [
+			'styles' => [
+				'elements' => [
+					'heading' => [ 'color' => [ 'text' => '#000000' ], ':hover' => $hover ],
+					'h1'      => [ ':focus' => $hover ],
+					'caption' => [ ':hover' => $hover ],
+					'cite'    => [ ':active' => $hover ],
+				],
+				'blocks'   => [
+					'core/group' => [ 'elements' => [ 'h2' => [ ':hover' => $hover ] ] ],
+				],
+			],
+		] );
+
+		expect( $css )->toContain( ':root :where(h1, h2, h3, h4, h5, h6) {' )
+			->not->toContain( '#123456' )
+			->not->toContain( ':hover' )
+			->not->toContain( ':focus' )
+			->not->toContain( ':active' );
+	} );
+
+	it( 'scopes block link styles past button links, with the pseudo after the :where()', function (): void {
+		$css = ( new ThemeJsonTokensCompiler() )->compile( [
+			'styles' => [
+				'blocks' => [
+					'core/group' => [
+						'elements' => [
+							'link' => [ 'color' => [ 'text' => '#010101' ], ':visited' => [ 'color' => [ 'text' => '#020202' ] ] ],
+						],
+					],
+				],
+			],
+		] );
+
+		expect( $css )->toContain( ":root :where(.wp-block-group a:where(:not(.wp-element-button))) {\n\tcolor: #010101;" )
+			->toContain( ":root :where(.wp-block-group a:where(:not(.wp-element-button)):visited) {\n\tcolor: #020202;" );
+	} );
+
+	it( 'compiles outline.* at the root, on elements and their states, on blocks and on block elements', function (): void {
+		$outline = [ 'color' => 'var:preset|color|contrast', 'offset' => '2px', 'style' => 'dashed', 'width' => '1px' ];
+		$css     = ( new ThemeJsonTokensCompiler() )->compile( [
+			'styles' => [
+				'outline'  => [ 'style' => 'solid' ],
+				'elements' => [
+					'button' => [ ':focus' => [ 'outline' => $outline ] ],
+					'link'   => [ 'outline' => [ 'width' => '3px' ] ],
+				],
+				'blocks'   => [
+					'core/image' => [
+						'outline'  => [ 'color' => '#ff0000' ],
+						'elements' => [ 'link' => [ ':focus-visible' => [ 'outline' => [ 'offset' => '4px' ] ] ] ],
+					],
+				],
+			],
+		] );
+
+		$declarations = "\n\toutline-color: var(--wp--preset--color--contrast);\n\toutline-offset: 2px;\n\toutline-style: dashed;\n\toutline-width: 1px;\n}";
+
+		expect( $css )->toContain( "body {\n\toutline-style: solid;\n}" )
+			->toContain( ':root :where(.wp-element-button:focus, .wp-block-button__link:focus) {' . $declarations )
+			->toContain( ":root :where(a:where(:not(.wp-element-button))) {\n\toutline-width: 3px;\n}" )
+			->toContain( ":root :where(.wp-block-image) {\n\toutline-color: #ff0000;\n}" )
+			->toContain( ":root :where(.wp-block-image a:where(:not(.wp-element-button)):focus-visible) {\n\toutline-offset: 4px;\n}" );
+	} );
+
+	it( 'drops style values that would break out of the stylesheet, outline included', function ( string $value ): void {
+		$css = ( new ThemeJsonTokensCompiler() )->compile( [
+			'styles' => [
+				'color'    => [ 'text' => $value ],
+				'elements' => [ 'button' => [ ':focus' => [ 'outline' => [ 'color' => $value, 'width' => '2px' ] ] ] ],
+			],
+		] );
+
+		expect( $css )->not->toContain( $value )
+			->toContain( ":root :where(.wp-element-button:focus, .wp-block-button__link:focus) {\n\toutline-width: 2px;\n}" );
+	} )->with( [
+		'open bracket'  => [ 'red [ display:none' ],
+		'stray bracket' => [ 'red ] display:none' ],
+		'crossed'       => [ '([)] display:none' ],
+		'semicolon'     => [ 'red; display: none' ],
+		'brace'         => [ 'red } body { display: none' ],
+		'open paren'    => [ 'rgb(0 0 0' ],
+	] );
+
+	it( 'keeps balanced brackets and quoted values', function (): void {
+		$css = ( new ThemeJsonTokensCompiler() )->compile( [
+			'styles' => [
+				'typography' => [ 'fontFamily' => '"a[b", serif' ],
+				'outline'    => [ 'color' => 'var(--x, rgb(0 0 0))' ],
+			],
+		] );
+
+		expect( $css )->toContain( 'font-family: "a[b", serif;' )
+			->toContain( 'outline-color: var(--x, rgb(0 0 0));' );
+	} );
+} );
+
 describe( 'shadow, gradient and font-family presets (#872)', function (): void {
 	beforeEach( function (): void {
 		config()->set( 'artisanpack.visual-editor.presets', [] );

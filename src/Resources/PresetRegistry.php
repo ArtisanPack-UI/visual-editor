@@ -34,6 +34,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Resources;
 
+use ArtisanPackUI\VisualEditor\Support\CssValue;
 use Throwable;
 
 class PresetRegistry
@@ -570,53 +571,42 @@ class PresetRegistry
 	 * Rejects anything that could close the declaration, rule, or tag
 	 * (`; { } < >`), open or close a comment that swallows the following
 	 * rules, smuggle a CSS escape (`\`), open a string (`"` / `'`), break
-	 * the line (newlines / control characters), or leave a parenthesis
-	 * unbalanced (`calc(1rem` would swallow every later rule). Mirrors
+	 * the line (newlines / control characters), or leave a parenthesis or
+	 * bracket unbalanced or crossed (`calc(1rem` or `x [` would swallow
+	 * every later rule; see {@see CssValue::isBalanced()}). Mirrors
 	 * `isSafeSpacingValue()` in the editor's `spacing-preset-styles.tsx`.
 	 *
 	 * @since 1.12.0
+	 * @since 1.15.0 Rejects unbalanced or crossed `[ ]`.
 	 */
 	public static function isSafeCssValue( string $value ): bool
 	{
-		if ( '' === $value || 1 === preg_match( '#[;{}<>\\\\"\'\x00-\x1F\x7F]|/\*|\*/#', $value ) ) {
+		if ( '' === $value || 1 === preg_match( '#[;{}<>\\\\"\'\x00-\x1F\x7F]#', $value ) ) {
 			return false;
 		}
 
-		$depth = 0;
-
-		foreach ( str_split( $value ) as $char ) {
-			if ( '(' === $char ) {
-				++$depth;
-			} elseif ( ')' === $char ) {
-				--$depth;
-
-				if ( $depth < 0 ) {
-					return false;
-				}
-			}
-		}
-
-		return 0 === $depth;
+		return CssValue::isBalanced( $value );
 	}
 
 	/**
 	 * Whether a font-family stack is safe to write inside a `<style>`
 	 * element (#872). Family names are routinely quoted
 	 * (`"Segoe UI", sans-serif`), which {@see self::isSafeCssValue()}
-	 * rejects, so quotes are allowed here as long as each kind is
-	 * balanced — an unterminated string would swallow the rules after
-	 * it. Everything else that could close the declaration, rule, or tag
-	 * is still rejected.
+	 * rejects, so quoted strings are allowed here as long as each one
+	 * closes — an unterminated string would swallow the rules after it.
+	 * Parentheses are rejected, and brackets outside strings must
+	 * balance ({@see CssValue::isPrintable()}). Everything else that
+	 * could close the declaration, rule, or tag is still rejected.
 	 *
 	 * @since 1.15.0
 	 */
 	public static function isSafeFontFamilyValue( string $value ): bool
 	{
-		if ( '' === $value || 1 === preg_match( '#[;{}<>\\\\\x00-\x1F\x7F()]|/\*|\*/#', $value ) ) {
+		if ( '' === $value || 1 === preg_match( '#[()]#', $value ) ) {
 			return false;
 		}
 
-		return 0 === substr_count( $value, '"' ) % 2 && 0 === substr_count( $value, "'" ) % 2;
+		return CssValue::isPrintable( $value );
 	}
 
 	/**

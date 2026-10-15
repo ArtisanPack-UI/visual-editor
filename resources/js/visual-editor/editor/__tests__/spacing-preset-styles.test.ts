@@ -128,6 +128,24 @@ describe('isSafeSpacingValue (#814)', () => {
             expect(isSafeSpacingValue(value)).toBe(false);
         }
     );
+
+    it.each([
+        'red [ display:none',
+        'red ] display:none',
+        '([)] display:none',
+        'var(--x]',
+        '[full-start 1fr',
+        'x [',
+    ])('rejects unbalanced or crossed brackets in %j', (value) => {
+        expect(isSafeSpacingValue(value)).toBe(false);
+    });
+
+    it.each(['[full-start] minmax(0, 1fr) [full-end]', 'var(--x, rgb(0 0 0))', '[a(b)]'])(
+        'accepts balanced brackets in %j',
+        (value) => {
+            expect(isSafeSpacingValue(value)).toBe(true);
+        }
+    );
 });
 
 describe('flattenSpacingSizes (#814)', () => {

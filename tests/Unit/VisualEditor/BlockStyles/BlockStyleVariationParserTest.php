@@ -58,6 +58,39 @@ it( 'ignores theme style variation partials without blockTypes', function (): vo
 	expect( $this->parser->fromPartial( [ 'slug' => 'blue', 'settings' => [], 'styles' => [] ] ) )->toBe( [] );
 } );
 
+it( 'treats any partial that declares blockTypes as block-scoped, as WordPress does', function ( mixed $blockTypes, bool $scoped ): void {
+	expect( BlockStyleVariationParser::isBlockScoped( [ 'slug' => 'x', 'blockTypes' => $blockTypes ] ) )->toBe( $scoped );
+} )->with( [
+	'list'         => [ [ 'core/group' ], true ],
+	'empty list'   => [ [], true ],
+	'bare string'  => [ 'core/group', true ],
+	'false'        => [ false, true ],
+	'null'         => [ null, false ],
+] );
+
+it( 'is not block-scoped without a blockTypes key', function (): void {
+	expect( BlockStyleVariationParser::isBlockScoped( [ 'slug' => 'blue', 'styles' => [] ] ) )->toBeFalse();
+} );
+
+it( 'contributes no block styles for a block-scoped partial with an empty or invalid blockTypes', function ( mixed $blockTypes ): void {
+	expect( $this->parser->fromPartial( [
+		'slug'       => 'card',
+		'blockTypes' => $blockTypes,
+		'styles'     => [ 'color' => [ 'background' => '#fff' ] ],
+	] ) )->toBe( [] );
+} )->with( [
+	'empty list'          => [ [] ],
+	'bare string'         => [ 'core/group' ],
+	'only invalid names'  => [ [ 'not a block', 42 ] ],
+	'null'                => [ null ],
+] );
+
+it( 'keeps the valid names of a partially invalid blockTypes list', function (): void {
+	$entries = $this->parser->fromPartial( [ 'slug' => 'card', 'blockTypes' => [ 'core/group', 'bad name', 7 ] ] );
+
+	expect( array_column( $entries, 'block' ) )->toBe( [ 'core/group' ] );
+} );
+
 it( 'falls back to the filename for a partial without a slug', function (): void {
 	$entries = $this->parser->fromPartial( [ 'blockTypes' => [ 'core/button' ] ], 'pillShape' );
 

@@ -24,7 +24,8 @@
  *      - Element styles (`styles.elements.{link, heading, h1..h6, button,
  *        caption, cite}`) → canonical selectors
  *        (`a:where(:not(.wp-element-button))`, `h1, h2, …`,
- *        `.wp-element-button`, etc.), plus their `:hover` / `:focus` /
+ *        `.wp-element-button`, etc.), plus the link and button
+ *        `:link` / `:any-link` / `:visited` / `:hover` / `:focus` /
  *        `:focus-visible` / `:active` sub-nodes.
  *      - Block styles (`styles.blocks["<namespace>/<slug>"]`) →
  *        `.wp-block-<namespace>-<slug>` selectors. Nested
@@ -82,11 +83,30 @@ class ThemeJsonTokensCompiler
 
 	/**
 	 * Pseudo-state sub-nodes compiled under `styles.elements.*` and
-	 * `styles.blocks[*].elements.*`, in cascade order (#852).
+	 * `styles.blocks[*].elements.*`, in cascade order (#852). Only the
+	 * elements in {@see ElementsSupport::ELEMENT_PSEUDO_STATES} (`link`
+	 * and `button`) take them, as in WordPress.
 	 *
 	 * @since 1.14.0
+	 * @since 1.15.0 WordPress's `:link` / `:any-link` / `:visited` states join the list.
 	 */
 	public const ELEMENT_PSEUDO_STATES = ElementsSupport::PSEUDO_STATES;
+
+	/**
+	 * theme.json `outline` keys → CSS properties, as WordPress's
+	 * `WP_Theme_JSON::PROPERTIES_METADATA` maps them. Mirrors
+	 * `BlockStyleCssCompiler::OUTLINE` and cms-framework's emitter.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @var array<string, string>
+	 */
+	protected const OUTLINE_PROPERTIES = [
+		'color'  => 'outline-color',
+		'offset' => 'outline-offset',
+		'style'  => 'outline-style',
+		'width'  => 'outline-width',
+	];
 
 	/**
 	 * Compile a theme.json array into a `:root` CSS block, or '' when the
@@ -450,8 +470,8 @@ class ThemeJsonTokensCompiler
 			$rules[] = "body {\n\t" . $rootDeclarations . "\n}";
 		}
 
-		// styles.elements.* — typed selectors, plus their `:hover` /
-		// `:focus` / `:focus-visible` / `:active` sub-nodes (#852).
+		// styles.elements.* — typed selectors, plus the link and button
+		// pseudo-state sub-nodes (#852).
 		$elements = is_array( $styles['elements'] ?? null ) ? $styles['elements'] : [];
 
 		array_push( $rules, ...$this->compileElementRules( $elements, '' ) );
@@ -485,12 +505,17 @@ class ThemeJsonTokensCompiler
 	 * Compile a `styles.elements` (or `styles.blocks[X].elements`) map
 	 * into rules: one for each element's base node, then one per
 	 * pseudo-state sub-node in {@see self::ELEMENT_PSEUDO_STATES} order so
-	 * `:focus` overrides `:hover` when both are set (#852). The pseudo is
+	 * `:focus` overrides `:hover` when both are set (#852). Only `link`
+	 * and `button` take states ({@see ElementsSupport::ELEMENT_PSEUDO_STATES});
+	 * other elements' pseudo sub-nodes are ignored, as in WordPress. The
+	 * link selector skips `.wp-element-button`, so its states read
+	 * `a:where(:not(.wp-element-button)):hover`. The pseudo is
 	 * appended to every selector in the element's list (`button` →
 	 * `.wp-element-button:hover, .wp-block-button__link:hover`), and
 	 * `$prefix` (a block selector plus a space) scopes each one.
 	 *
 	 * @since 1.14.0
+	 * @since 1.15.0 Limits pseudo states to `link` and `button`.
 	 *
 	 * @param  array<mixed>  $elements  Element name → style node.
 	 * @param  string        $prefix    Descendant prefix, `''` at the root.
@@ -519,7 +544,7 @@ class ThemeJsonTokensCompiler
 				$rules[] = $this->whereRule( $scoped, $declarations );
 			}
 
-			foreach ( self::ELEMENT_PSEUDO_STATES as $pseudo ) {
+			foreach ( ElementsSupport::ELEMENT_PSEUDO_STATES[ $name ] ?? [] as $pseudo ) {
 				$pseudoNode = $node[ $pseudo ] ?? null;
 
 				if ( ! is_array( $pseudoNode ) ) {
@@ -564,14 +589,18 @@ class ThemeJsonTokensCompiler
 	 * `typography.{fontFamily,fontSize,fontWeight,fontStyle,lineHeight,
 	 * letterSpacing,textTransform,textDecoration}`,
 	 * `spacing.{padding,margin,blockGap}` (string or per-side object),
-	 * and `border.{color,style,width,radius}` (radius may be string or
-	 * per-corner object).
+	 * `border.{color,style,width,radius}` (radius may be string or
+	 * per-corner object), and `outline.{color,offset,style,width}` (a
+	 * theme's focus indicator, e.g. `elements.button[":focus"].outline`).
 	 *
 	 * Preset references (`var:preset|color|primary`) expand to the
 	 * corresponding CSS custom property reference; non-preset values
-	 * pass through untouched.
+	 * pass through untouched. The rules are printed unescaped, so a value
+	 * that could break out of its declaration is dropped
+	 * ({@see CssValue::isPrintable()}).
 	 *
 	 * @since 1.2.0
+	 * @since 1.15.0 Compiles `outline.*`; drops values that aren't printable.
 	 *
 	 * @param  array<string, mixed>  $node
 	 */
@@ -581,17 +610,9 @@ class ThemeJsonTokensCompiler
 
 		$color = is_array( $node['color'] ?? null ) ? $node['color'] : [];
 
-		if ( isset( $color['background'] ) && is_string( $color['background'] ) && '' !== trim( $color['background'] ) ) {
-			$declarations[] = 'background-color: ' . $this->expandPresetReference( trim( $color['background'] ) ) . ';';
-		}
-
-		if ( isset( $color['gradient'] ) && is_string( $color['gradient'] ) && '' !== trim( $color['gradient'] ) ) {
-			$declarations[] = 'background: ' . $this->expandPresetReference( trim( $color['gradient'] ) ) . ';';
-		}
-
-		if ( isset( $color['text'] ) && is_string( $color['text'] ) && '' !== trim( $color['text'] ) ) {
-			$declarations[] = 'color: ' . $this->expandPresetReference( trim( $color['text'] ) ) . ';';
-		}
+		$this->pushDeclaration( $declarations, 'background-color', $color['background'] ?? null );
+		$this->pushDeclaration( $declarations, 'background', $color['gradient'] ?? null );
+		$this->pushDeclaration( $declarations, 'color', $color['text'] ?? null );
 
 		$typography    = is_array( $node['typography'] ?? null ) ? $node['typography'] : [];
 		$typographyMap = [
@@ -606,13 +627,7 @@ class ThemeJsonTokensCompiler
 		];
 
 		foreach ( $typographyMap as $key => $property ) {
-			$value = $typography[ $key ] ?? null;
-
-			if ( ! is_string( $value ) || '' === trim( $value ) ) {
-				continue;
-			}
-
-			$declarations[] = $property . ': ' . $this->expandPresetReference( trim( $value ) ) . ';';
+			$this->pushDeclaration( $declarations, $property, $typography[ $key ] ?? null );
 		}
 
 		$spacing = is_array( $node['spacing'] ?? null ) ? $node['spacing'] : [];
@@ -620,62 +635,65 @@ class ThemeJsonTokensCompiler
 		foreach ( [ 'padding', 'margin' ] as $box ) {
 			$value = $spacing[ $box ] ?? null;
 
-			if ( is_string( $value ) && '' !== trim( $value ) ) {
-				$declarations[] = $box . ': ' . $this->expandPresetReference( trim( $value ) ) . ';';
-
-				continue;
-			}
-
 			if ( ! is_array( $value ) ) {
+				$this->pushDeclaration( $declarations, $box, $value );
+
 				continue;
 			}
 
 			foreach ( [ 'top', 'right', 'bottom', 'left' ] as $side ) {
-				$sideValue = $value[ $side ] ?? null;
-
-				if ( ! is_string( $sideValue ) || '' === trim( $sideValue ) ) {
-					continue;
-				}
-
-				$declarations[] = $box . '-' . $side . ': ' . $this->expandPresetReference( trim( $sideValue ) ) . ';';
+				$this->pushDeclaration( $declarations, $box . '-' . $side, $value[ $side ] ?? null );
 			}
 		}
 
-		$blockGap = $spacing['blockGap'] ?? null;
-
-		if ( is_string( $blockGap ) && '' !== trim( $blockGap ) ) {
-			$declarations[] = '--wp--style--block-gap: ' . $this->expandPresetReference( trim( $blockGap ) ) . ';';
-		}
+		$this->pushDeclaration( $declarations, '--wp--style--block-gap', $spacing['blockGap'] ?? null );
 
 		$border = is_array( $node['border'] ?? null ) ? $node['border'] : [];
 
 		foreach ( [ 'color', 'style', 'width' ] as $property ) {
-			$value = $border[ $property ] ?? null;
-
-			if ( ! is_string( $value ) || '' === trim( $value ) ) {
-				continue;
-			}
-
-			$declarations[] = 'border-' . $property . ': ' . $this->expandPresetReference( trim( $value ) ) . ';';
+			$this->pushDeclaration( $declarations, 'border-' . $property, $border[ $property ] ?? null );
 		}
 
 		$radius = $border['radius'] ?? null;
 
-		if ( is_string( $radius ) && '' !== trim( $radius ) ) {
-			$declarations[] = 'border-radius: ' . $this->expandPresetReference( trim( $radius ) ) . ';';
-		} elseif ( is_array( $radius ) ) {
+		if ( is_array( $radius ) ) {
 			foreach ( [ 'topLeft', 'topRight', 'bottomLeft', 'bottomRight' ] as $corner ) {
-				$cornerValue = $radius[ $corner ] ?? null;
-
-				if ( ! is_string( $cornerValue ) || '' === trim( $cornerValue ) ) {
-					continue;
-				}
-
-				$declarations[] = 'border-' . $this->kebabCase( $corner ) . '-radius: ' . $this->expandPresetReference( trim( $cornerValue ) ) . ';';
+				$this->pushDeclaration( $declarations, 'border-' . $this->kebabCase( $corner ) . '-radius', $radius[ $corner ] ?? null );
 			}
+		} else {
+			$this->pushDeclaration( $declarations, 'border-radius', $radius );
+		}
+
+		$outline = is_array( $node['outline'] ?? null ) ? $node['outline'] : [];
+
+		foreach ( self::OUTLINE_PROPERTIES as $key => $property ) {
+			$this->pushDeclaration( $declarations, $property, $outline[ $key ] ?? null );
 		}
 
 		return implode( "\n\t", $declarations );
+	}
+
+	/**
+	 * Append `property: value;` when the value is a non-empty, printable
+	 * string, with any preset reference expanded.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  list<string>  $declarations
+	 */
+	protected function pushDeclaration( array &$declarations, string $property, mixed $value ): void
+	{
+		if ( ! is_string( $value ) ) {
+			return;
+		}
+
+		$value = trim( $value );
+
+		if ( '' === $value || ! CssValue::isPrintable( $value ) ) {
+			return;
+		}
+
+		$declarations[] = $property . ': ' . $this->expandPresetReference( $value ) . ';';
 	}
 
 	/**
@@ -1114,9 +1132,10 @@ class ThemeJsonTokensCompiler
 	 * opens a comment, smuggles a CSS escape, or breaks the line is
 	 * dropped. Quotes stay allowed — font-family stacks and some
 	 * gradients need them — but each kind must be balanced, as must the
-	 * parentheses: an unterminated string or `(` swallows every rule
-	 * after it in the same block. Delegates to {@see CssValue::isPrintable()},
-	 * which tracks quotes so a `)` inside a string can't balance a `(`.
+	 * parentheses and brackets: an unterminated string, `(` or `[`
+	 * swallows every rule after it in the same block. Delegates to
+	 * {@see CssValue::isPrintable()}, which tracks quotes so a `)` inside
+	 * a string can't balance a `(`, and rejects crossed `([)]`.
 	 *
 	 * @since 1.15.0
 	 */

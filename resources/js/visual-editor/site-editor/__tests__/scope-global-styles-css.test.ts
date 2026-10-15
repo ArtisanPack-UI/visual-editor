@@ -49,6 +49,20 @@ describe('scopeGlobalStylesCss', () => {
         );
     });
 
+    it('keeps the nested :where() of the link element selector intact', () => {
+        const link = 'a:where(:not(.wp-element-button))';
+        const css =
+            `:root :where(${link}) { color: #111; }\n` +
+            `:root :where(${link}:hover) { color: #222; }\n` +
+            `:root :where(.wp-block-group ${link}:focus-visible) { outline-width: 2px; }`;
+
+        expect(scopeGlobalStylesCss(css)).toBe(
+            `${CANVAS_SCOPE_SELECTOR} :where(${link}) { color: #111; }\n` +
+                `${CANVAS_SCOPE_SELECTOR} :where(${link}:hover) { color: #222; }\n` +
+                `${CANVAS_SCOPE_SELECTOR} :where(.wp-block-group ${link}:focus-visible) { outline-width: 2px; }`
+        );
+    });
+
     it('leaves `:root` mentions inside comments and strings alone', () => {
         const css =
             '/* tokens declared on :root by the emitter */\n' +

@@ -236,17 +236,63 @@ describe( 'ElementsSupport::compile (#852 selectors and states)', function (): v
 		);
 	} );
 
-	it( 'scopes every heading selector and appends the pseudo to each', function (): void {
+	it( 'scopes every heading selector', function (): void {
 		$result = ElementsSupport::compile( [
 			'style' => [ 'elements' => [
-				'heading' => [ ':hover' => [ 'color' => [ 'text' => '#010203' ] ] ],
+				'heading' => [ 'color' => [ 'text' => '#010203' ] ],
 			] ],
 		] );
 
 		$scope = '.' . $result['class'];
 
-		expect( $result['style'] )->toContain( "{$scope} h1:hover,{$scope} h2:hover," )
-			->toContain( "{$scope} h6:hover{color: #010203 !important;}" );
+		expect( $result['style'] )->toBe( "{$scope} h1,{$scope} h2,{$scope} h3,{$scope} h4,{$scope} h5,{$scope} h6{color: #010203 !important;}" );
+	} );
+
+	it( 'ignores pseudo states on elements other than link and button, as WordPress does', function (): void {
+		$result = ElementsSupport::compile( [
+			'style' => [ 'elements' => [
+				'heading' => [ ':hover' => [ 'color' => [ 'text' => '#010203' ] ] ],
+				'h2'      => [ ':focus' => [ 'color' => [ 'text' => '#010203' ] ] ],
+			] ],
+		] );
+
+		expect( $result )->toBe( [ 'class' => '', 'style' => '' ] );
+	} );
+
+	it( 'appends the button pseudo to each button selector', function (): void {
+		$result = ElementsSupport::compile( [
+			'style' => [ 'elements' => [
+				'button' => [ ':hover' => [ 'color' => [ 'text' => '#010203' ] ] ],
+			] ],
+		] );
+
+		$scope = '.' . $result['class'];
+
+		expect( $result['style'] )->toBe( "{$scope} .wp-element-button:hover,{$scope} .wp-block-button__link:hover{color: #010203 !important;}" );
+	} );
+
+	it( 'emits WordPress\'s link states in its order', function (): void {
+		$states = [ ':active', ':focus-visible', ':focus', ':hover', ':visited', ':any-link', ':link' ];
+		$node   = [];
+
+		foreach ( $states as $index => $state ) {
+			$node[ $state ] = [ 'color' => [ 'text' => '#00000' . $index ] ];
+		}
+
+		$result = ElementsSupport::compile( [ 'style' => [ 'elements' => [ 'link' => $node ] ] ] );
+
+		$positions = array_map(
+			static fn ( string $state ): int|false => strpos( $result['style'], ' a:where(:not(.wp-element-button))' . $state . '{' ),
+			ElementsSupport::PSEUDO_STATES,
+		);
+
+		expect( ElementsSupport::PSEUDO_STATES )->toBe( [ ':link', ':any-link', ':visited', ':hover', ':focus', ':focus-visible', ':active' ] )
+			->and( $positions )->not->toContain( false );
+
+		$sorted = $positions;
+		sort( $sorted );
+
+		expect( $positions )->toBe( $sorted );
 	} );
 
 	it( 'drops an unsafe background value', function (): void {

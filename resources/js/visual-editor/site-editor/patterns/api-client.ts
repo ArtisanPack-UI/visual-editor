@@ -59,6 +59,24 @@ export interface PatternRecord {
      * means the 1200px default.
      */
     viewport_width?: number | null;
+    /**
+     * Extra search terms the block inserter matches (WordPress's
+     * `keywords`; a theme file's `Keywords:` header). Optional so
+     * responses from an older backend still parse.
+     */
+    keywords?: readonly string[];
+    /**
+     * `false` hides the pattern from the block inserter and the
+     * page-starter modal (WordPress's `inserter`; a theme file's
+     * `Inserter: no` header). The pattern stays registered and listed
+     * elsewhere. A missing key means `true`.
+     */
+    inserter?: boolean;
+    /**
+     * Template types the pattern suits (WordPress's `templateTypes`; a
+     * theme file's `Template Types:` header).
+     */
+    template_types?: readonly string[];
 }
 
 /** One pattern's entry in a preview batch response (#832). */

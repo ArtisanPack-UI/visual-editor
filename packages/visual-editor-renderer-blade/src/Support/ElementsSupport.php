@@ -10,8 +10,9 @@
  * class and Gutenberg emits a stylesheet block scoped to that class.
  *
  * Covers the `link`, `heading` / `h1`…`h6` and `button` elements'
- * `color.text` / `color.background` (plus their `:hover`, `:focus`,
- * `:focus-visible` and `:active` nested pseudo-state objects). The
+ * `color.text` / `color.background`, plus the link and button
+ * `:link`, `:any-link`, `:visited`, `:hover`, `:focus`,
+ * `:focus-visible` and `:active` nested pseudo-state objects. The
  * Color → Link picker on any block with the link element support
  * (paragraph, heading, group, columns, cover, navigation, …) writes its
  * choice here — a path separate from the `textColor` / `customTextColor`
@@ -66,17 +67,35 @@ class ElementsSupport
 	];
 
 	/**
-	 * Recognized pseudo-state keys nested under an element node. Order
-	 * matches the cascade order WordPress emits, so consumers can rely
-	 * on `:hover` overriding base and `:focus` overriding `:hover` when
-	 * an author sets all three.
+	 * Every pseudo-state key an element node can nest, in the cascade
+	 * order WordPress emits (`WP_Theme_JSON::VALID_ELEMENT_PSEUDO_SELECTORS`),
+	 * so `:hover` overrides the base rule and `:focus` overrides `:hover`
+	 * when an author sets them all. Only the elements in
+	 * {@see self::ELEMENT_PSEUDO_STATES} take them.
 	 *
 	 * @since 1.0.0
 	 * @since 1.14.0 Adds `:focus-visible`.
+	 * @since 1.15.0 Adds `:link`, `:any-link` and `:visited`, in WordPress's order.
 	 *
 	 * @var array<int, string>
 	 */
-	public const PSEUDO_STATES = [ ':hover', ':focus', ':focus-visible', ':active' ];
+	public const PSEUDO_STATES = [ ':link', ':any-link', ':visited', ':hover', ':focus', ':focus-visible', ':active' ];
+
+	/**
+	 * The pseudo states each element takes. As in WordPress, only `link`
+	 * and `button` have states; a `heading`, `h1`–`h6`, `caption` or
+	 * `cite` node's pseudo sub-nodes are ignored. Mirrors
+	 * `BlockStyleCssCompiler::ELEMENT_PSEUDO_STATES` and cms-framework's
+	 * `GlobalStylesEmitter::ELEMENT_PSEUDO_STATES`.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @var array<string, array<int, string>>
+	 */
+	public const ELEMENT_PSEUDO_STATES = [
+		'link'   => self::PSEUDO_STATES,
+		'button' => self::PSEUDO_STATES,
+	];
 
 	/**
 	 * Compile a block's `style.elements.*` tree into a per-block scoping
@@ -120,7 +139,7 @@ class ElementsSupport
 				];
 			}
 
-			foreach ( self::PSEUDO_STATES as $pseudo ) {
+			foreach ( self::ELEMENT_PSEUDO_STATES[ $elementKey ] ?? [] as $pseudo ) {
 				$pseudoNode = $node[ $pseudo ] ?? null;
 
 				if ( ! is_array( $pseudoNode ) ) {

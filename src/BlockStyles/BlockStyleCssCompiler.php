@@ -7,8 +7,9 @@
  * `.wp-block-{name}.is-style-{slug}`, wrapped in `:root :where(…)` the
  * way WordPress emits global styles, so it shares their flat (0,1,0)
  * specificity: `.has-*` preset classes and a block's own inline styles
- * still beat it. Nested `elements` produce descendant rules (with their
- * `:hover` / `:focus` / `:focus-visible` / `:active` states), and nested
+ * still beat it. Nested `elements` produce descendant rules (with the
+ * link and button `:link` / `:any-link` / `:visited` / `:hover` /
+ * `:focus` / `:focus-visible` / `:active` states), and nested
  * `blocks` style inner blocks of a variation (a "Card" group re-styling
  * its headings).
  *
@@ -39,7 +40,9 @@ class BlockStyleCssCompiler
 {
 	/**
 	 * Element selectors for `elements.*`, matching the renderer's
-	 * global-styles compiler.
+	 * global-styles compiler. `link` skips `.wp-element-button`, as
+	 * WordPress's `WP_Theme_JSON::ELEMENTS` does, so link styles never
+	 * restyle button links.
 	 *
 	 * @var array<string, list<string>>
 	 */
@@ -58,11 +61,24 @@ class BlockStyleCssCompiler
 	];
 
 	/**
-	 * Pseudo-state sub-nodes compiled under each element, in cascade order.
+	 * Every pseudo-state sub-node an element can carry, in WordPress's
+	 * cascade order (`WP_Theme_JSON::VALID_ELEMENT_PSEUDO_SELECTORS`).
 	 *
 	 * @var list<string>
 	 */
-	public const PSEUDO_STATES = [ ':hover', ':focus', ':focus-visible', ':active' ];
+	public const PSEUDO_STATES = [ ':link', ':any-link', ':visited', ':hover', ':focus', ':focus-visible', ':active' ];
+
+	/**
+	 * The pseudo states each element takes: only `link` and `button`, as
+	 * in WordPress. Other elements' pseudo sub-nodes are ignored. Mirrors
+	 * the Blade renderer's `ElementsSupport::ELEMENT_PSEUDO_STATES`.
+	 *
+	 * @var array<string, list<string>>
+	 */
+	public const ELEMENT_PSEUDO_STATES = [
+		'link'   => self::PSEUDO_STATES,
+		'button' => self::PSEUDO_STATES,
+	];
 
 	/**
 	 * theme.json `typography` keys → CSS properties.
@@ -78,6 +94,18 @@ class BlockStyleCssCompiler
 		'letterSpacing'  => 'letter-spacing',
 		'textTransform'  => 'text-transform',
 		'textDecoration' => 'text-decoration',
+	];
+
+	/**
+	 * theme.json `outline` keys → CSS properties.
+	 *
+	 * @var array<string, string>
+	 */
+	protected const OUTLINE = [
+		'color'  => 'outline-color',
+		'offset' => 'outline-offset',
+		'style'  => 'outline-style',
+		'width'  => 'outline-width',
 	];
 
 	/**
@@ -250,7 +278,7 @@ class BlockStyleCssCompiler
 				$rules[] = $this->whereRule( $scoped, $elementDeclarations );
 			}
 
-			foreach ( self::PSEUDO_STATES as $pseudo ) {
+			foreach ( self::ELEMENT_PSEUDO_STATES[ $element ] ?? [] as $pseudo ) {
 				$pseudoDeclarations = is_array( $elementNode[ $pseudo ] ?? null ) ? $this->declarations( $elementNode[ $pseudo ] ) : '';
 
 				if ( '' !== $pseudoDeclarations ) {
@@ -286,8 +314,8 @@ class BlockStyleCssCompiler
 
 	/**
 	 * CSS declarations for a style node's `color`, `typography`,
-	 * `spacing`, `border`, `shadow` and `dimensions` groups, keyed by
-	 * group; empty groups are left out.
+	 * `spacing`, `border`, `shadow`, `dimensions` and `outline` groups,
+	 * keyed by group; empty groups are left out.
 	 *
 	 * @param  array<string, mixed>  $node
 	 *
@@ -300,6 +328,7 @@ class BlockStyleCssCompiler
 		$spacing    = is_array( $node['spacing'] ?? null ) ? $node['spacing'] : [];
 		$border     = is_array( $node['border'] ?? null ) ? $node['border'] : [];
 		$dimensions = is_array( $node['dimensions'] ?? null ) ? $node['dimensions'] : [];
+		$outline    = is_array( $node['outline'] ?? null ) ? $node['outline'] : [];
 
 		$groups = [
 			'color'      => [],
@@ -308,6 +337,7 @@ class BlockStyleCssCompiler
 			'border'     => [],
 			'shadow'     => [],
 			'dimensions' => [],
+			'outline'    => [],
 		];
 
 		$this->push( $groups['color'], 'background-color', $color['background'] ?? null );
@@ -350,6 +380,10 @@ class BlockStyleCssCompiler
 
 		$this->push( $groups['dimensions'], 'min-height', $dimensions['minHeight'] ?? null );
 		$this->push( $groups['dimensions'], 'aspect-ratio', $dimensions['aspectRatio'] ?? null );
+
+		foreach ( self::OUTLINE as $key => $property ) {
+			$this->push( $groups['outline'], $property, $outline[ $key ] ?? null );
+		}
 
 		return array_filter( $groups, static fn ( array $declarations ): bool => [] !== $declarations );
 	}

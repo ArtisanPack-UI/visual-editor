@@ -99,4 +99,12 @@ describe('filterModalPatterns', () => {
             filterModalPatterns(patterns, 'post').map((p) => p.slug).sort()
         ).toEqual([ BUILT_IN_BLANK_SLUG, 'recipe-intro' ].sort());
     });
+
+    it('drops patterns registered with inserter: false, keeping those without the flag', () => {
+        const hidden = makePattern({ id: 1, slug: 'hidden-404', post_types: [ 'page' ], inserter: false });
+        const shown = makePattern({ id: 2, slug: 'about', post_types: [ 'page' ], inserter: true });
+        const legacy = makePattern({ id: 3, slug: 'contact', post_types: [ 'page' ] });
+
+        expect(filterModalPatterns([ hidden, shown, legacy ], 'page')).toEqual([ shown, legacy ]);
+    });
 } );
