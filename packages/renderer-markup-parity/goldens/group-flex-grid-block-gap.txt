@@ -1,0 +1,19 @@
+<div class="wp-block-group is-layout-flex wp-block-group-is-layout-flex wp-container-45b8aa57dfd0" style="--wp--style--block-gap: var(--wp--preset--spacing--40)">
+  <p class="wp-block-paragraph">
+    "One"
+  </p>
+  <p class="wp-block-paragraph">
+    "Two"
+  </p>
+</div>
+<div class="wp-block-group is-layout-grid wp-block-group-is-layout-grid wp-container-5395fc46d2f2" style="--wp--style--block-gap: 2rem">
+  <p class="wp-block-paragraph">
+    "A"
+  </p>
+  <p class="wp-block-paragraph">
+    "B"
+  </p>
+</div>
+@@ renderer-instance-css @@
+.wp-block-group.wp-block-group-is-layout-flex.wp-container-45b8aa57dfd0{flex-wrap:nowrap;}
+.wp-block-group.wp-block-group-is-layout-grid.wp-container-5395fc46d2f2{grid-template-columns:repeat(3, minmax(0, 1fr));}

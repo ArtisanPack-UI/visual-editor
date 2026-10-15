@@ -65,6 +65,7 @@ import { registerInlineIconFormat } from '../formats/inline-icon/register';
 import { registerBoxShadows } from '../box-shadows/register';
 import { registerGradientBorders } from '../gradient-borders/register';
 import { registerPositioning } from '../positioning/register';
+import { registerEffects } from '../effects/register';
 import { registerResponsiveAttribute } from '../responsive/register-attribute';
 import { registerResponsiveAttributesFilter } from '../responsive/with-responsive-attributes';
 import { registerStateAttribute } from '../states/register-attribute';
@@ -288,6 +289,8 @@ function ensureEditorBoot(): void {
     registerGradientBorders();
     registerBoxShadows();
     registerPositioning();
+    // #881 — block effects + Custom CSS (attribute, panel, canvas preview).
+    registerEffects();
 
     // #717 — inline-icon RichText format, mirroring the post editor so
     // icons can be inserted inline inside any rich-text field edited in

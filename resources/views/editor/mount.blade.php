@@ -13,6 +13,7 @@
 		data-resource="{{ $resource }}"
 		data-id="{{ $modelId }}"
 		data-api-base="{{ $apiBase }}"
+		@can( \ArtisanPackUI\VisualEditor\Effects\BlockCssAccess::ABILITY ) data-can-edit-block-css="true" @endcan
 		data-content-types="{{ json_encode( $contentTypes ?? [], JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS ) }}"
 		{{-- #623 — where the site editor SPA is mounted, so the composed
 		     view's "Edit template ↗" CTA resolves. Same value the site

@@ -58,6 +58,7 @@ export function CalloutBlock({ attributes }: BlockRendererProps): JSX.Element {
     const className = attrString(attributes.className);
 
     const classes = classList([
+        'wp-block-artisanpack-callout',
         'ap-callout',
         `ap-callout--${severity}`,
         className,

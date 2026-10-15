@@ -18,7 +18,8 @@ import {
 import { isNonEmptyWidth, normalizeBasis } from '../../support/columnWidth';
 import { flexClassNames } from '../../support/flex-serializer';
 import { safeCssValue } from '../../support/cssValue';
-import { applyDimensions, hasDimensionStyle } from '../../support/dimensions';
+import { applyBlockGap } from '../../support/blockGap';
+import { applyDimensions } from '../../support/dimensions';
 import { safeUrl } from '../../support/urlSanitizer';
 import { blockRendererProps } from '../shared';
 
@@ -87,11 +88,17 @@ export const GroupBlock = defineComponent({
             // #776 — surface `style.dimensions.minHeight` / `.aspectRatio`
             // on the wrapper so a Group opted into
             // `supports.dimensions.minHeight` matches the Blade renderer.
-            const dimensionStyle = applyDimensions(props.attributes);
+            // #883 — the block's own Block spacing rides first, in
+            // `BlockSupports` order, so the flex/grid baseline `gap`
+            // reads it.
+            const wrapperStyle = {
+                ...applyBlockGap(props.attributes),
+                ...applyDimensions(props.attributes),
+            };
             const nodeProps: Record<string, unknown> = { class: classes };
 
-            if (hasDimensionStyle(dimensionStyle)) {
-                nodeProps.style = dimensionStyle;
+            if (Object.keys(wrapperStyle).length > 0) {
+                nodeProps.style = wrapperStyle;
             }
 
             return h(tag, nodeProps, slots.default ? slots.default() : []);

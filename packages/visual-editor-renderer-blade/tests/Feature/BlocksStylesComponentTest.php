@@ -142,6 +142,12 @@ it( 'emits the layout-flow block-gap baseline rule for sibling spacing', functio
 		->toContain( 'margin-block-start: var(--wp--style--block-gap, 24px)' );
 } );
 
+it( 'spaces flex and grid layout children with the block gap (#883)', function (): void {
+	expect( Blade::render( '<x-ve-blocks-styles />' ) )
+		->toContain( ':where(.is-layout-flex) { gap: var(--wp--style--block-gap, 0.5em); }' )
+		->toContain( ':where(.is-layout-grid) { gap: var(--wp--style--block-gap, 0.5em); }' );
+} );
+
 it( 'publishes block-library assets under the visual-editor-renderer-blade-assets tag', function (): void {
 	$published = public_path( 'vendor/visual-editor-renderer-blade' );
 

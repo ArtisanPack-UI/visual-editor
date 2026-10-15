@@ -31,6 +31,9 @@ describe('LayoutBaseline', () => {
 
         expect(css).toContain('.is-layout-flex { display: flex;');
         expect(css).toContain('.is-layout-grid { display: grid; }');
+        // #883 — flex/grid children are spaced by the block gap.
+        expect(css).toContain(':where(.is-layout-flex) { gap: var(--wp--style--block-gap, 0.5em); }');
+        expect(css).toContain(':where(.is-layout-grid) { gap: var(--wp--style--block-gap, 0.5em); }');
     });
 
     it('declares the default spacing presets at zero specificity and the navigation gap default (#814)', () => {

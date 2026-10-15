@@ -31,6 +31,14 @@
  * CMSs discover themes differently. Pass an empty array (or omit) and the
  * `<link>`s emit alone.
  *
+ * It also prints the global styles (`<style data-ve-global-styles>`) last,
+ * claiming the once-per-request emission `<x-ve-blocks>` would otherwise
+ * make in the body (#879). Global styles then sit in `<head>` before the
+ * theme's own stylesheet, the WordPress order the editor canvas uses, so a
+ * `style.css` rule beats the theme.json rule it overrides on both surfaces.
+ * The emission goes to whichever renders first: a layout whose body (a
+ * slot or section) renders before its `<head>` keeps the old body placement.
+ *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditorRendererBlade
  *
@@ -44,6 +52,8 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditorRendererBlade\View\Components;
 
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
+use ArtisanPackUI\VisualEditor\Services\GlobalStylesEmissionTracker;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ThemeJsonTokensCompiler;
 use ArtisanPackUI\VisualEditorRendererBlade\Support\DefaultStyles;
 use ArtisanPackUI\VisualEditorRendererBlade\Support\StackingStyles;
@@ -109,6 +119,14 @@ class BlocksStylesComponent extends Component
 	public string $stackingCss;
 
 	/**
+	 * Compiled global styles, or empty when another renderer already
+	 * emitted them this request or the host opted out (#879).
+	 *
+	 * @since 1.15.0
+	 */
+	public string $globalStylesCss = '';
+
+	/**
 	 * @param  ThemeJsonTokensCompiler  $compiler  Injected — see provider binding.
 	 * @param  array<string, mixed>|null  $themeJson  Optional theme.json payload to compile.
 	 *                                                 When null the tokens `<style>` is omitted.
@@ -118,6 +136,8 @@ class BlocksStylesComponent extends Component
 	 *                        already load Gutenberg's CSS from elsewhere).
 	 * @param  bool  $interactive  Set to false to skip the accordion + tabs front-end stylesheets
 	 *                             and interactivity script. Defaults to on.
+	 * @param  bool  $globalStyles  Set to false to leave the global styles to the first
+	 *                              `<x-ve-blocks>` / `<x-ve-template>` render (#879).
 	 */
 	public function __construct(
 		protected ThemeJsonTokensCompiler $compiler,
@@ -126,6 +146,7 @@ class BlocksStylesComponent extends Component
 		bool $bundle = true,
 		bool $interactive = true,
 		bool $blockStyleVariations = true,
+		bool $globalStyles = true,
 	) {
 		$base = $this->normaliseBase( $assetBase ?? self::DEFAULT_ASSET_BASE );
 
@@ -153,6 +174,10 @@ class BlocksStylesComponent extends Component
 		$this->defaultTokensCss         = $this->compiler->compileDefaults( $themeJson );
 		$this->defaultStylesCss         = DefaultStyles::enabled( $themeJson ) ? DefaultStyles::CSS : '';
 		$this->stackingCss              = StackingStyles::css( app( BreakpointRegistry::class ) );
+
+		if ( $globalStyles ) {
+			$this->globalStylesCss = $this->claimGlobalStyles();
+		}
 	}
 
 	public function render(): View
@@ -164,6 +189,25 @@ class BlocksStylesComponent extends Component
 	 * Strip a single trailing slash from the base URL so concatenation
 	 * with `/style.css` doesn't double up.
 	 */
+	/**
+	 * Take the request's single global-styles emission, unless a renderer
+	 * already printed it (#879).
+	 *
+	 * @since 1.15.0
+	 */
+	protected function claimGlobalStyles(): string
+	{
+		$tracker = app( GlobalStylesEmissionTracker::class );
+
+		if ( $tracker->hasEmitted() ) {
+			return '';
+		}
+
+		$tracker->markEmitted();
+
+		return app( GlobalStylesEmissionResolver::class )->emit();
+	}
+
 	protected function normaliseBase( string $base ): string
 	{
 		return rtrim( $base, '/' );

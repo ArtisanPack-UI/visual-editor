@@ -104,6 +104,10 @@ vi.mock('../../positioning/register', () => ({
     registerPositioning: vi.fn(),
 }));
 
+vi.mock('../../effects/register', () => ({
+    registerEffects: vi.fn(),
+}));
+
 vi.mock('../../responsive/register-attribute', () => ({
     registerResponsiveAttribute: vi.fn(),
 }));

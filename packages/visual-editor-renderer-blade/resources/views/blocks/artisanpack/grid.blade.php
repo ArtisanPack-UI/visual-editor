@@ -51,7 +51,7 @@
 	$layoutClass = $isMasonry ? 'ap-grid-layout-masonry' : 'ap-grid-layout-fixed';
 
 	$baseClasses = array_merge(
-		[ 'ap-grid' ],
+		[ 'wp-block-artisanpack-grid', 'ap-grid' ],
 		$breakpointClasses,
 		[ $layoutClass ],
 		PhotoGridSupport::wrapperForBlock( $attributes )

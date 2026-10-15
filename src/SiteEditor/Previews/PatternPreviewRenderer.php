@@ -31,15 +31,13 @@ use ArtisanPackUI\VisualEditor\Fonts\Services\FontsCssGenerator;
 use ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\SiteEditor\PatternAdapter;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesEmissionTracker;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedPattern;
+use ArtisanPackUI\VisualEditor\SiteEditor\ThemeStylesheets;
 use ArtisanPackUI\VisualEditor\Support\BlockMarkupHydrator;
-use ArtisanPackUI\VisualEditor\Support\CssUrlAbsolutizer;
 use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker;
 use Illuminate\Support\Facades\Blade;
-use Illuminate\Support\Facades\Route;
 use RuntimeException;
-use Throwable;
 
 class PatternPreviewRenderer
 {
@@ -48,16 +46,6 @@ class PatternPreviewRenderer
 	 * stays installable without cms-framework.
 	 */
 	protected const THEME_MANAGER_FQCN = 'ArtisanPackUI\\CMSFramework\\Modules\\Themes\\Managers\\ThemeManager';
-
-	/**
-	 * cms-framework's theme stylesheet reader (2.5+).
-	 */
-	protected const STYLESHEET_READER_FQCN = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Support\\ThemeStylesheetReader';
-
-	/**
-	 * cms-framework's named route serving `themes/{slug}/assets/{path}`.
-	 */
-	protected const THEME_ASSETS_ROUTE = 'themes.assets';
 
 	/**
 	 * Memoized active theme manifest; `false` until first read.
@@ -133,7 +121,9 @@ class PatternPreviewRenderer
 		$parts = [
 			// #876 — the global styles below already carry the theme's
 			// block style variations, so don't compile them twice.
-			Blade::render( '<x-ve-blocks-styles :theme-json="$themeJson" :block-style-variations="false" />', [
+			// They are printed below, so the component skips its own
+			// copy (#879).
+			Blade::render( '<x-ve-blocks-styles :theme-json="$themeJson" :block-style-variations="false" :global-styles="false" />', [
 				'themeJson' => $this->activeThemeJson(),
 			] ),
 		];
@@ -236,51 +226,7 @@ class PatternPreviewRenderer
 	 */
 	protected function themeStylesheet(): string
 	{
-		if ( ! class_exists( self::STYLESHEET_READER_FQCN ) || ! app()->bound( self::STYLESHEET_READER_FQCN ) ) {
-			return '';
-		}
-
-		$css = app( self::STYLESHEET_READER_FQCN )->read( 'style.css' );
-
-		if ( ! is_string( $css ) || '' === $css ) {
-			return '';
-		}
-
-		$baseUrl = $this->themeBaseUrl();
-
-		return null === $baseUrl ? $css : CssUrlAbsolutizer::absolutize( $css, $baseUrl );
-	}
-
-	/**
-	 * Absolute URL of the active theme's root directory — the directory
-	 * `style.css` lives in — derived from cms-framework's theme assets
-	 * route (`/themes/{slug}/assets/{path}`), so `url(./assets/bg.jpg)`
-	 * resolves to the same URL the route serves. Null without an active
-	 * theme or the route.
-	 *
-	 * @since 1.13.0
-	 */
-	protected function themeBaseUrl(): ?string
-	{
-		$slug = $this->activeThemeSlug();
-
-		if ( null === $slug || ! Route::has( self::THEME_ASSETS_ROUTE ) ) {
-			return null;
-		}
-
-		try {
-			$assetUrl = route( self::THEME_ASSETS_ROUTE, [ 'slug' => $slug, 'path' => '__ve__' ] );
-		} catch ( Throwable ) {
-			return null;
-		}
-
-		$suffix = '/assets/__ve__';
-
-		if ( ! str_ends_with( $assetUrl, $suffix ) ) {
-			return null;
-		}
-
-		return substr( $assetUrl, 0, -strlen( $suffix ) ) . '/';
+		return app( ThemeStylesheets::class )->stylesheet( 'style.css' );
 	}
 
 	/**

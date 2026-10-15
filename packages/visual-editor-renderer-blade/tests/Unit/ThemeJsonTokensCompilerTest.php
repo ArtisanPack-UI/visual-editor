@@ -814,6 +814,39 @@ describe( 'shadow, gradient and font-family presets (#872)', function (): void {
 		'stray close paren' => [ '0 0 1px red)(' ],
 	] );
 
+	it( 'skips interleaved-quote preset values without swallowing the next declaration (#885)', function ( string $value ): void {
+		$css = $this->compiler->compile( [
+			'settings' => [
+				'typography' => [
+					'fontFamilies' => [
+						[ 'slug' => 'broken', 'fontFamily' => $value ],
+						[ 'slug' => 'display', 'fontFamily' => '"Space Grotesk", sans-serif' ],
+					],
+				],
+			],
+		] );
+
+		expect( $css )
+			->not->toContain( '--wp--preset--font-family--broken:' )
+			->toContain( '--wp--preset--font-family--display: "Space Grotesk", sans-serif;' );
+	} )->with( [
+		'double then single' => [ '"a\' "b\'' ],
+		'single then double' => [ '\'a" \'b"' ],
+	] );
+
+	it( 'keeps preset values with a parenthesis inside a string (#885)', function ( string $value ): void {
+		$css = $this->compiler->compile( [
+			'settings' => [
+				'typography' => [ 'fontFamilies' => [ [ 'slug' => 'quoted', 'fontFamily' => $value ] ] ],
+			],
+		] );
+
+		expect( $css )->toContain( '--wp--preset--font-family--quoted: ' . $value . ';' );
+	} )->with( [
+		'smiley'     => [ '"Smile :)", sans-serif' ],
+		'open paren' => [ "'(', serif" ],
+	] );
+
 	it( 'skips theme font families with an unbalanced quote', function (): void {
 		$css = $this->compiler->compile( [
 			'settings' => [

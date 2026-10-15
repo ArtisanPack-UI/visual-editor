@@ -98,12 +98,19 @@ const blockStylesheets: readonly CanvasStyle[] = blockStylesheetPaths.map(
  * Generic `.is-layout-flex` / `.is-layout-grid` selectors mean
  * per-block compound classes (`wp-block-gallery-is-layout-flex`, …)
  * inherit without enumerating block names.
+ *
+ * The zero-specificity `gap` rules (#883) match the front-end
+ * baseline: Gutenberg writes a per-container `gap` only when the block
+ * sets its own Block spacing, so without them a Row or Grid with no
+ * Block spacing renders flush in the canvas but not on the site.
  */
 const LAYOUT_BASELINE_STYLES = `
 .is-layout-flex { display: flex; flex-wrap: wrap; align-items: center; }
 .is-layout-flex > :is(*, div) { margin: 0; }
 .is-layout-grid { display: grid; }
 .is-layout-grid > :is(*, div) { margin: 0; }
+:where(.is-layout-flex) { gap: var(--wp--style--block-gap, 0.5em); }
+:where(.is-layout-grid) { gap: var(--wp--style--block-gap, 0.5em); }
 `;
 
 /**

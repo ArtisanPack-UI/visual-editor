@@ -24,6 +24,7 @@ use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\PatternResolver;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedPattern;
 use ArtisanPackUI\VisualEditor\Support\ContentAccess;
 use ArtisanPackUI\VisualEditor\VisualEditorServiceProvider;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\VisualEditorRendererBladeServiceProvider;
 use Illuminate\Auth\GenericUser;
 use Illuminate\Support\Facades\Cache;
@@ -128,6 +129,26 @@ describe( 'POST /visual-editor/api/patterns/preview', function (): void {
 			->assertOk();
 
 		expect( $response->json( 'patterns.callout.html' ) )->toContain( 'Slug lookup copy' );
+	} );
+
+	it( 'prints the global styles once, before the theme stylesheet (#879)', function (): void {
+		app()->instance( GlobalStylesEmissionResolver::class, new class extends GlobalStylesEmissionResolver {
+			public function emit(): string
+			{
+				return '.ve-879-marker { color: teal; }';
+			}
+		} );
+
+		$this->mock( ThemeStylesheetReader::class, function ( $mock ): void {
+			$mock->shouldReceive( 'read' )->with( 'style.css' )->andReturn( '.theme-879 { color: red; }' );
+		} );
+
+		// Called before any pattern renders, so the emission tracker is
+		// still unclaimed when `<x-ve-blocks-styles>` runs.
+		$styles = app( PatternPreviewRenderer::class )->styles();
+
+		expect( substr_count( $styles, '.ve-879-marker' ) )->toBe( 1 )
+			->and( strpos( $styles, '.ve-879-marker' ) )->toBeLessThan( strpos( $styles, '.theme-879' ) );
 	} );
 
 	it( 'never ships script tags in the shared styles', function (): void {

@@ -517,6 +517,10 @@ async function mount(element: MountableElement): Promise<void> {
         return;
     }
 
+    // #881 — the host stamps `data-can-edit-block-css="true"` for users
+    // with the block-CSS ability; it only controls the Custom CSS field.
+    setBlockCssAccess(element.dataset.canEditBlockCss === 'true');
+
     try {
         await mountEditor(element, config).ready;
     } catch {
@@ -555,6 +559,7 @@ import {
     registerExternalBlocks as registerExternalBlocksImpl,
     registerExternalBlockType as registerExternalBlockTypeImpl,
 } from './external-block-registration';
+import { setBlockCssAccess } from '../effects/access';
 
 declare global {
     interface Window {

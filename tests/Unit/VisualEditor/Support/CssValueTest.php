@@ -12,6 +12,9 @@ it( 'accepts printable values', function ( string $value ): void {
 	'font stack'   => '"Inter Tight", system-ui, sans-serif',
 	'quoted paren' => '"a (b)"',
 	'gradient'     => 'linear-gradient(45deg, var(--wp--preset--color--primary), #fff)',
+	'smiley'       => '"Smile :)"',
+	'open paren'   => "'('",
+	'calc'         => 'calc(100% - var(--gap, 1rem))',
 ] );
 
 it( 'rejects values that break the style block', function ( string $value ): void {
@@ -26,6 +29,8 @@ it( 'rejects values that break the style block', function ( string $value ): voi
 	'stray close'             => 'red)',
 	'paren hidden in string'  => 'rgb(")"',
 	'unterminated string'     => '\'"\' "',
+	'interleaved double'      => '"a\' "b\'',
+	'interleaved single'      => '\'a" \'b"',
 ] );
 
 it( 'checks balance and comments for whitelisted values', function (): void {

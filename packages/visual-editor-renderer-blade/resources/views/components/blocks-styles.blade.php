@@ -126,6 +126,13 @@
 	— matches WordPress's own output. The `var(--wp--style--block-gap,
 	24px)` fallback mirrors core's default when `theme.json` does not
 	set `styles.spacing.blockGap`.
+
+	#883 — flex and grid containers space their children with `gap`,
+	read from the same `--wp--style--block-gap` property: a block's own
+	Block spacing (emitted inline by `BlockSupports`) or the theme's
+	`styles.spacing.blockGap`, else WordPress's `0.5em` flex/grid
+	fallback. Zero specificity, so blocks that size their own gap
+	(columns, gallery, post-template, the Flex panel) still win.
 --}}
 <style data-ve-layout-baseline>
 :where(.is-layout-flow) > :first-child { margin-block-start: 0; }
@@ -140,6 +147,8 @@
 .is-layout-flex > :is(*, div) { margin: 0; }
 .is-layout-grid { display: grid; }
 .is-layout-grid > :is(*, div) { margin: 0; }
+:where(.is-layout-flex) { gap: var(--wp--style--block-gap, 0.5em); }
+:where(.is-layout-grid) { gap: var(--wp--style--block-gap, 0.5em); }
 :where(.wp-block-gallery.has-nested-images) { gap: var(--wp--style--unstable-gallery-gap, 16px); }
 :where(.wp-block-image.size-full) { width: auto; height: auto; }
 :where(.is-layout-constrained, .is-layout-flow) > .alignleft { float: left; margin-inline-start: 0; margin-inline-end: 2em; }
@@ -149,3 +158,8 @@
 @media (min-width: 768px) { :where(.is-layout-constrained, .is-layout-flow) > :is(.alignleft, .alignright):first-child + * { margin-block-start: 0; } }
 @media (max-width: 767px) { :where(.is-layout-constrained, .is-layout-flow) > :is(.alignleft, .alignright) { float: none; margin-inline: auto; } }
 </style>
+{{-- #879: global styles last, so they beat the block library and sit
+     before the theme stylesheet the host links after this component. --}}
+@if( '' !== $globalStylesCss )
+<style data-ve-global-styles>{!! $globalStylesCss !!}</style>
+@endif

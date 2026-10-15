@@ -61,6 +61,7 @@ export const CalloutBlock = defineComponent({
             const className = attrString(props.attributes.className);
 
             const classes = classList([
+                'wp-block-artisanpack-callout',
                 'ap-callout',
                 `ap-callout--${severity}`,
                 className,

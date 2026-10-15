@@ -4,6 +4,7 @@
 	data-resource="{{ $resource }}"
 	data-id="{{ $modelId }}"
 	data-api-base="{{ $apiBase }}"
+	@can( \ArtisanPackUI\VisualEditor\Effects\BlockCssAccess::ABILITY ) data-can-edit-block-css="true" @endcan
 	@isset($initialTitle) data-title="{{ $initialTitle }}" @endisset
 	@isset($initialSlug) data-slug="{{ $initialSlug }}" @endisset
 	@isset($initialStatus) data-status="{{ $initialStatus }}" @endisset

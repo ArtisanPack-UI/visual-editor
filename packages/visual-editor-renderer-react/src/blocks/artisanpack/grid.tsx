@@ -89,6 +89,7 @@ export function GridBlock({ attributes, children }: BlockRendererProps): JSX.Ele
     const photoGridScope = attrString(attributes._vePhotoGridScope);
 
     const classes = classList([
+        'wp-block-artisanpack-grid',
         'ap-grid',
         `ap-grid-has-${baseColumns}-base-columns`,
         ...responsiveSpanClasses(responsiveColumns, 'columns', 'ap-grid-has'),
@@ -130,6 +131,7 @@ export function GridItemBlock({ attributes, children }: BlockRendererProps): JSX
     const className = attrString(attributes.className);
 
     const classes = classList([
+        'wp-block-artisanpack-grid-item',
         'ap-grid-item',
         `ap-grid-item-layout-${innerLayout}`,
         `ap-grid-item-span-${baseColumnSpan}-base-columns`,

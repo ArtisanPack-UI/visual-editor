@@ -646,7 +646,7 @@ it( 'renders the artisanpack/callout reference block with severity and icon', fu
 
 	$html = makeRenderer()->render( $tree );
 
-	expect( $html )->toContain( 'ap-callout ap-callout--warning' )
+	expect( $html )->toContain( 'wp-block-artisanpack-callout ap-callout ap-callout--warning' )
 		->and( $html )->toContain( 'data-severity="warning"' )
 		->and( $html )->toContain( '<div class="ap-callout__body">Check this out.</div>' )
 		->and( $html )->toContain( '<svg' );
@@ -814,7 +814,7 @@ it( 'renders the artisanpack/marquee block with width + animation styles applied
 
 	$html = makeRenderer()->render( $tree );
 
-	expect( $html )->toContain( 'class="ap-marquee"' )
+	expect( $html )->toContain( 'class="wp-block-artisanpack-marquee ap-marquee"' )
 		->and( $html )->toContain( 'width: 60%' )
 		->and( $html )->toContain( 'animation: ap-marquee-scroll 10s linear infinite' )
 		->and( $html )->toContain( 'class="ap-marquee__text"' )

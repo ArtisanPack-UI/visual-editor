@@ -2,6 +2,7 @@
 
 declare( strict_types=1 );
 
+use ArtisanPackUI\VisualEditor\Effects\BlockCssAccess;
 use ArtisanPackUI\VisualEditor\VisualEditorServiceProvider;
 use Illuminate\Support\Facades\Gate;
 use Tests\Fixtures\TestBlockContentModel;
@@ -205,3 +206,45 @@ it( 'surfaces a HasBlockContent validation error on first resolve', function ():
 		->toThrow( InvalidArgumentException::class );
 } );
 
+function customCssBlock( string $clientId, string $css ): array
+{
+	return [
+		'clientId'    => $clientId,
+		'name'        => 'core/paragraph',
+		'attributes'  => [ 'content' => 'Styled', 'artisanpackEffects' => [ 'opacity' => 80, 'customCss' => $css ] ],
+		'innerBlocks' => [],
+	];
+}
+
+it( 'strips new Custom CSS on PUT for users without the block-CSS ability (#881)', function (): void {
+	makeActor();
+
+	$model = TestBlockContentModel::create( [
+		'title'   => 'Css',
+		'status'  => 'published',
+		'content' => [ customCssBlock( 'kept', 'color: red;' ) ],
+	] );
+
+	$this->putJson( "/visual-editor/api/posts/{$model->id}/content", [
+		'blocks' => [ customCssBlock( 'kept', 'color: red;' ), customCssBlock( 'new', 'display: none;' ) ],
+	] )->assertOk();
+
+	$stored = $model->fresh()->getBlockContent();
+
+	expect( $stored[0]['attributes']['artisanpackEffects'] )->toBe( [ 'opacity' => 80, 'customCss' => 'color: red;' ] )
+		->and( $stored[1]['attributes']['artisanpackEffects'] )->toBe( [ 'opacity' => 80 ] );
+} );
+
+it( 'saves Custom CSS on PUT for users with the block-CSS ability (#881)', function (): void {
+	makeActor();
+
+	Gate::define( BlockCssAccess::ABILITY, fn ( $user ): bool => true );
+
+	$model = TestBlockContentModel::create( [ 'title' => 'Css', 'status' => 'published', 'content' => [] ] );
+
+	$this->putJson( "/visual-editor/api/posts/{$model->id}/content", [
+		'blocks' => [ customCssBlock( 'new', 'display: none;' ) ],
+	] )->assertOk();
+
+	expect( $model->fresh()->getBlockContent()[0]['attributes']['artisanpackEffects']['customCss'] )->toBe( 'display: none;' );
+} );

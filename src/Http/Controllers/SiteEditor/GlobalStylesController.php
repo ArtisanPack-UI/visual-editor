@@ -43,6 +43,7 @@ use ArtisanPackUI\VisualEditor\Resources\PresetRegistry;
 use ArtisanPackUI\VisualEditor\SiteEditor\Previews\PatternPreviewCache;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\GlobalStylesResolver;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedGlobalStyles;
+use ArtisanPackUI\VisualEditor\SiteEditor\ThemeStylesheets;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
@@ -161,11 +162,20 @@ class GlobalStylesController extends Controller
 	 *      analog of WordPress's `add_editor_style()`. Never emitted
 	 *      on the front-end, so themes can use bare element selectors
 	 *      here without theming inspector-panel mini-previews.
+	 *   4. The stylesheets the theme's `Theme::editorStyles()` declares
+	 *      (the `@themeEditorStyles` list), inlined in order (#879).
 	 *
 	 * Order matters: the emitter declares `--wp--preset--*` custom
 	 * properties on `:root` first; `style.css` can consume those tokens
-	 * and override emitter rules; `editor.css` runs last so canvas-only
-	 * overrides win.
+	 * and override emitter rules; the editor styles run last so
+	 * canvas-only overrides win. The front end uses the same order:
+	 * `<x-ve-blocks-styles>` prints the global styles in `<head>` before
+	 * the theme links `style.css` (#879).
+	 *
+	 * The canvas inlines this body as a `<style>`, so every theme
+	 * stylesheet has its relative `url()`s rewritten against the URL it is
+	 * served from ({@see ThemeStylesheets}); `url(assets/bg.jpg)` would
+	 * otherwise resolve against the admin page and 404.
 	 *
 	 * The site-editor canvas appends the full response to its
 	 * `BlockEditorProvider` `settings.styles` array so the iframe surface
@@ -228,9 +238,20 @@ class GlobalStylesController extends Controller
 		}
 
 		if ( class_exists( $readerFqcn ) && app()->bound( $readerFqcn ) ) {
-			$reader  = app( $readerFqcn );
-			$parts[] = $reader->readWrapped( 'style.css' );
-			$parts[] = $reader->readWrapped( 'editor.css' );
+			// #879 — the canvas inlines this body, so relative `url()`s are
+			// rewritten against the theme's URLs, and `Theme::editorStyles()`
+			// (what `@themeEditorStyles` links) follows `editor.css`.
+			$stylesheets = app( ThemeStylesheets::class );
+
+			foreach ( [ 'style.css', 'editor.css' ] as $filename ) {
+				$css = $stylesheets->stylesheet( $filename );
+
+				if ( '' !== $css ) {
+					$parts[] = '/* === ' . $filename . ' === */' . "\n" . $css;
+				}
+			}
+
+			$parts[] = $stylesheets->editorStyles();
 		} else {
 			// Fallback for cms-framework < 2.5 (no reader binding yet):
 			// preserve the pre-#199 behavior of concatenating just

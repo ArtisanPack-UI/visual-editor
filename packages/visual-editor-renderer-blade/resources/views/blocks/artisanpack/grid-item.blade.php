@@ -65,6 +65,7 @@
 
 	$baseClasses = array_merge(
 		[
+			'wp-block-artisanpack-grid-item',
 			'ap-grid-item',
 			'ap-grid-item-layout-' . $innerLayout,
 		],

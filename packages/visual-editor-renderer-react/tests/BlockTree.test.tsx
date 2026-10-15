@@ -619,7 +619,7 @@ describe('Core design blocks', () => {
 
         const html = renderTree(tree);
 
-        expect(html).toContain('class="ap-callout ap-callout--success"');
+        expect(html).toContain('class="wp-block-artisanpack-callout ap-callout ap-callout--success"');
         expect(html).toContain('data-severity="success"');
         expect(html).toContain('<div class="ap-callout__body">Nice work.</div>');
         expect(html).toContain('<svg');
@@ -985,7 +985,7 @@ describe('Core design blocks', () => {
 
         const html = renderTree(tree);
 
-        expect(html).toContain('class="ap-marquee"');
+        expect(html).toContain('class="wp-block-artisanpack-marquee ap-marquee"');
         expect(html).toContain('width: 60%');
         expect(html).toContain('animation: ap-marquee-scroll 10s linear infinite');
         expect(html).toContain('class="ap-marquee__text"');

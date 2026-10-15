@@ -37,7 +37,7 @@ export const MarqueeBlock = defineComponent({
             const content = attrString(props.attributes.marqueeContent);
             const className = attrString(props.attributes.className);
 
-            const classes = classList(['ap-marquee', className]);
+            const classes = classList(['wp-block-artisanpack-marquee', 'ap-marquee', className]);
             const wrapperStyle = { width: `${width}%` };
             const textStyle = {
                 animation: `ap-marquee-scroll ${speed}s linear infinite`,

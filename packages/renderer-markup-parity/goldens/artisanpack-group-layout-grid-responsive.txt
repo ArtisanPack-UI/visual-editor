@@ -1,4 +1,4 @@
-<div class="wp-block-group is-layout-grid wp-block-group-is-layout-grid wp-container-ad6aa4c217ac">
+<div class="wp-block-group is-layout-grid wp-block-group-is-layout-grid wp-container-53791ac709d5">
   <p class="wp-block-paragraph">
     "One"
   </p>
@@ -7,4 +7,4 @@
   </p>
 </div>
 @@ renderer-instance-css @@
-.wp-block-group.wp-block-group-is-layout-grid.wp-container-ad6aa4c217ac{grid-template-columns:repeat(auto-fill, minmax(max(min(14rem, 100%), (100% - (var(--wp--style--block-gap, 24px) * 3)) / 4), 1fr));container-type:inline-size;}
+.wp-block-group.wp-block-group-is-layout-grid.wp-container-53791ac709d5{grid-template-columns:repeat(auto-fill, minmax(max(min(14rem, 100%), (100% - (var(--wp--style--block-gap, 0.5em) * 3)) / 4), 1fr));container-type:inline-size;}

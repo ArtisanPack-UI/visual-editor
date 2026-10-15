@@ -918,6 +918,23 @@ return [
 	|
 	*/
 
+	/*
+	|--------------------------------------------------------------------------
+	| Block Effects (#881)
+	|--------------------------------------------------------------------------
+	|
+	| `custom_css_capability` is the capability the default
+	| `visual-editor.edit-block-css` gate requires before a user may write a
+	| block's Custom CSS (checked through the user's hasCapability() /
+	| hasPermissionTo() / hasPermission()). Users without it don't see the
+	| field, and saves keep only the Custom CSS already stored. Redefine the
+	| gate to use your own rule; set to '' to deny everyone.
+	|
+	*/
+	'effects' => [
+		'custom_css_capability' => 'edit_block_css',
+	],
+
 	'visibility' => [
 		'enabled'              => true,
 		'user_model'           => null,

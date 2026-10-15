@@ -241,7 +241,7 @@ function gridRules(layout: Record<string, unknown>): LayoutRule[] {
     const minimum = cssLength(layout.minimumColumnWidth);
 
     if (count !== null && minimum !== null) {
-        const track = `max(min(${minimum}, 100%), (100% - (var(--wp--style--block-gap, 24px) * ${count - 1})) / ${count})`;
+        const track = `max(min(${minimum}, 100%), (100% - (var(--wp--style--block-gap, 0.5em) * ${count - 1})) / ${count})`;
 
         return [['', [`grid-template-columns:repeat(auto-fill, minmax(${track}, 1fr))`, 'container-type:inline-size']]];
     }

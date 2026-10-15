@@ -51,6 +51,7 @@ namespace ArtisanPackUI\VisualEditorRendererBlade\Support;
 
 use ArtisanPackUI\VisualEditor\BoxShadow\BoxShadowEmitter;
 use ArtisanPackUI\VisualEditor\BoxShadow\BoxShadowResolver;
+use ArtisanPackUI\VisualEditor\Effects\EffectsCompiler;
 use ArtisanPackUI\VisualEditor\GradientBorder\GradientBorderEmitter;
 use ArtisanPackUI\VisualEditor\GradientBorder\GradientBorderResolver;
 use ArtisanPackUI\VisualEditor\Position\PositionEmitter;
@@ -312,6 +313,18 @@ class BlockSupports
 			$classes[] = $elements['class'];
 
 			self::pushElements( $elements['class'], $elements['style'] );
+		}
+
+		// #881 — block effects (opacity, overflow, backdrop filter, blend
+		// mode, z-index, clip, text clip) and the block's Custom CSS, under
+		// one hashed scope class. Pushed with the layout container rules so
+		// it lands in the same `<style data-ve-responsive>` block.
+		$effects = EffectsCompiler::compile( $attributes );
+
+		if ( null !== $effects ) {
+			$classes[] = $effects['class'];
+
+			self::pushResponsive( $effects['class'], $effects['css'] );
 		}
 
 		return [
