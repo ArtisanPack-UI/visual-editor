@@ -36,6 +36,7 @@ use ArtisanPackUI\VisualEditor\SiteEditor\NavigationBlockRefResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\BoxShadowCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\DuotoneCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ElementsCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
@@ -139,6 +140,7 @@ class TemplateComponent extends Component
 		$boxShadowsCss      = $this->boxShadowAccumulator->flush();
 		$positionCss        = $this->positionAccumulator->flush();
 		$elementsCss        = $this->app->make( ElementsCssAccumulator::class )->flush();
+		$duotoneCss         = $this->app->make( DuotoneCssAccumulator::class )->flush();
 
 		return view( 'visual-editor-renderer-blade::components.template', [
 			'slug'                    => $this->slug,
@@ -158,6 +160,7 @@ class TemplateComponent extends Component
 			'boxShadowsCss'           => $boxShadowsCss,
 			'positionCss'             => $positionCss,
 			'elementsCss'             => $elementsCss,
+			'duotoneCss'              => $duotoneCss,
 		] );
 	}
 

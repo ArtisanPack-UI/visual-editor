@@ -80,6 +80,17 @@ class DynamicLoopBlock extends DynamicBlock implements WantsInnerBlocks
 		return self::BLOCK_NAME;
 	}
 
+	/**
+	 * Opt out of the renderer's supports merge (#874): this block
+	 * renders its template once per record with no wrapper of its own, so the first tag belongs to an inner block.
+	 *
+	 * @since 1.15.0
+	 */
+	public function appliesOwnSupports(): bool
+	{
+		return true;
+	}
+
 	public function render( array $attrs )
 	{
 		return $this->renderWithInner( $attrs, [] );

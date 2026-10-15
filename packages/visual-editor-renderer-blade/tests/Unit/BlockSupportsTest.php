@@ -677,6 +677,43 @@ describe( 'compile() — state design tools (#488)', function (): void {
 		expect( $result['statesRules'] )->toContain( 'background-color: #abc123 !important;' );
 		expect( $result['statesRules'] )->toContain( 'background-color: #fff !important;' );
 	} );
+
+	it( 'drops state values that could break out of the style block', function (): void {
+		$result = BlockSupports::compile( [
+			'states' => [
+				'_scopeId'               => 'xss',
+				'style.color.background' => [ 'hover' => 'red}</style><script>alert(1)</script>' ],
+				'style.border.color'     => [ 'hover' => 'red; position: fixed' ],
+				'shadow'                 => [ 'hover' => '0 4px 12px rgba(0, 0, 0, 0.2)' ],
+				'dimensions.transform'   => [ 'hover' => 'translateY(-4px) scale(1.02)' ],
+			],
+		] );
+
+		expect( $result['statesRules'] )
+			->not->toContain( '</style>' )
+			->not->toContain( 'position: fixed' )
+			->toContain( 'box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;' )
+			->toContain( 'transform: translateY(-4px) scale(1.02) !important;' );
+	} );
+
+	it( 'expands var:preset references on every state path (#875)', function (): void {
+		$result = BlockSupports::compile( [
+			'states' => [
+				'_scopeId'               => 'abc',
+				'style.color.background' => [ 'hover' => 'var:preset|color|primary' ],
+				'style.border.color'     => [ 'hover' => 'var:preset|color|accentDark' ],
+				'shadow'                 => [ 'focus' => 'var:preset|shadow|natural' ],
+				'gradient'               => [ 'hover' => 'var:preset|gradient|sunset_glow' ],
+			],
+		] );
+
+		expect( $result['statesRules'] )
+			->toContain( 'background-color: var(--wp--preset--color--primary) !important;' )
+			->toContain( 'border-color: var(--wp--preset--color--accent-dark) !important;' )
+			->toContain( 'box-shadow: var(--wp--preset--shadow--natural) !important;' )
+			->toContain( 'background: var(--wp--preset--gradient--sunset-glow) !important;' )
+			->not->toContain( 'var:preset' );
+	} );
 } );
 
 describe( 'compile() — CSS position (#640)', function (): void {

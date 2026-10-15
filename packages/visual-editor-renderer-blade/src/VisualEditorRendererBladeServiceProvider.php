@@ -33,6 +33,7 @@ use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\SiteMetaResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Responsive\ResponsiveClassResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\BoxShadowCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\DuotoneCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ElementsCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
@@ -219,6 +220,12 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 		// `<style data-ve-elements>` block (link / heading / button colors).
 		$this->app->scoped( ElementsCssAccumulator::class, function () {
 			return new ElementsCssAccumulator();
+		} );
+
+		// #873 — sibling accumulator for the duotone filter support's
+		// `<style data-ve-duotone>` rules + hidden `<svg>` filter defs.
+		$this->app->scoped( DuotoneCssAccumulator::class, function () {
+			return new DuotoneCssAccumulator();
 		} );
 	}
 

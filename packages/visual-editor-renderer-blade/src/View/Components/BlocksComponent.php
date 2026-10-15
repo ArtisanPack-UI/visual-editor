@@ -39,6 +39,7 @@ use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\BreadcrumbsResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\BusinessInfoResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\BoxShadowCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\DuotoneCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ElementsCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
@@ -244,6 +245,7 @@ class BlocksComponent extends Component
 		$boxShadowsCss      = $this->boxShadowAccumulator->flush();
 		$positionCss        = $this->positionAccumulator->flush();
 		$elementsCss        = app( ElementsCssAccumulator::class )->flush();
+		$duotoneCss         = app( DuotoneCssAccumulator::class )->flush();
 
 		return view( 'visual-editor-renderer-blade::components.blocks', [
 			'html'                    => $html,
@@ -257,6 +259,7 @@ class BlocksComponent extends Component
 			'boxShadowsCss'           => $boxShadowsCss,
 			'positionCss'             => $positionCss,
 			'elementsCss'             => $elementsCss,
+			'duotoneCss'              => $duotoneCss,
 		] );
 	}
 

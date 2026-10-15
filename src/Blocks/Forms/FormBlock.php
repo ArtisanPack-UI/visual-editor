@@ -77,6 +77,17 @@ class FormBlock extends DynamicBlock
 	}
 
 	/**
+	 * Opt out of the renderer's supports merge (#874): this block
+	 * builds its wrapper through `BlockSupports::wrapperAttrs()` already.
+	 *
+	 * @since 1.15.0
+	 */
+	public function appliesOwnSupports(): bool
+	{
+		return true;
+	}
+
+	/**
 	 * @param  array<string, mixed>  $attrs
 	 *
 	 * @return array<string, mixed>

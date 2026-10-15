@@ -90,6 +90,47 @@ abstract class DynamicBlock
 	}
 
 	/**
+	 * Whether {@see render()} already applies the block's supports
+	 * (color, spacing, border, anchor, className, states, …) to its own
+	 * wrapper.
+	 *
+	 * The default `false` lets the front-end renderer merge
+	 * `BlockSupports::compile()` output into the first opening tag of the
+	 * rendered HTML, so a dynamic block gets every support its block.json
+	 * declares, the same as a Blade-partial block (#874). Return `true`
+	 * when the block builds its wrapper through
+	 * `BlockSupports::wrapperAttrs()` itself, or renders no wrapper of
+	 * its own (e.g. it only renders an inner block tree), so the supports
+	 * aren't applied twice or onto the wrong element.
+	 *
+	 * @since 1.15.0
+	 */
+	public function appliesOwnSupports(): bool
+	{
+		return false;
+	}
+
+	/**
+	 * The attribute bag the front-end renderer compiles supports from
+	 * when {@see appliesOwnSupports()} is `false`.
+	 *
+	 * Receives the raw attributes overlaid with {@see validateAttrs()}'s
+	 * output. Override to drop or rewrite keys the block stores in a
+	 * shape the supports compiler would misread (e.g. a legacy hex value
+	 * in a palette-slug slot).
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  array<string, mixed>  $attrs  Block attributes.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function supportAttributes( array $attrs ): array
+	{
+		return $attrs;
+	}
+
+	/**
 	 * Gate access to the block preview for the current request's user.
 	 *
 	 * Returning `false` instructs the preview endpoint to respond with 403.
