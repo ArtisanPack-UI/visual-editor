@@ -574,15 +574,20 @@ export function InserterPatternsPanel(
                     </p>
                 ) : null}
 
-                {hasNoResults ? (
-                    <p
-                        role="status"
-                        aria-live="polite"
-                        className="ap-inserter-patterns__empty"
-                        data-testid="ap-inserter-patterns-no-results"
-                    >
-                        {__('No patterns match your search.', TEXT_DOMAIN)}
-                    </p>
+                {/* The live region stays mounted while the search is shown,
+                    so screen readers announce the message when a search
+                    stops matching. */}
+                {status === 'ready' && !isEmpty ? (
+                    <div role="status" aria-live="polite">
+                        {hasNoResults ? (
+                            <p
+                                className="ap-inserter-patterns__empty"
+                                data-testid="ap-inserter-patterns-no-results"
+                            >
+                                {__('No patterns match your search.', TEXT_DOMAIN)}
+                            </p>
+                        ) : null}
+                    </div>
                 ) : null}
 
                 {status === 'ready' && visibleSynced.length > 0 ? (

@@ -33,7 +33,7 @@ export function isInserterPattern(pattern: PatternRecord): boolean {
 function normalizeSearchText(value: string): string {
     return value
         .normalize('NFD')
-        .replace(/[̀-ͯ]/g, '')
+        .replace(/[\u0300-\u036f]/g, '')
         .toLowerCase()
         .trim();
 }

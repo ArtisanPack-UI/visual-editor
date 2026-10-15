@@ -34,8 +34,8 @@
     padding: 6px 8px;
     font-size: 13px;
     color: inherit;
-    background: #fff;
-    border: 1px solid #d1d5db;
+    background: var(--color-base-100, #fff);
+    border: 1px solid var(--ap-site-editor-border, #d1d5db);
     border-radius: 4px;
 }
 

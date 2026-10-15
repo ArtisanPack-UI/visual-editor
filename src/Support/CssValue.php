@@ -109,6 +109,8 @@ class CssValue
 	 * `[` blocks expect. Returns false for a `)` or `]` that doesn't close
 	 * the innermost open block (a stray or crossed closer).
 	 *
+	 * @since 1.15.0
+	 *
 	 * @param  list<string>  $closers
 	 */
 	protected static function trackBlock( string $char, array &$closers ): bool
@@ -128,6 +130,8 @@ class CssValue
 	 * Whether the `(` at `$offset` opens an unquoted url token: it follows
 	 * the whole identifier `url` (any case), and its first non-whitespace
 	 * character isn't a quote.
+	 *
+	 * @since 1.15.0
 	 */
 	protected static function opensUnquotedUrl( string $value, int $offset ): bool
 	{
