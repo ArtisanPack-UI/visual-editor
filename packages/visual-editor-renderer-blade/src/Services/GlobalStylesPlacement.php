@@ -21,10 +21,13 @@
  *    place the styles any earlier in the document.
  *
  * A page that renders blocks inside a layout capture but never renders
- * `<x-ve-blocks-styles>` can add `@stack('ve-global-styles')` to its own
- * `<head>`, or set `artisanpack.visual-editor.global_styles_in_head` to
- * `false` to always print the styles inline in the body (the 1.14
- * placement).
+ * `<x-ve-blocks-styles>` (or `@stack('ve-global-styles')`) would leave the
+ * queued styles unprinted. For HTML responses the
+ * {@see \ArtisanPackUI\VisualEditorRendererBlade\Http\Middleware\InjectQueuedGlobalStyles}
+ * middleware on the `web` group catches that and injects them before
+ * `</head>`. Outside an HTTP response (mail, `Blade::render()` into a
+ * string) set `artisanpack.visual-editor.global_styles_in_head` to `false`
+ * to always print the styles inline in the body (the 1.14 placement).
  *
  * Bound as a scoped service, alongside the scoped emission tracker, so a
  * long-lived worker starts every request fresh.
@@ -81,6 +84,14 @@ class GlobalStylesPlacement
 	 * @since 1.15.0
 	 */
 	protected bool $stackPrinted = false;
+
+	/**
+	 * The `<style data-ve-global-styles>` tag a body renderer queued on the
+	 * stack, or null when nothing is queued or it has been delivered.
+	 *
+	 * @since 1.15.0
+	 */
+	protected ?string $queuedTag = null;
 
 	/**
 	 * Whether global styles go in `<head>` (the default) rather than
@@ -149,6 +160,29 @@ class GlobalStylesPlacement
 	}
 
 	/**
+	 * The queued `<style data-ve-global-styles>` tag no
+	 * `<x-ve-blocks-styles>` has printed yet, or null. The response
+	 * middleware delivers it when the layout never printed the stack.
+	 *
+	 * @since 1.15.0
+	 */
+	public function pendingTag(): ?string
+	{
+		return $this->stackPrinted ? null : $this->queuedTag;
+	}
+
+	/**
+	 * Record that the queued tag has been delivered, so nothing prints it
+	 * again.
+	 *
+	 * @since 1.15.0
+	 */
+	public function markDelivered(): void
+	{
+		$this->queuedTag = null;
+	}
+
+	/**
 	 * Called by `<x-ve-blocks>` / `<x-ve-template>`: claims the emission
 	 * when nobody has, then either returns the CSS to print inline or
 	 * queues it on the `ve-global-styles` stack for the head.
@@ -178,7 +212,9 @@ class GlobalStylesPlacement
 		}
 
 		if ( $this->inHead() && ! $this->headRendered && $this->insideDeferredCapture() ) {
-			app( 'view' )->startPush( self::STACK, '<style data-ve-global-styles>' . $css . '</style>' );
+			$this->queuedTag = '<style data-ve-global-styles>' . $css . '</style>';
+
+			app( 'view' )->startPush( self::STACK, $this->queuedTag );
 
 			return null;
 		}
@@ -196,6 +232,7 @@ class GlobalStylesPlacement
 	{
 		$this->headRendered = false;
 		$this->stackPrinted = false;
+		$this->queuedTag    = null;
 	}
 
 	/**
