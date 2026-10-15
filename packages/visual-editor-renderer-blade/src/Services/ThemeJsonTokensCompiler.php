@@ -1035,13 +1035,33 @@ class ThemeJsonTokensCompiler
 	 * closes the declaration or rule (`; { }`), the element (`< >`),
 	 * opens a comment, smuggles a CSS escape, or breaks the line is
 	 * dropped. Quotes stay allowed — font-family stacks and some
-	 * gradients need them.
+	 * gradients need them — but each kind must be balanced, as must the
+	 * parentheses: an unterminated string or `(` swallows every rule
+	 * after it in the same block.
 	 *
 	 * @since 1.15.0
 	 */
 	protected function isPrintablePresetValue( string $value ): bool
 	{
-		return 1 !== preg_match( '#[;{}<>\\\\\x00-\x1F\x7F]|/\*|\*/#', $value );
+		if ( 1 === preg_match( '#[;{}<>\\\\\x00-\x1F\x7F]|/\*|\*/#', $value ) ) {
+			return false;
+		}
+
+		if ( 0 !== substr_count( $value, '"' ) % 2 || 0 !== substr_count( $value, "'" ) % 2 ) {
+			return false;
+		}
+
+		$depth = 0;
+
+		foreach ( str_split( $value ) as $char ) {
+			if ( '(' === $char ) {
+				++$depth;
+			} elseif ( ')' === $char && --$depth < 0 ) {
+				return false;
+			}
+		}
+
+		return 0 === $depth;
 	}
 
 	/**

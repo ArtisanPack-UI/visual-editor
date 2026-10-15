@@ -809,7 +809,27 @@ describe( 'shadow, gradient and font-family presets (#872)', function (): void {
 		'declaration break' => [ '0 0 1px red;}body{display:none' ],
 		'comment'           => [ '0 0 1px red /*' ],
 		'newline'           => [ "0 0 1px red\n}" ],
+		'unbalanced quote'  => [ '0 0 1px "red' ],
+		'unbalanced paren'  => [ '0 0 1px rgba(0, 0, 0' ],
+		'stray close paren' => [ '0 0 1px red)(' ],
 	] );
+
+	it( 'skips theme font families with an unbalanced quote', function (): void {
+		$css = $this->compiler->compile( [
+			'settings' => [
+				'typography' => [
+					'fontFamilies' => [
+						[ 'slug' => 'broken', 'fontFamily' => '"Open Sans, serif' ],
+						[ 'slug' => 'display', 'fontFamily' => '"Space Grotesk", sans-serif' ],
+					],
+				],
+			],
+		] );
+
+		expect( $css )
+			->not->toContain( '--wp--preset--font-family--broken:' )
+			->toContain( '--wp--preset--font-family--display: "Space Grotesk", sans-serif;' );
+	} );
 
 	it( 'drops unsafe font-family values', function ( string $family ): void {
 		config()->set( 'artisanpack.visual-editor.presets.font_families', [
