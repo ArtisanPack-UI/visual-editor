@@ -22,5 +22,5 @@
   "Badidxyz"
 </h2>
 <h2 class="wp-block-heading" id="creme--x">
-  "Crème ½ ⟨x⟩"
+  "Crème ½ x"
 </h2>
