@@ -75,6 +75,18 @@ class ResolvedPattern
 	 * @param  int|null  $viewportWidth  Preview layout width in pixels, from a
 	 *                                theme file's `Viewport Width:` header.
 	 *                                `null` means {@see DEFAULT_VIEWPORT_WIDTH}.
+	 * @param  array<int, string>  $keywords  Extra search terms the inserter
+	 *                                matches (WordPress `keywords`, a theme
+	 *                                file's `Keywords:` header).
+	 * @param  bool  $inserter       False hides the pattern from the block
+	 *                                inserter (WordPress `inserter`, a theme
+	 *                                file's `Inserter: no`). The pattern stays
+	 *                                registered, so code can still reach it.
+	 * @param  array<int, string>  $templateTypes  Template types the pattern
+	 *                                suits (WordPress `templateTypes`, a theme
+	 *                                file's `Template Types:` header).
+	 *
+	 * @since 1.15.0 `$keywords`, `$inserter` and `$templateTypes`.
 	 */
 	public function __construct(
 		public readonly string $slug,
@@ -88,6 +100,9 @@ class ResolvedPattern
 		public readonly ?int $wpId,
 		public readonly ?array $postTypes = null,
 		public readonly ?int $viewportWidth = null,
+		public readonly array $keywords = [],
+		public readonly bool $inserter = true,
+		public readonly array $templateTypes = [],
 	) {
 	}
 
@@ -186,7 +201,64 @@ class ResolvedPattern
 			wpId       : isset( $data['wp_id'] ) ? (int) $data['wp_id'] : null,
 			postTypes  : self::normalizePostTypes( $data['post_types'] ?? null ),
 			viewportWidth: self::normalizeViewportWidth( $data['viewport_width'] ?? null ),
+			keywords   : self::normalizeStringList( $data['keywords'] ?? null ),
+			inserter   : self::normalizeInserter( $data['inserter'] ?? null ),
+			templateTypes: self::normalizeStringList( $data['template_types'] ?? null ),
 		);
+	}
+
+	/**
+	 * Normalize a raw list field (`keywords`, `template_types`) into a
+	 * de-duplicated list of trimmed, non-empty strings. Anything that
+	 * isn't a list collapses to `[]`, and non-string members are dropped,
+	 * so a malformed contributor entry can't reach the editor payload.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @return array<int, string>
+	 */
+	protected static function normalizeStringList( mixed $raw ): array
+	{
+		if ( ! is_array( $raw ) ) {
+			return [];
+		}
+
+		$values = [];
+
+		foreach ( $raw as $candidate ) {
+			if ( ! is_string( $candidate ) ) {
+				continue;
+			}
+
+			$value = trim( $candidate );
+
+			if ( '' !== $value && ! in_array( $value, $values, true ) ) {
+				$values[] = $value;
+			}
+		}
+
+		return $values;
+	}
+
+	/**
+	 * Normalize the raw `inserter` field. A missing or empty value keeps
+	 * the pattern in the inserter (WordPress's default); booleans pass
+	 * through; other scalars read as booleans (`false`, `no`, `off`, `0`
+	 * hide it), and anything unrecognized keeps it visible.
+	 *
+	 * @since 1.15.0
+	 */
+	protected static function normalizeInserter( mixed $raw ): bool
+	{
+		if ( is_bool( $raw ) ) {
+			return $raw;
+		}
+
+		if ( null === $raw || '' === $raw || ! is_scalar( $raw ) ) {
+			return true;
+		}
+
+		return filter_var( is_string( $raw ) ? trim( $raw ) : $raw, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE ) ?? true;
 	}
 
 	/**

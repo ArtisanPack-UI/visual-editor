@@ -101,3 +101,72 @@ it( 'matches nothing when postTypes is explicitly the empty list', function (): 
 		->and( $pattern->matchesPostType( 'page' ) )->toBeFalse()
 		->and( $pattern->matchesPostType( 'post' ) )->toBeFalse();
 } );
+
+describe( 'pattern header fields (cms-framework 2.15 parity)', function (): void {
+	it( 'defaults keywords and template types to empty and keeps the pattern in the inserter', function (): void {
+		$pattern = ResolvedPattern::fromArray( [ 'slug' => 'hero', 'title' => 'Hero' ] );
+
+		expect( $pattern->keywords )->toBe( [] )
+			->and( $pattern->inserter )->toBeTrue()
+			->and( $pattern->templateTypes )->toBe( [] )
+			->and( $pattern->viewportWidth )->toBeNull();
+	} );
+
+	it( 'reads the fields cms-framework\'s toFilterEntry() emits', function (): void {
+		$pattern = ResolvedPattern::fromArray( [
+			'slug'           => 'twentytwentyfive/hidden-404',
+			'title'          => '404',
+			'source'         => 'theme',
+			'keywords'       => [ 'starter', 'not found' ],
+			'inserter'       => false,
+			'template_types' => [ '404' ],
+			'post_types'     => null,
+			'viewport_width' => 1400,
+		] );
+
+		expect( $pattern->keywords )->toBe( [ 'starter', 'not found' ] )
+			->and( $pattern->inserter )->toBeFalse()
+			->and( $pattern->templateTypes )->toBe( [ '404' ] )
+			->and( $pattern->postTypes )->toBeNull()
+			->and( $pattern->viewportWidth )->toBe( 1400 );
+	} );
+
+	it( 'trims, de-duplicates and drops non-string list members', function (): void {
+		$pattern = ResolvedPattern::fromArray( [
+			'slug'           => 'hero',
+			'title'          => 'Hero',
+			'keywords'       => [ ' hero ', 'hero', '', 7, [ 'x' ], 'banner' ],
+			'template_types' => [ 'home', null, ' home', 'front-page' ],
+		] );
+
+		expect( $pattern->keywords )->toBe( [ 'hero', 'banner' ] )
+			->and( $pattern->templateTypes )->toBe( [ 'home', 'front-page' ] );
+	} );
+
+	it( 'collapses non-list keywords and template types to empty', function ( mixed $raw ): void {
+		$pattern = ResolvedPattern::fromArray( [ 'slug' => 'hero', 'title' => 'Hero', 'keywords' => $raw, 'template_types' => $raw ] );
+
+		expect( $pattern->keywords )->toBe( [] )
+			->and( $pattern->templateTypes )->toBe( [] );
+	} )->with( [
+		'string' => [ 'hero, banner' ],
+		'int'    => [ 3 ],
+		'null'   => [ null ],
+	] );
+
+	it( 'reads the inserter flag', function ( mixed $raw, bool $expected ): void {
+		expect( ResolvedPattern::fromArray( [ 'slug' => 'hero', 'title' => 'Hero', 'inserter' => $raw ] )->inserter )->toBe( $expected );
+	} )->with( [
+		'true'          => [ true, true ],
+		'false'         => [ false, false ],
+		'null'          => [ null, true ],
+		'empty string'  => [ '', true ],
+		'string no'     => [ 'no', false ],
+		'string false'  => [ ' false ', false ],
+		'string yes'    => [ 'yes', true ],
+		'int zero'      => [ 0, false ],
+		'int one'       => [ 1, true ],
+		'unrecognized'  => [ 'maybe', true ],
+		'array'         => [ [ false ], true ],
+	] );
+} );

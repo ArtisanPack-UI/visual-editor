@@ -43,30 +43,29 @@ const UNSAFE_VALUE = /[;{}<>\\"'\u0000-\u001f\u007f]|\/\*|\*\//;
 
 /**
  * Whether a preset value is safe to write inside a `<style>` element:
- * none of the {@link UNSAFE_VALUE} characters, and balanced parentheses
- * (`calc(1rem` would leave a function open and swallow every later
- * rule). Mirrors `PresetRegistry::isSafeCssValue()`.
+ * none of the {@link UNSAFE_VALUE} characters, and parentheses and
+ * brackets that balance without crossing (`calc(1rem` or `x [` would
+ * leave a block open and swallow every later rule; `([)]` is rejected
+ * as crossed). Mirrors `PresetRegistry::isSafeCssValue()`.
  */
 export function isSafeSpacingValue(value: string): boolean {
     if (value === '' || UNSAFE_VALUE.test(value)) {
         return false;
     }
 
-    let depth = 0;
+    const closers: string[] = [];
 
     for (const char of value) {
         if (char === '(') {
-            depth++;
-        } else if (char === ')') {
-            depth--;
-
-            if (depth < 0) {
-                return false;
-            }
+            closers.push(')');
+        } else if (char === '[') {
+            closers.push(']');
+        } else if ((char === ')' || char === ']') && closers.pop() !== char) {
+            return false;
         }
     }
 
-    return depth === 0;
+    return closers.length === 0;
 }
 
 /**

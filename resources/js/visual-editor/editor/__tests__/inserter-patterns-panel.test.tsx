@@ -335,6 +335,157 @@ describe('<InserterPatternsPanel />', () => {
         ).not.toBeInTheDocument();
     });
 
+    it('leaves inserter: false patterns out of both lists', async () => {
+        LIST_MOCK.mockImplementation((_config, params: { synced: boolean }) =>
+            Promise.resolve(
+                params.synced
+                    ? [
+                          {
+                              id: 1,
+                              slug: 'hidden-header',
+                              title: { rendered: 'Hidden header' },
+                              content: { raw: '', blocks: [] },
+                              synced: true,
+                              categories: [],
+                              status: 'publish',
+                              type: 'wp_block',
+                              inserter: false,
+                          },
+                      ]
+                    : [
+                          {
+                              id: 2,
+                              slug: 'hidden-404',
+                              title: { rendered: 'Hidden 404' },
+                              content: { raw: '', blocks: [] },
+                              synced: false,
+                              categories: [],
+                              status: 'publish',
+                              type: 'wp_block',
+                              inserter: false,
+                          },
+                          {
+                              id: 3,
+                              slug: 'cta',
+                              title: { rendered: 'Call to action' },
+                              content: { raw: '', blocks: [] },
+                              synced: false,
+                              categories: [],
+                              status: 'publish',
+                              type: 'wp_block',
+                          },
+                      ]
+            )
+        );
+
+        render(<InserterPatternsPanel apiBase="/visual-editor/api" />);
+
+        await waitFor(() =>
+            expect(
+                screen.getByTestId('ap-inserter-patterns-row-unsynced-3')
+            ).toBeInTheDocument()
+        );
+
+        expect(
+            screen.queryByTestId('ap-inserter-patterns-list-synced')
+        ).not.toBeInTheDocument();
+        expect(
+            screen.queryByTestId('ap-inserter-patterns-row-unsynced-2')
+        ).not.toBeInTheDocument();
+    });
+
+    it('shows the empty state when every pattern is hidden from the inserter', async () => {
+        LIST_MOCK.mockImplementation(() =>
+            Promise.resolve([
+                {
+                    id: 4,
+                    slug: 'hidden',
+                    title: { rendered: 'Hidden' },
+                    content: { raw: '', blocks: [] },
+                    synced: false,
+                    categories: [],
+                    status: 'publish',
+                    type: 'wp_block',
+                    inserter: false,
+                },
+            ])
+        );
+
+        render(<InserterPatternsPanel apiBase="/visual-editor/api" />);
+
+        expect(
+            await screen.findByTestId('ap-inserter-patterns-empty')
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByTestId('ap-inserter-patterns-search')
+        ).not.toBeInTheDocument();
+    });
+
+    it('filters both lists by title and keywords as the author searches', async () => {
+        LIST_MOCK.mockImplementation((_config, params: { synced: boolean }) =>
+            Promise.resolve(
+                params.synced
+                    ? [
+                          {
+                              id: 5,
+                              slug: 'site-footer',
+                              title: { rendered: 'Footer' },
+                              content: { raw: '', blocks: [] },
+                              synced: true,
+                              categories: [],
+                              status: 'publish',
+                              type: 'wp_block',
+                              keywords: ['starter'],
+                          },
+                      ]
+                    : [
+                          {
+                              id: 6,
+                              slug: 'pricing',
+                              title: { rendered: 'Pricing table' },
+                              content: { raw: '', blocks: [] },
+                              synced: false,
+                              categories: [],
+                              status: 'publish',
+                              type: 'wp_block',
+                          },
+                      ]
+            )
+        );
+
+        const user = userEvent.setup();
+
+        render(<InserterPatternsPanel apiBase="/visual-editor/api" />);
+
+        const search = await screen.findByLabelText('Search patterns');
+
+        await user.type(search, 'starter');
+
+        expect(
+            screen.getByTestId('ap-inserter-patterns-row-synced-5')
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByTestId('ap-inserter-patterns-row-unsynced-6')
+        ).not.toBeInTheDocument();
+
+        await user.clear(search);
+        await user.type(search, 'pricing');
+
+        expect(
+            screen.getByTestId('ap-inserter-patterns-row-unsynced-6')
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByTestId('ap-inserter-patterns-row-synced-5')
+        ).not.toBeInTheDocument();
+
+        await user.clear(search);
+        await user.type(search, 'nothing matches');
+
+        expect(
+            screen.getByTestId('ap-inserter-patterns-no-results')
+        ).toHaveTextContent('No patterns match your search.');
+    });
+
     it('renders a front-end preview inside each pattern row (#832)', async () => {
         vi.stubGlobal('IntersectionObserver', ImmediateIntersectionObserver);
         LIST_MOCK.mockImplementation((_config, params: { synced: boolean }) =>

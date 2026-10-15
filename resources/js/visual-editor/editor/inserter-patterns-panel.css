@@ -16,6 +16,34 @@
     color: var(--ap-site-editor-muted, #6b7280);
 }
 
+.ap-inserter-patterns__search {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.ap-inserter-patterns__search-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: inherit;
+}
+
+.ap-inserter-patterns__search-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 6px 8px;
+    font-size: 13px;
+    color: inherit;
+    background: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+}
+
+.ap-inserter-patterns__search-input:focus-visible {
+    outline: 2px solid var(--wp-admin-theme-color, #3858e9);
+    outline-offset: 1px;
+}
+
 .ap-inserter-patterns__status,
 .ap-inserter-patterns__error,
 .ap-inserter-patterns__empty {

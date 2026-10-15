@@ -10,7 +10,8 @@
  *    key on the node becomes the picker label.
  *  - `styles/*.json` partials that declare `blockTypes` — one variation
  *    (`slug`, `title`, `styles`) shared by every listed block. Partials
- *    without `blockTypes` are theme style variations and are skipped.
+ *    without `blockTypes` are theme style variations and are skipped
+ *    ({@see self::isBlockScoped()}).
  *
  * Each variation becomes a `{block, slug, label, style, isDefault}`
  * entry, the same shape {@see BlockStyleRegistry} stores.
@@ -72,7 +73,10 @@ class BlockStyleVariationParser
 
 	/**
 	 * Variations declared by one decoded `styles/*.json` partial.
-	 * Returns nothing for a partial without `blockTypes`.
+	 * Returns nothing for a partial without `blockTypes` (a theme style
+	 * variation), nor for one whose `blockTypes` isn't a list of valid
+	 * block names: that partial is still block-scoped, so it's never a
+	 * theme style variation, but it has no block to apply to.
 	 *
 	 * @since 1.15.0
 	 *
@@ -83,11 +87,11 @@ class BlockStyleVariationParser
 	 */
 	public function fromPartial( array $partial, string $fallback = '' ): array
 	{
-		$blockTypes = $partial['blockTypes'] ?? null;
-
-		if ( ! is_array( $blockTypes ) || [] === $blockTypes ) {
+		if ( ! self::isBlockScoped( $partial ) || ! is_array( $partial['blockTypes'] ) ) {
 			return [];
 		}
+
+		$blockTypes = $partial['blockTypes'];
 
 		$slug = self::normaliseSlug( is_string( $partial['slug'] ?? null ) ? $partial['slug'] : $fallback );
 
@@ -149,6 +153,23 @@ class BlockStyleVariationParser
 		}
 
 		return $this->parseFiles( $files );
+	}
+
+	/**
+	 * Whether a decoded `styles/*.json` partial is a block style variation
+	 * rather than a theme style variation: it declares `blockTypes`,
+	 * whatever the value (`[]` and a bare string count; `null` doesn't).
+	 * Matches WordPress's `WP_Theme_JSON_Resolver::style_variation_has_scope()`
+	 * and cms-framework's `GlobalStylesResolver::isBlockStyleVariation()`,
+	 * which keeps these partials out of the theme style variation list.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  array<string, mixed>  $partial  Decoded partial.
+	 */
+	public static function isBlockScoped( array $partial ): bool
+	{
+		return isset( $partial['blockTypes'] );
 	}
 
 	/**

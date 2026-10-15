@@ -45,8 +45,13 @@ class PatternAdapter
 	 *     categories: array<int, string>,
 	 *     block_types: array<int, string>,
 	 *     post_types: array<int, string>|null,
-	 *     viewport_width: int|null
+	 *     viewport_width: int|null,
+	 *     keywords: array<int, string>,
+	 *     inserter: bool,
+	 *     template_types: array<int, string>
 	 * }
+	 *
+	 * @since 1.15.0 Adds `keywords`, `inserter` and `template_types`.
 	 */
 	public function toArray( ResolvedPattern $pattern ): array
 	{
@@ -99,6 +104,14 @@ class PatternAdapter
 			// Preview layout width (WP `viewportWidth`). `null` tells the
 			// client to use its 1200px default.
 			'viewport_width' => $pattern->viewportWidth,
+			// Inserter search terms (WP `keywords`).
+			'keywords'       => $pattern->keywords,
+			// False hides the pattern from the block inserter (WP
+			// `inserter`); it stays in this payload so other surfaces
+			// (the site editor's pattern library) can still list it.
+			'inserter'       => $pattern->inserter,
+			// Template types the pattern suits (WP `templateTypes`).
+			'template_types' => $pattern->templateTypes,
 		];
 	}
 
