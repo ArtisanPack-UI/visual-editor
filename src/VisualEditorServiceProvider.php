@@ -350,6 +350,10 @@ class VisualEditorServiceProvider extends ServiceProvider
 			return new DynamicContentSourceRegistry();
 		} );
 
+		// #881 — the model-level Custom CSS guard. Request-scoped so the
+		// values a controller vouched for never outlive the request.
+		$this->app->scoped( Effects\CustomCssModelGuard::class, static fn (): Effects\CustomCssModelGuard => new Effects\CustomCssModelGuard() );
+
 		// #876 — block style variations. Code registrations live in a
 		// singleton so they survive from boot() to render; the resolver
 		// is scoped because it merges in the per-request global styles.
@@ -755,6 +759,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->registerAiGate();
 		$this->registerContentGate();
 		$this->registerBlockCssGate();
+		$this->registerSiteEditorCustomCssFilter();
 
 		Gate::policy( VisualEditorPost::class, VisualEditorPostPolicy::class );
 
@@ -1706,6 +1711,33 @@ class VisualEditorServiceProvider extends ServiceProvider
 		Gate::define(
 			Effects\BlockCssAccess::ABILITY,
 			static fn ( ?\Illuminate\Contracts\Auth\Authenticatable $user ): bool => Effects\BlockCssAccess::allows( $user ),
+		);
+	}
+
+	/**
+	 * Run {@see Effects\CustomCssGuard} on the block trees cms-framework's
+	 * Site Editor API is about to store (F-1), through its
+	 * `ap.cmsFramework.siteEditor.blockContent` filter
+	 * (`$blocks, ?array $storedBlocks, string $context`). The filter runs
+	 * before the model save, so the stored blocks it passes (the record's,
+	 * or the theme file's for a file→DB copy) are vouched for and the
+	 * model-level guard keeps them too.
+	 *
+	 * Gated on `addFilter` to keep visual-editor bootable when
+	 * `artisanpack-ui/hooks` isn't on the classpath. A cms-framework that
+	 * doesn't fire the filter is still covered by the model-level guard.
+	 *
+	 * @since 1.15.0
+	 */
+	protected function registerSiteEditorCustomCssFilter(): void
+	{
+		if ( ! function_exists( 'addFilter' ) ) {
+			return;
+		}
+
+		addFilter(
+			'ap.cmsFramework.siteEditor.blockContent',
+			static fn ( mixed $blocks, mixed $storedBlocks = null ): mixed => app( Effects\CustomCssGuard::class )->filter( $blocks, $storedBlocks ),
 		);
 	}
 
