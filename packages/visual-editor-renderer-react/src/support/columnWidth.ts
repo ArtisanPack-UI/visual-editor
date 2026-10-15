@@ -20,7 +20,7 @@
 
 import { formatPercent } from './attributes';
 import { safeCssValue } from './cssValue';
-import { getBreakpoints } from '../visibility';
+import { getBreakpoints, getDeviceBreakpoints } from '../visibility';
 import type { Block } from '../types';
 import { xxh3_64_hex } from './xxh3';
 
@@ -34,15 +34,6 @@ export interface ColumnWidthScope {
 	/** The accumulated CSS rules for every surviving breakpoint. */
 	css: string;
 }
-
-/**
- * Desktop-first device breakpoints (#820), largest first. Mirrors the
- * editor registry's `DEVICE_DEFAULTS`.
- */
-const DEVICE_BREAKPOINTS: ReadonlyArray<{ key: string; maxWidthPx: number }> = [
-	{ key: 'tablet', maxWidthPx: 1023 },
-	{ key: 'mobile', maxWidthPx: 767 },
-];
 
 interface NormalizedBasis {
 	basis: string;
@@ -81,7 +72,11 @@ export function columnWidthScope( attributes: Record<string, unknown> ): ColumnW
 	const legacy = [ ...getBreakpoints() ].sort( ( a, b ) => a.minWidthPx - b.minWidthPx );
 	const queries = new Map<string, string>( [
 		...legacy.map( ( bp ): [ string, string ] => [ bp.key, `(min-width:${ bp.minWidthPx }px)` ] ),
-		...DEVICE_BREAKPOINTS.map( ( bp ): [ string, string ] => [ bp.key, `(max-width:${ bp.maxWidthPx }px)` ] ),
+		// Desktop-first device keys (#820), largest first, from the same
+		// host-configurable registry (M-17).
+		...getDeviceBreakpoints()
+			.sort( ( a, b ) => b.maxWidthPx - a.maxWidthPx )
+			.map( ( bp ): [ string, string ] => [ bp.key, `(max-width:${ bp.maxWidthPx }px)` ] ),
 	] );
 	const rules: string[] = [];
 

@@ -15,6 +15,48 @@ export interface BreakpointDefinition {
     minWidthPx: number;
 }
 
+/**
+ * A desktop-first device breakpoint (#820): it applies at
+ * `(max-width:{maxWidthPx}px)`, and the editor previews it at
+ * `previewWidthPx`, which also picks the legacy keys it inherits.
+ *
+ * @since 1.15.0
+ */
+export interface DeviceBreakpointDefinition {
+    key: string;
+    maxWidthPx: number;
+    previewWidthPx: number;
+}
+
+/**
+ * One breakpoint as `setBreakpoints()` accepts it: an entry of the
+ * server's `BreakpointRegistry::toArray()` (with `key`), or the value of
+ * a `config('artisanpack.visual-editor.breakpoints')`-style map entry
+ * (without). Widths are integers or `Npx` strings. An entry declares
+ * `minWidthPx` (legacy, mobile-first) or `maxWidthPx` (device,
+ * desktop-first), not both.
+ *
+ * @since 1.15.0
+ */
+export interface BreakpointInput {
+    key?: string;
+    minWidthPx?: number | string | null;
+    maxWidthPx?: number | string | null;
+    previewWidthPx?: number | string | null;
+    label?: string | null;
+}
+
+/**
+ * A breakpoint map keyed by breakpoint key, layered over the defaults
+ * like `BreakpointRegistry::fromLayers()` layers the host config: a
+ * number or `Npx` string keeps the family of the entry it overrides
+ * (`mobile: 600` narrows the Mobile max-width), an object naming one
+ * width switches family, and `null` removes the entry.
+ *
+ * @since 1.15.0
+ */
+export type BreakpointMap = Record<string, BreakpointInput | number | string | null | undefined>;
+
 const DEFAULT_BREAKPOINTS: BreakpointDefinition[] = [
     { key: 'sm', minWidthPx: 640 },
     { key: 'md', minWidthPx: 768 },
@@ -23,14 +65,202 @@ const DEFAULT_BREAKPOINTS: BreakpointDefinition[] = [
     { key: '2xl', minWidthPx: 1536 },
 ];
 
+/** Mirrors the device entries of `BreakpointRegistry::DEFAULTS`. */
+const DEFAULT_DEVICE_BREAKPOINTS: DeviceBreakpointDefinition[] = [
+    { key: 'tablet', maxWidthPx: 1023, previewWidthPx: 768 },
+    { key: 'mobile', maxWidthPx: 767, previewWidthPx: 375 },
+];
+
 let breakpoints: BreakpointDefinition[] = [...DEFAULT_BREAKPOINTS];
 
-export function setBreakpoints(next: BreakpointDefinition[]): void {
-    breakpoints = next.filter((bp) => typeof bp.key === 'string' && bp.key !== '' && Number.isFinite(bp.minWidthPx));
+let deviceBreakpoints: DeviceBreakpointDefinition[] = [...DEFAULT_DEVICE_BREAKPOINTS];
+
+/**
+ * Replace the breakpoints the renderer emits media queries for. Pass the
+ * server's `BreakpointRegistry::toArray()` so the JS output matches
+ * Blade byte for byte, including customised Tablet / Mobile widths.
+ *
+ * - An **array** replaces the legacy (min-width) list with its
+ *   `minWidthPx` entries. Its `maxWidthPx` entries replace the device
+ *   list; an array without any keeps the default devices.
+ * - A **map** (`{ mobile: { maxWidthPx: 599 } }`) is layered over the
+ *   defaults like the host config is on the server.
+ *
+ * Invalid entries (bad key, the reserved `base` key, non-positive or
+ * duplicate widths, both or neither width) are dropped, and a device
+ * preview width wider than its max-width is clamped to it.
+ *
+ * @since 1.0.0
+ * @since 1.15.0 Accepts device entries (`maxWidthPx`, `previewWidthPx`) and the map form.
+ */
+export function setBreakpoints(next: ReadonlyArray<BreakpointInput> | BreakpointMap): void {
+    if (Array.isArray(next)) {
+        const entries = (next as ReadonlyArray<BreakpointInput>).flatMap((entry) =>
+            entry !== null && typeof entry === 'object' && typeof entry.key === 'string'
+                ? [[entry.key, entry] as [string, BreakpointInput]]
+                : []
+        );
+        const resolved = normalizeBreakpoints(entries);
+
+        breakpoints = resolved.legacy;
+        deviceBreakpoints = entries.some(([, entry]) => isSet(entry.maxWidthPx))
+            ? resolved.devices
+            : [...DEFAULT_DEVICE_BREAKPOINTS];
+
+        return;
+    }
+
+    const resolved = normalizeBreakpoints(Object.entries(mergeBreakpointLayer(next as BreakpointMap)));
+
+    breakpoints = resolved.legacy;
+    deviceBreakpoints = resolved.devices;
 }
 
+/** The legacy (mobile-first, min-width) breakpoints. */
 export function getBreakpoints(): BreakpointDefinition[] {
     return [...breakpoints];
+}
+
+/**
+ * The device (desktop-first, max-width) breakpoints, largest first —
+ * the order a narrower override must be emitted in to win.
+ *
+ * @since 1.15.0
+ */
+export function getDeviceBreakpoints(): DeviceBreakpointDefinition[] {
+    return [...deviceBreakpoints];
+}
+
+/**
+ * Layer a breakpoint map over the defaults. Mirrors
+ * `BreakpointRegistry::mergeByKey()`.
+ */
+function mergeBreakpointLayer(layer: BreakpointMap): Record<string, BreakpointInput> {
+    const merged: Record<string, BreakpointInput> = {};
+
+    for (const bp of DEFAULT_BREAKPOINTS) {
+        merged[bp.key] = { minWidthPx: bp.minWidthPx, previewWidthPx: bp.minWidthPx };
+    }
+
+    for (const bp of DEFAULT_DEVICE_BREAKPOINTS) {
+        merged[bp.key] = { maxWidthPx: bp.maxWidthPx, previewWidthPx: bp.previewWidthPx };
+    }
+
+    for (const [key, raw] of Object.entries(layer)) {
+        if (raw === null || raw === undefined || raw === '') {
+            delete merged[key];
+
+            continue;
+        }
+
+        const prior = Object.prototype.hasOwnProperty.call(merged, key) ? merged[key] : null;
+        const value: BreakpointInput =
+            typeof raw === 'object'
+                ? { ...raw }
+                : prior !== null && isSet(prior.maxWidthPx)
+                  ? { maxWidthPx: raw }
+                  : { minWidthPx: raw };
+        const base: BreakpointInput = prior === null ? {} : { ...prior };
+
+        if (isSet(value.minWidthPx)) {
+            delete base.maxWidthPx;
+        }
+
+        if (isSet(value.maxWidthPx)) {
+            delete base.minWidthPx;
+        }
+
+        const entry = { ...base, ...value };
+
+        // A layer that narrows a device without naming a preview width
+        // inherits the old one; clamp it into the new range.
+        if (prior !== null && isSet(value.maxWidthPx) && !isSet(value.previewWidthPx)) {
+            const max = pixels(entry.maxWidthPx);
+            const preview = pixels(entry.previewWidthPx);
+
+            if (max !== null && preview !== null && preview > max) {
+                entry.previewWidthPx = max;
+            }
+        }
+
+        merged[key] = entry;
+    }
+
+    return merged;
+}
+
+/**
+ * Validate breakpoint entries and split them into the legacy list
+ * (ascending min-width) and the device list (descending max-width).
+ * Mirrors `BreakpointRegistry::validate()` and its constructor, dropping
+ * what the server would reject.
+ */
+function normalizeBreakpoints(entries: ReadonlyArray<[string, BreakpointInput]>): {
+    legacy: BreakpointDefinition[];
+    devices: DeviceBreakpointDefinition[];
+} {
+    const legacy: BreakpointDefinition[] = [];
+    const devices: DeviceBreakpointDefinition[] = [];
+
+    for (const [key, entry] of entries) {
+        if (key === 'base' || !/^[a-z0-9][a-z0-9_-]*$/i.test(key) || entry === null || typeof entry !== 'object') {
+            continue;
+        }
+
+        const hasMin = isSet(entry.minWidthPx);
+        const hasMax = isSet(entry.maxWidthPx);
+
+        if (hasMin === hasMax) {
+            continue;
+        }
+
+        if (hasMin) {
+            const minWidthPx = pixels(entry.minWidthPx);
+
+            if (minWidthPx !== null && !legacy.some((bp) => bp.minWidthPx === minWidthPx) && !legacy.some((bp) => bp.key === key)) {
+                legacy.push({ key, minWidthPx });
+            }
+
+            continue;
+        }
+
+        const maxWidthPx = pixels(entry.maxWidthPx);
+
+        if (maxWidthPx === null || devices.some((bp) => bp.maxWidthPx === maxWidthPx || bp.key === key)) {
+            continue;
+        }
+
+        const preview = isSet(entry.previewWidthPx) ? pixels(entry.previewWidthPx) : maxWidthPx;
+
+        if (preview === null) {
+            continue;
+        }
+
+        devices.push({ key, maxWidthPx, previewWidthPx: Math.min(preview, maxWidthPx) });
+    }
+
+    return {
+        legacy: legacy.sort((a, b) => a.minWidthPx - b.minWidthPx),
+        devices: devices.sort((a, b) => b.maxWidthPx - a.maxWidthPx),
+    };
+}
+
+/** A positive pixel count from a number or an `Npx` string, else `null`. */
+function pixels(value: unknown): number | null {
+    let parsed: number | null = null;
+
+    if (typeof value === 'number') {
+        parsed = value;
+    } else if (typeof value === 'string') {
+        const match = /^\s*(\d+)(px)?\s*$/i.exec(value);
+        parsed = match === null ? null : Number.parseInt(match[1], 10);
+    }
+
+    return parsed !== null && Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function isSet(value: unknown): boolean {
+    return value !== null && value !== undefined;
 }
 
 export function filterVisibleBlocks(tree: Block[]): Block[] {
