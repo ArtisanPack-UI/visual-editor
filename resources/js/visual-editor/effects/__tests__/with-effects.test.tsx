@@ -203,10 +203,21 @@ describe( 'Canvas preview', () => {
 	const EffectsStyled = withEffectsStyles( BlockListBlock as never ) as unknown as ComponentType<Props>
 	const attributes = { artisanpackEffects: { opacity: 50, customCss: 'background: url("a.png");' } }
 
-	it( 'prints Custom CSS URLs by default', () => {
+	it( 'prints Custom CSS URLs by default, scoped to an in-tree canvas', () => {
 		const { unmount } = render( <EffectsStyled clientId="block-2" name="core/paragraph" attributes={ attributes } /> )
+		const css         = getCanvasScopedStyleElement( 'effects' )?.textContent ?? ''
 
-		expect( getCanvasScopedStyleElement( 'effects' )?.textContent ).toContain( 'url("a.png")' )
+		expect( css ).toMatch( /^@scope \(\.editor-styles-wrapper\)\{\.ve-fx-[0-9a-f]{8}\{/ )
+		expect( css ).toContain( 'url("a.png")' )
+		unmount()
+	} )
+
+	it( 'leaves effects without Custom CSS unscoped', () => {
+		const { unmount } = render(
+			<EffectsStyled clientId="block-2" name="core/paragraph" attributes={ { artisanpackEffects: { opacity: 50 } } } />,
+		)
+
+		expect( getCanvasScopedStyleElement( 'effects' )?.textContent ).toMatch( /^\.ve-fx-[0-9a-f]{8}\{opacity:0\.5\}$/ )
 		unmount()
 	} )
 

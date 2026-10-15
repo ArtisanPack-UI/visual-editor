@@ -31,6 +31,46 @@ const hosts = new Map<string, WeakMap<Document, StyleHost>>();
 /** Attribute naming the channel on a host `<style>` element. */
 export const CANVAS_STYLE_HOST_ATTRIBUTE = 'data-ap-canvas-styles';
 
+/**
+ * Root of a canvas that renders in the editor's own document rather than
+ * an iframe: the site editor's entity and pattern canvases
+ * (`entity-editor-canvas.tsx`, `patterns/pattern-canvas.tsx`) wrap their
+ * block list in it, as Gutenberg's non-iframe canvas does.
+ *
+ * @since 1.15.0
+ */
+export const IN_TREE_CANVAS_ROOT = '.editor-styles-wrapper';
+
+/**
+ * Options for {@link useCanvasScopedStyle}.
+ *
+ * @since 1.15.0
+ */
+export interface CanvasScopedStyleOptions {
+    /**
+     * Wrap the CSS in `@scope (<canvas root>)` when the block renders in
+     * the editor's own document, so author-written selectors whose
+     * subject sits outside the canvas (`:root`, `body`,
+     * `:root:has(&) .interface-…`) can't restyle the editor chrome. An
+     * iframe canvas already isolates them.
+     */
+    scopeInTree?: boolean;
+}
+
+/**
+ * Wraps `css` in `@scope (<canvas root>)` when `doc` is the editor's own
+ * document (an in-tree canvas); returns it unchanged for an iframe canvas.
+ *
+ * @since 1.15.0
+ */
+export function scopeToInTreeCanvas(css: string, doc: Document): string {
+    if (css === '' || typeof document === 'undefined' || doc !== document) {
+        return css;
+    }
+
+    return `@scope (${IN_TREE_CANVAS_ROOT}){${css}}`;
+}
+
 function hostsFor(channel: string): WeakMap<Document, StyleHost> {
     let perDocument = hosts.get(channel);
 
@@ -168,8 +208,15 @@ export function getCanvasScopedStyleElement(
  * @param channel  Host name, e.g. `visibility`.
  * @param clientId Block whose wrapper locates the canvas document.
  * @param css      The block's CSS; `''` publishes nothing.
+ * @param options  See {@link CanvasScopedStyleOptions}. @since 1.15.0
  */
-export function useCanvasScopedStyle(channel: string, clientId: string, css: string): void {
+export function useCanvasScopedStyle(
+    channel: string,
+    clientId: string,
+    css: string,
+    options: CanvasScopedStyleOptions = {}
+): void {
+    const scopeInTree = options.scopeInTree === true;
     const ownerRef = useRef<object>({});
     const documentRef = useRef<Document | null>(null);
 
@@ -185,6 +232,8 @@ export function useCanvasScopedStyle(channel: string, clientId: string, css: str
             documentRef.current = doc;
         }
 
-        return setCanvasScopedStyle(channel, ownerRef.current, css, doc);
-    }, [channel, clientId, css]);
+        const printed = scopeInTree ? scopeToInTreeCanvas(css, doc) : css;
+
+        return setCanvasScopedStyle(channel, ownerRef.current, printed, doc);
+    }, [channel, clientId, css, scopeInTree]);
 }

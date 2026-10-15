@@ -439,12 +439,16 @@ export const withEffectsStyles = createHigherOrderComponent(
 			const { clientId, attributes, wrapperProps } = props
 
 			const allowUrls = customCssAllowsUrls()
-			const compiled  = useMemo(
-				() => compileEffects( attributes, { allowCustomCssUrls: allowUrls } ),
-				[ attributes, allowUrls ],
-			)
 
-			useCanvasScopedStyle( EFFECTS_STYLE_CHANNEL, clientId, compiled?.css ?? '' )
+			// F-12 — Custom CSS can name selectors outside the block
+			// (`:root:has(&) …`), so in an in-tree canvas its rule is
+			// scoped to the canvas.
+			const { compiled, hasCustomCss } = useMemo( () => ( {
+				compiled:     compileEffects( attributes, { allowCustomCssUrls: allowUrls } ),
+				hasCustomCss: '' !== ( sanitizeCustomCss( readEffects( attributes ).customCss, allowUrls ) ?? '' ),
+			} ), [ attributes, allowUrls ] )
+
+			useCanvasScopedStyle( EFFECTS_STYLE_CHANNEL, clientId, compiled?.css ?? '', { scopeInTree: hasCustomCss } )
 
 			const effectiveWrapperProps = useMemo( () => {
 				if ( null === compiled ) {
