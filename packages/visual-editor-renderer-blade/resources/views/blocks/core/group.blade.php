@@ -36,10 +36,13 @@
 
 	// #700 — the block-library CSS targets the per-block compound
 	// (`wp-block-group-is-layout-constrained`), so emit it alongside the
-	// shared modifier.
+	// shared modifier. #871 — the layout panel's per-instance values
+	// (content / wide size, justification, orientation, wrap, grid
+	// columns) ride on a hashed `wp-container-*` scope.
 	$wrapperBaseClasses = array_merge(
 		[ 'wp-block-group' ],
 		LayoutSupport::pair( 'group', $layoutClass ),
+		LayoutSupport::containerClasses( $attributes, 'group', $layoutClass ),
 		$flexClasses,
 		$photoGridClasses
 	);

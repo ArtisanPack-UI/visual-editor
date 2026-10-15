@@ -70,8 +70,10 @@ describe('layout-supporting wrappers emit the compound class', () => {
     it('renders a grid group as is-layout-grid rather than silently as flow', () => {
         const tree = [makeBlock('core/group', { layout: { type: 'grid' } }, [])];
 
-        expect(renderTree(tree)).toContain(
-            'class="wp-block-group is-layout-grid wp-block-group-is-layout-grid"'
+        // #871 — a grid group also carries its per-instance
+        // `wp-container-<hash>` scope (the default auto-fill track list).
+        expect(renderTree(tree)).toMatch(
+            /class="wp-block-group is-layout-grid wp-block-group-is-layout-grid wp-container-[0-9a-f]{12}"/
         );
     });
 

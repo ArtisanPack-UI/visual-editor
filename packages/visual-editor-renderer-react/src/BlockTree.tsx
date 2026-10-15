@@ -33,6 +33,7 @@ import {
     NAVIGATION_OVERLAY_CSS,
     treeHasNavigationOverlay,
 } from './support/navigationOverlayCss';
+import { stampLayoutScopes } from './support/layoutContainer';
 import { stampPhotoGridScopes } from './support/photoGrid';
 import {
     DEFAULT_MAX_PATTERN_DEPTH,
@@ -209,9 +210,18 @@ export function BlockTree({
     // custom-property rule, so image-bearing descendants get the same
     // aspect-ratio / object-fit / object-position sizing the Blade renderer
     // applies.
-    const { tree: renderTree, css: photoGridCss } = useMemo(() => {
+    const { tree: photoGridTree, css: photoGridCss } = useMemo(() => {
         return stampPhotoGridScopes(columnWidthTree);
     }, [columnWidthTree]);
+
+    // Per-instance layout (#871) — stamp the hashed `wp-container-<hash>`
+    // scope onto every group / post-content block whose layout panel sets
+    // content / wide size, justification, orientation, wrap or grid
+    // columns, and emit the matching rules the Blade renderer pushes from
+    // `LayoutSupport::containerClasses()`.
+    const { tree: renderTree, css: layoutCss } = useMemo(() => {
+        return stampLayoutScopes(photoGridTree);
+    }, [photoGridTree]);
 
     // Navigation overlay (#804) — the drawer's breakpoint + open-state
     // rules, emitted once when any navigation block has its overlay on.
@@ -234,6 +244,12 @@ export function BlockTree({
             )}
             {photoGridCss !== '' && (
                 <style data-ve-photo-grid="">{photoGridCss}</style>
+            )}
+            {layoutCss !== '' && (
+                // Raw HTML so the `>` child combinator isn't escaped to
+                // `&gt;` inside the style element. The rule values are
+                // whitelisted by `layoutContainer()` and carry no `<`.
+                <style data-ve-layout="" dangerouslySetInnerHTML={{ __html: layoutCss }} />
             )}
             {hasNavigationOverlay && (
                 <style data-ve-navigation-overlay="">{NAVIGATION_OVERLAY_CSS}</style>

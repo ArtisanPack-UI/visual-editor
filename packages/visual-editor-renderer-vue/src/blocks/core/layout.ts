@@ -71,10 +71,14 @@ export const GroupBlock = defineComponent({
             // `className`, the same position the Blade partial merges it
             // into `$wrapperBaseClasses`.
             const photoGridScope = attrString(props.attributes._vePhotoGridScope);
+            // Per-instance layout scope stamped by `stampLayoutScopes()`
+            // (#871), right after the layout pair as in `group.blade.php`.
+            const layoutScope = attrString(props.attributes._veLayoutScope);
 
             const classes = classList([
                 'wp-block-group',
                 ...layoutPair('group', groupLayoutClass),
+                layoutScope !== '' ? layoutScope : null,
                 ...flexClasses,
                 photoGridScope !== '' ? photoGridScope : null,
                 className,

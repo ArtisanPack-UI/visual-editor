@@ -33,6 +33,7 @@ import {
     NAVIGATION_OVERLAY_CSS,
     treeHasNavigationOverlay,
 } from './support/navigationOverlayCss';
+import { stampLayoutScopes } from './support/layoutContainer';
 import { stampPhotoGridScopes } from './support/photoGrid';
 import {
     DEFAULT_MAX_PATTERN_DEPTH,
@@ -239,7 +240,17 @@ export const BlockTree = defineComponent({
             stampPhotoGridScopes(columnWidth.value.tree)
         );
 
-        const hasNavigationOverlay = computed(() => treeHasNavigationOverlay(photoGrid.value.tree));
+        // Per-instance layout (#871) — stamp the hashed
+        // `wp-container-<hash>` scope onto every group / post-content
+        // block whose layout panel sets content / wide size,
+        // justification, orientation, wrap or grid columns, and emit the
+        // matching rules the Blade renderer pushes from
+        // `LayoutSupport::containerClasses()`.
+        const layout = computed(() =>
+            stampLayoutScopes(photoGrid.value.tree)
+        );
+
+        const hasNavigationOverlay = computed(() => treeHasNavigationOverlay(layout.value.tree));
 
         return () => {
             const endpoint = props.dynamicBlockEndpoint ?? DEFAULT_ENDPOINT;
@@ -289,6 +300,18 @@ export const BlockTree = defineComponent({
                 );
             }
 
+            if (layout.value.css !== '') {
+                // `innerHTML` so the `>` child combinator isn't escaped to
+                // `&gt;` inside the style element. The rule values are
+                // whitelisted by `layoutContainer()` and carry no `<`.
+                children.push(
+                    h('style', {
+                        'data-ve-layout': '',
+                        innerHTML: layout.value.css,
+                    })
+                );
+            }
+
             // Navigation overlay (#804) — the drawer's breakpoint +
             // open-state rules, emitted once when any navigation block
             // has its overlay on.
@@ -302,7 +325,7 @@ export const BlockTree = defineComponent({
                 );
             }
 
-            photoGrid.value.tree
+            layout.value.tree
                 .map((block, index) => renderBlock(block, index, endpoint, props.fetchOptions))
                 .filter((vnode): vnode is VNode => vnode !== null)
                 .forEach((vnode) => children.push(vnode));

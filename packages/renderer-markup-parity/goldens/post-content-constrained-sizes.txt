@@ -1,0 +1,8 @@
+<div class="entry-content wp-block-post-content is-layout-constrained wp-block-post-content-is-layout-constrained wp-container-3201551213af">
+  <p>
+    "Body"
+  </p>
+</div>
+@@ renderer-instance-css @@
+.wp-block-post-content.wp-block-post-content-is-layout-constrained.wp-container-3201551213af > .alignwide{max-width:700px;}
+.wp-block-post-content.wp-block-post-content-is-layout-constrained.wp-container-3201551213af > :where(:not(.alignleft):not(.alignright):not(.alignfull)){max-width:700px;margin-left:auto !important;margin-right:auto !important;}
