@@ -73,8 +73,23 @@ const BUTTON_CSS_CURRENT = '.ap-state-b1 { transition: all 150ms ease; } '
 	+ '@media (hover: hover) { .ap-state-b1:hover, .ap-state-b1:hover :is(a, button) { background-color: var(--wp--preset--color--accent-dark) !important; } } '
 	+ '@media (prefers-reduced-motion: reduce) { .ap-state-b1 { transition: none !important; } }'
 
-function groupMarkup( css: string ): string {
-	return `<!-- wp:artisanpack/group {"states":${ JSON.stringify( GROUP_STATES ) }} -->\n`
+// R-19: a preset slug with non-ASCII characters. 1.15 development builds
+// slugged it with Unicode lowercase per UTF-16 unit (`i-nk`); 1.15.0 slugs
+// it byte-wise like PHP `PresetRegistry::presetSlug()` (`--nk`).
+const INK_STATES = {
+	_scopeId:                 'g1',
+	'style.color.background': { hover: 'var:preset|color|İnk' },
+}
+
+const INK_CSS_DEV = '.ap-state-g1 { transition: all 150ms ease; } '
+	+ '@media (hover: hover) { .ap-state-g1:hover, .ap-state-g1:hover :is(a, button) { background-color: var(--wp--preset--color--i-nk) !important; } }'
+
+const INK_CSS_CURRENT = '.ap-state-g1 { transition: all 150ms ease; } '
+	+ '@media (hover: hover) { .ap-state-g1:hover, .ap-state-g1:hover :is(a, button) { background-color: var(--wp--preset--color----nk) !important; } } '
+	+ '@media (prefers-reduced-motion: reduce) { .ap-state-g1 { transition: none !important; } }'
+
+function groupMarkup( css: string, states: Record<string, unknown> = GROUP_STATES ): string {
+	return `<!-- wp:artisanpack/group {"states":${ JSON.stringify( states ) }} -->\n`
 		+ `<div class="wp-block-artisanpack-group wp-block-group ap-state-g1"></div><style data-ap-state-scope="g1">${ css }</style>\n`
 		+ '<!-- /wp:artisanpack/group -->'
 }
@@ -110,6 +125,13 @@ describe( 'emitStateCss legacy shapes', () => {
 		expect( emitStateCss( '.ap-state-b1', withoutScope( BUTTON_STATES ) as never, registry, legacy ) ).toBe( BUTTON_CSS_1_14 )
 	} )
 
+	it( 'slugs non-ASCII preset segments byte-wise, and the old way for the dev-build shape (R-19)', () => {
+		const states = withoutScope( INK_STATES ) as never
+
+		expect( emitStateCss( '.ap-state-g1', states, registry ) ).toBe( INK_CSS_CURRENT )
+		expect( emitStateCss( '.ap-state-g1', states, registry, LEGACY_STATE_CSS_SHAPES[ 0 ] ) ).toBe( INK_CSS_DEV )
+	} )
+
 	it( 'emits the current shape by default', () => {
 		expect( emitStateCss( '.ap-state-g1', withoutScope( GROUP_STATES ) as never, registry ) ).toBe( GROUP_CSS_CURRENT )
 		expect( emitStateCss( '.ap-state-b1', withoutScope( BUTTON_STATES ) as never, registry ) ).toBe( BUTTON_CSS_CURRENT )
@@ -134,6 +156,13 @@ describe( 'state-CSS save deprecations', () => {
 
 		expect( block.isValid ).toBe( true )
 		expect( serialize( [ block ] ) ).toBe( groupMarkup( GROUP_CSS_CURRENT ) )
+	} )
+
+	it( 'validates dev-build markup whose preset slug has non-ASCII characters (R-19)', () => {
+		const [ block ] = parse( groupMarkup( INK_CSS_DEV, INK_STATES ) ) as AnyBlock[]
+
+		expect( block.isValid ).toBe( true )
+		expect( serialize( [ block ] ) ).toBe( groupMarkup( INK_CSS_CURRENT, INK_STATES ) )
 	} )
 
 	it( 'keeps current markup valid', () => {

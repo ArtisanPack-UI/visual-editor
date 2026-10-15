@@ -13,8 +13,10 @@
  *  - **1.14 and earlier.** `var:preset|{kind}|{slug}` references were
  *    written through unchanged and there was no reduced-motion guard.
  *  - **1.15 development builds.** References were expanded (#875) but
- *    there was still no reduced-motion guard. 1.15.0 never shipped this
- *    shape; it only exists in databases that ran the release branch.
+ *    there was still no reduced-motion guard, and preset segments were
+ *    slugged with Unicode lowercasing per UTF-16 unit rather than
+ *    byte-wise like PHP (R-19). 1.15.0 never shipped this shape; it
+ *    only exists in databases that ran the release branch.
  *
  * A `blocks.registerBlockType` filter prepends one deprecation per
  * shape to every block that supports `artisanpackStates`. Each one is
@@ -66,8 +68,9 @@ export const STATE_CSS_SHAPE_SUPPORT = '__artisanpackStateCssShape'
  * @since 1.15.0
  */
 export const LEGACY_STATE_CSS_SHAPES: ReadonlyArray<Readonly<EmitStateCssOptions>> = [
-	// 1.15 development builds: presets expanded, no reduced-motion guard.
-	{ expandPresets: true, reducedMotionGuard: false },
+	// 1.15 development builds: presets expanded with the old slug rule,
+	// no reduced-motion guard.
+	{ expandPresets: true, reducedMotionGuard: false, legacyPresetSlugs: true },
 	// 1.14 and earlier: raw `var:preset|…`, no reduced-motion guard.
 	{ expandPresets: false, reducedMotionGuard: false },
 ]
