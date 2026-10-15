@@ -33,6 +33,13 @@ would serialize: never a key in `$hidden`, and only keys in `$visible`
 when that list is non-empty. A path such as `author.password` resolves
 to empty and the binding's empty-value policy applies.
 
+With the opt-in [attribute allowlist](#attribute-allowlist) enforced,
+`relation` may only read allowlisted attributes of the records it walks
+through, and none of the three model sources will publish a whole
+record. That covers a `custom_field` or `post_core` value (such as a
+`featured_image` relation) that holds a model anywhere inside an array
+or collection.
+
 Bindings never call arbitrary model methods. A `custom_field` key or a
 `relation` path segment that names a method only resolves when that
 method declares an Eloquent `Relation` return type, such as
@@ -120,6 +127,78 @@ record is missing the underlying field.
 `0`, `0.0`, and `false` are **not** empty — they're legitimate values
 and pass through unchanged.
 
+## Attribute allowlist
+
+*Since v1.15.0 (#869). Opt-in.* By default a binding may read any
+attribute a model doesn't keep in `$hidden` (or leave out of a
+non-empty `$visible`). That includes related records: a `relation`
+binding to `author.email` renders the author's email on the public
+front end unless the `User` model hides it.
+
+Turn on enforcement to deny by default:
+
+```dotenv
+VE_BINDINGS_ENFORCE_ALLOWLIST=true
+```
+
+or set `bindings.enforce_allowlist` to `true` in the config (see
+[Configuration](./Configuration.md#bindings)). With enforcement on:
+
+- A `relation` binding may read an attribute of a related model only
+  when that model's allowlist names it. The parent record's own
+  attributes (its custom fields and post core fields) aren't gated.
+- A binding value can't be a whole record. `relation`, `custom_field`
+  and `post_core` resolve to empty (so the binding's
+  [empty-value policy](#empty-value-policy) applies) when the value is a
+  model, or an array or collection that holds one at any depth. A path
+  such as `author` that ends on the related record itself is refused
+  the same way.
+- The field picker hides the `post_core` **Author name** field
+  (`author_name`) unless the model's `author` relation points at a model
+  that allows `name`, so authors aren't offered a field that would
+  always render empty.
+
+An attribute is allowlisted when any of these lists it. The lists are
+merged in this order, and the filter sees the merged result:
+
+1. **The model itself**, by implementing `DefinesBindableAttributes`:
+
+   ```php
+   use ArtisanPackUI\VisualEditor\Services\Bindings\DefinesBindableAttributes;
+
+   class User extends Authenticatable implements DefinesBindableAttributes
+   {
+       public function bindableAttributes(): array
+       {
+           return [ 'name', 'website' ];
+       }
+   }
+   ```
+
+2. **Config**, keyed by model class:
+
+   ```php
+   'bindings' => [
+       'enforce_allowlist'  => env( 'VE_BINDINGS_ENFORCE_ALLOWLIST', false ),
+       'allowed_attributes' => [
+           App\Models\User::class => [ 'name', 'website' ],
+       ],
+   ],
+   ```
+
+3. **The `ap.visualEditor.bindings.allowedAttributes` filter**, which
+   receives the merged list, the related model and the full binding
+   path. See [Hooks and Events](./Hooks-and-Events.md#apvisualeditorbindingsallowedattributes).
+
+An entry of `'*'` allows every attribute on that model. A relation
+segment counts as an attribute, so to bind `author.team.name` the
+author's model must allow `team` and the team's model must allow `name`.
+
+Enforcement is off by default in 1.x so existing relation bindings keep
+working, and is planned to become the default in 2.0. Until you turn it
+on, keep sensitive columns such as `email` in your `User` model's
+`$hidden`, which every binding source honors.
+
 ## Registering a custom source
 
 A binding source is any class that implements
@@ -169,6 +248,21 @@ Both endpoints are first-party controllers (`BindingSourcesController`,
 `BindingResolveController`, `DynamicContentSourcesController`,
 `DynamicContentResolveController`) and respect the package's standard
 authorization gates.
+
+### Record access check
+
+*Since v1.15.0.* `POST /visual-editor/api/bindings/resolve` and
+`POST /visual-editor/api/blocks/preview` resolve the record named by the
+request's `context.resource` and `context.id`. When the host registers a
+policy for that record's model, the current user now needs its `view`
+ability on the record, or the endpoint answers `403`. Models without a
+policy behave as before: any user who passes the API middleware can
+preview them.
+
+So editors who can open the editor but lack `view` on a record get a
+`403` from the bindings preview and block previews for that record. The
+bindings overlay then falls back to the block's static values. The front-end render
+isn't affected: it resolves against the record the host passes in.
 
 ## SSR
 

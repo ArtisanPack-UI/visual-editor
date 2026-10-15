@@ -78,6 +78,7 @@ The block library — what ships, how to author your own, and how to wire respon
 - [[blocks/Icon Block]] — The `artisanpack/icon` block (FA Free + admin upload)
 - [[blocks/Responsive Design Tools]] — Per-breakpoint values on block controls
 - [[blocks/State Design Tools]] — Per-state overrides (hover, focus, active, etc.)
+- [[blocks/Effects]] — Block Effects panel (opacity, overflow, blend, clip shapes, gradient text) and per-block Custom CSS (v1.15)
 - [[Animations]] — Block entrance, hover, and continuous animations (v1.1)
 - [[Border Gradients]] — Linear / radial / conic borders + tabbed color/gradient picker (v1.1)
 - [[Block Bindings]] — Bind block attributes to parent post/page/CPT data (v1.1)
@@ -142,7 +143,8 @@ The site-editor integration needs `artisanpack-ui/cms-framework` installed at a 
 
 | visual-editor   | cms-framework | Notes                                                              |
 | --------------- | ------------- | ------------------------------------------------------------------ |
-| v1.12 and later | v2.11 or later | Navigation items store extra block settings in `menu_items.block_attributes`; run `php artisan migrate` after updating |
+| v1.15           | v2.11 or later | v2.15 is needed for pattern header fields (`keywords`, `inserter`, `template_types`), full global-styles parity, and the Site Editor API block-content filter (`ap.cmsFramework.siteEditor.blockContent`). The Custom CSS guard also runs on model save, so older cms-framework versions are covered too |
+| v1.12 – v1.14   | v2.11 or later | Navigation items store extra block settings in `menu_items.block_attributes`; run `php artisan migrate` after updating |
 | v1.0 – v1.11    | v2.x          | Site-editor integration                                            |
 | v0.x            | v0.x          | Pre-v1 — no site-editor integration                                |
 

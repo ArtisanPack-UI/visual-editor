@@ -157,6 +157,8 @@ These blocks opt in by default:
 - `artisanpack/cover`
 - `artisanpack/media-text`
 - `artisanpack/details`
+- `artisanpack/group`, `artisanpack/column`, `artisanpack/columns` and `artisanpack/grid-item` (since 1.15.0, #875): colors (including gradients), border, shadow, transform and transition
+- `artisanpack/heading` and `artisanpack/paragraph` (since 1.15.0, #875): colors (including gradients), border, text decoration and transition — no shadow or transform
 
 `artisanpack/navigation` is intentionally not opted in for v1.0 — the parent block doesn't declare color/border supports, so state styling lands more naturally on individual `core/navigation-link` children. That's deferred to a follow-up.
 
@@ -188,13 +190,42 @@ The server-side `StateCssEmitter` turns a block's stateful attributes into scope
 - A wrapping `@media (hover: hover) { … }` around any rule whose state has `hoverMediaWrap = true`.
 - A default `transition: all 150ms ease;` on the `idle` rule whenever any non-idle state is set and no explicit `transition` was authored.
 
+- Since 1.15.0, a trailing `@media (prefers-reduced-motion: reduce) { … }` guard whenever anything can animate or move (see below).
+
 Example output:
 
 ```css
 .ap-block-abc123 { background-color: var(--ap-color-accent); transition: all 150ms ease; }
 @media (hover: hover) { .ap-block-abc123:hover { background-color: var(--ap-color-accent-700); } }
 .ap-block-abc123:focus-visible { background-color: var(--ap-color-accent-500); }
+@media (prefers-reduced-motion: reduce) { .ap-block-abc123 { transition: none !important; } }
 ```
+
+#### Preset values
+
+Since 1.15.0 (#875), a palette or preset pick stored as `var:preset|{kind}|{slug}` is expanded to `var(--wp--preset--{kind}--{slug})` on every state path, not just the paths flagged as presets. Every other state value goes through the same CSS value whitelist as responsive values, so a stored value such as `red}</style><script>` is dropped instead of breaking out of the `<style>` block.
+
+#### Reduced motion
+
+Since 1.15.0, state CSS respects `prefers-reduced-motion: reduce`. The guard comes last and holds:
+
+- the idle rule's transition (authored, or the default `all 150ms ease`) at `transition: none !important`;
+- for each non-idle rule that sets a `transition` or `transform`, a twin on the same selector with `transition: none !important` and the transform held at its idle value (or `none`) with `!important`.
+
+```css
+@media (prefers-reduced-motion: reduce) {
+    .ap-block-abc123 { transition: none !important; }
+    .ap-block-abc123:hover { transform: none !important; }
+}
+```
+
+Nothing is added when no rule sets a transition or transform. The editor's `emitStateCss()` (which writes the saved `<style data-ap-state-scope>`) and the server's `StateCssEmitter` emit the same rules for the same states.
+
+#### Saved markup from older releases
+
+The state CSS is part of a block's saved markup, so 1.15.0's output differs from what 1.14 (raw `var:preset|…` values, no reduced-motion guard) and 1.15 development builds (expanded presets, no guard) saved. A `blocks.registerBlockType` filter adds save deprecations for both older shapes to every block that supports `artisanpackStates`, so templates, template parts and patterns saved by those releases open without the "unexpected or invalid content" warning. Saving the block again writes the 1.15.0 shape, including the reduced-motion guard.
+
+`emitStateCss( scope, states, registry, options? )` takes an optional `EmitStateCssOptions` object to reproduce the older shapes: `expandPresets` (default `true`) and `reducedMotionGuard` (default `true`).
 
 ### 2.6 Supported attributes
 

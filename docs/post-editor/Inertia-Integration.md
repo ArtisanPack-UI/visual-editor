@@ -192,6 +192,47 @@ a prop after mount re-renders the React tree with the new config — but
 the editor doesn't reload content on a re-render. Change `:id` or
 `:resource` and the editor will detect it and fetch the new entity.
 
+### Custom CSS access and theme block styles
+
+*Since v1.15.0.* The Blade `<x-visual-editor>` mount works out the Custom
+CSS permission and the theme's block style variations itself. An Inertia
+host has to pass them in, or the editor fails closed: the Custom CSS
+field stays hidden and the Styles picker shows no theme variations.
+
+| Mount config key (React) | Vue prop | Default | Value to pass |
+|--------------------------|----------|---------|---------------|
+| `canEditBlockCss` | `can-edit-block-css` | `false` (field hidden) | The `visual-editor.edit-block-css` gate result: `Gate::allows( BlockCssAccess::ABILITY )`. |
+| `customCssAllowUrls` | `custom-css-allow-urls` | `true` | Config `effects.custom_css_allow_urls`, so the canvas previews what the front end prints. |
+| `blockStyles` | `block-styles` | — | `app( BlockStyleResolver::class )->editorPayload()`: the theme's block style variations for the Styles picker. |
+
+```php
+use ArtisanPackUI\VisualEditor\BlockStyles\BlockStyleResolver;
+use ArtisanPackUI\VisualEditor\Effects\BlockCssAccess;
+use Illuminate\Support\Facades\Gate;
+
+return Inertia::render('Posts/Edit', [
+    'post'               => [ /* … */ ],
+    'canEditBlockCss'    => Gate::allows( BlockCssAccess::ABILITY ),
+    'customCssAllowUrls' => (bool) config( 'artisanpack.visual-editor.effects.custom_css_allow_urls', true ),
+    'blockStyles'        => app( BlockStyleResolver::class )->editorPayload(),
+]);
+```
+
+```vue
+<VisualEditor
+    resource="posts"
+    :can-edit-block-css="canEditBlockCss"
+    :custom-css-allow-urls="customCssAllowUrls"
+    :block-styles="blockStyles"
+    …
+/>
+```
+
+`canEditBlockCss` only shows or hides the field. Every save re-checks the
+gate on the server, so a client that sets it to `true` without the
+ability still can't store Custom CSS. See
+[Access gate](../site-editor/Access-Gate.md) for how the gate is decided.
+
 ---
 
 ## 3. Front-end rendering
@@ -216,6 +257,14 @@ export default function PostShow({ post }) {
     );
 }
 ```
+
+Since v1.15.0, pass the theme's duotone presets
+(`duotonePresets`) and the `effects.custom_css_allow_urls` setting
+(`customCssAllowUrls`) to `<BlockTree>`. If the host customizes
+breakpoints, also call `setBreakpoints()` with the server's
+`BreakpointRegistry::toArray()` once at bootstrap. See
+[Styles `<BlockTree>` prints](../renderers.md#styles-blocktree-prints) and
+[Breakpoints](../renderers.md#breakpoints).
 
 See [Renderers](../renderers.md) for the full client renderer API.
 

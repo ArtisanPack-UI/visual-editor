@@ -75,12 +75,16 @@ beat `tablet:` on phones. The legacy mobile-first prefixes (`sm:`,
 1.12.1 renders unchanged.
 
 The static `flex-layout.css` stylesheet only ships `tablet:` /
-`mobile:` rules for the default 1023px / 767px widths, and the React
-and Vue renderers' flex serializers use those same default widths. If
-you move those breakpoints in config or `theme.json`, the Blade
-renderer's arbitrary-value rules follow the new widths (they're built
-from the registry), but the static utility classes and the React / Vue
-output don't — ship matching rules yourself.
+`mobile:` rules for the default 1023px / 767px widths. If you move
+those breakpoints in config or `theme.json`, the Blade renderer's
+arbitrary-value rules follow the new widths (they're built from the
+registry), and since 1.15.0 so do the React and Vue flex serializers,
+once the host passes the server's breakpoints to `setBreakpoints()`
+(see [Responsive Design Tools](Responsive-Design-Tools.md#25-server-side-rendering)).
+The static utility classes don't follow — ship matching rules
+yourself. Saved editor markup always uses the package's default
+widths, so blocks don't go invalid when a host changes its
+breakpoints.
 
 Arbitrary values (e.g. `ap-gap-x-[3.5rem]`, `ap-basis-[200px]`) come
 with a per-page `<style>` snippet emitted by the renderer — they don't
@@ -101,6 +105,143 @@ Each renderer has its own emission path:
 The `<style data-ve-flex-arbitrary>` selector is the cross-renderer
 contract; the CSS payload is byte-identical across Blade/React/Vue
 because all three call into the same `buildArbitraryStyles` logic.
+
+### Block spacing and the default gap
+
+Separately from the Flex Layout panel's Row Gap / Column Gap, every
+layout container (`is-layout-flex`, `is-layout-grid`) gets a `gap`
+from the layout baseline (`<style data-ve-layout-baseline>` in Blade,
+`<LayoutBaseline />` in React and Vue). Since 1.15.0 (#883) the gap
+comes from, in order:
+
+1. the container's own **Block spacing** (`style.spacing.blockGap`);
+2. the theme's `styles.spacing.blockGap` (or a per-block
+   `styles.blocks.*.spacing.blockGap`);
+3. `0.5em`, WordPress's flex and grid fallback.
+
+The baseline rules have zero specificity, so blocks that size their
+own gap (Columns, Gallery, Post Template, the Flex panel's gap
+classes) and any theme rule still win.
+
+Block spacing is **per container** (since 1.15.0). A Row, Stack, Grid
+or Group nested inside a container that has its own Block spacing no
+longer picks that spacing up. The baseline adds three zero-specificity
+rules for this:
+
+```css
+:where(body) { --ap-root-block-gap: var(--wp--style--block-gap); }
+:where(.is-layout-flow, .is-layout-constrained, .is-layout-flex, .is-layout-grid) { --wp--style--block-gap: var(--ap-root-block-gap); }
+:where(.wp-block-columns) { --ap-columns-gap: var(--wp--style--block-gap); }
+```
+
+`--ap-root-block-gap` captures the root block gap (the theme's
+`styles.spacing.blockGap`, else the package's 24px default), and every
+layout container resets `--wp--style--block-gap` to it. A container's
+own Block spacing then reaches its children through its per-instance
+`wp-container-{hash}` rule (see [Per-instance layout](#per-instance-layout)),
+the way WordPress's `wp_get_layout_style()` does it:
+
+- flex and grid containers get `gap: <value>`. A per-axis value
+  becomes `gap: <row> <column>` (one value when both sides match),
+  with `0.5em` for a side that isn't set;
+- flow and constrained containers get
+  `> * + * { margin-block-start: <value>; margin-block-end: 0 }`, from
+  the top side of a per-axis value.
+
+The inline `--wp--style--block-gap` a block writes on its wrapper is
+unchanged, so block stylesheets that read it (columns, navigation,
+post-template, the buttons width calc, grid, …) keep working.
+`--ap-columns-gap` keeps the Columns gap readable inside each Column,
+whose percentage width now reads
+`calc(X% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * f)`.
+Where the baseline isn't loaded, this falls back to the old expression.
+
+Two host-visible consequences:
+
+- A host that set `--wp--style--block-gap` on a wrapper element
+  around `<x-ve-blocks>` (rather than on `:root` / `body`) no longer
+  reaches top-level layout containers. Set it on `body` / `:root`, or
+  through theme.json `styles.spacing.blockGap`.
+- A Tailwind utility (layered CSS) that sets `--wp--style--block-gap`
+  on a layout container loses to the unlayered zero-specificity reset.
+  Use the block's Block spacing control or an unlayered rule instead.
+
+The editor canvas is unaffected: Gutenberg never writes `blockGap`
+inline in the canvas, so it never had the leak.
+
+## Per-instance layout
+
+Since 1.15.0 (#871) every block whose `block.json` declares
+`supports.layout` renders WordPress's layout classes in Blade, React
+and Vue:
+
+- `is-layout-{type}` and `wp-block-{slug}-is-layout-{type}`;
+- a hashed `wp-container-{hash}` class when the block's layout
+  settings (content and wide size, justification, orientation, wrap,
+  vertical alignment, grid column count and minimum width) or its
+  Block spacing need a rule of their own;
+- the modifier classes `is-horizontal` / `is-vertical`,
+  `is-content-justification-{left|center|right|space-between|stretch}`
+  and `is-nowrap`.
+
+The scope is hashed from the rule itself, so identical layouts share
+one rule, and the hash is the same in all three renderers. Blade
+collects the rules into the page's `<style data-ve-responsive>`; React
+and Vue print them in one `<style data-ve-layout>` per `BlockTree`.
+Because the gap is part of the hashed rule, a container with its own
+Block spacing now gets a `wp-container-*` class, or a different hash
+than before 1.15.0.
+
+Grids follow WordPress:
+
+- a column count gives `repeat(N, minmax(0, 1fr))`;
+- a minimum column width gives an auto-fill track list;
+- both together cap an auto-fill grid that still collapses on narrow
+  containers;
+- neither gives the default
+  `repeat(auto-fill, minmax(min(12rem, 100%), 1fr))`.
+
+The column count must be a whole number from 1 to 64; anything else is
+ignored.
+
+Covered blocks:
+
+| Block | Layout |
+| --- | --- |
+| Group (including Row and Stack), Post Content | As set in the Layout panel. Since 1.15.0 they also get the modifier classes. |
+| Buttons | Always flex. Vertical orientation, no-wrap, justification and vertical alignment render. Keeps its own `is-content-justification-*` class (default `left`). |
+| Column | Flow by default, with a constrained content size; the Flex panel switches it to flex, as on Group. |
+| Cover | The layout applies to `.wp-block-cover__inner-container` (`is-layout-flow wp-block-cover-is-layout-flow` by default; a constrained content size works). The outer `is-layout-flex wp-block-cover-is-layout-flex` is unchanged. |
+| Navigation | Always flex: `is-layout-flex wp-block-navigation-is-layout-flex` on the `<nav>`, which is now a flex container, plus a scope for orientation, justification, wrap and gap. Legacy top-level `orientation` / `itemsJustification` fill in for missing `layout.*` values. |
+| Query, Quote, Details | Flow. |
+| Comments Pagination | Always flex. |
+
+A legacy `layout.inherit: true` with no `type` renders as constrained,
+as it does in WordPress and the editor. Columns, Quote, Details and
+Query children now get flow spacing (`margin-block-start: <block gap>`)
+from the baseline, matching WordPress and the canvas. The React and
+Vue renderers also emit the inline Block spacing
+(`--wp--style--block-gap`, `row-gap`, `column-gap`) that Blade emits on
+these blocks.
+
+Not covered, because they lay themselves out:
+
+- **Columns** (gap and no-wrap through its own CSS);
+- **Gallery**;
+- **Post Template** (list, grid and masonry);
+- **Query Pagination**, which the package stylesheet lays out as a
+  `1fr auto 1fr` grid that the flex baseline would override.
+
+### Block spacing values are sanitized
+
+Since 1.15.0, `style.spacing.blockGap` values, as a string or per
+axis, are validated before they reach the inline style or the
+per-instance rule in all three renderers. A value that could add
+declarations (`1rem;position:fixed;inset:0`), break out of the rule,
+leave a parenthesis unbalanced, or contain a comment is dropped, as
+WordPress's own gap filter does. Preset references
+(`var:preset|spacing|40`) still expand, and a string value is trimmed
+before it's printed.
 
 ## Theme.json defaults
 

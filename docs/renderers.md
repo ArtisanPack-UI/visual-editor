@@ -123,10 +123,146 @@ Mount `<x-ve-blocks-styles>` once in your layout's `<head>`:
 
 It links the bundled block-library CSS and the per-block front-end
 stylesheets, and inlines the `--wp--preset--*` tokens compiled from the
-`theme.json` you pass, the layout baseline, and the defaults below. Pass
-`:bundle="false"` to skip the block-library `<link>`s, `:interactive="false"`
-to skip the accordion / tabs assets, and `asset-base` to serve the CSS from
-a CDN.
+`theme.json` you pass, the layout baseline, the defaults below and, since
+v1.15.0, the compiled global styles. It takes these attributes:
+
+| Attribute | Default | Effect |
+|-----------|---------|--------|
+| `:theme-json` | `null` | The `theme.json` array to compile into `<style data-ve-theme-tokens>`. |
+| `:bundle` | `true` | `false` skips the block-library `<link>`s. |
+| `:interactive` | `true` | `false` skips the accordion / tabs assets. |
+| `asset-base` | `/vendor/visual-editor-renderer-blade` | Serve the CSS and scripts from another base URL, such as a CDN. |
+| `:global-styles` | `true` | *Since v1.15.0.* `false` means this component never prints the global styles itself. See [Global styles placement](#global-styles-placement). |
+| `:block-style-variations` | `true` | *Since v1.15.0.* `false` keeps the theme's `styles.blocks.*.variations` out of the theme tokens. |
+
+**Order.** Mount `<x-ve-blocks-styles>` *before* the `<link>` to your
+theme's own stylesheet. The global styles print last inside the
+component, so the page follows the editor canvas (and WordPress) order:
+block library, then global styles, then the theme's `style.css`. A
+`style.css` rule then beats the theme.json rule it overrides on both
+surfaces.
+
+```blade
+<head>
+    <x-ve-blocks-styles :theme-json="$themeJson" />
+    <link rel="stylesheet" href="{{ $themeStylesheetUrl }}">
+</head>
+```
+
+**Block style variations are emitted once.** The global styles already
+carry every block style variation's `.is-style-*` rules. Once the global
+styles are on the page (printed by this component, queued for it, or
+printed earlier by a block renderer), the component doesn't compile the
+theme's variations into the tokens again. There's one case it can't
+detect. With `:global-styles="false"` on a head that renders *before* the
+blocks, the variations are still compiled into the tokens, because the
+component can't know the blocks will follow and print them too. Pair it
+with `:block-style-variations="false"` on pages that render blocks.
+
+#### Global styles placement
+
+*Since v1.15.0 (#879).* The compiled global styles print once per request
+in a `<style data-ve-global-styles>` tag. With
+[`global_styles_in_head`](Configuration.md#global_styles_in_head) at its
+default of `true`, where they end up depends on what renders first:
+
+1. **The head renders first** (a single-file view with
+   `<x-ve-blocks-styles>` above the blocks). The component prints the
+   global styles inline in `<head>`.
+2. **The blocks render first, inside an `@section` or a component
+   slot** (an `@extends` layout, or an anonymous or class component
+   layout). `<x-ve-blocks>` / `<x-ve-template>` push the tag onto the
+   `ve-global-styles` Blade stack, and `<x-ve-blocks-styles>` prints that
+   stack in `<head>` when the layout renders.
+3. **The blocks render first, outside any section or slot**, or after a
+   `<x-ve-blocks-styles>` has already rendered. Nothing later can move
+   them higher in the document, so they print inline in the body, as in
+   1.14.
+
+In every case they print exactly once, and a second
+`<x-ve-blocks-styles>` doesn't print the stack again. If the layout has
+`<x-ve-blocks-styles>`, don't add your own `@stack('ve-global-styles')`,
+because the component already prints it. A layout without the component
+can print the stack itself:
+
+```blade
+<head>
+    @stack('ve-global-styles')
+    <link rel="stylesheet" href="{{ $themeStylesheetUrl }}">
+</head>
+```
+
+`:global-styles="false"` means the component never claims the emission
+itself. In a single-file view, the first `<x-ve-blocks>` then prints the
+global styles in the body. In a layout where the blocks render first,
+they have already queued the styles for the head, so the component still
+prints the queued stack rather than lose them. To get body placement
+there, set `global_styles_in_head` to `false`.
+
+**Safety net for layouts that never print the stack.** The Blade
+renderer adds the `InjectQueuedGlobalStyles` middleware
+(`ArtisanPackUI\VisualEditorRendererBlade\Http\Middleware\InjectQueuedGlobalStyles`)
+to the `web` middleware group. It acts only when blocks queued the
+global styles (case 2) and neither `<x-ve-blocks-styles>` nor a host
+`@stack('ve-global-styles')` printed them. It then inserts the tag:
+
+- inside `<head>`, before the first stylesheet (`<link rel="stylesheet">`
+  or `<style>`; commented-out ones are ignored), so the theme's own CSS
+  still wins;
+- otherwise just before `</head>`;
+- with no `</head>`, right after the opening `<body>` tag;
+- otherwise at the end of the response.
+
+It never prints the styles twice. It does nothing once the stack has been
+printed, or when the response already contains the queued tag. It leaves
+streamed, binary-file, JSON and redirect responses alone, along with any
+response that has a `Content-Encoding` header or a content type other
+than `text/html`. When it injects, it updates `Content-Length`. Its state
+lives on the request-scoped `GlobalStylesPlacement` service, so
+long-lived workers such as Octane start every request clean.
+
+> **Limitation.** Output that never becomes an HTTP response, such as mail
+> or `Blade::render()` into a string, gets no injection. If those views
+> render blocks inside a section or slot without printing the stack, set
+> `global_styles_in_head` to `false` so the styles print inline in the
+> body.
+
+Set `global_styles_in_head` to `false` to restore the 1.14 placement:
+`<x-ve-blocks-styles>` never prints the global styles, and the first
+`<x-ve-blocks>` / `<x-ve-template>` prints them inline in the body.
+
+#### Tags the Blade renderer prints
+
+Besides its `<link>`s, `<x-ve-blocks-styles>` prints
+`<style data-ve-theme-tokens>`, `<style data-ve-spacing-presets>`,
+`<style data-ve-default-tokens>` and `<style data-ve-default-styles>`
+when each has content, then `<style data-ve-responsive-stacking>`,
+`<style data-ve-layout-baseline>` and `<style data-ve-global-styles>`.
+
+*Since v1.15.0*, the layout baseline also resets the inherited block gap
+on every layout container at zero specificity, so a nested Row, Stack,
+Grid or Group no longer picks up its parent's Block spacing. Each
+container's own spacing reaches its children through its
+`wp-container-{hash}` rule instead, as in WordPress:
+
+```css
+:where(body) { --ap-root-block-gap: var(--wp--style--block-gap); }
+:where(.is-layout-flow, .is-layout-constrained, .is-layout-flex, .is-layout-grid) { --wp--style--block-gap: var(--ap-root-block-gap); }
+:where(.wp-block-columns) { --ap-columns-gap: var(--wp--style--block-gap); }
+```
+
+Set a site-wide `--wp--style--block-gap` on `body` or `:root` (or through
+theme.json `styles.spacing.blockGap`), not on a wrapper element around
+`<x-ve-blocks>`. See [Flex layout](blocks/Flex-Layout.md) for the
+per-instance rules.
+
+`<x-ve-blocks>` and `<x-ve-template>` print the support CSS collected
+while their tree renders. *Since v1.15.0* that includes duotone: one
+`<style data-ve-duotone>` with the `wp-duotone-*` rules and one visually
+hidden `<svg data-ve-duotone>` holding the `<filter>` definitions. Each
+filter id is printed once per request, even when a page renders several
+trees. Hosts that call `render()` / `renderMarkup()` directly get both
+from [`flushSupportAssets()`](#support-css-for-direct-renders).
 
 ### Theme-less front-end defaults
 
@@ -232,8 +368,9 @@ $tree = app(BlockMarkupHydrator::class)->hydrate($markup);
 *Since v1.14.0.*
 
 Block supports don't print inline styles. Responsive overrides, states,
-animations, gradient borders, box shadows, position, and Elements API
-colors (Color → Link, heading and button element colors) are collected
+animations, gradient borders, box shadows, position, Elements API
+colors (Color → Link, heading and button element colors) and, since
+v1.15.0, duotone filters are collected
 while the tree renders, and `<x-ve-blocks>` / `<x-ve-template>` print
 them around their output. When you call `render()` or `renderMarkup()`
 yourself, drain them with `flushSupportAssets()`. Print `css` before the
@@ -357,6 +494,104 @@ gap and root padding tokens — the same defaults as the Blade renderer's
 `:root` declaration from `<GlobalStyles>` — theme, style variation, user
 Global Styles or host presets — overrides those defaults.
 
+### Styles `<BlockTree>` prints
+
+Like Blade, the React and Vue renderers don't write support CSS into
+inline styles. `<BlockTree>` collects it while it walks the tree and
+prints one tag per kind inside the rendered fragment:
+
+| Tag | Contents |
+|-----|----------|
+| `<style data-ve-layout>` | Per-instance layout rules for `wp-container-{hash}` classes. |
+| `<style data-ve-responsive>` | Per-breakpoint overrides for `ve-r-{hash}` classes. |
+| `<style data-ve-effects>` | Effects and Custom CSS for `ve-fx-{hash}` classes. |
+| `<style data-ve-duotone>` + `<svg data-ve-duotone>` | *Since v1.15.0.* Duotone rules for `wp-duotone-*` classes, plus one visually hidden `<svg>` with the `<filter>` definitions. |
+
+*Since v1.15.0*, the React and Vue renderers also render:
+
+- **Background images** on Group, Quote, Pullquote, Verse and Post
+  Content (`style.background.backgroundImage` as an object or a string,
+  plus size, position, repeat and attachment), byte for byte with Blade.
+  URLs go through `safeUrl()` and are percent-encoded inside `url('…')`.
+- **Duotone** on Image, Featured Image, Cover, Avatar, Site Logo and Post
+  Author (and their `artisanpack/*` forks). Custom stops (hex, `rgb()`,
+  `hsl()` or named colors), `unset` and theme presets all work.
+- **Per-instance layout** on every block whose `block.json` declares
+  `supports.layout`, with the same inline Block spacing
+  (`--wp--style--block-gap`, `row-gap`, `column-gap`) Blade prints.
+
+Two `<BlockTree>` props control the parts that depend on server config:
+
+| Prop | Type | Default | Notes |
+|------|------|---------|-------|
+| `duotonePresets` | `DuotonePresets` | — | The theme's `settings.color.duotone`, as a flat list or keyed by origin (`{ theme, custom, default }`). Without it, `var:preset\|duotone\|…` picks render no filter; custom stops still work. Also accepted by `<Template>`. |
+| `customCssAllowUrls` | `boolean` | `true` | Pass the host's [`effects.custom_css_allow_urls`](Configuration.md#effects). When `false`, Custom CSS that loads a resource (`url(`, `image-set(`, `image(`, `src(`) is dropped, as Blade drops it. `<BlockTree>` only; `<Template>` doesn't forward it, so trees it renders always allow URLs. |
+
+Resolve both on the server and pass them in the page props:
+
+```php
+use ArtisanPackUI\VisualEditor\Resources\PresetRegistry;
+
+return Inertia::render('Posts/Show', [
+    'post'               => $post,
+    'duotonePresets'     => PresetRegistry::activeThemeSettings()['color']['duotone'] ?? null,
+    'customCssAllowUrls' => (bool) config('artisanpack.visual-editor.effects.custom_css_allow_urls', true),
+]);
+```
+
+```tsx
+<BlockTree
+    tree={post.content}
+    duotonePresets={duotonePresets}
+    customCssAllowUrls={customCssAllowUrls}
+/>
+```
+
+### Breakpoints
+
+The responsive (`ve-r-*`), column-width (`ve-w-*`) and Flex Layout rules
+use the device breakpoints the renderer is configured with. The defaults
+match the server's: Tablet up to 1023px and Mobile up to 767px. *Since
+v1.15.0*, hosts that customize breakpoints (config `breakpoints` or
+`theme.json`) can pass the server's list to `setBreakpoints()` once at
+bootstrap, so the JS output matches Blade:
+
+```php
+use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
+
+// In the Inertia shared props:
+'breakpoints' => app(BreakpointRegistry::class)->toArray(),
+```
+
+```ts
+import { setBreakpoints, getDeviceBreakpoints } from '@artisanpack-ui/visual-editor-renderer-react';
+
+setBreakpoints(page.props.breakpoints);
+```
+
+`setBreakpoints()` takes two forms:
+
+- **An array**, such as `BreakpointRegistry::toArray()`. Entries with
+  `minWidthPx` replace the legacy (mobile-first) list. Entries with
+  `maxWidthPx` and `previewWidthPx` replace the device list. An array
+  with no device entries keeps the default devices, so existing
+  `setBreakpoints([{ key, minWidthPx }])` calls behave as before.
+- **A map**, shaped like `config('artisanpack.visual-editor.breakpoints')`
+  and layered over the defaults the way the server layers the config. A
+  number or `'Npx'` string keeps the family of the entry it overrides, an
+  object naming one width switches family, and `null` removes the entry:
+
+  ```ts
+  setBreakpoints({ mobile: { maxWidthPx: 599, previewWidthPx: 375 } });
+  ```
+
+Entries the server would reject are dropped: the reserved `base` key,
+keys that aren't a letter or digit followed by letters, digits, `_` or `-`, non-positive or duplicate widths, and
+entries with both or neither width. A device preview width wider than its
+max-width is clamped to it. `getDeviceBreakpoints()` returns the active
+device list, largest first. The types `BreakpointInput`, `BreakpointMap`
+and `DeviceBreakpointDefinition` are exported too.
+
 ### Navigation overlay
 
 *Since v1.13.0 (#804).* The React and Vue renderers render
@@ -472,6 +707,19 @@ That includes the [navigation overlay](#navigation-overlay):
 overlay parts), and a custom `core/navigation` renderer receives the
 overlay content in the named `overlay` slot instead of the default slot.
 
+The [styles `<BlockTree>` prints](#styles-blocktree-prints) and the
+[breakpoint setup](#breakpoints) are the same too. In templates, pass the
+1.15 props in kebab case, and import `setBreakpoints` from the Vue
+package:
+
+```vue
+<BlockTree
+    :tree="post.content"
+    :duotone-presets="duotonePresets"
+    :custom-css-allow-urls="customCssAllowUrls"
+/>
+```
+
 ---
 
 ## 4. Which renderer for which stack
@@ -497,6 +745,46 @@ through all three and diffs the output. Add a fixture entry whenever you
 add a custom block that ships partials/components in more than one
 renderer.
 
+Things to know when you mix renderers, or render more than one tree on a
+page:
+
+- **Heading anchors are unique per `<BlockTree>`.** The React and Vue
+  renderers dedupe auto anchors within one tree. Two trees on the same
+  page (for example a header tree and a content tree) can repeat an
+  `id`. Render them as one tree, or set author anchors on the headings
+  that could collide. Duotone filter ids work the same way: each
+  `<BlockTree>` prints its own `<svg data-ve-duotone>`, so ids can repeat
+  across trees. (Blade prints each filter id once per request.)
+- **How auto anchors are built.** *Since v1.15.0*, every renderer, and the
+  editor's anchor autogeneration, reduces a heading's text to the
+  characters an `id` keeps (`[A-Za-z0-9_:.-]`, runs of `-` collapsed)
+  before it checks for uniqueness. Text whose letters all drop out (such
+  as `日本語`) falls back to `heading`, then `heading-1`, `heading-2` and
+  so on. Text with no letters or numbers at all (`???`) gets no anchor.
+  Author-set anchors are kept as they are, including numeric ones such as
+  `42`. The JS renderers decode only the HTML 4 named entities (plus
+  `&apos;`) when they slug headings, so an HTML5-only entity such as
+  `&bigstar;` slugs differently from Blade.
+- **Post-content headings.** *Since v1.15.0*, the React and Vue renderers
+  treat headings inside a post-content block's `_resolvedContent` as Blade
+  does: an existing `id` is claimed, and a heading without one gets a
+  unique auto anchor. The Table of Contents block's `_resolvedItems` are
+  still resolved on the server only.
+- **Breakpoints.** Hosts with custom breakpoints must pass
+  `app(BreakpointRegistry::class)->toArray()` to
+  [`setBreakpoints()`](#breakpoints), or the JS renderers use the default
+  widths and their media queries won't match Blade's.
+- **`className` on every block.** *Since v1.15.0*, Code, Preformatted,
+  Verse, Embed and Accordion title/body carry their `className` in React
+  and Vue too, so `ve-r-*` and `ve-fx-*` styling applies to them. On
+  those blocks the JS renderers apply `className`, preset classes and
+  dimensions, not every block support Blade applies.
+- **Dynamic blocks rendered through `/blocks/preview`** get only what the
+  block's own `render()` outputs. The Blade renderer merges block supports
+  into a dynamic block's wrapper (see
+  [`appliesOwnSupports()`](blocks/Custom-Blocks.md#54-dynamic-blocks-and-renderers)); the preview
+  endpoint the React and Vue `<DynamicBlock>` fallback calls doesn't.
+
 ---
 
 ## 6. Distribution
@@ -519,6 +807,6 @@ publish.
 - [Custom blocks](blocks/Custom-Blocks.md) — authoring blocks that need renderers
 - [Templates](site-editor/Templates.md) — template fallback chain and `core/template-part`
 - [Patterns](site-editor/Patterns.md) — synced-pattern (`core/block`) references
-- [Configuration](Configuration.md) — `default_styles` and `presets`
+- [Configuration](Configuration.md) — `default_styles`, `global_styles_in_head`, `effects` and `presets`
 - [Global styles](site-editor/Global-Styles.md) — CSS emission contract
 - [Inertia](post-editor/Inertia-Integration.md) — embedding the renderers inside Inertia apps

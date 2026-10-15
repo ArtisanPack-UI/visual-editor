@@ -59,6 +59,23 @@ Since 1.12.1 the cascade is desktop-first:
 
 Rich-text edits (paragraph and heading content, button labels, …) made while Tablet or Mobile is active are kept. Before 1.12.1 they were silently dropped.
 
+Only the attribute paths a block opts into (see [§2.2](#22-opting-a-block-into-responsive-support)) are stored per breakpoint. Any other style edit made while previewing Tablet or Mobile (border color or width, line height, letter spacing, shadow, …) changes the base value. Since 1.15.0 such an edit keeps the block's other base `style` values, and clearing a base value at a breakpoint clears it; before, the edit could wipe the block's other base styles.
+
+#### Preset and custom pairs
+
+Font size, text color and background color can each be stored two ways: a preset slug (`fontSize`, `textColor`, `backgroundColor`) or a custom value (`style.typography.fontSize`, `style.color.text`, `style.color.background`). Since 1.15.0 (#887), setting one half of a pair at a breakpoint stores a `false` marker for the other half at that breakpoint:
+
+```json
+{
+    "responsive": {
+        "textColor":        { "mobile": "accent" },
+        "style.color.text": { "tablet": "#333333", "mobile": false }
+    }
+}
+```
+
+Unlike `null` (inherit), `false` stops the cascade, so on phones the Mobile preset isn't shown alongside the Tablet custom color. The renderers emit nothing for the marker and never let it displace the twin's value, so the canvas and the front end agree on which value wins at each breakpoint. Clearing one half removes the other half's marker, and the cascade resumes for both.
+
 ---
 
 ## 2. For developers
@@ -149,7 +166,7 @@ Every emitter builds its media query through the registry (`BreakpointRegistry::
 
 #### Static CSS and custom widths
 
-Some output is class-based rather than generated per request: the flex utility stylesheet (`tablet:ap-flex-col`, …), the Grid column-count classes, the Post Template span classes, and the masonry fallback. These ship `tablet` / `mobile` rules only for the default 1023px / 767px widths, and the React / Vue renderers' layout serializers use the same defaults. If you change `tablet` or `mobile` widths (or add device keys), ship matching rules for those classes yourself.
+Some output is class-based rather than generated per request: the flex utility stylesheet (`tablet:ap-flex-col`, …), the Grid column-count classes, the Post Template span classes, and the masonry fallback. These ship `tablet` / `mobile` rules only for the default 1023px / 767px widths. If you change `tablet` or `mobile` widths (or add device keys), ship matching rules for those classes yourself. Since 1.15.0 the React / Vue renderers' generated rules (overrides, column widths, flex arbitrary values) follow the breakpoints you pass to `setBreakpoints()` (see [§2.5](#25-server-side-rendering)); before, they used the defaults.
 
 #### Columns and Media & Text stacking
 
@@ -175,6 +192,17 @@ Add `supports.artisanpackResponsive` to the block's `block.json`. List the attri
 ```
 
 Out of the box the following forked layout blocks opt in: `group`, `columns`, `column`, `buttons`, `spacer`, `cover`, `media-text`. Blocks that don't opt in still render correctly — their Inspector simply shows the single-value control as today.
+
+Since 1.15.0 (#877) more paths are per-breakpoint:
+
+| Block | New per-breakpoint paths |
+| --- | --- |
+| `heading`, `paragraph` (newly opted in) | `fontSize`, `textColor`, `style.color.text`, `backgroundColor`, `style.color.background` |
+| `group` | `style.dimensions.minHeight`, `fontSize`, `textColor`, `style.color.text`, `backgroundColor`, `style.color.background` |
+| `cover` | `minHeight`, `minHeightUnit`, `fontSize`, `textColor`, `style.color.text` |
+| `spacer` | `width` (alongside `height`) |
+
+Cover routes `minHeightUnit` per breakpoint too, so a unit-only override (`vh` at Mobile) renders.
 
 ### 2.3 Reading a responsive attribute in a block's edit component
 
@@ -255,6 +283,20 @@ $result = $resolver->emit(
 ```
 
 Block partials merge `$result['class']` into the wrapper class list and push `$result['css']` into the request-scoped `ResponsiveCssAccumulator`. The `<x-ve-blocks>` and `<x-ve-template>` components drain the accumulator at the top of the render output and emit one consolidated `<style data-ve-responsive>` block — there is no per-block `<style>` tag interleaved with the wrapper's children. Duplicate payloads (the same overrides on N siblings) collapse to one rule set, keyed by scope class.
+
+Since 1.15.0 (#886) the React and Vue renderers emit per-breakpoint overrides too, byte-for-byte with Blade: each block with overrides gets a `ve-r-{hash}` class, and `BlockTree` prints the rules in one `<style data-ve-responsive>`. Their media queries come from the renderer's breakpoint list, which defaults to the package's Tablet (1023px) and Mobile (767px). A host that changes breakpoints (config `breakpoints` or `theme.json`) should pass the server's registry to `setBreakpoints()` at bootstrap, so column widths and overrides use the same widths as Blade:
+
+```ts
+import { setBreakpoints } from '@artisanpack-ui/visual-editor-renderer-react' // or -vue
+
+// From `app( BreakpointRegistry::class )->toArray()`, passed down as a page prop:
+setBreakpoints( props.breakpoints )
+
+// Or a config-style map, layered over the defaults:
+setBreakpoints( { mobile: { maxWidthPx: 599, previewWidthPx: 375 } } )
+```
+
+The array form replaces the legacy (min-width) list with its `minWidthPx` entries and the device list with its `maxWidthPx` entries; an array with no device entries keeps the default devices, so existing `setBreakpoints( [ { key, minWidthPx } ] )` calls behave as before. In the map form a number keeps the entry's family, an object naming one width switches family, and `null` removes the entry. Entries the server would reject (the `base` key, keys outside `[a-z0-9][a-z0-9_-]*`, non-positive or duplicate widths, both or neither width) are dropped, and a preview width wider than its max-width is clamped. `getDeviceBreakpoints()` returns the device list in use.
 
 ### 2.6 Lazy migration
 
