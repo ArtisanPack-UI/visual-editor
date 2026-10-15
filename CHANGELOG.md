@@ -6,6 +6,498 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.15.0] - 2026-10-15
+
+### Upgrade notes
+
+- **Global styles now print in `<head>`.** `<x-ve-blocks-styles>` prints
+  the compiled global styles (`<style data-ve-global-styles>`) in the
+  head, taking over the once-per-request emission `<x-ve-blocks>` /
+  `<x-ve-template>` used to make in the body (#879). This works with
+  single-file views, `@extends` layouts and component layouts: when the
+  blocks render first inside an `@section` or a component slot, they
+  queue the styles on the new `ve-global-styles` Blade stack, and
+  `<x-ve-blocks-styles>` prints that stack. The front end now uses the
+  editor canvas (and WordPress) order: global styles first, then the
+  theme's own stylesheet, so a `style.css` rule beats the theme.json rule
+  it overrides on both surfaces. Mount `<x-ve-blocks-styles>` before the
+  `<link>` to your theme stylesheet, and don't also print
+  `@stack('ve-global-styles')` in a layout that has the component.
+  Nothing is printed twice.
+  - A layout that renders blocks inside a section or slot but has no
+    `<x-ve-blocks-styles>` (or `@stack('ve-global-styles')`) in its head
+    is covered by the new `InjectQueuedGlobalStyles` middleware, which
+    the Blade renderer appends to the `web` middleware group. On a
+    `text/html` response it injects the queued styles into `<head>`
+    before the first stylesheet (else before `</head>`, else after
+    `<body>`). It does nothing when the styles were already printed, and
+    skips streamed, file, JSON, redirect and encoded responses.
+  - Output that never becomes an HTTP response, such as mail or
+    `Blade::render()` into a string, gets no injection. Set the new
+    `global_styles_in_head` config key to `false` there, which restores
+    the 1.14 placement: the first `<x-ve-blocks>` / `<x-ve-template>`
+    prints the global styles inline in the body.
+  - `:global-styles="false"` on `<x-ve-blocks-styles>` now means the
+    component never claims the emission itself. In a single-file view
+    the blocks then print the styles in the body; in a layout where the
+    blocks render first the component still prints the queued stack.
+    Use `global_styles_in_head => false` for body placement everywhere.
+- **Per-block Custom CSS is denied by default.** The new
+  `visual-editor.edit-block-css` gate requires the `edit_block_css`
+  capability (config `effects.custom_css_capability`), checked through the
+  user's `checkPermissionTo()` / `hasCapability()` / `hasPermissionTo()` /
+  `hasPermission()`; the first method the user model defines decides.
+  Nobody has it until you grant it to a role, or redefine the gate. Users
+  without it don't see the Custom CSS field, and API clients that write
+  `artisanpackEffects.customCss` need the ability.
+  - The guard runs on every Eloquent save of block content, not only in
+    visual-editor's controllers: every model using `HasBlockContent`
+    (including cms-framework's block patterns, templates, template parts,
+    posts and pages) and the snippet model. That covers cms-framework's
+    `/api/v1/blocks`, `/api/v1/block-patterns/patterns`,
+    `/api/v1/templates` and `/api/v1/template-parts`. Without the
+    ability, a save keeps only the Custom CSS already stored on that
+    record. Guard other models with
+    `CustomCssModelGuard::watch( Model::class, 'column' )`. Query-builder
+    mass updates fire no model events and aren't covered.
+  - Code that writes block content with Custom CSS while a user without
+    the ability is logged in (a web-triggered theme import,
+    `PatternResolver::cloneToUser()` from an admin action on
+    cms-framework before 2.15, or a test that seeds records inside
+    `actingAs()`) must wrap the write in
+    `app( CustomCssModelGuard::class )->trusted( fn () => … )`, or the
+    CSS is stripped. Console commands, seeders and queued jobs with no
+    authenticated user are not guarded.
+  - A permission backend that throws for an unknown permission (such as
+    Spatie's `hasPermissionTo()`) now denies and reports the exception,
+    instead of returning a 500 on every editor page. Spatie hosts don't
+    need to seed `edit_block_css` just to keep the editor working. The
+    same applies to the `visual-editor.edit-content` and
+    `visual-editor.use-ai` gates and the Font Library's
+    `FontPolicy::manage()`.
+- **Custom CSS URLs must be quoted.** Write `url("…")` or `url('…')`. An
+  unquoted `url(https://…)` now rejects the block's whole Custom CSS
+  value, as do braces, parentheses and brackets that don't nest
+  correctly. Re-save affected blocks with quoted URLs. Set the new
+  `effects.custom_css_allow_urls` config key to `false` to drop any
+  Custom CSS that loads a resource (`url(`, `image-set(`, `image(`,
+  `src(`); React and Vue hosts must then pass `customCssAllowUrls={false}`
+  to `<BlockTree>` as well.
+- **Binding previews check the record's `view` policy.**
+  `POST /visual-editor/api/bindings/resolve` and
+  `POST /visual-editor/api/blocks/preview` now return 403 when the
+  context record's model has a registered policy and the user lacks its
+  `view` ability. The canvas then falls back to the blocks' static
+  values. Models without a policy behave as before.
+- **Block style variations are registered at boot.** The site editor's
+  `GlobalStylesResolver` is now request-scoped, so call
+  `VisualEditor::registerBlockStyle()` / `unregisterBlockStyle()` from a
+  service provider's `boot()`. On Octane, a call made mid-request leaks
+  into later requests.
+- **Flex and grid containers now get a `gap`.** `:where(.is-layout-flex)`
+  and `:where(.is-layout-grid)` use the block's Block spacing, else the
+  theme's `styles.spacing.blockGap`, else `0.5em`, in the Blade, React,
+  Vue and canvas baselines (#883). Rows, Stacks and grids that rendered
+  with no spacing on the front end now match the canvas. The rules have
+  zero specificity, so columns, gallery, post-template, the Flex panel
+  and any theme rule still win.
+- **Block spacing applies per container.** A container's own Block
+  spacing now reaches its children through its `wp-container-{hash}`
+  rule (`gap` on flex and grid, `margin-block-start` on flow and
+  constrained), as in WordPress, and nested containers no longer inherit
+  an ancestor's value. Each layout container resets
+  `--wp--style--block-gap` to the root value (`--ap-root-block-gap`) at
+  zero specificity.
+  - Containers with their own Block spacing gain a `wp-container-{hash}`
+    class, and existing hashes change because the gap is now part of the
+    hashed rule.
+  - A `--wp--style--block-gap` set on a wrapper element around
+    `<x-ve-blocks>` no longer reaches top-level containers. Set it on
+    `body` / `:root`, or through theme.json `styles.spacing.blockGap`.
+    A Tailwind (layered) utility that sets it on a layout container
+    loses to the unlayered reset; use the block's Block spacing control.
+  - Column percentage widths now read
+    `calc(X% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * f)`.
+    The result is the same wherever the layout baseline is loaded.
+- **Dynamic blocks get their block supports on the front end.** The Blade
+  renderer merges `BlockSupports::compile()` output (color, spacing,
+  border, anchor, className, states, responsive, shadow, position,
+  animations, …) into the wrapper element a `DynamicBlock::render()`
+  returns (#874). It never overrides the handler's output: classes are
+  deduped, a declaration is added only when the existing `style` doesn't
+  already set that property, a shorthand that resets it or a longhand it
+  would reset, and `id` / `data-*` are added only when missing. Leading
+  `<svg>` and `aria-hidden="true"` elements are skipped when looking for
+  the wrapper; mark a different wrapper with a `data-ve-wrapper`
+  attribute. A custom dynamic block that already applies supports
+  through `BlockSupports::wrapperAttrs()`, or renders no wrapper of its
+  own, should override the new `DynamicBlock::appliesOwnSupports()` to
+  return `true`, or pass `'appliesOwnSupports' => true` to
+  `registerDynamicBlock()` / `registerServerBlock()`.
+- **Hover glow follows the theme's colors.** The `glow` hover animation no
+  longer hard-codes indigo. It uses the block's new **Glow color** pick,
+  then `settings.custom.animation.glowColor`, then the `primary` palette
+  color at 35% (`color-mix()`), then the old indigo. Because the package
+  default palette always declares `primary` (`#2563eb`), existing glows
+  change color unless the theme sets `settings.custom.animation.glowColor`.
+  Glow blur and size and the `lift` shadow can be themed the same way
+  (`glowBlur`, `glowSize`, `liftShadow`). The Blade compiler now flattens
+  `settings.custom` into `--wp--custom--*` properties, as WordPress and
+  cms-framework do.
+- **Heading anchors are id-safe.** Auto-generated anchors are reduced to
+  the characters every renderer keeps in an `id` before the uniqueness
+  check, so auto anchors on headings with non-ASCII letters or symbols
+  change (for example `creme--x` → `creme-x`, and `日本語` → `heading`).
+  Author-set anchors and anchors the editor already saved are kept.
+  Update inbound links to old auto anchors on such headings, or give
+  those headings an author anchor.
+- **State styles gain a reduced-motion guard.** State CSS now ends with a
+  `@media (prefers-reduced-motion: reduce)` block that turns off
+  transitions and holds hover/focus transforms at their idle value, on
+  the front end and in saved markup. Blocks with state styles saved by
+  1.14 (raw `var:preset|…` values, no guard) or by 1.15 development
+  builds validate through new save deprecations and are migrated silently
+  on their next save. Palette picks in state values are saved as
+  `var(--wp--preset--…)`.
+- **Text clip needs a background.** Gradient text (`textClip`) is
+  emitted only when the block itself has a gradient preset,
+  `style.color.gradient` or `style.background.backgroundImage`. A block
+  that relied on a gradient from a block style variation or global styles
+  loses its text clip; add the gradient to the block.
+- **Binding allowlist (opt-in).** Set `VE_BINDINGS_ENFORCE_ALLOWLIST=true`
+  (config `bindings.enforce_allowlist`, default `false`) to stop block
+  bindings from reading any attribute of a related model that isn't
+  allowlisted (#869). With it off, nothing changes. Enforcement is planned
+  to become the default in 2.0, so until then add sensitive columns such
+  as `email` to your `User` model's `$hidden`.
+- **Link and image URLs follow the browser's scheme rules.** A
+  `host:port` value without a scheme, such as `localhost:8080/x`, is now
+  read as the scheme `localhost` and dropped, as a browser would. Use
+  `http://localhost:8080/x` or a relative path. See **Security**.
+- **New classes and markup.**
+  - `artisanpack/grid`, `grid-item`, `callout` and `marquee` now carry
+    `wp-block-artisanpack-{slug}` first in their class list on the front
+    end (#880), so theme.json `styles.blocks` rules for them now apply.
+  - Every block whose block.json declares `supports.layout` renders
+    WordPress's layout classes in all three renderers: `is-layout-{type}`,
+    `wp-block-{slug}-is-layout-{type}`, a `wp-container-{hash}` class and
+    rule when its settings or Block spacing need one (#871), and the
+    `is-{orientation}`, `is-content-justification-{value}` and
+    `is-nowrap` modifiers. Newly covered are Buttons, Column, Cover's
+    inner container, Navigation, Query, Quote, Details and Comments
+    Pagination; Group and Post Content gain the modifiers. Navigation's
+    `<nav>` is now a flex container. Columns, Quote, Details and Query
+    children get flow spacing from the baseline. A legacy
+    `layout.inherit: true` renders as constrained. A Grid with no column
+    count or minimum width gets WordPress's default
+    `repeat(auto-fill, minmax(min(12rem, 100%), 1fr))` track list.
+    Columns, Gallery, Post Template and Query Pagination keep their own
+    layout CSS.
+  - The React and Vue renderers now add `ve-r-{hash}` (responsive),
+    `ve-fx-{hash}` (effects) and `wp-container-{hash}` (layout) classes
+    with matching `<style data-ve-responsive>`, `<style data-ve-effects>`
+    and `<style data-ve-layout>` tags, plus one `<style data-ve-duotone>`
+    and hidden `<svg data-ve-duotone>` per tree. Their headings get an
+    `id` (author anchor or an auto slug, as Blade does), and Cover gets
+    `is-layout-flex wp-block-cover-is-layout-flex`. Pullquote no longer
+    wraps its value in a `<span>`, and Image orders its classes
+    `wp-block-image size-* [wp-duotone-*] align*`, both as Blade does.
+  - The Blade renderer prints one `<style data-ve-duotone>` plus a
+    visually hidden `<svg>` of duotone filters per render, with each
+    filter id printed once per request. Hosts that call
+    `BlockRenderer::render()` / `renderMarkup()` directly get it from
+    `BlockRenderer::flushSupportAssets()`.
+  - In Blade, Accordion title and body inside an accordion now carry
+    their full block supports on the `.ap-accordion__title` /
+    `.ap-accordion__body` elements.
+- **Element pseudo-states follow WordPress.** Only the `link` and `button`
+  elements compile pseudo-state sub-nodes now, in the order
+  `:link, :any-link, :visited, :hover, :focus, :focus-visible, :active`.
+  A `:hover` on another element (for example `heading`) in
+  `styles.elements` is no longer emitted.
+- **Stricter theme values.** Theme preset values (including font
+  families) and every `styles.*` value that could break out of the
+  generated stylesheet are now dropped instead of printed. That covers
+  `; { } < >`, comments, escapes, control characters, unbalanced or
+  interleaved quotes, and unbalanced or crossed `( )` / `[ ]`. Check the
+  front end for any theme value that has gone missing.
+- **Default font families are always declared.** The front end declares
+  `--wp--preset--font-family--system`, `--serif` and `--mono`, plus any
+  theme or host font families, with matching `.has-{slug}-font-family`
+  utilities. A host `presets.font_families` list in `replace` mode still
+  drops the defaults.
+- **Patterns marked `Inserter: no` leave the inserter.** The Patterns
+  panel and the page-starter modal skip patterns whose `inserter` is
+  false. The site editor's pattern library still lists them. The field is
+  filled by cms-framework 2.15's pattern headers.
+- **Editor canvas styles.** Only theme editor styles that resolve inside
+  the theme's `assets/` directory are inlined into the canvas. Absolute
+  and CDN entries in `Theme::editorStyles()` are skipped there, and so is
+  an entry whose `media` isn't a safe media query. Handles dedupe as
+  `@themeEditorStyles` does: the first entry claims its handle, even an
+  absolute URL the canvas then skips.
+- **cms-framework pairing.** 1.15 works with cms-framework 2.11 and
+  later. cms-framework 2.15 is needed for the pattern header fields
+  (`keywords`, `inserter`, `template_types`), full global-styles parity
+  and the `ap.cmsFramework.siteEditor.blockContent` filter, through which
+  visual-editor also runs its Custom CSS guard on the Site Editor API.
+  The model-level guard covers older cms-framework versions as well.
+- **License metadata is MIT.** `composer.json`, the Blade renderer's
+  `composer.json` and the React and Vue renderer `package.json` files now
+  declare `MIT`, matching `LICENSE`. They said `GPL-3.0-or-later` before.
+- **Smaller Composer dist.** Tests, the renderer parity fixtures,
+  `issues/`, `scripts/`, `themes/`, `docs/plans/` and other dev-only files
+  are now `export-ignore`d and no longer ship in the package archive.
+
+### Added
+
+- Theme block style variations (#876, #889). Themes declare them in
+  `theme.json` `styles.blocks.{block}.variations.{slug}` or in
+  `styles/*.json` partials with `blockTypes`. Code registers them with
+  `VisualEditor::registerBlockStyle( $block, $slug, $label, $style,
+  $isDefault )` / `unregisterBlockStyle()`. Variations appear in the
+  native Styles picker in both editors, under both the `core/` and
+  `artisanpack/` names. Their `:root :where(.wp-block-{name}.is-style-{slug})`
+  CSS reaches the canvas, the front end (even without cms-framework) and
+  `<x-ve-blocks-styles>`, and is emitted once. It supports nested
+  `elements` and `blocks` and follows core's block.json `selectors`. The
+  merged list passes through the new `ap.visualEditor.blockStyles` filter.
+  Extra partial directories go in the new `block_styles.directories`
+  config key.
+- A block-level **Effects** panel (Styles → Effects) on every block
+  (#881): opacity, horizontal and vertical overflow, backdrop blur and
+  saturation, blend mode, isolation, z-index, clip shapes (circle,
+  ellipse, triangle, diamond, hexagon, slanted bottom) and gradient text.
+  It is stored in a new `artisanpackEffects` attribute and compiled to a
+  hashed `ve-fx-{hash}` class with identical output in Blade, React, Vue
+  and the canvas. A block opts out with `supports.artisanpackEffects:
+  false`.
+- Per-block **Custom CSS** in the Effects panel, printed inside the
+  block's rule with native CSS nesting (`& img { … }`, `@media`,
+  `@supports`, `@container`). It is guarded by the new
+  `visual-editor.edit-block-css` gate and `effects.custom_css_capability`
+  config (see Upgrade notes). Invalid Custom CSS is marked
+  `aria-invalid`, explained in the field's help and announced to screen
+  readers.
+- `effects.custom_css_allow_urls` config key (default `true`), the React
+  and Vue `<BlockTree>` `customCssAllowUrls` prop and the editor's
+  matching `customCssAllowUrls` mount option.
+- `global_styles_in_head` config key (default `true`), the
+  `ve-global-styles` Blade stack and the `InjectQueuedGlobalStyles`
+  middleware (see Upgrade notes).
+- `CustomCssModelGuard` (`watch()`, `trusted()`) and
+  `Support\CapabilityCheck`, the shared permission probe behind the
+  package's capability gates.
+- An opt-in allowlist for the attributes block bindings can read from
+  related models (#869). Models can implement the new
+  `DefinesBindableAttributes` interface, hosts can list attributes in the
+  new `bindings.allowed_attributes` config (`'*'` allows all), and the
+  new `ap.visualEditor.bindings.allowedAttributes` filter can adjust the
+  list. When enforcement is on, a relation path can't end on a whole
+  record, and the field picker hides `author_name` unless it is allowed.
+- A **Glow color** picker in the Hover animation panel, offering the
+  theme, default (unless `color.defaultPalette` is `false`) and custom
+  palettes, and `settings.custom.animation.{glowColor,glowBlur,glowSize,liftShadow}`
+  theme settings (#878).
+- `DynamicBlock::appliesOwnSupports()` and
+  `DynamicBlock::supportAttributes()`, plus the `appliesOwnSupports`
+  option for closure registrations (#874).
+- A search field in the inserter's Patterns panel. It matches titles,
+  slugs, categories and keywords, ignoring case and accents, and
+  announces politely when no pattern matches. Patterns now carry `keywords`,
+  `inserter` and `template_types` from their headers (#893).
+- `outline` (`color`, `offset`, `style`, `width`) in theme.json element,
+  block and variation styles, for focus indicators such as
+  `elements.button[":focus"].outline` (#893).
+- `<x-ve-blocks-styles>` takes `:global-styles` and
+  `:block-style-variations` flags.
+- `MountConfig` accepts `canEditBlockCss`, `customCssAllowUrls` and
+  `blockStyles`, and the Vue `<VisualEditor>` takes the matching
+  `can-edit-block-css`, `custom-css-allow-urls` and `block-styles` props,
+  so Vue and Inertia hosts get Custom CSS access and theme block styles.
+  `<x-visual-editor>` resolves both flags itself, and they are part of the
+  `ap.visualEditor.editorConfig` schema.
+- React and Vue render background images (Group, Quote, Pullquote, Verse,
+  Post Content) and duotone (Image, Featured Image, Cover, Avatar, Site
+  Logo, Post Author) byte-for-byte with Blade. The new `duotonePresets`
+  prop on `<BlockTree>` and `<Template>` takes the theme's
+  `settings.color.duotone` so `var:preset|duotone|…` picks render.
+- React and Vue `setBreakpoints()` accepts device (desktop-first)
+  breakpoints: pass the server's `BreakpointRegistry::toArray()` as is,
+  or a config-style map such as
+  `setBreakpoints( { mobile: { maxWidthPx: 599, previewWidthPx: 375 } } )`,
+  layered over the defaults like the `breakpoints` config. New exports:
+  `getDeviceBreakpoints()` and the `DeviceBreakpointDefinition`,
+  `BreakpointInput` and `BreakpointMap` types. Existing
+  `setBreakpoints([{ key, minWidthPx }])` calls behave as before.
+- `UrlSanitizer::scheme()`, `BlockSupports::cssNumber()` and
+  `BindingAttributeAllowlist::containsModel()`.
+
+### Changed
+
+- The editor canvas's `GET /visual-editor/api/global-styles/css` now
+  includes the active theme's `style.css` and `editor.css`, followed by
+  its `Theme::editorStyles()` entries (after the `ap.themes.editorStyles`
+  filter), with relative `url()`s rewritten so they resolve in the canvas
+  (#879). Pattern previews share the same reader.
+- Hover and focus state UI now covers Group, Column, Columns and Grid Item
+  (color, border, shadow, transform, transition) and Heading and
+  Paragraph (color, gradient, border, text decoration, transition)
+  (#875). Templates, parts
+  and patterns saved by 1.14 are migrated automatically when opened.
+- Heading, Paragraph, Group and Cover offer per-breakpoint font size, text
+  and background color and min-height (#877). Cover routes
+  `minHeightUnit` per breakpoint.
+- When a preset and a custom value share a property (font size, text
+  color, background color), setting one at a breakpoint stores a `false`
+  marker for the other there. The canvas and the front end then agree on
+  which wins at each breakpoint (#887).
+- The React and Vue renderers no longer hard-code Tablet 1023px / Mobile
+  767px. Per-breakpoint overrides, column widths and the Flex Layout
+  panel's classes and media queries use the configured device
+  breakpoints, as Blade does. Saved editor markup keeps the package
+  defaults, so blocks don't go invalid when a host changes breakpoints.
+- Effects overflow and blend-mode options show translated labels, and
+  the clip-shape labels follow the locale loaded after import.
+- Text clip adds a `forced-colors` fallback that shows the text in its
+  normal color, and the Effects panel warns when text clip is on without
+  a gradient or background image.
+- `PatternPreviewRenderer::themeBaseUrl()` and its
+  `STYLESHEET_READER_FQCN` / `THEME_ASSETS_ROUTE` constants are
+  deprecated in favor of `ThemeStylesheets::baseUrl()` and the
+  `ThemeStylesheets` constants.
+- Every editor string now uses the `artisanpack-visual-editor` text
+  domain, including the Animation, Custom keyframe and Bindings panels and
+  the blocks ported from core, which were previously never extracted.
+  Strings that block `save()` functions serialize stay untranslated
+  literals, so saved markup is identical in every locale. The editor
+  translation template (`languages/artisanpack-visual-editor.pot`) is
+  regenerated and lists N strings. "colour" and "neighbours" are now
+  spelled "color" and "neighbors".
+
+### Fixed
+
+- Layout-panel values (content and wide size, justification,
+  orientation, wrap, grid column count and minimum width) now render on
+  the front end for Group (including Row and Stack) and Post Content in
+  all three renderers (#871), and for every other block with
+  `supports.layout` (see Upgrade notes).
+- A Row, Stack, Grid or Group nested inside a container with its own
+  Block spacing no longer picks that spacing up as its own `gap`.
+- theme.json shadow presets, `color.gradients` (the legacy
+  `color.gradient` key still works) and font-family presets are now
+  declared on the front end, and font-family picks render (#872).
+- Group, Quote, Pullquote, Verse and Post Content background images
+  (size, position, repeat, attachment), and Image, Featured Image, Cover,
+  Avatar, Site Logo and Post Author duotone (custom stops in hex, `rgb()`,
+  `hsl()` or named colors, or theme presets) now render on the front end
+  in Blade, React and Vue (#873). Image aspect ratio and scale render in
+  all three renderers. Duotone is skipped when no image renders, each
+  filter is printed once per request, and preset duotone no longer
+  resolves the global styles once per block.
+- Dynamic blocks such as Icon no longer lose their gradient, spacing or
+  anchor on the front end (#874). Icon renders palette and custom
+  gradients itself, so the React and Vue server-render path gets them too,
+  and `var:preset|gradient|camelCaseSlug` references resolve to the
+  kebab-case custom property. Attributes a dynamic block's
+  `validateAttrs()` drops no longer reach its supports merge.
+- Hover and focus values picked from a palette (`var:preset|…`) now render
+  on every state path, not just the preset-flagged ones (#875), and
+  saved state markup no longer shows as invalid content.
+- Per-breakpoint spacer height and width, cover min-height (including a
+  unit-only override), font size and colors now render on the front end
+  (#877). Two blocks that differ only in their base value no longer share
+  one responsive rule. Very small or very large values no longer print in
+  exponent notation (`1.0E-8px`), which browsers ignore.
+- The React and Vue renderers now render per-breakpoint overrides,
+  byte-for-byte with Blade (#886), and Cover layout classes and Heading
+  preset classes and anchors (#888). Code, Preformatted, Verse, Embed and
+  Accordion title/body now carry their `className` in React and Vue, so
+  their responsive and Effects styles apply. The React accordion no
+  longer renders the body inside the title, and Embed provider classes
+  keep the provider's case.
+- A heading anchor with characters the renderers strip (such as
+  `foo bar`, or non-Latin text) no longer produces Table of Contents links
+  to an `id` that doesn't exist, or duplicate ids (#888). React and Vue
+  now claim and stamp the ids of headings inside post content, as Blade
+  does, strip tags like PHP's `strip_tags()` when slugging, and honor a
+  numeric author anchor.
+- Writing a per-breakpoint value on a block with no base `style` no longer
+  overwrites the desktop value (#887). Editing a non-responsive style
+  (border, line-height, letter-spacing, shadow, …) while previewing
+  Tablet or Mobile no longer drops the block's other base styles, and
+  clearing a base value there now clears it.
+- Theme stylesheets with relative `url()`s, and themes that load
+  `Theme::editorStyles()`, now look the same in the editor canvas as on
+  the front end (#879).
+- `artisanpack/grid`, `grid-item`, `callout` and `marquee` keep their
+  `wp-block-artisanpack-*` class on the front end (#880).
+- Block style variation CSS is emitted once in pattern previews and on
+  the front end (#889). Inner-block styles in a variation target the same
+  elements as core's `selectors` (e.g. a button variation colors the
+  link), and a variation with both a gradient and a background color
+  keeps the color.
+- Editing a theme's `styles/*.json` partial no longer leaves an orphaned
+  permanent cache entry; one entry per directory is kept.
+- On Octane and other long-lived workers, Global Styles edits and theme
+  switches show on the next request (front end, canvas CSS, block style
+  variations, keyframes) instead of after a worker restart.
+- React and Vue slug preset names, navigation overlay colors and tab ids
+  the way PHP does (ASCII-only lowercasing, byte-wise `var:preset|…`
+  references), as does the editor's state CSS, and the JS effects
+  compilers treat only ASCII whitespace as blank, so non-ASCII values
+  match Blade.
+- The Glow color picker is now named for assistive technology and linked
+  to its help text (WCAG 1.3.1, 4.1.2).
+
+### Security
+
+- Link and image URLs are checked against the scheme a browser actually
+  reads, in the Blade `UrlSanitizer` and the React / Vue `safeUrl()`.
+  `javascript:///…`, `javascript:1/…` and `java<TAB>script:` URLs were
+  previously kept by the Blade renderer, and the tab and control-character
+  forms by React and Vue, so a stored link or image URL could run script.
+  This affects every earlier version; upgrade to 1.15.0.
+- Block bindings can be restricted to allowlisted related-model
+  attributes (#869, opt-in). With enforcement on, `custom_field` and
+  `post_core` bindings (e.g. `featured_image`) also refuse values that
+  contain a model anywhere in an array or collection. See Upgrade notes.
+- The bindings resolve and block preview endpoints check the context
+  record's `view` policy before resolving bindings, so an editor can't
+  read bound fields off records they can't open. See Upgrade notes.
+- Hover and focus state values are now checked against the same CSS
+  value whitelist as responsive values. A stored value like
+  `red}</style><script>` could previously break out of
+  `<style data-ve-states>` (#875).
+- Group background image URLs pass `UrlSanitizer` and are percent-encoded
+  so they can't close `url('…')`. Icon custom gradients reject `url(`
+  layers on every render path, and the rejected gradient no longer comes
+  back through the supports merge (#873, #874).
+- Block spacing (`style.spacing.blockGap`) values are validated in all
+  three renderers. A value that could add declarations
+  (`1rem;position:fixed`), break out of the rule, or carry a comment is
+  dropped.
+- Theme preset values, every `styles.*` value, block style variation
+  values, hover colors and easings, and responsive values are validated
+  by a new string-aware check (`Support\CssValue`). It rejects unbalanced
+  or interleaved quotes, unbalanced or crossed `( )` / `[ ]` outside
+  strings, comments, escapes and `; { } < >`. Before, inputs such as
+  `rgb(")"` or `x [` could swallow every rule after them in the same
+  `<style>` block (#872, #885, #890).
+- Custom CSS can't leave its block rule or `<style>` element: braces,
+  brackets and parentheses must nest correctly and URLs must be quoted.
+  It is never a sandbox, so writing it needs the deny-by-default
+  `visual-editor.edit-block-css` gate. The guard runs on every model save,
+  strips both the `attributes` and the parse-shape `attrs` bags, and a
+  permission backend that throws for an unknown permission now denies
+  instead of erroring (#881). `effects.custom_css_allow_urls` can close
+  the remaining attribute-selector exfiltration channel.
+- Custom CSS previews in the site editor's in-tree canvases are scoped to
+  the canvas with `@scope`, so they can't restyle editor chrome.
+- Theme files read for the canvas are contained to the theme's `assets/`
+  directory with `realpath`, and editor-style `media` values are
+  validated (#879).
+
 ## [1.14.1] - 2026-10-14
 
 ### Fixed
