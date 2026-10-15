@@ -59,12 +59,14 @@ describe('LayoutBaseline theme-less defaults (#819 / #821)', () => {
         expect(LAYOUT_BASELINE_CSS).toContain('--wp--preset--color--primary: #2563eb;');
         expect(LAYOUT_BASELINE_CSS).toContain('--wp--style--block-gap: 24px;');
         expect(LAYOUT_BASELINE_CSS).toContain('.has-large-font-size { font-size: var(--wp--preset--font-size--large) !important; }');
+        expect(LAYOUT_BASELINE_CSS).toContain('--wp--preset--font-family--serif: Georgia, Cambria, "Times New Roman", Times, serif;');
+        expect(LAYOUT_BASELINE_CSS).toContain('.has-serif-font-family { font-family: var(--wp--preset--font-family--serif) !important; }');
     });
 
     it('keeps the default presets in sync with PresetRegistry', async () => {
         const { readFileSync } = await import('node:fs');
         const { resolve } = await import('node:path');
-        const { DEFAULT_FONT_SIZES, DEFAULT_PALETTE } = await import('../src/support/layoutBaselineCss');
+        const { DEFAULT_FONT_FAMILIES, DEFAULT_FONT_SIZES, DEFAULT_PALETTE } = await import('../src/support/layoutBaselineCss');
         const php = readFileSync(resolve(__dirname, '../../../src/Resources/PresetRegistry.php'), 'utf8');
 
         for (const { slug, size } of DEFAULT_FONT_SIZES) {
@@ -72,6 +74,9 @@ describe('LayoutBaseline theme-less defaults (#819 / #821)', () => {
         }
         for (const { slug, color } of DEFAULT_PALETTE) {
             expect(php).toContain(`[ 'slug' => '${slug}', 'color' => '${color}' ]`);
+        }
+        for (const { slug, fontFamily } of DEFAULT_FONT_FAMILIES) {
+            expect(php).toContain(`[ 'slug' => '${slug}', 'fontFamily' => '${fontFamily}' ]`);
         }
     });
 });
