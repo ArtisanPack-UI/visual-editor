@@ -111,6 +111,27 @@ block or theme changes required.
 If you need a value that isn't in the list, the **Custom…** option in the picker
 still accepts a raw font stack (for example `system-ui, sans-serif`).
 
+### Font-family presets on the front end
+
+*Since v1.15.0 (#872).* The front end declares every font-family preset the
+editor's picker offers, so a block's font-family pick renders on the published
+page as it does in the canvas:
+
+- Each preset is declared as a `--wp--preset--font-family--{slug}` custom
+  property, with a matching `.has-{slug}-font-family` utility class (the class a
+  preset pick saves on the block).
+- The package's default families are declared even when the theme ships its
+  own list: `system` (`system-ui, -apple-system, …`), `serif`
+  (`Georgia, Cambria, …`) and `mono` (`ui-monospace, SFMono-Regular, …`). Your
+  theme's `settings.typography.fontFamilies` is layered on top (a theme entry
+  wins on a shared slug), then any host families from the
+  `presets.font_families` config key. A host list in `replace` mode drops the
+  defaults.
+
+A font-family value that could break out of the generated stylesheet (for
+example one with unbalanced quotes) is dropped instead of printed. See
+[Global styles: value safety](site-editor/Global-Styles.md#value-safety).
+
 ---
 
 ## Theme font bundles

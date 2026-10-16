@@ -66,6 +66,34 @@ The upstream `width`, `height`, `aspectRatio`, `sizeSlug`, `scale`, and `focalPo
 
 Pasted `core/image` markup with an existing inline `width` (e.g. `style="width: 300px"`) round-trips into the fork's `width` attribute via the existing raw + block transforms — width control state loads and re-saves without drift.
 
+### Aspect ratio and scale (v1.15)
+
+The Blade, React and Vue renderers print `aspectRatio` and `scale` on the `<img>` itself, as `aspect-ratio` and `object-fit` inline declarations, like upstream's saved markup (#873). `scale` accepts `cover`, `contain`, `fill`, `none` and `scale-down`; any other value is dropped.
+
+### Duotone (v1.15)
+
+A duotone filter picked in the editor (Styles → Filters) renders on the front end in all three renderers (#873). Six blocks support it, each pointing the filter at its media element (the target from its block.json `selectors.filter.duotone`):
+
+| Block | Filter target |
+|---|---|
+| Image (`core/image`, `artisanpack/image`) | `img` |
+| Featured Image | `img` |
+| Cover | the background image or video |
+| Avatar | `img` |
+| Site Logo | `img` |
+| Post Author | the avatar `img` |
+
+The stored `style.color.duotone` value can be:
+
+- **custom color stops**, an array of at least two colors. Each stop may be hex (`#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa`), `rgb()` / `rgba()`, `hsl()` / `hsla()` (comma syntax, or space syntax with an optional `/ alpha`; the hue takes an optional `deg`, `rad`, `grad` or `turn` unit), or any CSS named color (case-insensitive, `transparent` included). `currentcolor` and system colors are rejected. One stop that can't be parsed invalidates the whole list, and so do fewer than two stops: the block then gets no filter;
+- **a theme preset**, `var:preset|duotone|{slug}` or `var(--wp--preset--duotone--{slug})`, looked up in the theme's `settings.color.duotone`;
+- **`unset`**, which turns an inherited filter off.
+
+Each block with a usable pick gets a `wp-duotone-{id}` class. The page gains one `<style data-ve-duotone>` with the rules that point the media at the filter, and one visually hidden `<svg data-ve-duotone>` holding the `<filter>` definitions. The filter is skipped entirely (no class, rule or `<svg>`) when the block renders no media, for example a Featured Image on a post without one.
+
+- **Blade** prints each `<filter id>` once per request, even when the page renders blocks more than once (`<x-ve-template>` plus `<x-ve-blocks>`). Theme presets are resolved once per request. Hosts that call `BlockRenderer::render()` / `renderMarkup()` directly get the tags from `BlockRenderer::flushSupportAssets()`.
+- **React and Vue** print the tags once per `BlockTree`, so two trees on one page can repeat a filter id. They can't read the theme, so pass its presets to `BlockTree` or `Template` through the `duotonePresets` prop (the flat list or the origin-keyed `{ theme, custom, default }` shape, e.g. `PresetRegistry::activeThemeSettings()['color']['duotone'] ?? null`, which is what the Blade renderer reads). Without it, preset picks render no filter; custom stops still work.
+
 ---
 
 ## Alignment and floats (v1.12.1)

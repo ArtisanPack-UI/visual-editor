@@ -149,6 +149,28 @@ pragmatic answer is:
   radius are tokenized; their default background is `#fff` hardcoded in
   some cases. Monitor on upgrade; file a follow-up if it regresses.
 
+## Theme styles in the canvas (#879)
+
+Everything above themes the editor's chrome. The block content inside
+the canvas is styled by the active theme instead, through
+`GET /visual-editor/api/global-styles/css`. Since v1.15.0 that
+stylesheet carries, in order, the compiled global styles, the theme's
+block style variations, the Font Library's font faces, the theme's
+`style.css` and canvas-only `editor.css`, and the stylesheets the
+theme declares through `Theme::editorStyles()` (after the
+`ap.themes.editorStyles` filter). Relative `url()`s are rewritten so
+they resolve in the canvas, and the front end uses the same order, so a
+theme looks the same in both places.
+
+Only `Theme::editorStyles()` entries that resolve inside the theme's
+`assets/` directory reach the canvas. Absolute and CDN entries are
+skipped by design, an entry with an invalid `media` query is skipped,
+and the first entry per handle wins. See
+[Global styles: the canvas stylesheet](../site-editor/Global-Styles.md#the-canvas-stylesheet)
+for the full rules, and
+[Block style variations](../site-editor/Global-Styles.md#block-style-variations)
+for the theme styles that show in the block toolbar's Styles picker.
+
 ## Breakpoints (#487)
 
 The editor's viewport switcher and the responsive value resolver share

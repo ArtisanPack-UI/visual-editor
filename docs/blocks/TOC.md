@@ -24,6 +24,56 @@ Renders a `<nav>` landmark wrapping a nested `<ul>` (or `<ol>` when `ordered` is
 
 React and Vue renderers ship the same DOM when the resolved payload reaches them.
 
+## Anchor generation
+
+Every heading gets an `id`: its author-set anchor, or an auto anchor
+slugged from its text. The Blade renderer (`TocResolver`), the React
+and Vue renderers and the editor's anchor autogeneration use the same
+rules:
+
+1. Accents are removed (`Café` → `cafe`), runs of characters that
+   aren't letters or numbers become one `-`, and the text is
+   lowercased.
+2. The slug is reduced to the characters a rendered `id` keeps,
+   `[A-Za-z0-9_:.-]`, and runs of `-` are collapsed. *Since v1.15.0.*
+3. Text whose letters and numbers all drop out in step 2 (`日本語`)
+   falls back to `heading`. Text with no letters or numbers at all
+   (`???`) gets no anchor and no TOC entry.
+4. A slug already used on the page gets `-1`, `-2`, … (`heading`,
+   `heading-1`, `heading-2`, …).
+
+Author-set anchors are kept as they render: characters outside
+`[A-Za-z0-9_:.-]` are dropped (`foo bar` renders `id="foobar"`), and
+the rendered value is what later auto anchors avoid and what the TOC
+links to. An anchor that sanitizes to nothing gets an auto anchor
+instead. A numeric anchor such as `42` is an author anchor too
+(`id="42"`). Tags in heading text are stripped the way PHP's
+`strip_tags()` strips them, so `a < b > c` slugs to `a-b-c` in every
+renderer.
+
+Headings inside Post Content (`core/post-content` /
+`artisanpack/post-content`) take part in the same set, in Blade, React
+and Vue: a heading that already has an `id` claims it, so a later block
+heading with the same text gets `-1`, and a heading without one gets a
+unique auto anchor stamped into the content HTML.
+
+Anchors are unique within one render. In React and Vue that is one
+`<BlockTree>`: two trees on the same page (for example a header tree
+and a content tree) can repeat an id. Render them as one tree, or set
+author anchors on headings that could collide. The JS renderers also
+decode only the HTML 4 named entities (plus `&apos;`) when slugging, so
+a heading containing an HTML5-only entity such as `&bigstar;` can slug
+differently from Blade.
+
+> **Changed in v1.15.0.** Before 1.15.0 the slug wasn't reduced to
+> id-safe characters before the uniqueness check, so headings with
+> non-Latin or symbol-heavy text could render duplicate ids, or TOC
+> links to an id that wasn't printed. Some auto anchors change as a
+> result: `Crème ½ x` renders `id="creme-x"` instead of
+> `id="creme--x"`, and `日本語` renders `id="heading"`. Author-set
+> anchors, and anchors the editor already saved into the block, are
+> unchanged. Update inbound links that point at an old auto anchor.
+
 ## Dynamic headings
 
 Auto-generated anchors and TOC labels come from the text the visitor

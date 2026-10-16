@@ -141,6 +141,33 @@ component pack. Restyling is best-effort — some quirks:
   editor.** Both have known interactions with the editor's portal that
   freeze the canvas. Use inline manual patterns or
   `@wordpress/components` Popover / Dropdown directly.
+- **Theme `style.css` wins over theme.json after upgrading to 1.15.**
+  Since v1.15.0 the compiled global styles print in `<head>`, before the
+  theme's own stylesheet, as they do in the editor canvas and WordPress.
+  A `style.css` rule now beats the theme.json rule it overrides on the
+  front end, where before the body-printed global styles won. Mount
+  `<x-ve-blocks-styles>` before the `<link>` to your theme stylesheet,
+  and move any rule that should lose into theme.json. To get the 1.14
+  placement back, set `global_styles_in_head` to `false` (see
+  [Configuration](Configuration.md#global_styles_in_head)).
+- **Global styles missing from mail or `Blade::render()` output.** When
+  blocks render inside an `@extends` section or a component slot before
+  the head, the global styles are queued on the `ve-global-styles` stack
+  for `<x-ve-blocks-styles>`. On HTML responses the renderer's
+  middleware injects anything left queued into `<head>`, but output that
+  never becomes an HTTP response (a mailable, a string from
+  `Blade::render()` or `view()->render()`) gets no injection. Set
+  `global_styles_in_head` to `false` for those renders, or print
+  `@stack('ve-global-styles')` in their layout's head.
+- **Hover glow changed color after upgrading to 1.15.** The `glow`
+  hover animation no longer hard-codes indigo. Without a per-block
+  **Glow color**, it uses the theme's
+  `settings.custom.animation.glowColor`, then the `primary` palette
+  color at 35%. The package default palette always declares `primary`,
+  so existing glows change color. Set
+  `settings.custom.animation.glowColor` in theme.json to pin one color
+  site-wide, or pick a Glow color on the block. See
+  [Animations](animations.md).
 
 Full theme contract: [Theming](post-editor/Theming.md).
 
@@ -253,6 +280,81 @@ starting from a markup string rather than a tree, call
 parser. Check `BlockMarkupHydrator::canParseMarkup()` — when it returns
 `false`, `artisanpack-ui/cms-framework` is not installed and `renderMarkup()`
 returns an empty string by design.
+
+---
+
+## 12. Custom CSS missing, rejected or stripped
+
+The **Custom CSS** field in Styles → Effects (since v1.15.0) is guarded
+by the deny-by-default `visual-editor.edit-block-css` ability.
+
+**The field doesn't appear.** The user lacks the
+`effects.custom_css_capability` capability (default `edit_block_css`).
+Grant it to the role, or redefine the gate. A permission backend that
+throws for an unknown permission (Spatie, when `edit_block_css` was
+never created) denies rather than erroring. Vue and Inertia hosts must
+pass `canEditBlockCss` to the editor mount themselves; without it the
+field stays hidden. See
+[Access Gate](site-editor/Access-Gate.md#custom-css-ability-visual-editoredit-block-css).
+
+**The CSS is saved but nothing prints.** The whole value is rejected,
+not partly printed, when it:
+
+- uses an unquoted URL: write `url("image.png")` or `url('image.png')`,
+  not `url(image.png)`;
+- has braces, parentheses or brackets that don't nest correctly (each
+  `{`, `(` and `[` must close in order; `color: rgb(` or `a)` is
+  rejected), outside strings and comments;
+- loads a resource (`url(`, `image-set(`, `image(`, `src(`) while
+  `effects.custom_css_allow_urls` is `false`.
+
+The editor marks the field invalid and says why. Content saved by 1.15
+development builds with unquoted URLs needs re-saving with quoted URLs.
+In React and Vue, pass `customCssAllowUrls={false}` to `<BlockTree>`
+when the config is `false`, or those renderers print what Blade drops.
+
+**The CSS disappears on save.** For a user without the ability, every
+save keeps only the Custom CSS already stored on that record. Code that
+imports or seeds block content with Custom CSS while a user is logged
+in (a web-triggered import, a test using `actingAs()`) hits the same
+rule; wrap the write in
+`app( CustomCssModelGuard::class )->trusted( fn () => … )`. Console
+runs with no logged-in user aren't affected.
+
+---
+
+## 13. Heading anchor links changed after upgrading to 1.15
+
+Since v1.15.0, automatic heading anchors are reduced to the characters
+every renderer keeps in an `id` (`[A-Za-z0-9_:.-]`, runs of `-`
+collapsed) before duplicates get their `-1`, `-2` suffix. That fixes
+Table of Contents links to ids that weren't printed, and duplicate ids
+on non-Latin headings, but it changes the auto anchor of headings with
+non-ASCII letters or symbols: `creme--x` becomes `creme-x`, and a
+heading whose letters all drop out (`日本語`) becomes `heading`.
+
+Author-set anchors and anchors the editor already saved on the block
+don't change. To keep an old link working, set the heading's **HTML
+anchor** to the old value in the editor.
+
+In React and Vue, anchors are unique within one `<BlockTree>`. Two trees
+on one page (for example a header tree and a content tree) can repeat
+an id; render them as one tree or set author anchors on headings that
+could collide.
+
+---
+
+## 14. Bindings or block previews return 403 in the editor
+
+Since v1.15.0, `POST /visual-editor/api/bindings/resolve` and
+`POST /visual-editor/api/blocks/preview` check the `view` ability on the
+record being edited when its model has a registered policy. An editor
+who can open the editor but whose policy denies `view` on that record
+gets `403`: the canvas shows the blocks' static values instead of the
+bound ones, and server-rendered block previews for that record show the
+request's error message instead of the preview. Allow `view` in the policy for those users. Models
+without a policy are unaffected. See
+[Block Bindings](block-bindings.md#record-access-check).
 
 ---
 
