@@ -31,25 +31,30 @@ interface LayoutField {
     help?: string;
 }
 
-const LAYOUT_FIELDS: readonly LayoutField[] = [
-    {
-        label: 'Content size',
-        path: ['settings', 'layout', 'contentSize'],
-        testId: 'content-size',
-        help: 'Default width for alignable blocks.',
-    },
-    {
-        label: 'Wide size',
-        path: ['settings', 'layout', 'wideSize'],
-        testId: 'wide-size',
-        help: 'Width used for wide-aligned blocks.',
-    },
-    {
-        label: 'Block spacing',
-        path: ['styles', 'spacing', 'blockGap'],
-        testId: 'block-gap',
-    },
-];
+/**
+ * Built per call so the labels pick up translations loaded after import.
+ */
+function getLayoutFields(): readonly LayoutField[] {
+    return [
+        {
+            label: __('Content size', TEXT_DOMAIN),
+            path: ['settings', 'layout', 'contentSize'],
+            testId: 'content-size',
+            help: __('Default width for alignable blocks.', TEXT_DOMAIN),
+        },
+        {
+            label: __('Wide size', TEXT_DOMAIN),
+            path: ['settings', 'layout', 'wideSize'],
+            testId: 'wide-size',
+            help: __('Width used for wide-aligned blocks.', TEXT_DOMAIN),
+        },
+        {
+            label: __('Block spacing', TEXT_DOMAIN),
+            path: ['styles', 'spacing', 'blockGap'],
+            testId: 'block-gap',
+        },
+    ];
+}
 
 const LAYOUT_UNITS = [
     { value: 'px', label: 'px', default: 16 },
@@ -69,7 +74,7 @@ export function LayoutPanel(props: LayoutPanelProps): JSX.Element {
 
     const customizedCount = useMemo(
         () =>
-            LAYOUT_FIELDS.filter((field) =>
+            getLayoutFields().filter((field) =>
                 editor.isPathCustomized(field.path)
             ).length,
         [editor]
@@ -81,10 +86,10 @@ export function LayoutPanel(props: LayoutPanelProps): JSX.Element {
             title={__('Layout', TEXT_DOMAIN)}
             customizedCount={customizedCount}
             onResetSection={() =>
-                LAYOUT_FIELDS.forEach((field) => editor.resetPath(field.path))
+                getLayoutFields().forEach((field) => editor.resetPath(field.path))
             }
         >
-            {LAYOUT_FIELDS.map((field) => {
+            {getLayoutFields().map((field) => {
                 const value = stringOrEmpty(editor.readValue(field.path));
                 const baseValue = stringOrEmpty(
                     editor.readBaseValue(field.path)
@@ -102,12 +107,8 @@ export function LayoutPanel(props: LayoutPanelProps): JSX.Element {
                         error={error}
                     >
                         <UnitControl
-                            label={__(field.label, TEXT_DOMAIN)}
-                            help={
-                                field.help !== undefined
-                                    ? __(field.help, TEXT_DOMAIN)
-                                    : undefined
-                            }
+                            label={field.label}
+                            help={field.help}
                             value={value}
                             units={LAYOUT_UNITS}
                             data-testid={`ap-site-editor-style-field-input-${field.testId}`}

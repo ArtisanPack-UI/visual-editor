@@ -19,7 +19,29 @@
  * @since 1.0.0
  */
 
+import { __ } from '@wordpress/i18n'
+
+import { TEXT_DOMAIN } from '../vendor/i18n'
 import { BASE_KEY, type Breakpoint, type BreakpointRegistrySnapshot } from './types'
+
+/**
+ * Translate one of the package's default breakpoint labels at display
+ * time. The defaults stay English in the data (they mirror the PHP
+ * registry and load before locale data); host-supplied labels pass
+ * through unchanged.
+ */
+function translateDefaultLabel( label: string ): string {
+	switch ( label ) {
+		case 'Mobile':
+			return __( 'Mobile', TEXT_DOMAIN )
+		case 'Tablet':
+			return __( 'Tablet', TEXT_DOMAIN )
+		case 'Desktop':
+			return __( 'Desktop', TEXT_DOMAIN )
+		default:
+			return label
+	}
+}
 
 /**
  * Desktop-first device breakpoints (#820). Preview widths sit inside
@@ -162,7 +184,7 @@ export class BreakpointRegistry {
 		const found = this.find( key )
 
 		if ( found && typeof found.label === 'string' && found.label !== '' ) {
-			return found.label
+			return translateDefaultLabel( found.label )
 		}
 
 		return key

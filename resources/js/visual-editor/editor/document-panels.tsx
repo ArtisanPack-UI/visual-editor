@@ -145,18 +145,18 @@ export interface DocumentPanelsProps {
     onTemplateChange?: (value: string) => void;
 }
 
-const STATUS_OPTIONS: ReadonlyArray<{ value: PostStatus; label: string }> = [
-    { value: 'draft', label: 'Draft' },
-    { value: 'pending', label: 'Pending review' },
-    { value: 'scheduled', label: 'Scheduled' },
-    { value: 'published', label: 'Published' },
-    { value: 'private', label: 'Private' },
+const STATUS_VALUES: ReadonlyArray<PostStatus> = [
+    'draft',
+    'pending',
+    'scheduled',
+    'published',
+    'private',
 ];
 
 function statusOptions(): Array<{ value: string; label: string }> {
-    return STATUS_OPTIONS.map((option) => ({
-        value: option.value,
-        label: translateStatus(option.value),
+    return STATUS_VALUES.map((value) => ({
+        value,
+        label: translateStatus(value),
     }));
 }
 

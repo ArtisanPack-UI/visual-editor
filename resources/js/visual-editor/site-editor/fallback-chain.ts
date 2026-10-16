@@ -9,6 +9,10 @@
  * sides move together and the shared test coverage catches the drift.
  */
 
+import { __ } from '@wordpress/i18n';
+
+import { TEXT_DOMAIN } from '../vendor/i18n';
+
 const GENERIC_FALLBACKS: readonly string[] = ['index'];
 const SINGULAR_FALLBACKS: readonly string[] = ['singular', ...GENERIC_FALLBACKS];
 
@@ -83,43 +87,43 @@ export function getTemplateKindOptions(): readonly TemplateKindOption[] {
     return [
         {
             slug: 'front-page',
-            label: 'Front page',
-            description: 'The site homepage when a static front page is assigned.',
+            label: __('Front page', TEXT_DOMAIN),
+            description: __('The site homepage when a static front page is assigned.', TEXT_DOMAIN),
         },
         {
             slug: 'home',
-            label: 'Blog home',
-            description: 'The posts archive when not used as the front page.',
+            label: __('Blog home', TEXT_DOMAIN),
+            description: __('The posts archive when not used as the front page.', TEXT_DOMAIN),
         },
         {
             slug: 'single',
-            label: 'Single post',
-            description: 'The default layout for individual posts.',
+            label: __('Single post', TEXT_DOMAIN),
+            description: __('The default layout for individual posts.', TEXT_DOMAIN),
         },
         {
             slug: 'page',
-            label: 'Single page',
-            description: 'The default layout for individual pages.',
+            label: __('Single page', TEXT_DOMAIN),
+            description: __('The default layout for individual pages.', TEXT_DOMAIN),
         },
         {
             slug: 'archive',
-            label: 'Archive',
-            description: 'Listings for categories, tags, and custom taxonomies.',
+            label: __('Archive', TEXT_DOMAIN),
+            description: __('Listings for categories, tags, and custom taxonomies.', TEXT_DOMAIN),
         },
         {
             slug: 'search',
-            label: 'Search results',
-            description: 'The search results page.',
+            label: __('Search results', TEXT_DOMAIN),
+            description: __('The search results page.', TEXT_DOMAIN),
         },
         {
             slug: '404',
-            label: '404 (not found)',
-            description: 'Shown when no other template matches the request.',
+            label: __('404 (not found)', TEXT_DOMAIN),
+            description: __('Shown when no other template matches the request.', TEXT_DOMAIN),
         },
         {
             slug: 'index',
-            label: 'Index (fallback)',
-            description: 'The last-resort fallback used when no other template matches.',
+            label: __('Index (fallback)', TEXT_DOMAIN),
+            description: __('The last-resort fallback used when no other template matches.', TEXT_DOMAIN),
         },
     ];
 }

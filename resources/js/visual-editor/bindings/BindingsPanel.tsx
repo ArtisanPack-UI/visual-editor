@@ -46,11 +46,16 @@ export interface BindingsPanelProps {
 	onChange: ( next: BindingsMap ) => void;
 }
 
-const POLICY_OPTIONS: Array<{ label: string; value: EmptyValuePolicy }> = [
-	{ label: __( 'Fall back to static value', TEXT_DOMAIN ), value: 'fallback' },
-	{ label: __( 'Hide (set to null)', TEXT_DOMAIN ),       value: 'hide' },
-	{ label: __( 'Show placeholder',     TEXT_DOMAIN ),     value: 'placeholder' },
-];
+/**
+ * Built per render so the labels pick up translations loaded after import.
+ */
+function getPolicyOptions(): Array<{ label: string; value: EmptyValuePolicy }> {
+	return [
+		{ label: __( 'Fall back to static value', TEXT_DOMAIN ), value: 'fallback' },
+		{ label: __( 'Hide (set to null)', TEXT_DOMAIN ), value: 'hide' },
+		{ label: __( 'Show placeholder', TEXT_DOMAIN ), value: 'placeholder' },
+	];
+}
 
 const FREE_FORM_SOURCES = new Set( [ 'relation' ] );
 
@@ -250,7 +255,7 @@ function AttributeRow( {
 					<SelectControl
 						label={ __( 'When the field is empty', TEXT_DOMAIN ) }
 						value={ binding!.onEmpty ?? 'fallback' }
-						options={ POLICY_OPTIONS }
+						options={ getPolicyOptions() }
 						onChange={ ( next: string ) => patchBinding( { onEmpty: next as EmptyValuePolicy } ) }
 					/>
 

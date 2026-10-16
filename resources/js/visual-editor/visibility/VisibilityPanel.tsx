@@ -23,7 +23,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { __ } from '@wordpress/i18n';
+import { __, _x } from '@wordpress/i18n';
 import {
     Button,
     ButtonGroup,
@@ -59,42 +59,53 @@ interface Props {
     searchUsers: (term: string) => Promise<SpecificUserRef[]>;
 }
 
-const BROWSER_OPTIONS = [
-    { value: 'chrome',  label: 'Chrome' },
-    { value: 'firefox', label: 'Firefox' },
-    { value: 'safari',  label: 'Safari' },
-    { value: 'edge',    label: 'Edge' },
-    { value: 'opera',   label: 'Opera' },
-    { value: 'ie',      label: 'Internet Explorer' },
-    { value: 'other',   label: 'Other' },
-];
+// Option lists are built per render so labels pick up locale data
+// loaded after this module is imported. Browser and OS names are brand
+// names and stay untranslated.
+function browserOptions(): Array<{ value: string; label: string }> {
+    return [
+        { value: 'chrome',  label: 'Chrome' },
+        { value: 'firefox', label: 'Firefox' },
+        { value: 'safari',  label: 'Safari' },
+        { value: 'edge',    label: 'Edge' },
+        { value: 'opera',   label: 'Opera' },
+        { value: 'ie',      label: 'Internet Explorer' },
+        { value: 'other',   label: __('Other', 'artisanpack-visual-editor') },
+    ];
+}
 
-const OS_OPTIONS = [
-    { value: 'windows',  label: 'Windows' },
-    { value: 'macos',    label: 'macOS' },
-    { value: 'ios',      label: 'iOS' },
-    { value: 'android',  label: 'Android' },
-    { value: 'linux',    label: 'Linux' },
-    { value: 'chromeos', label: 'ChromeOS' },
-    { value: 'other',    label: 'Other' },
-];
+function osOptions(): Array<{ value: string; label: string }> {
+    return [
+        { value: 'windows',  label: 'Windows' },
+        { value: 'macos',    label: 'macOS' },
+        { value: 'ios',      label: 'iOS' },
+        { value: 'android',  label: 'Android' },
+        { value: 'linux',    label: 'Linux' },
+        { value: 'chromeos', label: 'ChromeOS' },
+        { value: 'other',    label: __('Other', 'artisanpack-visual-editor') },
+    ];
+}
 
-const DEVICE_OPTIONS = [
-    { value: 'mobile',  label: 'Mobile' },
-    { value: 'tablet',  label: 'Tablet' },
-    { value: 'desktop', label: 'Desktop' },
-    { value: 'bot',     label: 'Bot' },
-];
+function deviceOptions(): Array<{ value: string; label: string }> {
+    return [
+        { value: 'mobile',  label: __('Mobile', 'artisanpack-visual-editor') },
+        { value: 'tablet',  label: __('Tablet', 'artisanpack-visual-editor') },
+        { value: 'desktop', label: __('Desktop', 'artisanpack-visual-editor') },
+        { value: 'bot',     label: __('Bot', 'artisanpack-visual-editor') },
+    ];
+}
 
-const DAY_OPTIONS = [
-    { value: '0', label: 'Sunday' },
-    { value: '1', label: 'Monday' },
-    { value: '2', label: 'Tuesday' },
-    { value: '3', label: 'Wednesday' },
-    { value: '4', label: 'Thursday' },
-    { value: '5', label: 'Friday' },
-    { value: '6', label: 'Saturday' },
-];
+function dayOptions(): Array<{ value: string; label: string }> {
+    return [
+        { value: '0', label: __('Sunday', 'artisanpack-visual-editor') },
+        { value: '1', label: __('Monday', 'artisanpack-visual-editor') },
+        { value: '2', label: __('Tuesday', 'artisanpack-visual-editor') },
+        { value: '3', label: __('Wednesday', 'artisanpack-visual-editor') },
+        { value: '4', label: __('Thursday', 'artisanpack-visual-editor') },
+        { value: '5', label: __('Friday', 'artisanpack-visual-editor') },
+        { value: '6', label: __('Saturday', 'artisanpack-visual-editor') },
+    ];
+}
 
 const SUBSECTION_STYLE: React.CSSProperties = {
     display:       'flex',
@@ -351,9 +362,9 @@ function BrowserOsDevicePanel({ value, onChange }: { value: BrowserOsDeviceRuleA
             {active && (
                 <div style={SUBSECTION_STYLE}>
                     <DirectionToggle value={value?.direction ?? 'show'} onChange={(direction) => onChange({ ...(value ?? {}), direction })} />
-                    <ChipList label={__('Browsers', 'artisanpack-visual-editor')} options={BROWSER_OPTIONS} value={value?.browsers ?? []} onChange={(next) => onChange({ ...(value ?? {}), browsers: next })} />
-                    <ChipList label={__('Operating systems', 'artisanpack-visual-editor')} options={OS_OPTIONS} value={value?.operatingSystems ?? []} onChange={(next) => onChange({ ...(value ?? {}), operatingSystems: next })} />
-                    <ChipList label={__('Device types', 'artisanpack-visual-editor')} options={DEVICE_OPTIONS} value={value?.deviceTypes ?? []} onChange={(next) => onChange({ ...(value ?? {}), deviceTypes: next })} />
+                    <ChipList label={__('Browsers', 'artisanpack-visual-editor')} options={browserOptions()} value={value?.browsers ?? []} onChange={(next) => onChange({ ...(value ?? {}), browsers: next })} />
+                    <ChipList label={__('Operating systems', 'artisanpack-visual-editor')} options={osOptions()} value={value?.operatingSystems ?? []} onChange={(next) => onChange({ ...(value ?? {}), operatingSystems: next })} />
+                    <ChipList label={__('Device types', 'artisanpack-visual-editor')} options={deviceOptions()} value={value?.deviceTypes ?? []} onChange={(next) => onChange({ ...(value ?? {}), deviceTypes: next })} />
                 </div>
             )}
         </>
@@ -513,7 +524,7 @@ function RecurringPanel({ value, onChange }: { value: RecurringScheduleRuleAttrs
                                     <SelectControl
                                         label={__('Day', 'artisanpack-visual-editor')}
                                         value={String(win.day)}
-                                        options={DAY_OPTIONS}
+                                        options={dayOptions()}
                                         onChange={(next) => {
                                             const copy = [...windows];
                                             copy[index] = { ...win, day: Number(next) };
@@ -524,7 +535,7 @@ function RecurringPanel({ value, onChange }: { value: RecurringScheduleRuleAttrs
                                 <div style={{ flex: '1 1 80px', minWidth: '80px' }}>
                                     <TextControl
                                         label={__('Start', 'artisanpack-visual-editor')}
-                                        placeholder="HH:MM"
+                                        placeholder={_x('HH:MM', 'time input placeholder', 'artisanpack-visual-editor')}
                                         value={win.start}
                                         onChange={(next) => {
                                             const copy = [...windows];
@@ -536,7 +547,7 @@ function RecurringPanel({ value, onChange }: { value: RecurringScheduleRuleAttrs
                                 <div style={{ flex: '1 1 80px', minWidth: '80px' }}>
                                     <TextControl
                                         label={__('End', 'artisanpack-visual-editor')}
-                                        placeholder="HH:MM"
+                                        placeholder={_x('HH:MM', 'time input placeholder', 'artisanpack-visual-editor')}
                                         value={win.end}
                                         onChange={(next) => {
                                             const copy = [...windows];

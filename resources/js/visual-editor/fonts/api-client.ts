@@ -15,6 +15,10 @@
  * @since 1.7.0
  */
 
+import { __ } from '@wordpress/i18n';
+
+import { TEXT_DOMAIN } from '../vendor/i18n';
+
 export const FONTS_API_BASE = '/visual-editor/api/fonts';
 
 /**
@@ -331,7 +335,7 @@ export async function fetchInstalledFonts(signal?: AbortSignal): Promise<Install
             signal,
         });
 
-        const body = (await requireOk(response, 'Failed to load installed fonts.')) as
+        const body = (await requireOk(response, __('Failed to load installed fonts.', TEXT_DOMAIN))) as
             | ReadEnvelope<readonly InstalledFont[]>
             | null;
 
@@ -341,7 +345,7 @@ export async function fetchInstalledFonts(signal?: AbortSignal): Promise<Install
             readOnly: body ? Boolean(body.read_only) : true,
         };
     } catch (error: unknown) {
-        throw normalizeError(error, 'Failed to load installed fonts.');
+        throw normalizeError(error, __('Failed to load installed fonts.', TEXT_DOMAIN));
     }
 }
 
@@ -359,7 +363,7 @@ export async function fetchSources(signal?: AbortSignal): Promise<SourcesResult>
             signal,
         });
 
-        const body = (await requireOk(response, 'Failed to load font providers.')) as
+        const body = (await requireOk(response, __('Failed to load font providers.', TEXT_DOMAIN))) as
             | ReadEnvelope<readonly FontSource[]>
             | null;
 
@@ -369,7 +373,7 @@ export async function fetchSources(signal?: AbortSignal): Promise<SourcesResult>
             readOnly: body ? Boolean(body.read_only) : true,
         };
     } catch (error: unknown) {
-        throw normalizeError(error, 'Failed to load font providers.');
+        throw normalizeError(error, __('Failed to load font providers.', TEXT_DOMAIN));
     }
 }
 
@@ -407,7 +411,7 @@ export async function fetchCatalog(
             signal,
         });
 
-        const body = (await requireOk(response, 'Failed to load the font catalog.')) as
+        const body = (await requireOk(response, __('Failed to load the font catalog.', TEXT_DOMAIN))) as
             | { data?: Partial<CatalogPage> }
             | null;
 
@@ -419,7 +423,7 @@ export async function fetchCatalog(
             has_more: Boolean(data.has_more),
         };
     } catch (error: unknown) {
-        throw normalizeError(error, 'Failed to load the font catalog.');
+        throw normalizeError(error, __('Failed to load the font catalog.', TEXT_DOMAIN));
     }
 }
 
@@ -441,13 +445,13 @@ export async function installFont(
             body: JSON.stringify({ provider, slug, faces }),
         });
 
-        const body = (await requireOk(response, 'Failed to install the font.')) as {
+        const body = (await requireOk(response, __('Failed to install the font.', TEXT_DOMAIN))) as {
             data: InstalledFont;
         };
 
         return body.data;
     } catch (error: unknown) {
-        throw normalizeError(error, 'Failed to install the font.');
+        throw normalizeError(error, __('Failed to install the font.', TEXT_DOMAIN));
     }
 }
 
@@ -483,13 +487,13 @@ export async function uploadFont(
             body: form,
         });
 
-        const body = (await requireOk(response, 'Failed to upload the font.')) as {
+        const body = (await requireOk(response, __('Failed to upload the font.', TEXT_DOMAIN))) as {
             data: InstalledFont;
         };
 
         return body.data;
     } catch (error: unknown) {
-        throw normalizeError(error, 'Failed to upload the font.');
+        throw normalizeError(error, __('Failed to upload the font.', TEXT_DOMAIN));
     }
 }
 
@@ -507,13 +511,13 @@ export async function bulkUninstall(ids: readonly number[]): Promise<number> {
             body: JSON.stringify({ ids }),
         });
 
-        const body = (await requireOk(response, 'Failed to uninstall the selected fonts.')) as {
+        const body = (await requireOk(response, __('Failed to uninstall the selected fonts.', TEXT_DOMAIN))) as {
             data?: { removed?: number };
         } | null;
 
         return typeof body?.data?.removed === 'number' ? body.data.removed : 0;
     } catch (error: unknown) {
-        throw normalizeError(error, 'Failed to uninstall the selected fonts.');
+        throw normalizeError(error, __('Failed to uninstall the selected fonts.', TEXT_DOMAIN));
     }
 }
 
@@ -530,8 +534,8 @@ export async function uninstallFont(id: number): Promise<void> {
             headers: jsonHeaders(),
         });
 
-        await requireOk(response, 'Failed to uninstall the font.');
+        await requireOk(response, __('Failed to uninstall the font.', TEXT_DOMAIN));
     } catch (error: unknown) {
-        throw normalizeError(error, 'Failed to uninstall the font.');
+        throw normalizeError(error, __('Failed to uninstall the font.', TEXT_DOMAIN));
     }
 }

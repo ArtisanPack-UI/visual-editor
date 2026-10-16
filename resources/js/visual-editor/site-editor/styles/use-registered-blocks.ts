@@ -9,7 +9,7 @@
  * the JS side).
  */
 
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 import { useEffect, useRef, useState } from 'react';
 
 import { TEXT_DOMAIN } from '../../vendor/i18n';
@@ -129,7 +129,11 @@ export function useRegisteredBlocks(
 
                 if (!response.ok) {
                     throw new SiteEditorApiError(
-                        `Block registry request failed with status ${response.status}`,
+                        sprintf(
+                            /* translators: %d: HTTP status code. */
+                            __('Block registry request failed with status %d', TEXT_DOMAIN),
+                            response.status
+                        ),
                         response.status,
                         body
                     );
@@ -145,10 +149,7 @@ export function useRegisteredBlocks(
                 const message =
                     err instanceof Error && err.message !== ''
                         ? err.message
-                        : __(
-                              'Failed to load registered blocks.',
-                              TEXT_DOMAIN
-                          );
+                        : __('Failed to load registered blocks.', TEXT_DOMAIN);
 
                 setError(message);
                 setIsLoading(false);

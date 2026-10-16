@@ -108,7 +108,7 @@ export function ServerSideRender({
                     const apiError =
                         caught instanceof ApiError
                             ? caught
-                            : new ApiError('Failed to preview block.', 0, caught);
+                            : new ApiError(__('Failed to preview block.', TEXT_DOMAIN), 0, caught);
 
                     setError(apiError);
                     setStatus('error');
