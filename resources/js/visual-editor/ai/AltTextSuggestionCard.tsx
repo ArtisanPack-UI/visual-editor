@@ -7,6 +7,8 @@
  */
 
 import { useEffect, useMemo, useRef } from 'react';
+import { __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../vendor/i18n';
 import type { AiApiClient, AltTextInput, AltTextOutput } from './ai-api-client';
 import { useAltText } from './hooks';
 
@@ -68,7 +70,7 @@ export function AltTextSuggestionCard(props: AltTextSuggestionCardProps) {
     if (call.status === 'loading') {
         return (
             <div role="status" className="ap-ve-ai-alt-card ap-ve-ai-alt-card--loading">
-                Generating alt text…
+                {__('Generating alt text…', TEXT_DOMAIN)}
             </div>
         );
     }
@@ -76,9 +78,9 @@ export function AltTextSuggestionCard(props: AltTextSuggestionCardProps) {
     if (call.status === 'error') {
         return (
             <div role="alert" className="ap-ve-ai-alt-card ap-ve-ai-alt-card--error">
-                <p>Could not suggest alt text.</p>
+                <p>{__('Could not suggest alt text.', TEXT_DOMAIN)}</p>
                 <button type="button" onClick={onDismiss}>
-                    Dismiss
+                    {__('Dismiss', TEXT_DOMAIN)}
                 </button>
             </div>
         );
@@ -92,10 +94,10 @@ export function AltTextSuggestionCard(props: AltTextSuggestionCardProps) {
 
     return (
         <div className="ap-ve-ai-alt-card" data-testid="ap-ve-ai-alt-card">
-            <p className="ap-ve-ai-alt-card__label">Suggested alt text</p>
+            <p className="ap-ve-ai-alt-card__label">{__('Suggested alt text', TEXT_DOMAIN)}</p>
             <p className="ap-ve-ai-alt-card__text">
                 {suggestion.alt_text.trim() === ''
-                    ? '(empty — decorative image)'
+                    ? __('(empty — decorative image)', TEXT_DOMAIN)
                     : suggestion.alt_text}
             </p>
             {suggestion.warnings.length > 0 && (
@@ -111,10 +113,10 @@ export function AltTextSuggestionCard(props: AltTextSuggestionCardProps) {
                     onClick={() => onAccept(suggestion)}
                     data-testid="ap-ve-ai-alt-accept"
                 >
-                    Accept
+                    {__('Accept', TEXT_DOMAIN)}
                 </button>
                 <button type="button" onClick={onDismiss} data-testid="ap-ve-ai-alt-dismiss">
-                    Dismiss
+                    {__('Dismiss', TEXT_DOMAIN)}
                 </button>
             </div>
         </div>

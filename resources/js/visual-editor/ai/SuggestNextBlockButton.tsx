@@ -8,6 +8,8 @@
  */
 
 import { useCallback, useState } from 'react';
+import { __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../vendor/i18n';
 import type { AiApiClient, BlockSuggestion } from './ai-api-client';
 import { useSuggestNextBlock } from './hooks';
 
@@ -42,12 +44,12 @@ export function SuggestNextBlockButton(props: SuggestNextBlockButtonProps) {
                 disabled={call.status === 'loading'}
                 data-testid="ap-ve-ai-suggest-next-trigger"
             >
-                {label ?? '+ suggest next block'}
+                {label ?? __('+ suggest next block', TEXT_DOMAIN)}
             </button>
 
             {open && call.status === 'loading' && (
                 <span role="status" aria-live="polite">
-                    Thinking…
+                    {__('Thinking…', TEXT_DOMAIN)}
                 </span>
             )}
 
