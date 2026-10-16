@@ -18,11 +18,14 @@
  * Phase I-Block-Fork — post navigation / metadata family (#520).
  */
 
+import { __ } from '@wordpress/i18n';
+
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { createEntityPlaceholderEdit } from '../_shared/entity-placeholder-edit';
 import type { QueryPreviewPost } from '../../editor/use-query-preview';
 
 export default createEntityPlaceholderEdit( {
-    label: 'Term Description',
+    label: () => __( 'Term Description', TEXT_DOMAIN ),
     resolvedKey: '_resolvedTermDescription',
     kind: 'html',
     fromQueryPreview: ( post: QueryPreviewPost ) => {
@@ -37,7 +40,7 @@ export default createEntityPlaceholderEdit( {
     // Authors editing a template (or a post whose primary term has no
     // description) get a representative dummy so the styled paragraph
     // shape is visible. Front-end render never sees this.
-    dummyValue: {
-        text: 'A short description of the current term, surfaced on archive pages.',
-    },
+    dummyValue: () => ( {
+        text: __( 'A short description of the current term, surfaced on archive pages.', TEXT_DOMAIN ),
+    } ),
 } );

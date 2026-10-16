@@ -39,17 +39,21 @@ const TEMPLATE: [string, Record<string, unknown>][] = [
     ['artisanpack/tab-section', {}],
 ];
 
-const ALIGN_OPTIONS: ReadonlyArray<{ value: TabsAlign; label: string }> = [
-    { value: 'horizontal', label: 'Horizontal' },
-    { value: 'vertical', label: 'Vertical' },
-];
+function alignOptions(): ReadonlyArray<{ value: TabsAlign; label: string }> {
+    return [
+        { value: 'horizontal', label: __('Horizontal', TEXT_DOMAIN) },
+        { value: 'vertical', label: __('Vertical', TEXT_DOMAIN) },
+    ];
+}
 
-const SPACING_OPTIONS: ReadonlyArray<{ value: TabsSpacing; label: string }> = [
-    { value: 'start', label: 'Start (Top / Left)' },
-    { value: 'end', label: 'End (Bottom / Right)' },
-    { value: 'center', label: 'Center' },
-    { value: 'equal', label: 'Equal' },
-];
+function spacingOptions(): ReadonlyArray<{ value: TabsSpacing; label: string }> {
+    return [
+        { value: 'start', label: __('Start (Top / Left)', TEXT_DOMAIN) },
+        { value: 'end', label: __('End (Bottom / Right)', TEXT_DOMAIN) },
+        { value: 'center', label: __('Center', TEXT_DOMAIN) },
+        { value: 'equal', label: __('Equal', TEXT_DOMAIN) },
+    ];
+}
 
 interface SectionSummary {
     readonly clientId: string;
@@ -132,10 +136,7 @@ export default function TabsEdit({
                     <SelectControl
                         label={__('Tab list orientation', TEXT_DOMAIN)}
                         value={tabsAlign}
-                        options={ALIGN_OPTIONS.map((option) => ({
-                            label: __(option.label, TEXT_DOMAIN),
-                            value: option.value,
-                        }))}
+                        options={alignOptions()}
                         onChange={(value) => {
                             if (value === 'horizontal' || value === 'vertical') {
                                 setAttributes({ tabsAlign: value });
@@ -146,10 +147,7 @@ export default function TabsEdit({
                     <SelectControl
                         label={__('Tab list spacing', TEXT_DOMAIN)}
                         value={tabsSpacing}
-                        options={SPACING_OPTIONS.map((option) => ({
-                            label: __(option.label, TEXT_DOMAIN),
-                            value: option.value,
-                        }))}
+                        options={spacingOptions()}
                         onChange={(value) => {
                             if (
                                 value === 'start' ||

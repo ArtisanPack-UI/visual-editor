@@ -13,12 +13,15 @@ import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { createCommentPlaceholderEdit } from '../_shared/comment-placeholder-edit';
 
 export default createCommentPlaceholderEdit( {
-    label: __( 'Comment Author Name', TEXT_DOMAIN ),
+    label: () => __( 'Comment Author Name', TEXT_DOMAIN ),
     resolvedKey: '_resolvedAuthorName',
     kind: 'text',
     fromCommentPreview: ( comment ) => {
         const name = comment.authorName;
         return typeof name === 'string' && name !== '' ? { text: name } : null;
     },
-    dummyValue: { text: 'Jane Doe' },
+    dummyValue: () => ( {
+        /* translators: Sample comment author name shown in the editor preview. */
+        text: __( 'Jane Doe', TEXT_DOMAIN ),
+    } ),
 } );

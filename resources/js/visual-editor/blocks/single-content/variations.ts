@@ -14,14 +14,21 @@
  */
 
 import type { BlockConfiguration } from '@wordpress/blocks';
+import { __, sprintf } from '@wordpress/i18n';
 
 import { getContentTypes } from '../../editor/content-type-registry';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 
 const variations: NonNullable<BlockConfiguration['variations']> = getContentTypes().map(
     (type) => ({
         name: `single-${type.slug}`,
-        title: `Single ${type.label}`,
-        description: `Render a single ${type.label.toLowerCase()} and scope the inner blocks to it.`,
+        /* translators: %s: content type label (e.g. "Post"). */
+        title: sprintf( __( 'Single %s', TEXT_DOMAIN ), type.label ),
+        description: sprintf(
+            /* translators: %s: content type label, lowercased (e.g. "post"). */
+            __( 'Render a single %s and scope the inner blocks to it.', TEXT_DOMAIN ),
+            type.label.toLowerCase()
+        ),
         scope: ['inserter', 'transform'],
         attributes: {
             postType: type.slug,

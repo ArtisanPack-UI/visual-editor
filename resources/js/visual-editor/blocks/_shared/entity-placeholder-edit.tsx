@@ -121,8 +121,12 @@ export interface SiteEntityRecord extends EntityRecord {
 }
 
 export interface EntityPlaceholderConfig {
-    /** Human-readable block label, e.g. "Post Title". */
-    readonly label: string;
+    /**
+     * Human-readable block label, e.g. "Post Title". Pass a function
+     * returning the translated label so `__()` runs at render time
+     * (after locale data loads) rather than at module load.
+     */
+    readonly label: string | ( () => string );
     /** Attribute key holding the resolved value, e.g. `_resolvedTitle`. */
     readonly resolvedKey: string;
     /** How to render the resolved value. */
@@ -162,8 +166,12 @@ export interface EntityPlaceholderConfig {
      * (in the site editor or post editor) get a representative block
      * they can style — much more useful than a generic chip. Front-end
      * render never sees this; only the editor does.
+     *
+     * Pass a function when the value holds translatable text, so the
+     * `__()` call runs at render time (after locale data loads) rather
+     * than at module load.
      */
-    readonly dummyValue?: EntityPreviewValue;
+    readonly dummyValue?: EntityPreviewValue | ( () => EntityPreviewValue );
 }
 
 export const PREVIEW_CONTEXT_KEY = 'artisanpack/postPreview';
@@ -379,23 +387,26 @@ export function createEntityPlaceholderEdit(
         // configured dummy value so authors editing a template (with
         // no specific entity in scope) see what the block will look
         // like styled. Final fallback is the original labelled chip.
+        const dummyValue = 'function' === typeof config.dummyValue
+            ? config.dummyValue()
+            : config.dummyValue;
         if (
-            config.dummyValue !== undefined &&
-            hasPreviewValue( config.kind, config.dummyValue )
+            dummyValue !== undefined &&
+            hasPreviewValue( config.kind, dummyValue )
         ) {
-            return renderResolved( config.kind, config.dummyValue, blockProps );
+            return renderResolved( config.kind, dummyValue, blockProps );
         }
 
         return (
             <div { ...blockProps }>
                 <span style={ placeholderStyle } contentEditable={ false }>
-                    { config.label }
+                    { 'function' === typeof config.label ? config.label() : config.label }
                 </span>
             </div>
         );
     }
 
-    EntityPlaceholderEdit.displayName = `EntityPlaceholderEdit(${ config.label })`;
+    EntityPlaceholderEdit.displayName = `EntityPlaceholderEdit(${ 'string' === typeof config.label ? config.label : config.resolvedKey })`;
 
     return EntityPlaceholderEdit;
 }

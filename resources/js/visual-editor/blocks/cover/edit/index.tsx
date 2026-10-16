@@ -849,7 +849,7 @@ function CoverEdit({
                     >
                         <iframe
                             src={embedSrc}
-                            title="Background video"
+                            title={__('Background video', TEXT_DOMAIN)}
                             frameBorder="0"
                             allow="autoplay; fullscreen"
                         />

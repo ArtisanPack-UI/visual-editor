@@ -14,10 +14,13 @@
  * Phase I5 entity cluster (#413), live-preview path #481.
  */
 
+import { __ } from '@wordpress/i18n';
+
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { createEntityPlaceholderEdit } from '../_shared/entity-placeholder-edit';
 
 export default createEntityPlaceholderEdit( {
-    label: 'Featured Image',
+    label: () => __( 'Featured Image', TEXT_DOMAIN ),
     resolvedKey: '_resolvedImageUrl',
     kind: 'image',
     altKey: '_resolvedImageAlt',

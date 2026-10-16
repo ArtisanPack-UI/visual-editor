@@ -17,7 +17,7 @@ import {
     useBlockProps,
 } from '@wordpress/block-editor';
 import { Button, Placeholder, PanelBody, SelectControl, Spinner } from '@wordpress/components';
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 
 import { TEXT_DOMAIN } from '../../vendor/i18n';
 
@@ -302,7 +302,10 @@ function FormPreview({ formId }: { readonly formId: number }): ReactElement {
                     );
                 }
                 if (!response.ok) {
-                    throw new Error(`Failed to load form preview (status ${response.status}).`);
+                    throw new Error(
+                        /* translators: %d: HTTP status code. */
+                        sprintf(__('Failed to load form preview (status %d).', TEXT_DOMAIN), response.status),
+                    );
                 }
                 const json = (await response.json()) as FormDetailResponse;
                 if (!cancelled) {
@@ -310,7 +313,7 @@ function FormPreview({ formId }: { readonly formId: number }): ReactElement {
                 }
             } catch (err) {
                 if (!cancelled) {
-                    setError(err instanceof Error ? err.message : 'Failed to load form preview.');
+                    setError(err instanceof Error ? err.message : __('Failed to load form preview.', TEXT_DOMAIN));
                 }
             }
         }
@@ -399,7 +402,10 @@ export default function FormEdit({
                     credentials: 'include',
                 });
                 if (!response.ok) {
-                    throw new Error(`Failed to load forms (status ${response.status}).`);
+                    throw new Error(
+                        /* translators: %d: HTTP status code. */
+                        sprintf(__('Failed to load forms (status %d).', TEXT_DOMAIN), response.status),
+                    );
                 }
                 const json = (await response.json()) as PaginatedForms;
                 if (!cancelled) {
@@ -407,7 +413,7 @@ export default function FormEdit({
                 }
             } catch (err) {
                 if (!cancelled) {
-                    setError(err instanceof Error ? err.message : 'Failed to load forms.');
+                    setError(err instanceof Error ? err.message : __('Failed to load forms.', TEXT_DOMAIN));
                 }
             }
         }
@@ -422,7 +428,10 @@ export default function FormEdit({
     const options = [
         { label: __('— Select a form —', TEXT_DOMAIN), value: '0' },
         ...(forms ?? []).map((f) => ({
-            label: f.is_active ? f.name : `${f.name} (inactive)`,
+            label: f.is_active
+                ? f.name
+                /* translators: %s: form name. */
+                : sprintf(__('%s (inactive)', TEXT_DOMAIN), f.name),
             value: String(f.id),
         })),
     ];

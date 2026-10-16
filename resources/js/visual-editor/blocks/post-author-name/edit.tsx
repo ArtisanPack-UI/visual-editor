@@ -16,10 +16,13 @@
  * `core/post-author`.
  */
 
+import { __ } from '@wordpress/i18n';
+
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { createEntityPlaceholderEdit } from '../_shared/entity-placeholder-edit';
 
 export default createEntityPlaceholderEdit( {
-    label: 'Author Name',
+    label: () => __( 'Author Name', TEXT_DOMAIN ),
     resolvedKey: '_resolvedAuthorName',
     kind: 'text',
     fromQueryPreview: ( post ) => {

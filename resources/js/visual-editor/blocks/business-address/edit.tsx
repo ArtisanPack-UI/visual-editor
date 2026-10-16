@@ -117,14 +117,15 @@ function renderPlaceholder(showMap: boolean, mapProvider: MapProvider): ReactEle
                     )}
                 </em>
             </p>
+            {/* translators: Sample address lines shown in the editor preview. */}
             <address className="ap-business-address__address">
-                123 Example Street
+                {__('123 Example Street', TEXT_DOMAIN)}
                 <br />
-                Suite 100
+                {__('Suite 100', TEXT_DOMAIN)}
                 <br />
-                Springfield, IL 62701
+                {__('Springfield, IL 62701', TEXT_DOMAIN)}
                 <br />
-                United States
+                {__('United States', TEXT_DOMAIN)}
             </address>
             {showMap && 'none' !== mapProvider && (
                 <div

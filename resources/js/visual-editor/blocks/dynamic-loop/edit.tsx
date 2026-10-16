@@ -37,9 +37,12 @@ interface EditProps {
     setAttributes: (patch: Partial<{ collection: string; emptyMessage: string }>) => void;
 }
 
-const TEMPLATE: Array<[string, Record<string, unknown>]> = [
-    ['artisanpack/paragraph', { placeholder: 'Bind attributes to loop tokens…' }],
-];
+// Built per render so the placeholder picks up locale data loaded after import.
+function loopTemplate(): Array<[string, Record<string, unknown>]> {
+    return [
+        ['artisanpack/paragraph', { placeholder: __('Bind attributes to loop tokens…', 'artisanpack-visual-editor') }],
+    ];
+}
 
 export default function DynamicLoopEdit({ attributes, setAttributes }: EditProps) {
     const blockProps = useBlockProps({
@@ -108,7 +111,7 @@ export default function DynamicLoopEdit({ attributes, setAttributes }: EditProps
                 )}
                 <div className="ve-dynamic-loop__template" aria-label={__('Template (one iteration)', 'artisanpack-visual-editor')}>
                     <InnerBlocks
-                        template={TEMPLATE}
+                        template={loopTemplate()}
                         templateLock={false}
                     />
                 </div>

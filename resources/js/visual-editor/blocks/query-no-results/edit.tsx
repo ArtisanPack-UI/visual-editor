@@ -21,17 +21,17 @@ import { __ } from '@wordpress/i18n';
 import { readQueryPreviewContext } from '../../editor/query-preview-context';
 import { TEXT_DOMAIN } from '../../vendor/i18n';
 
-const DEFAULT_TEMPLATE: ReadonlyArray<[ string, Record<string, unknown> ]> = [
-    [
-        'artisanpack/paragraph',
-        {
-            placeholder: __(
-                'Add text or blocks that will display when the query returns no results.',
-                TEXT_DOMAIN
-            ),
-        },
-    ],
-];
+// Built per render so the placeholder picks up locale data loaded after import.
+function defaultTemplate(): Array<[ string, Record<string, unknown> ]> {
+    return [
+        [
+            'artisanpack/paragraph',
+            {
+                placeholder: __( 'Add text or blocks that will display when the query returns no results.', TEXT_DOMAIN ),
+            },
+        ],
+    ];
+}
 
 interface QueryNoResultsEditProps {
     attributes: { showInEditor?: boolean };
@@ -75,7 +75,7 @@ export default function QueryNoResultsEdit( {
                 </PanelBody>
             </InspectorControls>
             { shouldRenderContent ? (
-                <InnerBlocks template={ [ ...DEFAULT_TEMPLATE ] } />
+                <InnerBlocks template={ defaultTemplate() } />
             ) : (
                 <span
                     contentEditable={ false }

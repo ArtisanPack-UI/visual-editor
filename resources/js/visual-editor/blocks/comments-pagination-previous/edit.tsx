@@ -13,8 +13,8 @@ import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { createEntityPlaceholderEdit } from '../_shared/entity-placeholder-edit';
 
 export default createEntityPlaceholderEdit( {
-    label: __( 'Older Comments', TEXT_DOMAIN ),
+    label: () => __( 'Older Comments', TEXT_DOMAIN ),
     resolvedKey: '_resolvedPaginationPreviousLabel',
     kind: 'text',
-    dummyValue: { text: '← Older Comments' },
+    dummyValue: () => ( { text: `← ${ __( 'Older Comments', TEXT_DOMAIN ) }` } ),
 } );

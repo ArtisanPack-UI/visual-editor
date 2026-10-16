@@ -13,14 +13,14 @@ import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { createCommentPlaceholderEdit } from '../_shared/comment-placeholder-edit';
 
 export default createCommentPlaceholderEdit( {
-    label: __( 'Comment Content', TEXT_DOMAIN ),
+    label: () => __( 'Comment Content', TEXT_DOMAIN ),
     resolvedKey: '_resolvedContent',
     kind: 'html',
     fromCommentPreview: ( comment ) => {
         const content = comment.content;
         return typeof content === 'string' && content !== '' ? { text: content } : null;
     },
-    dummyValue: {
-        text: '<p>This is a sample comment. Authors editing a template see this representative content so they can style the block before any real comments exist.</p>',
-    },
+    dummyValue: () => ( {
+        text: `<p>${ __( 'This is a sample comment. Authors editing a template see this representative content so they can style the block before any real comments exist.', TEXT_DOMAIN ) }</p>`,
+    } ),
 } );

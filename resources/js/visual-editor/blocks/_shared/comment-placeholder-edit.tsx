@@ -50,7 +50,12 @@ export interface CommentPreviewValue {
 }
 
 export interface CommentPlaceholderConfig {
-    readonly label: string;
+    /**
+     * Human-readable block label. Pass a function returning the
+     * translated label so `__()` runs at render time (after locale
+     * data loads) rather than at module load.
+     */
+    readonly label: string | ( () => string );
     readonly resolvedKey: string;
     readonly kind: CommentPreviewKind;
     readonly altKey?: string;
@@ -74,8 +79,12 @@ export interface CommentPlaceholderConfig {
      * post editor) get a representative block they can style — much
      * more useful than a generic "Comment Author Name" placeholder
      * chip. Front-end render never sees this; only the editor does.
+     *
+     * Pass a function when the value holds translatable text, so the
+     * `__()` call runs at render time (after locale data loads) rather
+     * than at module load.
      */
-    readonly dummyValue?: CommentPreviewValue;
+    readonly dummyValue?: CommentPreviewValue | ( () => CommentPreviewValue );
 }
 
 const COMMENT_PREVIEW_CONTEXT_KEY = 'artisanpack/commentPreview';
@@ -199,23 +208,26 @@ export function createCommentPlaceholderEdit(
         // configured dummy value so authors editing a template (with
         // no specific post in scope) see what the block will look like
         // styled. Final fallback is the original labelled chip.
+        const dummyValue = 'function' === typeof config.dummyValue
+            ? config.dummyValue()
+            : config.dummyValue;
         if (
-            config.dummyValue !== undefined &&
-            hasPreviewValue( config.kind, config.dummyValue )
+            dummyValue !== undefined &&
+            hasPreviewValue( config.kind, dummyValue )
         ) {
-            return renderResolved( config, config.dummyValue, blockProps, attributes );
+            return renderResolved( config, dummyValue, blockProps, attributes );
         }
 
         return (
             <div { ...blockProps }>
                 <span style={ placeholderStyle } contentEditable={ false }>
-                    { config.label }
+                    { 'function' === typeof config.label ? config.label() : config.label }
                 </span>
             </div>
         );
     }
 
-    CommentPlaceholderEdit.displayName = `CommentPlaceholderEdit(${ config.label })`;
+    CommentPlaceholderEdit.displayName = `CommentPlaceholderEdit(${ 'string' === typeof config.label ? config.label : config.resolvedKey })`;
     return CommentPlaceholderEdit;
 }
 
