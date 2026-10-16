@@ -370,10 +370,18 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   domain, including the Animation, Custom keyframe and Bindings panels and
   the blocks ported from core, which were previously never extracted.
   Strings that block `save()` functions serialize stay untranslated
-  literals, so saved markup is identical in every locale. The editor
-  translation template (`languages/artisanpack-visual-editor.pot`) is
-  regenerated and lists 1,288 strings. "colour" and "neighbours" are now
-  spelled "color" and "neighbors".
+  literals, so saved markup is identical in every locale. About 250
+  editor strings that were never wrapped in `__()` (AI panels, viewport
+  and state switchers, notices, API error messages, option lists, block
+  sidebar labels and placeholders) are now translatable, and a guard test
+  keeps new ones from slipping in. The translation extractor
+  (`npm run i18n:extract`) now reads the TypeScript AST, so calls with a
+  trailing comma or comments between arguments are no longer skipped,
+  escaped quotes are decoded correctly, and `translators:` comments are
+  carried into the template. The editor translation template
+  (`languages/artisanpack-visual-editor.pot`) is regenerated and lists
+  1,552 strings (924 in 1.14). "colour" and "neighbours" are now spelled
+  "color" and "neighbors".
 
 ### Fixed
 
