@@ -96,7 +96,8 @@ describe('Core text blocks', () => {
     it('renders a heading at the configured level', () => {
         const tree = [makeBlock('core/heading', { level: 3, content: 'Section' })];
 
-        expect(renderTree(tree)).toBe('<h3 class="wp-block-heading">Section</h3>');
+        // The auto anchor matches Blade's `TocResolver` stamp (#888).
+        expect(renderTree(tree)).toBe('<h3 class="wp-block-heading" id="section">Section</h3>');
     });
 
     it('clamps invalid heading levels to the allowed range', () => {
@@ -113,7 +114,7 @@ describe('Core text blocks', () => {
 
         const html = renderTree(tree);
 
-        expect(html).toContain('<blockquote class="wp-block-quote">');
+        expect(html).toContain('<blockquote class="wp-block-quote is-layout-flow wp-block-quote-is-layout-flow">');
         expect(html).toContain('<p class="wp-block-paragraph">Quoted text</p>');
         expect(html).toContain('<cite>Someone Famous</cite>');
     });
@@ -546,7 +547,7 @@ describe('Core design blocks', () => {
 
         const html = renderTree(tree);
 
-        expect(html).toMatch(/<details class="wp-block-details" open(="")?>/);
+        expect(html).toMatch(/<details class="wp-block-details is-layout-flow wp-block-details-is-layout-flow" open(="")?>/);
         expect(html).toContain('<summary>Click me</summary>');
         expect(html).toContain('Hidden');
     });
@@ -619,7 +620,7 @@ describe('Core design blocks', () => {
 
         const html = renderTree(tree);
 
-        expect(html).toContain('class="ap-callout ap-callout--success"');
+        expect(html).toContain('class="wp-block-artisanpack-callout ap-callout ap-callout--success"');
         expect(html).toContain('data-severity="success"');
         expect(html).toContain('<div class="ap-callout__body">Nice work.</div>');
         expect(html).toContain('<svg');
@@ -984,7 +985,7 @@ describe('Core design blocks', () => {
 
         const html = renderTree(tree);
 
-        expect(html).toContain('class="ap-marquee"');
+        expect(html).toContain('class="wp-block-artisanpack-marquee ap-marquee"');
         expect(html).toContain('width: 60%');
         expect(html).toContain('animation: ap-marquee-scroll 10s linear infinite');
         expect(html).toContain('class="ap-marquee__text"');
@@ -1538,5 +1539,28 @@ describe('Visibility scope on list-item blocks (#806)', () => {
         ]);
 
         expect(html).toMatch(/<div class="ve-vis-\d+" data-ve-vis-scope="[^"]*" style="display: contents;"><p class="wp-block-paragraph">Hello<\/p><\/div>/);
+    });
+});
+
+describe('BlockTree effects options', () => {
+    const tree = [
+        makeBlock('core/paragraph', {
+            content: 'Hi',
+            artisanpackEffects: { opacity: 50, customCss: 'background: url("a.png");' },
+        }),
+    ];
+
+    it('keeps Custom CSS URLs by default', () => {
+        const wrapper = mount(BlockTree, { props: { tree } });
+
+        expect(wrapper.find('style[data-ve-effects]').element.textContent).toContain('url("a.png")');
+    });
+
+    it('drops Custom CSS that loads a URL when customCssAllowUrls is false', () => {
+        const wrapper = mount(BlockTree, { props: { tree, customCssAllowUrls: false } });
+
+        expect(wrapper.find('style[data-ve-effects]').element.textContent).toMatch(
+            /^\.ve-fx-[0-9a-f]{12}\{opacity:0\.5\}$/
+        );
     });
 });

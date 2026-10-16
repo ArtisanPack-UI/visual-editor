@@ -26,7 +26,9 @@
  */
 
 import { useSyncExternalStore } from 'react'
+import { __, sprintf } from '@wordpress/i18n'
 
+import { TEXT_DOMAIN } from '../vendor/i18n'
 import { getActiveBreakpoint, setActiveBreakpoint, subscribeActiveBreakpoint } from './active-breakpoint'
 import type { BreakpointRegistry } from './registry'
 import { BASE_KEY } from './types'
@@ -49,23 +51,28 @@ export interface ViewportSwitcherProps {
 // `base` has no registry entry, so it gets its label here. Device keys
 // (`tablet`, `mobile`) take theirs from the registry entry (#617). The
 // `labels` prop still wins over everything so hosts can override on a
-// per-mount basis.
-const DEFAULT_LABELS: Record<string, string> = {
-	[ BASE_KEY ]: 'All sizes',
+// per-mount basis. Built per call so the label picks up locale data
+// loaded after this module is imported.
+function defaultLabels(): Record<string, string> {
+	return {
+		[ BASE_KEY ]: __( 'All sizes', TEXT_DOMAIN ),
+	}
 }
 
 function tooltipFor( key: string, registry: BreakpointRegistry ): string {
 	if ( BASE_KEY === key ) {
-		return 'The desktop design. Applies at every width; Tablet and Mobile inherit it unless overridden.'
+		return __( 'The desktop design. Applies at every width; Tablet and Mobile inherit it unless overridden.', TEXT_DOMAIN )
 	}
 
 	const maxWidth = registry.maxWidth( key )
 
 	if ( null !== maxWidth ) {
-		return `Applies at ${ maxWidth }px and below. Smaller devices inherit this value unless overridden.`
+		/* translators: %d: breakpoint maximum width in pixels. */
+		return sprintf( __( 'Applies at %dpx and below. Smaller devices inherit this value unless overridden.', TEXT_DOMAIN ), maxWidth )
 	}
 
-	return `Applies at ${ registry.get( key ) ?? 0 }px and up.`
+	/* translators: %d: breakpoint minimum width in pixels. */
+	return sprintf( __( 'Applies at %dpx and up.', TEXT_DOMAIN ), registry.get( key ) ?? 0 )
 }
 
 export function ViewportSwitcher( { registry, onChange, className, labels }: ViewportSwitcherProps ): JSX.Element {
@@ -79,8 +86,10 @@ export function ViewportSwitcher( { registry, onChange, className, labels }: Vie
 			return labels[ key ] as string
 		}
 
-		if ( key in DEFAULT_LABELS ) {
-			return DEFAULT_LABELS[ key ] as string
+		const defaults = defaultLabels()
+
+		if ( key in defaults ) {
+			return defaults[ key ] as string
 		}
 
 		return registry.label( key )
@@ -95,7 +104,7 @@ export function ViewportSwitcher( { registry, onChange, className, labels }: Vie
 	}
 
 	return (
-		<div className={ className ?? 've-viewport-switcher' } role="group" aria-label="Preview viewport">
+		<div className={ className ?? 've-viewport-switcher' } role="group" aria-label={ __( 'Preview viewport', TEXT_DOMAIN ) }>
 			{ keys.map( ( key ) => {
 				const isActive = key === active
 

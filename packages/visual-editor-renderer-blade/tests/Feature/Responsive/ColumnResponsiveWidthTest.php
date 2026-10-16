@@ -28,7 +28,7 @@ it( 'emits a flex-basis @media rule (not width) with gap-aware calc for responsi
 	expect( $rendered )->toContain( '<style data-ve-responsive>' );
 	expect( $rendered )->toContain( '@media (min-width:768px)' );
 	// 25% width → factor (100-25)/100 = 0.75
-	expect( $rendered )->toContain( 'flex-basis:calc(25% - var(--wp--style--block-gap, 0.5em) * 0.75)!important' );
+	expect( $rendered )->toContain( 'flex-basis:calc(25% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.75)!important' );
 	expect( $rendered )->toContain( 'flex-grow:0!important' );
 	expect( $rendered )->not->toContain( 'width:25%' );
 } );
@@ -53,7 +53,7 @@ it( 'promotes legacy width attribute into a gap-aware base !important rule', fun
 	expect( $rendered )->toContain( 'style="flex-basis: 50%;"' );
 	expect( $rendered )->toContain( '<style data-ve-responsive>' );
 	// 50% width → factor (100-50)/100 = 0.5
-	expect( $rendered )->toMatch( '/\.ve-w-[a-f0-9]+\.ve-w-[a-f0-9]+\.ve-w-[a-f0-9]+\{flex-basis:calc\(50% - var\(--wp--style--block-gap, 0\.5em\) \* 0\.5\)!important;flex-grow:0!important\}/' );
+	expect( $rendered )->toMatch( '/\.ve-w-[a-f0-9]+\.ve-w-[a-f0-9]+\.ve-w-[a-f0-9]+\{flex-basis:calc\(50% - var\(--ap-columns-gap, var\(--wp--style--block-gap, 0\.5em\)\) \* 0\.5\)!important;flex-grow:0!important\}/' );
 } );
 
 it( 'merges legacy base width with responsive overrides into one rule set', function (): void {
@@ -75,8 +75,8 @@ it( 'merges legacy base width with responsive overrides into one rule set', func
 
 	// Base rule (no @media) for the legacy 50% AND a @media rule for
 	// the md 25% override — both with the gap-aware calc.
-	expect( $rendered )->toContain( 'flex-basis:calc(50% - var(--wp--style--block-gap, 0.5em) * 0.5)!important' );
-	expect( $rendered )->toContain( 'flex-basis:calc(25% - var(--wp--style--block-gap, 0.5em) * 0.75)!important' );
+	expect( $rendered )->toContain( 'flex-basis:calc(50% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.5)!important' );
+	expect( $rendered )->toContain( 'flex-basis:calc(25% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.75)!important' );
 	expect( $rendered )->toContain( '@media (min-width:768px)' );
 } );
 
@@ -97,7 +97,7 @@ it( 'prefers an explicit responsive.base over the legacy width attribute', funct
 
 	$rendered = $this->stripGlobalStyles( Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] ) );
 
-	expect( $rendered )->toContain( 'flex-basis:calc(60% - var(--wp--style--block-gap, 0.5em) * 0.4)!important' );
+	expect( $rendered )->toContain( 'flex-basis:calc(60% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.4)!important' );
 	expect( $rendered )->not->toContain( 'flex-basis:calc(50%' );
 } );
 
@@ -117,8 +117,8 @@ it( 'tripled selector specificity beats WP core stacking rule', function (): voi
 
 	$rendered = $this->stripGlobalStyles( Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] ) );
 
-	expect( $rendered )->toMatch( '/\.ve-w-[a-f0-9]+\.ve-w-[a-f0-9]+\.ve-w-[a-f0-9]+\{flex-basis:calc\(50% - var\(--wp--style--block-gap, 0\.5em\) \* 0\.5\)!important;flex-grow:0!important\}/' );
-	expect( $rendered )->toMatch( '/\.ve-w-[a-f0-9]+\.ve-w-[a-f0-9]+\.ve-w-[a-f0-9]+\{flex-basis:calc\(25% - var\(--wp--style--block-gap, 0\.5em\) \* 0\.75\)!important;flex-grow:0!important\}/' );
+	expect( $rendered )->toMatch( '/\.ve-w-[a-f0-9]+\.ve-w-[a-f0-9]+\.ve-w-[a-f0-9]+\{flex-basis:calc\(50% - var\(--ap-columns-gap, var\(--wp--style--block-gap, 0\.5em\)\) \* 0\.5\)!important;flex-grow:0!important\}/' );
+	expect( $rendered )->toMatch( '/\.ve-w-[a-f0-9]+\.ve-w-[a-f0-9]+\.ve-w-[a-f0-9]+\{flex-basis:calc\(25% - var\(--ap-columns-gap, var\(--wp--style--block-gap, 0\.5em\)\) \* 0\.75\)!important;flex-grow:0!important\}/' );
 } );
 
 it( 'passes string percentage values through with gap-aware calc', function (): void {
@@ -137,7 +137,7 @@ it( 'passes string percentage values through with gap-aware calc', function (): 
 
 	$rendered = $this->stripGlobalStyles( Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] ) );
 
-	expect( $rendered )->toContain( 'flex-basis:calc(33.33% - var(--wp--style--block-gap, 0.5em) * 0.6667)!important' );
+	expect( $rendered )->toContain( 'flex-basis:calc(33.33% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.6667)!important' );
 } );
 
 it( 'emits absolute units (e.g. 200px) without the calc wrapper', function (): void {
@@ -280,7 +280,7 @@ it( 'keeps a safe base width while dropping a hostile per-breakpoint override', 
 
 	// The safe base rule survives; the hostile md override is skipped, so
 	// no `@media` block and no injected declaration are emitted.
-	expect( $responsive )->toContain( 'flex-basis:calc(50% - var(--wp--style--block-gap, 0.5em) * 0.5)!important' );
+	expect( $responsive )->toContain( 'flex-basis:calc(50% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.5)!important' );
 	expect( $responsive )->not->toContain( '@media' );
 	expect( $responsive )->not->toContain( 'html{opacity:0' );
 } );

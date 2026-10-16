@@ -39,8 +39,10 @@ use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\BreadcrumbsResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\BusinessInfoResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\BoxShadowCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\DuotoneCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ElementsCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesPlacement;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\PositionCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
@@ -244,6 +246,7 @@ class BlocksComponent extends Component
 		$boxShadowsCss      = $this->boxShadowAccumulator->flush();
 		$positionCss        = $this->positionAccumulator->flush();
 		$elementsCss        = app( ElementsCssAccumulator::class )->flush();
+		$duotoneCss         = app( DuotoneCssAccumulator::class )->flush();
 
 		return view( 'visual-editor-renderer-blade::components.blocks', [
 			'html'                    => $html,
@@ -257,6 +260,7 @@ class BlocksComponent extends Component
 			'boxShadowsCss'           => $boxShadowsCss,
 			'positionCss'             => $positionCss,
 			'elementsCss'             => $elementsCss,
+			'duotoneCss'              => $duotoneCss,
 		] );
 	}
 
@@ -266,19 +270,16 @@ class BlocksComponent extends Component
 	 * so a page with multiple `<x-ve-blocks>` / `<x-ve-template>`
 	 * instances emits the `<style>` block exactly once.
 	 *
+	 * When the layout's `<head>` hasn't rendered yet, the CSS is queued
+	 * for `<x-ve-blocks-styles>` instead and null is returned; see
+	 * {@see GlobalStylesPlacement}.
+	 *
 	 * @since 1.0.0
+	 * @since 1.15.0 Queues the CSS for the head when the head renders later (#879).
 	 */
 	protected function resolveGlobalStylesCss(): ?string
 	{
-		if ( $this->emissionTracker->hasEmitted() ) {
-			return null;
-		}
-
-		$this->emissionTracker->markEmitted();
-
-		$css = $this->globalStyles->emit();
-
-		return '' === $css ? null : $css;
+		return app( GlobalStylesPlacement::class )->claimForBody( $this->emissionTracker, $this->globalStyles );
 	}
 
 	/**

@@ -109,13 +109,16 @@ function readQueryPreviewTerms(
 }
 
 const PlaceholderEdit = createEntityPlaceholderEdit( {
-    label: 'Post Terms',
+    label: () => __( 'Post Terms', TEXT_DOMAIN ),
     resolvedKey: '_resolvedTermsLabel',
     kind: 'text',
     // Authors editing a template with no post in scope (or no terms
     // resolved) get a representative dummy so the styled chip shape is
     // visible. Front-end render never sees this — only the editor does.
-    dummyValue: { text: 'Category, Updates' },
+    dummyValue: () => ( {
+        /* translators: Sample comma-separated term names shown in the editor preview. */
+        text: __( 'Category, Updates', TEXT_DOMAIN ),
+    } ),
 } );
 
 interface PostTermsEditProps {

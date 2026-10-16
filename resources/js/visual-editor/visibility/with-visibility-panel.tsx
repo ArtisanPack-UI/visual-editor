@@ -16,6 +16,7 @@ import { InspectorControls } from '@wordpress/block-editor';
 import { getBlockType } from '@wordpress/blocks';
 import { createHigherOrderComponent } from '@wordpress/compose';
 import { addFilter } from '@wordpress/hooks';
+import { __ } from '@wordpress/i18n';
 import type { ComponentType } from 'react';
 
 import { VisibilityPanel } from './VisibilityPanel';
@@ -99,11 +100,11 @@ function readBreakpoints(): Array<{ key: string; label: string }> {
     // user checking every visible option still saw the block render
     // on desktops ≥ 1280px.
     return host.__artisanpackVisibilityBreakpoints ?? [
-        { key: 'sm',  label: 'Small (≥640px)' },
-        { key: 'md',  label: 'Medium (≥768px)' },
-        { key: 'lg',  label: 'Large (≥1024px)' },
-        { key: 'xl',  label: 'X-Large (≥1280px)' },
-        { key: '2xl', label: '2X-Large (≥1536px)' },
+        { key: 'sm',  label: __('Small (≥640px)', 'artisanpack-visual-editor') },
+        { key: 'md',  label: __('Medium (≥768px)', 'artisanpack-visual-editor') },
+        { key: 'lg',  label: __('Large (≥1024px)', 'artisanpack-visual-editor') },
+        { key: 'xl',  label: __('X-Large (≥1280px)', 'artisanpack-visual-editor') },
+        { key: '2xl', label: __('2X-Large (≥1536px)', 'artisanpack-visual-editor') },
     ];
 }
 

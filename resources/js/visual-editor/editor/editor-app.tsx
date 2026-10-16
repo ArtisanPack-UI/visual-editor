@@ -35,6 +35,7 @@ import { ensureMediaBridgeFilter } from '../media-bridge';
 import { useThemedEditorSettings } from '../use-themed-editor-settings';
 
 import { registerArtisanPackBlocks } from '../blocks';
+import { registerThemeBlockStyles } from '../block-style-registry';
 
 import { BlockLibrarySidebar } from './block-library-sidebar';
 import {
@@ -49,6 +50,7 @@ import { registerBackgroundControls } from '../background-controls';
 import { registerBoxShadows } from '../box-shadows/register';
 import { registerGradientBorders } from '../gradient-borders/register';
 import { registerPositioning } from '../positioning/register';
+import { registerEffects } from '../effects/register';
 import { registerStateStylesFilters } from '../states/with-state-styles';
 import { registerAnimationsAttribute } from '../animations/register-attribute';
 import { registerAnimationsPanel } from '../animations/with-animations-panel';
@@ -89,7 +91,6 @@ import {
     DocumentPanels,
     type AuthorOption,
     type DocumentSupports,
-    type DocumentType,
     type FeaturedImageValue,
     type PostStatus,
 } from './document-panels';
@@ -202,6 +203,8 @@ function registerOnce(): void {
     registerGradientBorders();
     registerBoxShadows();
     registerPositioning();
+    // #881 — block effects + Custom CSS (attribute, panel, canvas preview).
+    registerEffects();
     // #717 — register the inline-icon RichText format so authors can drop
     // an icon at the caret inside any editable rich-text field (headings,
     // paragraphs, buttons, list items, captions). Runs before blocks so
@@ -217,6 +220,8 @@ function registerOnce(): void {
     // I7 (#415): register all artisanpack/* blocks and set the default
     // block to artisanpack/paragraph. Core blocks are no longer loaded.
     registerArtisanPackBlocks();
+    // #876 — theme block style variations into the Styles picker.
+    registerThemeBlockStyles();
     blocksRegistered = true;
 }
 

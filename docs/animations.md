@@ -36,9 +36,10 @@ Stored on the block as `attributes.artisanpackAnimations`:
         "once":      true
     },
     "hover": {
-        "name":     "lift",
+        "name":     "glow",
         "duration": 200,
-        "easing":   "ease-out"
+        "easing":   "ease-out",
+        "color":    "var:preset|color|accent"
     },
     "continuous": {
         "name":     "pulse",
@@ -66,6 +67,69 @@ rules are emitted as `@media (max-width: …)` queries. Maps saved
 before 1.12.1 with the legacy mobile-first keys (`sm`, `md`, `lg`,
 `xl`, `2xl`) still render as before, with `@media (min-width: …)`
 queries.
+
+`hover.color` (since 1.15.0) is the block's **Glow color** pick and only
+applies to the `glow` preset. A palette pick is stored as
+`var:preset|color|{slug}`; a custom pick as the color itself (hex,
+`rgb()` / `hsl()` / `oklch()` / `oklab()`, a color keyword or a
+`var(--…)` reference). Any other value is ignored.
+
+## Theming hover animations
+
+Since 1.15.0 (#878) the `lift` and `glow` hover presets read custom
+properties, so a theme can match its brand without a CSS override.
+
+The **Glow color** picker in the **Hover animation** panel
+offers the theme palette, then the default palette (unless the theme
+sets `color.defaultPalette: false`), then the user's custom palette,
+as the core color panel does. Leave it unset to use the theme's glow
+color. The glow color resolves in this order:
+
+1. the block's Glow color pick (`hover.color`);
+2. the theme's `settings.custom.animation.glowColor`;
+3. the `primary` palette color at 35%
+   (`color-mix(in srgb, var(--wp--preset--color--primary) 35%, transparent)`);
+4. the pre-1.15 indigo, `rgb(99,102,241)`, mixed the same way.
+
+Because the package default palette always declares `primary`
+(`#2563eb`), existing glows change color after upgrading unless the
+theme sets `settings.custom.animation.glowColor`.
+
+Themes set the values under `settings.custom.animation`:
+
+```json
+{
+    "settings": {
+        "custom": {
+            "animation": {
+                "glowColor":  "rgba(37, 99, 235, 0.4)",
+                "glowBlur":   "12px",
+                "glowSize":   "2px",
+                "liftShadow": "0 12px 32px rgba(0, 0, 0, 0.18)"
+            }
+        }
+    }
+}
+```
+
+The Blade compiler flattens `settings.custom` into `--wp--custom--*`
+custom properties, as WordPress and cms-framework do
+(`glowColor` → `--wp--custom--animation--glow-color`). Each preset
+value reads a `--ap-anim-*` property first, then the theme's
+`--wp--custom--animation--*` property, then the built-in default:
+
+| Value | Properties | Default |
+| --- | --- | --- |
+| Glow color | `--ap-anim-glow-color` → `--wp--custom--animation--glow-color` | `primary` at 35%, then indigo |
+| Glow blur | `--ap-anim-glow-blur` → `--wp--custom--animation--glow-blur` | `0` |
+| Glow size (spread) | `--ap-anim-glow-size` → `--wp--custom--animation--glow-size` | `4px` |
+| Lift shadow | `--ap-anim-lift-shadow` → `--wp--custom--animation--lift-shadow` | `0 8px 24px rgba(0,0,0,0.12)` |
+
+`--ap-anim-glow-color` is set on each glowing block's `:hover` rule
+(to its pick, or `initial` when it has none, so a nested glow block
+never inherits its parent's color). A site-wide glow color therefore
+belongs in `settings.custom.animation.glowColor`, not on
+`--ap-anim-glow-color`.
 
 ## Registry layers
 

@@ -2,6 +2,7 @@
 	use ArtisanPackUI\VisualEditor\Resources\PresetRegistry;
 	use ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\LayoutSupport;
 
 	$overlayMenu = isset( $attributes['overlayMenu'] ) && is_string( $attributes['overlayMenu'] ) ? $attributes['overlayMenu'] : 'mobile';
 
@@ -23,7 +24,31 @@
 
 	$ariaLabel = isset( $attributes['ariaLabel'] ) && is_string( $attributes['ariaLabel'] ) ? $attributes['ariaLabel'] : '';
 
-	$baseClasses = [ 'wp-block-navigation' ];
+	// F-3 — navigation is always a flex layout (block.json disallows
+	// switching), so it carries the layout pair and a `wp-container-*`
+	// scope for its orientation, wrap, justification and Block spacing,
+	// as in WordPress. Navigation doesn't allow vertical alignment, so
+	// that setting is left out of the scoped rule. The legacy top-level
+	// `orientation` / `itemsJustification` attributes fill in for the
+	// layout values they predate, so an older save keeps its alignment
+	// now that the `<nav>` itself is the flex container.
+	$navLayout = array_diff_key( $layout, [ 'verticalAlignment' => true ] );
+
+	if ( ! isset( $navLayout['orientation'] ) && isset( $attributes['orientation'] ) && is_string( $attributes['orientation'] ) ) {
+		$navLayout['orientation'] = $attributes['orientation'];
+	}
+
+	if ( ! isset( $navLayout['justifyContent'] ) && '' !== $itemsJustify ) {
+		$navLayout['justifyContent'] = $itemsJustify;
+	}
+
+	$navLayoutAttributes = array_merge( $attributes, [ 'layout' => $navLayout ] );
+
+	$baseClasses = array_merge(
+		[ 'wp-block-navigation' ],
+		LayoutSupport::pair( 'navigation', 'is-layout-flex' ),
+		LayoutSupport::containerClasses( $navLayoutAttributes, 'navigation', 'is-layout-flex' )
+	);
 
 	// Elements-API link colors (`style.elements.link`, Keystone #56)
 	// are compiled by `BlockSupports::wrapperAttrs()` for every block
@@ -39,6 +64,11 @@
 	if ( '' !== $itemsJustify ) {
 		$baseClasses[] = 'items-justified-' . $itemsJustify;
 	}
+
+	// The orientation class above already covers the legacy top-level
+	// `orientation` attribute, so only the justification and wrap
+	// modifiers come from the layout (F-3).
+	$baseClasses = array_merge( $baseClasses, LayoutSupport::modifierClasses( $attributes, false ) );
 
 	if ( 'never' !== $overlayMenu ) {
 		$baseClasses[] = 'is-responsive';

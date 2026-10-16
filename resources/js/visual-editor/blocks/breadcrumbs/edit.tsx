@@ -31,17 +31,24 @@ interface BreadcrumbsEditProps {
     readonly setAttributes: (next: Partial<BreadcrumbsAttributes>) => void;
 }
 
-const SEPARATOR_LABELS: Readonly<Record<SeparatorIconName, string>> = {
-    'arrow-right': 'Arrow Right',
-    'chevron-right': 'Chevron Right',
-    'chevron-double-right': 'Chevron Double Right',
-    'long-arrow-right': 'Long Arrow Right',
-};
+// Built per render so the labels pick up locale data loaded after import.
+function separatorLabels(): Readonly<Record<SeparatorIconName, string>> {
+    return {
+        'arrow-right': __('Arrow Right', TEXT_DOMAIN),
+        'chevron-right': __('Chevron Right', TEXT_DOMAIN),
+        'chevron-double-right': __('Chevron Double Right', TEXT_DOMAIN),
+        'long-arrow-right': __('Long Arrow Right', TEXT_DOMAIN),
+    };
+}
 
-const SEPARATOR_OPTIONS = SEPARATOR_ICON_NAMES.map((value) => ({
-    label: SEPARATOR_LABELS[value],
-    value,
-}));
+function separatorOptions(): Array<{ label: string; value: SeparatorIconName }> {
+    const labels = separatorLabels();
+
+    return SEPARATOR_ICON_NAMES.map((value) => ({
+        label: labels[value],
+        value,
+    }));
+}
 
 function isSeparatorIconName(value: string): value is SeparatorIconName {
     return (SEPARATOR_ICON_NAMES as ReadonlyArray<string>).includes(value);
@@ -70,10 +77,7 @@ export default function BreadcrumbsEdit({
                     <SelectControl
                         label={__('Separator icon', TEXT_DOMAIN)}
                         value={separatorIcon}
-                        options={SEPARATOR_OPTIONS.map((option) => ({
-                            label: __(option.label, TEXT_DOMAIN),
-                            value: option.value,
-                        }))}
+                        options={separatorOptions()}
                         onChange={(value) => {
                             if (isSeparatorIconName(value)) {
                                 setAttributes({ separatorIcon: value });

@@ -14,7 +14,7 @@ import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { createCommentPlaceholderEdit } from '../_shared/comment-placeholder-edit';
 
 export default createCommentPlaceholderEdit( {
-    label: __( 'Comment Author Avatar', TEXT_DOMAIN ),
+    label: () => __( 'Comment Author Avatar', TEXT_DOMAIN ),
     resolvedKey: '_resolvedAvatarUrl',
     altKey: '_resolvedAvatarAlt',
     kind: 'image',
@@ -40,8 +40,9 @@ export default createCommentPlaceholderEdit( {
     // Default Gravatar "mp" (mystery person) silhouette so the avatar
     // block paints as a real image in the editor even when authoring
     // outside a specific comment context.
-    dummyValue: {
+    dummyValue: () => ( {
         imageUrl: 'https://www.gravatar.com/avatar/?d=mp&s=96',
-        imageAlt: 'Jane Doe',
-    },
+        /* translators: Sample comment author name shown in the editor preview. */
+        imageAlt: __( 'Jane Doe', TEXT_DOMAIN ),
+    } ),
 } );

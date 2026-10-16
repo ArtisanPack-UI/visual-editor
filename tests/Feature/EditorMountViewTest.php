@@ -37,3 +37,25 @@ test( 'package routes register the /editor path', function () use ( $routesPath 
     expect( $contents )->toContain( "'apiBase'" );
     expect( $contents )->not->toContain( '/editor-spike' );
 } );
+
+test( 'editor mounts stamp the block-CSS ability for the Custom CSS field (#881)', function (): void {
+    foreach ( [ 'editor/mount', 'site-editor/index' ] as $view ) {
+        expect( file_get_contents( __DIR__ . '/../../resources/views/' . $view . '.blade.php' ) )
+            ->toContain( '@can( \\ArtisanPackUI\\VisualEditor\\Effects\\BlockCssAccess::ABILITY ) data-can-edit-block-css="true" @endcan' );
+    }
+
+    // The component resolves the gate itself (`$canEditBlockCss`), so the
+    // `ap.visualEditor.editorConfig` filter can see and change it (R-17).
+    expect( file_get_contents( __DIR__ . '/../../resources/views/components/editor.blade.php' ) )
+        ->toContain( '@if( $canEditBlockCss ) data-can-edit-block-css="true" @endif' );
+} );
+
+test( 'editor mounts stamp the Custom CSS URL switch (F-11)', function (): void {
+    foreach ( [ 'editor/mount', 'site-editor/index' ] as $view ) {
+        expect( file_get_contents( __DIR__ . '/../../resources/views/' . $view . '.blade.php' ) )
+            ->toContain( "data-custom-css-allow-urls=\"{{ config( 'artisanpack.visual-editor.effects.custom_css_allow_urls', true ) ? 'true' : 'false' }}\"" );
+    }
+
+    expect( file_get_contents( __DIR__ . '/../../resources/views/components/editor.blade.php' ) )
+        ->toContain( "data-custom-css-allow-urls=\"{{ \$customCssAllowUrls ? 'true' : 'false' }}\"" );
+} );

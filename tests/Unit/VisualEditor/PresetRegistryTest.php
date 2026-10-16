@@ -486,6 +486,46 @@ describe( 'presetSlug() (#814)', function (): void {
 	} );
 } );
 
+describe( 'isSafeFontFamilyValue()', function (): void {
+	it( 'accepts quoted and bare family stacks', function ( string $value ): void {
+		expect( PresetRegistry::isSafeFontFamilyValue( $value ) )->toBeTrue();
+	} )->with( [
+		'quoted'            => [ '"Segoe UI", sans-serif' ],
+		'single quoted'     => [ "'Inter Tight', system-ui" ],
+		'bracket in string' => [ '"Foo [Pro]", serif' ],
+		'quote in string'   => [ '"Bob\'s Font", serif' ],
+	] );
+
+	it( 'rejects unterminated strings, parentheses and unbalanced brackets', function ( string $value ): void {
+		expect( PresetRegistry::isSafeFontFamilyValue( $value ) )->toBeFalse();
+	} )->with( [
+		'empty'          => [ '' ],
+		'open string'    => [ '"Segoe UI, sans-serif' ],
+		'paren'          => [ 'var(--x)' ],
+		'open bracket'   => [ 'Foo [' ],
+		'stray bracket'  => [ 'Foo ] Bar' ],
+		'bracket string' => [ '"[" ]' ],
+		'semicolon'      => [ 'Foo; color: red' ],
+		'interleaved "'  => [ "\"a' \"b'" ],
+		"interleaved '"  => [ "'a\" 'b\"" ],
+		'alternating'    => [ '\'"\'"' ],
+	] );
+
+	it( 'drops an interleaved-quote family from presetDefaultsCss() without swallowing the next one (M-3)', function (): void {
+		$css = PresetRegistry::presetDefaultsCss( [
+			'typography' => [
+				'fontFamilies' => [
+					[ 'slug' => 'aa', 'name' => 'Aa', 'fontFamily' => "\"a' \"b'" ],
+					[ 'slug' => 'bb', 'name' => 'Bb', 'fontFamily' => 'Arial' ],
+				],
+			],
+		] );
+
+		expect( $css )->toContain( '--wp--preset--font-family--bb: Arial;' )
+			->and( $css )->not->toContain( 'font-family--aa' );
+	} );
+} );
+
 describe( 'isSafeCssValue() (#814)', function (): void {
 	it( 'accepts ordinary lengths and balanced functions', function ( string $value ): void {
 		expect( PresetRegistry::isSafeCssValue( $value ) )->toBeTrue();
@@ -515,6 +555,24 @@ describe( 'isSafeCssValue() (#814)', function (): void {
 		'tab'            => [ "1rem\t" ],
 		'nul'            => [ "1rem\0" ],
 		'del'            => [ "1rem\x7F" ],
+	] );
+
+	it( 'rejects unbalanced or crossed brackets', function ( string $value ): void {
+		expect( PresetRegistry::isSafeCssValue( $value ) )->toBeFalse();
+	} )->with( [
+		'open bracket'     => [ 'red [ display:none' ],
+		'stray bracket'    => [ 'red ] display:none' ],
+		'crossed'          => [ '([)] display:none' ],
+		'paren to bracket' => [ 'var(--x]' ],
+		'unclosed line'    => [ '[full-start 1fr' ],
+	] );
+
+	it( 'accepts balanced brackets', function ( string $value ): void {
+		expect( PresetRegistry::isSafeCssValue( $value ) )->toBeTrue();
+	} )->with( [
+		'grid lines'        => [ '[full-start] minmax(0, 1fr) [full-end]' ],
+		'nested function'   => [ 'var(--x, rgb(0 0 0))' ],
+		'paren in brackets' => [ '[a(b)]' ],
 	] );
 
 	it( 'drops an unbalanced value from the declared block', function (): void {

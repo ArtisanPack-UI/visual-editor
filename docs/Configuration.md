@@ -134,12 +134,48 @@ Controls how the default policy for the legacy `VisualEditorPost` model gates ac
 ],
 ```
 
-- `capability` — left `null` (or any non-string value), any authenticated user passes. Set a capability string (e.g. `'edit_content'`) to require it through the user's `hasCapability()` / `hasPermissionTo()` / `hasPermission()`. A user model with none of those falls back to `$user->can( $capability )` and logs a warning. Or define the `visual-editor.edit-content` gate yourself.
+- `capability` — left `null` (or any non-string value), any authenticated user passes. Set a capability string (e.g. `'edit_content'`) to require it through the user's `checkPermissionTo()` / `hasCapability()` / `hasPermissionTo()` / `hasPermission()` (see [How capabilities are checked](#how-capabilities-are-checked)). A user model with none of those falls back to `$user->can( $capability )` and logs a warning. Or define the `visual-editor.edit-content` gate yourself.
 - `sanitize_throttle` — per-user rate limit for `icons/svg/sanitize`, as Laravel `throttle` middleware arguments (`"max attempts,minutes"`), counted in its own rate-limit bucket. `null` or `''` uses the default `'60,1'`; `false` turns the throttle off.
 
 The throttle is read when routes are registered, so after changing `sanitize_throttle` on an install with cached routes, run `php artisan route:cache` again.
 
 See [Access Gate](site-editor/Access-Gate.md#content-authoring-ability-visual-editoredit-content).
+
+### How capabilities are checked
+
+**Since v1.15.0.** The `content_access`, `ai`, `effects` and `fonts` capabilities are all checked the same way. The check calls the first of these methods the user model defines, and that method's answer decides:
+
+1. `checkPermissionTo()` (Spatie Permission's non-throwing check)
+2. `hasCapability()`
+3. `hasPermissionTo()`
+4. `hasPermission()`
+
+If the method throws (for example Spatie's `hasPermissionTo()` for a permission that was never created), the exception is reported through Laravel's `report()` and the check **denies**. Before 1.15 the exception surfaced as an HTTP 500. A user model with none of the four methods is denied, except by the `content_access` check, which falls back to `$user->can()` as described above.
+
+---
+
+## `bindings`
+
+**Since v1.15.0 (#869).** An opt-in allowlist for the related-model attributes block bindings may read. Bindings publish the values they read on the public front end, so a `relation` binding such as `author.email` renders unless the related model keeps `email` in `$hidden`.
+
+```php
+'bindings' => [
+    'enforce_allowlist'  => env('VE_BINDINGS_ENFORCE_ALLOWLIST', false),
+    'allowed_attributes' => [],
+],
+```
+
+- `enforce_allowlist` — `false` by default, so nothing changes. Set it (or `VE_BINDINGS_ENFORCE_ALLOWLIST=true`) to deny by default: a binding may then read a related model's attribute only when it is allowlisted, and a binding value can't be a whole record. Enforcement is planned to become the default in 2.0.
+- `allowed_attributes` — attributes to allow, keyed by model class. `'*'` allows every attribute on that model:
+
+  ```php
+  'allowed_attributes' => [
+      App\Models\User::class     => [ 'name', 'website' ],
+      App\Models\Category::class => [ '*' ],
+  ],
+  ```
+
+Models can also declare their own list by implementing `DefinesBindableAttributes`, and the `ap.visualEditor.bindings.allowedAttributes` filter can adjust the merged list. See [Block Bindings](block-bindings.md#attribute-allowlist).
 
 ---
 
@@ -418,6 +454,22 @@ Both ship empty. See [[Animations]] for the required shape per family.
 
 ---
 
+## `block_styles`
+
+**Since v1.15.0 (#876).** Extra directories of WordPress-style `*.json` partials to read block style variations from.
+
+```php
+'block_styles' => [
+    'directories' => [
+        resource_path('block-styles'),
+    ],
+],
+```
+
+Only partials that declare `blockTypes` are used. You don't need to list the active cms-framework theme's `styles/` directory or its `theme.json` `styles.blocks.*.variations`; both are read automatically. Code can also register variations with `VisualEditor::registerBlockStyle()` or adjust the merged list through the `ap.visualEditor.blockStyles` filter. See [Block style variations](site-editor/Global-Styles.md#block-style-variations).
+
+---
+
 ## `default_styles`
 
 **Since v1.12.1 (#821).** Controls the baseline front-end stylesheet `<x-ve-blocks-styles>` emits so a site with no theme renders close to the editor canvas (content typography, a heading scale, and root padding for constrained post content). Every rule has zero specificity and is scoped to block output, so host CSS always wins.
@@ -433,6 +485,23 @@ Both ship empty. See [[Animations]] for the required shape per family.
 | `false` | Never emit. |
 
 The preset and layout token defaults (font sizes, palette, content and wide size, block gap) are always declared and a theme overrides them; this flag only controls the baseline stylesheet. The Blade renderer is the only one that reads it. See [Theme-less front-end defaults](renderers.md#theme-less-front-end-defaults).
+
+---
+
+## `global_styles_in_head`
+
+**Since v1.15.0 (#879).** Where the Blade renderer prints the compiled global styles (`<style data-ve-global-styles>`).
+
+```php
+'global_styles_in_head' => true,
+```
+
+| Value | Behavior |
+|-------|-----------|
+| `true` | Print them in `<head>` through `<x-ve-blocks-styles>`, before the theme's own stylesheet (default). When the blocks render first, inside an `@extends` section or a component layout's slot, they queue the styles on the `ve-global-styles` Blade stack and `<x-ve-blocks-styles>` prints the stack. A layout with neither `<x-ve-blocks-styles>` nor `@stack('ve-global-styles')` in its head still gets them on HTML responses: the renderer's `InjectQueuedGlobalStyles` middleware on the `web` group injects them into `<head>`. |
+| `false` | The 1.14 placement: `<x-ve-blocks-styles>` never prints global styles, and the first `<x-ve-blocks>` / `<x-ve-template>` prints them inline in the body. |
+
+Output that never becomes an HTTP response, such as mail or `Blade::render()` into a string, gets no middleware injection. Set this to `false` for those renders, or the queued styles are never printed. The styles print once per request in every case. See [Front-end styles](renderers.md#front-end-styles).
 
 ---
 
@@ -457,11 +526,29 @@ The preset and layout token defaults (font sizes, palette, content and wide size
 ```
 
 - `payload_limits` — a request over any limit is rejected rather than truncated.
-- `capability` — what the default `visual-editor.use-ai` gate requires (checked through the user's `hasCapability()` / `hasPermissionTo()` / `hasPermission()`). Set to `''` to deny everyone, or redefine the gate for your own rule.
+- `capability` — what the default `visual-editor.use-ai` gate requires (checked through the user's `checkPermissionTo()` / `hasCapability()` / `hasPermissionTo()` / `hasPermission()`; a backend that throws denies, see [How capabilities are checked](#how-capabilities-are-checked)). Set to `''` to deny everyone, or redefine the gate for your own rule.
 - `throttle` — per-user rate limit for the `/ai/*` endpoints, as Laravel `throttle` middleware arguments (`"max attempts,minutes"`). Since v1.13 it's counted in its own rate-limit bucket, so it doesn't share a counter with the font, dynamic-content, SVG-sanitize or pattern-preview throttles. `null` or `''` uses the default; `false` turns the throttle off. Re-run `php artisan route:cache` after changing it.
 - `alt_text.allowed_hosts` — extra hosts alt-text image URLs may point at (e.g. a CDN). The `app.url` host is always allowed and server file paths are never accepted. Don't list a host with an open redirect.
 
 See [[AI Features]] for the full feature and access guide.
+
+---
+
+## `effects`
+
+**Since v1.15.0 (#881).** Access and safety switches for a block's **Custom CSS** in the Effects panel. Custom CSS is printed on the public site, so writing it is denied by default.
+
+```php
+'effects' => [
+    'custom_css_capability' => 'edit_block_css',
+    'custom_css_allow_urls' => true,
+],
+```
+
+- `custom_css_capability` — what the default `visual-editor.edit-block-css` gate requires (checked through the user's `checkPermissionTo()` / `hasCapability()` / `hasPermissionTo()` / `hasPermission()`; a backend that throws denies, see [How capabilities are checked](#how-capabilities-are-checked)). Nobody has it until you grant it to a role. Users without it don't see the Custom CSS field, and every save of a block-content model keeps only the Custom CSS already stored on that record. Set to `''` to deny everyone, or redefine the gate for your own rule.
+- `custom_css_allow_urls` — whether Custom CSS may load resources through `url(…)`, `image-set(…)` (including `-webkit-image-set(…)`), `image(…)` or `src(…)`. Set it to `false` to close the remaining exfiltration channel (attribute selectors plus a remote URL): Custom CSS that uses one of these functions is then dropped entirely, on the front end and in the editor. URLs must be quoted (`url("…")`) either way. Turning it off doesn't strip stored CSS on save; the CSS just isn't printed. The React and Vue renderers don't read config, so pass the same value to their `customCssAllowUrls` prop.
+
+See [Access Gate](site-editor/Access-Gate.md#custom-css-ability-visual-editoredit-block-css) and [Effects](blocks/Effects.md).
 
 ---
 
@@ -512,7 +599,7 @@ See [[Visibility]].
 ```
 
 - `disk` / `path` / `css_path` — where fetched and uploaded face files are self-hosted, and the generated `fonts.css` bundle rebuilt on every install / uninstall.
-- `capability` — gates every mutating Font Library action through `FontPolicy`. Users without it can still browse.
+- `capability` — gates every mutating Font Library action through `FontPolicy`, checked through the user's `checkPermissionTo()` / `hasCapability()` / `hasPermissionTo()` / `hasPermission()` (a backend that throws denies; see [How capabilities are checked](#how-capabilities-are-checked)). Users without it can still browse.
 - `regenerate.queued` — reserved; v1 always regenerates synchronously.
 - `install_max_seconds` — wall-clock budget for a catalog install. `0` derives it from `max_execution_time` (80% of it, or 60s when unlimited).
 - `bundles.auto_install` — whether activating a theme installs the fonts its `theme.json` declares but the library lacks (a remote fetch).
@@ -537,8 +624,10 @@ Several configuration keys can also be extended via filter hooks at runtime — 
 | `breakpoints` | (theme.json) | Replace/merge breakpoints from active theme |
 | `states` | (theme.json) | Replace/merge states from active theme |
 | `animations` / `keyframes` | (theme.json) | Replace/merge animations and keyframes from active theme |
+| `bindings.allowed_attributes` | `ap.visualEditor.bindings.allowedAttributes` | Receives the merged per-model allowlist last and can add or remove entries |
+| `block_styles` | `ap.visualEditor.blockStyles` | Receives the merged block style variation list last and can add, change or remove entries |
 
-Static config always wins on key collision. See [[Hooks and Events]] for the full filter / action reference.
+For the merge filters, static config always wins on key collision. The last two filters run after config is merged, so their result is final. See [[Hooks and Events]] for the full filter / action reference.
 
 ---
 

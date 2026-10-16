@@ -26,17 +26,19 @@ interface CopyrightEditProps {
     readonly setAttributes: (next: Partial<CopyrightAttributes>) => void;
 }
 
-const TYPE_OPTIONS: ReadonlyArray<{
+function typeOptions(): ReadonlyArray<{
     readonly label: string;
     readonly value: CopyrightType;
-}> = [
-    { label: 'Icon and text', value: 'icon-text' },
-    { label: 'Icon only', value: 'icon-only' },
-    { label: 'Text only', value: 'text-only' },
-];
+}> {
+    return [
+        { label: __('Icon and text', TEXT_DOMAIN), value: 'icon-text' },
+        { label: __('Icon only', TEXT_DOMAIN), value: 'icon-only' },
+        { label: __('Text only', TEXT_DOMAIN), value: 'text-only' },
+    ];
+}
 
 function isCopyrightType(value: string): value is CopyrightType {
-    return TYPE_OPTIONS.some((option) => option.value === value);
+    return typeOptions().some((option) => option.value === value);
 }
 
 function buildLine(type: CopyrightType, text: string, year: number): string {
@@ -68,10 +70,7 @@ export default function CopyrightEdit({
                     <SelectControl
                         label={__('Copyright type', TEXT_DOMAIN)}
                         value={copyrightType}
-                        options={TYPE_OPTIONS.map((option) => ({
-                            label: __(option.label, TEXT_DOMAIN),
-                            value: option.value,
-                        }))}
+                        options={typeOptions()}
                         onChange={(value) => {
                             if (isCopyrightType(value)) {
                                 setAttributes({ copyrightType: value });

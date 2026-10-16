@@ -56,6 +56,17 @@ class SnippetBlock extends DynamicBlock
 		return self::BLOCK_NAME;
 	}
 
+	/**
+	 * Opt out of the renderer's supports merge (#874): this block
+	 * renders the snippet's block tree with no wrapper of its own, so the first tag belongs to an inner block.
+	 *
+	 * @since 1.15.0
+	 */
+	public function appliesOwnSupports(): bool
+	{
+		return true;
+	}
+
 	public function render( array $attrs )
 	{
 		$slug = is_string( $attrs['slug'] ?? null ) ? trim( $attrs['slug'] ) : '';

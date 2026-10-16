@@ -21,7 +21,7 @@ describe('columnWidthScope', () => {
 
         expect(scope?.className).toBe('ve-w-971ccacfaf');
         expect(scope?.css).toBe(
-            '.ve-w-971ccacfaf.ve-w-971ccacfaf.ve-w-971ccacfaf{flex-basis:calc(60% - var(--wp--style--block-gap, 0.5em) * 0.4)!important;flex-grow:0!important}'
+            '.ve-w-971ccacfaf.ve-w-971ccacfaf.ve-w-971ccacfaf{flex-basis:calc(60% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.4)!important;flex-grow:0!important}'
         );
     });
 

@@ -27,6 +27,7 @@
 import type { ReactElement } from 'react';
 import { useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import {
     BlockControls,
     InspectorControls,
@@ -140,7 +141,7 @@ export default function TableEdit({
                                                 ),
                                             });
                                         }}
-                                        aria-label={__('Cell')}
+                                        aria-label={__('Cell', TEXT_DOMAIN)}
                                     />
                                 </CellTag>
                             );
@@ -157,9 +158,9 @@ export default function TableEdit({
                 <>
                     <BlockControls group="block" />
                     <InspectorControls>
-                        <PanelBody title={__('Settings')}>
+                        <PanelBody title={__('Settings', TEXT_DOMAIN)}>
                             <ToggleControl
-                                label={__('Fixed width table cells')}
+                                label={__('Fixed width table cells', TEXT_DOMAIN)}
                                 checked={!!hasFixedLayout}
                                 onChange={() =>
                                     setAttributes({
@@ -173,8 +174,8 @@ export default function TableEdit({
             )}
             {isEmpty ? (
                 <Placeholder
-                    label={__('Table')}
-                    instructions={__('Insert a table for sharing data.')}
+                    label={__('Table', TEXT_DOMAIN)}
+                    instructions={__('Insert a table for sharing data.', TEXT_DOMAIN)}
                 >
                     <form
                         onSubmit={(event) => {
@@ -189,7 +190,7 @@ export default function TableEdit({
                     >
                         <TextControl
                             type="number"
-                            label={__('Column count')}
+                            label={__('Column count', TEXT_DOMAIN)}
                             value={String(initialColumnCount)}
                             onChange={(value) =>
                                 setInitialColumnCount(
@@ -200,7 +201,7 @@ export default function TableEdit({
                         />
                         <TextControl
                             type="number"
-                            label={__('Row count')}
+                            label={__('Row count', TEXT_DOMAIN)}
                             value={String(initialRowCount)}
                             onChange={(value) =>
                                 setInitialRowCount(
@@ -210,7 +211,7 @@ export default function TableEdit({
                             min={1}
                         />
                         <Button type="submit" variant="primary">
-                            {__('Create table')}
+                            {__('Create table', TEXT_DOMAIN)}
                         </Button>
                     </form>
                 </Placeholder>
@@ -227,8 +228,8 @@ export default function TableEdit({
                     </table>
                     <RichText
                         tagName="figcaption"
-                        aria-label={__('Table caption text')}
-                        placeholder={__('Add caption')}
+                        aria-label={__('Table caption text', TEXT_DOMAIN)}
+                        placeholder={__('Add caption', TEXT_DOMAIN)}
                         value={caption ?? ''}
                         onChange={(value: string) =>
                             setAttributes({ caption: value })

@@ -24,6 +24,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditor\Services\Bindings\Sources;
 
 use ArtisanPackUI\VisualEditor\Resources\ResourceResolver;
+use ArtisanPackUI\VisualEditor\Services\Bindings\BindingAttributeAllowlist;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BlockBindingSource;
 use ArtisanPackUI\VisualEditor\Services\Bindings\ModelAttributeVisibility;
@@ -83,7 +84,18 @@ class CustomFieldSource implements BlockBindingSource
 			return null;
 		}
 
-		return $model->getAttribute( $key );
+		$value = $model->getAttribute( $key );
+
+		// The parent's own fields stay readable, but with the opt-in
+		// allowlist enforced (#869) a key naming a relation, or an
+		// accessor returning models in an array or collection, can't
+		// publish the related records wholesale; bind through `relation`
+		// instead.
+		if ( BindingAttributeAllowlist::isEnforced() && BindingAttributeAllowlist::containsModel( $value ) ) {
+			return null;
+		}
+
+		return $value;
 	}
 
 	public function eagerLoadRelations( array $bindingArgs ): array

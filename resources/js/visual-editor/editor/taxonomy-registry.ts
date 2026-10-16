@@ -23,6 +23,10 @@
  * @since 1.9.0
  */
 
+import { __ } from '@wordpress/i18n';
+
+import { TEXT_DOMAIN } from '../vendor/i18n';
+
 export interface TaxonomyDescriptor {
     readonly slug: string;
     readonly label: string;
@@ -33,19 +37,23 @@ export interface TaxonomyDescriptor {
  * WordPress-core's built-in public taxonomies. Used when the mount
  * attribute is missing so the inserter always surfaces the two common
  * taxonomies even in dev environments where the attribute hasn't been
- * wired up yet.
+ * wired up yet. Built on each call rather than at import time so the
+ * labels pick up translations loaded after this module.
  */
-const FALLBACK_TAXONOMIES: ReadonlyArray<TaxonomyDescriptor> = Object.freeze([
-    Object.freeze({ slug: 'category', label: 'Category', plural: 'Categories' }),
-    Object.freeze({ slug: 'post_tag', label: 'Tag', plural: 'Tags' }),
-]);
+function fallbackTaxonomies(): ReadonlyArray<TaxonomyDescriptor> {
+    return Object.freeze([
+        Object.freeze({ slug: 'category', label: __('Category', TEXT_DOMAIN), plural: __('Categories', TEXT_DOMAIN) }),
+        Object.freeze({ slug: 'post_tag', label: __('Tag', TEXT_DOMAIN), plural: __('Tags', TEXT_DOMAIN) }),
+    ]);
+}
 
 // A slug lands verbatim in the block's `term` attribute and the variation
 // name (`term-${slug}`), so constrain it to a safe identifier set —
 // mirroring the PHP registry's guard.
 const SAFE_SLUG_PATTERN = /^[a-z0-9_-]+$/;
 
-let cached: ReadonlyArray<TaxonomyDescriptor> | null = null;
+// `undefined` = not read yet; `null` = read, nothing usable stamped.
+let cached: ReadonlyArray<TaxonomyDescriptor> | null | undefined;
 
 function parseFromElement(
     element: Element | null
@@ -106,21 +114,14 @@ function parseFromElement(
  * @since 1.9.0
  */
 export function getTaxonomies(): ReadonlyArray<TaxonomyDescriptor> {
-    if (cached !== null) {
-        return cached;
+    if (cached === undefined) {
+        cached = typeof document === 'undefined'
+            ? null
+            : parseFromElement(document.querySelector('[data-ap-visual-editor]')) ??
+              parseFromElement(document.querySelector('[data-ap-site-editor]'));
     }
 
-    if (typeof document === 'undefined') {
-        cached = FALLBACK_TAXONOMIES;
-        return cached;
-    }
-
-    const parsed =
-        parseFromElement(document.querySelector('[data-ap-visual-editor]')) ??
-        parseFromElement(document.querySelector('[data-ap-site-editor]'));
-
-    cached = parsed ?? FALLBACK_TAXONOMIES;
-    return cached;
+    return cached ?? fallbackTaxonomies();
 }
 
 /**
@@ -130,5 +131,5 @@ export function getTaxonomies(): ReadonlyArray<TaxonomyDescriptor> {
  * @internal
  */
 export function refreshTaxonomies(): void {
-    cached = null;
+    cached = undefined;
 }

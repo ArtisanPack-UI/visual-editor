@@ -22,6 +22,8 @@
  *                    style, width; plus per-side
  *                    `style.border.{top|right|bottom|left}` objects.
  *                    Palette slugs via `borderColor`.
+ * - `background`   → `style.background.*` image, size, position,
+ *                    repeat and attachment (#873).
  * - `typography`   → custom values from `style.typography.*`;
  *                    palette slugs from `fontSize` / `fontFamily`.
  * - `align (text)` → `textAlign` attribute → inline `text-align`.
@@ -49,6 +51,7 @@ namespace ArtisanPackUI\VisualEditorRendererBlade\Support;
 
 use ArtisanPackUI\VisualEditor\BoxShadow\BoxShadowEmitter;
 use ArtisanPackUI\VisualEditor\BoxShadow\BoxShadowResolver;
+use ArtisanPackUI\VisualEditor\Effects\EffectsCompiler;
 use ArtisanPackUI\VisualEditor\GradientBorder\GradientBorderEmitter;
 use ArtisanPackUI\VisualEditor\GradientBorder\GradientBorderResolver;
 use ArtisanPackUI\VisualEditor\Position\PositionEmitter;
@@ -58,6 +61,7 @@ use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use ArtisanPackUI\VisualEditor\States\StateCssEmitter;
 use ArtisanPackUI\VisualEditor\States\StateRegistry;
 use ArtisanPackUI\VisualEditor\States\StateValueResolver;
+use ArtisanPackUI\VisualEditor\Support\CssValue;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\BoxShadowCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ElementsCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
@@ -83,6 +87,20 @@ class BlockSupports
 		'style.border.width'     => 'border-width',
 		'style.border.style'     => 'border-style',
 		'style.border.color'     => 'border-color',
+		// #877 — typography, colour and dimension overrides. The bare
+		// `fontSize` / `textColor` / `backgroundColor` paths carry a
+		// preset slug ({@see self::RESPONSIVE_PRESET_PATHS}); `height`
+		// (spacer) and `minHeight` (cover) carry the block's own
+		// attribute ({@see self::RESPONSIVE_UNIT_PATHS}).
+		'style.typography.fontSize'  => 'font-size',
+		'fontSize'                   => 'font-size',
+		'style.color.text'           => 'color',
+		'textColor'                  => 'color',
+		'style.color.background'     => 'background-color',
+		'backgroundColor'            => 'background-color',
+		'style.dimensions.minHeight' => 'min-height',
+		'height'                     => 'height',
+		'minHeight'                  => 'min-height',
 		// `width` is intentionally absent. The artisanpack/column block
 		// translates its `width` attribute to a `flex-basis` declaration
 		// (not `width`), and the WP core `.wp-block-columns:not(.is-not-stacked-on-mobile) > .wp-block-column { flex-basis: 100% !important }`
@@ -91,6 +109,42 @@ class BlockSupports
 		// `responsive.width` itself (see column.blade.php) — same
 		// pattern as columns.blade.php handles `responsive.columnCount`.
 	];
+
+	/**
+	 * Responsive paths whose value is a preset slug, mapped to the
+	 * preset category it expands under (#877): a `fontSize` override of
+	 * `small` emits `font-size: var(--wp--preset--font-size--small)`.
+	 *
+	 * @since 1.15.0
+	 */
+	protected const RESPONSIVE_PRESET_PATHS = [
+		'fontSize'        => 'font-size',
+		'textColor'       => 'color',
+		'backgroundColor' => 'color',
+	];
+
+	/**
+	 * Responsive paths whose numeric value takes its unit from a sibling
+	 * attribute (#877), with the fallback unit when none resolves. Cover
+	 * stores `minHeight: 50` next to `minHeightUnit: 'vh'`; spacer
+	 * heights are strings, but a legacy numeric height means pixels.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @var array<string, array{0: string|null, 1: string}>
+	 */
+	protected const RESPONSIVE_UNIT_PATHS = [
+		'minHeight' => [ 'minHeightUnit', 'px' ],
+		'height'    => [ null, 'px' ],
+	];
+
+	/**
+	 * Units a numeric {@see self::RESPONSIVE_UNIT_PATHS} value may take.
+	 * Mirrors the cover partial's own list.
+	 *
+	 * @since 1.15.0
+	 */
+	protected const RESPONSIVE_ALLOWED_UNITS = [ 'px', 'em', 'rem', 'vh', 'vw', '%' ];
 
 	/**
 	 * Recognized values for the block-level `align` attribute. Values
@@ -173,6 +227,7 @@ class BlockSupports
 		self::applyAlign( $attributes, $classes );
 		self::applyTextAlign( $attributes, $classes );
 		self::applyColor( $attributes, $classes, $style );
+		self::applyBackground( $attributes, $style );
 		self::applySpacing( $attributes, $style );
 		self::applyBorder( $attributes, $classes, $style );
 		self::applyTypography( $attributes, $classes, $style );
@@ -258,6 +313,18 @@ class BlockSupports
 			$classes[] = $elements['class'];
 
 			self::pushElements( $elements['class'], $elements['style'] );
+		}
+
+		// #881 — block effects (opacity, overflow, backdrop filter, blend
+		// mode, z-index, clip, text clip) and the block's Custom CSS, under
+		// one hashed scope class. Pushed with the layout container rules so
+		// it lands in the same `<style data-ve-responsive>` block.
+		$effects = EffectsCompiler::compile( $attributes );
+
+		if ( null !== $effects ) {
+			$classes[] = $effects['class'];
+
+			self::pushResponsive( $effects['class'], $effects['css'] );
 		}
 
 		return [
@@ -516,6 +583,119 @@ class BlockSupports
 	}
 
 	/**
+	 * Merge a block's compiled supports into an already-rendered dynamic
+	 * block's wrapper (#874).
+	 *
+	 * Blade-partial blocks get their supports from {@see wrapperAttrs}.
+	 * Dynamic blocks render their own HTML, so the renderer pipes the
+	 * output through here instead: {@see compile} (plus animations) runs
+	 * against `$attributes` and the result is merged into the wrapper
+	 * element of `$html`:
+	 * - an element carrying a `data-ve-wrapper` attribute, when the
+	 *   handler marks one;
+	 * - otherwise the first element, skipping leading whitespace,
+	 *   comments, `<style>`, `<script>`, `<template>`, `<noscript>`,
+	 *   `<link>` and `<meta>` (so a block that prints its own assets first
+	 *   still has its real wrapper targeted) and leading decorative
+	 *   elements: any `<svg>` and any element with `aria-hidden="true"`,
+	 *   so the classes and anchor `id` never land on a hidden icon.
+	 *
+	 * The merge never overrides the handler's own output:
+	 * - classes are appended and deduped;
+	 * - a declaration is added only when the wrapper's `style` doesn't
+	 *   already set that property, a shorthand that resets it (an existing
+	 *   `padding` blocks `padding-top`), or a longhand it would reset (an
+	 *   existing `background-color` blocks `background`);
+	 * - `id` and the animation `data-*` attributes are added only when
+	 *   absent.
+	 *
+	 * That keeps the merge idempotent for a handler that already applied
+	 * some supports itself. Returns `$html` unchanged when there is no
+	 * wrapper element to target or nothing to merge.
+	 *
+	 * @since 1.15.0
+	 *
+	 * A dynamic block that applies its supports itself, or renders no
+	 * wrapper of its own, opts out with `DynamicBlock::appliesOwnSupports()`.
+	 *
+	 * @param  string                $html        Block's pre-rendered HTML.
+	 * @param  array<string, mixed>  $attributes  Attribute payload to
+	 *                                            compile supports from.
+	 */
+	public static function applyToRenderedHtml( string $html, array $attributes ): string
+	{
+		$tag = self::locateWrapperTag( $html );
+
+		if ( null === $tag ) {
+			return $html;
+		}
+
+		$compiled   = self::compile( $attributes );
+		$animations = self::resolveAnimations( $attributes );
+
+		$classes = $compiled['classes'];
+		$extra   = [];
+
+		if ( null !== $animations ) {
+			$classes = array_merge( $classes, $animations['classes'] );
+
+			preg_match_all( '/([a-zA-Z0-9_:.-]+)="([^"]*)"/', $animations['dataString'], $pairs, PREG_SET_ORDER );
+
+			foreach ( $pairs as $pair ) {
+				$extra[ strtolower( $pair[1] ) ] = [ $pair[1], $pair[2] ];
+			}
+		}
+
+		if ( [] === $classes && '' === $compiled['style'] && null === $compiled['id'] && [] === $extra ) {
+			return $html;
+		}
+
+		$attrs = self::parseTagAttributes( $tag['attributes'] );
+
+		if ( [] !== $classes ) {
+			$existing = isset( $attrs['class'] ) ? html_entity_decode( (string) $attrs['class'][1], ENT_QUOTES | ENT_HTML5 ) : '';
+			$tokens   = preg_split( '/\s+/', trim( $existing ) ) ?: [];
+			$merged   = array_values( array_unique( array_filter(
+				array_merge( $tokens, $classes ),
+				static fn ( string $class ): bool => '' !== trim( $class ),
+			) ) );
+
+			$attrs['class'] = [ $attrs['class'][0] ?? 'class', e( implode( ' ', $merged ) ) ];
+		}
+
+		if ( '' !== $compiled['style'] ) {
+			$existing = isset( $attrs['style'] ) ? html_entity_decode( (string) $attrs['style'][1], ENT_QUOTES | ENT_HTML5 ) : '';
+			$merged   = self::mergeStyleDeclarations( $existing, $compiled['style'] );
+
+			if ( '' !== $merged ) {
+				$attrs['style'] = [ $attrs['style'][0] ?? 'style', e( $merged ) ];
+			}
+		}
+
+		if ( null !== $compiled['id'] && ! isset( $attrs['id'] ) ) {
+			$attrs['id'] = [ 'id', e( $compiled['id'] ) ];
+		}
+
+		foreach ( $extra as $key => $pair ) {
+			if ( ! isset( $attrs[ $key ] ) ) {
+				$attrs[ $key ] = $pair;
+			}
+		}
+
+		$parts = [];
+
+		foreach ( $attrs as $pair ) {
+			$parts[] = null === $pair[1]
+				? $pair[0]
+				: sprintf( '%s="%s"', $pair[0], str_replace( '"', '&quot;', $pair[1] ) );
+		}
+
+		$rebuilt = '<' . $tag['name'] . ( [] === $parts ? '' : ' ' . implode( ' ', $parts ) ) . ( $tag['selfClosing'] ? ' />' : '>' );
+
+		return substr( $html, 0, $tag['offset'] ) . $rebuilt . substr( $html, $tag['offset'] + $tag['length'] );
+	}
+
+	/**
 	 * Walk the `attributes.responsive` payload and emit a scoped
 	 * `<style>` block that overrides the base wrapper styles at each
 	 * declared breakpoint.
@@ -540,18 +720,25 @@ class BlockSupports
 	 * tags inline.
 	 *
 	 * @since 1.0.0
+	 * @since 1.15.0 Accepts a `$propertyMap` so a partial can emit its
+	 *               own paths (spacer `width`) through the same emitter.
 	 *
-	 * @param  array<string, mixed>  $attributes
+	 * @param  array<string, mixed>         $attributes
+	 * @param  array<string, string>|null  $propertyMap  Path → CSS property;
+	 *                                                   `null` uses
+	 *                                                   {@see self::RESPONSIVE_CSS_PROPERTY_MAP}.
 	 *
 	 * @return array{class: string, rules: string}
 	 */
-	public static function compileResponsive( array $attributes ): array
+	public static function compileResponsive( array $attributes, ?array $propertyMap = null ): array
 	{
 		$responsive = $attributes['responsive'] ?? null;
 
 		if ( ! is_array( $responsive ) || [] === $responsive ) {
 			return [ 'class' => '', 'rules' => '' ];
 		}
+
+		$propertyMap ??= self::RESPONSIVE_CSS_PROPERTY_MAP;
 
 		// Pull the request-scoped registry from the container so
 		// host-configured breakpoints (theme.json → config) are
@@ -565,7 +752,7 @@ class BlockSupports
 			? self::resolveRegistry()
 			: BreakpointRegistry::fromLayers();
 		$rules    = [];
-		$scope    = self::generateResponsiveScopeClass( $responsive );
+		$scope    = self::generateResponsiveScopeClass( self::responsiveHashInput( $responsive, $attributes, $propertyMap ) );
 
 		// Tripled scope class boosts the rule's specificity to
 		// (0,0,3,0), matching WP core's own
@@ -575,24 +762,58 @@ class BlockSupports
 		// the wrapper, after every WP core stylesheet, so we win.
 		$selector = sprintf( '.%1$s.%1$s.%1$s', $scope );
 
+		// A unit-only override still needs its value path walked (#877).
+		foreach ( self::RESPONSIVE_UNIT_PATHS as $path => [ $unitPath ] ) {
+			if ( null !== $unitPath && isset( $propertyMap[ $path ], $responsive[ $unitPath ] ) && ! isset( $responsive[ $path ] ) ) {
+				$responsive[ $path ] = [];
+			}
+		}
+
+		// Group the overrides by CSS property (#877): a preset path and
+		// its custom twin (`fontSize` / `style.typography.fontSize`)
+		// write the same property, so each breakpoint keeps one value —
+		// the later-stored path when both set the same breakpoint — and
+		// the rules come out in breakpoint order, letting the narrower
+		// override win whichever path holds it.
+		$byProperty = [];
+
 		foreach ( $responsive as $path => $overrides ) {
 			if ( ! is_array( $overrides ) ) {
 				continue;
 			}
 
-			if ( ! isset( self::RESPONSIVE_CSS_PROPERTY_MAP[ $path ] ) ) {
+			if ( ! isset( $propertyMap[ $path ] ) ) {
 				continue;
 			}
 
-			$property = self::RESPONSIVE_CSS_PROPERTY_MAP[ $path ];
+			$overrides = self::withUnitOnlyOverrides( (string) $path, $overrides, $attributes, $registry );
 
+			foreach ( $overrides as $breakpoint => $value ) {
+				// `false` is the editor's tombstone (#887): it only stops
+				// the canvas cascade for one half of a preset / custom
+				// pair, so it must never displace the other half's value.
+				if ( null === $value || '' === $value || false === $value ) {
+					continue;
+				}
+
+				$byProperty[ $propertyMap[ $path ] ][ $breakpoint ] = [ (string) $path, $value ];
+			}
+		}
+
+		foreach ( $byProperty as $property => $overrides ) {
 			// Registry emission order, not storage order: legacy min-width
 			// rules ascending, then desktop-first max-width rules from
 			// largest to smallest so the narrower override wins (#820).
 			foreach ( $registry->keysWithBase() as $breakpoint ) {
-				$value = $overrides[ $breakpoint ] ?? null;
+				if ( ! isset( $overrides[ $breakpoint ] ) ) {
+					continue;
+				}
 
-				if ( null === $value || '' === $value ) {
+				[ $path, $value ] = $overrides[ $breakpoint ];
+
+				$value = self::normaliseResponsiveValue( $path, $value, $breakpoint, $attributes, $registry );
+
+				if ( null === $value ) {
 					continue;
 				}
 
@@ -788,6 +1009,192 @@ class BlockSupports
 		$value = trim( (string) $value, '-' );
 
 		return $value;
+	}
+
+	/**
+	 * Format a number for a CSS value (R-13). PHP's own float-to-string
+	 * conversion is kept, except where it switches to exponent notation
+	 * (`1.0E-8`, `1.0E+14`), which CSS doesn't parse: tiny values are
+	 * written to four decimals (so `1e-8` becomes `0`) and huge ones as
+	 * whole numbers. Mirrored by `cssNumber()` in the React and Vue
+	 * renderers' `support/cssNumber.ts`.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  float  $value  Number to format.
+	 */
+	public static function cssNumber( float $value ): string
+	{
+		$string = (string) $value;
+
+		if ( ! str_contains( $string, 'E' ) ) {
+			return $string;
+		}
+
+		if ( abs( $value ) >= 1 ) {
+			return number_format( $value, 0, '.', '' );
+		}
+
+		$formatted = rtrim( rtrim( number_format( $value, 4, '.', '' ), '0' ), '.' );
+
+		return '' === $formatted || '-0' === $formatted ? '0' : $formatted;
+	}
+
+	/**
+	 * Turn a stored responsive override into the CSS value the generic
+	 * emitter writes (#877). Preset paths expand their slug into the
+	 * `var:preset|…` shorthand {@see self::responsiveDeclarations()}
+	 * resolves; unit paths append the unit that applies at the
+	 * breakpoint to a numeric value. Every other value passes through.
+	 * Returns `null` to drop the override.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 */
+	protected static function normaliseResponsiveValue( string $path, mixed $value, string $breakpoint, array $attributes, BreakpointRegistry $registry ): mixed
+	{
+		if ( isset( self::RESPONSIVE_PRESET_PATHS[ $path ] ) ) {
+			if ( ! is_string( $value ) || '' === trim( $value ) ) {
+				return null;
+			}
+
+			return 'var:preset|' . self::RESPONSIVE_PRESET_PATHS[ $path ] . '|' . trim( $value );
+		}
+
+		if ( ! isset( self::RESPONSIVE_UNIT_PATHS[ $path ] ) ) {
+			return $value;
+		}
+
+		if ( is_string( $value ) && ! is_numeric( $value ) ) {
+			return $value;
+		}
+
+		if ( ! is_int( $value ) && ! is_float( $value ) && ! is_numeric( $value ) ) {
+			return null;
+		}
+
+		[ $unitPath, $fallbackUnit ] = self::RESPONSIVE_UNIT_PATHS[ $path ];
+
+		$unit = null === $unitPath
+			? $fallbackUnit
+			: self::cascadeResponsiveValue( $attributes, $unitPath, $breakpoint, $registry );
+
+		if ( ! is_string( $unit ) || ! in_array( $unit, self::RESPONSIVE_ALLOWED_UNITS, true ) ) {
+			$unit = $fallbackUnit;
+		}
+
+		return self::cssNumber( max( 0.0, (float) $value ) ) . $unit;
+	}
+
+	/**
+	 * The payload the responsive scope class is hashed from. Normally
+	 * just `attributes.responsive`, but a unit path's rules also read the
+	 * block's base value and unit (#877), so those join the hash
+	 * whenever a unit path is overridden — otherwise two covers with the
+	 * same overrides but different base heights would share a scope and
+	 * the accumulator would keep only the first one's rules.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  array<mixed>           $responsive
+	 * @param  array<string, mixed>   $attributes
+	 * @param  array<string, string>  $propertyMap
+	 *
+	 * @return array<mixed>
+	 */
+	protected static function responsiveHashInput( array $responsive, array $attributes, array $propertyMap ): array
+	{
+		$base = [];
+
+		foreach ( self::RESPONSIVE_UNIT_PATHS as $path => [ $unitPath ] ) {
+			if ( null === $unitPath || ! isset( $propertyMap[ $path ] ) ) {
+				continue;
+			}
+
+			if ( ! isset( $responsive[ $path ] ) && ! isset( $responsive[ $unitPath ] ) ) {
+				continue;
+			}
+
+			$base[ $path ]     = $attributes[ $path ] ?? null;
+			$base[ $unitPath ] = $attributes[ $unitPath ] ?? null;
+		}
+
+		return [] === $base ? $responsive : [ 'responsive' => $responsive, 'base' => $base ];
+	}
+
+	/**
+	 * Fill in a value override at every breakpoint that overrides only
+	 * the unit (#877): a cover whose Mobile override switches
+	 * `minHeightUnit` to `vh` but keeps the inherited `minHeight` still
+	 * needs a Mobile `min-height` rule.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  array<mixed>          $overrides
+	 * @param  array<string, mixed>  $attributes
+	 *
+	 * @return array<mixed>
+	 */
+	protected static function withUnitOnlyOverrides( string $path, array $overrides, array $attributes, BreakpointRegistry $registry ): array
+	{
+		$unitPath = self::RESPONSIVE_UNIT_PATHS[ $path ][0] ?? null;
+
+		if ( null === $unitPath ) {
+			return $overrides;
+		}
+
+		$unitOverrides = $attributes['responsive'][ $unitPath ] ?? null;
+
+		if ( ! is_array( $unitOverrides ) ) {
+			return $overrides;
+		}
+
+		foreach ( $unitOverrides as $breakpoint => $unit ) {
+			if ( ! is_string( $breakpoint ) || null === $unit || '' === $unit || isset( $overrides[ $breakpoint ] ) ) {
+				continue;
+			}
+
+			$value = self::cascadeResponsiveValue( $attributes, $path, $breakpoint, $registry );
+
+			if ( null !== $value && '' !== $value ) {
+				$overrides[ $breakpoint ] = $value;
+			}
+		}
+
+		return $overrides;
+	}
+
+	/**
+	 * The value of a top-level attribute that applies at a breakpoint:
+	 * the first override along the registry cascade, then the base
+	 * attribute. Mirrors the editor's read view.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 */
+	protected static function cascadeResponsiveValue( array $attributes, string $path, string $breakpoint, BreakpointRegistry $registry ): mixed
+	{
+		$overrides = $attributes['responsive'][ $path ] ?? null;
+
+		if ( is_array( $overrides ) ) {
+			foreach ( $registry->cascade( $breakpoint ) as $key ) {
+				if ( BreakpointRegistry::BASE_KEY === $key ) {
+					break;
+				}
+
+				if ( isset( $overrides[ $key ] ) && '' !== $overrides[ $key ] ) {
+					return $overrides[ $key ];
+				}
+			}
+
+			if ( isset( $overrides[ BreakpointRegistry::BASE_KEY ] ) && '' !== $overrides[ BreakpointRegistry::BASE_KEY ] ) {
+				return $overrides[ BreakpointRegistry::BASE_KEY ];
+			}
+		}
+
+		return $attributes[ $path ] ?? null;
 	}
 
 	/**
@@ -1003,6 +1410,295 @@ class BlockSupports
 	}
 
 	/**
+	 * Find the wrapper element in rendered HTML: the first element with a
+	 * `data-ve-wrapper` attribute, else the first element after leading
+	 * whitespace, comments, non-visual asset elements and decorative
+	 * elements (`<svg>`, `aria-hidden="true"`). Returns the opening tag's
+	 * byte offset / length, element name, raw attribute string and whether
+	 * it was written self-closing — or `null` when there is no element to
+	 * target.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @return array{offset: int, length: int, name: string, attributes: string, selfClosing: bool}|null
+	 */
+	protected static function locateWrapperTag( string $html ): ?array
+	{
+		if ( 1 === preg_match( '/<[a-zA-Z][a-zA-Z0-9-]*\s(?:[^>"\']|"[^"]*"|\'[^\']*\')*?(?<=[\s"\'])data-ve-wrapper(?=[\s=\/>])/', $html, $marker, PREG_OFFSET_CAPTURE ) ) {
+			$tag = self::openingTagAt( $html, (int) $marker[0][1] );
+
+			if ( null !== $tag ) {
+				return $tag;
+			}
+		}
+
+		$offset = 0;
+		$length = strlen( $html );
+
+		while ( $offset < $length ) {
+			if ( 1 === preg_match( '/\G\s+/', $html, $match, 0, $offset ) ) {
+				$offset += strlen( $match[0] );
+
+				continue;
+			}
+
+			if ( 1 === preg_match( '/\G<!--.*?-->/s', $html, $match, 0, $offset )
+				|| 1 === preg_match( '/\G<(style|script|template|noscript)\b[^>]*>.*?<\/\1\s*>/is', $html, $match, 0, $offset )
+				|| 1 === preg_match( '/\G<(?:link|meta)\b[^>]*>/i', $html, $match, 0, $offset )
+			) {
+				$offset += strlen( $match[0] );
+
+				continue;
+			}
+
+			$tag = self::openingTagAt( $html, $offset );
+
+			if ( null === $tag || ! self::isDecorativeTag( $tag ) ) {
+				return $tag;
+			}
+
+			$end = self::elementEnd( $html, $tag );
+
+			if ( null === $end ) {
+				return null;
+			}
+
+			$offset = $end;
+		}
+
+		return null;
+	}
+
+	/**
+	 * Parse the opening tag that starts at `$offset`, or null.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @return array{offset: int, length: int, name: string, attributes: string, selfClosing: bool}|null
+	 */
+	protected static function openingTagAt( string $html, int $offset ): ?array
+	{
+		$pattern = '/\G<([a-zA-Z][a-zA-Z0-9-]*)((?:\s+[^\s=\/>"\']+(?:\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s"\'=<>`]+))?)*)\s*(\/?)>/';
+
+		if ( 1 !== preg_match( $pattern, $html, $match, 0, $offset ) ) {
+			return null;
+		}
+
+		return [
+			'offset'      => $offset,
+			'length'      => strlen( $match[0] ),
+			'name'        => $match[1],
+			'attributes'  => $match[2],
+			'selfClosing' => '/' === $match[3],
+		];
+	}
+
+	/**
+	 * Whether a leading element is decorative — an `<svg>` icon or any
+	 * element hidden from assistive technology with `aria-hidden="true"`
+	 * — and so never the block's wrapper.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  array{offset: int, length: int, name: string, attributes: string, selfClosing: bool}  $tag
+	 */
+	protected static function isDecorativeTag( array $tag ): bool
+	{
+		if ( 'svg' === strtolower( $tag['name'] ) ) {
+			return true;
+		}
+
+		$attrs = self::parseTagAttributes( $tag['attributes'] );
+
+		return isset( $attrs['aria-hidden'] )
+			&& 'true' === strtolower( trim( html_entity_decode( (string) $attrs['aria-hidden'][1], ENT_QUOTES | ENT_HTML5 ) ) );
+	}
+
+	/**
+	 * Byte offset just past the element whose opening tag is `$tag`:
+	 * past the tag itself for a void or self-closing element, else past
+	 * its matching closing tag (same-name nesting counted). Null when the
+	 * element is never closed.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  array{offset: int, length: int, name: string, attributes: string, selfClosing: bool}  $tag
+	 */
+	protected static function elementEnd( string $html, array $tag ): ?int
+	{
+		$end  = $tag['offset'] + $tag['length'];
+		$name = strtolower( $tag['name'] );
+
+		if ( $tag['selfClosing'] || in_array( $name, [ 'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'source', 'track', 'wbr' ], true ) ) {
+			return $end;
+		}
+
+		$depth   = 1;
+		$pattern = '/<(\/?)' . preg_quote( $tag['name'], '/' ) . '\b[^>]*?(\/?)>/i';
+
+		while ( 1 === preg_match( $pattern, $html, $match, PREG_OFFSET_CAPTURE, $end ) ) {
+			$end = (int) $match[0][1] + strlen( $match[0][0] );
+
+			if ( '/' === $match[1][0] ) {
+				--$depth;
+			} elseif ( '/' !== $match[2][0] ) {
+				++$depth;
+			}
+
+			if ( 0 === $depth ) {
+				return $end;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Parse an opening tag's raw attribute string into an ordered map
+	 * keyed by lowercased name. Each entry is `[name, rawValue]`, where
+	 * `rawValue` is the still-escaped source text (or `null` for a bare
+	 * boolean attribute). The first occurrence of a duplicate wins, as
+	 * it does in the browser.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @return array<string, array{0: string, 1: ?string}>
+	 */
+	protected static function parseTagAttributes( string $attributes ): array
+	{
+		preg_match_all(
+			'/([^\s=\/>"\']+)(?:\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s"\'=<>`]+)))?/',
+			$attributes,
+			$matches,
+			PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL,
+		);
+
+		$parsed = [];
+
+		foreach ( $matches as $match ) {
+			$key = strtolower( (string) $match[1] );
+
+			if ( isset( $parsed[ $key ] ) ) {
+				continue;
+			}
+
+			$parsed[ $key ] = [ (string) $match[1], $match[2] ?? $match[3] ?? $match[4] ?? null ];
+		}
+
+		return $parsed;
+	}
+
+	/**
+	 * Append the compiled declarations that wouldn't override anything
+	 * the existing inline style sets (R-7). A compiled declaration is
+	 * skipped when the existing style sets the same property, a shorthand
+	 * that resets it, or a longhand it would reset — so `padding: 4px`
+	 * keeps a compiled `padding-top`, and `background-color` keeps a
+	 * compiled `background`. The existing style is kept verbatim — it is
+	 * only scanned for property names — so a value holding a `;` (e.g. a
+	 * `data:` URI) survives untouched. Returns the merged declaration list.
+	 *
+	 * @since 1.15.0
+	 */
+	protected static function mergeStyleDeclarations( string $existing, string $compiled ): string
+	{
+		$existing = trim( $existing );
+
+		preg_match_all( '/(?:^|;)\s*([a-zA-Z-]+)\s*:/', $existing, $matches );
+
+		$properties = array_values( array_unique( array_map( 'strtolower', $matches[1] ) ) );
+		$additions  = [];
+
+		foreach ( explode( ';', $compiled ) as $declaration ) {
+			$declaration = trim( $declaration );
+			$colon       = strpos( $declaration, ':' );
+
+			if ( '' === $declaration || false === $colon ) {
+				continue;
+			}
+
+			$property = strtolower( trim( substr( $declaration, 0, $colon ) ) );
+
+			if ( self::overlapsAnyProperty( $property, $properties ) ) {
+				continue;
+			}
+
+			$properties[] = $property;
+			$additions[]  = $declaration;
+		}
+
+		if ( [] === $additions ) {
+			return $existing;
+		}
+
+		$prefix = '' === $existing ? '' : rtrim( $existing, '; ' ) . '; ';
+
+		return $prefix . implode( '; ', $additions ) . ';';
+	}
+
+	/**
+	 * Whether `$property` is, resets, or is reset by any of `$properties`.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  string              $property    Lower-cased property name.
+	 * @param  array<int, string>  $properties  Lower-cased property names.
+	 */
+	protected static function overlapsAnyProperty( string $property, array $properties ): bool
+	{
+		foreach ( $properties as $other ) {
+			if ( $other === $property || self::shorthandResets( $other, $property ) || self::shorthandResets( $property, $other ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Whether the shorthand `$shorthand` resets the property `$longhand`.
+	 * Covers the families block supports write: `padding`, `margin`,
+	 * `background`, `font` (plus `line-height`), `border` and its side,
+	 * width, style, color and radius shorthands, `inset`, `gap`,
+	 * `outline` and `text-decoration`. Custom properties are never
+	 * shorthands.
+	 *
+	 * @since 1.15.0
+	 */
+	protected static function shorthandResets( string $shorthand, string $longhand ): bool
+	{
+		if ( str_starts_with( $shorthand, '--' ) || str_starts_with( $longhand, '--' ) ) {
+			return false;
+		}
+
+		if ( 'border' === $shorthand ) {
+			return str_starts_with( $longhand, 'border-' )
+				&& ! str_contains( $longhand, 'radius' )
+				&& ! in_array( $longhand, [ 'border-collapse', 'border-spacing' ], true );
+		}
+
+		if ( 1 === preg_match( '/^border-(width|style|color|radius)$/', $shorthand, $part ) ) {
+			return 1 === preg_match( '/^border-[a-z]+(?:-[a-z]+)?-' . $part[1] . '$/', $longhand );
+		}
+
+		$extra = [
+			'font'  => [ 'line-height' ],
+			'inset' => [ 'top', 'right', 'bottom', 'left' ],
+			'gap'   => [ 'row-gap', 'column-gap' ],
+		];
+
+		if ( in_array( $longhand, $extra[ $shorthand ] ?? [], true ) ) {
+			return true;
+		}
+
+		$prefixed = [ 'padding', 'margin', 'background', 'font', 'inset', 'outline', 'text-decoration', 'border-top', 'border-right', 'border-bottom', 'border-left', 'border-block', 'border-inline', 'border-block-start', 'border-block-end', 'border-inline-start', 'border-inline-end' ];
+
+		return in_array( $shorthand, $prefixed, true )
+			&& str_starts_with( $longhand, $shorthand . '-' )
+			&& ! ( str_starts_with( $shorthand, 'border-' ) && str_contains( $longhand, 'radius' ) );
+	}
+
+	/**
 	 * Compile the `attributes.states` payload into a `{class, rules}`
 	 * pair the wrapper can merge in and the accumulator can dedupe (#488).
 	 *
@@ -1171,6 +1867,16 @@ class BlockSupports
 	}
 
 	/**
+	 * Convert one stored state value into its CSS form. A Gutenberg
+	 * `var:preset|{kind}|{slug}` reference is expanded on every path
+	 * (#875) — palette swatches picked for `color.background`,
+	 * `border.color`, `shadow`, … are stored that way — before the
+	 * bare-slug expansion the `preset`-flagged paths apply.
+	 *
+	 * @since 1.0.0
+	 * @since 1.15.0 Expands `var:preset|…` references on every path and
+	 *               drops values that fail {@see self::safeCssValue()}.
+	 *
 	 * @param  array{property: string, preset?: string}  $entry
 	 */
 	protected static function convertStateValue( mixed $raw, array $entry ): mixed
@@ -1187,11 +1893,19 @@ class BlockSupports
 			return null;
 		}
 
+		if ( str_starts_with( $raw, 'var:preset|' ) ) {
+			return self::expandPresetReference( $raw );
+		}
+
 		if ( isset( $entry['preset'] ) && 1 === preg_match( '/^[a-z0-9][a-z0-9_-]*$/i', $raw ) ) {
 			return sprintf( 'var(--wp--preset--%s--%s)', $entry['preset'], $raw );
 		}
 
-		return $raw;
+		// State rules are spliced raw into `<style data-ve-states>`, so a
+		// value carrying CSS-structural characters (`;`, braces, `<`,
+		// quotes, `:` …) could inject rules or close the tag. Drop it,
+		// like the responsive emitter does (#875).
+		return self::safeCssValue( $raw );
 	}
 
 	protected static function resolveStateRegistry(): StateRegistry
@@ -1530,13 +2244,17 @@ class BlockSupports
 	 * class-based rules on specificity, so without `!important` the
 	 * per-breakpoint overrides emit but never apply on the front end.
 	 * #509 (consolidated emission) will keep the same suffix.
+	 *
+	 * A value with a comment delimiter or unbalanced parentheses is
+	 * dropped (#877): every block's rules share one `<style>` block, so
+	 * a stray `/*` or `calc(` would swallow every rule after it.
 	 */
 	protected static function responsiveDeclarations( string $property, $value ): string
 	{
 		if ( is_scalar( $value ) ) {
 			$resolved = self::sanitizeCssValue( self::resolvePresetVar( (string) $value ) );
 
-			if ( '' === $resolved ) {
+			if ( '' === $resolved || ! CssValue::isBalanced( $resolved ) ) {
 				return '';
 			}
 
@@ -1556,7 +2274,7 @@ class BlockSupports
 
 			$resolved = self::sanitizeCssValue( self::resolvePresetVar( (string) $value[ $side ] ) );
 
-			if ( '' === $resolved ) {
+			if ( '' === $resolved || ! CssValue::isBalanced( $resolved ) ) {
 				continue;
 			}
 
@@ -1814,11 +2532,82 @@ class BlockSupports
 	}
 
 	/**
+	 * Background support (#873): `style.background.backgroundImage`
+	 * (an `{url, id, source, title}` object or a bare URL string) plus
+	 * `backgroundSize`, `backgroundPosition`, `backgroundRepeat` and
+	 * `backgroundAttachment` become inline declarations.
+	 *
+	 * Mirrors WordPress core's `wp_render_background_support()` defaults:
+	 * an image with no size is `cover`, and a `contain` image with no
+	 * position is centred. The URL runs through {@see UrlSanitizer} and
+	 * is percent-encoded so it can't close the `url('…')` token; the
+	 * other values must pass {@see self::safeCssValue()}. Without an image
+	 * the size / position / repeat / attachment keys emit nothing, again
+	 * matching core.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 * @param  array<int, string>   &$style
+	 */
+	protected static function applyBackground( array $attributes, array &$style ): void
+	{
+		$background = $attributes['style']['background'] ?? null;
+
+		if ( ! is_array( $background ) ) {
+			return;
+		}
+
+		$image = $background['backgroundImage'] ?? null;
+		$url   = is_array( $image ) ? ( $image['url'] ?? null ) : $image;
+		$url   = is_string( $url ) ? UrlSanitizer::safe( $url ) : '';
+
+		if ( '' === $url ) {
+			return;
+		}
+
+		$encoded = (string) preg_replace_callback(
+			'/[\s\'"()\\\\<>;]/',
+			static fn ( array $matches ): string => rawurlencode( $matches[0] ),
+			$url,
+		);
+
+		$style[] = "background-image: url('" . $encoded . "')";
+
+		$size     = self::safeCssValue( self::stringAttr( $background['backgroundSize'] ?? null ) ) ?? 'cover';
+		$position = self::safeCssValue( self::stringAttr( $background['backgroundPosition'] ?? null ) );
+
+		if ( null === $position && 'contain' === $size ) {
+			$position = '50% 50%';
+		}
+
+		$style[] = 'background-size: ' . $size;
+
+		if ( null !== $position ) {
+			$style[] = 'background-position: ' . $position;
+		}
+
+		$repeat = self::safeCssValue( self::stringAttr( $background['backgroundRepeat'] ?? null ) );
+
+		if ( null !== $repeat ) {
+			$style[] = 'background-repeat: ' . $repeat;
+		}
+
+		$attachment = self::stringAttr( $background['backgroundAttachment'] ?? null );
+
+		if ( in_array( $attachment, [ 'scroll', 'fixed', 'local' ], true ) ) {
+			$style[] = 'background-attachment: ' . $attachment;
+		}
+	}
+
+	/**
 	 * Spacing support: padding / margin (string or per-side object) +
 	 * `blockGap` (string or per-axis object → `--wp--style--block-gap`
-	 * custom property).
+	 * custom property). Gap values go through
+	 * {@see LayoutSupport::blockGapValue()}.
 	 *
 	 * @since 1.0.0
+	 * @since 1.15.0 Drops unsafe `blockGap` values (F-10).
 	 *
 	 * @param  array<string, mixed>  $attributes
 	 * @param  array<int, string>   &$style
@@ -1835,20 +2624,27 @@ class BlockSupports
 			self::applyBoxModel( $box, $spacing[ $box ] ?? null, $style );
 		}
 
+		// F-10 — a gap value lands in the inline style unescaped as CSS,
+		// so one that could add declarations (`1rem;position:fixed`) is
+		// dropped rather than printed.
 		$blockGap = $spacing['blockGap'] ?? null;
 
-		if ( is_string( $blockGap ) && '' !== $blockGap ) {
-			$style[] = '--wp--style--block-gap: ' . self::expandPresetReference( $blockGap );
-		} elseif ( is_array( $blockGap ) ) {
-			$top  = self::stringAttr( $blockGap['top'] ?? null );
-			$left = self::stringAttr( $blockGap['left'] ?? null );
+		if ( is_string( $blockGap ) ) {
+			$gap = LayoutSupport::blockGapValue( $blockGap );
 
-			if ( '' !== $top ) {
-				$style[] = 'row-gap: ' . self::expandPresetReference( $top );
+			if ( null !== $gap ) {
+				$style[] = '--wp--style--block-gap: ' . $gap;
+			}
+		} elseif ( is_array( $blockGap ) ) {
+			$top  = LayoutSupport::blockGapValue( $blockGap['top'] ?? null );
+			$left = LayoutSupport::blockGapValue( $blockGap['left'] ?? null );
+
+			if ( null !== $top ) {
+				$style[] = 'row-gap: ' . $top;
 			}
 
-			if ( '' !== $left ) {
-				$style[] = 'column-gap: ' . self::expandPresetReference( $left );
+			if ( null !== $left ) {
+				$style[] = 'column-gap: ' . $left;
 			}
 		}
 	}

@@ -8,16 +8,19 @@ use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedPattern;
 function makeResolvedPattern( array $overrides = [] ): ResolvedPattern
 {
 	$defaults = [
-		'slug'       => 'hero-banner',
-		'title'      => 'Hero Banner',
-		'rawContent' => '<!-- wp:cover /-->',
-		'blocks'     => [],
-		'source'     => 'theme',
-		'synced'     => false,
-		'categories' => [ 'hero' ],
-		'blockTypes' => [ 'core/cover' ],
-		'wpId'       => null,
-		'postTypes'  => null,
+		'slug'          => 'hero-banner',
+		'title'         => 'Hero Banner',
+		'rawContent'    => '<!-- wp:cover /-->',
+		'blocks'        => [],
+		'source'        => 'theme',
+		'synced'        => false,
+		'categories'    => [ 'hero' ],
+		'blockTypes'    => [ 'core/cover' ],
+		'wpId'          => null,
+		'postTypes'     => null,
+		'keywords'      => [],
+		'inserter'      => true,
+		'templateTypes' => [],
 	];
 
 	$args = array_merge( $defaults, $overrides );
@@ -33,6 +36,9 @@ function makeResolvedPattern( array $overrides = [] ): ResolvedPattern
 		blockTypes : $args['blockTypes'],
 		wpId       : $args['wpId'],
 		postTypes  : $args['postTypes'],
+		keywords   : $args['keywords'],
+		inserter   : $args['inserter'],
+		templateTypes: $args['templateTypes'],
 	);
 }
 
@@ -156,6 +162,50 @@ describe( 'ap.visualEditor.patternRender filter', function (): void {
 		$out = ( new PatternAdapter() )->toArray( makeResolvedPattern() );
 
 		expect( $out['content']['raw'] )->toBe( '<!-- wp:cover /-->' );
+	} );
+} );
+
+describe( 'pattern header fields (cms-framework 2.15 parity)', function (): void {
+	it( 'emits keywords, inserter and template_types', function (): void {
+		$out = ( new PatternAdapter() )->toArray( makeResolvedPattern( [
+			'keywords'      => [ 'starter', 'hero' ],
+			'inserter'      => false,
+			'templateTypes' => [ 'front-page' ],
+		] ) );
+
+		expect( $out['keywords'] )->toBe( [ 'starter', 'hero' ] )
+			->and( $out['inserter'] )->toBeFalse()
+			->and( $out['template_types'] )->toBe( [ 'front-page' ] );
+	} );
+
+	it( 'defaults to no keywords, visible in the inserter, no template types', function (): void {
+		$out = ( new PatternAdapter() )->toArray( makeResolvedPattern() );
+
+		expect( $out['keywords'] )->toBe( [] )
+			->and( $out['inserter'] )->toBeTrue()
+			->and( $out['template_types'] )->toBe( [] );
+	} );
+
+	it( 'round-trips a cms-framework filter entry', function (): void {
+		$out = ( new PatternAdapter() )->toArray( ResolvedPattern::fromArray( [
+			'slug'           => 'theme/hidden-footer',
+			'title'          => 'Hidden footer',
+			'raw_content'    => '<!-- wp:group /-->',
+			'source'         => 'theme',
+			'keywords'       => [ 'footer' ],
+			'inserter'       => false,
+			'template_types' => [ 'single' ],
+			'post_types'     => [ 'Page' ],
+			'viewport_width' => 900,
+		] ) );
+
+		expect( $out )->toMatchArray( [
+			'keywords'       => [ 'footer' ],
+			'inserter'       => false,
+			'template_types' => [ 'single' ],
+			'post_types'     => [ 'page' ],
+			'viewport_width' => 900,
+		] );
 	} );
 } );
 

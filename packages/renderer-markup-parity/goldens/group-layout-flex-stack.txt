@@ -1,0 +1,10 @@
+<div class="wp-block-group is-layout-flex wp-block-group-is-layout-flex wp-container-d215c278544c is-vertical is-content-justification-center">
+  <p class="wp-block-paragraph">
+    "One"
+  </p>
+  <p class="wp-block-paragraph">
+    "Two"
+  </p>
+</div>
+@@ renderer-instance-css @@
+.wp-block-group.wp-block-group-is-layout-flex.wp-container-d215c278544c{flex-direction:column;align-items:center;justify-content:space-between;}

@@ -89,6 +89,8 @@ export function SiteLogoBlock({ attributes }: BlockRendererProps): JSX.Element {
     const classes = classList([
         'wp-block-site-logo',
         width <= 0 ? 'is-default-size' : null,
+        // Duotone scope stamped by `stampDuotoneScopes()`.
+        attrString(attributes._veDuotone) || null,
         className,
     ]);
 

@@ -6,6 +6,7 @@
 
 import type { ReactElement } from 'react';
 import { __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { RichText, useBlockProps } from '@wordpress/block-editor';
 import { createBlock, getDefaultBlockName } from '@wordpress/blocks';
 
@@ -38,8 +39,8 @@ export default function CodeEdit({
                 onChange={(content: string) => setAttributes({ content })}
                 onRemove={onRemove}
                 onMerge={mergeBlocks}
-                placeholder={__('Write code…')}
-                aria-label={__('Code')}
+                placeholder={__('Write code…', TEXT_DOMAIN)}
+                aria-label={__('Code', TEXT_DOMAIN)}
                 preserveWhiteSpace
                 __unstablePastePlainText
                 __unstableOnSplitAtDoubleLineEnd={() => {

@@ -1,0 +1,12 @@
+<div class="wp-block-group is-layout-grid wp-block-group-is-layout-grid wp-container-762ab39cc485">
+  <p class="wp-block-paragraph">
+    "A"
+  </p>
+</div>
+<div class="wp-block-group is-layout-grid wp-block-group-is-layout-grid wp-container-762ab39cc485">
+  <p class="wp-block-paragraph">
+    "B"
+  </p>
+</div>
+@@ renderer-instance-css @@
+.wp-block-group.wp-block-group-is-layout-grid.wp-container-762ab39cc485{grid-template-columns:repeat(2, minmax(0, 1fr));}

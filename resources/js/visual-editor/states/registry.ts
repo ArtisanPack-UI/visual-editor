@@ -11,6 +11,9 @@
  * @since 1.0.0
  */
 
+import { __ } from '@wordpress/i18n'
+
+import { TEXT_DOMAIN } from '../vendor/i18n'
 import { BASE_KEY, type StateDefinition, type StateRegistrySnapshot } from './types'
 
 const MAX_CHAIN_DEPTH = 16
@@ -65,6 +68,33 @@ export const DEFAULT_STATES: StateDefinition[] = [
 		hoverMediaWrap: false,
 	},
 ]
+
+/**
+ * Display label for a state definition. The package defaults stay
+ * English in {@link DEFAULT_STATES} (they mirror the PHP registry and
+ * load before locale data), so they are translated here at render time;
+ * host-supplied labels pass through unchanged.
+ *
+ * @since 1.15.0
+ */
+export function stateLabel( definition: Pick<StateDefinition, 'label'> ): string {
+	switch ( definition.label ) {
+		case 'Idle':
+			return __( 'Idle', TEXT_DOMAIN )
+		case 'Hover':
+			return __( 'Hover', TEXT_DOMAIN )
+		case 'Focus':
+			return __( 'Focus', TEXT_DOMAIN )
+		case 'Focus visible':
+			return __( 'Focus visible', TEXT_DOMAIN )
+		case 'Active':
+			return __( 'Active', TEXT_DOMAIN )
+		case 'Disabled':
+			return __( 'Disabled', TEXT_DOMAIN )
+		default:
+			return definition.label
+	}
+}
 
 export class StateRegistry {
 	protected readonly states: Map<string, StateDefinition>

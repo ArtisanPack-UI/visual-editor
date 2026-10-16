@@ -45,25 +45,35 @@ const DAY_ORDER: ReadonlyArray<string> = [
     'sunday',
 ];
 
-const DAY_LABELS: Readonly<Record<string, string>> = {
-    monday: 'Monday',
-    tuesday: 'Tuesday',
-    wednesday: 'Wednesday',
-    thursday: 'Thursday',
-    friday: 'Friday',
-    saturday: 'Saturday',
-    sunday: 'Sunday',
-};
+// Built per call so the labels pick up locale data loaded after import.
+function dayLabels(): Readonly<Record<string, string>> {
+    return {
+        monday: __('Monday', TEXT_DOMAIN),
+        tuesday: __('Tuesday', TEXT_DOMAIN),
+        wednesday: __('Wednesday', TEXT_DOMAIN),
+        thursday: __('Thursday', TEXT_DOMAIN),
+        friday: __('Friday', TEXT_DOMAIN),
+        saturday: __('Saturday', TEXT_DOMAIN),
+        sunday: __('Sunday', TEXT_DOMAIN),
+    };
+}
 
-const STUB_DAYS: ReadonlyArray<{ readonly label: string; readonly hours: string }> = [
-    { label: 'Monday', hours: '9:00 AM – 5:00 PM' },
-    { label: 'Tuesday', hours: '9:00 AM – 5:00 PM' },
-    { label: 'Wednesday', hours: '9:00 AM – 5:00 PM' },
-    { label: 'Thursday', hours: '9:00 AM – 5:00 PM' },
-    { label: 'Friday', hours: '9:00 AM – 5:00 PM' },
-    { label: 'Saturday', hours: '10:00 AM – 2:00 PM' },
-    { label: 'Sunday', hours: 'Closed' },
-];
+function stubDays(): ReadonlyArray<{ readonly key: string; readonly label: string; readonly hours: string }> {
+    const labels = dayLabels();
+    /* translators: Sample weekday opening hours shown in the editor preview. */
+    const weekday = __('9:00 AM – 5:00 PM', TEXT_DOMAIN);
+
+    return [
+        { key: 'monday', label: labels.monday, hours: weekday },
+        { key: 'tuesday', label: labels.tuesday, hours: weekday },
+        { key: 'wednesday', label: labels.wednesday, hours: weekday },
+        { key: 'thursday', label: labels.thursday, hours: weekday },
+        { key: 'friday', label: labels.friday, hours: weekday },
+        /* translators: Sample Saturday opening hours shown in the editor preview. */
+        { key: 'saturday', label: labels.saturday, hours: __('10:00 AM – 2:00 PM', TEXT_DOMAIN) },
+        { key: 'sunday', label: labels.sunday, hours: __('Closed', TEXT_DOMAIN) },
+    ];
+}
 
 /**
  * Format a single day's hours entry. Mirrors the Blade partial:
@@ -123,6 +133,7 @@ function renderResolvedHours(
         Object.prototype.hasOwnProperty.call(hours, day)
     );
     const special = showSpecialHours ? envelope.specialHours ?? [] : [];
+    const labels = dayLabels();
 
     if (0 === dayKeys.length && 0 === special.length) {
         return null;
@@ -134,7 +145,7 @@ function renderResolvedHours(
                 {dayKeys.map((day) => (
                     <tr key={day} className="ap-business-hours__row">
                         <th scope="row" className="ap-business-hours__day">
-                            {__(DAY_LABELS[day] ?? day, TEXT_DOMAIN)}
+                            {labels[day] ?? day}
                         </th>
                         <td className="ap-business-hours__time">
                             {formatHours(
@@ -182,13 +193,13 @@ function renderPlaceholder(): ReactElement {
             </p>
             <table className="ap-business-hours__table">
                 <tbody>
-                    {STUB_DAYS.map((row) => (
-                        <tr key={row.label} className="ap-business-hours__row">
+                    {stubDays().map((row) => (
+                        <tr key={row.key} className="ap-business-hours__row">
                             <th scope="row" className="ap-business-hours__day">
-                                {__(row.label, TEXT_DOMAIN)}
+                                {row.label}
                             </th>
                             <td className="ap-business-hours__time">
-                                {__(row.hours, TEXT_DOMAIN)}
+                                {row.hours}
                             </td>
                         </tr>
                     ))}

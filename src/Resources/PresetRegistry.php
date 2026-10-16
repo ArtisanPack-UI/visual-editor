@@ -34,6 +34,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Resources;
 
+use ArtisanPackUI\VisualEditor\Support\CssValue;
 use Throwable;
 
 class PresetRegistry
@@ -92,6 +93,21 @@ class PresetRegistry
 		[ 'slug' => 'success', 'color' => '#16a34a' ],
 		[ 'slug' => 'warning', 'color' => '#d97706' ],
 		[ 'slug' => 'error', 'color' => '#dc2626' ],
+	];
+
+	/**
+	 * Package default font families. Mirrors `DEFAULT_FONT_FAMILIES` in
+	 * `editor-settings.ts` (slug + fontFamily only) so the front end
+	 * declares the `--wp--preset--font-family--*` properties and
+	 * `.has-{slug}-font-family` classes the editor's picker offers when
+	 * a theme ships no `fontFamilies` (#872).
+	 *
+	 * @since 1.15.0
+	 */
+	public const DEFAULT_FONT_FAMILIES = [
+		[ 'slug' => 'system', 'fontFamily' => 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' ],
+		[ 'slug' => 'serif', 'fontFamily' => 'Georgia, Cambria, "Times New Roman", Times, serif' ],
+		[ 'slug' => 'mono', 'fontFamily' => 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace' ],
 	];
 
 	/**
@@ -234,6 +250,29 @@ class PresetRegistry
 	}
 
 	/**
+	 * Resolve every font family the front end must declare (#872).
+	 *
+	 * Same layering as {@see self::effectivePalette()}: the package
+	 * defaults stay declared under a theme's own `fontFamilies` (theme
+	 * entries win on slug), with host presets merged on top.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  mixed  $themeFontFamilies  The theme's `settings.typography.fontFamilies`, if any.
+	 *
+	 * @return array<int, array{slug: string, fontFamily: string}>
+	 */
+	public static function effectiveFontFamilies( mixed $themeFontFamilies ): array
+	{
+		return self::layerPresetList(
+			self::DEFAULT_FONT_FAMILIES,
+			self::normaliseThemeList( $themeFontFamilies, 'fontFamily' ),
+			self::fromConfig()['fontFamilies'],
+			'fontFamily',
+		);
+	}
+
+	/**
 	 * Resolve the configured presets into normalised descriptor lists.
 	 *
 	 * Returns a stable-shape record — every list key is always present,
@@ -326,6 +365,7 @@ class PresetRegistry
 	 *
 	 * @since 1.12.1
 	 * @since 1.14.0 Declares the package defaults under a theme's own lists (#852).
+	 * @since 1.15.0 Declares font families and their `.has-{slug}-font-family` classes (#872).
 	 *
 	 * @param  array<string, mixed>|null  $themeSettings  The theme's `settings`, if any.
 	 */
@@ -360,6 +400,18 @@ class PresetRegistry
 		}
 
 		array_push( $utilities, ...self::colorUtilityRules( $colorSlugs ) );
+
+		foreach ( self::effectiveFontFamilies( $themeSettings['typography']['fontFamilies'] ?? null ) as $entry ) {
+			$slug   = self::presetSlug( $entry['slug'] );
+			$family = trim( $entry['fontFamily'] );
+
+			if ( '' === $slug || ! self::isSafeFontFamilyValue( $family ) ) {
+				continue;
+			}
+
+			$declarations[] = sprintf( '--wp--preset--font-family--%s: %s;', $slug, $family );
+			$utilities[]    = sprintf( '.has-%1$s-font-family { font-family: var(--wp--preset--font-family--%1$s) !important; }', $slug );
+		}
 
 		if ( [] === $declarations ) {
 			return '';
@@ -519,33 +571,42 @@ class PresetRegistry
 	 * Rejects anything that could close the declaration, rule, or tag
 	 * (`; { } < >`), open or close a comment that swallows the following
 	 * rules, smuggle a CSS escape (`\`), open a string (`"` / `'`), break
-	 * the line (newlines / control characters), or leave a parenthesis
-	 * unbalanced (`calc(1rem` would swallow every later rule). Mirrors
+	 * the line (newlines / control characters), or leave a parenthesis or
+	 * bracket unbalanced or crossed (`calc(1rem` or `x [` would swallow
+	 * every later rule; see {@see CssValue::isBalanced()}). Mirrors
 	 * `isSafeSpacingValue()` in the editor's `spacing-preset-styles.tsx`.
 	 *
 	 * @since 1.12.0
+	 * @since 1.15.0 Rejects unbalanced or crossed `[ ]`.
 	 */
 	public static function isSafeCssValue( string $value ): bool
 	{
-		if ( '' === $value || 1 === preg_match( '#[;{}<>\\\\"\'\x00-\x1F\x7F]|/\*|\*/#', $value ) ) {
+		if ( '' === $value || 1 === preg_match( '#[;{}<>\\\\"\'\x00-\x1F\x7F]#', $value ) ) {
 			return false;
 		}
 
-		$depth = 0;
+		return CssValue::isBalanced( $value );
+	}
 
-		foreach ( str_split( $value ) as $char ) {
-			if ( '(' === $char ) {
-				++$depth;
-			} elseif ( ')' === $char ) {
-				--$depth;
-
-				if ( $depth < 0 ) {
-					return false;
-				}
-			}
+	/**
+	 * Whether a font-family stack is safe to write inside a `<style>`
+	 * element (#872). Family names are routinely quoted
+	 * (`"Segoe UI", sans-serif`), which {@see self::isSafeCssValue()}
+	 * rejects, so quoted strings are allowed here as long as each one
+	 * closes — an unterminated string would swallow the rules after it.
+	 * Parentheses are rejected, and brackets outside strings must
+	 * balance ({@see CssValue::isPrintable()}). Everything else that
+	 * could close the declaration, rule, or tag is still rejected.
+	 *
+	 * @since 1.15.0
+	 */
+	public static function isSafeFontFamilyValue( string $value ): bool
+	{
+		if ( '' === $value || 1 === preg_match( '#[()]#', $value ) ) {
+			return false;
 		}
 
-		return 0 === $depth;
+		return CssValue::isPrintable( $value );
 	}
 
 	/**

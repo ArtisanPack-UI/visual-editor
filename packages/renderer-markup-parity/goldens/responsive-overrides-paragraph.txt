@@ -1,0 +1,8 @@
+<p class="wp-block-paragraph ve-r-6498c9d5c3">
+  "Lead copy"
+</p>
+@@ renderer-instance-css @@
+@media (max-width:1023px){.ve-r-6498c9d5c3.ve-r-6498c9d5c3.ve-r-6498c9d5c3{background-color:#0f172a!important}}
+@media (max-width:1023px){.ve-r-6498c9d5c3.ve-r-6498c9d5c3.ve-r-6498c9d5c3{font-size:1.25rem!important}}
+@media (max-width:767px){.ve-r-6498c9d5c3.ve-r-6498c9d5c3.ve-r-6498c9d5c3{color:var(--wp--preset--color--contrast)!important}}
+@media (max-width:767px){.ve-r-6498c9d5c3.ve-r-6498c9d5c3.ve-r-6498c9d5c3{font-size:var(--wp--preset--font-size--small)!important}}

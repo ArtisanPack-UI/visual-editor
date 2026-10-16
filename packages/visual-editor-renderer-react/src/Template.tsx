@@ -15,6 +15,7 @@
 import { useMemo } from 'react';
 import type { ReactElement } from 'react';
 import { BlockTree } from './BlockTree';
+import type { DuotonePresets } from './support/duotone';
 import { GlobalStyles } from './GlobalStyles';
 import { DEFAULT_MAX_PATTERN_DEPTH } from './patterns';
 import type { PatternRecord } from './patterns';
@@ -62,6 +63,20 @@ export interface TemplateProps {
      * before the wrapper div.
      */
     globalStylesCss?: string | null;
+    /**
+     * Whether a block's Custom CSS may load resources, forwarded to
+     * {@link BlockTree}. Pass the host's `effects.custom_css_allow_urls`
+     * config so the page matches Blade. Defaults to `true`.
+     *
+     * @since 1.15.0
+     */
+    customCssAllowUrls?: boolean;
+    /**
+     * The theme's duotone presets, forwarded to {@link BlockTree}.
+     *
+     * @since 1.15.0
+     */
+    duotonePresets?: DuotonePresets;
 }
 
 export function Template({
@@ -75,6 +90,8 @@ export function Template({
     maxTemplatePartDepth = DEFAULT_MAX_TEMPLATE_PART_DEPTH,
     maxPatternDepth = DEFAULT_MAX_PATTERN_DEPTH,
     globalStylesCss,
+    customCssAllowUrls = true,
+    duotonePresets,
 }: TemplateProps): ReactElement {
     const matched = useMemo(() => resolveTemplate(templates, slug, theme), [templates, slug, theme]);
     const fallbackChain = useMemo(() => templateFallbackChain(slug), [slug]);
@@ -120,6 +137,8 @@ export function Template({
                     fetchOptions={fetchOptions}
                     maxTemplatePartDepth={maxTemplatePartDepth}
                     maxPatternDepth={maxPatternDepth}
+                    customCssAllowUrls={customCssAllowUrls}
+                    duotonePresets={duotonePresets}
                 />
             </div>
         </>

@@ -23,6 +23,7 @@
 import type { CSSProperties, ReactElement, ReactNode, Ref } from 'react';
 import clsx from 'clsx';
 import { __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { useSelect } from '@wordpress/data';
 import { useRef, useState } from '@wordpress/element';
 import {
@@ -55,7 +56,7 @@ import {
     LINK_DESTINATION_ATTACHMENT,
     LINK_DESTINATION_MEDIA,
     LINK_DESTINATION_NONE,
-    TEMPLATE,
+    mediaTextTemplate,
     WIDTH_CONSTRAINT_PERCENTAGE,
 } from './constants';
 import type { FocalPoint } from './image-fill';
@@ -442,7 +443,7 @@ function MediaTextEdit({
 
     const mediaTextGeneralSettings: ReactNode = (
         <ToolsPanel
-            label={__('Settings')}
+            label={__('Settings', TEXT_DOMAIN)}
             resetAll={() => {
                 setAttributes({
                     isStackedOnMobile: true,
@@ -456,14 +457,14 @@ function MediaTextEdit({
             dropdownMenuProps={dropdownMenuProps}
         >
             <ToolsPanelItem
-                label={__('Media width')}
+                label={__('Media width', TEXT_DOMAIN)}
                 isShownByDefault
                 hasValue={() => resolvedMediaWidth !== 50}
                 onDeselect={() => setAttributes({ mediaWidth: 50 })}
             >
                 <RangeControl
                     __next40pxDefaultSize
-                    label={__('Media width')}
+                    label={__('Media width', TEXT_DOMAIN)}
                     value={temporaryMediaWidth || resolvedMediaWidth}
                     onChange={(value?: number) =>
                         commitWidthChange(value ?? 50)
@@ -473,7 +474,7 @@ function MediaTextEdit({
                 />
             </ToolsPanelItem>
             <ToolsPanelItem
-                label={__('Stack on mobile')}
+                label={__('Stack on mobile', TEXT_DOMAIN)}
                 isShownByDefault
                 hasValue={() => !isStackedOnMobile}
                 onDeselect={() =>
@@ -481,7 +482,7 @@ function MediaTextEdit({
                 }
             >
                 <ToggleControl
-                    label={__('Stack on mobile')}
+                    label={__('Stack on mobile', TEXT_DOMAIN)}
                     checked={!!isStackedOnMobile}
                     onChange={() =>
                         setAttributes({
@@ -492,13 +493,13 @@ function MediaTextEdit({
             </ToolsPanelItem>
             {mediaType === 'image' && (
                 <ToolsPanelItem
-                    label={__('Crop image to fill')}
+                    label={__('Crop image to fill', TEXT_DOMAIN)}
                     isShownByDefault
                     hasValue={() => !!imageFill}
                     onDeselect={() => setAttributes({ imageFill: false })}
                 >
                     <ToggleControl
-                        label={__('Crop image to fill')}
+                        label={__('Crop image to fill', TEXT_DOMAIN)}
                         checked={!!imageFill}
                         onChange={() =>
                             setAttributes({
@@ -512,7 +513,7 @@ function MediaTextEdit({
                 (mediaUrl || featuredImageURL) &&
                 mediaType === 'image' && (
                     <ToolsPanelItem
-                        label={__('Focal point')}
+                        label={__('Focal point', TEXT_DOMAIN)}
                         isShownByDefault
                         hasValue={() => !!focalPoint}
                         onDeselect={() =>
@@ -520,7 +521,7 @@ function MediaTextEdit({
                         }
                     >
                         <FocalPointPicker
-                            label={__('Focal point')}
+                            label={__('Focal point', TEXT_DOMAIN)}
                             url={
                                 useFeaturedImage && featuredImageURL
                                     ? featuredImageURL
@@ -537,13 +538,13 @@ function MediaTextEdit({
                 )}
             {mediaType === 'image' && mediaUrl && !useFeaturedImage && (
                 <ToolsPanelItem
-                    label={__('Alternative text')}
+                    label={__('Alternative text', TEXT_DOMAIN)}
                     isShownByDefault
                     hasValue={() => !!mediaAlt}
                     onDeselect={() => setAttributes({ mediaAlt: '' })}
                 >
                     <TextareaControl
-                        label={__('Alternative text')}
+                        label={__('Alternative text', TEXT_DOMAIN)}
                         value={mediaAlt ?? ''}
                         onChange={onMediaAltChange}
                         help={
@@ -552,14 +553,15 @@ function MediaTextEdit({
                                     href={
                                         // translators: Localized tutorial, if one exists. W3C Web Accessibility Initiative link has list of existing translations.
                                         __(
-                                            'https://www.w3.org/WAI/tutorials/images/decision-tree/'
+                                            'https://www.w3.org/WAI/tutorials/images/decision-tree/',
+                                            TEXT_DOMAIN
                                         )
                                     }
                                 >
-                                    {__('Describe the purpose of the image.')}
+                                    {__('Describe the purpose of the image.', TEXT_DOMAIN)}
                                 </ExternalLink>
                                 <br />
-                                {__('Leave empty if decorative.')}
+                                {__('Leave empty if decorative.', TEXT_DOMAIN)}
                             </>
                         }
                     />
@@ -580,7 +582,7 @@ function MediaTextEdit({
 
     const innerBlocksProps = useInnerBlocksProps(
         { className: 'wp-block-media-text__content' },
-        { template: TEMPLATE as unknown as unknown[], allowedBlocks }
+        { template: mediaTextTemplate() as unknown as unknown[], allowedBlocks }
     );
 
     const blockEditingMode = useBlockEditingMode();
@@ -612,7 +614,7 @@ function MediaTextEdit({
                         />
                         <ToolbarButton
                             icon={pullLeft}
-                            title={__('Show media on left')}
+                            title={__('Show media on left', TEXT_DOMAIN)}
                             isActive={mediaPosition === 'left'}
                             onClick={() =>
                                 setAttributes({ mediaPosition: 'left' })
@@ -620,7 +622,7 @@ function MediaTextEdit({
                         />
                         <ToolbarButton
                             icon={pullRight}
-                            title={__('Show media on right')}
+                            title={__('Show media on right', TEXT_DOMAIN)}
                             isActive={mediaPosition === 'right'}
                             onClick={() =>
                                 setAttributes({ mediaPosition: 'right' })

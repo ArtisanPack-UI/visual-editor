@@ -4,6 +4,8 @@
 	data-resource="{{ $resource }}"
 	data-id="{{ $modelId }}"
 	data-api-base="{{ $apiBase }}"
+	@if( $canEditBlockCss ) data-can-edit-block-css="true" @endif
+	data-custom-css-allow-urls="{{ $customCssAllowUrls ? 'true' : 'false' }}"
 	@isset($initialTitle) data-title="{{ $initialTitle }}" @endisset
 	@isset($initialSlug) data-slug="{{ $initialSlug }}" @endisset
 	@isset($initialStatus) data-status="{{ $initialStatus }}" @endisset
@@ -43,4 +45,8 @@
 	     the package defaults. See `config/visual-editor.php` for the
 	     full precedence order. --}}
 	data-presets="{{ json_encode( $presets, JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS ) }}"
+	{{-- #876 — block style variations (theme.json, `styles/*.json`
+	     partials, `VisualEditor::registerBlockStyle()`) registered into
+	     the Styles picker by `block-style-registry.ts`. --}}
+	data-block-styles="{{ json_encode( $blockStyles, JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS ) }}"
 ></div>

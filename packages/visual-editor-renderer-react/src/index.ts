@@ -73,8 +73,18 @@ export type { SiteMeta } from './siteMeta';
 export {
     filterVisibleBlocks,
     getBreakpoints,
+    getDeviceBreakpoints,
     setBreakpoints,
     stampVisibilityScopes,
 } from './visibility';
-export type { BreakpointDefinition } from './visibility';
+export type {
+    BreakpointDefinition,
+    BreakpointInput,
+    BreakpointMap,
+    DeviceBreakpointDefinition,
+} from './visibility';
+export { DUOTONE_TARGETS, compileDuotone, stampDuotoneScopes } from './support/duotone';
+export type { CompiledDuotone, DuotonePreset, DuotonePresets } from './support/duotone';
+export { applyBackground } from './support/background';
+export type { BackgroundStyle } from './support/background';
 export type { Block, BlockRenderer, BlockRendererProps } from './types';

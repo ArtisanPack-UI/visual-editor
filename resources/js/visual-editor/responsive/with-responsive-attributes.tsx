@@ -41,6 +41,7 @@ import { getActiveBreakpoint, subscribeActiveBreakpoint } from './active-breakpo
 import {
     deepMerge,
     diffPaths,
+    isPlainObject,
     pathMatchesAnyRoot,
     setPath,
 } from './attribute-paths'
@@ -70,6 +71,77 @@ interface ResponsiveSupports {
 }
 
 type ResponsiveOverridesByPath = Record<string, Record<string, unknown>>
+
+/**
+ * Responsive paths that store one CSS property two ways: a preset slug
+ * and a custom value (#887). Each maps to its twin.
+ */
+export const PAIRED_RESPONSIVE_PATHS: Readonly<Record<string, string>> = {
+    fontSize: 'style.typography.fontSize',
+    'style.typography.fontSize': 'fontSize',
+    textColor: 'style.color.text',
+    'style.color.text': 'textColor',
+    backgroundColor: 'style.color.background',
+    'style.color.background': 'backgroundColor',
+}
+
+/**
+ * Stored at a breakpoint for one half of a {@link PAIRED_RESPONSIVE_PATHS}
+ * pair when the other half is set there (#887). Unlike `null` ("inherit"),
+ * it stops the cascade, so a narrower breakpoint's preset is not shown
+ * alongside a wider breakpoint's custom value. The renderers emit nothing
+ * for it, and never let it displace the twin's value.
+ */
+export const RESPONSIVE_TOMBSTONE = false
+
+function isTombstone( path: string, value: unknown ): boolean {
+    return RESPONSIVE_TOMBSTONE === value && path in PAIRED_RESPONSIVE_PATHS
+}
+
+function isOverrideValue( value: unknown ): boolean {
+    return null !== value && undefined !== value && '' !== value && RESPONSIVE_TOMBSTONE !== value
+}
+
+/**
+ * Add the tombstones a routed responsive patch implies (#887): a value
+ * written for one half of a pair at the breakpoint tombstones the other
+ * half there, and clearing one half drops the other half's stored
+ * tombstone so the cascade resumes for both.
+ */
+export function withPairTombstones(
+    patch: ResponsiveOverridesByPath,
+    responsive: ResponsiveOverridesByPath | null | undefined,
+    breakpoint: string,
+): ResponsiveOverridesByPath {
+    const out: ResponsiveOverridesByPath = { ...patch }
+
+    for ( const [ path, twin ] of Object.entries( PAIRED_RESPONSIVE_PATHS ) ) {
+        if ( ! ( path in patch ) ) {
+            continue
+        }
+
+        if ( isOverrideValue( patch[ path ][ breakpoint ] ) ) {
+            if ( ! isOverrideValue( patch[ twin ]?.[ breakpoint ] ) ) {
+                out[ twin ] = {
+                    ...( patch[ twin ] ?? responsive?.[ twin ] ?? {} ),
+                    [ breakpoint ]: RESPONSIVE_TOMBSTONE,
+                }
+            }
+
+            continue
+        }
+
+        const stored = responsive?.[ twin ]
+
+        if ( ! ( twin in patch ) && stored && RESPONSIVE_TOMBSTONE === stored[ breakpoint ] ) {
+            const rest = { ...stored }
+            delete rest[ breakpoint ]
+            out[ twin ] = rest
+        }
+    }
+
+    return out
+}
 
 function getResponsiveRoots( name: string ): string[] | null {
     const blockType = getBlockType( name )
@@ -103,7 +175,8 @@ function getResponsiveRoots( name: string ): string[] | null {
  * path takes the first defined value along the registry cascade for the
  * active breakpoint — for a device key that is the key itself, then the
  * larger devices (Mobile inherits from Tablet), then any legacy keys
- * that also apply at its preview width (#820).
+ * that also apply at its preview width (#820). A tombstone on a paired
+ * path stops the cascade and clears that path from the read view (#887).
  */
 export function buildOverlay(
     responsive: ResponsiveOverridesByPath | null | undefined,
@@ -134,7 +207,7 @@ export function buildOverlay(
                 }
 
                 overlay[ '__placeholder' ] = true
-                writeInto( overlay, path, value )
+                writeInto( overlay, path, isTombstone( path, value ) ? undefined : value )
                 break
             }
         }
@@ -142,6 +215,36 @@ export function buildOverlay(
 
     delete overlay[ '__placeholder' ]
     return overlay
+}
+
+/**
+ * Split a changed leaf into the parts a responsive write routes and the
+ * parts that fall through to the base. A leaf under an opt-in root routes
+ * whole; a plain object outside every root is walked until a sub-path
+ * matches one (#887). Without the walk, a block with no base `style` saw
+ * `style.typography.fontSize` arrive as one `style` leaf, which matches
+ * no root, so a breakpoint font size or color was written to the base.
+ */
+function splitLeaf(
+    path: string,
+    value: unknown,
+    roots: string[],
+    out: { responsive: Array<{ path: string; value: unknown }>; base: Array<{ path: string; value: unknown }> },
+): void {
+    if ( pathMatchesAnyRoot( path, roots ) ) {
+        out.responsive.push( { path, value } )
+        return
+    }
+
+    if ( isPlainObject( value ) && 0 !== Object.keys( value ).length ) {
+        for ( const [ key, child ] of Object.entries( value ) ) {
+            splitLeaf( path + '.' + key, child, roots, out )
+        }
+
+        return
+    }
+
+    out.base.push( { path, value } )
 }
 
 function writeInto( target: Record<string, unknown>, path: string, value: unknown ): void {
@@ -210,21 +313,38 @@ export const withResponsiveAttributes = createHigherOrderComponent(
 
                     const baseUpdates: Record<string, unknown> = {}
                     let responsivePatch: ResponsiveOverridesByPath | null = null
+                    const routed = { responsive: [] as Array<{ path: string; value: unknown }>, base: [] as Array<{ path: string; value: unknown }> }
 
                     for ( const { path, value } of changedLeaves ) {
-                        if ( pathMatchesAnyRoot( path, roots ) ) {
-                            responsivePatch = responsivePatch ?? {}
-                            responsivePatch[ path ] = {
-                                ...( responsive?.[ path ] ?? {} ),
-                                [ activeBreakpoint ]: value,
-                            }
-                            continue
-                        }
+                        splitLeaf( path, value, roots, routed )
+                    }
 
-                        Object.assign(
-                            baseUpdates,
-                            setPath( baseUpdates, path, value ),
+                    for ( const { path, value } of routed.responsive ) {
+                        responsivePatch = responsivePatch ?? {}
+                        responsivePatch[ path ] = {
+                            ...( responsive?.[ path ] ?? {} ),
+                            [ activeBreakpoint ]: value,
+                        }
+                    }
+
+                    // Gutenberg merges attribute updates at the top level
+                    // only, so each touched top-level key must carry its
+                    // whole subtree. Seed it from the block's *base*
+                    // attributes (not the merged read view, so overlay
+                    // values never leak into the base) before writing the
+                    // leaf. `setPath` copies every object it walks, so the
+                    // store's frozen attribute objects are never mutated.
+                    for ( const { path, value } of routed.base ) {
+                        const top    = path.split( '.' )[ 0 ]
+                        const seeded = setPath(
+                            { [ top ]: top in baseUpdates ? baseUpdates[ top ] : attributes[ top ] },
+                            path,
+                            value,
                         )
+
+                        // A leaf cleared to nothing prunes its top-level
+                        // key; send `undefined` so the base is cleared too.
+                        baseUpdates[ top ] = seeded[ top ]
                     }
 
                     const finalUpdates: Record<string, unknown> = { ...baseUpdates }
@@ -232,13 +352,13 @@ export const withResponsiveAttributes = createHigherOrderComponent(
                     if ( responsivePatch ) {
                         finalUpdates.responsive = {
                             ...( responsive ?? {} ),
-                            ...responsivePatch,
+                            ...withPairTombstones( responsivePatch, responsive, activeBreakpoint ),
                         }
                     }
 
                     setAttributes( finalUpdates )
                 },
-                [ activeBreakpoint, mergedAttributes, responsive, roots, setAttributes ],
+                [ activeBreakpoint, attributes, mergedAttributes, responsive, roots, setAttributes ],
             )
 
             if ( ! roots ) {

@@ -31,6 +31,16 @@
  * CMSs discover themes differently. Pass an empty array (or omit) and the
  * `<link>`s emit alone.
  *
+ * It also prints the global styles (`<style data-ve-global-styles>`) last
+ * (#879). Global styles then sit in `<head>` before the theme's own
+ * stylesheet, the WordPress order the editor canvas uses, so a `style.css`
+ * rule beats the theme.json rule it overrides on both surfaces. When the
+ * component renders before any block renderer (a single-file view), it
+ * claims the once-per-request emission itself. When the body rendered first
+ * (an `@extends` section or a component layout's slot), `<x-ve-blocks>`
+ * queued the styles on the `ve-global-styles` stack and this component
+ * prints that stack. See {@see GlobalStylesPlacement}.
+ *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditorRendererBlade
  *
@@ -44,6 +54,9 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditorRendererBlade\View\Components;
 
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
+use ArtisanPackUI\VisualEditor\Services\GlobalStylesEmissionTracker;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesPlacement;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ThemeJsonTokensCompiler;
 use ArtisanPackUI\VisualEditorRendererBlade\Support\DefaultStyles;
 use ArtisanPackUI\VisualEditorRendererBlade\Support\StackingStyles;
@@ -109,6 +122,23 @@ class BlocksStylesComponent extends Component
 	public string $stackingCss;
 
 	/**
+	 * Compiled global styles, or empty when another renderer already
+	 * emitted them this request or the host opted out (#879).
+	 *
+	 * @since 1.15.0
+	 */
+	public string $globalStylesCss = '';
+
+	/**
+	 * Whether this instance prints the `ve-global-styles` stack, where a
+	 * block renderer that ran before the head queued the global styles
+	 * (#879). True for the first instance in a request.
+	 *
+	 * @since 1.15.0
+	 */
+	public bool $printGlobalStylesStack = false;
+
+	/**
 	 * @param  ThemeJsonTokensCompiler  $compiler  Injected — see provider binding.
 	 * @param  array<string, mixed>|null  $themeJson  Optional theme.json payload to compile.
 	 *                                                 When null the tokens `<style>` is omitted.
@@ -118,6 +148,14 @@ class BlocksStylesComponent extends Component
 	 *                        already load Gutenberg's CSS from elsewhere).
 	 * @param  bool  $interactive  Set to false to skip the accordion + tabs front-end stylesheets
 	 *                             and interactivity script. Defaults to on.
+	 * @param  bool  $blockStyleVariations  Set to false to skip compiling the theme.json
+	 *                                      `styles.blocks.*.variations` into the tokens
+	 *                                      `<style>` (#876). They are skipped anyway once the
+	 *                                      page's global styles, which already carry every
+	 *                                      variation, are emitted (#879).
+	 * @param  bool  $globalStyles  Set to false so this component never claims the global
+	 *                              styles, leaving them to the first `<x-ve-blocks>` /
+	 *                              `<x-ve-template>` render (#879).
 	 */
 	public function __construct(
 		protected ThemeJsonTokensCompiler $compiler,
@@ -125,6 +163,8 @@ class BlocksStylesComponent extends Component
 		?string $assetBase = null,
 		bool $bundle = true,
 		bool $interactive = true,
+		bool $blockStyleVariations = true,
+		bool $globalStyles = true,
 	) {
 		$base = $this->normaliseBase( $assetBase ?? self::DEFAULT_ASSET_BASE );
 
@@ -147,11 +187,25 @@ class BlocksStylesComponent extends Component
 		$this->interactivityScriptSrc   = $base . '/frontend/interactivity.js';
 		$this->emitBlockLibrary         = $bundle;
 		$this->emitInteractive          = $interactive;
-		$this->themeTokensCss           = null === $themeJson ? '' : $this->compiler->compile( $themeJson );
 		$this->spacingPresetsCss        = $this->compiler->compileSpacingPresets( $themeJson );
 		$this->defaultTokensCss         = $this->compiler->compileDefaults( $themeJson );
 		$this->defaultStylesCss         = DefaultStyles::enabled( $themeJson ) ? DefaultStyles::CSS : '';
 		$this->stackingCss              = StackingStyles::css( app( BreakpointRegistry::class ) );
+
+		$tracker   = app( GlobalStylesEmissionTracker::class );
+		$placement = app( GlobalStylesPlacement::class );
+
+		$this->globalStylesCss        = $placement->claimForHead( $tracker, app( GlobalStylesEmissionResolver::class ), $globalStyles );
+		$this->printGlobalStylesStack = $placement->takeStack();
+
+		// The global styles carry every block style variation
+		// (`BlockStyleResolver::css()`), so once they are on the page —
+		// printed here, queued on the stack, or printed by a block
+		// renderer earlier — compiling the theme's variations into the
+		// tokens too would emit each `.is-style-*` rule twice.
+		$this->themeTokensCss = null === $themeJson
+			? ''
+			: $this->compiler->compile( $themeJson, $blockStyleVariations && ! $tracker->hasEmitted() );
 	}
 
 	public function render(): View
@@ -162,6 +216,8 @@ class BlocksStylesComponent extends Component
 	/**
 	 * Strip a single trailing slash from the base URL so concatenation
 	 * with `/style.css` doesn't double up.
+	 *
+	 * @since 1.1.0
 	 */
 	protected function normaliseBase( string $base ): string
 	{

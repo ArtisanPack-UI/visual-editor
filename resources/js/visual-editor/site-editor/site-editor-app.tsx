@@ -58,12 +58,14 @@ import { registerBackgroundControls } from '../background-controls';
 import { registerBindingsAttribute } from '../bindings/register-attribute';
 import { registerBindingsPanel } from '../bindings/with-bindings-panel';
 import { registerArtisanPackBlocks } from '../blocks';
+import { registerThemeBlockStyles } from '../block-style-registry';
 import { registerDynamicContent } from '../dynamic-content';
 import { registerDynamicLinkFormat } from '../formats/dynamic-link/register';
 import { registerInlineIconFormat } from '../formats/inline-icon/register';
 import { registerBoxShadows } from '../box-shadows/register';
 import { registerGradientBorders } from '../gradient-borders/register';
 import { registerPositioning } from '../positioning/register';
+import { registerEffects } from '../effects/register';
 import { registerResponsiveAttribute } from '../responsive/register-attribute';
 import { registerResponsiveAttributesFilter } from '../responsive/with-responsive-attributes';
 import { registerStateAttribute } from '../states/register-attribute';
@@ -287,6 +289,8 @@ function ensureEditorBoot(): void {
     registerGradientBorders();
     registerBoxShadows();
     registerPositioning();
+    // #881 — block effects + Custom CSS (attribute, panel, canvas preview).
+    registerEffects();
 
     // #717 — inline-icon RichText format, mirroring the post editor so
     // icons can be inserted inline inside any rich-text field edited in
@@ -296,6 +300,8 @@ function ensureEditorBoot(): void {
     // I7 (#415): register all artisanpack/* blocks and set the default
     // block to artisanpack/paragraph. Core blocks are no longer loaded.
     registerArtisanPackBlocks();
+    // #876 — theme block style variations into the Styles picker.
+    registerThemeBlockStyles();
 
     editorBooted = true;
 }

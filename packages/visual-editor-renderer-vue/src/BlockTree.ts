@@ -33,7 +33,13 @@ import {
     NAVIGATION_OVERLAY_CSS,
     treeHasNavigationOverlay,
 } from './support/navigationOverlayCss';
+import { stampDuotoneScopes } from './support/duotone';
+import type { DuotonePresets } from './support/duotone';
+import { stampEffectsScopes } from './support/effects';
+import { stampHeadingAnchors } from './support/headingAnchors';
+import { stampLayoutScopes } from './support/layoutContainer';
 import { stampPhotoGridScopes } from './support/photoGrid';
+import { stampResponsiveScopes } from './support/responsive';
 import {
     DEFAULT_MAX_PATTERN_DEPTH,
     inlinePatterns,
@@ -99,6 +105,24 @@ export interface BlockTreeProps {
      * pass them here.
      */
     queryResults?: ResolvedQuery[];
+    /**
+     * Whether a block's Custom CSS may load resources (`url(`,
+     * `image-set(`, `image(`, `src(`). Pass the host's config
+     * `effects.custom_css_allow_urls` so the page matches Blade; Custom
+     * CSS that loads one is dropped when `false`. Defaults to `true`.
+     *
+     * @since 1.15.0
+     */
+    customCssAllowUrls?: boolean;
+    /**
+     * The theme's duotone presets (`settings.color.duotone`, flat or
+     * origin-keyed), so `var:preset|duotone|…` picks resolve the way the
+     * Blade renderer resolves them against the active theme. Custom stop
+     * lists need no presets.
+     *
+     * @since 1.15.0
+     */
+    duotonePresets?: DuotonePresets;
 }
 
 export const BlockTree = defineComponent({
@@ -146,6 +170,14 @@ export const BlockTree = defineComponent({
         },
         queryResults: {
             type: Array as PropType<ResolvedQuery[]>,
+            default: undefined,
+        },
+        customCssAllowUrls: {
+            type: Boolean,
+            default: true,
+        },
+        duotonePresets: {
+            type: [Array, Object] as PropType<DuotonePresets>,
             default: undefined,
         },
     },
@@ -199,12 +231,19 @@ export const BlockTree = defineComponent({
 
             const withSiteMeta = inlineSiteMeta(withOverlays, props.siteMeta);
 
-            // Query inlining runs last so a `core/query` block reachable
-            // only through a resolved template part / pattern still gets
-            // its loop expanded.
-            return props.queryResults === undefined
-                ? withSiteMeta
-                : inlineQueries(withSiteMeta, { queries: props.queryResults });
+            // Query inlining runs after the other inliners so a
+            // `core/query` block reachable only through a resolved
+            // template part / pattern still gets its loop expanded.
+            const withQueries =
+                props.queryResults === undefined
+                    ? withSiteMeta
+                    : inlineQueries(withSiteMeta, { queries: props.queryResults });
+
+            // Heading anchors (#888) — stamp a unique auto-generated
+            // `anchor` on every heading that lacks one, after every
+            // inliner so injected headings take part, the way Blade's
+            // `TocResolver` pass does.
+            return stampHeadingAnchors(withQueries);
         });
 
         const flexArbitraryCss = computed(() =>
@@ -239,7 +278,41 @@ export const BlockTree = defineComponent({
             stampPhotoGridScopes(columnWidth.value.tree)
         );
 
-        const hasNavigationOverlay = computed(() => treeHasNavigationOverlay(photoGrid.value.tree));
+        // Per-instance layout (#871) — stamp the hashed
+        // `wp-container-<hash>` scope onto every group / post-content
+        // block whose layout panel sets content / wide size,
+        // justification, orientation, wrap or grid columns, and emit the
+        // matching rules the Blade renderer pushes from
+        // `LayoutSupport::containerClasses()`.
+        const layout = computed(() =>
+            stampLayoutScopes(photoGrid.value.tree)
+        );
+
+        // Generic responsive overrides (#886) — append the hashed
+        // `ve-r-<hash>` scope to each block's `className` and emit the
+        // per-breakpoint rules Blade pushes from
+        // `BlockSupports::compileResponsive()`. Runs before effects so
+        // the class lands ahead of `ve-fx-<hash>`, as in Blade.
+        const responsive = computed(() =>
+            stampResponsiveScopes(layout.value.tree)
+        );
+
+        // Block effects + Custom CSS (#881) — append the hashed
+        // `ve-fx-<hash>` scope to each block's `className` and emit the
+        // rules Blade pushes from `BlockSupports::compile()`.
+        const effects = computed(() =>
+            stampEffectsScopes(responsive.value.tree, { allowCustomCssUrls: props.customCssAllowUrls })
+        );
+
+        // Duotone (#873, F-4) — stamp the `wp-duotone-*` scope on image,
+        // featured image, cover, avatar, site logo and post author blocks
+        // whose media renders, and print the rules plus the hidden SVG
+        // filter definitions Blade drains from `DuotoneCssAccumulator`.
+        const duotone = computed(() =>
+            stampDuotoneScopes(effects.value.tree, props.duotonePresets)
+        );
+
+        const hasNavigationOverlay = computed(() => treeHasNavigationOverlay(duotone.value.tree));
 
         return () => {
             const endpoint = props.dynamicBlockEndpoint ?? DEFAULT_ENDPOINT;
@@ -289,6 +362,39 @@ export const BlockTree = defineComponent({
                 );
             }
 
+            if (layout.value.css !== '') {
+                // `innerHTML` so the `>` child combinator isn't escaped to
+                // `&gt;` inside the style element. The rule values are
+                // whitelisted by `layoutContainer()` and carry no `<`.
+                children.push(
+                    h('style', {
+                        'data-ve-layout': '',
+                        innerHTML: layout.value.css,
+                    })
+                );
+            }
+
+            if (responsive.value.css !== '') {
+                children.push(
+                    h(
+                        'style',
+                        { 'data-ve-responsive': '' },
+                        responsive.value.css
+                    )
+                );
+            }
+
+            if (effects.value.css !== '') {
+                // `innerHTML` so `>` in Custom CSS isn't escaped to `&gt;`.
+                // `sanitizeCustomCss()` rejects any `<`.
+                children.push(
+                    h('style', {
+                        'data-ve-effects': '',
+                        innerHTML: effects.value.css,
+                    })
+                );
+            }
+
             // Navigation overlay (#804) — the drawer's breakpoint +
             // open-state rules, emitted once when any navigation block
             // has its overlay on.
@@ -302,7 +408,36 @@ export const BlockTree = defineComponent({
                 );
             }
 
-            photoGrid.value.tree
+            if (duotone.value.css !== '') {
+                // `innerHTML` so a `>` target combinator isn't escaped.
+                children.push(
+                    h('style', {
+                        'data-ve-duotone': '',
+                        innerHTML: duotone.value.css,
+                    })
+                );
+            }
+
+            if (duotone.value.filters !== '') {
+                children.push(
+                    h(
+                        'svg',
+                        {
+                            'data-ve-duotone': '',
+                            xmlns: 'http://www.w3.org/2000/svg',
+                            viewBox: '0 0 0 0',
+                            width: '0',
+                            height: '0',
+                            focusable: 'false',
+                            'aria-hidden': 'true',
+                            style: { visibility: 'hidden', position: 'absolute', left: '-9999px', overflow: 'hidden' },
+                        },
+                        [h('defs', { innerHTML: duotone.value.filters })]
+                    )
+                );
+            }
+
+            duotone.value.tree
                 .map((block, index) => renderBlock(block, index, endpoint, props.fetchOptions))
                 .filter((vnode): vnode is VNode => vnode !== null)
                 .forEach((vnode) => children.push(vnode));

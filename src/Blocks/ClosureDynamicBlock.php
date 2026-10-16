@@ -32,6 +32,7 @@ class ClosureDynamicBlock extends DynamicBlock
 	 * @param  (Closure(array<string, mixed>): string)|null    $searchCallback   Optional searchable-text callback.
 	 * @param  (Closure(array<string, mixed>): array<string, mixed>)|null  $validateCallback  Optional validator callback.
 	 * @param  (Closure(Authenticatable|null, array<string, mixed>): bool)|null  $authorizeCallback  Optional authorization callback.
+	 * @param  bool                                            $ownSupports      Whether the render callback applies the block supports itself (#874).
 	 */
 	public function __construct(
 		protected string $blockName,
@@ -39,6 +40,7 @@ class ClosureDynamicBlock extends DynamicBlock
 		protected ?Closure $searchCallback = null,
 		protected ?Closure $validateCallback = null,
 		protected ?Closure $authorizeCallback = null,
+		protected bool $ownSupports = false,
 	) {
 	}
 
@@ -68,6 +70,18 @@ class ClosureDynamicBlock extends DynamicBlock
 		}
 
 		return ( $this->validateCallback )( $attrs );
+	}
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * Set by the `appliesOwnSupports` registration option.
+	 *
+	 * @since 1.15.0
+	 */
+	public function appliesOwnSupports(): bool
+	{
+		return $this->ownSupports;
 	}
 
 	public function authorize( ?Authenticatable $user, array $attrs ): bool

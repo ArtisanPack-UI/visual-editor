@@ -20,6 +20,7 @@ import {
 	ToggleControl,
 } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../vendor/i18n';
 
 import {
 	useBindingFields,
@@ -45,11 +46,16 @@ export interface BindingsPanelProps {
 	onChange: ( next: BindingsMap ) => void;
 }
 
-const POLICY_OPTIONS: Array<{ label: string; value: EmptyValuePolicy }> = [
-	{ label: __( 'Fall back to static value', 'visual-editor' ), value: 'fallback' },
-	{ label: __( 'Hide (set to null)', 'visual-editor' ),       value: 'hide' },
-	{ label: __( 'Show placeholder',     'visual-editor' ),     value: 'placeholder' },
-];
+/**
+ * Built per render so the labels pick up translations loaded after import.
+ */
+function getPolicyOptions(): Array<{ label: string; value: EmptyValuePolicy }> {
+	return [
+		{ label: __( 'Fall back to static value', TEXT_DOMAIN ), value: 'fallback' },
+		{ label: __( 'Hide (set to null)', TEXT_DOMAIN ), value: 'hide' },
+		{ label: __( 'Show placeholder', TEXT_DOMAIN ), value: 'placeholder' },
+	];
+}
 
 const FREE_FORM_SOURCES = new Set( [ 'relation' ] );
 
@@ -158,8 +164,8 @@ function AttributeRow( {
 				label={ `${ attribute.label } (${ attribute.type })` }
 				help={
 					enabled
-						? __( 'This attribute will be replaced with the bound value at render time.', 'visual-editor' )
-						: __( 'Link to data from the parent post / page / CPT.', 'visual-editor' )
+						? __( 'This attribute will be replaced with the bound value at render time.', TEXT_DOMAIN )
+						: __( 'Link to data from the parent post / page / CPT.', TEXT_DOMAIN )
 				}
 				checked={ enabled }
 				onChange={ ( checked: boolean ) => {
@@ -175,10 +181,10 @@ function AttributeRow( {
 			{ enabled && (
 				<>
 					<SelectControl
-						label={ __( 'Source', 'visual-editor' ) }
+						label={ __( 'Source', TEXT_DOMAIN ) }
 						value={ sourceName }
 						options={ [
-							{ label: __( '— pick a source —', 'visual-editor' ), value: '' },
+							{ label: __( '— pick a source —', TEXT_DOMAIN ), value: '' },
 							...sources.map( ( source ) => ( {
 								label: source.name,
 								value: source.name,
@@ -196,18 +202,18 @@ function AttributeRow( {
 
 					{ isFreeForm ? (
 						<TextControl
-							label={ __( 'Path', 'visual-editor' ) }
-							help={ __( 'Dotted path, e.g. author.name', 'visual-editor' ) }
+							label={ __( 'Path', TEXT_DOMAIN ) }
+							help={ __( 'Dotted path, e.g. author.name', TEXT_DOMAIN ) }
 							value={ argValue }
 							onChange={ ( next: string ) => patchBinding( { args: { path: next } } ) }
 						/>
 					) : (
 						<SelectControl
-							label={ __( 'Field', 'visual-editor' ) }
+							label={ __( 'Field', TEXT_DOMAIN ) }
 							value={ argValue }
 							disabled={ fieldsLoading || ! sourceName }
 							options={ [
-								{ label: __( '— pick a field —', 'visual-editor' ), value: '' },
+								{ label: __( '— pick a field —', TEXT_DOMAIN ), value: '' },
 								...filteredFields.map( ( field ) => ( {
 									label: `${ field.label } (${ field.type })`,
 									value: field.key,
@@ -222,7 +228,7 @@ function AttributeRow( {
 							<em>
 								{ __(
 									'No fields match this attribute type. Toggle "Show incompatible types" to widen the picker.',
-									'visual-editor'
+									TEXT_DOMAIN
 								) }
 							</em>
 						</PanelRow>
@@ -236,10 +242,10 @@ function AttributeRow( {
 
 					{ ! isFreeForm && (
 						<ToggleControl
-							label={ __( 'Show incompatible types', 'visual-editor' ) }
+							label={ __( 'Show incompatible types', TEXT_DOMAIN ) }
 							help={ __(
 								'Allow binding to fields whose type does not match the attribute.',
-								'visual-editor'
+								TEXT_DOMAIN
 							) }
 							checked={ allowIncompatible }
 							onChange={ ( checked: boolean ) => patchBinding( { allowIncompatible: checked } ) }
@@ -247,15 +253,15 @@ function AttributeRow( {
 					) }
 
 					<SelectControl
-						label={ __( 'When the field is empty', 'visual-editor' ) }
+						label={ __( 'When the field is empty', TEXT_DOMAIN ) }
 						value={ binding!.onEmpty ?? 'fallback' }
-						options={ POLICY_OPTIONS }
+						options={ getPolicyOptions() }
 						onChange={ ( next: string ) => patchBinding( { onEmpty: next as EmptyValuePolicy } ) }
 					/>
 
 					{ binding!.onEmpty === 'placeholder' && (
 						<TextControl
-							label={ __( 'Placeholder', 'visual-editor' ) }
+							label={ __( 'Placeholder', TEXT_DOMAIN ) }
 							value={ binding!.placeholder ?? '' }
 							onChange={ ( next: string ) => patchBinding( { placeholder: next } ) }
 						/>
@@ -291,7 +297,7 @@ export function BindingsPanel( {
 	}
 
 	return (
-		<PanelBody title={ __( 'Block bindings', 'visual-editor' ) } initialOpen={ false }>
+		<PanelBody title={ __( 'Block bindings', TEXT_DOMAIN ) } initialOpen={ false }>
 			{ sourcesError && (
 				<PanelRow>
 					<em style={ { color: '#cc1818' } }>{ sourcesError.message }</em>

@@ -12,8 +12,11 @@
  *      references those tokens (every Gutenberg core block's preset
  *      attributes do) just works on the public site without each consumer
  *      re-implementing the bridge. Categories covered:
- *      `color.palette[]`, `color.gradient[]`, `typography.fontSizes[]`,
- *      `spacing.spacingSizes[]`.
+ *      `color.palette[]`, `color.gradients[]` (with the legacy
+ *      `color.gradient[]` key as a fallback), `typography.fontSizes[]`,
+ *      `typography.fontFamilies[]`, `spacing.spacingSizes[]`,
+ *      `shadow.presets[]`. `settings.custom` flattens to
+ *      `--wp--custom--{path}` properties.
  *
  *   2. `styles.*` → CSS rules at three levels:
  *      - Root styles (`styles.color`, `styles.typography`, `styles.spacing`,
@@ -21,13 +24,15 @@
  *      - Element styles (`styles.elements.{link, heading, h1..h6, button,
  *        caption, cite}`) → canonical selectors
  *        (`a:where(:not(.wp-element-button))`, `h1, h2, …`,
- *        `.wp-element-button`, etc.), plus their `:hover` / `:focus` /
+ *        `.wp-element-button`, etc.), plus the link and button
+ *        `:link` / `:any-link` / `:visited` / `:hover` / `:focus` /
  *        `:focus-visible` / `:active` sub-nodes.
  *      - Block styles (`styles.blocks["<namespace>/<slug>"]`) →
  *        `.wp-block-<namespace>-<slug>` selectors. Nested
  *        `styles.blocks[X].elements.Y` produces descendant rules so a
  *        block can re-style its own headings/links without affecting
- *        the rest of the page.
+ *        the rest of the page. `styles.blocks[X].variations.{slug}`
+ *        produces `.wp-block-<slug>.is-style-<variation>` rules (#876).
  *      Element and block rules are wrapped in `:root :where(…)` like
  *      WordPress's global styles, so they share one (0,1,0) specificity.
  *
@@ -50,8 +55,11 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditorRendererBlade\Services;
 
+use ArtisanPackUI\VisualEditor\BlockStyles\BlockStyleCssCompiler;
+use ArtisanPackUI\VisualEditor\BlockStyles\BlockStyleVariationParser;
 use ArtisanPackUI\VisualEditor\Resources\PresetRegistry;
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
+use ArtisanPackUI\VisualEditor\Support\CssValue;
 use ArtisanPackUI\VisualEditorRendererBlade\Support\ElementsSupport;
 use ArtisanPackUI\VisualEditorRendererBlade\Support\StackingStyles;
 
@@ -75,31 +83,58 @@ class ThemeJsonTokensCompiler
 
 	/**
 	 * Pseudo-state sub-nodes compiled under `styles.elements.*` and
-	 * `styles.blocks[*].elements.*`, in cascade order (#852).
+	 * `styles.blocks[*].elements.*`, in cascade order (#852). Only the
+	 * elements in {@see ElementsSupport::ELEMENT_PSEUDO_STATES} (`link`
+	 * and `button`) take them, as in WordPress.
 	 *
 	 * @since 1.14.0
+	 * @since 1.15.0 WordPress's `:link` / `:any-link` / `:visited` states join the list.
 	 */
 	public const ELEMENT_PSEUDO_STATES = ElementsSupport::PSEUDO_STATES;
+
+	/**
+	 * theme.json `outline` keys → CSS properties, as WordPress's
+	 * `WP_Theme_JSON::PROPERTIES_METADATA` maps them. Mirrors
+	 * `BlockStyleCssCompiler::OUTLINE` and cms-framework's emitter.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @var array<string, string>
+	 */
+	protected const OUTLINE_PROPERTIES = [
+		'color'  => 'outline-color',
+		'offset' => 'outline-offset',
+		'style'  => 'outline-style',
+		'width'  => 'outline-width',
+	];
 
 	/**
 	 * Compile a theme.json array into a `:root` CSS block, or '' when the
 	 * input carries no recognised tokens.
 	 *
 	 * @since 1.0.0
+	 * @since 1.15.0 `$blockStyleVariations` — pass `false` when the page
+	 *               also emits `BlockStyleResolver::css()` (the
+	 *               `<x-ve-blocks>` global styles), which already covers
+	 *               the theme's variations.
 	 *
-	 * @param  array<string, mixed>  $themeJson  Decoded theme.json payload.
+	 * @param  array<string, mixed>  $themeJson             Decoded theme.json payload.
+	 * @param  bool                  $blockStyleVariations  Compile `styles.blocks.*.variations`.
 	 */
-	public function compile( array $themeJson ): string
+	public function compile( array $themeJson, bool $blockStyleVariations = true ): string
 	{
 		$settings = is_array( $themeJson['settings'] ?? null ) ? $themeJson['settings'] : [];
 		$styles   = is_array( $themeJson['styles'] ?? null ) ? $themeJson['styles'] : [];
 
 		$declarations = array_merge(
 			$this->compilePresetList( $settings, [ 'color', 'palette' ], 'color', 'color' ),
-			$this->compilePresetList( $settings, [ 'color', 'gradient' ], 'gradient', 'gradient' ),
+			$this->compilePresetList( $settings, $this->gradientsPath( $settings ), 'gradient', 'gradient' ),
 			$this->compilePresetList( $settings, [ 'typography', 'fontSizes' ], 'font-size', 'size' ),
+			$this->compilePresetList( $settings, [ 'typography', 'fontFamilies' ], 'font-family', 'fontFamily' ),
 			$this->compilePresetList( $settings, [ 'spacing', 'spacingSizes' ], 'spacing', 'size' ),
+			$this->compilePresetList( $settings, [ 'shadow', 'presets' ], 'shadow', 'shadow' ),
 			$this->compileLayoutSizes( $settings ),
+			$this->compileCustomProperties( $settings ),
 		);
 
 		$root = [] === $declarations ? '' : ":root {\n\t" . implode( "\n\t", $declarations ) . "\n}";
@@ -110,7 +145,13 @@ class ThemeJsonTokensCompiler
 
 		$stylesCss = $this->compileStyles( $styles );
 
-		$parts = array_values( array_filter( [ $root, $layout, $utilities, $stylesCss ], static fn ( string $section ): bool => '' !== $section ) );
+		// #876 — `styles.blocks.*.variations` → `.is-style-*` rules,
+		// after the block rules so a variation overrides its block.
+		$variationsCss = $blockStyleVariations
+			? ( new BlockStyleCssCompiler() )->compile( ( new BlockStyleVariationParser() )->fromStyles( $styles ) )
+			: '';
+
+		$parts = array_values( array_filter( [ $root, $layout, $utilities, $stylesCss, $variationsCss ], static fn ( string $section ): bool => '' !== $section ) );
 
 		return implode( "\n\n", $parts );
 	}
@@ -211,7 +252,31 @@ class ThemeJsonTokensCompiler
 			$rules[] = $fontSizes;
 		}
 
+		$fontFamilies = $this->compileFontFamilyUtilityRules( $settings );
+		if ( '' !== $fontFamilies ) {
+			$rules[] = $fontFamilies;
+		}
+
 		return implode( "\n\n", $rules );
+	}
+
+	/**
+	 * Path to the theme's gradient presets (#872). theme.json v2 / v3
+	 * spell the key `color.gradients`; the singular `color.gradient`
+	 * this compiler originally read is kept as a fallback so themes
+	 * written against it keep their tokens.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  array<string, mixed>  $settings  `themeJson.settings` payload.
+	 *
+	 * @return array{0: string, 1: string}
+	 */
+	protected function gradientsPath( array $settings ): array
+	{
+		return is_array( $settings['color']['gradients'] ?? null )
+			? [ 'color', 'gradients' ]
+			: [ 'color', 'gradient' ];
 	}
 
 	/**
@@ -262,13 +327,16 @@ class ThemeJsonTokensCompiler
 
 	/**
 	 * Emit `.has-{slug}-gradient-background` for each entry in
-	 * `settings.color.gradient`.
+	 * `settings.color.gradients` (or the legacy `settings.color.gradient`).
+	 *
+	 * @since 1.15.0 Reads `color.gradients`, keeping `color.gradient` as a fallback (#872).
 	 *
 	 * @param  array<string, mixed>  $settings
 	 */
 	protected function compileGradientUtilityRules( array $settings ): string
 	{
-		$gradients = $settings['color']['gradient'] ?? null;
+		[ $group, $key ] = $this->gradientsPath( $settings );
+		$gradients       = $settings[ $group ][ $key ] ?? null;
 		if ( ! is_array( $gradients ) ) {
 			return '';
 		}
@@ -339,6 +407,49 @@ class ThemeJsonTokensCompiler
 	}
 
 	/**
+	 * Emit `.has-{slug}-font-family` for each entry in
+	 * `settings.typography.fontFamilies` (#872). A preset font-family
+	 * pick renders only that class — the inline `font-family` is skipped
+	 * on purpose — so without these rules the pick did nothing.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  array<string, mixed>  $settings
+	 */
+	protected function compileFontFamilyUtilityRules( array $settings ): string
+	{
+		$fontFamilies = $settings['typography']['fontFamilies'] ?? null;
+		if ( ! is_array( $fontFamilies ) ) {
+			return '';
+		}
+
+		$lines = [];
+
+		foreach ( $fontFamilies as $entry ) {
+			if ( ! is_array( $entry ) ) {
+				continue;
+			}
+
+			$slug  = isset( $entry['slug'] ) && is_string( $entry['slug'] ) ? trim( $entry['slug'] ) : '';
+			$value = isset( $entry['fontFamily'] ) && is_string( $entry['fontFamily'] ) ? trim( $entry['fontFamily'] ) : '';
+
+			if ( '' === $slug || '' === $value ) {
+				continue;
+			}
+
+			$slug = $this->slug( $slug );
+
+			$lines[] = sprintf(
+				'.has-%s-font-family { font-family: var(--wp--preset--font-family--%s) !important; }',
+				$slug,
+				$slug,
+			);
+		}
+
+		return implode( "\n", $lines );
+	}
+
+	/**
 	 * Compile the `styles.*` half of theme.json into CSS rules. Skipped
 	 * silently when the payload carries no recognised nodes.
 	 *
@@ -359,8 +470,8 @@ class ThemeJsonTokensCompiler
 			$rules[] = "body {\n\t" . $rootDeclarations . "\n}";
 		}
 
-		// styles.elements.* — typed selectors, plus their `:hover` /
-		// `:focus` / `:focus-visible` / `:active` sub-nodes (#852).
+		// styles.elements.* — typed selectors, plus the link and button
+		// pseudo-state sub-nodes (#852).
 		$elements = is_array( $styles['elements'] ?? null ) ? $styles['elements'] : [];
 
 		array_push( $rules, ...$this->compileElementRules( $elements, '' ) );
@@ -394,12 +505,17 @@ class ThemeJsonTokensCompiler
 	 * Compile a `styles.elements` (or `styles.blocks[X].elements`) map
 	 * into rules: one for each element's base node, then one per
 	 * pseudo-state sub-node in {@see self::ELEMENT_PSEUDO_STATES} order so
-	 * `:focus` overrides `:hover` when both are set (#852). The pseudo is
+	 * `:focus` overrides `:hover` when both are set (#852). Only `link`
+	 * and `button` take states ({@see ElementsSupport::ELEMENT_PSEUDO_STATES});
+	 * other elements' pseudo sub-nodes are ignored, as in WordPress. The
+	 * link selector skips `.wp-element-button`, so its states read
+	 * `a:where(:not(.wp-element-button)):hover`. The pseudo is
 	 * appended to every selector in the element's list (`button` →
 	 * `.wp-element-button:hover, .wp-block-button__link:hover`), and
 	 * `$prefix` (a block selector plus a space) scopes each one.
 	 *
 	 * @since 1.14.0
+	 * @since 1.15.0 Limits pseudo states to `link` and `button`.
 	 *
 	 * @param  array<mixed>  $elements  Element name → style node.
 	 * @param  string        $prefix    Descendant prefix, `''` at the root.
@@ -428,7 +544,7 @@ class ThemeJsonTokensCompiler
 				$rules[] = $this->whereRule( $scoped, $declarations );
 			}
 
-			foreach ( self::ELEMENT_PSEUDO_STATES as $pseudo ) {
+			foreach ( ElementsSupport::ELEMENT_PSEUDO_STATES[ $name ] ?? [] as $pseudo ) {
 				$pseudoNode = $node[ $pseudo ] ?? null;
 
 				if ( ! is_array( $pseudoNode ) ) {
@@ -473,14 +589,18 @@ class ThemeJsonTokensCompiler
 	 * `typography.{fontFamily,fontSize,fontWeight,fontStyle,lineHeight,
 	 * letterSpacing,textTransform,textDecoration}`,
 	 * `spacing.{padding,margin,blockGap}` (string or per-side object),
-	 * and `border.{color,style,width,radius}` (radius may be string or
-	 * per-corner object).
+	 * `border.{color,style,width,radius}` (radius may be string or
+	 * per-corner object), and `outline.{color,offset,style,width}` (a
+	 * theme's focus indicator, e.g. `elements.button[":focus"].outline`).
 	 *
 	 * Preset references (`var:preset|color|primary`) expand to the
 	 * corresponding CSS custom property reference; non-preset values
-	 * pass through untouched.
+	 * pass through untouched. The rules are printed unescaped, so a value
+	 * that could break out of its declaration is dropped
+	 * ({@see CssValue::isPrintable()}).
 	 *
 	 * @since 1.2.0
+	 * @since 1.15.0 Compiles `outline.*`; drops values that aren't printable.
 	 *
 	 * @param  array<string, mixed>  $node
 	 */
@@ -490,17 +610,9 @@ class ThemeJsonTokensCompiler
 
 		$color = is_array( $node['color'] ?? null ) ? $node['color'] : [];
 
-		if ( isset( $color['background'] ) && is_string( $color['background'] ) && '' !== trim( $color['background'] ) ) {
-			$declarations[] = 'background-color: ' . $this->expandPresetReference( trim( $color['background'] ) ) . ';';
-		}
-
-		if ( isset( $color['gradient'] ) && is_string( $color['gradient'] ) && '' !== trim( $color['gradient'] ) ) {
-			$declarations[] = 'background: ' . $this->expandPresetReference( trim( $color['gradient'] ) ) . ';';
-		}
-
-		if ( isset( $color['text'] ) && is_string( $color['text'] ) && '' !== trim( $color['text'] ) ) {
-			$declarations[] = 'color: ' . $this->expandPresetReference( trim( $color['text'] ) ) . ';';
-		}
+		$this->pushDeclaration( $declarations, 'background-color', $color['background'] ?? null );
+		$this->pushDeclaration( $declarations, 'background', $color['gradient'] ?? null );
+		$this->pushDeclaration( $declarations, 'color', $color['text'] ?? null );
 
 		$typography    = is_array( $node['typography'] ?? null ) ? $node['typography'] : [];
 		$typographyMap = [
@@ -515,13 +627,7 @@ class ThemeJsonTokensCompiler
 		];
 
 		foreach ( $typographyMap as $key => $property ) {
-			$value = $typography[ $key ] ?? null;
-
-			if ( ! is_string( $value ) || '' === trim( $value ) ) {
-				continue;
-			}
-
-			$declarations[] = $property . ': ' . $this->expandPresetReference( trim( $value ) ) . ';';
+			$this->pushDeclaration( $declarations, $property, $typography[ $key ] ?? null );
 		}
 
 		$spacing = is_array( $node['spacing'] ?? null ) ? $node['spacing'] : [];
@@ -529,62 +635,65 @@ class ThemeJsonTokensCompiler
 		foreach ( [ 'padding', 'margin' ] as $box ) {
 			$value = $spacing[ $box ] ?? null;
 
-			if ( is_string( $value ) && '' !== trim( $value ) ) {
-				$declarations[] = $box . ': ' . $this->expandPresetReference( trim( $value ) ) . ';';
-
-				continue;
-			}
-
 			if ( ! is_array( $value ) ) {
+				$this->pushDeclaration( $declarations, $box, $value );
+
 				continue;
 			}
 
 			foreach ( [ 'top', 'right', 'bottom', 'left' ] as $side ) {
-				$sideValue = $value[ $side ] ?? null;
-
-				if ( ! is_string( $sideValue ) || '' === trim( $sideValue ) ) {
-					continue;
-				}
-
-				$declarations[] = $box . '-' . $side . ': ' . $this->expandPresetReference( trim( $sideValue ) ) . ';';
+				$this->pushDeclaration( $declarations, $box . '-' . $side, $value[ $side ] ?? null );
 			}
 		}
 
-		$blockGap = $spacing['blockGap'] ?? null;
-
-		if ( is_string( $blockGap ) && '' !== trim( $blockGap ) ) {
-			$declarations[] = '--wp--style--block-gap: ' . $this->expandPresetReference( trim( $blockGap ) ) . ';';
-		}
+		$this->pushDeclaration( $declarations, '--wp--style--block-gap', $spacing['blockGap'] ?? null );
 
 		$border = is_array( $node['border'] ?? null ) ? $node['border'] : [];
 
 		foreach ( [ 'color', 'style', 'width' ] as $property ) {
-			$value = $border[ $property ] ?? null;
-
-			if ( ! is_string( $value ) || '' === trim( $value ) ) {
-				continue;
-			}
-
-			$declarations[] = 'border-' . $property . ': ' . $this->expandPresetReference( trim( $value ) ) . ';';
+			$this->pushDeclaration( $declarations, 'border-' . $property, $border[ $property ] ?? null );
 		}
 
 		$radius = $border['radius'] ?? null;
 
-		if ( is_string( $radius ) && '' !== trim( $radius ) ) {
-			$declarations[] = 'border-radius: ' . $this->expandPresetReference( trim( $radius ) ) . ';';
-		} elseif ( is_array( $radius ) ) {
+		if ( is_array( $radius ) ) {
 			foreach ( [ 'topLeft', 'topRight', 'bottomLeft', 'bottomRight' ] as $corner ) {
-				$cornerValue = $radius[ $corner ] ?? null;
-
-				if ( ! is_string( $cornerValue ) || '' === trim( $cornerValue ) ) {
-					continue;
-				}
-
-				$declarations[] = 'border-' . $this->kebabCase( $corner ) . '-radius: ' . $this->expandPresetReference( trim( $cornerValue ) ) . ';';
+				$this->pushDeclaration( $declarations, 'border-' . $this->kebabCase( $corner ) . '-radius', $radius[ $corner ] ?? null );
 			}
+		} else {
+			$this->pushDeclaration( $declarations, 'border-radius', $radius );
+		}
+
+		$outline = is_array( $node['outline'] ?? null ) ? $node['outline'] : [];
+
+		foreach ( self::OUTLINE_PROPERTIES as $key => $property ) {
+			$this->pushDeclaration( $declarations, $property, $outline[ $key ] ?? null );
 		}
 
 		return implode( "\n\t", $declarations );
+	}
+
+	/**
+	 * Append `property: value;` when the value is a non-empty, printable
+	 * string, with any preset reference expanded.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  list<string>  $declarations
+	 */
+	protected function pushDeclaration( array &$declarations, string $property, mixed $value ): void
+	{
+		if ( ! is_string( $value ) ) {
+			return;
+		}
+
+		$value = trim( $value );
+
+		if ( '' === $value || ! CssValue::isPrintable( $value ) ) {
+			return;
+		}
+
+		$declarations[] = $property . ': ' . $this->expandPresetReference( $value ) . ';';
 	}
 
 	/**
@@ -911,9 +1020,11 @@ class ThemeJsonTokensCompiler
 	 * Entries missing either `slug` or the value key are skipped silently
 	 * — theme.json validation is the consumer's responsibility, the
 	 * compiler stays defensive so a malformed entry doesn't blow up the
-	 * whole render.
+	 * whole render. Values that could break out of the `<style>` block
+	 * are skipped the same way ({@see isPrintablePresetValue()}).
 	 *
 	 * @since 1.0.0
+	 * @since 1.15.0 Skips values that could break out of the `<style>` block.
 	 *
 	 * @param  array<string, mixed>  $settings
 	 * @param  array{0: string, 1: string}  $path
@@ -938,7 +1049,7 @@ class ThemeJsonTokensCompiler
 			$slug  = isset( $entry['slug'] ) && is_string( $entry['slug'] ) ? trim( $entry['slug'] ) : '';
 			$value = isset( $entry[ $valueKey ] ) && is_string( $entry[ $valueKey ] ) ? trim( $entry[ $valueKey ] ) : '';
 
-			if ( '' === $slug || '' === $value ) {
+			if ( '' === $slug || '' === $value || ! $this->isPrintablePresetValue( $value ) ) {
 				continue;
 			}
 
@@ -951,6 +1062,86 @@ class ThemeJsonTokensCompiler
 		}
 
 		return $declarations;
+	}
+
+	/**
+	 * Flatten `settings.custom` into `--wp--custom--{path}` custom
+	 * properties, as WordPress and cms-framework's `GlobalStylesEmitter`
+	 * do: `custom.animation.glowColor` becomes
+	 * `--wp--custom--animation--glow-color`. Hover animation presets read
+	 * these for their theme defaults (#878).
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  array<string, mixed>  $settings
+	 *
+	 * @return list<string>
+	 */
+	protected function compileCustomProperties( array $settings ): array
+	{
+		$custom = $settings['custom'] ?? null;
+
+		if ( ! is_array( $custom ) ) {
+			return [];
+		}
+
+		$declarations = [];
+
+		$this->flattenCustomProperties( $custom, '--wp--custom', $declarations );
+
+		return $declarations;
+	}
+
+	/**
+	 * @since 1.15.0
+	 *
+	 * @param  array<mixed>  $node
+	 * @param  list<string>  $declarations
+	 */
+	protected function flattenCustomProperties( array $node, string $prefix, array &$declarations ): void
+	{
+		foreach ( $node as $key => $value ) {
+			$name = $prefix . '--' . $this->slug( $this->kebabCase( (string) $key ) );
+
+			if ( is_array( $value ) ) {
+				if ( ! array_is_list( $value ) ) {
+					$this->flattenCustomProperties( $value, $name, $declarations );
+				}
+
+				continue;
+			}
+
+			if ( ! is_scalar( $value ) || is_bool( $value ) ) {
+				continue;
+			}
+
+			$value = trim( (string) $value );
+
+			if ( '' === $value || ! $this->isPrintablePresetValue( $value ) ) {
+				continue;
+			}
+
+			$declarations[] = $name . ': ' . $value . ';';
+		}
+	}
+
+	/**
+	 * Whether a preset value can be written into the `<style>` block
+	 * as-is. The compiled tokens are printed unescaped, so a value that
+	 * closes the declaration or rule (`; { }`), the element (`< >`),
+	 * opens a comment, smuggles a CSS escape, or breaks the line is
+	 * dropped. Quotes stay allowed — font-family stacks and some
+	 * gradients need them — but each kind must be balanced, as must the
+	 * parentheses and brackets: an unterminated string, `(` or `[`
+	 * swallows every rule after it in the same block. Delegates to
+	 * {@see CssValue::isPrintable()}, which tracks quotes so a `)` inside
+	 * a string can't balance a `(`, and rejects crossed `([)]`.
+	 *
+	 * @since 1.15.0
+	 */
+	protected function isPrintablePresetValue( string $value ): bool
+	{
+		return CssValue::isPrintable( $value );
 	}
 
 	/**

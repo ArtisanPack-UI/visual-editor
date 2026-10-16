@@ -29,6 +29,22 @@
         }
     },
     "supports": {
+        "artisanpackStates": {
+            "attributes": [
+                "backgroundColor",
+                "textColor",
+                "gradient",
+                "color.background",
+                "color.text",
+                "color.gradient",
+                "border.color",
+                "border.width",
+                "border.style",
+                "border.radius",
+                "typography.textDecoration",
+                "transition"
+            ]
+        },
         "position": true,
         "artisanpackAnimations": true,
         "align": [
@@ -81,6 +97,15 @@
         "__experimentalSlashInserter": true,
         "interactivity": {
             "clientNavigation": true
+        },
+        "artisanpackResponsive": {
+            "attributes": [
+                "fontSize",
+                "textColor",
+                "style.color.text",
+                "backgroundColor",
+                "style.color.background"
+            ]
         }
     },
     "editorStyle": "wp-block-heading-editor",

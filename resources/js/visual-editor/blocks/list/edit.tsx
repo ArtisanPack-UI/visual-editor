@@ -24,6 +24,9 @@ import {
     ToggleControl,
     ToolbarButton,
 } from '@wordpress/components';
+import { __, _x } from '@wordpress/i18n';
+
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 
 interface ListAttributes {
     readonly ordered?: boolean;
@@ -41,13 +44,15 @@ const TEMPLATE: ReadonlyArray<readonly [string, Record<string, unknown>]> = [
     ['artisanpack/list-item', {}],
 ];
 
-const LIST_STYLE_OPTIONS = [
-    { label: 'Numbers', value: 'decimal' },
-    { label: 'Uppercase letters', value: 'upper-alpha' },
-    { label: 'Lowercase letters', value: 'lower-alpha' },
-    { label: 'Uppercase Roman numerals', value: 'upper-roman' },
-    { label: 'Lowercase Roman numerals', value: 'lower-roman' },
-];
+function listStyleOptions(): Array<{ label: string; value: string }> {
+    return [
+        { label: __('Numbers', TEXT_DOMAIN), value: 'decimal' },
+        { label: __('Uppercase letters', TEXT_DOMAIN), value: 'upper-alpha' },
+        { label: __('Lowercase letters', TEXT_DOMAIN), value: 'lower-alpha' },
+        { label: __('Uppercase Roman numerals', TEXT_DOMAIN), value: 'upper-roman' },
+        { label: __('Lowercase Roman numerals', TEXT_DOMAIN), value: 'lower-roman' },
+    ];
+}
 
 export default function ListEdit({
     attributes,
@@ -73,33 +78,33 @@ export default function ListEdit({
         <>
             <BlockControls group="block">
                 <ToolbarButton
-                    title="Unordered"
+                    title={__('Unordered', TEXT_DOMAIN)}
                     isActive={ordered === false}
                     onClick={() => setAttributes({ ordered: false })}
                 >
-                    UL
+                    {_x('UL', 'unordered list toolbar button', TEXT_DOMAIN)}
                 </ToolbarButton>
                 <ToolbarButton
-                    title="Ordered"
+                    title={__('Ordered', TEXT_DOMAIN)}
                     isActive={ordered === true}
                     onClick={() => setAttributes({ ordered: true })}
                 >
-                    OL
+                    {_x('OL', 'ordered list toolbar button', TEXT_DOMAIN)}
                 </ToolbarButton>
             </BlockControls>
             {ordered && (
                 <InspectorControls>
-                    <PanelBody title="Settings">
+                    <PanelBody title={__('Settings', TEXT_DOMAIN)}>
                         <SelectControl
-                            label="List style"
-                            options={LIST_STYLE_OPTIONS}
+                            label={__('List style', TEXT_DOMAIN)}
+                            options={listStyleOptions()}
                             value={type ?? 'decimal'}
                             onChange={(value) =>
                                 setAttributes({ type: value || undefined })
                             }
                         />
                         <TextControl
-                            label="Start value"
+                            label={__('Start value', TEXT_DOMAIN)}
                             type="number"
                             value={
                                 Number.isInteger(start) ? String(start) : ''
@@ -112,7 +117,7 @@ export default function ListEdit({
                             }}
                         />
                         <ToggleControl
-                            label="Reverse order"
+                            label={__('Reverse order', TEXT_DOMAIN)}
                             checked={!!reversed}
                             onChange={(value) =>
                                 setAttributes({ reversed: value || undefined })

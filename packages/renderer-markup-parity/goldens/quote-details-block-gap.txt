@@ -1,0 +1,19 @@
+<blockquote class="wp-block-quote is-layout-flow wp-block-quote-is-layout-flow wp-container-8fef922debe9" style="--wp--style--block-gap: 2rem">
+  <p class="wp-block-paragraph">
+    "One"
+  </p>
+  <p class="wp-block-paragraph">
+    "Two"
+  </p>
+</blockquote>
+<details class="wp-block-details is-layout-flow wp-block-details-is-layout-flow wp-container-9fa947a22328" style="--wp--style--block-gap: 1rem">
+  <summary>
+    "More"
+  </summary>
+  <p class="wp-block-paragraph">
+    "Hidden"
+  </p>
+</details>
+@@ renderer-instance-css @@
+.wp-block-details.wp-block-details-is-layout-flow.wp-container-9fa947a22328 > * + *{margin-block-start:1rem;margin-block-end:0;}
+.wp-block-quote.wp-block-quote-is-layout-flow.wp-container-8fef922debe9 > * + *{margin-block-start:2rem;margin-block-end:0;}

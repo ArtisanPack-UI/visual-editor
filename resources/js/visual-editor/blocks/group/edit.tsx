@@ -21,6 +21,7 @@ import {
 import { useRef } from '@wordpress/element';
 import { SelectControl } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import clsx from 'clsx';
 
 import GroupPlaceHolder, { useShouldShowPlaceHolder } from './placeholder';
@@ -35,7 +36,7 @@ import {
     getPhotoGridWrapperProps,
     type PhotoGridAttribute,
 } from '../_shared/photo-grid';
-import { BreakpointRegistry } from '../../responsive/registry';
+import { getResponsiveRegistry } from '../../responsive/registry';
 
 interface GroupAttributes {
     readonly tagName?: string;
@@ -62,11 +63,11 @@ function GroupEditControls({
     return (
         <InspectorControls group="advanced">
             <SelectControl
-                label={__('HTML element')}
+                label={__('HTML element', TEXT_DOMAIN)}
                 value={tagName}
                 onChange={onSelectTagName}
                 options={[
-                    { label: __('Default (<div>)'), value: 'div' },
+                    { label: __('Default (<div>)', TEXT_DOMAIN), value: 'div' },
                     { label: '<header>', value: 'header' },
                     { label: '<main>', value: 'main' },
                     { label: '<section>', value: 'section' },
@@ -117,7 +118,10 @@ export default function GroupEdit({
         themeSupportsLayout || type === 'flex' || type === 'grid';
 
     const ref = useRef<HTMLElement | undefined>(undefined);
-    const flexRegistry = new BreakpointRegistry();
+    // The host's configured breakpoints (M-17), like Blade's FlexSupport.
+    // `save` keeps the package defaults so saved markup doesn't depend
+    // on host config.
+    const flexRegistry = getResponsiveRegistry();
     const flexResult = serializeFlex(
         attributes.artisanpackFlex ?? null,
         flexRegistry,

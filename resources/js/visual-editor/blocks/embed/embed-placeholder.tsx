@@ -7,6 +7,7 @@
 
 import type { ReactElement, FormEvent } from 'react';
 import { __, _x } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import {
     Button,
     Placeholder,
@@ -44,7 +45,8 @@ export default function EmbedPlaceholder({
             label={label}
             className="wp-block-embed"
             instructions={__(
-                'Paste a link to the content you want to display on your site.'
+                'Paste a link to the content you want to display on your site.',
+                TEXT_DOMAIN
             )}
         >
             <form onSubmit={onSubmit}>
@@ -55,26 +57,27 @@ export default function EmbedPlaceholder({
                     className="wp-block-embed__placeholder-input"
                     label={label}
                     hideLabelFromVision
-                    placeholder={__('Enter URL to embed here…')}
+                    placeholder={__('Enter URL to embed here…', TEXT_DOMAIN)}
                     onChange={onChange}
                 />
                 <Button __next40pxDefaultSize variant="primary" type="submit">
-                    {_x('Embed', 'button label')}
+                    {_x('Embed', 'button label', TEXT_DOMAIN)}
                 </Button>
             </form>
             <div className="wp-block-embed__learn-more">
                 <ExternalLink
                     href={__(
-                        'https://wordpress.org/documentation/article/embeds/'
+                        'https://wordpress.org/documentation/article/embeds/',
+                        TEXT_DOMAIN
                     )}
                 >
-                    {__('Learn more about embeds')}
+                    {__('Learn more about embeds', TEXT_DOMAIN)}
                 </ExternalLink>
             </div>
             {cannotEmbed && (
                 <VStack spacing={3} className="components-placeholder__error">
                     <div className="components-placeholder__instructions">
-                        {__('Sorry, this content could not be embedded.')}
+                        {__('Sorry, this content could not be embedded.', TEXT_DOMAIN)}
                     </div>
                     <HStack expanded={false} spacing={3} justify="flex-start">
                         <Button
@@ -82,14 +85,14 @@ export default function EmbedPlaceholder({
                             variant="secondary"
                             onClick={tryAgain}
                         >
-                            {_x('Try again', 'button label')}
+                            {_x('Try again', 'button label', TEXT_DOMAIN)}
                         </Button>{' '}
                         <Button
                             __next40pxDefaultSize
                             variant="secondary"
                             onClick={fallback}
                         >
-                            {_x('Convert to link', 'button label')}
+                            {_x('Convert to link', 'button label', TEXT_DOMAIN)}
                         </Button>
                     </HStack>
                 </VStack>

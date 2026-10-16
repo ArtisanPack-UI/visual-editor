@@ -96,6 +96,14 @@ still references surfaces a yellow "Shadow preset(s) no longer
 available: …" notice above the panel until the slug is restored or
 the reference is cleared.
 
+*Since v1.15.0 (#872)*, `<x-ve-blocks-styles :theme-json="…" />`
+declares each `settings.shadow.presets` entry on the front end as a
+`--wp--preset--shadow--{slug}` custom property, so a preset shadow
+(`box-shadow: var(--wp--preset--shadow--{slug})`) resolves on the
+published page as it does in the canvas. A preset value that could
+break out of the generated stylesheet is dropped instead of printed
+(see [Global styles: value safety](site-editor/Global-Styles.md#value-safety)).
+
 ## Attribute shape
 
 The inspector writes a structured subtree at `attributes.style.shadow`:

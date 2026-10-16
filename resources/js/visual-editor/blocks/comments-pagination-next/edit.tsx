@@ -14,8 +14,8 @@ import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { createEntityPlaceholderEdit } from '../_shared/entity-placeholder-edit';
 
 export default createEntityPlaceholderEdit( {
-    label: __( 'Newer Comments', TEXT_DOMAIN ),
+    label: () => __( 'Newer Comments', TEXT_DOMAIN ),
     resolvedKey: '_resolvedPaginationNextLabel',
     kind: 'text',
-    dummyValue: { text: 'Newer Comments →' },
+    dummyValue: () => ( { text: `${ __( 'Newer Comments', TEXT_DOMAIN ) } →` } ),
 } );

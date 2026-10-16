@@ -94,6 +94,7 @@ export const GridBlock = defineComponent({
             const photoGridScope = attrString(props.attributes._vePhotoGridScope);
 
             const classes = classList([
+                'wp-block-artisanpack-grid',
                 'ap-grid',
                 `ap-grid-has-${baseColumns}-base-columns`,
                 ...responsiveSpanClasses(responsiveColumns, 'columns', 'ap-grid-has'),
@@ -146,6 +147,7 @@ export const GridItemBlock = defineComponent({
             const className = attrString(props.attributes.className);
 
             const classes = classList([
+                'wp-block-artisanpack-grid-item',
                 'ap-grid-item',
                 `ap-grid-item-layout-${innerLayout}`,
                 `ap-grid-item-span-${baseColumnSpan}-base-columns`,

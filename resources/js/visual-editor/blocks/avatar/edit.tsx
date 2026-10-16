@@ -18,10 +18,13 @@
  * sub-issue is implemented. Author family fork (#518).
  */
 
+import { __ } from '@wordpress/i18n';
+
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { createEntityPlaceholderEdit } from '../_shared/entity-placeholder-edit';
 
 export default createEntityPlaceholderEdit( {
-    label: 'Avatar',
+    label: () => __( 'Avatar', TEXT_DOMAIN ),
     resolvedKey: '_resolvedAuthorAvatar',
     altKey: '_resolvedAuthorName',
     kind: 'image',

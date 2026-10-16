@@ -90,6 +90,18 @@ The `artisanpack` category is registered automatically by the editor; any
 block whose `category` matches that slug shows up in the block library
 sidebar under the ArtisanPack heading.
 
+Every block also gets the visual editor's **Effects** panel and its
+`artisanpackEffects` attribute (see [Effects](Effects.md)). A block that
+shouldn't take effects opts out under `supports`:
+
+```json
+{
+    "supports": {
+        "artisanpackEffects": false
+    }
+}
+```
+
 ---
 
 ## 3. PHP registration
@@ -227,7 +239,7 @@ Use a dynamic block when:
 
 ### Dynamic block hooks
 
-`DynamicBlock` exposes four overridable methods. Only `name()` and
+`DynamicBlock` exposes seven overridable methods. Only `name()` and
 `render()` are required; the others have safe defaults.
 
 ```php
@@ -249,6 +261,16 @@ abstract class DynamicBlock
     public function authorize(?Authenticatable $user, array $attrs): bool
     {
         return true;
+    }
+
+    public function appliesOwnSupports(): bool // since 1.15.0
+    {
+        return false;
+    }
+
+    public function supportAttributes(array $attrs): array // since 1.15.0
+    {
+        return $attrs;
     }
 }
 ```
@@ -293,6 +315,47 @@ abstract class DynamicBlock
       return $user?->can('view-internal-block') ?? false;
   }
   ```
+
+- **`appliesOwnSupports(): bool`** (since 1.15.0) — whether `render()`
+  already applies the block's supports (color, spacing, border, anchor,
+  className, states, responsive, effects, …) to its own wrapper. The
+  default `false` lets the Blade renderer merge them into the rendered
+  HTML (see [§5.4](#54-dynamic-blocks-and-renderers)). Return `true` when
+  the block builds its wrapper with `BlockSupports::wrapperAttrs()`
+  itself, or renders no wrapper of its own (for example, it only renders
+  an inner block tree), so the supports aren't applied twice or onto the
+  wrong element.
+
+  ```php
+  public function appliesOwnSupports(): bool
+  {
+      return true;
+  }
+  ```
+
+  Closure registrations take the same switch as an option, through
+  `registerDynamicBlock()` or the `$callbacks` of `registerServerBlock()`:
+
+  ```php
+  VisualEditor::registerDynamicBlock('acme/notice', [
+      'render'             => fn (array $attrs) => view('blocks.notice', $attrs),
+      'appliesOwnSupports' => true,
+  ]);
+  ```
+
+- **`supportAttributes(array $attrs): array`** (since 1.15.0) — the
+  attribute bag the renderer compiles supports from when
+  `appliesOwnSupports()` is `false`. It receives `validateAttrs()`'s
+  output plus the stored block-support keys the validator didn't return
+  (`anchor`, `className`, `align`, `textAlign`, `style`, the color,
+  gradient, font and border presets, `layout`, `responsive`, `states`,
+  `artisanpackStates`, `artisanpackEffects`, `artisanpackAnimations` and
+  `animation`; the Blade renderer's `BlockRenderer::SUPPORT_ATTRIBUTE_KEYS`).
+  Any other key the validator drops stays dropped. A support key the
+  validator returns, even as `''` or `null`, wins over the stored value,
+  which is how a block removes one. Override this to drop or rewrite keys
+  the block stores in a shape the supports compiler would misread (for
+  example, a legacy hex value in a palette-slug slot).
 
 ### Block preview endpoint
 
@@ -378,6 +441,46 @@ Dynamic blocks do **not** need per-renderer partials. The Blade renderer
 invokes the registered `DynamicBlock::render()` directly; the React and
 Vue renderers fall back to `<DynamicBlock>` which fetches the server-
 rendered HTML from the preview endpoint.
+
+Since 1.15 (#874) the Blade renderer gives a dynamic block the block
+supports its `block.json` declares, the same as a Blade-partial block.
+Unless the block's `appliesOwnSupports()` returns `true`, the output of
+`BlockSupports::compile()` (classes, inline styles, anchor, states,
+responsive and effects scopes, animations) for `supportAttributes()` is
+merged into the wrapper element of the rendered HTML.
+
+**Which element is the wrapper:**
+
+1. The element carrying a `data-ve-wrapper` attribute, when the output
+   marks one.
+2. Otherwise the first element, skipping leading whitespace, comments,
+   `<style>`, `<script>`, `<template>`, `<noscript>`, `<link>` and
+   `<meta>`, any leading `<svg>`, and any leading element with
+   `aria-hidden="true"` (subtree included). So the classes and anchor
+   `id` never land on an asset or a decorative icon.
+
+Mark the real wrapper when it isn't the first visible element:
+
+```blade
+<span class="acme-notice__icon">…</span>
+<div class="acme-notice" data-ve-wrapper>
+    {{ $message }}
+</div>
+```
+
+**The merge never overrides the handler's output:**
+
+- classes are appended and deduped;
+- a declaration is added only when the wrapper's `style` doesn't already
+  set that property, a shorthand that resets it (an existing `padding`
+  blocks `padding-top`), or a longhand it would reset (an existing
+  `background-color` blocks `background`). Sibling longhands still merge
+  (`padding-top` doesn't block `padding-bottom`);
+- `id` and the animation `data-*` attributes are added only when absent.
+
+The React and Vue renderers don't merge supports into the HTML the
+preview endpoint returns; a dynamic block rendered there shows only what
+`render()` prints.
 
 ---
 

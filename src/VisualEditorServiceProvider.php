@@ -20,6 +20,10 @@ use ArtisanPackUI\VisualEditor\Blocks\DynamicContent\DynamicLoopBlock;
 use ArtisanPackUI\VisualEditor\Blocks\DynamicContent\SnippetBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Forms\FormBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Icon\IconBlock;
+use ArtisanPackUI\VisualEditor\BlockStyles\BlockStyleCssCompiler;
+use ArtisanPackUI\VisualEditor\BlockStyles\BlockStyleRegistry;
+use ArtisanPackUI\VisualEditor\BlockStyles\BlockStyleResolver;
+use ArtisanPackUI\VisualEditor\BlockStyles\BlockStyleVariationParser;
 use ArtisanPackUI\VisualEditor\BoxShadow\BoxShadowEmitter;
 use ArtisanPackUI\VisualEditor\Console\AuditBreakpointsCommand;
 use ArtisanPackUI\VisualEditor\Console\AuditScheduledBlocksCommand;
@@ -346,6 +350,26 @@ class VisualEditorServiceProvider extends ServiceProvider
 			return new DynamicContentSourceRegistry();
 		} );
 
+		// #881 — the model-level Custom CSS guard. Request-scoped so the
+		// values a controller vouched for never outlive the request.
+		$this->app->scoped( Effects\CustomCssModelGuard::class, static fn (): Effects\CustomCssModelGuard => new Effects\CustomCssModelGuard() );
+
+		// #876 — block style variations. Code registrations live in a
+		// singleton so they survive from boot() to render; the resolver
+		// is scoped because it merges in the per-request global styles.
+		$this->app->singleton( BlockStyleRegistry::class, function () {
+			return new BlockStyleRegistry();
+		} );
+
+		$this->app->scoped( BlockStyleResolver::class, function ( $app ) {
+			return new BlockStyleResolver(
+				$app->make( BlockStyleRegistry::class ),
+				new BlockStyleVariationParser(),
+				new BlockStyleCssCompiler(),
+				array_values( (array) $app['config']->get( 'artisanpack.visual-editor.block_styles.directories', [] ) ),
+			);
+		} );
+
 		$this->app->singleton( VisualEditor::class, function ( $app ) {
 			return new VisualEditor(
 				$app->make( BlockTypeRegistry::class ),
@@ -379,7 +403,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 			return new SiteEditorPatternResolver();
 		} );
 
-		$this->app->singleton( SiteEditorGlobalStylesResolver::class, function () {
+		$this->app->scoped( SiteEditorGlobalStylesResolver::class, function () {
 			return new SiteEditorGlobalStylesResolver();
 		} );
 
@@ -734,6 +758,8 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->registerAiLivewireComponents();
 		$this->registerAiGate();
 		$this->registerContentGate();
+		$this->registerBlockCssGate();
+		$this->registerSiteEditorCustomCssFilter();
 
 		Gate::policy( VisualEditorPost::class, VisualEditorPostPolicy::class );
 
@@ -872,10 +898,16 @@ class VisualEditorServiceProvider extends ServiceProvider
 	 * up with empty resolvers — the editor's site-editor surface boots clean
 	 * and the editor renders with zero entities until something registers.
 	 *
+	 * The global styles resolver is the exception: it is bound request-
+	 * scoped and merges its filter on first use in each request (see
+	 * {@see self::mergedGlobalStyles()}), so long-lived workers never serve
+	 * a stale snapshot.
+	 *
 	 * Public so tests (and edge cases that mutate config or hook callbacks at
 	 * runtime) can re-trigger the rebind without going through reflection.
 	 *
 	 * @since 1.0.0
+	 * @since 1.15.0 Binds the global styles resolver request-scoped.
 	 */
 	public function registerSiteEditorResolvers(): void
 	{
@@ -912,18 +944,15 @@ class VisualEditorServiceProvider extends ServiceProvider
 			new SiteEditorPatternResolver( $patternsMerged ),
 		);
 
-		// Global styles ─ singleton (?array). Static-config null-coalesces over
-		// filter return so a host that sets static config wins outright; with no
-		// static config, the filter result is authoritative.
-		$globalStylesStatic = config( 'artisanpack.visual-editor.site-editor.global-styles', null );
-		$globalStylesStatic = is_array( $globalStylesStatic ) ? $globalStylesStatic : null;
-		$globalStylesMerged = applyFilters( 'ap.visualEditor.globalStyles', $globalStylesStatic );
-		$globalStylesMerged = is_array( $globalStylesMerged ) ? $globalStylesMerged : null;
-		$globalStylesMerged = $globalStylesStatic ?? $globalStylesMerged;
-
-		$this->app->instance(
+		// Global styles ─ request-scoped (F-6). The filter's contributors
+		// (cms-framework reads the user's Global Styles row and the active
+		// theme) run on first use in each request rather than once at
+		// boot, so under Octane an edit or a theme switch shows up without
+		// a worker restart. The variations and keyframes read it through
+		// the container, so they pick up the fresh instance too.
+		$this->app->scoped(
 			SiteEditorGlobalStylesResolver::class,
-			new SiteEditorGlobalStylesResolver( $globalStylesMerged ),
+			fn (): SiteEditorGlobalStylesResolver => new SiteEditorGlobalStylesResolver( $this->mergedGlobalStyles() ),
 		);
 
 		// Navigation ─ array<string, array> keyed by location.
@@ -936,6 +965,26 @@ class VisualEditorServiceProvider extends ServiceProvider
 			SiteEditorMenuResolver::class,
 			new SiteEditorMenuResolver( $menusMerged ),
 		);
+	}
+
+	/**
+	 * The global styles payload: the static config, else the
+	 * `ap.visualEditor.globalStyles` filter result. Static config
+	 * null-coalesces over the filter return, so a host that sets it wins
+	 * outright; with no static config, the filter result is authoritative.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @return array<string, mixed>|null
+	 */
+	protected function mergedGlobalStyles(): ?array
+	{
+		$static = config( 'artisanpack.visual-editor.site-editor.global-styles', null );
+		$static = is_array( $static ) ? $static : null;
+		$merged = applyFilters( 'ap.visualEditor.globalStyles', $static );
+		$merged = is_array( $merged ) ? $merged : null;
+
+		return $static ?? $merged;
 	}
 
 	/**
@@ -1666,6 +1715,52 @@ class VisualEditorServiceProvider extends ServiceProvider
 		Gate::define(
 			Ai\Support\AiAccess::ABILITY,
 			static fn ( ?\Illuminate\Contracts\Auth\Authenticatable $user ): bool => Ai\Support\AiAccess::allows( $user ),
+		);
+	}
+
+	/**
+	 * Define the default `visual-editor.edit-block-css` gate unless the
+	 * host already has (#881). Denies by default; see
+	 * {@see Effects\BlockCssAccess}.
+	 *
+	 * @since 1.15.0
+	 */
+	protected function registerBlockCssGate(): void
+	{
+		if ( Gate::has( Effects\BlockCssAccess::ABILITY ) ) {
+			return;
+		}
+
+		Gate::define(
+			Effects\BlockCssAccess::ABILITY,
+			static fn ( ?\Illuminate\Contracts\Auth\Authenticatable $user ): bool => Effects\BlockCssAccess::allows( $user ),
+		);
+	}
+
+	/**
+	 * Run {@see Effects\CustomCssGuard} on the block trees cms-framework's
+	 * Site Editor API is about to store (F-1), through its
+	 * `ap.cmsFramework.siteEditor.blockContent` filter
+	 * (`$blocks, ?array $storedBlocks, string $context`). The filter runs
+	 * before the model save, so the stored blocks it passes (the record's,
+	 * or the theme file's for a file→DB copy) are vouched for and the
+	 * model-level guard keeps them too.
+	 *
+	 * Gated on `addFilter` to keep visual-editor bootable when
+	 * `artisanpack-ui/hooks` isn't on the classpath. A cms-framework that
+	 * doesn't fire the filter is still covered by the model-level guard.
+	 *
+	 * @since 1.15.0
+	 */
+	protected function registerSiteEditorCustomCssFilter(): void
+	{
+		if ( ! function_exists( 'addFilter' ) ) {
+			return;
+		}
+
+		addFilter(
+			'ap.cmsFramework.siteEditor.blockContent',
+			static fn ( mixed $blocks, mixed $storedBlocks = null ): mixed => app( Effects\CustomCssGuard::class )->filter( $blocks, $storedBlocks ),
 		);
 	}
 

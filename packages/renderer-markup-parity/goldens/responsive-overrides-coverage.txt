@@ -1,0 +1,22 @@
+<div class="wp-block-group is-layout-flow wp-block-group-is-layout-flow ve-r-292c76bcaf">
+  <p class="wp-block-paragraph ve-r-c368224442">
+    "Legacy and device"
+  </p>
+</div>
+@@ renderer-instance-css @@
+.ve-r-292c76bcaf.ve-r-292c76bcaf.ve-r-292c76bcaf{padding:1rem!important}
+.ve-r-c368224442.ve-r-c368224442.ve-r-c368224442{color:#111111!important}
+@media (max-width:1023px){.ve-r-292c76bcaf.ve-r-292c76bcaf.ve-r-292c76bcaf{border-color:#ff0000!important}}
+@media (max-width:1023px){.ve-r-292c76bcaf.ve-r-292c76bcaf.ve-r-292c76bcaf{border-width:2px!important}}
+@media (max-width:1023px){.ve-r-292c76bcaf.ve-r-292c76bcaf.ve-r-292c76bcaf{min-height:50vh!important}}
+@media (max-width:1023px){.ve-r-c368224442.ve-r-c368224442.ve-r-c368224442{color:#333333!important}}
+@media (max-width:767px){.ve-r-292c76bcaf.ve-r-292c76bcaf.ve-r-292c76bcaf{background-color:var(--wp--preset--color--accent)!important}}
+@media (max-width:767px){.ve-r-292c76bcaf.ve-r-292c76bcaf.ve-r-292c76bcaf{border-color:red/stylescriptalert(1)/script!important}}
+@media (max-width:767px){.ve-r-292c76bcaf.ve-r-292c76bcaf.ve-r-292c76bcaf{border-style:dashed!important}}
+@media (max-width:767px){.ve-r-292c76bcaf.ve-r-292c76bcaf.ve-r-292c76bcaf{border-width:1pxbodycolorred!important}}
+@media (max-width:767px){.ve-r-292c76bcaf.ve-r-292c76bcaf.ve-r-292c76bcaf{min-height:320px!important}}
+@media (max-width:767px){.ve-r-292c76bcaf.ve-r-292c76bcaf.ve-r-292c76bcaf{padding:0.5rem!important}}
+@media (max-width:767px){.ve-r-c368224442.ve-r-c368224442.ve-r-c368224442{font-size:1rem!important}}
+@media (min-width:1024px){.ve-r-c368224442.ve-r-c368224442.ve-r-c368224442{color:#222222!important}}
+@media (min-width:768px){.ve-r-292c76bcaf.ve-r-292c76bcaf.ve-r-292c76bcaf{padding:2rem!important}}
+@media (min-width:768px){.ve-r-c368224442.ve-r-c368224442.ve-r-c368224442{font-size:1.5rem!important}}

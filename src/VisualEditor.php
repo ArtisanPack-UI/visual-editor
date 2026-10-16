@@ -22,6 +22,8 @@ namespace ArtisanPackUI\VisualEditor;
 use ArtisanPackUI\VisualEditor\Blocks\ClosureDynamicBlock;
 use ArtisanPackUI\VisualEditor\Blocks\DynamicBlock;
 use ArtisanPackUI\VisualEditor\Blocks\ProvidesBlockMetadata;
+use ArtisanPackUI\VisualEditor\BlockStyles\BlockStyleRegistry;
+use ArtisanPackUI\VisualEditor\BlockStyles\BlockStyleResolver;
 use ArtisanPackUI\VisualEditor\DynamicContent\HostDynamicContentSource;
 use ArtisanPackUI\VisualEditor\Registries\BlockTypeRegistry;
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
@@ -214,6 +216,56 @@ class VisualEditor
 	}
 
 	/**
+	 * Registers a block style variation (#876): an entry in the block's
+	 * Styles picker that adds `is-style-{slug}` to the block, styled on
+	 * the canvas and front end from `$style`.
+	 *
+	 * `$style` is a theme.json style node — the same shape as
+	 * `styles.blocks.{block}.variations.{slug}` (`color`, `typography`,
+	 * `spacing`, `border`, `shadow`, `elements`, nested `blocks`). Leave
+	 * it empty to label a variation the theme already styles. A code
+	 * registration wins over the theme's own on the same block + slug.
+	 *
+	 * Call it while the application boots (a service provider's `boot()`).
+	 * Registrations live in a process-wide registry, so under Octane one
+	 * made while handling a request would leak into every later request
+	 * the worker serves.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  string                $block      Block name, e.g. `core/group`.
+	 * @param  string                $slug       Variation slug.
+	 * @param  string                $label      Picker label.
+	 * @param  array<string, mixed>  $style      theme.json style node.
+	 * @param  bool                  $isDefault  Whether it is the block's default style.
+	 *
+	 * @throws InvalidArgumentException When the block name or slug is malformed.
+	 */
+	public function registerBlockStyle( string $block, string $slug, string $label, array $style = [], bool $isDefault = false ): void
+	{
+		app( BlockStyleRegistry::class )->register( $block, $slug, $label, $style, $isDefault );
+
+		if ( app()->resolved( BlockStyleResolver::class ) ) {
+			app( BlockStyleResolver::class )->flush();
+		}
+	}
+
+	/**
+	 * Removes a block style variation registered in code (#876). Like
+	 * {@see self::registerBlockStyle()}, call it at boot.
+	 *
+	 * @since 1.15.0
+	 */
+	public function unregisterBlockStyle( string $block, string $slug ): void
+	{
+		app( BlockStyleRegistry::class )->unregister( $block, $slug );
+
+		if ( app()->resolved( BlockStyleResolver::class ) ) {
+			app( BlockStyleResolver::class )->flush();
+		}
+	}
+
+	/**
 	 * Returns the block type registry instance.
 	 *
 	 * @since 1.0.0
@@ -263,10 +315,15 @@ class VisualEditor
 	 *          'searchableText' => fn (array $attrs) => $attrs['title'] ?? '',
 	 *      ]);`
 	 *
+	 *      The front-end renderer merges the block's supports (color,
+	 *      spacing, anchor, …) into the first tag the render callback
+	 *      returns. Pass `'appliesOwnSupports' => true` when the callback
+	 *      already applies them via `BlockSupports::wrapperAttrs()` (#874).
+	 *
 	 * @since 1.0.0
 	 *
 	 * @param  class-string<DynamicBlock>|DynamicBlock|string  $blockOrName
-	 * @param  array<string, callable>|null                    $config
+	 * @param  array<string, bool|callable>|null               $config
 	 */
 	public function registerDynamicBlock( $blockOrName, ?array $config = null ): DynamicBlock
 	{
@@ -499,6 +556,7 @@ class VisualEditor
 			searchCallback: $this->optionalCallback( $name, $config, 'searchableText' ),
 			validateCallback: $this->optionalCallback( $name, $config, 'validateAttrs' ),
 			authorizeCallback: $this->optionalCallback( $name, $config, 'authorize' ),
+			ownSupports: true === ( $config['appliesOwnSupports'] ?? false ),
 		);
 	}
 

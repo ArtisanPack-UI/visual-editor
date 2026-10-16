@@ -1,0 +1,6 @@
+<p class="wp-block-paragraph ve-r-a5863ed73a">
+  "Tombstone"
+</p>
+@@ renderer-instance-css @@
+@media (max-width:1023px){.ve-r-a5863ed73a.ve-r-a5863ed73a.ve-r-a5863ed73a{font-size:20px!important}}
+@media (max-width:767px){.ve-r-a5863ed73a.ve-r-a5863ed73a.ve-r-a5863ed73a{font-size:var(--wp--preset--font-size--small)!important}}

@@ -1,0 +1,8 @@
+<div class="wp-block-group is-layout-constrained wp-block-group-is-layout-constrained">
+  <p class="wp-block-paragraph">
+    "One"
+  </p>
+  <p class="wp-block-paragraph">
+    "Two"
+  </p>
+</div>

@@ -80,6 +80,20 @@ Filtering: the inserter filters by category and by the pattern's
 `blockTypes` restriction. A pattern with `blockTypes: ['core/group']`
 only appears when a group is selected.
 
+**Search.** *Since v1.15.0 (#893).* The inserter's Patterns panel has a
+search field. Every whitespace-separated term must appear in the
+pattern's title, slug, one of its categories or one of its `keywords`,
+ignoring case and accents (`cafe` matches `Café`), as Gutenberg's
+inserter search does. When a search stops matching, "No patterns match
+your search." is announced politely to screen readers.
+
+**Hidden patterns.** *Since v1.15.0 (#893).* A pattern with
+`inserter: false` (a theme pattern file's `Inserter: no` header) stays
+registered, so templates and code can still reference it, and the site
+editor's pattern library still lists it. The inserter's Patterns panel
+and the page-pattern modal leave it out. A missing value keeps the
+pattern visible.
+
 ### Pattern previews
 
 *Since v1.13.0 (#832).* Pattern cards show a scaled, non-interactive
@@ -155,6 +169,15 @@ who passes the `visual-editor.edit-content` ability (see
 and is throttled at 120 requests per minute per user, in its own
 rate-limit bucket.
 
+**Subclassing the renderer.** *Since v1.15.0*, previews read theme
+stylesheets through `ThemeStylesheets`, the same reader the canvas
+stylesheet uses. In `PatternPreviewRenderer`, the protected
+`themeBaseUrl()` method is deprecated in favor of
+`ThemeStylesheets::baseUrl()`, and the protected
+`STYLESHEET_READER_FQCN` / `THEME_ASSETS_ROUTE` constants are
+deprecated in favor of the `ThemeStylesheets` constants of the same
+names. They still work.
+
 ---
 
 ## 4. The `core/block` block (pattern reference)
@@ -221,6 +244,36 @@ Static patterns are merged with DB-stored user patterns. They show up in
 the inserter alongside user-created patterns and get a "theme" badge in
 the navigator. Editing a theme pattern in the site editor creates a user
 override (same fallback-chain pattern as templates).
+
+### Keywords, inserter and template types
+
+*Since v1.15.0 (#893).* A pattern can carry three more WordPress
+fields, which the pattern REST payload passes through to the editor:
+
+| Key | Theme file header | Effect |
+|-----|-------------------|--------|
+| `keywords` | `Keywords:` | Extra terms the inserter search matches (see [§3](#3-the-pattern-library-and-inserter)). |
+| `inserter` | `Inserter:` | `false` (or `no`, `off`, `0`) hides the pattern from the inserter's Patterns panel and the page-pattern modal. The site editor's pattern library still lists it. |
+| `template_types` | `Template Types:` | The template types the pattern suits. |
+
+`keywords` and `template_types` are lists. A pattern registered through
+config or the `ap.visualEditor.patterns` filter sets them as keys of the
+pattern entry:
+
+```php
+'hero' => [
+    'title'          => 'Hero',
+    'categories'     => ['layout'],
+    'keywords'       => ['banner', 'header'],
+    'inserter'       => true,
+    'template_types' => ['front-page'],
+    'content'        => '<!-- wp:cover {...} --><!-- /wp:cover -->',
+],
+```
+
+cms-framework 2.15 reads the headers from theme pattern files and fills
+these fields. With an older cms-framework, theme file patterns carry
+none of them, so every pattern stays in the inserter.
 
 ### Page-pattern modal and post types
 

@@ -266,7 +266,7 @@ describe('Core navigation blocks (Vue)', () => {
 
         const html = renderTree(tree);
 
-        expect(html).toContain('class="wp-block-navigation is-horizontal is-responsive"');
+        expect(html).toContain('class="wp-block-navigation is-layout-flex wp-block-navigation-is-layout-flex is-horizontal is-responsive"');
         expect(html).toContain('aria-label="Primary"');
         expect(html).toContain('<ul class="wp-block-navigation__container">');
         expect(html).toContain('href="https://example.test/about"');
@@ -357,7 +357,7 @@ describe('Core navigation blocks (Vue)', () => {
             ]),
         ];
 
-        expect(renderTree(tree)).toContain('<nav class="wp-block-navigation is-horizontal is-responsive">');
+        expect(renderTree(tree)).toContain('<nav class="wp-block-navigation is-layout-flex wp-block-navigation-is-layout-flex is-horizontal is-responsive">');
     });
 
     it('drops javascript: navigation link URLs', () => {

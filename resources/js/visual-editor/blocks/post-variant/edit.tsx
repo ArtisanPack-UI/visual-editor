@@ -118,26 +118,32 @@ function isGridLayout( context: PostVariantContext | undefined ): boolean {
     return context?.displayLayout?.type === 'grid';
 }
 
-const POSITION_PRESETS: ReadonlyArray<{ value: string; label: string }> = [
-    { value: 'first', label: 'First post' },
-    { value: 'last', label: 'Last post' },
-    { value: 'nth:2', label: '2nd post' },
-    { value: 'nth:3', label: '3rd post' },
-    { value: 'range:1-3', label: 'Posts 1–3' },
-];
+function positionPresets(): ReadonlyArray<{ value: string; label: string }> {
+    return [
+        { value: 'first', label: __( 'First post', TEXT_DOMAIN ) },
+        { value: 'last', label: __( 'Last post', TEXT_DOMAIN ) },
+        { value: 'nth:2', label: __( '2nd post', TEXT_DOMAIN ) },
+        { value: 'nth:3', label: __( '3rd post', TEXT_DOMAIN ) },
+        { value: 'range:1-3', label: __( 'Posts 1–3', TEXT_DOMAIN ) },
+    ];
+}
 
-const PATTERN_PRESETS: ReadonlyArray<{ value: string; label: string }> = [
-    { value: 'odd', label: 'Odd posts' },
-    { value: 'even', label: 'Even posts' },
-    { value: 'every-nth:3', label: 'Every 3rd post' },
-    { value: 'every-nth:4', label: 'Every 4th post' },
-];
+function patternPresets(): ReadonlyArray<{ value: string; label: string }> {
+    return [
+        { value: 'odd', label: __( 'Odd posts', TEXT_DOMAIN ) },
+        { value: 'even', label: __( 'Even posts', TEXT_DOMAIN ) },
+        { value: 'every-nth:3', label: __( 'Every 3rd post', TEXT_DOMAIN ) },
+        { value: 'every-nth:4', label: __( 'Every 4th post', TEXT_DOMAIN ) },
+    ];
+}
 
-const META_PRESETS: ReadonlyArray<{ value: string; label: string }> = [
-    { value: 'sticky', label: 'Sticky posts' },
-    { value: 'featured', label: 'Featured posts' },
-    { value: 'has-featured-image', label: 'Posts with a featured image' },
-];
+function metaPresets(): ReadonlyArray<{ value: string; label: string }> {
+    return [
+        { value: 'sticky', label: __( 'Sticky posts', TEXT_DOMAIN ) },
+        { value: 'featured', label: __( 'Featured posts', TEXT_DOMAIN ) },
+        { value: 'has-featured-image', label: __( 'Posts with a featured image', TEXT_DOMAIN ) },
+    ];
+}
 
 function getMatcher( attributes: PostVariantAttributes ): Matcher {
     if (
@@ -205,11 +211,11 @@ export default function PostVariantEdit( {
 
     const presets =
         matcher.kind === 'position'
-            ? POSITION_PRESETS
+            ? positionPresets()
             : matcher.kind === 'pattern'
-              ? PATTERN_PRESETS
+              ? patternPresets()
               : matcher.kind === 'meta'
-                ? META_PRESETS
+                ? metaPresets()
                 : null;
 
     const summary = buildSummary( matcher, label );
@@ -252,10 +258,7 @@ export default function PostVariantEdit( {
                             }
                             options={ [
                                 { value: '', label: __( 'Custom value…', TEXT_DOMAIN ) },
-                                ...presets.map( ( preset ) => ( {
-                                    value: preset.value,
-                                    label: __( preset.label, TEXT_DOMAIN ),
-                                } ) ),
+                                ...presets,
                             ] }
                             onChange={ ( value: string ) => {
                                 if ( '' === value ) {

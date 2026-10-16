@@ -8,6 +8,8 @@
  */
 
 import { useCallback } from 'react';
+import { __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../vendor/i18n';
 import type { AiApiClient, HeadingIssue } from './ai-api-client';
 import { useHeadingHierarchy } from './hooks';
 
@@ -29,14 +31,14 @@ export function HeadingHierarchyPanel(props: HeadingHierarchyPanelProps) {
     return (
         <section className="ap-ve-ai-headings" data-testid="ap-ve-ai-headings">
             <header>
-                <h3>{label ?? 'Heading hierarchy check'}</h3>
+                <h3>{label ?? __('Heading hierarchy check', TEXT_DOMAIN)}</h3>
                 <button
                     type="button"
                     onClick={handleClick}
                     disabled={call.status === 'loading'}
                     data-testid="ap-ve-ai-headings-run"
                 >
-                    {call.status === 'loading' ? 'Checking…' : 'Run check'}
+                    {call.status === 'loading' ? __('Checking…', TEXT_DOMAIN) : __('Run check', TEXT_DOMAIN)}
                 </button>
             </header>
 
@@ -47,7 +49,7 @@ export function HeadingHierarchyPanel(props: HeadingHierarchyPanelProps) {
             {call.status === 'success' && call.result && (
                 <ul className="ap-ve-ai-headings__list">
                     {call.result.issues.length === 0 && (
-                        <li className="ap-ve-ai-headings__clean">No heading issues found.</li>
+                        <li className="ap-ve-ai-headings__clean">{__('No heading issues found.', TEXT_DOMAIN)}</li>
                     )}
                     {call.result.issues.map((issue: HeadingIssue) => (
                         <li key={issue.block_id} className="ap-ve-ai-headings__item">

@@ -16,6 +16,9 @@ import {
     useBlockProps,
     useInnerBlocksProps,
 } from '@wordpress/block-editor';
+import { __ } from '@wordpress/i18n';
+
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 
 interface ListItemAttributes {
     readonly placeholder?: string;
@@ -49,8 +52,8 @@ export default function ListItemEdit({
                     setAttributes({ content: nextContent })
                 }
                 value={content}
-                aria-label="List text"
-                placeholder={placeholder || 'List'}
+                aria-label={__('List text', TEXT_DOMAIN)}
+                placeholder={placeholder || __('List', TEXT_DOMAIN)}
                 onMerge={mergeBlocks}
             />
             {(innerBlocksProps as { children?: React.ReactNode }).children}

@@ -14,8 +14,8 @@ import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { createCommentPlaceholderEdit } from '../_shared/comment-placeholder-edit';
 
 export default createCommentPlaceholderEdit( {
-    label: __( 'Edit', TEXT_DOMAIN ),
+    label: () => __( 'Edit', TEXT_DOMAIN ),
     resolvedKey: '_resolvedEditLinkLabel',
     kind: 'text',
-    dummyValue: { text: 'Edit' },
+    dummyValue: () => ( { text: __( 'Edit', TEXT_DOMAIN ) } ),
 } );

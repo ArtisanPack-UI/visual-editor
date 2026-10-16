@@ -43,6 +43,11 @@
 {!! $elementsCss !!}
 @endif
 @endisset
+@isset( $duotoneCss )
+@if( '' !== $duotoneCss )
+{!! $duotoneCss !!}
+@endif
+@endisset
 {!! $html !!}
 @isset( $animationsRuntimeNeeded )
 @if( $animationsRuntimeNeeded )

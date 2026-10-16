@@ -142,6 +142,12 @@ it( 'emits the layout-flow block-gap baseline rule for sibling spacing', functio
 		->toContain( 'margin-block-start: var(--wp--style--block-gap, 24px)' );
 } );
 
+it( 'spaces flex and grid layout children with the block gap (#883)', function (): void {
+	expect( Blade::render( '<x-ve-blocks-styles />' ) )
+		->toContain( ':where(.is-layout-flex) { gap: var(--wp--style--block-gap, 0.5em); }' )
+		->toContain( ':where(.is-layout-grid) { gap: var(--wp--style--block-gap, 0.5em); }' );
+} );
+
 it( 'publishes block-library assets under the visual-editor-renderer-blade-assets tag', function (): void {
 	$published = public_path( 'vendor/visual-editor-renderer-blade' );
 
@@ -319,4 +325,14 @@ describe( 'default styles scope (#821)', function (): void {
 
 		expect( Blade::render( '<x-ve-blocks-styles />' ) )->not->toContain( 'data-ve-default-styles' );
 	} );
+} );
+
+it( 'resets the inherited block gap on every layout container (M-15)', function (): void {
+	// A container's own Block spacing is inline `--wp--style--block-gap`,
+	// an inherited property, so without the reset a nested Row or Grid
+	// picked up its ancestor's spacing as its own `gap`.
+	expect( Blade::render( '<x-ve-blocks-styles />' ) )
+		->toContain( ':where(body) { --ap-root-block-gap: var(--wp--style--block-gap); }' )
+		->toContain( ':where(.is-layout-flow, .is-layout-constrained, .is-layout-flex, .is-layout-grid) { --wp--style--block-gap: var(--ap-root-block-gap); }' )
+		->toContain( ':where(.wp-block-columns) { --ap-columns-gap: var(--wp--style--block-gap); }' );
 } );

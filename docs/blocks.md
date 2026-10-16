@@ -83,6 +83,14 @@ Both registries are configured in `config/artisanpack/visual-editor.php` — see
 
 ---
 
+## Effects and Custom CSS
+
+Since 1.15 every block has an **Effects** panel (Styles → Effects): opacity, horizontal and vertical overflow, backdrop blur and saturation, blend mode, isolation, z-index, clip shapes and gradient text. Users with the `visual-editor.edit-block-css` ability can also attach Custom CSS to one block. The values are stored in the `artisanpackEffects` attribute and compile to a hashed `ve-fx-{hash}` class with the same CSS in Blade, React, Vue and the editor canvas. A block opts out with `supports.artisanpackEffects: false`.
+
+Full contract: [[blocks/Effects]].
+
+---
+
 ## Block JSON shape
 
 Every block is described by a Gutenberg-compatible `block.json`. Minimum fields for the ArtisanPack pipeline:
@@ -104,5 +112,6 @@ Full schema reference: [WordPress block.json reference](https://developer.wordpr
 - [[blocks/Custom Blocks]] — Authoring custom blocks (static and dynamic)
 - [[blocks/Responsive Design Tools]] — Per-breakpoint values
 - [[blocks/State Design Tools]] — Per-state values
+- [[blocks/Effects]] — Block effects and per-block Custom CSS
 - [[Renderers]] — Rendering blocks on the public site
 - [[Post Editor]] — Where authors interact with blocks

@@ -8,6 +8,7 @@
 
 import type { ReactElement } from 'react';
 import { __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import {
     InspectorControls,
     useSettings,
@@ -135,7 +136,7 @@ export default function SpacerControls({
         <InspectorControls>
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             <ToolsPanel
-                label={__('Settings')}
+                label={__('Settings', TEXT_DOMAIN)}
                 resetAll={() => {
                     setAttributes({
                         width: undefined,
@@ -146,7 +147,7 @@ export default function SpacerControls({
                 {orientation === 'horizontal' && (
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     <ToolsPanelItem
-                        label={__('Width')}
+                        label={__('Width', TEXT_DOMAIN)}
                         isShownByDefault
                         hasValue={() => width !== undefined}
                         onDeselect={() =>
@@ -154,7 +155,7 @@ export default function SpacerControls({
                         }
                     >
                         <DimensionInput
-                            label={__('Width')}
+                            label={__('Width', TEXT_DOMAIN)}
                             value={width}
                             onChange={(nextWidth: string) =>
                                 setAttributes({ width: nextWidth })
@@ -166,7 +167,7 @@ export default function SpacerControls({
                 {orientation !== 'horizontal' && (
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     <ToolsPanelItem
-                        label={__('Height')}
+                        label={__('Height', TEXT_DOMAIN)}
                         isShownByDefault
                         hasValue={() => height !== '100px'}
                         onDeselect={() =>
@@ -174,7 +175,7 @@ export default function SpacerControls({
                         }
                     >
                         <DimensionInput
-                            label={__('Height')}
+                            label={__('Height', TEXT_DOMAIN)}
                             value={height}
                             onChange={(nextHeight: string) =>
                                 setAttributes({ height: nextHeight })

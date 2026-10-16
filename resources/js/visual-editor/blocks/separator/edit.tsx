@@ -18,6 +18,7 @@ import {
 } from '@wordpress/block-editor';
 import { HorizontalRule, SelectControl } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 
 import useDeprecatedOpacity from './use-deprecated-opacity';
 
@@ -39,22 +40,24 @@ function HtmlElementControl({
 }: HtmlElementControlProps): ReactElement {
     return (
         <SelectControl
-            label={__('HTML element')}
+            label={__('HTML element', TEXT_DOMAIN)}
             value={tagName ?? 'hr'}
             onChange={(newValue: string) =>
                 setAttributes({ tagName: newValue as 'hr' | 'div' })
             }
             options={[
-                { label: __('Default (<hr>)'), value: 'hr' },
+                { label: __('Default (<hr>)', TEXT_DOMAIN), value: 'hr' },
                 { label: '<div>', value: 'div' },
             ]}
             help={
                 tagName === 'hr'
                     ? __(
-                            'Only select <hr> if the separator conveys important information and should be announced by screen readers.'
+                            'Only select <hr> if the separator conveys important information and should be announced by screen readers.',
+                            TEXT_DOMAIN
                       )
                     : __(
-                            'The <div> element should only be used if the block is a design element with no semantic meaning.'
+                            'The <div> element should only be used if the block is a design element with no semantic meaning.',
+                            TEXT_DOMAIN
                       )
             }
             // @ts-expect-error - upstream prop

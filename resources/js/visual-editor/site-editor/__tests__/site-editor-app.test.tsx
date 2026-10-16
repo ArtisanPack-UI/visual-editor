@@ -10,6 +10,10 @@ vi.mock('../../blocks', () => ({
     registerArtisanPackBlocks: (): void => undefined,
 }));
 
+vi.mock('../../block-style-registry', () => ({
+    registerThemeBlockStyles: (): void => undefined,
+}));
+
 // #649 — same reason as the BlockEditorBoundary + BlockLibrarySidebar
 // stubs below: the real background-controls barrel pulls
 // `@wordpress/block-editor` (and its `block-compare` → `diff` subpath)
@@ -231,6 +235,10 @@ vi.mock('../../box-shadows/register', () => ({
 // #640: same JSON-import-attribute trip for the positioning registrar.
 vi.mock('../../positioning/register', () => ({
     registerPositioning: (): void => undefined,
+}));
+
+vi.mock('../../effects/register', () => ({
+    registerEffects: (): void => undefined,
 }));
 
 // #700: the responsive + state registrars pull in `@wordpress/blocks`

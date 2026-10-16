@@ -10,8 +10,12 @@
 declare( strict_types=1 );
 
 use ArtisanPackUI\CMSFramework\Modules\SiteEditor\Models\GlobalStyles;
+use ArtisanPackUI\CMSFramework\Modules\Themes\Contracts\Theme;
 use ArtisanPackUI\CMSFramework\Modules\Themes\Managers\ThemeManager;
+use ArtisanPackUI\CMSFramework\Modules\Themes\Support\ThemeLoader;
 use ArtisanPackUI\VisualEditor\VisualEditorServiceProvider;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Route;
 use Tests\Concerns\GrantsSiteEditorAccess;
 use Tests\Concerns\WithCmsFramework;
 use Tests\TestCase;
@@ -226,6 +230,34 @@ describe( 'GET /visual-editor/api/global-styles/css', function (): void {
 		expect( $response->getContent() )
 			->toContain( '--wp--preset--color--primary: #0f172a;' )
 			->toContain( 'color: #111827;' );
+	} );
+
+	it( 'appends theme and code block style variation CSS (#876)', function (): void {
+		$this->mock( ThemeManager::class, function ( $mock ): void {
+			$mock->shouldReceive( 'getActiveTheme' )->andReturn( [
+				'name'     => 'Digital Shopfront',
+				'slug'     => 'digital-shopfront',
+				'settings' => [ 'color' => [ 'palette' => [ [ 'slug' => 'primary', 'color' => '#0f172a' ] ] ] ],
+				'styles'   => [
+					'blocks' => [
+						'core/button' => [
+							'color'      => [ 'text' => '#ffffff' ],
+							'variations' => [ 'hollow' => [ 'color' => [ 'background' => 'transparent' ] ] ],
+						],
+					],
+				],
+			] );
+			stubThemeManagerHelpersForGlobalStylesTest( $mock );
+		} );
+
+		rebuildSiteEditorResolversForGlobalStylesTest();
+
+		ArtisanPackUI\VisualEditor\Facades\VisualEditor::registerBlockStyle( 'core/group', 'card', 'Card', [ 'border' => [ 'radius' => '12px' ] ] );
+
+		expect( $this->get( '/visual-editor/api/global-styles/css' )->assertOk()->getContent() )
+			->toContain( ':root :where(.wp-block-button.is-style-hollow .wp-block-button__link) {' )
+			->toContain( 'background-color: transparent;' )
+			->toContain( ':root :where(.wp-block-group.is-style-card) {' );
 	} );
 
 	it( 'declares the default spacing presets when the theme ships no spacingSizes (#814)', function (): void {
@@ -489,6 +521,154 @@ describe( 'GET /visual-editor/api/global-styles/css', function (): void {
 		unlink( $themeDir . '/editor.css' );
 		rmdir( $themeDir );
 		rmdir( $themesBase );
+	} );
+
+	it( 'rewrites relative urls in the theme stylesheets and inlines Theme::editorStyles() after editor.css (#879)', function (): void {
+		Route::get( '/themes/{slug}/assets/{path}', fn () => '' )
+			->where( 'path', '.*' )
+			->name( 'themes.assets' );
+		Route::getRoutes()->refreshNameLookups();
+
+		$themesBase = sys_get_temp_dir() . '/ve-879-css-' . uniqid();
+		$slug       = 'url-theme';
+		$themeDir   = $themesBase . '/' . $slug;
+
+		mkdir( $themeDir . '/assets/css', 0755, true );
+		file_put_contents( $themeDir . '/style.css', ".hero{background:url(assets/images/hero.jpg)}\n@font-face{src:url(\"./assets/fonts/x.woff2\")}\n.cdn{background:url(https://cdn.example.com/a.png)}\n" );
+		file_put_contents( $themeDir . '/editor.css', ".editor-bg{background:url(assets/editor.png)}\n" );
+		file_put_contents( $themeDir . '/assets/css/editor-extra.css', ".extra{background:url(../images/extra.png)}\n" );
+		file_put_contents( $themeDir . '/assets/css/print.css', ".print-only{display:block}\n" );
+		file_put_contents( $themesBase . '/outside.css', ".outside{color:red}\n" );
+
+		config()->set( 'cms.themes.directory', $themesBase );
+
+		$this->mock( ThemeManager::class, function ( $mock ) use ( $slug ): void {
+			$mock->shouldReceive( 'getActiveTheme' )->andReturn( [
+				'name'     => 'Url theme',
+				'slug'     => $slug,
+				'settings' => [ 'color' => [ 'palette' => [ [ 'slug' => 'primary', 'color' => '#0f172a' ] ] ] ],
+				'styles'   => [],
+			] );
+			stubThemeManagerHelpersForGlobalStylesTest( $mock );
+		} );
+
+		$theme = new class( $slug ) extends Theme {
+			public function editorStyles(): array
+			{
+				return [
+					'css/editor-extra.css',
+					'https://cdn.example.com/remote.css',
+					'../../outside.css',
+					'notes.txt',
+					'print'        => [ 'src' => 'css/print.css', 'media' => 'print' ],
+					'editor-extra' => 'css/print.css',
+				];
+			}
+		};
+
+		$this->mock( ThemeLoader::class, function ( $mock ) use ( $theme ): void {
+			$mock->shouldReceive( 'activeTheme' )->andReturn( $theme );
+		} );
+
+		rebuildSiteEditorResolversForGlobalStylesTest();
+
+		$body = $this->get( '/visual-editor/api/global-styles/css' )->assertOk()->getContent();
+		$root = 'http://localhost/themes/' . $slug . '/';
+
+		expect( $body )
+			->toContain( '.hero{background:url(' . $root . 'assets/images/hero.jpg)}' )
+			->toContain( 'src:url("' . $root . 'assets/fonts/x.woff2")' )
+			->toContain( 'url(https://cdn.example.com/a.png)' )
+			->toContain( '.editor-bg{background:url(' . $root . 'assets/editor.png)}' )
+			->toContain( "/* === editorStyles: css/editor-extra.css === */\n.extra{background:url(" . $root . 'assets/images/extra.png)}' )
+			->toContain( "@media print {\n.print-only{display:block}" )
+			->not->toContain( 'remote.css' )
+			->not->toContain( '.outside' );
+
+		// Global styles, then style.css, editor.css and the editor styles.
+		expect( strpos( $body, '--wp--preset--color--primary' ) )->toBeLessThan( strpos( $body, '/* === style.css === */' ) )
+			->and( strpos( $body, '/* === style.css === */' ) )->toBeLessThan( strpos( $body, '/* === editor.css === */' ) )
+			->and( strpos( $body, '/* === editor.css === */' ) )->toBeLessThan( strpos( $body, '/* === editorStyles: css/editor-extra.css === */' ) )
+			->and( substr_count( $body, '.print-only' ) )->toBe( 1 );
+
+		File::deleteDirectory( $themesBase );
+	} );
+
+	it( 'lets the ap.themes.editorStyles filter change the inlined editor styles (#879)', function (): void {
+		$themesBase = sys_get_temp_dir() . '/ve-879-filter-' . uniqid();
+		$slug       = 'filter-theme';
+
+		mkdir( $themesBase . '/' . $slug . '/assets', 0755, true );
+		file_put_contents( $themesBase . '/' . $slug . '/assets/added.css', ".added-by-filter{color:teal}\n" );
+
+		config()->set( 'cms.themes.directory', $themesBase );
+
+		$this->mock( ThemeManager::class, function ( $mock ) use ( $slug ): void {
+			$mock->shouldReceive( 'getActiveTheme' )->andReturn( [ 'name' => 'Filter theme', 'slug' => $slug ] );
+			stubThemeManagerHelpersForGlobalStylesTest( $mock );
+		} );
+
+		$this->mock( ThemeLoader::class, function ( $mock ) use ( $slug ): void {
+			$mock->shouldReceive( 'activeTheme' )->andReturn( new class( $slug ) extends Theme {} );
+		} );
+
+		$filter = static function ( array $entries, string $themeSlug ): array {
+			$entries[] = 'added.css';
+
+			return $entries;
+		};
+
+		addFilter( 'ap.themes.editorStyles', $filter );
+
+		try {
+			expect( $this->get( '/visual-editor/api/global-styles/css' )->assertOk()->getContent() )
+				->toContain( '.added-by-filter{color:teal}' );
+		} finally {
+			removeFilter( 'ap.themes.editorStyles', $filter );
+			File::deleteDirectory( $themesBase );
+		}
+	} );
+
+	it( 'skips an editor style with an unprintable media query and claims handles before the path check, as @themeEditorStyles does (R-3)', function (): void {
+		$themesBase = sys_get_temp_dir() . '/ve-r3-' . uniqid();
+		$slug       = 'r3-theme';
+
+		mkdir( $themesBase . '/' . $slug . '/assets', 0755, true );
+		file_put_contents( $themesBase . '/' . $slug . '/assets/x.css', ".shadowed-by-cdn{color:red}\n" );
+		file_put_contents( $themesBase . '/' . $slug . '/assets/bad.css', ".bad-media{color:red}\n" );
+		file_put_contents( $themesBase . '/' . $slug . '/assets/good.css', ".good{color:teal}\n" );
+
+		config()->set( 'cms.themes.directory', $themesBase );
+
+		$this->mock( ThemeManager::class, function ( $mock ) use ( $slug ): void {
+			$mock->shouldReceive( 'getActiveTheme' )->andReturn( [ 'name' => 'R3 theme', 'slug' => $slug ] );
+			stubThemeManagerHelpersForGlobalStylesTest( $mock );
+		} );
+
+		$theme = new class( $slug ) extends Theme {
+			public function editorStyles(): array
+			{
+				return [
+					'https://cdn.example.com/x.css',
+					'x.css',
+					'bad'  => [ 'src' => 'bad.css', 'media' => 'screen { } body' ],
+					'good' => [ 'src' => 'good.css', 'media' => 'screen' ],
+				];
+			}
+		};
+
+		$this->mock( ThemeLoader::class, function ( $mock ) use ( $theme ): void {
+			$mock->shouldReceive( 'activeTheme' )->andReturn( $theme );
+		} );
+
+		try {
+			expect( $this->get( '/visual-editor/api/global-styles/css' )->assertOk()->getContent() )
+				->toContain( "@media screen {\n.good{color:teal}" )
+				->not->toContain( '.shadowed-by-cdn' )
+				->not->toContain( '.bad-media' );
+		} finally {
+			File::deleteDirectory( $themesBase );
+		}
 	} );
 } );
 

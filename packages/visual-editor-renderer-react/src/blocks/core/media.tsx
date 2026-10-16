@@ -5,8 +5,36 @@
  */
 
 import { attrBoolean, attrInt, attrString, classList } from '../../support/attributes';
+import { safeCssValue } from '../../support/cssValue';
 import { safeUrl } from '../../support/urlSanitizer';
 import type { BlockRendererProps } from '../../types';
+
+/**
+ * Object-fit keywords the image block's Scale control writes (#873).
+ */
+const IMAGE_SCALES = ['cover', 'contain', 'fill', 'none', 'scale-down'];
+
+/**
+ * The `<img>` style for the image block's `aspectRatio` + `scale`
+ * attributes (#873), mirroring `image.blade.php`: the ratio must pass
+ * `safeCssValue`, the scale must be a known object-fit keyword.
+ */
+function imageStyle(attributes: Record<string, unknown>): Record<string, string> | undefined {
+    const style: Record<string, string> = {};
+    const aspectRatio =
+        typeof attributes.aspectRatio === 'string' ? safeCssValue(attributes.aspectRatio) : null;
+    const scale = attributes.scale;
+
+    if (aspectRatio !== null) {
+        style.aspectRatio = aspectRatio.trim();
+    }
+
+    if (typeof scale === 'string' && IMAGE_SCALES.includes(scale)) {
+        style.objectFit = scale;
+    }
+
+    return Object.keys(style).length > 0 ? style : undefined;
+}
 
 export function ImageBlock({ attributes }: BlockRendererProps): JSX.Element {
     const url = safeUrl(attributes.url);
@@ -23,10 +51,13 @@ export function ImageBlock({ attributes }: BlockRendererProps): JSX.Element {
     const sizeSlug = attrString(attributes.sizeSlug);
     const className = attrString(attributes.className);
 
+    // Blade order: base, size, duotone scope (stamped by
+    // `stampDuotoneScopes()`), then the supports' align and className.
     const figureClasses = classList([
         'wp-block-image',
-        align !== '' ? `align${align}` : null,
         sizeSlug !== '' ? `size-${sizeSlug}` : null,
+        attrString(attributes._veDuotone) || null,
+        align !== '' ? `align${align}` : null,
         className,
     ]);
 
@@ -39,6 +70,7 @@ export function ImageBlock({ attributes }: BlockRendererProps): JSX.Element {
                 className={imgClass}
                 width={width}
                 height={height}
+                style={imageStyle(attributes)}
             />
         );
 
@@ -187,22 +219,40 @@ export function FileBlock({ attributes }: BlockRendererProps): JSX.Element {
     );
 }
 
+/**
+ * Reduce an embed provider slug the way `embed.blade.php` does
+ * (`preg_replace( '/[^a-z0-9\-]/i', '-', … )`): case is kept, and every
+ * other character becomes one `-` per UTF-8 byte, since the PHP pattern
+ * has no `/u` flag.
+ */
+function embedProviderSlug(provider: string): string {
+    return provider.replace(/[^a-zA-Z0-9-]/gu, (char) => {
+        const codePoint = char.codePointAt(0) ?? 0;
+        const bytes = codePoint < 0x80 ? 1 : codePoint < 0x800 ? 2 : codePoint < 0x10000 ? 3 : 4;
+
+        return '-'.repeat(bytes);
+    });
+}
+
 export function EmbedBlock({ attributes }: BlockRendererProps): JSX.Element {
     const url = attrString(attributes.url);
-    const provider = attrString(attributes.providerNameSlug).toLowerCase();
+    const provider = attrString(attributes.providerNameSlug);
     const caption = attrString(attributes.caption);
     const ratio = attrString(attributes.aspectRatio);
     const type = attrString(attributes.type);
 
-    const sanitizedProvider = provider.replace(/[^a-z0-9-]/g, '-');
+    const sanitizedProvider = embedProviderSlug(provider);
 
     const classes = classList([
         'wp-block-embed',
         sanitizedProvider !== '' ? `is-provider-${sanitizedProvider}` : null,
         sanitizedProvider !== '' ? `wp-block-embed-${sanitizedProvider}` : null,
-        type !== '' ? `is-type-${type}` : null,
+        // PHP's `empty()` also skips `'0'`.
+        type !== '' && type !== '0' ? `is-type-${type}` : null,
         ratio !== '' ? `wp-embed-aspect-${ratio.replace(/\//g, '-')}` : null,
         ratio !== '' ? 'wp-has-aspect-ratio' : null,
+        // `className` carries the `ve-r-*` / `ve-fx-*` scopes too (M-7).
+        attrString(attributes.className),
     ]);
 
     return (

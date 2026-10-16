@@ -213,6 +213,8 @@ addFilter('ap.visualEditor.editorConfig', function (array $config, string $scree
 
 Only known keys are re-hydrated back onto the component's typed props — extra keys are ignored and non-array returns leave the assembled config intact.
 
+*Since v1.15.0*, the config also carries `canEditBlockCss` (bool, the result of the `visual-editor.edit-block-css` gate for the current user), `customCssAllowUrls` (bool, from `effects.custom_css_allow_urls`) and `blockStyles` (the theme block style variations for the Styles picker). Overriding `canEditBlockCss` only shows or hides the Custom CSS field; the server still enforces the gate on save.
+
 ---
 
 ### `ap.visualEditor.query.postTypes`
@@ -289,9 +291,72 @@ Each returned entry is normalized to `{reviewer, quote, rating, source, url, dat
 
 The block emits no `Review` / `AggregateRating` JSON-LD by design — self-serving review markup on the reviewed entity is ineligible for Google's rich result. See [`docs/blocks/Reviews.md`](blocks/Reviews.md) for the payload shape.
 
+### `ap.visualEditor.bindings.allowedAttributes`
+
+**Since v1.15.0 (#869).** PHP filter that adjusts which attributes of a related model block bindings may read when the opt-in allowlist is enforced (`bindings.enforce_allowlist`). It runs on the list merged from the model's `DefinesBindableAttributes::bindableAttributes()` and the `bindings.allowed_attributes` config, and its result is final. It isn't called while enforcement is off.
+
+**Signature:** `array $allowed, Model $model, string $path -> array`
+
+```php
+addFilter('ap.visualEditor.bindings.allowedAttributes', function (array $allowed, Model $model, string $path): array {
+    if ($model instanceof \App\Models\User) {
+        $allowed[] = 'avatar_url';
+    }
+
+    return $allowed;
+}, 10, 3);
+```
+
+`$path` is the full binding path (for example `author.avatar_url`). Return `['*']` to allow every attribute on the model. Non-string and empty entries are dropped, and a non-array return allows nothing. See [Block Bindings](block-bindings.md#attribute-allowlist).
+
+### `ap.visualEditor.blockStyles`
+
+**Since v1.15.0 (#876).** PHP filter applied to the merged list of block style variations before they reach the editor's Styles picker, the canvas and the front-end CSS. The list is merged from, lowest precedence first, `theme.json` `styles.blocks.*.variations`, the `styles/*.json` partials (the theme's and `block_styles.directories`), and `VisualEditor::registerBlockStyle()` registrations. A later source has already replaced an earlier one on the same block + slug, and a code registration without a style keeps the theme's style and only relabels it.
+
+**Signature:** `array $styles -> array`, where each entry is:
+
+```php
+[
+    'block'     => 'core/button',   // block name
+    'slug'      => 'outline-pill',  // becomes `.is-style-outline-pill`
+    'label'     => 'Outline pill',  // Styles picker label
+    'style'     => [ /* theme.json style node: color, border, elements, blocks, … */ ],
+    'isDefault' => false,
+]
+```
+
+```php
+addFilter('ap.visualEditor.blockStyles', function (array $styles): array {
+    return array_values(array_filter(
+        $styles,
+        fn (array $style): bool => 'core/quote' !== $style['block'],
+    ));
+});
+```
+
+The result is sanitized again: entries without a valid `block` or `slug` are dropped, an empty label falls back to one built from the slug, and the last entry for a `block` + `slug` pair wins. A non-array return keeps the unfiltered list. See [Block style variations](site-editor/Global-Styles.md#block-style-variations).
+
+### `ap.themes.editorStyles`
+
+**Since v1.15.0 (#879), consumed.** cms-framework's filter on a theme's `Theme::editorStyles()` entries. The editor canvas CSS endpoint (`GET /visual-editor/api/global-styles/css`) and pattern previews run the active theme's entries through it, with the same arguments cms-framework's `@themeEditorStyles` directive uses, before inlining them.
+
+**Signature:** `array $entries, string $themeSlug -> array`
+
+Only entries that resolve to a `.css` file inside the theme's `assets/` directory reach the canvas. Absolute, root-relative and CDN URLs are skipped there by design, and so is an entry whose `media` isn't a safe media query. Handles dedupe as the directive does: the first entry claims its handle, even when the canvas skips it.
+
+### `ap.cmsFramework.siteEditor.blockContent`
+
+**Since v1.15.0, consumed** (the filter ships with cms-framework 2.15.0). cms-framework runs every block tree its Site Editor API is about to store (templates, template parts, synced blocks and block patterns, plus theme-file copies such as `PatternResolver::cloneToUser()`) through this filter. Visual-editor hooks it to apply the Custom CSS guard (`CustomCssGuard::filter()`) for users without the `visual-editor.edit-block-css` ability.
+
+**Signature:** `array $blocks, ?array $storedBlocks, string $context -> array`
+
+`$storedBlocks` is the record's stored tree, or the theme file's blocks when the save copies or first overrides a theme file. Custom CSS found there is kept, and vouched for so the model-level guard keeps it too. `$context` is `template`, `template-part`, `block` or `block-pattern`. Older cms-framework versions don't fire the filter; the model-level guard still covers their saves. See [Access Gate](site-editor/Access-Gate.md#custom-css-ability-visual-editoredit-block-css).
+
 ### `TocResolver` heading-anchor pre-render pass
 
 **Since v1.9.** Not a filter, but observable: `TocResolver` walks the block tree before render and stamps a stable, unique slug into the `anchor` attribute of every `core/heading` / `artisanpack/heading` that lacks one (existing author-set anchors are preserved; duplicate slugs receive a `-1`, `-2`, … suffix), plus a `_resolvedItems` payload onto every `artisanpack/toc` block filtered by its `minLevel` / `maxLevel` range. Hosts that traverse the tree after resolution will see the stamped anchors.
+
+*Since v1.15.0*, an auto slug is reduced to the characters every renderer keeps in an `id` (`[A-Za-z0-9_:.-]`, runs of `-` collapsed) before the uniqueness check, so the TOC never links to an id the renderer doesn't print. A heading whose letters all drop out (for example `日本語`) falls back to `heading`, then `heading-1`, `heading-2`, …. This changes some existing auto anchors, such as `creme--x` → `creme-x`. Author-set anchors are unchanged.
 
 ---
 
@@ -509,6 +574,8 @@ $this->app->bind(SiteEditorAccessGate::class, App\SiteEditor\MyGate::class);
 See [[site-editor/Access Gate]] for the contract and bundled implementations.
 
 Post-editor content-authoring endpoints (the icon picker, the SVG sanitizer and pattern previews) check the `visual-editor.edit-content` Gate ability instead. The package defines it only when the host hasn't, so `Gate::define('visual-editor.edit-content', …)` replaces the default. See [Access Gate](site-editor/Access-Gate.md#content-authoring-ability-visual-editoredit-content).
+
+**Since v1.15.0 (#881)**, writing a block's Custom CSS (Effects panel) checks the `visual-editor.edit-block-css` Gate ability (`BlockCssAccess::ABILITY`). The package's default denies everyone who lacks the `effects.custom_css_capability` capability (default `edit_block_css`), and it is defined only when the host hasn't defined the ability itself. Without it the editor hides the field and every save keeps only the Custom CSS already stored on the record. See [Access Gate](site-editor/Access-Gate.md#custom-css-ability-visual-editoredit-block-css).
 
 ---
 

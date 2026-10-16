@@ -1,0 +1,10 @@
+<div class="wp-block-group is-layout-flex wp-block-group-is-layout-flex wp-container-92772720bb65 is-content-justification-space-between is-nowrap">
+  <p class="wp-block-paragraph">
+    "One"
+  </p>
+  <p class="wp-block-paragraph">
+    "Two"
+  </p>
+</div>
+@@ renderer-instance-css @@
+.wp-block-group.wp-block-group-is-layout-flex.wp-container-92772720bb65{flex-wrap:nowrap;justify-content:space-between;align-items:center;}

@@ -691,3 +691,393 @@ describe( 'styles.elements pseudo-states and selectors (#852)', function (): voi
 		expect( $css )->not->toContain( ':hover' );
 	} );
 } );
+
+describe( 'WordPress element pseudo states, link selector and outline (cms-framework 2.15 parity)', function (): void {
+	it( 'compiles the link and button :link / :any-link / :visited states in WordPress\'s order', function (): void {
+		$node = [];
+
+		foreach ( [ ':active', ':focus-visible', ':focus', ':hover', ':visited', ':any-link', ':link' ] as $index => $state ) {
+			$node[ $state ] = [ 'color' => [ 'text' => '#00000' . $index ] ];
+		}
+
+		$css = ( new ThemeJsonTokensCompiler() )->compile( [ 'styles' => [ 'elements' => [ 'link' => $node, 'button' => $node ] ] ] );
+
+		$link      = 'a:where(:not(.wp-element-button))';
+		$positions = [];
+
+		foreach ( ThemeJsonTokensCompiler::ELEMENT_PSEUDO_STATES as $state ) {
+			$positions[] = strpos( $css, ":root :where({$link}{$state}) {" );
+
+			expect( $css )->toContain( ":root :where(.wp-element-button{$state}, .wp-block-button__link{$state}) {" );
+		}
+
+		$sorted = $positions;
+		sort( $sorted );
+
+		expect( ThemeJsonTokensCompiler::ELEMENT_PSEUDO_STATES )->toBe( [ ':link', ':any-link', ':visited', ':hover', ':focus', ':focus-visible', ':active' ] )
+			->and( $positions )->not->toContain( false )
+			->and( $positions )->toBe( $sorted );
+	} );
+
+	it( 'ignores pseudo sub-nodes on heading, h1–h6, caption and cite elements', function (): void {
+		$hover = [ 'color' => [ 'text' => '#123456' ] ];
+		$css   = ( new ThemeJsonTokensCompiler() )->compile( [
+			'styles' => [
+				'elements' => [
+					'heading' => [ 'color' => [ 'text' => '#000000' ], ':hover' => $hover ],
+					'h1'      => [ ':focus' => $hover ],
+					'caption' => [ ':hover' => $hover ],
+					'cite'    => [ ':active' => $hover ],
+				],
+				'blocks'   => [
+					'core/group' => [ 'elements' => [ 'h2' => [ ':hover' => $hover ] ] ],
+				],
+			],
+		] );
+
+		expect( $css )->toContain( ':root :where(h1, h2, h3, h4, h5, h6) {' )
+			->not->toContain( '#123456' )
+			->not->toContain( ':hover' )
+			->not->toContain( ':focus' )
+			->not->toContain( ':active' );
+	} );
+
+	it( 'scopes block link styles past button links, with the pseudo after the :where()', function (): void {
+		$css = ( new ThemeJsonTokensCompiler() )->compile( [
+			'styles' => [
+				'blocks' => [
+					'core/group' => [
+						'elements' => [
+							'link' => [ 'color' => [ 'text' => '#010101' ], ':visited' => [ 'color' => [ 'text' => '#020202' ] ] ],
+						],
+					],
+				],
+			],
+		] );
+
+		expect( $css )->toContain( ":root :where(.wp-block-group a:where(:not(.wp-element-button))) {\n\tcolor: #010101;" )
+			->toContain( ":root :where(.wp-block-group a:where(:not(.wp-element-button)):visited) {\n\tcolor: #020202;" );
+	} );
+
+	it( 'compiles outline.* at the root, on elements and their states, on blocks and on block elements', function (): void {
+		$outline = [ 'color' => 'var:preset|color|contrast', 'offset' => '2px', 'style' => 'dashed', 'width' => '1px' ];
+		$css     = ( new ThemeJsonTokensCompiler() )->compile( [
+			'styles' => [
+				'outline'  => [ 'style' => 'solid' ],
+				'elements' => [
+					'button' => [ ':focus' => [ 'outline' => $outline ] ],
+					'link'   => [ 'outline' => [ 'width' => '3px' ] ],
+				],
+				'blocks'   => [
+					'core/image' => [
+						'outline'  => [ 'color' => '#ff0000' ],
+						'elements' => [ 'link' => [ ':focus-visible' => [ 'outline' => [ 'offset' => '4px' ] ] ] ],
+					],
+				],
+			],
+		] );
+
+		$declarations = "\n\toutline-color: var(--wp--preset--color--contrast);\n\toutline-offset: 2px;\n\toutline-style: dashed;\n\toutline-width: 1px;\n}";
+
+		expect( $css )->toContain( "body {\n\toutline-style: solid;\n}" )
+			->toContain( ':root :where(.wp-element-button:focus, .wp-block-button__link:focus) {' . $declarations )
+			->toContain( ":root :where(a:where(:not(.wp-element-button))) {\n\toutline-width: 3px;\n}" )
+			->toContain( ":root :where(.wp-block-image) {\n\toutline-color: #ff0000;\n}" )
+			->toContain( ":root :where(.wp-block-image a:where(:not(.wp-element-button)):focus-visible) {\n\toutline-offset: 4px;\n}" );
+	} );
+
+	it( 'drops style values that would break out of the stylesheet, outline included', function ( string $value ): void {
+		$css = ( new ThemeJsonTokensCompiler() )->compile( [
+			'styles' => [
+				'color'    => [ 'text' => $value ],
+				'elements' => [ 'button' => [ ':focus' => [ 'outline' => [ 'color' => $value, 'width' => '2px' ] ] ] ],
+			],
+		] );
+
+		expect( $css )->not->toContain( $value )
+			->toContain( ":root :where(.wp-element-button:focus, .wp-block-button__link:focus) {\n\toutline-width: 2px;\n}" );
+	} )->with( [
+		'open bracket'  => [ 'red [ display:none' ],
+		'stray bracket' => [ 'red ] display:none' ],
+		'crossed'       => [ '([)] display:none' ],
+		'semicolon'     => [ 'red; display: none' ],
+		'brace'         => [ 'red } body { display: none' ],
+		'open paren'    => [ 'rgb(0 0 0' ],
+	] );
+
+	it( 'keeps balanced brackets and quoted values', function (): void {
+		$css = ( new ThemeJsonTokensCompiler() )->compile( [
+			'styles' => [
+				'typography' => [ 'fontFamily' => '"a[b", serif' ],
+				'outline'    => [ 'color' => 'var(--x, rgb(0 0 0))' ],
+			],
+		] );
+
+		expect( $css )->toContain( 'font-family: "a[b", serif;' )
+			->toContain( 'outline-color: var(--x, rgb(0 0 0));' );
+	} );
+} );
+
+describe( 'shadow, gradient and font-family presets (#872)', function (): void {
+	beforeEach( function (): void {
+		config()->set( 'artisanpack.visual-editor.presets', [] );
+	} );
+
+	it( 'declares --wp--preset--shadow--{slug} from settings.shadow.presets', function (): void {
+		$css = $this->compiler->compile( [
+			'settings' => [
+				'shadow' => [
+					'presets' => [
+						[ 'slug' => 'natural', 'shadow' => '6px 6px 9px rgba(0, 0, 0, 0.2)' ],
+						[ 'slug' => 'neon-glow', 'shadow' => '0 0 12px #0ff' ],
+						[ 'slug' => 'missing-value' ],
+					],
+				],
+			],
+		] );
+
+		expect( $css )
+			->toContain( '--wp--preset--shadow--natural: 6px 6px 9px rgba(0, 0, 0, 0.2);' )
+			->toContain( '--wp--preset--shadow--neon-glow: 0 0 12px #0ff;' )
+			->not->toContain( 'missing-value' );
+	} );
+
+	it( 'reads gradients from settings.color.gradients', function (): void {
+		$css = $this->compiler->compile( [
+			'settings' => [
+				'color' => [
+					'gradients' => [
+						[ 'slug' => 'sunrise', 'gradient' => 'linear-gradient(90deg, #f60, #fc0)' ],
+					],
+				],
+			],
+		] );
+
+		expect( $css )
+			->toContain( '--wp--preset--gradient--sunrise: linear-gradient(90deg, #f60, #fc0);' )
+			->toContain( '.has-sunrise-gradient-background { background: var(--wp--preset--gradient--sunrise) !important; }' );
+	} );
+
+	it( 'prefers settings.color.gradients over the legacy gradient key', function (): void {
+		$css = $this->compiler->compile( [
+			'settings' => [
+				'color' => [
+					'gradients' => [ [ 'slug' => 'current', 'gradient' => 'linear-gradient(red, blue)' ] ],
+					'gradient'  => [ [ 'slug' => 'legacy', 'gradient' => 'linear-gradient(green, blue)' ] ],
+				],
+			],
+		] );
+
+		expect( $css )
+			->toContain( '--wp--preset--gradient--current:' )
+			->not->toContain( 'legacy' );
+	} );
+
+	it( 'declares font-family presets and binds has-{slug}-font-family to them', function (): void {
+		$css = $this->compiler->compile( [
+			'settings' => [
+				'typography' => [
+					'fontFamilies' => [
+						[ 'slug' => 'display', 'name' => 'Display', 'fontFamily' => '"Space Grotesk", sans-serif' ],
+						[ 'name' => 'No slug', 'fontFamily' => 'serif' ],
+					],
+				],
+			],
+		] );
+
+		expect( $css )
+			->toContain( '--wp--preset--font-family--display: "Space Grotesk", sans-serif;' )
+			->toContain( '.has-display-font-family { font-family: var(--wp--preset--font-family--display) !important; }' )
+			->not->toContain( 'No slug' );
+	} );
+
+	it( 'declares the default font families and their utility classes', function (): void {
+		$css = $this->compiler->compileDefaults( null );
+
+		expect( $css )
+			->toContain( '--wp--preset--font-family--serif: Georgia, Cambria, "Times New Roman", Times, serif;' )
+			->toContain( '.has-mono-font-family { font-family: var(--wp--preset--font-family--mono) !important; }' );
+	} );
+
+	it( 'layers theme and host font families over the defaults', function (): void {
+		config()->set( 'artisanpack.visual-editor.presets.font_families', [
+			[ 'slug' => 'brand', 'fontFamily' => '"Brand Sans", sans-serif' ],
+		] );
+
+		$css = $this->compiler->compileDefaults( [
+			'settings' => [
+				'typography' => [
+					'fontFamilies' => [ [ 'slug' => 'serif', 'fontFamily' => '"Lora", serif' ] ],
+				],
+			],
+		] );
+
+		expect( $css )
+			->toContain( '--wp--preset--font-family--serif: "Lora", serif;' )
+			->toContain( '--wp--preset--font-family--system:' )
+			->toContain( '--wp--preset--font-family--brand: "Brand Sans", sans-serif;' )
+			->toContain( '.has-brand-font-family' );
+	} );
+
+	it( 'skips theme preset values that could break out of the style block', function ( string $value ): void {
+		$css = $this->compiler->compile( [
+			'settings' => [
+				'shadow'     => [ 'presets' => [ [ 'slug' => 'bad', 'shadow' => $value ] ] ],
+				'typography' => [ 'fontFamilies' => [ [ 'slug' => 'ok', 'fontFamily' => '"Inter", sans-serif' ] ] ],
+			],
+		] );
+
+		expect( $css )
+			->not->toContain( 'shadow--bad' )
+			->toContain( '--wp--preset--font-family--ok: "Inter", sans-serif;' );
+	} )->with( [
+		'tag breakout'      => [ '0 0 1px red</style><script>alert(1)</script>' ],
+		'declaration break' => [ '0 0 1px red;}body{display:none' ],
+		'comment'           => [ '0 0 1px red /*' ],
+		'newline'           => [ "0 0 1px red\n}" ],
+		'unbalanced quote'  => [ '0 0 1px "red' ],
+		'unbalanced paren'  => [ '0 0 1px rgba(0, 0, 0' ],
+		'stray close paren' => [ '0 0 1px red)(' ],
+	] );
+
+	it( 'skips interleaved-quote preset values without swallowing the next declaration (#885)', function ( string $value ): void {
+		$css = $this->compiler->compile( [
+			'settings' => [
+				'typography' => [
+					'fontFamilies' => [
+						[ 'slug' => 'broken', 'fontFamily' => $value ],
+						[ 'slug' => 'display', 'fontFamily' => '"Space Grotesk", sans-serif' ],
+					],
+				],
+			],
+		] );
+
+		expect( $css )
+			->not->toContain( '--wp--preset--font-family--broken:' )
+			->toContain( '--wp--preset--font-family--display: "Space Grotesk", sans-serif;' );
+	} )->with( [
+		'double then single' => [ '"a\' "b\'' ],
+		'single then double' => [ '\'a" \'b"' ],
+	] );
+
+	it( 'keeps preset values with a parenthesis inside a string (#885)', function ( string $value ): void {
+		$css = $this->compiler->compile( [
+			'settings' => [
+				'typography' => [ 'fontFamilies' => [ [ 'slug' => 'quoted', 'fontFamily' => $value ] ] ],
+			],
+		] );
+
+		expect( $css )->toContain( '--wp--preset--font-family--quoted: ' . $value . ';' );
+	} )->with( [
+		'smiley'     => [ '"Smile :)", sans-serif' ],
+		'open paren' => [ "'(', serif" ],
+	] );
+
+	it( 'skips theme font families with an unbalanced quote', function (): void {
+		$css = $this->compiler->compile( [
+			'settings' => [
+				'typography' => [
+					'fontFamilies' => [
+						[ 'slug' => 'broken', 'fontFamily' => '"Open Sans, serif' ],
+						[ 'slug' => 'display', 'fontFamily' => '"Space Grotesk", sans-serif' ],
+					],
+				],
+			],
+		] );
+
+		expect( $css )
+			->not->toContain( '--wp--preset--font-family--broken:' )
+			->toContain( '--wp--preset--font-family--display: "Space Grotesk", sans-serif;' );
+	} );
+
+	it( 'drops unsafe font-family values', function ( string $family ): void {
+		config()->set( 'artisanpack.visual-editor.presets.font_families', [
+			[ 'slug' => 'bad', 'fontFamily' => $family ],
+		] );
+
+		expect( $this->compiler->compileDefaults( null ) )->not->toContain( 'font-family--bad' );
+	} )->with( [
+		'declaration break' => [ 'serif;}body{color:red' ],
+		'unbalanced quote'  => [ '"Open Sans, serif' ],
+		'tag breakout'      => [ 'serif</style><script>' ],
+		'comment'           => [ 'serif /* x' ],
+	] );
+} );
+
+it( 'flattens settings.custom into --wp--custom properties (#878)', function (): void {
+	$css = $this->compiler->compile( [
+		'settings' => [
+			'custom' => [
+				'animation' => [
+					'glowColor' => 'rgba(34, 211, 238, 0.6)',
+					'glowSize'  => '0',
+					'glowBlur'  => '24px',
+				],
+				'lineHeight' => [ 'tight' => 1.1 ],
+			],
+		],
+	] );
+
+	expect( $css )->toContain( '--wp--custom--animation--glow-color: rgba(34, 211, 238, 0.6);' )
+		->toContain( '--wp--custom--animation--glow-size: 0;' )
+		->toContain( '--wp--custom--animation--glow-blur: 24px;' )
+		->toContain( '--wp--custom--line-height--tight: 1.1;' );
+} );
+
+it( 'skips settings.custom values that could break out of the style block (#878)', function (): void {
+	$css = $this->compiler->compile( [
+		'settings' => [
+			'custom' => [
+				'animation' => [
+					'glowColor' => 'red; } body { display: none',
+					'flag'      => true,
+					'list'      => [ 'a', 'b' ],
+				],
+			],
+		],
+	] );
+
+	expect( $css )->not->toContain( 'glow-color' )
+		->not->toContain( '--wp--custom--animation--flag' )
+		->not->toContain( '--wp--custom--animation--list' );
+} );
+
+it( 'compiles styles.blocks.*.variations into is-style rules after the block rules (#876)', function (): void {
+	$css = $this->compiler->compile( [
+		'styles' => [
+			'blocks' => [
+				'core/group' => [
+					'color'      => [ 'background' => '#ffffff' ],
+					'variations' => [
+						'card' => [
+							'border'   => [ 'radius' => '12px' ],
+							'elements' => [ 'heading' => [ 'color' => [ 'text' => 'var:preset|color|primary' ] ] ],
+						],
+					],
+				],
+			],
+		],
+	] );
+
+	expect( $css )->toContain( ':root :where(.wp-block-group.is-style-card) {' )
+		->toContain( 'border-radius: 12px;' )
+		->toContain( ':root :where(.wp-block-group.is-style-card h1' )
+		->toContain( 'color: var(--wp--preset--color--primary);' )
+		->and( strpos( $css, '.wp-block-group.is-style-card' ) )->toBeGreaterThan( strpos( $css, ':root :where(.wp-block-group) {' ) );
+} );
+
+it( 'skips block style variations when asked to (#876)', function (): void {
+	$themeJson = [
+		'styles' => [
+			'blocks' => [
+				'core/group' => [
+					'color'      => [ 'background' => '#ffffff' ],
+					'variations' => [ 'card' => [ 'border' => [ 'radius' => '12px' ] ] ],
+				],
+			],
+		],
+	];
+
+	expect( $this->compiler->compile( $themeJson, false ) )->toContain( ':root :where(.wp-block-group) {' )
+		->not->toContain( 'is-style-card' );
+} );

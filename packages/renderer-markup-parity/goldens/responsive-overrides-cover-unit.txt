@@ -1,0 +1,12 @@
+<div class="wp-block-cover is-dark is-layout-flex wp-block-cover-is-layout-flex ve-r-dade2bcc22" style="min-height: 60vh">
+  <span aria-hidden="true" class="wp-block-cover__background has-background-dim" style="opacity: 0.5">
+  </span>
+  <div class="wp-block-cover__inner-container is-layout-flow wp-block-cover-is-layout-flow">
+    <p class="wp-block-paragraph">
+      "Cover copy"
+    </p>
+  </div>
+</div>
+@@ renderer-instance-css @@
+@media (max-width:1023px){.ve-r-dade2bcc22.ve-r-dade2bcc22.ve-r-dade2bcc22{min-height:480px!important}}
+@media (max-width:767px){.ve-r-dade2bcc22.ve-r-dade2bcc22.ve-r-dade2bcc22{min-height:480rem!important}}

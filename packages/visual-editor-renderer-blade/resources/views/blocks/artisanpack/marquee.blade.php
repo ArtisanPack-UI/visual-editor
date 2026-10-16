@@ -11,7 +11,7 @@
 
 	$content = (string) ( $attributes['marqueeContent'] ?? '' );
 
-	$baseClasses = [ 'ap-marquee' ];
+	$baseClasses = [ 'wp-block-artisanpack-marquee', 'ap-marquee' ];
 
 	// The wrapper width is a per-instance inline declaration that has
 	// to live alongside any block-supports style (background, padding,

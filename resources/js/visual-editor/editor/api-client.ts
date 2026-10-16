@@ -8,6 +8,10 @@
  * auth/validation/network failures.
  */
 
+import { __, sprintf } from '@wordpress/i18n';
+
+import { TEXT_DOMAIN } from '../vendor/i18n';
+
 export interface ContentResponse {
     id: number | string;
     resource: string;
@@ -79,7 +83,11 @@ async function requireOk(response: Response): Promise<unknown> {
 
     if (!response.ok) {
         throw new ApiError(
-            `Visual editor request failed with status ${response.status}`,
+            sprintf(
+                /* translators: %d: HTTP status code. */
+                __('Visual editor request failed with status %d', TEXT_DOMAIN),
+                response.status
+            ),
             response.status,
             body
         );
@@ -114,7 +122,7 @@ export async function fetchContent(
 
         return (await requireOk(response)) as ContentResponse;
     } catch (error: unknown) {
-        throw normalizeError(error, 'Failed to load content.');
+        throw normalizeError(error, __('Failed to load content.', TEXT_DOMAIN));
     }
 }
 
@@ -143,7 +151,7 @@ export async function saveContent(
 
         return (await requireOk(response)) as ContentResponse;
     } catch (error: unknown) {
-        throw normalizeError(error, 'Failed to save content.');
+        throw normalizeError(error, __('Failed to save content.', TEXT_DOMAIN));
     }
 }
 
@@ -185,7 +193,7 @@ export async function saveEntityRecord(
 
         return await requireOk(response);
     } catch (error: unknown) {
-        throw normalizeError(error, 'Failed to save metadata.');
+        throw normalizeError(error, __('Failed to save metadata.', TEXT_DOMAIN));
     }
 }
 
@@ -239,6 +247,6 @@ export async function previewBlock(
 
         return (await requireOk(response)) as PreviewBlockResponse;
     } catch (error: unknown) {
-        throw normalizeError(error, 'Failed to preview block.');
+        throw normalizeError(error, __('Failed to preview block.', TEXT_DOMAIN));
     }
 }

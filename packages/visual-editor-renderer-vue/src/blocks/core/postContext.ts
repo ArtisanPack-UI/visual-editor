@@ -14,8 +14,10 @@ import {
     attrInt,
     attrString,
     classList,
-    layoutWrapperForBlock,
+    layoutClass,
 } from '../../support/attributes';
+import { applyBackground } from '../../support/background';
+import { layoutWrapperClasses } from '../../support/layoutContainer';
 import { applyDimensions, hasDimensionStyle } from '../../support/dimensions';
 import { safeUrl } from '../../support/urlSanitizer';
 import { blockRendererProps } from '../shared';
@@ -95,16 +97,18 @@ export const PostContentBlock = defineComponent({
             const classes = classList([
                 'entry-content',
                 'wp-block-post-content',
-                ...layoutWrapperForBlock(props.attributes, 'post-content'),
+                // Per-instance layout scope stamped by `stampLayoutScopes()`
+                // (#871), then the layout modifier classes (F-3).
+                ...layoutWrapperClasses(props.attributes, 'post-content', layoutClass(props.attributes)),
                 align !== '' ? `has-text-align-${align}` : null,
                 className,
             ]);
 
-            const dimensionStyle = applyDimensions(props.attributes);
+            const wrapperStyle = backgroundAndDimensions(props.attributes);
             const nodeProps: Record<string, unknown> = { class: classes, innerHTML: content };
 
-            if (hasDimensionStyle(dimensionStyle)) {
-                nodeProps.style = dimensionStyle;
+            if (wrapperStyle !== undefined) {
+                nodeProps.style = wrapperStyle;
             }
 
             return h('div', nodeProps);
@@ -233,6 +237,8 @@ export const PostAuthorBlock = defineComponent({
 
             const classes = classList([
                 'wp-block-post-author',
+                // Duotone scope stamped by `stampDuotoneScopes()`.
+                attrString(props.attributes._veDuotone) || null,
                 align !== '' ? `has-text-align-${align}` : null,
                 className,
             ]);
@@ -344,7 +350,8 @@ export const AvatarBlock = defineComponent({
             const alt = attrString(props.attributes._resolvedAuthorName);
             const authorUrl = safeUrl(props.attributes._resolvedAuthorUrl);
 
-            const classes = classList(['wp-block-avatar', className]);
+            // Duotone scope stamped by `stampDuotoneScopes()`.
+            const classes = classList(['wp-block-avatar', attrString(props.attributes._veDuotone) || null, className]);
 
             if (avatarUrl === '') {
                 return h('div', { class: classes });
@@ -390,6 +397,8 @@ export const PostFeaturedImageBlock = defineComponent({
             const classes = classList([
                 'wp-block-post-featured-image',
                 sizeSlug !== '' ? `size-${sizeSlug}` : null,
+                // Duotone scope stamped by `stampDuotoneScopes()`.
+                attrString(props.attributes._veDuotone) || null,
                 className,
             ]);
 
@@ -433,3 +442,18 @@ export const PostFeaturedImageBlock = defineComponent({
         };
     },
 });
+
+/**
+ * The wrapper style for blocks with background-image support (F-4): the
+ * background image and then the dimensions, in `BlockSupports::compile()`
+ * order. `undefined` when neither is set.
+ */
+function backgroundAndDimensions(attributes: Record<string, unknown>): Record<string, string> | undefined {
+    const dimensionStyle = applyDimensions(attributes);
+    const style: Record<string, string> = {
+        ...(applyBackground(attributes) as Record<string, string>),
+        ...(hasDimensionStyle(dimensionStyle) ? (dimensionStyle as Record<string, string>) : {}),
+    };
+
+    return Object.keys(style).length > 0 ? style : undefined;
+}

@@ -55,6 +55,53 @@ defineProps<{ post: { content: unknown } }>();
 | `templateParts` | `TemplatePartRecord[]` | — | `{ slug, theme?, area?, blocks }` records. Inlines `core/template-part` references and resolves a navigation's `overlay` part (needs `area: 'navigation-overlay'`). See [Navigation overlay](#navigation-overlay). |
 | `patterns` | `PatternRecord[]` | — | Synced-pattern records; replaces `core/block` references with the pattern's blocks. |
 | `defaultTheme` | `string` | — | Theme assumed for template-part references that don't name one. |
+| `duotonePresets` | `DuotonePresets` | — | The theme's `settings.color.duotone` (flat list or `{ theme, custom, default }`). Needed for `var:preset\|duotone\|…` picks; custom stops work without it. Since 1.15.0. |
+| `customCssAllowUrls` | `boolean` | `true` | Mirror the server's `effects.custom_css_allow_urls`. When `false`, Custom CSS that loads a resource (`url(`, `image-set(`, `image(`, `src(`) is dropped. Also accepted by `<Template>`. Since 1.15.0. |
+
+## Server config: duotone, Custom CSS and breakpoints
+
+Some output depends on the host's server config. Resolve it on the server
+and pass it in, so the page matches the Blade renderer:
+
+- `duotonePresets`: `PresetRegistry::activeThemeSettings()['color']['duotone'] ?? null`
+- `customCssAllowUrls`: `config('artisanpack.visual-editor.effects.custom_css_allow_urls')`
+
+```vue
+<BlockTree
+    :tree="post.content"
+    :duotone-presets="duotonePresets"
+    :custom-css-allow-urls="customCssAllowUrls"
+/>
+```
+
+If the host customizes breakpoints (config `breakpoints` or
+`theme.json`), call `setBreakpoints()` once at bootstrap with the
+server's `app(BreakpointRegistry::class)->toArray()`. Otherwise the
+per-breakpoint (`ve-r-*`), column-width and Flex Layout media queries use
+the default Tablet (1023px) and Mobile (767px) widths:
+
+```ts
+import { setBreakpoints, getDeviceBreakpoints } from '@artisanpack-ui/visual-editor-renderer-vue';
+
+// The array from BreakpointRegistry::toArray() …
+setBreakpoints(breakpoints);
+
+// … or a config-style map layered over the defaults.
+setBreakpoints({ mobile: { maxWidthPx: 599, previewWidthPx: 375 } });
+
+getDeviceBreakpoints(); // [{ key: 'tablet', … }, { key: 'mobile', maxWidthPx: 599, … }]
+```
+
+In the map form, a number keeps the entry's family, an object naming one
+width switches family, and `null` removes the entry. Entries the server
+would reject (the `base` key, bad keys, non-positive or duplicate widths,
+both or neither width) are dropped.
+
+**Heading anchors are unique per `<BlockTree>`.** Two trees on one page
+(a header tree and a content tree, say) can repeat a heading `id`, and
+each tree prints its own duotone `<svg>`, so filter ids can repeat too.
+Render them as one tree, or set author anchors on headings that could
+collide.
 
 ## Registering custom renderers
 

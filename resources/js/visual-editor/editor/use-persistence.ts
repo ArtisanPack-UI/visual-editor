@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { BlockInstance } from '@wordpress/blocks';
 import { dispatch as wpDispatch, select as wpSelect } from '@wordpress/data';
+import { __ } from '@wordpress/i18n';
 
 import {
     ApiError,
@@ -29,6 +30,7 @@ import {
     getAllPristineClientIds,
     getPristineSnapshot,
 } from '../states/state-bridge';
+import { TEXT_DOMAIN } from '../vendor/i18n';
 
 /**
  * Patch blocks in-memory so the saved markup has pristine idle base
@@ -259,7 +261,7 @@ export function usePersistence(
                     return;
                 }
 
-                setLoadError(toApiError(error, 'Failed to load content.'));
+                setLoadError(toApiError(error, __('Failed to load content.', TEXT_DOMAIN)));
                 setLoadStatus('error');
             });
 
@@ -368,7 +370,7 @@ export function usePersistence(
                     return;
                 }
 
-                setSaveError(toApiError(error, 'Failed to save content.'));
+                setSaveError(toApiError(error, __('Failed to save content.', TEXT_DOMAIN)));
                 setSaveStatus('error');
             } finally {
                 inFlightRef.current = false;

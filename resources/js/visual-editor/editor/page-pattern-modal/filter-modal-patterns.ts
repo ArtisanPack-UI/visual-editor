@@ -16,10 +16,16 @@
  * casing here keeps the seed available without giving up the stricter
  * default for every other unscoped pattern.
  *
+ * Patterns registered with `inserter: false` are left out too: as in
+ * Gutenberg, whose starter-page modal reads the same inserter-allowed
+ * pattern list, they're for templates and code, not for picking.
+ *
  * @since 1.4.0
+ * @since 1.15.0 Skips `inserter: false` patterns.
  */
 
 import type { PatternRecord } from '../../site-editor/patterns/api-client';
+import { isInserterPattern } from '../inserter-pattern-filters';
 
 export const BUILT_IN_BLANK_SLUG = 'page/blank';
 
@@ -43,7 +49,7 @@ export function filterModalPatterns(
             return true;
         }
 
-        if (postType === null) {
+        if (postType === null || !isInserterPattern(record)) {
             return false;
         }
 

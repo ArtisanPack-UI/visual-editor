@@ -5,13 +5,14 @@
  */
 
 import { __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { cover } from '@wordpress/icons';
 
 const variations = [
     {
         name: 'cover',
-        title: __('Cover'),
-        description: __('Add an image or video with a text overlay.'),
+        title: __('Cover', TEXT_DOMAIN),
+        description: __('Add an image or video with a text overlay.', TEXT_DOMAIN),
         attributes: { layout: { type: 'constrained' } },
         isDefault: true,
         icon: cover,

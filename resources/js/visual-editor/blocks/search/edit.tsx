@@ -52,6 +52,7 @@ import {
 import { useInstanceId } from '@wordpress/compose';
 import { Icon, search } from '@wordpress/icons';
 import { __, sprintf } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { __unstableStripHTML as stripHTML } from '@wordpress/dom';
 
 import {
@@ -237,19 +238,19 @@ export default function SearchEdit( {
 
     const buttonPositionControls = [
         {
-            label: __( 'Button outside' ),
+            label: __( 'Button outside', TEXT_DOMAIN ),
             value: 'button-outside',
         },
         {
-            label: __( 'Button inside' ),
+            label: __( 'Button inside', TEXT_DOMAIN ),
             value: 'button-inside',
         },
         {
-            label: __( 'No button' ),
+            label: __( 'No button', TEXT_DOMAIN ),
             value: 'no-button',
         },
         {
-            label: __( 'Button only' ),
+            label: __( 'Button only', TEXT_DOMAIN ),
             value: 'button-only',
         },
     ];
@@ -296,12 +297,12 @@ export default function SearchEdit( {
                 type="search"
                 className={ textFieldClasses }
                 style={ textFieldStyles }
-                aria-label={ __( 'Optional placeholder text' ) }
+                aria-label={ __( 'Optional placeholder text', TEXT_DOMAIN ) }
                 // We hide the placeholder field's placeholder when there is a
                 // value. This stops screen readers from reading the
                 // placeholder field's placeholder which is confusing.
                 placeholder={
-                    placeholder ? undefined : __( 'Optional placeholder…' )
+                    placeholder ? undefined : __( 'Optional placeholder…', TEXT_DOMAIN )
                 }
                 value={ placeholder }
                 onChange={ ( event ) =>
@@ -356,7 +357,7 @@ export default function SearchEdit( {
             ? stripHTML( buttonText )
             : label
               ? stripHTML( label )
-              : __( 'Search' );
+              : __( 'Search', TEXT_DOMAIN );
 
         return (
             <>
@@ -378,8 +379,8 @@ export default function SearchEdit( {
                         identifier="buttonText"
                         className={ buttonClasses }
                         style={ buttonStyles }
-                        aria-label={ __( 'Button text' ) }
-                        placeholder={ __( 'Add button text…' ) }
+                        aria-label={ __( 'Button text', TEXT_DOMAIN ) }
+                        placeholder={ __( 'Add button text…', TEXT_DOMAIN ) }
                         withoutInteractiveFormatting
                         value={ buttonText }
                         onChange={ ( html: string ) =>
@@ -395,7 +396,7 @@ export default function SearchEdit( {
     const controls = (
         <InspectorControls>
             <ToolsPanel
-                label={ __( 'Settings' ) }
+                label={ __( 'Settings', TEXT_DOMAIN ) }
                 resetAll={ () => {
                     setAttributes( {
                         width: undefined,
@@ -409,7 +410,7 @@ export default function SearchEdit( {
             >
                 <ToolsPanelItem
                     hasValue={ () => ! showLabel }
-                    label={ __( 'Show label' ) }
+                    label={ __( 'Show label', TEXT_DOMAIN ) }
                     onDeselect={ () => {
                         setAttributes( {
                             showLabel: true,
@@ -421,7 +422,7 @@ export default function SearchEdit( {
                         // @ts-expect-error - upstream prop
                         __nextHasNoMarginBottom
                         checked={ showLabel }
-                        label={ __( 'Show label' ) }
+                        label={ __( 'Show label', TEXT_DOMAIN ) }
                         onChange={ ( value ) =>
                             setAttributes( {
                                 showLabel: value,
@@ -431,7 +432,7 @@ export default function SearchEdit( {
                 </ToolsPanelItem>
                 <ToolsPanelItem
                     hasValue={ () => buttonPosition !== 'button-outside' }
-                    label={ __( 'Button position' ) }
+                    label={ __( 'Button position', TEXT_DOMAIN ) }
                     onDeselect={ () => {
                         setAttributes( {
                             buttonPosition: 'button-outside',
@@ -444,7 +445,7 @@ export default function SearchEdit( {
                         value={ buttonPosition }
                         // @ts-expect-error - upstream prop
                         __next40pxDefaultSize
-                        label={ __( 'Button position' ) }
+                        label={ __( 'Button position', TEXT_DOMAIN ) }
                         onChange={ ( value: string ) => {
                             setAttributes( {
                                 buttonPosition: value,
@@ -457,7 +458,7 @@ export default function SearchEdit( {
                 { buttonPosition !== 'no-button' && (
                     <ToolsPanelItem
                         hasValue={ () => !! buttonUseIcon }
-                        label={ __( 'Use button with icon' ) }
+                        label={ __( 'Use button with icon', TEXT_DOMAIN ) }
                         onDeselect={ () => {
                             setAttributes( {
                                 buttonUseIcon: false,
@@ -469,7 +470,7 @@ export default function SearchEdit( {
                             // @ts-expect-error - upstream prop
                             __nextHasNoMarginBottom
                             checked={ buttonUseIcon }
-                            label={ __( 'Use button with icon' ) }
+                            label={ __( 'Use button with icon', TEXT_DOMAIN ) }
                             onChange={ ( value ) =>
                                 setAttributes( {
                                     buttonUseIcon: value,
@@ -480,7 +481,7 @@ export default function SearchEdit( {
                 ) }
                 <ToolsPanelItem
                     hasValue={ () => !! width }
-                    label={ __( 'Width' ) }
+                    label={ __( 'Width', TEXT_DOMAIN ) }
                     onDeselect={ () => {
                         setAttributes( {
                             width: undefined,
@@ -493,7 +494,7 @@ export default function SearchEdit( {
                         <UnitControl
                             // @ts-expect-error - upstream prop
                             __next40pxDefaultSize
-                            label={ __( 'Width' ) }
+                            label={ __( 'Width', TEXT_DOMAIN ) }
                             id={ unitControlInputId }
                             min={ isPercentageUnit( widthUnit ) ? 0 : MIN_WIDTH }
                             max={
@@ -523,7 +524,7 @@ export default function SearchEdit( {
                             units={ units }
                         />
                         <ToggleGroupControl
-                            label={ __( 'Percentage Width' ) }
+                            label={ __( 'Percentage Width', TEXT_DOMAIN ) }
                             value={
                                 width !== undefined &&
                                 PERCENTAGE_WIDTHS.includes( width ) &&
@@ -548,7 +549,7 @@ export default function SearchEdit( {
                                         value={ widthValue }
                                         label={ sprintf(
                                             /* translators: %d: Percentage value. */
-                                            __( '%d%%' ),
+                                            __( '%d%%', TEXT_DOMAIN ),
                                             widthValue
                                         ) }
                                     />
@@ -642,8 +643,8 @@ export default function SearchEdit( {
                 <RichText
                     identifier="label"
                     className={ labelClassnames }
-                    aria-label={ __( 'Label text' ) }
-                    placeholder={ __( 'Add label…' ) }
+                    aria-label={ __( 'Label text', TEXT_DOMAIN ) }
+                    placeholder={ __( 'Add label…', TEXT_DOMAIN ) }
                     withoutInteractiveFormatting
                     value={ label }
                     onChange={ ( html: string ) =>

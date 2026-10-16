@@ -122,6 +122,11 @@ A fixture may also carry `templateParts` (`slug`, `area`, `blocks`): the
 JS suite passes them to `BlockTree`'s `templateParts` prop, and the Pest
 suite serves them through a `TemplatePartResolver` stub.
 
+A fixture may also carry `duotonePresets` (a theme's
+`settings.color.duotone`, flat or origin-keyed): the JS suite passes them
+to `BlockTree`'s `duotonePresets` prop, and the Pest suite seeds them as the
+request's resolved presets through `DuotoneCssAccumulator::presets()`.
+
 Currently declared (RN-12, navigation):
 
 - **Overlay (`^navigation-overlay-`).** Element `id`s (Blade tracker ids,
@@ -138,7 +143,6 @@ Currently declared (RN-12, navigation):
   `customBackgroundColor`, and `ElementsSupport` link colors
   (`wp-elements-*` class plus its `<style data-ve-elements>` rules). Delete these entries if the
   JS renderers gain support — the fixture will then pin the shared markup.
-
 The former class-token divergences have all converged: the `ve-w-<hash>`
 column-width scope (#712/#487) and the `has-photo-grid` /
 `photo-grid-<hash>` scope (#714/#594) are emitted identically by all
@@ -175,6 +179,18 @@ that layer is deliberately excluded, not accidentally:
 
 ### Resolved
 
+- **Generic responsive overrides (#886).** Only Blade used to compile
+  `attributes.responsive` (spacing, border, font size, colours, spacer
+  height/width, cover min-height) into a `ve-r-<hash>` scope class plus
+  `<style data-ve-responsive>` rules. React and Vue now port
+  `compileResponsive()` (`support/responsive.ts`), and the
+  `responsive-overrides-*` fixtures pin the scope class and the rules.
+- **Cover layout classes and heading presets / anchor (#888).** React and
+  Vue now render cover's `is-layout-flex wp-block-cover-is-layout-flex`
+  pair, the heading's preset colour / font-size classes, and its anchor
+  `id`, including the auto-generated anchors Blade's `TocResolver` stamps
+  (`support/headingAnchors.ts`). The `cover` and `heading` fixtures pin
+  them.
 - **`group` with the #595 Flex Layout panel active at the base
   breakpoint (#711).** `group.blade.php` flips its layout class to
   `is-layout-flex` when `artisanpackFlex` emits the unprefixed `ap-flex`

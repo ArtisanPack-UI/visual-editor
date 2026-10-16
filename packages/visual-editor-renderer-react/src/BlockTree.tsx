@@ -33,7 +33,13 @@ import {
     NAVIGATION_OVERLAY_CSS,
     treeHasNavigationOverlay,
 } from './support/navigationOverlayCss';
+import { stampDuotoneScopes } from './support/duotone';
+import type { DuotonePresets } from './support/duotone';
+import { stampEffectsScopes } from './support/effects';
+import { stampHeadingAnchors } from './support/headingAnchors';
+import { stampLayoutScopes } from './support/layoutContainer';
 import { stampPhotoGridScopes } from './support/photoGrid';
+import { stampResponsiveScopes } from './support/responsive';
 import {
     DEFAULT_MAX_PATTERN_DEPTH,
     inlinePatterns,
@@ -100,6 +106,24 @@ export interface BlockTreeProps {
      * fetching see `useQueryPreview`.
      */
     queryResults?: ResolvedQuery[];
+    /**
+     * Whether a block's Custom CSS may load resources (`url(`,
+     * `image-set(`, `image(`, `src(`). Pass the host's config
+     * `effects.custom_css_allow_urls` so the page matches Blade; Custom
+     * CSS that loads one is dropped when `false`. Defaults to `true`.
+     *
+     * @since 1.15.0
+     */
+    customCssAllowUrls?: boolean;
+    /**
+     * The theme's duotone presets (`settings.color.duotone`, flat or
+     * origin-keyed), so `var:preset|duotone|…` picks resolve the way the
+     * Blade renderer resolves them against the active theme. Custom stop
+     * lists need no presets.
+     *
+     * @since 1.15.0
+     */
+    duotonePresets?: DuotonePresets;
 }
 
 export function BlockTree({
@@ -114,6 +138,8 @@ export function BlockTree({
     globalStylesCss,
     siteMeta,
     queryResults,
+    customCssAllowUrls = true,
+    duotonePresets,
 }: BlockTreeProps): ReactElement {
     const blocks = useMemo(() => {
         const normalized = normalizeTree(tree);
@@ -162,12 +188,18 @@ export function BlockTree({
 
         const withSiteMeta = inlineSiteMeta(withOverlays, siteMeta);
 
-        // Query inlining runs last so a `core/query` block reachable only
-        // through a resolved template part / pattern still gets its loop
-        // expanded.
-        return queryResults === undefined
-            ? withSiteMeta
-            : inlineQueries(withSiteMeta, { queries: queryResults });
+        // Query inlining runs after the other inliners so a `core/query`
+        // block reachable only through a resolved template part / pattern
+        // still gets its loop expanded.
+        const withQueries =
+            queryResults === undefined
+                ? withSiteMeta
+                : inlineQueries(withSiteMeta, { queries: queryResults });
+
+        // Heading anchors (#888) — stamp a unique auto-generated `anchor`
+        // on every heading that lacks one, after every inliner so injected
+        // headings take part, the way Blade's `TocResolver` pass does.
+        return stampHeadingAnchors(withQueries);
     }, [
         tree,
         templateParts,
@@ -209,9 +241,42 @@ export function BlockTree({
     // custom-property rule, so image-bearing descendants get the same
     // aspect-ratio / object-fit / object-position sizing the Blade renderer
     // applies.
-    const { tree: renderTree, css: photoGridCss } = useMemo(() => {
+    const { tree: photoGridTree, css: photoGridCss } = useMemo(() => {
         return stampPhotoGridScopes(columnWidthTree);
     }, [columnWidthTree]);
+
+    // Per-instance layout (#871) — stamp the hashed `wp-container-<hash>`
+    // scope onto every group / post-content block whose layout panel sets
+    // content / wide size, justification, orientation, wrap or grid
+    // columns, and emit the matching rules the Blade renderer pushes from
+    // `LayoutSupport::containerClasses()`.
+    const { tree: layoutTree, css: layoutCss } = useMemo(() => {
+        return stampLayoutScopes(photoGridTree);
+    }, [photoGridTree]);
+
+    // Generic responsive overrides (#886) — append the hashed
+    // `ve-r-<hash>` scope to each block's `className` and emit the
+    // per-breakpoint rules Blade pushes from
+    // `BlockSupports::compileResponsive()`. Runs before effects so the
+    // class lands ahead of `ve-fx-<hash>`, as in Blade.
+    const { tree: responsiveTree, css: responsiveCss } = useMemo(() => {
+        return stampResponsiveScopes(layoutTree);
+    }, [layoutTree]);
+
+    // Block effects + Custom CSS (#881) — append the hashed `ve-fx-<hash>`
+    // scope to each block's `className` and emit the rules Blade pushes
+    // from `BlockSupports::compile()`.
+    const { tree: effectsTree, css: effectsCss } = useMemo(() => {
+        return stampEffectsScopes(responsiveTree, { allowCustomCssUrls: customCssAllowUrls });
+    }, [responsiveTree, customCssAllowUrls]);
+
+    // Duotone (#873, F-4) — stamp the `wp-duotone-*` scope on image,
+    // featured image, cover, avatar, site logo and post author blocks
+    // whose media renders, and print the rules plus the hidden SVG filter
+    // definitions Blade drains from `DuotoneCssAccumulator`.
+    const { tree: renderTree, css: duotoneCss, filters: duotoneFilters } = useMemo(() => {
+        return stampDuotoneScopes(effectsTree, duotonePresets);
+    }, [effectsTree, duotonePresets]);
 
     // Navigation overlay (#804) — the drawer's breakpoint + open-state
     // rules, emitted once when any navigation block has its overlay on.
@@ -235,8 +300,42 @@ export function BlockTree({
             {photoGridCss !== '' && (
                 <style data-ve-photo-grid="">{photoGridCss}</style>
             )}
+            {layoutCss !== '' && (
+                // Raw HTML so the `>` child combinator isn't escaped to
+                // `&gt;` inside the style element. The rule values are
+                // whitelisted by `layoutContainer()` and carry no `<`.
+                <style data-ve-layout="" dangerouslySetInnerHTML={{ __html: layoutCss }} />
+            )}
+            {responsiveCss !== '' && (
+                // Values are stripped to the CSS-value whitelist, so the
+                // rules carry no character React would escape.
+                <style data-ve-responsive="">{responsiveCss}</style>
+            )}
+            {effectsCss !== '' && (
+                // Raw HTML so `>` in Custom CSS isn't escaped to `&gt;`.
+                // `sanitizeCustomCss()` rejects any `<`.
+                <style data-ve-effects="" dangerouslySetInnerHTML={{ __html: effectsCss }} />
+            )}
             {hasNavigationOverlay && (
                 <style data-ve-navigation-overlay="">{NAVIGATION_OVERLAY_CSS}</style>
+            )}
+            {duotoneCss !== '' && (
+                // Raw HTML so a `>` target combinator isn't escaped.
+                <style data-ve-duotone="" dangerouslySetInnerHTML={{ __html: duotoneCss }} />
+            )}
+            {duotoneFilters !== '' && (
+                <svg
+                    data-ve-duotone=""
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 0 0"
+                    width="0"
+                    height="0"
+                    focusable="false"
+                    aria-hidden="true"
+                    style={{ visibility: 'hidden', position: 'absolute', left: '-9999px', overflow: 'hidden' }}
+                >
+                    <defs dangerouslySetInnerHTML={{ __html: duotoneFilters }} />
+                </svg>
             )}
             {renderTree.map((block, index) =>
                 renderBlock(block, index, dynamicBlockEndpoint, fetchOptions)

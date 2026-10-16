@@ -27,6 +27,7 @@
 	];
 
 	$baseClasses = [
+		'wp-block-artisanpack-callout',
 		'ap-callout',
 		'ap-callout--' . $severity,
 	];

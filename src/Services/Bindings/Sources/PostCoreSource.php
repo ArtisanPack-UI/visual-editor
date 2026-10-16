@@ -26,11 +26,13 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Services\Bindings\Sources;
 
+use ArtisanPackUI\VisualEditor\Services\Bindings\BindingAttributeAllowlist;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BlockBindingSource;
 use ArtisanPackUI\VisualEditor\Services\Bindings\ModelAttributeVisibility;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Throwable;
 
 class PostCoreSource implements BlockBindingSource
 {
@@ -103,6 +105,13 @@ class PostCoreSource implements BlockBindingSource
 		// Defer to the model's accessor so casts and mutators apply.
 		$value = $model->getAttribute( $key );
 
+		// With the opt-in allowlist enforced (#869), a field whose
+		// accessor returns a record (e.g. a `featured_image` relation to
+		// a media model) can't publish it wholesale.
+		if ( BindingAttributeAllowlist::isEnforced() && BindingAttributeAllowlist::containsModel( $value ) ) {
+			return null;
+		}
+
 		return $value;
 	}
 
@@ -121,6 +130,13 @@ class PostCoreSource implements BlockBindingSource
 
 	public function availableFields( string $resource, ?string $modelClass = null ): array
 	{
+		if ( ! $this->authorNameAllowed( $modelClass ) ) {
+			return array_values( array_filter(
+				self::SUPPORTED_FIELDS,
+				static fn ( array $field ): bool => 'author_name' !== $field['key'],
+			) );
+		}
+
 		return self::SUPPORTED_FIELDS;
 	}
 
@@ -138,6 +154,40 @@ class PostCoreSource implements BlockBindingSource
 		}
 
 		return false;
+	}
+
+	/**
+	 * False when the opt-in allowlist (#869) is enforced and the model's
+	 * `author` relation points at a model that doesn't allow `name`, so
+	 * the picker doesn't offer a field that would always resolve empty.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  class-string<Model>|null  $modelClass  Model the picker is browsing.
+	 */
+	protected function authorNameAllowed( ?string $modelClass ): bool
+	{
+		if ( ! BindingAttributeAllowlist::isEnforced() || null === $modelClass || ! is_subclass_of( $modelClass, Model::class ) ) {
+			return true;
+		}
+
+		$model = new $modelClass();
+
+		if ( ! ModelAttributeVisibility::isRelationMethod( $model, 'author' ) ) {
+			return true;
+		}
+
+		try {
+			$relation = $model->author();
+		} catch ( Throwable ) {
+			return true;
+		}
+
+		if ( ! $relation instanceof BelongsTo ) {
+			return true;
+		}
+
+		return BindingAttributeAllowlist::allows( $relation->getRelated(), 'name', 'author.name' );
 	}
 
 	/**
@@ -164,7 +214,13 @@ class PostCoreSource implements BlockBindingSource
 		) {
 			$author = $model->getAttribute( 'author' );
 
-			if ( $author instanceof Model && ModelAttributeVisibility::isReadable( $author, 'name' ) ) {
+			// The author is a related record, so the opt-in allowlist
+			// applies to its `name` (#869).
+			if (
+				$author instanceof Model
+				&& ModelAttributeVisibility::isReadable( $author, 'name' )
+				&& BindingAttributeAllowlist::allows( $author, 'name', 'author.name' )
+			) {
 				$name = $author->getAttribute( 'name' );
 
 				if ( null !== $name && '' !== $name ) {

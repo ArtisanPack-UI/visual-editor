@@ -171,7 +171,11 @@
             "attributes": [
                 "spacing",
                 "align",
-                "minHeight"
+                "minHeight",
+                "minHeightUnit",
+                "fontSize",
+                "textColor",
+                "style.color.text"
             ]
         },
         "artisanpackStates": {

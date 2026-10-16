@@ -18,6 +18,7 @@ import { attrBoolean, attrString, classList, phpTrim } from '../../support/attri
 import { applyBlockGap, hasBlockGapStyle } from '../../support/blockGap';
 import { safeCssValue } from '../../support/cssValue';
 import { presetPickClass } from '../../support/layoutBaselineCss';
+import { layoutModifierClasses } from '../../support/layoutContainer';
 import { safeUrl } from '../../support/urlSanitizer';
 import { NAVIGATION_OVERLAY_SLOT } from '../../templateParts';
 import { blockRendererProps } from '../shared';
@@ -38,11 +39,11 @@ const SWAPPED_MENU_SELECTOR = '.has-overlay-template > .wp-block-navigation__con
 /**
  * Reduce a color preset slug to `[a-z0-9-]` so a stored value can't mint
  * extra class tokens (e.g. `x is-menu-open`). Mirrors the Blade
- * partial's slug sanitizing.
+ * partial's slug sanitizing, lowercasing ASCII only like `strtolower()`.
  */
 function presetSlug(value: unknown): string {
     return phpTrim(attrString(value))
-        .toLowerCase()
+        .replace(/[A-Z]/g, (char) => char.toLowerCase())
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '');
 }
@@ -224,11 +225,20 @@ export const NavigationBlock = defineComponent({
             const wantsOverlay = overlayMenu !== 'never';
             const isAlwaysOverlay = overlayMenu === 'always';
 
+            // F-3 — navigation is always a flex layout: the layout pair and
+            // per-instance scope right after the block class, the
+            // justification / wrap modifiers after `items-justified-*`, as
+            // in `navigation.blade.php`.
+            const layoutScope = attrString(props.attributes._veLayoutScope);
             const classes = classList([
                 'wp-block-navigation',
+                'is-layout-flex',
+                'wp-block-navigation-is-layout-flex',
+                layoutScope !== '' ? layoutScope : null,
                 orientation === 'vertical' ? 'is-vertical' : null,
                 orientation === 'horizontal' ? 'is-horizontal' : null,
                 itemsJustify !== '' ? `items-justified-${itemsJustify}` : null,
+                ...layoutModifierClasses(props.attributes, false),
                 wantsOverlay ? 'is-responsive' : null,
                 className,
             ]);

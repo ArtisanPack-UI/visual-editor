@@ -82,6 +82,35 @@ every package upgrade to pick up refreshed CSS.
 | `theme-json`  | `array<string, mixed>\|null`  | `null`                                   | Decoded `theme.json` payload. When `null`, the token `<style>` is omitted.           |
 | `asset-base`  | `string\|null`                | `/vendor/visual-editor-renderer-blade`   | Override the bundled-CSS URL prefix — point at a CDN or your own asset pipeline.     |
 | `bundle`      | `bool`                        | `true`                                   | Set to `false` if your stack already loads `@wordpress/block-library` CSS elsewhere. |
+| `interactive` | `bool`                        | `true`                                   | Set to `false` to skip the accordion / tabs stylesheets and interactivity script.     |
+| `global-styles` | `bool`                      | `true`                                   | Set to `false` so this component never takes the global styles (see below).          |
+| `block-style-variations` | `bool`             | `true`                                   | Set to `false` to skip compiling `theme.json` block style variations into the tokens. |
+
+### Global styles placement
+
+`<x-ve-blocks-styles />` prints the compiled global styles
+(`<style data-ve-global-styles>`) last, so mount it **before** the `<link>` to
+your theme's own stylesheet: a `style.css` rule then beats the `theme.json`
+rule it overrides, as in the editor canvas and WordPress. They are printed
+once per request:
+
+- In a view whose `<head>` renders before the blocks, the component prints
+  them itself.
+- In an `@extends` layout or a component layout, the blocks render first.
+  `<x-ve-blocks>` / `<x-ve-template>` queue the styles on the
+  `ve-global-styles` Blade stack, and `<x-ve-blocks-styles />` prints that
+  stack, so they still land in `<head>`.
+- A layout without `<x-ve-blocks-styles />` can print
+  `@stack('ve-global-styles')` in its `<head>`. If it prints neither, the
+  package's `InjectQueuedGlobalStyles` middleware (on the `web` group) puts
+  the queued styles into the HTML response's `<head>`, before its first
+  stylesheet. For output that never becomes an HTTP response (mail,
+  `Blade::render()` into a string), set
+  `artisanpack.visual-editor.global_styles_in_head` to `false`, which makes
+  the first `<x-ve-blocks>` / `<x-ve-template>` print them inline in the body.
+
+Once the global styles are on the page, the tokens `<style>` skips the theme's
+block style variations, since the global styles already carry them.
 
 ### What gets compiled from `theme.json`
 

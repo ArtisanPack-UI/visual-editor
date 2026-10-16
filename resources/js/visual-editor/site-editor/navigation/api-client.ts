@@ -12,11 +12,14 @@
  * client so a host app's middleware setup applies uniformly.
  */
 
+import { __, sprintf } from '@wordpress/i18n';
+
 import {
     SiteEditorApiError,
     type SiteEditorApiConfig,
     type ValidationErrors,
 } from '../api-client';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 
 export interface NavigationRecord {
     id: number;
@@ -159,7 +162,11 @@ async function requireOk(response: Response): Promise<unknown> {
     const body = await parseBody(response);
 
     if (!response.ok) {
-        const baseMessage = `Navigation request failed with status ${response.status}`;
+        const baseMessage = sprintf(
+            /* translators: %d: HTTP status code. */
+            __('Navigation request failed with status %d', TEXT_DOMAIN),
+            response.status
+        );
         const message =
             body !== null &&
             typeof body === 'object' &&
@@ -250,7 +257,7 @@ export async function listNavigations(
 
         return Array.isArray(body) ? (body as NavigationListResponse) : [];
     } catch (error: unknown) {
-        throw normalizeError(error, 'Failed to load navigation list.');
+        throw normalizeError(error, __('Failed to load navigation list.', TEXT_DOMAIN));
     }
 }
 
@@ -267,7 +274,7 @@ export async function fetchNavigation(
 
         return (await requireOk(response)) as NavigationRecord;
     } catch (error: unknown) {
-        throw normalizeError(error, 'Failed to load navigation.');
+        throw normalizeError(error, __('Failed to load navigation.', TEXT_DOMAIN));
     }
 }
 
@@ -285,7 +292,7 @@ export async function createNavigation(
 
         return (await requireOk(response)) as NavigationRecord;
     } catch (error: unknown) {
-        throw normalizeError(error, 'Failed to create navigation.');
+        throw normalizeError(error, __('Failed to create navigation.', TEXT_DOMAIN));
     }
 }
 
@@ -304,7 +311,7 @@ export async function updateNavigation(
 
         return (await requireOk(response)) as NavigationRecord;
     } catch (error: unknown) {
-        throw normalizeError(error, 'Failed to save navigation.');
+        throw normalizeError(error, __('Failed to save navigation.', TEXT_DOMAIN));
     }
 }
 
@@ -327,7 +334,7 @@ export async function fetchMenuLocations(
 
         return body.data.filter(isMenuLocation);
     } catch (error: unknown) {
-        throw normalizeError(error, 'Failed to load menu locations.');
+        throw normalizeError(error, __('Failed to load menu locations.', TEXT_DOMAIN));
     }
 }
 
@@ -399,7 +406,7 @@ export async function searchEntities(
 
         return body.data.filter(isSearchResult);
     } catch (error: unknown) {
-        throw normalizeError(error, 'Failed to search entities.');
+        throw normalizeError(error, __('Failed to search entities.', TEXT_DOMAIN));
     }
 }
 

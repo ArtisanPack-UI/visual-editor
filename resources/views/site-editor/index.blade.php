@@ -28,6 +28,8 @@
 		data-exit-url="{{ route('visual-editor.editor') }}"
 		data-exit-label="{{ __('← Post editor') }}"
 		data-api-base="/visual-editor/api"
+		@can( \ArtisanPackUI\VisualEditor\Effects\BlockCssAccess::ABILITY ) data-can-edit-block-css="true" @endcan
+		data-custom-css-allow-urls="{{ config( 'artisanpack.visual-editor.effects.custom_css_allow_urls', true ) ? 'true' : 'false' }}"
 		data-theme="{{ config('artisanpack.visual-editor.global_styles.theme', 'default') }}"
 		{{-- #617 — the merged breakpoint registry (config +
 		     theme.json + defaults). The React shell hydrates the
@@ -52,6 +54,8 @@
 		     `useThemedEditorSettings`; host entries override same-slug
 		     entries from either theme.json or the package defaults. --}}
 		data-presets="{{ json_encode( \ArtisanPackUI\VisualEditor\Resources\PresetRegistry::fromConfig(), JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS ) }}"
+		{{-- #876 — block style variations for the Styles picker. --}}
+		data-block-styles="{{ json_encode( app( \ArtisanPackUI\VisualEditor\BlockStyles\BlockStyleResolver::class )->editorPayload(), JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS ) }}"
 	></div>
 </body>
 </html>

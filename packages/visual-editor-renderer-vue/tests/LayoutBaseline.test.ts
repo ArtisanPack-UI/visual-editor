@@ -27,6 +27,9 @@ describe('LayoutBaseline', () => {
 
         expect(css).toContain('.is-layout-flex { display: flex;');
         expect(css).toContain('.is-layout-grid { display: grid; }');
+        // #883 — flex/grid children are spaced by the block gap.
+        expect(css).toContain(':where(.is-layout-flex) { gap: var(--wp--style--block-gap, 0.5em); }');
+        expect(css).toContain(':where(.is-layout-grid) { gap: var(--wp--style--block-gap, 0.5em); }');
     });
 
     it('declares the default spacing presets at zero specificity and the navigation gap default (#814)', () => {
@@ -67,5 +70,33 @@ describe('colorUtilitySelector (mirrors PresetRegistry::colorUtilitySelector)', 
             `:where(.has-link-color.has-text-color:not(${inline})) { color: var(--wp--preset--color--link) !important; }`,
             `:where(.has-text-color:not(${inline})) { color: var(--wp--preset--color--text) !important; }`,
         ]);
+    });
+});
+
+describe('LayoutBaseline nested block gap reset (M-15)', () => {
+    const resetRules = [
+        ':where(body) { --ap-root-block-gap: var(--wp--style--block-gap); }',
+        ':where(.is-layout-flow, .is-layout-constrained, .is-layout-flex, .is-layout-grid) { --wp--style--block-gap: var(--ap-root-block-gap); }',
+        ':where(.wp-block-columns) { --ap-columns-gap: var(--wp--style--block-gap); }',
+    ];
+
+    it('resets the inherited block gap on every layout container at zero specificity', () => {
+        for (const rule of resetRules) {
+            expect(LAYOUT_BASELINE_CSS).toContain(rule);
+        }
+    });
+
+    it('emits the reset after the flex / grid gap rules, matching the Blade baseline', async () => {
+        const { readFileSync } = await import('node:fs');
+        const { resolve } = await import('node:path');
+        const blade = readFileSync(
+            resolve(__dirname, '../../visual-editor-renderer-blade/resources/views/components/blocks-styles.blade.php'),
+            'utf8'
+        );
+        const gridGap = ':where(.is-layout-grid) { gap: var(--wp--style--block-gap, 0.5em); }';
+        const block = [gridGap, ...resetRules].join('\n');
+
+        expect(LAYOUT_BASELINE_CSS).toContain(block);
+        expect(blade).toContain(block);
     });
 });

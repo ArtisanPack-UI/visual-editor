@@ -24,6 +24,13 @@ import {
 import { blockStylesheetPaths, canvasStyles } from '../canvas-styles';
 
 describe('canvasStyles', () => {
+    it('spaces flex and grid layout children with the block gap, as the front end does (#883)', () => {
+        const css = canvasStyles.map((entry) => entry.css).join('\n');
+
+        expect(css).toContain(':where(.is-layout-flex) { gap: var(--wp--style--block-gap, 0.5em); }');
+        expect(css).toContain(':where(.is-layout-grid) { gap: var(--wp--style--block-gap, 0.5em); }');
+    });
+
     it('exposes every sheet as a `{ css: string }` entry — the shape BlockCanvas injects', () => {
         expect(canvasStyles.length).toBeGreaterThan(0);
 

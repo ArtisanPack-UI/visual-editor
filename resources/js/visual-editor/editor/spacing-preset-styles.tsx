@@ -22,6 +22,7 @@
 import { store as blockEditorStore } from '@wordpress/block-editor';
 import { useSelect } from '@wordpress/data';
 import { useMemo, type ReactElement } from 'react';
+import { presetSlug } from '../support/preset-slug';
 
 interface SpacingSizeLike {
     slug?: unknown;
@@ -43,30 +44,29 @@ const UNSAFE_VALUE = /[;{}<>\\"'\u0000-\u001f\u007f]|\/\*|\*\//;
 
 /**
  * Whether a preset value is safe to write inside a `<style>` element:
- * none of the {@link UNSAFE_VALUE} characters, and balanced parentheses
- * (`calc(1rem` would leave a function open and swallow every later
- * rule). Mirrors `PresetRegistry::isSafeCssValue()`.
+ * none of the {@link UNSAFE_VALUE} characters, and parentheses and
+ * brackets that balance without crossing (`calc(1rem` or `x [` would
+ * leave a block open and swallow every later rule; `([)]` is rejected
+ * as crossed). Mirrors `PresetRegistry::isSafeCssValue()`.
  */
 export function isSafeSpacingValue(value: string): boolean {
     if (value === '' || UNSAFE_VALUE.test(value)) {
         return false;
     }
 
-    let depth = 0;
+    const closers: string[] = [];
 
     for (const char of value) {
         if (char === '(') {
-            depth++;
-        } else if (char === ')') {
-            depth--;
-
-            if (depth < 0) {
-                return false;
-            }
+            closers.push(')');
+        } else if (char === '[') {
+            closers.push(']');
+        } else if ((char === ')' || char === ']') && closers.pop() !== char) {
+            return false;
         }
     }
 
-    return depth === 0;
+    return closers.length === 0;
 }
 
 /**
@@ -76,13 +76,14 @@ export function isSafeSpacingValue(value: string): boolean {
  * `[a-z0-9-]` becomes `-` (`big_gap` → `big-gap`). Runs of `-` are kept
  * and nothing is trimmed. Mirrors `PresetRegistry::presetSlug()`, the
  * Blade `BlockSupports` / `ElementsSupport` reference expanders, and the
- * React / Vue renderers' `presetSlug()`.
+ * React / Vue renderers' `presetSlug()` — byte-wise, like PHP, so only
+ * ASCII is lowercased and a non-ASCII character becomes one `-` per UTF-8
+ * byte (R-19).
+ *
+ * @since 1.15.0 Delegates to the shared byte-accurate {@link presetSlug}.
  */
 export function spacingPresetSlug(value: string): string {
-    return value
-        .replace(/([a-z])([A-Z])/g, '$1-$2')
-        .toLowerCase()
-        .replace(/[^a-z0-9-]/g, '-');
+    return presetSlug(value);
 }
 
 /**

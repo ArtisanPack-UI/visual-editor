@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Facade;
  * @method static \ArtisanPackUI\VisualEditor\Blocks\DynamicBlock registerDynamicBlock(\ArtisanPackUI\VisualEditor\Blocks\DynamicBlock|string $blockOrName, ?array $config = null)
  * @method static \ArtisanPackUI\VisualEditor\Blocks\DynamicBlock registerServerBlock(string $name, array $metadata, callable $render, array $callbacks = [])
  * @method static \ArtisanPackUI\VisualEditor\DynamicContent\HostDynamicContentSource registerDynamicContentSource(array $definition)
+ * @method static void registerBlockStyle(string $block, string $slug, string $label, array $style = [], bool $isDefault = false)
+ * @method static void unregisterBlockStyle(string $block, string $slug)
  * @method static \ArtisanPackUI\VisualEditor\Registries\BlockTypeRegistry getRegistry()
  * @method static \ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry getDynamicBlockRegistry()
  * @method static \ArtisanPackUI\VisualEditor\Registries\DynamicContentSourceRegistry getDynamicContentSourceRegistry()

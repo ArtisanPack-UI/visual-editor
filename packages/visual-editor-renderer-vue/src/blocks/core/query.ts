@@ -18,9 +18,12 @@ import {
     attrRecord,
     attrString,
     classList,
+    layoutClass,
     layoutPair,
     postTemplateItemSpanClasses,
 } from '../../support/attributes';
+import { applyBlockGap } from '../../support/blockGap';
+import { layoutWrapperClasses } from '../../support/layoutContainer';
 import { blockRendererProps } from '../shared';
 
 /**
@@ -90,9 +93,20 @@ export const QueryBlock = defineComponent({
             const resolutionError = attrString(props.attributes._resolutionError);
             const hasError = resolutionError !== '';
 
+            // F-3 — layout pair, per-instance scope and modifiers, as in
+            // `query.blade.php`.
             const attrs: Record<string, unknown> = {
-                class: classList(['wp-block-query', className]),
+                class: classList([
+                    'wp-block-query',
+                    ...layoutWrapperClasses(props.attributes, 'query', layoutClass(props.attributes)),
+                    className,
+                ]),
             };
+            const gapStyle = applyBlockGap(props.attributes);
+
+            if (Object.keys(gapStyle).length > 0) {
+                attrs.style = gapStyle;
+            }
 
             if (hasError && isDevelopment()) {
                 attrs['data-ve-resolution-error'] = resolutionError;

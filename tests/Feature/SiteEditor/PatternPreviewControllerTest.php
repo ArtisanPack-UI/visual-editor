@@ -24,6 +24,7 @@ use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\PatternResolver;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedPattern;
 use ArtisanPackUI\VisualEditor\Support\ContentAccess;
 use ArtisanPackUI\VisualEditor\VisualEditorServiceProvider;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\VisualEditorRendererBladeServiceProvider;
 use Illuminate\Auth\GenericUser;
 use Illuminate\Support\Facades\Cache;
@@ -128,6 +129,26 @@ describe( 'POST /visual-editor/api/patterns/preview', function (): void {
 			->assertOk();
 
 		expect( $response->json( 'patterns.callout.html' ) )->toContain( 'Slug lookup copy' );
+	} );
+
+	it( 'prints the global styles once, before the theme stylesheet (#879)', function (): void {
+		app()->instance( GlobalStylesEmissionResolver::class, new class extends GlobalStylesEmissionResolver {
+			public function emit(): string
+			{
+				return '.ve-879-marker { color: teal; }';
+			}
+		} );
+
+		$this->mock( ThemeStylesheetReader::class, function ( $mock ): void {
+			$mock->shouldReceive( 'read' )->with( 'style.css' )->andReturn( '.theme-879 { color: red; }' );
+		} );
+
+		// Called before any pattern renders, so the emission tracker is
+		// still unclaimed when `<x-ve-blocks-styles>` runs.
+		$styles = app( PatternPreviewRenderer::class )->styles();
+
+		expect( substr_count( $styles, '.ve-879-marker' ) )->toBe( 1 )
+			->and( strpos( $styles, '.ve-879-marker' ) )->toBeLessThan( strpos( $styles, '.theme-879' ) );
 	} );
 
 	it( 'never ships script tags in the shared styles', function (): void {
@@ -404,6 +425,42 @@ describe( 'pattern preview resilience', function (): void {
 
 		expect( $one )->toContain( $rule )
 			->and( $two )->toContain( $rule )
+			->and( $two )->toBe( $one );
+	} );
+
+	it( 'emits the duotone filter in every pattern of a batch (R-10)', function (): void {
+		$image = '<!-- wp:image {"url":"/a.jpg","style":{"color":{"duotone":["#000000","#ff0000"]}}} -->'
+			. '<figure class="wp-block-image"><img src="/a.jpg" alt=""/></figure>'
+			. '<!-- /wp:image -->';
+
+		config()->set( 'artisanpack.visual-editor.site-editor.patterns', [
+			'photo-one' => [
+				'slug'        => 'photo-one',
+				'title'       => 'Photo one',
+				'source'      => 'theme',
+				'raw_content' => $image,
+			],
+			'photo-two' => [
+				'slug'        => 'photo-two',
+				'title'       => 'Photo two',
+				'source'      => 'theme',
+				'raw_content' => $image,
+			],
+		] );
+
+		rebuildSiteEditorResolversForPatternPreviewTest();
+
+		$response = $this->postJson( '/visual-editor/api/patterns/preview', [
+			'patterns' => [ 'photo-one', 'photo-two' ],
+		] )->assertOk();
+
+		$one = (string) $response->json( 'patterns.photo-one.html' );
+		$two = (string) $response->json( 'patterns.photo-two.html' );
+
+		// Each preview is its own iframe document, so each needs its own
+		// `<filter>` even though a page would print it once per request.
+		expect( $one )->toMatch( '/<filter id="wp-duotone-[0-9a-f]{10}">/' )
+			->and( $two )->toMatch( '/<filter id="wp-duotone-[0-9a-f]{10}">/' )
 			->and( $two )->toBe( $one );
 	} );
 

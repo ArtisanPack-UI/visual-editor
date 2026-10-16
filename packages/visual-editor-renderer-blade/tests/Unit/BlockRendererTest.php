@@ -104,7 +104,7 @@ it( 'renders a quote block with citation', function (): void {
 
 	$html = $this->normalizeHtml( makeRenderer()->render( $tree ) );
 
-	expect( $html )->toContain( '<blockquote class="wp-block-quote">' )
+	expect( $html )->toContain( '<blockquote class="wp-block-quote is-layout-flow wp-block-quote-is-layout-flow">' )
 		->toContain( '<p class="wp-block-paragraph">Quoted text</p>' )
 		->toContain( '<cite>Someone Famous</cite>' );
 } );
@@ -276,6 +276,54 @@ it( 'invokes a registered dynamic block instead of a partial', function (): void
 	$html = makeRenderer()->render( $tree );
 
 	expect( $html )->toBe( '<section data-latest-posts="true">Recent articles</section>' );
+} );
+
+it( 'does not bring back non-support keys validateAttrs() dropped (R-9)', function (): void {
+	app( DynamicBlockRegistry::class )->register( new class extends DynamicBlock {
+		public function name(): string
+		{
+			return 'acme/validated';
+		}
+
+		public function validateAttrs( array $attrs ): array
+		{
+			return [ 'title' => is_string( $attrs['title'] ?? null ) ? $attrs['title'] : '' ];
+		}
+
+		public function supportAttributes( array $attrs ): array
+		{
+			if ( isset( $attrs['extraClass'] ) ) {
+				$attrs['className'] = trim( ( $attrs['className'] ?? '' ) . ' ' . $attrs['extraClass'] );
+			}
+
+			return $attrs;
+		}
+
+		public function render( array $attrs )
+		{
+			return '<div class="wp-block-acme-validated">' . e( $attrs['title'] ) . '</div>';
+		}
+	} );
+
+	$html = makeRenderer()->render( [ makeBlock( 'acme/validated', [
+		'title'      => 'Hi',
+		'extraClass' => 'evil-class',
+		'anchor'     => 'kept',
+		'className'  => 'mine',
+	] ) ] );
+
+	expect( $html )->toBe( '<div class="wp-block-acme-validated mine" id="kept">Hi</div>' );
+} );
+
+it( 'lets validateAttrs() remove a support key by returning it empty (R-9)', function (): void {
+	app( DynamicBlockRegistry::class )->register( new ArtisanPackUI\VisualEditor\Blocks\ClosureDynamicBlock(
+		blockName: 'acme/no-class',
+		renderCallback: static fn ( array $attrs ): string => '<div class="wp-block-acme-no-class">x</div>',
+		validateCallback: static fn ( array $attrs ): array => [ 'className' => '' ],
+	) );
+
+	expect( makeRenderer()->render( [ makeBlock( 'acme/no-class', [ 'className' => 'evil-class', 'anchor' => 'a' ] ) ] ) )
+		->toBe( '<div class="wp-block-acme-no-class" id="a">x</div>' );
 } );
 
 it( 'passes validated attributes to dynamic blocks', function (): void {
@@ -646,7 +694,7 @@ it( 'renders the artisanpack/callout reference block with severity and icon', fu
 
 	$html = makeRenderer()->render( $tree );
 
-	expect( $html )->toContain( 'ap-callout ap-callout--warning' )
+	expect( $html )->toContain( 'wp-block-artisanpack-callout ap-callout ap-callout--warning' )
 		->and( $html )->toContain( 'data-severity="warning"' )
 		->and( $html )->toContain( '<div class="ap-callout__body">Check this out.</div>' )
 		->and( $html )->toContain( '<svg' );
@@ -814,7 +862,7 @@ it( 'renders the artisanpack/marquee block with width + animation styles applied
 
 	$html = makeRenderer()->render( $tree );
 
-	expect( $html )->toContain( 'class="ap-marquee"' )
+	expect( $html )->toContain( 'class="wp-block-artisanpack-marquee ap-marquee"' )
 		->and( $html )->toContain( 'width: 60%' )
 		->and( $html )->toContain( 'animation: ap-marquee-scroll 10s linear infinite' )
 		->and( $html )->toContain( 'class="ap-marquee__text"' )

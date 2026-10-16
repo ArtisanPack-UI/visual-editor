@@ -14,6 +14,7 @@
 import type { ReactElement } from 'react';
 import clsx from 'clsx';
 import { __, _x, isRTL } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import {
     ToolbarButton,
     ToggleControl,
@@ -69,7 +70,7 @@ function ParagraphRTLControl({ direction, setDirection }: ParagraphRTLControlPro
         isRTL() && (
             <ToolbarButton
                 icon={formatLTR}
-                title={_x('Left to right', 'editor button')}
+                title={_x('Left to right', 'editor button', TEXT_DOMAIN)}
                 isActive={direction === 'ltr'}
                 onClick={() => {
                     setDirection(direction === 'ltr' ? undefined : 'ltr');
@@ -113,11 +114,11 @@ function DropCapControl({
 
     let helpText;
     if (hasDropCapDisabled(textAlign, direction)) {
-        helpText = __('Not available for aligned text.');
+        helpText = __('Not available for aligned text.', TEXT_DOMAIN);
     } else if (dropCap) {
-        helpText = __('Showing large initial letter.');
+        helpText = __('Showing large initial letter.', TEXT_DOMAIN);
     } else {
-        helpText = __('Show a large initial letter.');
+        helpText = __('Show a large initial letter.', TEXT_DOMAIN);
     }
 
     const isDropCapControlEnabledByDefault = getBlockSupport(
@@ -130,14 +131,14 @@ function DropCapControl({
         <InspectorControls group="typography">
             <ToolsPanelItem
                 hasValue={() => !!dropCap}
-                label={__('Drop cap')}
+                label={__('Drop cap', TEXT_DOMAIN)}
                 isShownByDefault={isDropCapControlEnabledByDefault}
                 onDeselect={() => setAttributes({ dropCap: false })}
                 resetAllFilter={() => ({ dropCap: false })}
                 panelId={clientId}
             >
                 <ToggleControl
-                    label={__('Drop cap')}
+                    label={__('Drop cap', TEXT_DOMAIN)}
                     checked={!!dropCap}
                     onChange={() => setAttributes({ dropCap: !dropCap })}
                     help={helpText}
@@ -206,12 +207,13 @@ export default function ParagraphEdit({
                 aria-label={
                     RichText.isEmpty(content)
                         ? __(
-                              'Empty block; start writing or type forward slash to choose a block'
+                              'Empty block; start writing or type forward slash to choose a block',
+                              TEXT_DOMAIN
                           )
-                        : __('Block: Paragraph')
+                        : __('Block: Paragraph', TEXT_DOMAIN)
                 }
                 data-empty={RichText.isEmpty(content)}
-                placeholder={placeholder || __('Type / to choose a block')}
+                placeholder={placeholder || __('Type / to choose a block', TEXT_DOMAIN)}
                 data-custom-placeholder={placeholder ? true : undefined}
                 __unstableEmbedURLOnPaste
                 __unstableAllowPrefixTransformations

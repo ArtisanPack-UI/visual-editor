@@ -720,3 +720,83 @@ it( 'puts WP-managed background/border/padding/margin on the wrapper', function 
 		->and( $bodyStyle )->not->toContain( 'padding' )
 		->and( $bodyStyle )->not->toContain( 'margin' );
 } );
+
+it( 'emits has-X-gradient-background + has-background for palette gradient slugs (#874)', function (): void {
+	$html = test()->block->render( [
+		'iconRef'  => [ 'set' => 'fab', 'name' => 'github' ],
+		'gradient' => 'sunset',
+	] );
+
+	expect( $html )->toContain( 'has-sunset-gradient-background' )
+		->and( substr_count( $html, 'has-background' ) )->toBe( 1 );
+} );
+
+it( 'inlines a custom gradient on the wrapper (#874)', function ( string $stored, string $expected ): void {
+	$html = test()->block->render( [
+		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
+		'style'   => [ 'color' => [ 'gradient' => $stored ] ],
+	] );
+
+	preg_match( '/<div\b[^>]*\bstyle="([^"]*)"/', $html, $wrapperMatch );
+
+	expect( html_entity_decode( $wrapperMatch[1] ?? '' ) )->toContain( 'background: ' . $expected )
+		->and( $html )->toContain( 'has-background' );
+} )->with( [
+	'linear gradient' => [ 'linear-gradient(135deg, #ff0000 0%, #0000ff 100%)', 'linear-gradient(135deg, #ff0000 0%, #0000ff 100%)' ],
+	'preset ref'      => [ 'var:preset|gradient|sunset', 'var(--wp--preset--gradient--sunset)' ],
+] );
+
+it( 'drops a hostile custom gradient (#874)', function ( string $gradient ): void {
+	$html = test()->block->render( [
+		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
+		'style'   => [ 'color' => [ 'gradient' => $gradient ] ],
+	] );
+
+	expect( $html )->not->toContain( 'linear-gradient' )
+		->and( $html )->not->toContain( 'has-background' );
+} )->with( [
+	'declaration break' => 'linear-gradient(red, blue); position: fixed',
+	'url layer'         => 'linear-gradient(red, blue), url(https://example.com/pixel.png)',
+] );
+
+it( 'keeps legacy hex and text color out of the supports merge attributes (#874)', function (): void {
+	$attrs = test()->block->supportAttributes( array_merge(
+		[ 'anchor' => 'logo', 'gradient' => 'sunset' ],
+		test()->block->validateAttrs( [
+			'backgroundColor' => '#abc123',
+			'borderColor'     => 'accent',
+			'style'           => [ 'color' => [ 'text' => '#ccc', 'background' => '#fff' ] ],
+		] ),
+	) );
+
+	expect( $attrs['backgroundColor'] )->toBe( '' )
+		->and( $attrs['borderColor'] )->toBe( 'accent' )
+		->and( $attrs['style']['color'] )->toBe( [] )
+		->and( $attrs['anchor'] )->toBe( 'logo' );
+} );
+
+it( 'keeps the background and gradient render() owns out of the supports merge attributes (M-8)', function (): void {
+	$attrs = test()->block->supportAttributes( test()->block->validateAttrs( [
+		'gradient' => 'sunset',
+		'style'    => [ 'color' => [
+			'gradient'   => 'linear-gradient(red, blue), url(https://tracker.example/p.png)',
+			'background' => 'url(https://tracker.example/p.png)',
+		] ],
+	] ) );
+
+	expect( $attrs['style']['color'] )->toBe( [] )
+		->and( $attrs['gradient'] )->toBe( 'sunset' );
+} );
+
+it( 'reduces the supports merge gradient to a validated palette slug (M-8)', function (): void {
+	expect( test()->block->supportAttributes( [ 'gradient' => 'linear-gradient(red, blue), url(x)' ] )['gradient'] )->toBe( '' );
+} );
+
+it( 'kebab-cases a camelCase preset gradient slug (R-2)', function (): void {
+	$html = test()->block->render( [
+		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
+		'style'   => [ 'color' => [ 'gradient' => 'var:preset|gradient|sunsetGlow' ] ],
+	] );
+
+	expect( html_entity_decode( $html ) )->toContain( 'background: var(--wp--preset--gradient--sunset-glow)' );
+} );

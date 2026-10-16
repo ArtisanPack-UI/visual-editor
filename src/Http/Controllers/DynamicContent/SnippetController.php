@@ -23,6 +23,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Http\Controllers\DynamicContent;
 
+use ArtisanPackUI\VisualEditor\Effects\CustomCssGuard;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Requests\SnippetRequest;
 use ArtisanPackUI\VisualEditor\Models\Snippet;
 use ArtisanPackUI\VisualEditor\Services\DynamicContent\SnippetCycleGuard;
@@ -70,6 +71,8 @@ class SnippetController extends Controller
 
 		$data          = $request->validated();
 		$data['blocks'] ??= [];
+		// #881 — only users with the block-CSS ability may add Custom CSS.
+		$data['blocks'] = app( CustomCssGuard::class )->filter( $data['blocks'] );
 
 		$snippet = new Snippet( $data );
 
@@ -104,6 +107,11 @@ class SnippetController extends Controller
 		}
 
 		$data = $request->validated();
+
+		// #881 — only users with the block-CSS ability may add Custom CSS.
+		if ( array_key_exists( 'blocks', $data ) ) {
+			$data['blocks'] = app( CustomCssGuard::class )->filter( $data['blocks'], $snippet->blocks );
+		}
 
 		$this->cycleGuard->assertNoCycle(
 			(string) ( $data['slug'] ?? $snippet->slug ),

@@ -29,6 +29,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Http\Controllers\Adapters\CmsFramework;
 
+use ArtisanPackUI\VisualEditor\Effects\CustomCssGuard;
 use ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\WpEntityResource;
 use ArtisanPackUI\VisualEditor\Resources\ResourceResolver;
 use Illuminate\Database\Eloquent\Model;
@@ -314,6 +315,10 @@ abstract class WpEntityController extends Controller
 		$blocks = isset( $content['blocks'] ) && is_array( $content['blocks'] )
 			? array_values( $content['blocks'] )
 			: [];
+
+		// #881 — only users with the block-CSS ability may add Custom CSS.
+		$stored = $model->exists && method_exists( $model, 'getBlockContent' ) ? $model->getBlockContent() : null;
+		$blocks = app( CustomCssGuard::class )->filter( $blocks, $stored );
 
 		$model->setBlockContent( $blocks );
 

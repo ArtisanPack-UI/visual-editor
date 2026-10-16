@@ -7,8 +7,36 @@
 import { defineComponent, h } from 'vue';
 import type { VNode } from 'vue';
 import { attrBoolean, attrInt, attrString, classList } from '../../support/attributes';
+import { safeCssValue } from '../../support/cssValue';
 import { safeUrl } from '../../support/urlSanitizer';
 import { blockRendererProps } from '../shared';
+
+/**
+ * Object-fit keywords the image block's Scale control writes (#873).
+ */
+const IMAGE_SCALES = ['cover', 'contain', 'fill', 'none', 'scale-down'];
+
+/**
+ * The `<img>` style for the image block's `aspectRatio` + `scale`
+ * attributes (#873), mirroring `image.blade.php`: the ratio must pass
+ * `safeCssValue`, the scale must be a known object-fit keyword.
+ */
+function imageStyle(attributes: Record<string, unknown>): Record<string, string> | undefined {
+    const style: Record<string, string> = {};
+    const aspectRatio =
+        typeof attributes.aspectRatio === 'string' ? safeCssValue(attributes.aspectRatio) : null;
+    const scale = attributes.scale;
+
+    if (aspectRatio !== null) {
+        style.aspectRatio = aspectRatio.trim();
+    }
+
+    if (typeof scale === 'string' && IMAGE_SCALES.includes(scale)) {
+        style.objectFit = scale;
+    }
+
+    return Object.keys(style).length > 0 ? style : undefined;
+}
 
 export const ImageBlock = defineComponent({
     name: 'ImageBlock',
@@ -31,10 +59,13 @@ export const ImageBlock = defineComponent({
             const sizeSlug = attrString(props.attributes.sizeSlug);
             const className = attrString(props.attributes.className);
 
+            // Blade order: base, size, duotone scope (stamped by
+            // `stampDuotoneScopes()`), then the supports' align and className.
             const figureClasses = classList([
                 'wp-block-image',
-                align !== '' ? `align${align}` : null,
                 sizeSlug !== '' ? `size-${sizeSlug}` : null,
+                attrString(props.attributes._veDuotone) || null,
+                align !== '' ? `align${align}` : null,
                 className,
             ]);
 
@@ -50,6 +81,12 @@ export const ImageBlock = defineComponent({
 
             if (height !== undefined) {
                 imgProps.height = height;
+            }
+
+            const style = imageStyle(props.attributes);
+
+            if (style !== undefined) {
+                imgProps.style = style;
             }
 
             const img: VNode | null = url === '' ? null : h('img', imgProps);
@@ -245,26 +282,44 @@ export const FileBlock = defineComponent({
     },
 });
 
+/**
+ * Reduce an embed provider slug the way `embed.blade.php` does
+ * (`preg_replace( '/[^a-z0-9\-]/i', '-', … )`): case is kept, and every
+ * other character becomes one `-` per UTF-8 byte, since the PHP pattern
+ * has no `/u` flag.
+ */
+function embedProviderSlug(provider: string): string {
+    return provider.replace(/[^a-zA-Z0-9-]/gu, (char) => {
+        const codePoint = char.codePointAt(0) ?? 0;
+        const bytes = codePoint < 0x80 ? 1 : codePoint < 0x800 ? 2 : codePoint < 0x10000 ? 3 : 4;
+
+        return '-'.repeat(bytes);
+    });
+}
+
 export const EmbedBlock = defineComponent({
     name: 'EmbedBlock',
     props: blockRendererProps,
     setup(props) {
         return () => {
             const url = attrString(props.attributes.url);
-            const provider = attrString(props.attributes.providerNameSlug).toLowerCase();
+            const provider = attrString(props.attributes.providerNameSlug);
             const caption = attrString(props.attributes.caption);
             const ratio = attrString(props.attributes.aspectRatio);
             const type = attrString(props.attributes.type);
 
-            const sanitizedProvider = provider.replace(/[^a-z0-9-]/g, '-');
+            const sanitizedProvider = embedProviderSlug(provider);
 
             const classes = classList([
                 'wp-block-embed',
                 sanitizedProvider !== '' ? `is-provider-${sanitizedProvider}` : null,
                 sanitizedProvider !== '' ? `wp-block-embed-${sanitizedProvider}` : null,
-                type !== '' ? `is-type-${type}` : null,
+                // PHP's `empty()` also skips `'0'`.
+                type !== '' && type !== '0' ? `is-type-${type}` : null,
                 ratio !== '' ? `wp-embed-aspect-${ratio.replace(/\//g, '-')}` : null,
                 ratio !== '' ? 'wp-has-aspect-ratio' : null,
+                // `className` carries the `ve-r-*` / `ve-fx-*` scopes too (M-7).
+                attrString(props.attributes.className),
             ]);
 
             const children: VNode[] = [

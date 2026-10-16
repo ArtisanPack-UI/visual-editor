@@ -13,15 +13,17 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Ai\Support;
 
+use ArtisanPackUI\VisualEditor\Support\CapabilityCheck;
 use Illuminate\Contracts\Auth\Authenticatable;
 
 /**
  * Who may run the AI features. Each call spends the site's AI
  * credentials, so access is denied by default: the user needs the
  * `artisanpack.visual-editor.ai.capability` capability (default
- * `use_ai_features`) through an RBAC `hasCapability()` /
- * `hasPermissionTo()` / `hasPermission()` method. Hosts can redefine the
- * {@see self::ABILITY} gate instead.
+ * `use_ai_features`) through an RBAC `checkPermissionTo()` /
+ * `hasCapability()` / `hasPermissionTo()` / `hasPermission()` method (see
+ * {@see CapabilityCheck}; a backend that throws denies). Hosts can
+ * redefine the {@see self::ABILITY} gate instead.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor
@@ -49,6 +51,7 @@ class AiAccess
 	 * Default gate callback.
 	 *
 	 * @since 1.12.1
+	 * @since 1.15.0 Prefers `checkPermissionTo()` and denies when the permission backend throws.
 	 *
 	 * @param  Authenticatable|null  $user  Current user.
 	 */
@@ -64,12 +67,6 @@ class AiAccess
 			return false;
 		}
 
-		foreach ( [ 'hasCapability', 'hasPermissionTo', 'hasPermission' ] as $method ) {
-			if ( method_exists( $user, $method ) ) {
-				return (bool) $user->{$method}( $capability );
-			}
-		}
-
-		return false;
+		return true === CapabilityCheck::check( $user, $capability );
 	}
 }

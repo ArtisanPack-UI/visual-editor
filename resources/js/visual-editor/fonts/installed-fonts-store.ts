@@ -29,9 +29,11 @@
  */
 
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
+import { __ } from '@wordpress/i18n';
 
 import { fetchInstalledFonts, type InstalledFont } from './api-client';
 import type { LoadStatus } from './store';
+import { TEXT_DOMAIN } from '../vendor/i18n';
 
 /** A font-family option, shaped to merge with the theme preset options. */
 export interface FontFamilyOption {
@@ -204,7 +206,7 @@ function runInstalledFontsFetch(): Promise<void> {
         })
         .catch((error: unknown) => {
             const message =
-                error instanceof Error ? error.message : 'Failed to load fonts.';
+                error instanceof Error ? error.message : __('Failed to load fonts.', TEXT_DOMAIN);
             setState({ status: 'error', fonts: [], error: message });
         })
         .finally(() => {

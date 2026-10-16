@@ -24,8 +24,9 @@ use Illuminate\Support\Facades\Log;
  *
  * By default any authenticated user is allowed. When the
  * `artisanpack.visual-editor.content_access.capability` config names a
- * capability, the user needs it through an RBAC `hasCapability()` /
- * `hasPermissionTo()` / `hasPermission()` method. A user model with none
+ * capability, the user needs it through an RBAC `checkPermissionTo()` /
+ * `hasCapability()` / `hasPermissionTo()` / `hasPermission()` method (see
+ * {@see CapabilityCheck}; a backend that throws denies). A user model with none
  * of those falls back to Laravel's `$user->can( $capability )` and a
  * warning is logged (once per request), since that usually means the
  * capability config doesn't match the host's authorization setup. A
@@ -57,6 +58,7 @@ class ContentAccess
 	 * Default gate callback.
 	 *
 	 * @since 1.13.0
+	 * @since 1.15.0 Prefers `checkPermissionTo()` and denies when the permission backend throws.
 	 *
 	 * @param  Authenticatable|null  $user  Current user.
 	 *
@@ -75,10 +77,10 @@ class ContentAccess
 			return true;
 		}
 
-		foreach ( [ 'hasCapability', 'hasPermissionTo', 'hasPermission' ] as $method ) {
-			if ( method_exists( $user, $method ) ) {
-				return (bool) $user->{$method}( $capability );
-			}
+		$decision = CapabilityCheck::check( $user, $capability );
+
+		if ( null !== $decision ) {
+			return $decision;
 		}
 
 		self::warnMissingRbac( $user, $capability );

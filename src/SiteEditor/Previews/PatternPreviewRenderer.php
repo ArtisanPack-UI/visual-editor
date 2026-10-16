@@ -31,15 +31,14 @@ use ArtisanPackUI\VisualEditor\Fonts\Services\FontsCssGenerator;
 use ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\SiteEditor\PatternAdapter;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesEmissionTracker;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedPattern;
+use ArtisanPackUI\VisualEditor\SiteEditor\ThemeStylesheets;
 use ArtisanPackUI\VisualEditor\Support\BlockMarkupHydrator;
-use ArtisanPackUI\VisualEditor\Support\CssUrlAbsolutizer;
 use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\DuotoneCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker;
 use Illuminate\Support\Facades\Blade;
-use Illuminate\Support\Facades\Route;
 use RuntimeException;
-use Throwable;
 
 class PatternPreviewRenderer
 {
@@ -51,13 +50,19 @@ class PatternPreviewRenderer
 
 	/**
 	 * cms-framework's theme stylesheet reader (2.5+).
+	 *
+	 * @since 1.13.0
+	 * @deprecated 1.15.0 Use {@see ThemeStylesheets::STYLESHEET_READER_FQCN}.
 	 */
-	protected const STYLESHEET_READER_FQCN = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Support\\ThemeStylesheetReader';
+	protected const STYLESHEET_READER_FQCN = ThemeStylesheets::STYLESHEET_READER_FQCN;
 
 	/**
 	 * cms-framework's named route serving `themes/{slug}/assets/{path}`.
+	 *
+	 * @since 1.13.0
+	 * @deprecated 1.15.0 Use {@see ThemeStylesheets::THEME_ASSETS_ROUTE}.
 	 */
-	protected const THEME_ASSETS_ROUTE = 'themes.assets';
+	protected const THEME_ASSETS_ROUTE = ThemeStylesheets::THEME_ASSETS_ROUTE;
 
 	/**
 	 * Memoized active theme manifest; `false` until first read.
@@ -131,7 +136,11 @@ class PatternPreviewRenderer
 		}
 
 		$parts = [
-			Blade::render( '<x-ve-blocks-styles :theme-json="$themeJson" />', [
+			// #876 — the global styles below already carry the theme's
+			// block style variations, so don't compile them twice.
+			// They are printed below, so the component skips its own
+			// copy (#879).
+			Blade::render( '<x-ve-blocks-styles :theme-json="$themeJson" :block-style-variations="false" :global-styles="false" />', [
 				'themeJson' => $this->activeThemeJson(),
 			] ),
 		];
@@ -169,8 +178,11 @@ class PatternPreviewRenderer
 		// render state (the navigation overlay's once-per-response CSS and
 		// script, its id counter) must start fresh for every pattern —
 		// otherwise only the batch's first overlay nav gets its CSS, and
-		// that order-dependent HTML is what gets cached.
+		// that order-dependent HTML is what gets cached. The duotone
+		// accumulator prints each `<filter>` once per request (R-10), so it
+		// starts fresh per pattern too.
 		$this->resetNavigationOverlayTracker();
+		$this->resetDuotoneAccumulator();
 
 		// Theme patterns ship serialized markup (and a parse-shape tree
 		// with no recovered text), so hydrate the markup; user patterns
@@ -213,6 +225,24 @@ class PatternPreviewRenderer
 	}
 
 	/**
+	 * Reset the Blade renderer's request-scoped duotone accumulator, so the
+	 * next pattern prints every `<filter>` it uses: each preview is its own
+	 * document, and a filter printed in an earlier one doesn't exist there.
+	 *
+	 * @since 1.15.0
+	 */
+	protected function resetDuotoneAccumulator(): void
+	{
+		$accumulatorClass = DuotoneCssAccumulator::class;
+
+		if ( ! class_exists( $accumulatorClass ) || ! app()->bound( $accumulatorClass ) ) {
+			return;
+		}
+
+		app( $accumulatorClass )->reset();
+	}
+
+	/**
 	 * The raw markup the editor would insert for this pattern, after the
 	 * `ap.visualEditor.patternRender` filter — so the preview matches what
 	 * a click inserts.
@@ -234,51 +264,20 @@ class PatternPreviewRenderer
 	 */
 	protected function themeStylesheet(): string
 	{
-		if ( ! class_exists( self::STYLESHEET_READER_FQCN ) || ! app()->bound( self::STYLESHEET_READER_FQCN ) ) {
-			return '';
-		}
-
-		$css = app( self::STYLESHEET_READER_FQCN )->read( 'style.css' );
-
-		if ( ! is_string( $css ) || '' === $css ) {
-			return '';
-		}
-
-		$baseUrl = $this->themeBaseUrl();
-
-		return null === $baseUrl ? $css : CssUrlAbsolutizer::absolutize( $css, $baseUrl );
+		return app( ThemeStylesheets::class )->stylesheet( 'style.css' );
 	}
 
 	/**
 	 * Absolute URL of the active theme's root directory — the directory
-	 * `style.css` lives in — derived from cms-framework's theme assets
-	 * route (`/themes/{slug}/assets/{path}`), so `url(./assets/bg.jpg)`
-	 * resolves to the same URL the route serves. Null without an active
-	 * theme or the route.
+	 * `style.css` lives in. Null without an active theme or the theme
+	 * assets route.
 	 *
 	 * @since 1.13.0
+	 * @deprecated 1.15.0 Use {@see ThemeStylesheets::baseUrl()}.
 	 */
 	protected function themeBaseUrl(): ?string
 	{
-		$slug = $this->activeThemeSlug();
-
-		if ( null === $slug || ! Route::has( self::THEME_ASSETS_ROUTE ) ) {
-			return null;
-		}
-
-		try {
-			$assetUrl = route( self::THEME_ASSETS_ROUTE, [ 'slug' => $slug, 'path' => '__ve__' ] );
-		} catch ( Throwable ) {
-			return null;
-		}
-
-		$suffix = '/assets/__ve__';
-
-		if ( ! str_ends_with( $assetUrl, $suffix ) ) {
-			return null;
-		}
-
-		return substr( $assetUrl, 0, -strlen( $suffix ) ) . '/';
+		return app( ThemeStylesheets::class )->baseUrl();
 	}
 
 	/**
