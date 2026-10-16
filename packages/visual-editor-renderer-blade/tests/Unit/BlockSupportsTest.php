@@ -577,6 +577,24 @@ describe( 'BlockSupports::compile (composition)', function (): void {
 		expect( $result['boxShadowRules'] )->toContain( 'background:linear-gradient(135deg, #ff0000, #0000ff)' );
 	} );
 
+	it( 'renders the var:preset|shadow|{slug} string WordPress saves (#900)', function (): void {
+		$result = BlockSupports::compile( [
+			'style' => [ 'shadow' => 'var:preset|shadow|natural' ],
+		] );
+
+		expect( $result['boxShadowClass'] )->toStartWith( 've-bs-' );
+		expect( $result['classes'] )->toContain( $result['boxShadowClass'] );
+		expect( $result['boxShadowRules'] )->toBe( '.' . $result['boxShadowClass'] . '{box-shadow:var(--wp--preset--shadow--natural)}' );
+	} );
+
+	it( 'renders a raw string shadow value (#900)', function (): void {
+		$result = BlockSupports::compile( [
+			'style' => [ 'shadow' => '0 2px 4px rgba(0, 0, 0, 0.3)' ],
+		] );
+
+		expect( $result['boxShadowRules'] )->toBe( '.' . $result['boxShadowClass'] . '{box-shadow:0 2px 4px rgba(0, 0, 0, 0.3)}' );
+	} );
+
 	it( 'returns empty result for a block with no supported attributes', function (): void {
 		$result = BlockSupports::compile( [] );
 

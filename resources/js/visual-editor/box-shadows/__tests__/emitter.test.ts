@@ -18,6 +18,7 @@ function layer( overrides: Partial<ResolvedShadowLayer> = {} ): ResolvedShadowLa
 		gradient: null,
 		inset:    false,
 		preset:   null,
+		value:    null,
 		...overrides,
 	}
 }
@@ -157,5 +158,40 @@ describe( 'emitBoxShadowCss', () => {
 		)
 
 		expect( css ).toMatch( /@media \(min-width:\d+px\)\{\.scope\{box-shadow:0 0 16px 0 #000\}\}/ )
+	} )
+} )
+
+describe( 'emitBoxShadowCss raw values (#900)', () => {
+	it( 'emits a raw value as the box-shadow declaration', () => {
+		const css = emitBoxShadowCss(
+			'.scope',
+			{ ...baseline, idle: layer( { value: '6px 6px 9px rgba(0, 0, 0, 0.2)' } ) },
+			states,
+			breakpoints,
+		)
+
+		expect( css ).toBe( '.scope{box-shadow:6px 6px 9px rgba(0, 0, 0, 0.2)}' )
+	} )
+
+	it( 'lets a preset win over a raw value', () => {
+		const css = emitBoxShadowCss(
+			'.scope',
+			{ ...baseline, idle: layer( { preset: 'natural', value: '1px 1px red' } ) },
+			states,
+			breakpoints,
+		)
+
+		expect( css ).toBe( '.scope{box-shadow:var(--wp--preset--shadow--natural)}' )
+	} )
+
+	it( 'drops a raw value whose parentheses do not balance once sanitised', () => {
+		const css = emitBoxShadowCss(
+			'.scope',
+			{ ...baseline, idle: layer( { value: '1px 1px rgba(0, 0, 0' } ) },
+			states,
+			breakpoints,
+		)
+
+		expect( css ).toBe( '' )
 	} )
 } )

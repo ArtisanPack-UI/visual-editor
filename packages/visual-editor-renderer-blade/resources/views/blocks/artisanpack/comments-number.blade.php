@@ -14,6 +14,6 @@
 
 	$line = trim( $count . ' ' . $label );
 
-	$baseClasses = [ 'ap-comments-number' ];
+	$baseClasses = [ 'wp-block-artisanpack-comments-number', 'ap-comments-number' ];
 @endphp
 <p{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}>{{ $line }}</p>

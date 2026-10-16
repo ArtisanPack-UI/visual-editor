@@ -78,7 +78,7 @@ function childClassName(innerBlocks: Block[], name: string): string {
 
 export function AccordionsBlock({ attributes, children }: BlockRendererProps): JSX.Element {
     const className = attrString(attributes.className);
-    const classes = classList(['ap-accordions', className]);
+    const classes = classList(['wp-block-artisanpack-accordions', 'ap-accordions', className]);
 
     return <div className={classes}>{children}</div>;
 }
@@ -91,7 +91,7 @@ export function AccordionBlock({
     const panelId = attrString(attributes.panelId);
     const panelIcon = normalizePanelIcon(attributes.panelIcon);
     const className = attrString(attributes.className);
-    const classes = classList(['ap-accordion', className]);
+    const classes = classList(['wp-block-artisanpack-accordion', 'ap-accordion', className]);
 
     const titleContent = findChildByName(children, innerBlocks, 'artisanpack/accordion-title');
     const bodyContent = findChildByName(children, innerBlocks, 'artisanpack/accordion-body');
@@ -116,7 +116,7 @@ export function AccordionBlock({
     }
 
     const bodyAttrs: Record<string, unknown> = {
-        className: classList(['ap-accordion__body', childClassName(innerBlocks, 'artisanpack/accordion-body')]),
+        className: classList(['wp-block-artisanpack-accordion-body', 'ap-accordion__body', childClassName(innerBlocks, 'artisanpack/accordion-body')]),
         role: 'region',
         hidden: true,
     };
@@ -127,7 +127,7 @@ export function AccordionBlock({
 
     return (
         <div {...wrapperAttrs}>
-            <div className={classList(['ap-accordion__title', childClassName(innerBlocks, 'artisanpack/accordion-title')])}>
+            <div className={classList(['wp-block-artisanpack-accordion-title', 'ap-accordion__title', childClassName(innerBlocks, 'artisanpack/accordion-title')])}>
                 <div {...triggerAttrs}>{titleContent}</div>
                 <span
                     className={`ap-accordion__icon ap-accordion__icon--${panelIcon}`}
@@ -144,9 +144,9 @@ export function AccordionBlock({
 // surface when something else renders the title/body in isolation.
 
 export function AccordionTitleBlock({ attributes, children }: BlockRendererProps): JSX.Element {
-    return <div className={classList(['ap-accordion__title', attrString(attributes.className)])}>{children}</div>;
+    return <div className={classList(['wp-block-artisanpack-accordion-title', 'ap-accordion__title', attrString(attributes.className)])}>{children}</div>;
 }
 
 export function AccordionBodyBlock({ attributes, children }: BlockRendererProps): JSX.Element {
-    return <div className={classList(['ap-accordion__body', attrString(attributes.className)])}>{children}</div>;
+    return <div className={classList(['wp-block-artisanpack-accordion-body', 'ap-accordion__body', attrString(attributes.className)])}>{children}</div>;
 }

@@ -95,7 +95,7 @@
 		$faqJsonLd = false === $encoded ? '' : $encoded;
 	}
 @endphp
-<div{!! BlockSupports::wrapperAttrs( $attributes, [ 'ap-faq' ] ) !!}>
+<div{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-artisanpack-faq', 'ap-faq' ] ) !!}>
 	@foreach ( $items as $item )
 		<div class="ap-faq__item">
 			<{{ $questionTag }} class="ap-faq__question">{!! $item['question'] !!}</{{ $questionTag }}>

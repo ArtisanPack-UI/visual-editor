@@ -40,14 +40,16 @@ import type { BlockInstance } from '@wordpress/blocks';
 import { useMemo } from 'react';
 
 import { canvasColorTokenStyle } from './canvas-color-tokens';
-import { canvasStyles } from './canvas-styles';
+import { canvasStyles, FLEX_LAYOUT_STYLE } from './canvas-styles';
 import { ChromeBlocks } from './composed-view/chrome-blocks';
 import { ComposedViewRibbon } from './composed-view/composed-view-ribbon';
 import { PostTitle } from './post-title';
+import { flexLayoutCss } from './flex-layout-css';
 import { useSpacingPresetCss } from './spacing-preset-styles';
 import { ROOT_CANVAS_LAYOUT } from '../editor-settings';
 import { TEXT_DOMAIN } from '../vendor/i18n';
 import { scopeGlobalStylesCss } from '../site-editor/scope-global-styles-css';
+import { getResponsiveRegistry } from '../responsive/registry';
 import { useThemeGlobalStylesCss } from '../site-editor/use-theme-global-styles-css';
 import { useThemeGlobalStylesSettings } from '../site-editor/use-theme-global-styles-settings';
 
@@ -195,24 +197,35 @@ export function EditorCanvas(props: EditorCanvasProps): JSX.Element {
     // win, matching the picker.
     const spacingPresetCss = useSpacingPresetCss();
 
+    // #895 — when the host moved its breakpoints, the Flex Layout token
+    // rules are rebuilt at its widths and replace the static sheet, so a
+    // device preview switches where the front end does. The editor app
+    // publishes the registry before the canvas mounts.
+    const flexCss = useMemo(() => flexLayoutCss(getResponsiveRegistry()), []);
+
     const styles = useMemo(() => {
+        const baseStyles =
+            flexCss === ''
+                ? canvasStyles
+                : canvasStyles.map((entry) => (entry === FLEX_LAYOUT_STYLE ? { css: flexCss } : entry));
+
         if (
             colorTokens === null &&
             (scopedThemeCss === undefined || scopedThemeCss === '') &&
             spacingPresetCss === ''
         ) {
-            return canvasStyles;
+            return baseStyles;
         }
 
         return [
-            ...canvasStyles,
+            ...baseStyles,
             ...(colorTokens === null ? [] : [colorTokens]),
             ...(scopedThemeCss === undefined || scopedThemeCss === ''
                 ? []
                 : [{ css: scopedThemeCss }]),
             ...(spacingPresetCss === '' ? [] : [{ css: spacingPresetCss }]),
         ];
-    }, [scopedThemeCss, colorTokens, spacingPresetCss]);
+    }, [scopedThemeCss, colorTokens, spacingPresetCss, flexCss]);
 
     // Chrome sits as siblings of the block list inside the iframe. The
     // previews mount isolated block-editor stores of their own, so the

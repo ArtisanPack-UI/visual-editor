@@ -136,6 +136,7 @@ export function AuthorSocialIconsBlock({
     const className = attrString(attributes.className);
 
     const classes = classList([
+        'wp-block-artisanpack-author-social-icons',
         'ap-author-social-icons',
         `ap-author-social-icons--${direction}`,
         `ap-author-social-icons--${stretch}`,

@@ -78,7 +78,7 @@ export const HowtoBlock = defineComponent({
             const description = attrString(props.attributes.description);
             const className = attrString(props.attributes.className);
 
-            const classes = classList(['ap-howto', className]);
+            const classes = classList(['wp-block-artisanpack-howto', 'ap-howto', className]);
 
             const stepNameTag = `h${level}`;
 

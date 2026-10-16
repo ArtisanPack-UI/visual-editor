@@ -71,7 +71,7 @@ export const FaqBlock = defineComponent({
             const items = normalizeItems(props.attributes.items);
             const className = attrString(props.attributes.className);
 
-            const classes = classList(['ap-faq', className]);
+            const classes = classList(['wp-block-artisanpack-faq', 'ap-faq', className]);
 
             const questionTag = `h${level}`;
 

@@ -50,7 +50,7 @@
 		return '';
 	};
 
-	$baseClasses = [ 'ap-business-hours' ];
+	$baseClasses = [ 'wp-block-artisanpack-business-hours', 'ap-business-hours' ];
 	$ariaLabel   = (string) ( $attributes['ariaLabel'] ?? __( 'Business hours' ) );
 @endphp
 <section{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!} aria-label="{{ $ariaLabel }}">

@@ -136,6 +136,7 @@ export function SocialShareContentBlock({
     const className = attrString(attributes.className);
 
     const classes = classList([
+        'wp-block-artisanpack-social-share-content',
         'ap-social-share-content',
         `ap-social-share-content--${direction}`,
         `ap-social-share-content--${stretch}`,

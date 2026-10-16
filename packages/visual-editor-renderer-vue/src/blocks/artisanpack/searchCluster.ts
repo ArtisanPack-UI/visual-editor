@@ -68,7 +68,7 @@ export const SearchFieldBlock = defineComponent({
             const searchValue = attrString(props.attributes._resolvedSearchValue);
             const className = attrString(props.attributes.className);
 
-            const classes = classList(['ap-search-field', className]);
+            const classes = classList(['wp-block-artisanpack-search-field', 'ap-search-field', className]);
             const inputId = `ap-search-field-${shortHash(
                 `${label}|${placeholder}|${searchValue}`
             )}`;
@@ -103,7 +103,7 @@ export const SearchFiltersBlock = defineComponent({
                 '/';
             const className = attrString(props.attributes.className);
 
-            const classes = classList(['ap-search-filters', className]);
+            const classes = classList(['wp-block-artisanpack-search-filters', 'ap-search-filters', className]);
 
             return h('div', { class: classes }, [
                 h(
@@ -139,7 +139,7 @@ export const SearchFiltersButtonsBlock = defineComponent({
             const clearLabel = attrString(props.attributes.clearLabel, 'Clear');
             const className = attrString(props.attributes.className);
 
-            const classes = classList(['ap-search-filters-buttons', className]);
+            const classes = classList(['wp-block-artisanpack-search-filters-buttons', 'ap-search-filters-buttons', className]);
 
             return h('div', { class: classes }, [
                 h('input', {
@@ -174,7 +174,7 @@ export const SearchFiltersTaxonomyBlock = defineComponent({
                 props.attributes._resolvedSelectedTerm
             );
 
-            const classes = classList(['ap-search-filters-taxonomy', className]);
+            const classes = classList(['wp-block-artisanpack-search-filters-taxonomy', 'ap-search-filters-taxonomy', className]);
             const selectId = `ap-search-filters-taxonomy-${taxonomy}`;
 
             const hasMatchingTerm = terms.some(
@@ -235,6 +235,7 @@ export const PostTypesSearchResultsBlock = defineComponent({
         return (): VNode => {
             const className = attrString(props.attributes.className);
             const classes = classList([
+                'wp-block-artisanpack-post-types-search-results',
                 'ap-post-types-search-results',
                 className,
             ]);
@@ -257,6 +258,7 @@ export const SinglePostTypesSearchResultsBlock = defineComponent({
             }
             const className = attrString(props.attributes.className);
             const classes = classList([
+                'wp-block-artisanpack-single-post-types-search-results',
                 'ap-single-post-types-search-results',
                 className,
             ]);

@@ -35,8 +35,14 @@
 <link rel="stylesheet" href="{{ $queryPaginationStyleHref }}" data-ve-query-pagination>
 {{-- #595 — Flex layout utility classes (ap-flex, ap-flex-row, ap-gap-x-*, …)
 	emitted by the shared serializer onto group/column/columns/grid-item
-	wrappers. Static, layout-only, no interactivity needed. --}}
+	wrappers. Static, layout-only, no interactivity needed. #895 — when the
+	host moves its breakpoints, the same rules print inline at the host's
+	widths instead. --}}
+@if( '' === $flexLayoutCss )
 <link rel="stylesheet" href="{{ $flexLayoutStyleHref }}" data-ve-flex-layout>
+@else
+<style data-ve-flex-layout>{!! $flexLayoutCss !!}</style>
+@endif
 {{-- #594 — Photo Grid container support. Targets descendant images of
 	any container carrying `has-photo-grid` and reads the CSS custom
 	properties stamped onto the wrapper via the inline rules emitted

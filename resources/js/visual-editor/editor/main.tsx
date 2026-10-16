@@ -186,6 +186,16 @@ export interface MountConfig {
      * @since 1.15.0
      */
     blockStyles?: ReadonlyArray<ThemeBlockStyle>;
+    /**
+     * Jed locale data for the `artisanpack-visual-editor` text domain
+     * (#896) — a `wp i18n make-json` file or its bare locale data.
+     * Applied before the editor bundle loads, so block variations and
+     * presets translate too. Read from `data-locale-data`; omit for
+     * English.
+     *
+     * @since 1.15.1
+     */
+    localeData?: EditorLocaleData;
 }
 
 export interface MountedEditor {
@@ -260,6 +270,7 @@ export function readMountConfig(element: HTMLElement): MountConfig | null {
     const siteEditorRouteBase = element.dataset.siteEditorRouteBase?.trim();
     // #876 — validated by `setThemeBlockStyles()` once the (lazy)
     // registry loads; only an array is passed on.
+    const localeData = parseJsonDataset<unknown>(element.dataset.localeData, 'data-locale-data');
     const rawBlockStyles = parseJsonDataset<unknown>(
         element.dataset.blockStyles,
         'data-block-styles'
@@ -364,6 +375,9 @@ export function readMountConfig(element: HTMLElement): MountConfig | null {
         ...(siteEditorRouteBase ? { siteEditorRouteBase } : {}),
         ...(Array.isArray(rawBlockStyles)
             ? { blockStyles: rawBlockStyles as ReadonlyArray<ThemeBlockStyle> }
+            : {}),
+        ...(localeData !== null && typeof localeData === 'object'
+            ? { localeData: localeData as EditorLocaleData }
             : {}),
         // #881 — the host stamps `data-can-edit-block-css="true"` for
         // users with the block-CSS ability, and
@@ -511,10 +525,16 @@ export function mountEditor(
     // hosts mounting with an explicit config (the Vue wrapper) get the
     // same Custom CSS access as the `data-*` bootstrap. Absent means no
     // access (fail closed) and the config default for URLs.
-    const { canEditBlockCss, customCssAllowUrls, blockStyles, ...appConfig } = config;
+    const { canEditBlockCss, customCssAllowUrls, blockStyles, localeData, ...appConfig } = config;
 
     setBlockCssAccess(canEditBlockCss === true);
     setCustomCssUrlAccess(customCssAllowUrls !== false);
+
+    // #896 — translations go in before the editor chunk is imported, so
+    // the `__()` calls its modules make at import time pick them up.
+    if (localeData !== undefined) {
+        installLocaleData(localeData);
+    }
 
     const ready = Promise.all([
         import('./editor-app'),
@@ -617,6 +637,7 @@ import {
     registerExternalBlockType as registerExternalBlockTypeImpl,
 } from './external-block-registration';
 import { setBlockCssAccess, setCustomCssUrlAccess } from '../effects/access';
+import { installLocaleData, type EditorLocaleData } from '../vendor/i18n';
 
 declare global {
     interface Window {

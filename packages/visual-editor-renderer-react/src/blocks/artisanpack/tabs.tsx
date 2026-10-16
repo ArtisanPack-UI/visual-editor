@@ -10,7 +10,7 @@
  * in.
  */
 
-import { Children, isValidElement, type JSX, type ReactNode } from 'react';
+import { Children, Fragment, isValidElement, type JSX, type ReactNode } from 'react';
 
 import { attrString, classList } from '../../support/attributes';
 import type { Block, BlockRendererProps } from '../../types';
@@ -86,13 +86,21 @@ export function TabsBlock({
     const className = attrString(attributes.className);
 
     const classes = classList([
+        'wp-block-artisanpack-tabs',
         'ap-tabs',
         `align-tabs-${tabsAlign}`,
         `space-tabs-${tabsSpacing}`,
         className,
     ]);
 
-    const childArray = Children.toArray(children);
+    // `BlockTree` hands the rendered children over wrapped in a single
+    // `<Fragment>`; `Children.toArray()` doesn't flatten fragments, so
+    // unwrap it to index each section by its inner-block position.
+    let childArray = Children.toArray(children);
+
+    if (childArray.length === 1 && isValidElement(childArray[0]) && childArray[0].type === Fragment) {
+        childArray = Children.toArray((childArray[0].props as { children?: ReactNode }).children);
+    }
 
     const tabs: TabRecord[] = [];
     const usedIds = new Set<string>();
@@ -126,7 +134,7 @@ export function TabsBlock({
     });
 
     return (
-        <div className={classes} data-ap-tabs>
+        <div className={classes} data-ap-tabs="">
             <div className="ap-tabs__list">
                 <ul role="tablist">
                     {tabs.map((tab, index) => {
@@ -152,7 +160,7 @@ export function TabsBlock({
                 {tabs.map((tab, index) => (
                     <div
                         key={`panel-${index}-${tab.tabId}`}
-                        className="ap-tab-section"
+                        className="wp-block-artisanpack-tab-section ap-tab-section"
                         role="tabpanel"
                         id={`tabs-panel-${tab.tabId}`}
                         aria-labelledby={`tabs-tab-${tab.tabId}`}
@@ -174,7 +182,7 @@ export function TabSectionBlock({
 }: BlockRendererProps): JSX.Element {
     const tabId = attrString(attributes.tabId);
     const className = attrString(attributes.className);
-    const classes = classList(['ap-tab-section', className]);
+    const classes = classList(['wp-block-artisanpack-tab-section', 'ap-tab-section', className]);
 
     const wrapperProps: Record<string, unknown> = {
         className: classes,

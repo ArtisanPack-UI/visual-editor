@@ -42,7 +42,7 @@ import { __, sprintf } from '@wordpress/i18n'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import type { ComponentType } from 'react'
 
-import { referencedSlugs } from './resolver'
+import { normalizeShadowSubtree, referencedSlugs } from './resolver'
 import type { BoxShadowAttributes, ShadowSubtree } from './types'
 
 const FILTER_HOOK      = 'editor.BlockEdit'
@@ -96,8 +96,7 @@ function blockSupportsBoxShadow( name: string ): boolean {
 }
 
 function readShadow( attributes: BoxShadowAttributes ): ShadowSubtree {
-	const shadow = attributes.style?.shadow ?? null
-	return shadow && 'object' === typeof shadow ? shadow : {}
+	return normalizeShadowSubtree( attributes.style?.shadow ) ?? {}
 }
 
 interface ShadowPatch {
@@ -116,6 +115,10 @@ function applyPatchToShadow(
 	patch: ShadowPatch,
 ): Record<string, unknown> {
 	const next: Record<string, unknown> = { ...shadow }
+
+	// The panel has no field for a raw string value (#900), so any
+	// edit replaces it with the structured form.
+	delete next.value
 
 	for ( const key of Object.keys( patch ) as Array<keyof ShadowPatch> ) {
 		const value = patch[ key ]
@@ -231,12 +234,12 @@ export const withBoxShadowControl = createHigherOrderComponent(
 				( attributes.style as Record<string, unknown> | undefined ) ?? {},
 			)
 			const shadowRef = useRef< Record<string, unknown> >(
-				( attributes.style?.shadow as Record<string, unknown> | undefined ) ?? {},
+				( normalizeShadowSubtree( attributes.style?.shadow ) as Record<string, unknown> | null ) ?? {},
 			)
 
 			useEffect( () => {
 				styleRef.current  = ( attributes.style as Record<string, unknown> | undefined ) ?? {}
-				shadowRef.current = ( attributes.style?.shadow as Record<string, unknown> | undefined ) ?? {}
+				shadowRef.current = ( normalizeShadowSubtree( attributes.style?.shadow ) as Record<string, unknown> | null ) ?? {}
 			}, [ attributes.style, attributes.style?.shadow ] )
 
 			const writeShadow = useCallback(

@@ -78,7 +78,7 @@
 
 	$tree = $buildTree( $items );
 @endphp
-<nav{!! BlockSupports::wrapperAttrs( $attributes, [ 'ap-toc' ] ) !!} aria-label="{{ '' !== trim( strip_tags( $heading ) ) ? trim( strip_tags( $heading ) ) : __( 'Table of contents' ) }}">
+<nav{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-artisanpack-toc', 'ap-toc' ] ) !!} aria-label="{{ '' !== trim( strip_tags( $heading ) ) ? trim( strip_tags( $heading ) ) : __( 'Table of contents' ) }}">
 	@if ( '' !== $heading )
 		<{{ $labelTag }} class="ap-toc__heading">{!! $heading !!}</{{ $labelTag }}>
 	@endif

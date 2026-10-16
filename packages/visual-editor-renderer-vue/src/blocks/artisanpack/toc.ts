@@ -126,7 +126,7 @@ export const TocBlock = defineComponent({
             const ordered = attrBoolean(props.attributes.ordered, false);
             const className = attrString(props.attributes.className);
 
-            const classes = classList(['ap-toc', className]);
+            const classes = classList(['wp-block-artisanpack-toc', 'ap-toc', className]);
 
             const flat = normalizeItems(props.attributes._resolvedItems);
             const tree = buildTree(flat);

@@ -55,6 +55,7 @@ ensureMediaBridgeFilter();
 import '../a11y.css';
 import type { BreakpointRegistrySnapshot } from '../responsive/types';
 import { setBlockCssAccess, setCustomCssUrlAccess } from '../effects/access';
+import { installLocaleDataFromDataset } from '../vendor/i18n';
 
 const MOUNT_SELECTOR = '[data-ap-site-editor]';
 const ROOT_SYMBOL: unique symbol = Symbol('ap-site-editor-root');
@@ -293,6 +294,9 @@ async function mount(element: MountableElement): Promise<void> {
     // `effects.custom_css_allow_urls`, so the canvas previews what the
     // front end prints.
     setCustomCssUrlAccess(element.dataset.customCssAllowUrls !== 'false');
+    // #896 — `data-locale-data` translations, applied before the site
+    // editor chunk is imported so import-time `__()` calls pick them up.
+    installLocaleDataFromDataset(element.dataset.localeData);
 
     try {
         await mountSiteEditor(element, config).ready;

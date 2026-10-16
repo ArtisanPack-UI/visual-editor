@@ -15,5 +15,5 @@
 	$hasPost = ! empty( $attributes['_resolvedHasPost'] );
 @endphp
 @if ( $hasPost )
-	<div{!! BlockSupports::wrapperAttrs( $attributes, [ 'ap-single-content' ] ) !!}>{!! $innerBlocksHtml !!}</div>
+	<div{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-artisanpack-single-content', 'ap-single-content' ] ) !!}>{!! $innerBlocksHtml !!}</div>
 @endif

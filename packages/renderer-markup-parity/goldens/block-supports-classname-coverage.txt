@@ -14,8 +14,8 @@
     "https://www.youtube.com/watch?v=x"
   </div>
 </figure>
-<div class="ap-accordion acc" data-panel-icon="plus-minus" data-panel-id="panel-1">
-  <div class="ap-accordion__title acc-title ve-r-d0a8038c7e ve-fx-34e2f8ba482e">
+<div class="wp-block-artisanpack-accordion ap-accordion acc" data-panel-icon="plus-minus" data-panel-id="panel-1">
+  <div class="wp-block-artisanpack-accordion-title ap-accordion__title acc-title ve-r-d0a8038c7e ve-fx-34e2f8ba482e">
     <div aria-controls="panel-1" aria-expanded="false" class="ap-accordion__title-content" id="panel-1-control" role="button" tabindex="0">
       <p class="wp-block-paragraph">
         "Question"
@@ -24,18 +24,18 @@
     <span aria-hidden="true" class="ap-accordion__icon ap-accordion__icon--plus-minus">
     </span>
   </div>
-  <div aria-labelledby="panel-1-control" class="ap-accordion__body acc-body ve-r-ff115df169 ve-fx-675e60819267" hidden="" id="panel-1" role="region">
+  <div aria-labelledby="panel-1-control" class="wp-block-artisanpack-accordion-body ap-accordion__body acc-body ve-r-ff115df169 ve-fx-675e60819267" hidden="" id="panel-1" role="region">
     <p class="wp-block-paragraph">
       "Answer"
     </p>
   </div>
 </div>
-<div class="ap-accordion__title solo-title ve-r-570c2238b3 ve-fx-ce4117d58d5b">
+<div class="wp-block-artisanpack-accordion-title ap-accordion__title solo-title ve-r-570c2238b3 ve-fx-ce4117d58d5b">
   <p class="wp-block-paragraph">
     "Solo title"
   </p>
 </div>
-<div class="ap-accordion__body solo-body ve-r-d7623f9001 ve-fx-4db5d2a40eb2">
+<div class="wp-block-artisanpack-accordion-body ap-accordion__body solo-body ve-r-d7623f9001 ve-fx-4db5d2a40eb2">
   <p class="wp-block-paragraph">
     "Solo body"
   </p>

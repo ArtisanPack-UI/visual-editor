@@ -18,7 +18,7 @@
 
 	$showIcon = ! empty( $attributes['showIcon'] );
 
-	$baseClasses = [ 'ap-business-phone' ];
+	$baseClasses = [ 'wp-block-artisanpack-business-phone', 'ap-business-phone' ];
 @endphp
 <div{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}>
 	@if ( '' !== $phone )

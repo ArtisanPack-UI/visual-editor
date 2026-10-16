@@ -4,17 +4,20 @@
  * Box shadow CSS emitter (#607).
  *
  * Turns a block's box-shadow attribute payload into the scoped CSS
- * the renderer ships with the published page. Three emission modes,
+ * the renderer ships with the published page. Four emission modes,
  * dispatched per resolved layer:
  *
  *   1. **Preset** (`layer.preset` set) — `box-shadow: var(--wp--preset--shadow--{slug})`.
  *      Inset is honored via `var(...) inset` (themes ship the value
  *      WITHOUT the `inset` keyword).
  *
- *   2. **Solid** (`layer.gradient` null) — stock `box-shadow:
+ *   2. **Raw** (`layer.value` set) — `box-shadow: {value}`, a string
+ *      value stored on the block (#900).
+ *
+ *   3. **Solid** (`layer.gradient` null) — stock `box-shadow:
  *      [inset] X Y blur spread color`. Color defaults to `currentColor`.
  *
- *   3. **Gradient** (`layer.gradient` set) — `::before` (outer) or
+ *   4. **Gradient** (`layer.gradient` set) — `::before` (outer) or
  *      `::after` (inset) pseudo-element with `background: <gradient>`,
  *      `filter: blur(<blur>)`, `transform: translate(<X>, <Y>)`, and
  *      for inset, a `mask-composite: exclude` ring mask to clip the
@@ -36,6 +39,7 @@ namespace ArtisanPackUI\VisualEditor\BoxShadow;
 
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use ArtisanPackUI\VisualEditor\States\StateRegistry;
+use ArtisanPackUI\VisualEditor\Support\CssValue;
 
 class BoxShadowEmitter
 {
@@ -241,6 +245,12 @@ class BoxShadowEmitter
 			return true === ( $layer['inset'] ?? false ) ? $value . ' inset' : $value;
 		}
 
+		if ( null !== ( $layer['value'] ?? null ) ) {
+			$value = trim( self::sanitizeCss( (string) $layer['value'] ) );
+
+			return CssValue::isBalanced( $value ) ? $value : '';
+		}
+
 		$parts = [
 			self::sanitizeCss( (string) ( $layer['offsetX'] ?? '0px' ) ),
 			self::sanitizeCss( (string) ( $layer['offsetY'] ?? '0px' ) ),
@@ -332,6 +342,9 @@ class BoxShadowEmitter
 		$gradient = $layer['gradient'] ?? null;
 		$gradient = is_string( $gradient ) && '' !== trim( $gradient ) ? trim( $gradient ) : null;
 
+		$value = $layer['value'] ?? null;
+		$value = is_string( $value ) && '' !== trim( $value ) ? trim( $value ) : null;
+
 		$hasStructured =
 			self::nonEmptyString( $layer['offsetX'] ?? null )
 			|| self::nonEmptyString( $layer['offsetY'] ?? null )
@@ -341,7 +354,7 @@ class BoxShadowEmitter
 			|| null !== $gradient
 			|| true === ( $layer['inset'] ?? false );
 
-		if ( null === $preset && ! $hasStructured ) {
+		if ( null === $preset && null === $value && ! $hasStructured ) {
 			return null;
 		}
 
@@ -354,6 +367,7 @@ class BoxShadowEmitter
 			'gradient' => $gradient,
 			'inset'    => true === ( $layer['inset'] ?? false ),
 			'preset'   => $preset,
+			'value'    => $value,
 		];
 	}
 
@@ -392,7 +406,9 @@ class BoxShadowEmitter
 	 */
 	protected static function isGradient( array $layer ): bool
 	{
-		return null === ( $layer['preset'] ?? null ) && null !== ( $layer['gradient'] ?? null );
+		return null === ( $layer['preset'] ?? null )
+			&& null === ( $layer['value'] ?? null )
+			&& null !== ( $layer['gradient'] ?? null );
 	}
 
 	/**

@@ -96,7 +96,7 @@
 		$selectIdSuffix
 	);
 @endphp
-<div{!! BlockSupports::wrapperAttrs( $attributes, [ 'ap-search-filters-taxonomy' ] ) !!}>
+<div{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-artisanpack-search-filters-taxonomy', 'ap-search-filters-taxonomy' ] ) !!}>
 	<label class="ap-search-filters-taxonomy__label" for="{{ $selectId }}">{{ $label }}</label>
 	<select
 		class="ap-search-filters-taxonomy__select"

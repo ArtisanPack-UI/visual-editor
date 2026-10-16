@@ -56,6 +56,10 @@
 		data-presets="{{ json_encode( \ArtisanPackUI\VisualEditor\Resources\PresetRegistry::fromConfig(), JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS ) }}"
 		{{-- #876 — block style variations for the Styles picker. --}}
 		data-block-styles="{{ json_encode( app( \ArtisanPackUI\VisualEditor\BlockStyles\BlockStyleResolver::class )->editorPayload(), JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS ) }}"
+		{{-- #896 — translations for the editor's text domain, from
+		     `lang/vendor/visual-editor/{locale}.json`. --}}
+		@php( $veLocaleData = \ArtisanPackUI\VisualEditor\Support\EditorLocaleData::resolve() )
+		@if( null !== $veLocaleData ) data-locale-data="{{ json_encode( $veLocaleData, JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_UNESCAPED_UNICODE ) }}" @endif
 	></div>
 </body>
 </html>

@@ -15,6 +15,9 @@
  *
  * A `preset` slug short-circuits the structured fields — when set,
  * the emitter renders `box-shadow: var(--wp--preset--shadow--{slug})`.
+ * A string value, the form WordPress core saves, is read as a preset
+ * reference (`var:preset|shadow|{slug}`) or a raw `box-shadow` value
+ * (#900).
  * The `gradient` field accepts both slugs (expanded to
  * `var(--wp--preset--gradient--{slug})`) and raw CSS gradient values.
  *
@@ -32,6 +35,8 @@
 declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\BoxShadow;
+
+use ArtisanPackUI\VisualEditor\Support\CssValue;
 
 class BoxShadowResolver
 {
@@ -68,7 +73,7 @@ class BoxShadowResolver
 	{
 		$shadow = $attributes['style']['shadow'] ?? null;
 
-		$idle        = self::resolveLayer( is_array( $shadow ) ? $shadow : null );
+		$idle        = self::resolveLayer( self::normalizeSubtree( $shadow ) );
 		$states      = self::collectStateOverrides( $attributes['states'] ?? null );
 		$breakpoints = self::collectBreakpointOverrides( $attributes['responsive'] ?? null );
 
@@ -100,8 +105,8 @@ class BoxShadowResolver
 		$shadows   = [];
 		$gradients = [];
 
-		$shadow = $attributes['style']['shadow'] ?? null;
-		if ( is_array( $shadow ) ) {
+		$shadow = self::normalizeSubtree( $attributes['style']['shadow'] ?? null );
+		if ( null !== $shadow ) {
 			self::collectSubtreeSlugs( $shadows, $gradients, $shadow );
 		}
 
@@ -116,8 +121,9 @@ class BoxShadowResolver
 				}
 
 				foreach ( $bag[ $path ] as $value ) {
-					if ( is_array( $value ) ) {
-						self::collectSubtreeSlugs( $shadows, $gradients, $value );
+					$subtree = self::normalizeSubtree( $value );
+					if ( null !== $subtree ) {
+						self::collectSubtreeSlugs( $shadows, $gradients, $subtree );
 					}
 				}
 			}
@@ -127,6 +133,47 @@ class BoxShadowResolver
 			'shadows'   => array_values( array_unique( $shadows ) ),
 			'gradients' => array_values( array_unique( $gradients ) ),
 		];
+	}
+
+	/**
+	 * Read a stored shadow value as a structured subtree.
+	 *
+	 * Arrays pass through. A string is the form WordPress core saves:
+	 * `var:preset|shadow|{slug}` (or the `var(--wp--preset--shadow--{slug})`
+	 * it compiles to) becomes `['preset' => slug]`, and any other string
+	 * that is safe to print becomes `['value' => string]`, a raw
+	 * `box-shadow` value (#900). Everything else returns `null`.
+	 *
+	 * @since 1.15.1
+	 *
+	 * @return array<string, mixed>|null
+	 */
+	public static function normalizeSubtree( mixed $value ): ?array
+	{
+		if ( is_array( $value ) ) {
+			return $value;
+		}
+
+		if ( ! is_string( $value ) ) {
+			return null;
+		}
+
+		$trimmed = trim( $value );
+
+		if ( '' === $trimmed ) {
+			return null;
+		}
+
+		if ( 1 === preg_match( '/^var:preset\|shadow\|([a-z0-9][a-z0-9_-]*)$/i', $trimmed, $matches )
+			|| 1 === preg_match( '/^var\(\s*--wp--preset--shadow--([a-z0-9][a-z0-9_-]*)\s*\)$/i', $trimmed, $matches ) ) {
+			return [ 'preset' => $matches[1] ];
+		}
+
+		if ( ! CssValue::isPrintable( $trimmed ) ) {
+			return null;
+		}
+
+		return [ 'value' => $trimmed ];
 	}
 
 	/**
@@ -145,6 +192,7 @@ class BoxShadowResolver
 	 *     gradient: string|null,
 	 *     inset: bool,
 	 *     preset: string|null,
+	 *     value: string|null,
 	 * }|null
 	 */
 	protected static function resolveLayer( ?array $subtree ): ?array
@@ -154,6 +202,7 @@ class BoxShadowResolver
 		}
 
 		$preset = self::expandPreset( $subtree['preset'] ?? null );
+		$value  = self::coerceString( $subtree['value'] ?? null );
 
 		$offsetX  = self::coerceString( $subtree['offsetX'] ?? null );
 		$offsetY  = self::coerceString( $subtree['offsetY'] ?? null );
@@ -172,7 +221,7 @@ class BoxShadowResolver
 			|| null !== $gradient
 			|| true === ( $subtree['inset'] ?? false );
 
-		if ( null === $preset && ! $hasStructured ) {
+		if ( null === $preset && null === $value && ! $hasStructured ) {
 			return null;
 		}
 
@@ -188,6 +237,7 @@ class BoxShadowResolver
 			'gradient' => $gradient,
 			'inset'    => $inset,
 			'preset'   => $preset,
+			'value'    => $value,
 		];
 	}
 
@@ -218,7 +268,7 @@ class BoxShadowResolver
 					continue;
 				}
 
-				$layer = self::resolveLayer( is_array( $value ) ? $value : null );
+				$layer = self::resolveLayer( self::normalizeSubtree( $value ) );
 
 				if ( null === $layer ) {
 					continue;
@@ -257,7 +307,7 @@ class BoxShadowResolver
 					continue;
 				}
 
-				$layer = self::resolveLayer( is_array( $value ) ? $value : null );
+				$layer = self::resolveLayer( self::normalizeSubtree( $value ) );
 
 				if ( null === $layer ) {
 					continue;

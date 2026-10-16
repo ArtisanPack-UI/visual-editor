@@ -59,6 +59,7 @@ use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolve
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesPlacement;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ThemeJsonTokensCompiler;
 use ArtisanPackUI\VisualEditorRendererBlade\Support\DefaultStyles;
+use ArtisanPackUI\VisualEditorRendererBlade\Support\FlexLayoutStyles;
 use ArtisanPackUI\VisualEditorRendererBlade\Support\StackingStyles;
 use Illuminate\Contracts\View\View;
 use Illuminate\View\Component;
@@ -94,6 +95,15 @@ class BlocksStylesComponent extends Component
 	public string $queryPaginationStyleHref;
 
 	public string $flexLayoutStyleHref;
+
+	/**
+	 * Flex Layout token rules built from the host's breakpoints, printed
+	 * in place of the static `flex-layout.css` when they differ from the
+	 * defaults; `''` otherwise (#895).
+	 *
+	 * @since 1.15.1
+	 */
+	public string $flexLayoutCss;
 
 	public string $photoGridStyleHref;
 
@@ -191,6 +201,7 @@ class BlocksStylesComponent extends Component
 		$this->defaultTokensCss         = $this->compiler->compileDefaults( $themeJson );
 		$this->defaultStylesCss         = DefaultStyles::enabled( $themeJson ) ? DefaultStyles::CSS : '';
 		$this->stackingCss              = StackingStyles::css( app( BreakpointRegistry::class ) );
+		$this->flexLayoutCss            = FlexLayoutStyles::css( app( BreakpointRegistry::class ) );
 
 		$tracker   = app( GlobalStylesEmissionTracker::class );
 		$placement = app( GlobalStylesPlacement::class );
