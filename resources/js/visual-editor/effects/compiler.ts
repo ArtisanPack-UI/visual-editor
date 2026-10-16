@@ -20,6 +20,19 @@ const ALLOWED_AT_RULES = ['media', 'supports', 'container'];
 
 const SCRIPT_VECTORS = ['expression(', 'javascript:', '-moz-binding', 'behavior:'];
 
+/**
+ * Functions that load a resource, rejected when URLs are disallowed.
+ * Mirrors `CustomCssSanitizer::URL_FUNCTIONS`.
+ */
+export const CUSTOM_CSS_URL_FUNCTIONS = ['url(', 'image-set(', 'image(', 'src('];
+
+/** Closing character for each opening brace, parenthesis and bracket. */
+const PAIRS: Record<string, string> = { '{': '}', '(': ')', '[': ']' };
+
+/** Blank as PHP's `trim()` sees it: ASCII whitespace and NUL only. */
+// eslint-disable-next-line no-control-regex
+const PHP_BLANK = /^[ \t\n\r\0\x0B]*$/;
+
 export const OVERFLOW_VALUES = ['visible', 'hidden', 'clip', 'scroll', 'auto'];
 
 export const BLEND_MODES = [
@@ -54,9 +67,14 @@ export const CLIP_SHAPES: Record<string, string> = {
  * Sanitize a block's Custom CSS. Returns the normalised CSS, `''` for an
  * empty value, or `null` when the value is rejected. Mirrors
  * `CustomCssSanitizer::sanitize()`.
+ *
+ * @param css       The raw Custom CSS.
+ * @param allowUrls Whether the CSS may load resources
+ *                  ({@link CUSTOM_CSS_URL_FUNCTIONS}). Quoted `url("…")`
+ *                  is required either way.
  */
-export function sanitizeCustomCss(css: unknown): string | null {
-    if (typeof css !== 'string' || css.trim() === '') {
+export function sanitizeCustomCss(css: unknown, allowUrls = true): string | null {
+    if (typeof css !== 'string' || PHP_BLANK.test(css)) {
         return '';
     }
 
@@ -69,7 +87,7 @@ export function sanitizeCustomCss(css: unknown): string | null {
         return null;
     }
 
-    const lower = css.toLowerCase();
+    const lower = asciiLower(css);
 
     if (SCRIPT_VECTORS.some((vector) => lower.includes(vector))) {
         return null;
@@ -77,7 +95,7 @@ export function sanitizeCustomCss(css: unknown): string | null {
 
     let out = '';
     let quote: string | null = null;
-    let depth = 0;
+    const open: string[] = [];
     let pending = false;
 
     for (let i = 0; i < css.length; i++) {
@@ -122,16 +140,28 @@ export function sanitizeCustomCss(css: unknown): string | null {
 
         pending = false;
 
+        // Inside an unquoted `url(…)` CSS reads braces, semicolons and
+        // quotes as plain text, so only the quoted form is safe.
+        const ahead = asciiLower(css.slice(i, i + 10));
+
+        if (ahead.startsWith('url(') && !/^[ \t\n\r]*['"]/.test(css.slice(i + 4))) {
+            return null;
+        }
+
+        if (!allowUrls && CUSTOM_CSS_URL_FUNCTIONS.some((fn) => ahead.startsWith(fn))) {
+            return null;
+        }
+
         if (char === '"' || char === "'") {
             quote = char;
-        } else if (char === '{') {
-            depth++;
-        } else if (char === '}') {
-            if (--depth < 0) {
+        } else if (Object.prototype.hasOwnProperty.call(PAIRS, char)) {
+            open.push(PAIRS[char]);
+        } else if (char === '}' || char === ')' || char === ']') {
+            if (open.pop() !== char) {
                 return null;
             }
         } else if (char === '@') {
-            const name = (/^[a-zA-Z-]*/.exec(css.slice(i + 1)) ?? [''])[0].toLowerCase();
+            const name = asciiLower((/^[a-zA-Z-]*/.exec(css.slice(i + 1)) ?? [''])[0]);
 
             if (!ALLOWED_AT_RULES.includes(name)) {
                 return null;
@@ -141,7 +171,7 @@ export function sanitizeCustomCss(css: unknown): string | null {
         out += char;
     }
 
-    if (quote !== null || depth !== 0) {
+    if (quote !== null || open.length !== 0) {
         return null;
     }
 
@@ -149,10 +179,28 @@ export function sanitizeCustomCss(css: unknown): string | null {
 }
 
 /**
+ * Whether a block paints a gradient or a background image — what text
+ * clip needs to show through. Reads the `gradient` preset,
+ * `style.color.gradient` and `style.background.backgroundImage`.
+ * Mirrors `EffectsCompiler::hasBackgroundFill()`.
+ */
+export function hasBackgroundFill(attributes: Record<string, unknown> | null | undefined): boolean {
+    const style = asRecord(attributes?.style);
+    const image = asRecord(style.background).backgroundImage;
+    const url = typeof image === 'string' ? image : asRecord(image).url;
+
+    return filled(attributes?.gradient) || filled(asRecord(style.color).gradient) || filled(url);
+}
+
+/**
  * The CSS declarations for an effects payload, in a fixed order. Mirrors
  * `EffectsCompiler::declarations()`.
+ *
+ * @param effects The `artisanpackEffects` payload.
+ * @param hasFill Whether the block paints a gradient or background image;
+ *                text clip is dropped without one.
  */
-export function effectsDeclarations(effects: Record<string, unknown>): string[] {
+export function effectsDeclarations(effects: Record<string, unknown>, hasFill = false): string[] {
     const declarations: string[] = [];
 
     const opacity = integer(effects.opacity, 0, 100);
@@ -208,7 +256,9 @@ export function effectsDeclarations(effects: Record<string, unknown>): string[] 
         declarations.push(`clip-path:${CLIP_SHAPES[clip]}`);
     }
 
-    if (effects.textClip === true) {
+    // Without a gradient or image behind it, transparent text would
+    // simply vanish, so text clip needs the caller to confirm one.
+    if (effects.textClip === true && hasFill) {
         declarations.push('-webkit-background-clip:text');
         declarations.push('background-clip:text');
         declarations.push('-webkit-text-fill-color:transparent');
@@ -218,11 +268,29 @@ export function effectsDeclarations(effects: Record<string, unknown>): string[] 
 }
 
 /**
+ * Options for {@link compileEffects}.
+ */
+export interface CompileEffectsOptions {
+    /**
+     * Whether the block paints a gradient or background image for text
+     * clip to show through. Omit to read it from the attributes
+     * ({@link hasBackgroundFill}).
+     */
+    hasBackgroundFill?: boolean;
+    /**
+     * Whether Custom CSS may load resources (`url(`, `image-set(`, …),
+     * as config `effects.custom_css_allow_urls`. Defaults to `true`.
+     */
+    allowCustomCssUrls?: boolean;
+}
+
+/**
  * Compile a block's effects into a scope class and its CSS, or `null`
  * when it sets none. Mirrors `EffectsCompiler::compile()`.
  */
 export function compileEffects(
-    attributes: Record<string, unknown> | null | undefined
+    attributes: Record<string, unknown> | null | undefined,
+    options: CompileEffectsOptions = {}
 ): { className: string; css: string } | null {
     const effects = attributes?.[EFFECTS_ATTRIBUTE];
 
@@ -231,8 +299,9 @@ export function compileEffects(
     }
 
     const record = effects as Record<string, unknown>;
-    const declarations = effectsDeclarations(record);
-    const customCss = sanitizeCustomCss(record.customCss) ?? '';
+    const hasFill = options.hasBackgroundFill ?? hasBackgroundFill(attributes);
+    const declarations = effectsDeclarations(record, hasFill);
+    const customCss = sanitizeCustomCss(record.customCss, options.allowCustomCssUrls ?? true) ?? '';
 
     if (declarations.length === 0 && customCss === '') {
         return null;
@@ -247,13 +316,38 @@ export function compileEffects(
         css += `:where(.${className}){position:relative}`;
     }
 
+    // Forced-colors mode drops background images and gradients, so
+    // clipped text would be invisible: paint it in the text color.
+    if (declarations.includes('background-clip:text')) {
+        css +=
+            `@media (forced-colors:active){.${className}{-webkit-text-fill-color:currentColor;` +
+            '-webkit-background-clip:border-box;background-clip:border-box}}';
+    }
+
     return { className, css };
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
+        ? (value as Record<string, unknown>)
+        : {};
+}
+
+function filled(value: unknown): boolean {
+    return typeof value === 'string' && value !== '';
+}
+
+/**
+ * ASCII-only lowercase, as PHP's `strtolower()`.
+ */
+function asciiLower(value: string): string {
+    return value.replace(/[A-Z]/g, (letter) => letter.toLowerCase());
 }
 
 function integer(value: unknown, min: number, max: number): number | null {
     let numeric = value;
 
-    if (typeof numeric === 'string' && /^\s*-?\d+(\.\d+)?\s*$/.test(numeric)) {
+    if (typeof numeric === 'string' && /^[ \t\n\v\f\r]*-?\d+(\.\d+)?[ \t\n\v\f\r]*$/.test(numeric)) {
         numeric = Number(numeric);
     }
 

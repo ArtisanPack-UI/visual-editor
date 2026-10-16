@@ -28,6 +28,8 @@ class BlockStyleRegistry
 	/**
 	 * Registered variations keyed by block name, then slug.
 	 *
+	 * @since 1.15.0
+	 *
 	 * @var array<string, array<string, array{block: string, slug: string, label: string, style: array<string, mixed>, isDefault: bool}>>
 	 */
 	protected array $styles = [];

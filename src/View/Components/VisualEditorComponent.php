@@ -21,12 +21,15 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditor\View\Components;
 
 use ArtisanPackUI\VisualEditor\BlockStyles\BlockStyleResolver;
+use ArtisanPackUI\VisualEditor\Effects\BlockCssAccess;
+use ArtisanPackUI\VisualEditor\Effects\EffectsCompiler;
 use ArtisanPackUI\VisualEditor\Resources\PresetRegistry;
 use ArtisanPackUI\VisualEditor\Resources\QueryPostTypeRegistry;
 use ArtisanPackUI\VisualEditor\Resources\TaxonomyRegistry;
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\View\Component;
 use RuntimeException;
@@ -167,6 +170,26 @@ class VisualEditorComponent extends Component
 	 */
 	public array $blockStyles;
 
+	/**
+	 * Whether the current user may write a block's Custom CSS (#881) —
+	 * the {@see BlockCssAccess::ABILITY} gate. Stamped as
+	 * `data-can-edit-block-css`; it only shows or hides the field, since
+	 * every save re-checks the gate.
+	 *
+	 * @since 1.15.0
+	 */
+	public bool $canEditBlockCss;
+
+	/**
+	 * Whether Custom CSS may load resources — config
+	 * `effects.custom_css_allow_urls`. Stamped as
+	 * `data-custom-css-allow-urls` so the canvas previews what the front
+	 * end prints.
+	 *
+	 * @since 1.15.0
+	 */
+	public bool $customCssAllowUrls;
+
 	public function __construct(
 		public Model $model,
 		?string $resource = null,
@@ -214,6 +237,8 @@ class VisualEditorComponent extends Component
 		$this->breakpoints          = app( BreakpointRegistry::class )->toArray();
 		$this->presets              = PresetRegistry::fromConfig();
 		$this->blockStyles          = app( BlockStyleResolver::class )->editorPayload();
+		$this->canEditBlockCss      = Gate::allows( BlockCssAccess::ABILITY );
+		$this->customCssAllowUrls   = (bool) config( EffectsCompiler::ALLOW_URLS_CONFIG, true );
 
 		$this->applyEditorConfigFilter();
 	}
@@ -293,6 +318,7 @@ class VisualEditorComponent extends Component
 		$nullableString      = static fn ( mixed $v, mixed $current ) => is_string( $v ) || null === $v ? $v : $current;
 		$nullableArray       = static fn ( mixed $v, mixed $current ) => is_array( $v ) || null === $v ? $v : $current;
 		$nullableBool        = static fn ( mixed $v, mixed $current ) => is_bool( $v ) || null === $v ? $v : $current;
+		$bool                = static fn ( mixed $v, mixed $current ) => is_bool( $v ) ? $v : $current;
 		$nullableIntOrString = static fn ( mixed $v, mixed $current ) => is_int( $v ) || is_string( $v ) || null === $v ? $v : $current;
 		$array               = static fn ( mixed $v, mixed $current ) => is_array( $v ) ? $v : $current;
 		$queryPostTypes      = static function ( mixed $v, mixed $current ): mixed {
@@ -324,6 +350,8 @@ class VisualEditorComponent extends Component
 			'breakpoints'          => $array,
 			'presets'              => $array,
 			'blockStyles'          => $array,
+			'canEditBlockCss'      => $bool,
+			'customCssAllowUrls'   => $bool,
 		];
 	}
 

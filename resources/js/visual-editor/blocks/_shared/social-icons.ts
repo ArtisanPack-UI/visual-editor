@@ -9,6 +9,10 @@
  * block redeclaring its own icon set.
  */
 
+import { __ } from '@wordpress/i18n';
+
+import { TEXT_DOMAIN } from '../../vendor/i18n';
+
 export interface SocialIconDefinition {
     readonly slug: string;
     readonly label: string;
@@ -108,4 +112,22 @@ export function authorSocialPlatforms(): ReadonlyArray<SocialIconDefinition> {
 
 export function shareSocialPlatforms(): ReadonlyArray<SocialIconDefinition> {
     return SHARE_PLATFORMS;
+}
+
+/**
+ * Editor-facing label for a platform chip.
+ *
+ * Brand names stay as-is; the generic Email and Website entries are
+ * translated here at render time (the `label` field above stays a
+ * literal so module evaluation never runs before locale data loads).
+ */
+export function socialIconLabel(platform: SocialIconDefinition): string {
+    switch (platform.slug) {
+        case 'email':
+            return __('Email', TEXT_DOMAIN);
+        case 'website':
+            return __('Website', TEXT_DOMAIN);
+        default:
+            return platform.label;
+    }
 }

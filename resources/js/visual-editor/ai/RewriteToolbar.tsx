@@ -14,16 +14,24 @@
  */
 
 import { useCallback, useState } from 'react';
+import { __, sprintf } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../vendor/i18n';
 import type { AiApiClient, RewriteOutput } from './ai-api-client';
 import { useRewrite } from './hooks';
 
-const PRESET_INTENTS = [
-    { key: 'shorter', label: 'Make shorter' },
-    { key: 'longer', label: 'Expand' },
-    { key: 'formal', label: 'More formal' },
-    { key: 'casual', label: 'More casual' },
-    { key: 'grade-6', label: 'Reading level 6' },
-];
+/**
+ * Preset rewrite intents. Built per render so the labels pick up locale
+ * data loaded after this module is imported.
+ */
+function getPresetIntents(): Array<{ key: string; label: string }> {
+    return [
+        { key: 'shorter', label: __('Make shorter', TEXT_DOMAIN) },
+        { key: 'longer', label: __('Expand', TEXT_DOMAIN) },
+        { key: 'formal', label: __('More formal', TEXT_DOMAIN) },
+        { key: 'casual', label: __('More casual', TEXT_DOMAIN) },
+        { key: 'grade-6', label: __('Reading level 6', TEXT_DOMAIN) },
+    ];
+}
 
 export interface RewriteToolbarProps {
     client: AiApiClient;
@@ -47,8 +55,8 @@ export function RewriteToolbar(props: RewriteToolbarProps) {
 
     return (
         <div className="ap-ve-ai-rewrite" data-testid="ap-ve-ai-rewrite">
-            <div className="ap-ve-ai-rewrite__intents" role="toolbar" aria-label="Rewrite">
-                {PRESET_INTENTS.map((p) => (
+            <div className="ap-ve-ai-rewrite__intents" role="toolbar" aria-label={__('Rewrite', TEXT_DOMAIN)}>
+                {getPresetIntents().map((p) => (
                     <button
                         key={p.key}
                         type="button"
@@ -69,15 +77,23 @@ export function RewriteToolbar(props: RewriteToolbarProps) {
                     }}
                 >
                     <label>
-                        Custom intent
-                        <input name="custom-intent" type="text" placeholder="e.g. more concrete" />
+                        {__('Custom intent', TEXT_DOMAIN)}
+                        <input
+                            name="custom-intent"
+                            type="text"
+                            placeholder={__('e.g. more concrete', TEXT_DOMAIN)}
+                        />
                     </label>
                 </form>
             </div>
 
             {call.status === 'loading' && (
                 <div role="status" aria-live="polite">
-                    Rewriting for &ldquo;{intent}&rdquo;…
+                    {sprintf(
+                        /* translators: %s: the rewrite intent, e.g. "shorter". */
+                        __('Rewriting for “%s”…', TEXT_DOMAIN),
+                        intent,
+                    )}
                 </div>
             )}
 
@@ -88,7 +104,11 @@ export function RewriteToolbar(props: RewriteToolbarProps) {
             {call.status === 'success' && call.result && (
                 <div className="ap-ve-ai-rewrite__preview" data-testid="ap-ve-ai-rewrite-preview">
                     <p className="ap-ve-ai-rewrite__meta">
-                        {Math.round(call.result.changed_ratio * 100)}% changed —{' '}
+                        {sprintf(
+                            /* translators: %d: percentage of the text the rewrite changed. */
+                            __('%d%% changed —', TEXT_DOMAIN),
+                            Math.round(call.result.changed_ratio * 100),
+                        )}{' '}
                         <em>{call.result.rationale}</em>
                     </p>
                     <pre className="ap-ve-ai-rewrite__text">{call.result.rewrite}</pre>
@@ -98,10 +118,10 @@ export function RewriteToolbar(props: RewriteToolbarProps) {
                             onClick={() => onAccept(call.result!)}
                             data-testid="ap-ve-ai-rewrite-accept"
                         >
-                            Apply rewrite
+                            {__('Apply rewrite', TEXT_DOMAIN)}
                         </button>
                         <button type="button" onClick={onCancel}>
-                            Cancel
+                            {__('Cancel', TEXT_DOMAIN)}
                         </button>
                     </div>
                 </div>

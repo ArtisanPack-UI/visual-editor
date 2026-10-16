@@ -1,0 +1,79 @@
+<svg aria-hidden="true" data-ve-duotone="" focusable="false" height="0" style="visibility: hidden; position: absolute; left: -9999px; overflow: hidden" viewbox="0 0 0 0" width="0" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="wp-duotone-48f9e13346">
+      <fecolormatrix color-interpolation-filters="sRGB" type="matrix" values=".299 .587 .114 0 0 .299 .587 .114 0 0 .299 .587 .114 0 0 .299 .587 .114 0 0">
+      </fecolormatrix>
+      <fecomponenttransfer color-interpolation-filters="sRGB">
+        <fefuncr tablevalues="0 1" type="table">
+        </fefuncr>
+        <fefuncg tablevalues="0 0" type="table">
+        </fefuncg>
+        <fefuncb tablevalues="0 0" type="table">
+        </fefuncb>
+        <fefunca tablevalues="1 1" type="table">
+        </fefunca>
+      </fecomponenttransfer>
+      <fecomposite in2="SourceGraphic" operator="in">
+      </fecomposite>
+    </filter>
+    <filter id="wp-duotone-079e577d66">
+      <fecolormatrix color-interpolation-filters="sRGB" type="matrix" values=".299 .587 .114 0 0 .299 .587 .114 0 0 .299 .587 .114 0 0 .299 .587 .114 0 0">
+      </fecolormatrix>
+      <fecomponenttransfer color-interpolation-filters="sRGB">
+        <fefuncr tablevalues="0 1 1" type="table">
+        </fefuncr>
+        <fefuncg tablevalues="0 1 1" type="table">
+        </fefuncg>
+        <fefuncb tablevalues="1 0 1" type="table">
+        </fefuncb>
+        <fefunca tablevalues="0.5 0.25 1" type="table">
+        </fefunca>
+      </fecomponenttransfer>
+      <fecomposite in2="SourceGraphic" operator="in">
+      </fecomposite>
+    </filter>
+    <filter id="wp-duotone-63367ce2a5">
+      <fecolormatrix color-interpolation-filters="sRGB" type="matrix" values=".299 .587 .114 0 0 .299 .587 .114 0 0 .299 .587 .114 0 0 .299 .587 .114 0 0">
+      </fecolormatrix>
+      <fecomponenttransfer color-interpolation-filters="sRGB">
+        <fefuncr tablevalues="0.0667 0.9333" type="table">
+        </fefuncr>
+        <fefuncg tablevalues="0.0667 0.9333" type="table">
+        </fefuncg>
+        <fefuncb tablevalues="0.0667 0.9333" type="table">
+        </fefuncb>
+        <fefunca tablevalues="1 1" type="table">
+        </fefunca>
+      </fecomponenttransfer>
+      <fecomposite in2="SourceGraphic" operator="in">
+      </fecomposite>
+    </filter>
+  </defs>
+</svg>
+<figure class="wp-block-image wp-duotone-48f9e13346">
+  <img alt="" src="https://example.com/a.jpg" />
+</figure>
+<figure class="wp-block-image wp-duotone-48f9e13346">
+  <img alt="" src="https://example.com/b.jpg" />
+</figure>
+<figure class="wp-block-image wp-duotone-079e577d66">
+  <img alt="" src="https://example.com/c.jpg" />
+</figure>
+<figure class="wp-block-image wp-duotone-unset">
+  <img alt="" src="https://example.com/d.jpg" />
+</figure>
+<figure class="wp-block-image">
+  <img alt="" src="https://example.com/e.jpg" />
+</figure>
+<figure class="wp-block-image">
+</figure>
+<figure class="wp-block-post-featured-image">
+</figure>
+<figure class="wp-block-post-featured-image size-large wp-duotone-63367ce2a5">
+  <img alt="" src="https://example.com/f.jpg" />
+</figure>
+@@ renderer-instance-css @@
+.wp-duotone-079e577d66 img{filter:url(#wp-duotone-079e577d66) !important}
+.wp-duotone-48f9e13346 img{filter:url(#wp-duotone-48f9e13346) !important}
+.wp-duotone-63367ce2a5 img{filter:url(#wp-duotone-63367ce2a5) !important}
+.wp-duotone-unset img{filter:none !important}

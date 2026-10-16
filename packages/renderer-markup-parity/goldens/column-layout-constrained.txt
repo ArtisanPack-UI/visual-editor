@@ -1,0 +1,19 @@
+<div class="wp-block-columns is-layout-flex wp-block-columns-is-layout-flex is-stacked-on-mobile">
+  <div class="wp-block-column is-layout-constrained wp-block-column-is-layout-constrained wp-container-94068125e262" style="--wp--style--block-gap: 2rem">
+    <p class="wp-block-paragraph">
+      "One"
+    </p>
+    <p class="wp-block-paragraph">
+      "Two"
+    </p>
+  </div>
+  <div class="wp-block-column is-layout-flow wp-block-column-is-layout-flow">
+    <p class="wp-block-paragraph">
+      "Three"
+    </p>
+  </div>
+</div>
+@@ renderer-instance-css @@
+.wp-block-column.wp-block-column-is-layout-constrained.wp-container-94068125e262 > * + *{margin-block-start:2rem;margin-block-end:0;}
+.wp-block-column.wp-block-column-is-layout-constrained.wp-container-94068125e262 > .alignwide{max-width:480px;}
+.wp-block-column.wp-block-column-is-layout-constrained.wp-container-94068125e262 > :where(:not(.alignleft):not(.alignright):not(.alignfull)){max-width:480px;margin-left:auto !important;margin-right:auto !important;}

@@ -34,20 +34,24 @@ interface CalloutEditProps {
     readonly setAttributes: (next: Partial<CalloutAttributes>) => void;
 }
 
-const SEVERITY_OPTIONS: ReadonlyArray<{ readonly label: string; readonly value: CalloutSeverity }> = [
-    { label: 'Info', value: 'info' },
-    { label: 'Success', value: 'success' },
-    { label: 'Warning', value: 'warning' },
-    { label: 'Error', value: 'error' },
-];
+function severityOptions(): ReadonlyArray<{ readonly label: string; readonly value: CalloutSeverity }> {
+    return [
+        { label: __('Info', TEXT_DOMAIN), value: 'info' },
+        { label: __('Success', TEXT_DOMAIN), value: 'success' },
+        { label: __('Warning', TEXT_DOMAIN), value: 'warning' },
+        { label: __('Error', TEXT_DOMAIN), value: 'error' },
+    ];
+}
 
-const ICON_OPTIONS: ReadonlyArray<{ readonly label: string; readonly value: CalloutIconName }> = [
-    { label: 'Info', value: 'info' },
-    { label: 'Check', value: 'check' },
-    { label: 'Warning', value: 'warning' },
-    { label: 'Error', value: 'error' },
-    { label: 'Lightbulb', value: 'lightbulb' },
-];
+function iconOptions(): ReadonlyArray<{ readonly label: string; readonly value: CalloutIconName }> {
+    return [
+        { label: __('Info', TEXT_DOMAIN), value: 'info' },
+        { label: __('Check', TEXT_DOMAIN), value: 'check' },
+        { label: __('Warning', TEXT_DOMAIN), value: 'warning' },
+        { label: __('Error', TEXT_DOMAIN), value: 'error' },
+        { label: __('Lightbulb', TEXT_DOMAIN), value: 'lightbulb' },
+    ];
+}
 
 export default function CalloutEdit({
     attributes,
@@ -67,10 +71,7 @@ export default function CalloutEdit({
                     <SelectControl
                         label={__('Severity', TEXT_DOMAIN)}
                         value={severity}
-                        options={SEVERITY_OPTIONS.map((option) => ({
-                            label: __(option.label, TEXT_DOMAIN),
-                            value: option.value,
-                        }))}
+                        options={severityOptions()}
                         onChange={(value) =>
                             setAttributes({ severity: value as CalloutSeverity })
                         }
@@ -79,10 +80,7 @@ export default function CalloutEdit({
                     <SelectControl
                         label={__('Icon', TEXT_DOMAIN)}
                         value={icon}
-                        options={ICON_OPTIONS.map((option) => ({
-                            label: __(option.label, TEXT_DOMAIN),
-                            value: option.value,
-                        }))}
+                        options={iconOptions()}
                         onChange={(value) =>
                             setAttributes({ icon: value as CalloutIconName })
                         }

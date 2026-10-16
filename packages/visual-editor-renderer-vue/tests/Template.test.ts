@@ -143,3 +143,28 @@ describe('Template component', () => {
         expect(el.attributes('data-ve-fallback-chain')).toBe('single-post,single,index');
     });
 });
+
+describe('Template customCssAllowUrls (F-11)', () => {
+    const urlCss = 'background: url("https://example.com/a.png");';
+    const templates: TemplateRecord[] = [
+        {
+            slug: 'index',
+            theme: 'artisanpack-base',
+            blocks: [
+                makeBlock('core/group', { artisanpackEffects: { customCss: urlCss } }, [], 'g-url'),
+            ],
+        },
+    ];
+
+    it('keeps Custom CSS that loads a URL by default', () => {
+        const wrapper = mount(Template, { props: { slug: 'index', templates } });
+
+        expect(wrapper.html()).toContain('https://example.com/a.png');
+    });
+
+    it('drops Custom CSS that loads a URL when customCssAllowUrls is false', () => {
+        const wrapper = mount(Template, { props: { slug: 'index', templates, customCssAllowUrls: false } });
+
+        expect(wrapper.html()).not.toContain('https://example.com/a.png');
+    });
+});

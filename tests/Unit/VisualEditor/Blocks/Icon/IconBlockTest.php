@@ -771,6 +771,32 @@ it( 'keeps legacy hex and text color out of the supports merge attributes (#874)
 
 	expect( $attrs['backgroundColor'] )->toBe( '' )
 		->and( $attrs['borderColor'] )->toBe( 'accent' )
-		->and( $attrs['style']['color'] )->toBe( [ 'background' => '#fff' ] )
+		->and( $attrs['style']['color'] )->toBe( [] )
 		->and( $attrs['anchor'] )->toBe( 'logo' );
+} );
+
+it( 'keeps the background and gradient render() owns out of the supports merge attributes (M-8)', function (): void {
+	$attrs = test()->block->supportAttributes( test()->block->validateAttrs( [
+		'gradient' => 'sunset',
+		'style'    => [ 'color' => [
+			'gradient'   => 'linear-gradient(red, blue), url(https://tracker.example/p.png)',
+			'background' => 'url(https://tracker.example/p.png)',
+		] ],
+	] ) );
+
+	expect( $attrs['style']['color'] )->toBe( [] )
+		->and( $attrs['gradient'] )->toBe( 'sunset' );
+} );
+
+it( 'reduces the supports merge gradient to a validated palette slug (M-8)', function (): void {
+	expect( test()->block->supportAttributes( [ 'gradient' => 'linear-gradient(red, blue), url(x)' ] )['gradient'] )->toBe( '' );
+} );
+
+it( 'kebab-cases a camelCase preset gradient slug (R-2)', function (): void {
+	$html = test()->block->render( [
+		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
+		'style'   => [ 'color' => [ 'gradient' => 'var:preset|gradient|sunsetGlow' ] ],
+	] );
+
+	expect( html_entity_decode( $html ) )->toContain( 'background: var(--wp--preset--gradient--sunset-glow)' );
 } );

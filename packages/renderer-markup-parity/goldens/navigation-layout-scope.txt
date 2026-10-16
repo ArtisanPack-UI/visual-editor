@@ -1,0 +1,13 @@
+<nav class="wp-block-navigation is-layout-flex wp-block-navigation-is-layout-flex wp-container-10cc809b7e75 is-horizontal is-nowrap" style="--wp--style--block-gap: 2rem">
+  <ul class="wp-block-navigation__container">
+    <li class="wp-block-navigation-item wp-block-navigation-link">
+      <a class="wp-block-navigation-item__content" href="/">
+        <span class="wp-block-navigation-item__label">
+          "Home"
+        </span>
+      </a>
+    </li>
+  </ul>
+</nav>
+@@ renderer-instance-css @@
+.wp-block-navigation.wp-block-navigation-is-layout-flex.wp-container-10cc809b7e75{flex-wrap:nowrap;gap:2rem;}

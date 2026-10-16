@@ -72,8 +72,8 @@ export interface HoverAttribute {
 	delay?: number;
 	easing?: string;
 	/**
-	 * Glow colour (#878): a `var:preset|color|{slug}` palette reference
-	 * or a raw colour. Unset falls back to the theme's glow colour.
+	 * Glow color (#878): a `var:preset|color|{slug}` palette reference
+	 * or a raw color. Unset falls back to the theme's glow color.
 	 */
 	color?: string;
 }

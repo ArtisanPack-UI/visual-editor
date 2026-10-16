@@ -121,7 +121,7 @@ function readQueryPreviewAdjacent(
 }
 
 const PlaceholderEdit = createEntityPlaceholderEdit( {
-    label: 'Post Navigation Link',
+    label: () => __( 'Post Navigation Link', TEXT_DOMAIN ),
     resolvedKey: '_resolvedAdjacentTitle',
     kind: 'text',
 } );

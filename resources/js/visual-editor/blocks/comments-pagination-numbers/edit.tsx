@@ -12,7 +12,7 @@ import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { createEntityPlaceholderEdit } from '../_shared/entity-placeholder-edit';
 
 export default createEntityPlaceholderEdit( {
-    label: __( 'Comments Page Numbers', TEXT_DOMAIN ),
+    label: () => __( 'Comments Page Numbers', TEXT_DOMAIN ),
     resolvedKey: '_resolvedPaginationNumbersLabel',
     kind: 'text',
     dummyValue: { text: '1 2 3' },

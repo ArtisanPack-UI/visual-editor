@@ -24,6 +24,10 @@
  */
 
 import { useSyncExternalStore } from 'react'
+import { createInterpolateElement } from '@wordpress/element'
+import { __, sprintf } from '@wordpress/i18n'
+
+import { TEXT_DOMAIN } from '../vendor/i18n'
 
 import { getActiveBreakpoint, setActiveBreakpoint, subscribeActiveBreakpoint } from './active-breakpoint'
 import { type BreakpointRegistry, getResponsiveRegistry } from './registry'
@@ -57,7 +61,11 @@ export function InspectorScopeChip( { registry }: InspectorScopeChipProps = {} )
 	const label          = activeRegistry.label( active )
 	// Device overrides apply at that size and below (#820); a legacy
 	// mobile-first key, if one is ever active, still reads "and up".
-	const direction      = activeRegistry.isLegacy( active ) ? 'and up' : 'and down'
+	const message        = activeRegistry.isLegacy( active )
+		/* translators: %s: breakpoint label, e.g. "Tablet". */
+		? __( 'Editing at <strong>%s</strong> and up', TEXT_DOMAIN )
+		/* translators: %s: breakpoint label, e.g. "Tablet". */
+		: __( 'Editing at <strong>%s</strong> and down', TEXT_DOMAIN )
 
 	return (
 		<div
@@ -66,7 +74,7 @@ export function InspectorScopeChip( { registry }: InspectorScopeChipProps = {} )
 			aria-live="polite"
 		>
 			<span className="ap-visual-editor-inspector-scope-chip__label">
-				Editing at <strong>{ label }</strong> { direction }
+				{ createInterpolateElement( sprintf( message, label ), { strong: <strong /> } ) }
 				<span className="ap-visual-editor-inspector-scope-chip__key">
 					({ active })
 				</span>
@@ -76,7 +84,7 @@ export function InspectorScopeChip( { registry }: InspectorScopeChipProps = {} )
 				className="ap-visual-editor-inspector-scope-chip__reset"
 				onClick={ () => setActiveBreakpoint( BASE_KEY ) }
 			>
-				Switch to All sizes
+				{ __( 'Switch to All sizes', TEXT_DOMAIN ) }
 			</button>
 		</div>
 	)

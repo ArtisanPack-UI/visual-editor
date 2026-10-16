@@ -7,6 +7,7 @@
 import type { ReactElement } from 'react';
 import clsx from 'clsx';
 import { __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import {
     AlignmentControl,
     BlockControls,
@@ -61,8 +62,8 @@ export default function PullquoteEdit({
                         onChange={(nextValue: string) =>
                             setAttributes({ value: nextValue })
                         }
-                        aria-label={__('Pullquote text')}
-                        placeholder={__('Add quote')}
+                        aria-label={__('Pullquote text', TEXT_DOMAIN)}
+                        placeholder={__('Add quote', TEXT_DOMAIN)}
                     />
                     {shouldShowCitation && (
                         <RichText
@@ -70,8 +71,8 @@ export default function PullquoteEdit({
                             tagName="cite"
                             style={{ display: 'block' }}
                             value={citation ?? ''}
-                            aria-label={__('Pullquote citation text')}
-                            placeholder={__('Add citation')}
+                            aria-label={__('Pullquote citation text', TEXT_DOMAIN)}
+                            placeholder={__('Add citation', TEXT_DOMAIN)}
                             onChange={(nextCitation: string) =>
                                 setAttributes({ citation: nextCitation })
                             }

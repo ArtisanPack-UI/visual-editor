@@ -1,6 +1,5 @@
 # Ignore all test and documentation with "export-ignore".
 
-/.gitlab export-ignore
 /.gitignore         export-ignore
 /tests              export-ignore
 /.idea export-ignore
@@ -8,6 +7,24 @@
 /src/**/*Test.php   export-ignore
 /src/**/Test.php    export-ignore
 /phpunit.xml   export-ignore
-/.gitlab-ci.yml export-ignore
 /.php-cs-fixer.dist.php export-ignore
 /phpcs.xml export-ignore
+
+# Development-only tooling, fixtures and planning files never ship to
+# Composer consumers. Renderer `src/` trees stay: the root composer.json
+# autoloads the Blade renderer and hosts import the React / Vue ones.
+/packages/renderer-markup-parity export-ignore
+/packages/renderer-parity.json export-ignore
+/packages/visual-editor-renderer-blade/tests export-ignore
+/packages/visual-editor-renderer-react/tests export-ignore
+/packages/visual-editor-renderer-vue/tests export-ignore
+/issues export-ignore
+/audits export-ignore
+/scripts export-ignore
+/themes export-ignore
+/docs/plans export-ignore
+/.github export-ignore
+/.claude export-ignore
+/.coderabbit.yaml export-ignore
+/CLAUDE.md export-ignore
+/vitest.config.ts export-ignore

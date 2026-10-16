@@ -15,6 +15,7 @@
 import { Fragment, computed, defineComponent, h } from 'vue';
 import type { PropType } from 'vue';
 import { BlockTree } from './BlockTree';
+import type { DuotonePresets } from './support/duotone';
 import { GlobalStyles } from './GlobalStyles';
 import { DEFAULT_MAX_PATTERN_DEPTH } from './patterns';
 import type { PatternRecord } from './patterns';
@@ -62,6 +63,20 @@ export interface TemplateProps {
      * before the wrapper div.
      */
     globalStylesCss?: string | null;
+    /**
+     * Whether a block's Custom CSS may load resources, forwarded to
+     * {@link BlockTree}. Pass the host's `effects.custom_css_allow_urls`
+     * config so the page matches Blade. Defaults to `true`.
+     *
+     * @since 1.15.0
+     */
+    customCssAllowUrls?: boolean;
+    /**
+     * The theme's duotone presets, forwarded to {@link BlockTree}.
+     *
+     * @since 1.15.0
+     */
+    duotonePresets?: DuotonePresets;
 }
 
 export const Template = defineComponent({
@@ -106,6 +121,14 @@ export const Template = defineComponent({
         globalStylesCss: {
             type: String as PropType<string | null | undefined>,
             default: null,
+        },
+        customCssAllowUrls: {
+            type: Boolean,
+            default: true,
+        },
+        duotonePresets: {
+            type: [Array, Object] as PropType<DuotonePresets>,
+            default: undefined,
         },
     },
     setup(props) {
@@ -153,6 +176,8 @@ export const Template = defineComponent({
                         fetchOptions: props.fetchOptions,
                         maxTemplatePartDepth: props.maxTemplatePartDepth,
                         maxPatternDepth: props.maxPatternDepth,
+                        customCssAllowUrls: props.customCssAllowUrls,
+                        duotonePresets: props.duotonePresets,
                     }),
                 ]),
             ]);

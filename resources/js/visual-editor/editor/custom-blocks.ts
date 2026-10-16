@@ -16,8 +16,10 @@
 
 import { getBlockType, getCategories, registerBlockType, setCategories } from '@wordpress/blocks';
 import type { BlockConfiguration } from '@wordpress/blocks';
+import { __ } from '@wordpress/i18n';
 
 import { registerForkClassNameAlias } from '../blocks/_shared/fork-class-name-alias';
+import { TEXT_DOMAIN } from '../vendor/i18n';
 
 export const ARTISANPACK_CATEGORY_SLUG = 'artisanpack';
 export const SEARCH_CATEGORY_SLUG = 'search';
@@ -104,7 +106,7 @@ export function ensureArtisanpackCategory(
  * heading. Subsequent calls are no-ops.
  */
 export function ensureSearchCategory(
-    title: string = 'Search'
+    title: string = __('Search', TEXT_DOMAIN)
 ): void {
     const categories = getCategories() as ReadonlyArray<{ slug: string }>;
 

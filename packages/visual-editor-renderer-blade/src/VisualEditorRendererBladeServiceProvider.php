@@ -26,6 +26,7 @@ use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use ArtisanPackUI\VisualEditor\Responsive\ResponsiveValueResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Animations\AnimationMarkupResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Http\Middleware\InjectQueuedGlobalStyles;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\BreadcrumbsResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\BusinessInfoResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\LoginoutResolver;
@@ -36,6 +37,7 @@ use ArtisanPackUI\VisualEditorRendererBlade\Services\BoxShadowCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\DuotoneCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ElementsCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesPlacement;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\PositionCssAccumulator;
@@ -227,6 +229,12 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 		$this->app->scoped( DuotoneCssAccumulator::class, function () {
 			return new DuotoneCssAccumulator();
 		} );
+
+		// #879 — where the request's global styles land (head vs body).
+		// Scoped with the emission tracker it works alongside.
+		$this->app->scoped( GlobalStylesPlacement::class, function () {
+			return new GlobalStylesPlacement();
+		} );
 	}
 
 	public function boot(): void
@@ -238,6 +246,10 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 		// step. A consumer that has published the assets never reaches this
 		// route: the web server hands back the static `public/` file first.
 		$this->loadRoutesFrom( __DIR__ . '/../routes/assets.php' );
+
+		// #879 — deliver queued global styles a layout never printed (no
+		// `<x-ve-blocks-styles>` or `@stack('ve-global-styles')` in its head).
+		$this->registerGlobalStylesMiddleware();
 
 		Blade::component( BlocksComponent::class, 've-blocks' );
 		Blade::component( BlocksStylesComponent::class, 've-blocks-styles' );
@@ -265,5 +277,40 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 				__DIR__ . '/../resources/assets/frontend'      => public_path( 'vendor/visual-editor-renderer-blade/frontend' ),
 			], 'visual-editor-renderer-blade-assets' );
 		}
+	}
+
+	/**
+	 * Add {@see InjectQueuedGlobalStyles} to the `web` middleware group.
+	 *
+	 * Registered on the HTTP kernel, not only the router: the kernel copies
+	 * its own middleware groups into the router when it handles a request,
+	 * which would drop a group entry pushed onto the router alone. Falls
+	 * back to the router when no HTTP kernel (or no `web` group on it) is
+	 * available.
+	 *
+	 * @since 1.15.0
+	 */
+	protected function registerGlobalStylesMiddleware(): void
+	{
+		$kernelClass = \Illuminate\Contracts\Http\Kernel::class;
+
+		if ( $this->app->bound( $kernelClass ) ) {
+			try {
+				$kernel = $this->app->make( $kernelClass );
+
+				if ( method_exists( $kernel, 'getMiddlewareGroups' )
+					&& method_exists( $kernel, 'appendMiddlewareToGroup' )
+					&& isset( $kernel->getMiddlewareGroups()['web'] )
+				) {
+					$kernel->appendMiddlewareToGroup( 'web', InjectQueuedGlobalStyles::class );
+
+					return;
+				}
+			} catch ( Throwable ) {
+				// Fall through to the router.
+			}
+		}
+
+		$this->app['router']->pushMiddlewareToGroup( 'web', InjectQueuedGlobalStyles::class );
 	}
 }

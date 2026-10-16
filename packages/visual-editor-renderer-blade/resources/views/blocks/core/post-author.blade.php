@@ -1,5 +1,6 @@
 @php
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\DuotoneSupport;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\UrlSanitizer;
 
 	$showAvatar = ! isset( $attributes['showAvatar'] ) || ! empty( $attributes['showAvatar'] );
@@ -12,8 +13,11 @@
 	$bio       = isset( $attributes['_resolvedAuthorBio'] ) && is_string( $attributes['_resolvedAuthorBio'] ) ? $attributes['_resolvedAuthorBio'] : '';
 	$authorUrl = UrlSanitizer::safe( isset( $attributes['_resolvedAuthorUrl'] ) && is_string( $attributes['_resolvedAuthorUrl'] ) ? $attributes['_resolvedAuthorUrl'] : '' );
 	$avatarUrl = UrlSanitizer::safe( isset( $attributes['_resolvedAuthorAvatar'] ) && is_string( $attributes['_resolvedAuthorAvatar'] ) ? $attributes['_resolvedAuthorAvatar'] : '' );
+
+	// F-2 — duotone filter on the avatar `<img>`, only when one renders.
+	$duotoneClass = $showAvatar && '' !== $avatarUrl ? DuotoneSupport::apply( $attributes, DuotoneSupport::TARGETS['core/post-author'] ) : '';
 @endphp
-<div{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-post-author' ] ) !!}>
+<div{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-post-author', $duotoneClass ] ) !!}>
 	@if ( $showAvatar && '' !== $avatarUrl )
 		<div class="wp-block-post-author__avatar"><img alt="{{ $name }}" width="{{ $avatarSize }}" height="{{ $avatarSize }}" src="{{ $avatarUrl }}"/></div>
 	@endif

@@ -1,0 +1,10 @@
+<div class="wp-block-group is-layout-grid wp-block-group-is-layout-grid wp-container-8faef6f97138">
+  <p class="wp-block-paragraph">
+    "A"
+  </p>
+  <p class="wp-block-paragraph">
+    "B"
+  </p>
+</div>
+@@ renderer-instance-css @@
+.wp-block-group.wp-block-group-is-layout-grid.wp-container-8faef6f97138{grid-template-columns:repeat(auto-fill, minmax(max(min(10rem, 100%), (100% - (var(--wp--style--block-gap, 0.5em) * 2)) / 3), 1fr));container-type:inline-size;}

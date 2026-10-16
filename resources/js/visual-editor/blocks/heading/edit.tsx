@@ -8,6 +8,7 @@
 
 import type { ReactElement } from 'react';
 import { __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { useEffect } from '@wordpress/element';
 import { useDispatch, useSelect } from '@wordpress/data';
 import {
@@ -110,7 +111,7 @@ export default function HeadingEdit(props: HeadingEditProps): ReactElement {
             onMerge={mergeBlocks}
             onReplace={onReplace}
             onRemove={() => onReplace?.([])}
-            placeholder={placeholder || __('Heading')}
+            placeholder={placeholder || __('Heading', TEXT_DOMAIN)}
             {...blockProps}
         />
     );

@@ -20,12 +20,14 @@
  */
 
 import { useSyncExternalStore } from 'react'
+import { __ } from '@wordpress/i18n'
 
 import { getActiveBreakpoint, subscribeActiveBreakpoint } from './active-breakpoint'
 import { clearOverride, promote } from './migrator'
 import type { BreakpointRegistry } from './registry'
 import { resolveResponsiveValue } from './resolver'
 import { BASE_KEY, type ResponsiveAttribute } from './types'
+import { TEXT_DOMAIN } from '../vendor/i18n'
 
 export interface ResponsiveControlProps<T> {
 	registry: BreakpointRegistry
@@ -79,7 +81,7 @@ export function ResponsiveControl<T>( {
 					className="ve-responsive-control__reset"
 					onClick={ resetOverride }
 				>
-					Reset to base
+					{ __( 'Reset to base', TEXT_DOMAIN ) }
 				</button>
 			) : null }
 		</div>

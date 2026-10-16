@@ -415,8 +415,9 @@ return [
 	|   - capability         Left null (or any non-string), any authenticated
 	|                        user passes. Set a capability string (e.g.
 	|                        'edit_content') to require it through the
-	|                        user's hasCapability() / hasPermissionTo() /
-	|                        hasPermission(). A user model with none of those
+	|                        user's checkPermissionTo() / hasCapability() /
+	|                        hasPermissionTo() / hasPermission(); a backend
+	|                        that throws denies. A user model with none of those
 	|                        falls back to `$user->can( $capability )` and
 	|                        logs a warning. Or define the
 	|                        `visual-editor.edit-content` gate yourself.
@@ -847,6 +848,31 @@ return [
 
 	/*
 	|--------------------------------------------------------------------------
+	| Global styles placement (#879)
+	|--------------------------------------------------------------------------
+	|
+	| `true` (default): the compiled global styles
+	| (`<style data-ve-global-styles>`) print in `<head>` through
+	| `<x-ve-blocks-styles>`, before the theme's own stylesheet, even when
+	| the blocks render first inside an `@extends` section or a component
+	| layout's slot (they are queued on the `ve-global-styles` stack).
+	|
+	| A layout that renders blocks inside a section or slot but has no
+	| `<x-ve-blocks-styles>` (or `@stack('ve-global-styles')`) in its head
+	| still gets the styles on HTML responses: the renderer's middleware on
+	| the `web` group injects them into `<head>`. Output that never becomes
+	| an HTTP response (mail, `Blade::render()` into a string) doesn't, so
+	| set this to `false` there.
+	|
+	| `false`: the first `<x-ve-blocks>` / `<x-ve-template>` prints the
+	| global styles inline in the body, as in 1.14.
+	|
+	*/
+
+	'global_styles_in_head' => true,
+
+	/*
+	|--------------------------------------------------------------------------
 	| AI features: access and payload limits (#828)
 	|--------------------------------------------------------------------------
 	|
@@ -877,8 +903,9 @@ return [
 		],
 
 		// Capability the default `visual-editor.use-ai` gate requires
-		// (checked through the user's hasCapability() / hasPermissionTo()
-		// / hasPermission()). Users without it are denied. Redefine the
+		// (checked through the user's checkPermissionTo() / hasCapability()
+		// / hasPermissionTo() / hasPermission(); a backend that throws
+		// denies). Users without it are denied. Redefine the
 		// gate to use your own rule; set to '' to deny everyone.
 		'capability' => 'use_ai_features',
 
@@ -900,6 +927,36 @@ return [
 
 	/*
 	|--------------------------------------------------------------------------
+	| Block Effects (#881)
+	|--------------------------------------------------------------------------
+	|
+	| `custom_css_capability` is the capability the default
+	| `visual-editor.edit-block-css` gate requires before a user may write a
+	| block's Custom CSS (checked through the user's checkPermissionTo() /
+	| hasCapability() / hasPermissionTo() / hasPermission(); a permission
+	| backend that throws denies). Users without it don't see the field,
+	| and every save of a block-content model keeps only the Custom CSS
+	| already stored on that record. Redefine the gate to use your own
+	| rule; set to '' to deny everyone.
+	|
+	| `custom_css_allow_urls` controls whether Custom CSS may load
+	| resources (`url("…")`, `image-set(`, `image(`, `src(`). URLs must be
+	| quoted either way.
+	|
+	*/
+	'effects' => [
+		'custom_css_capability' => 'edit_block_css',
+
+		// Whether Custom CSS may load resources: `url("…")`, `image-set(`,
+		// `image(` and `src(`. Set false to close the remaining
+		// exfiltration channel (attribute selectors plus a remote URL);
+		// Custom CSS that uses one is then dropped. URLs must be quoted
+		// either way.
+		'custom_css_allow_urls' => true,
+	],
+
+	/*
+	|--------------------------------------------------------------------------
 	| Block Visibility (#491 · #492 · #493)
 	|--------------------------------------------------------------------------
 	|
@@ -917,23 +974,6 @@ return [
 	| Docs: docs/visibility.md
 	|
 	*/
-
-	/*
-	|--------------------------------------------------------------------------
-	| Block Effects (#881)
-	|--------------------------------------------------------------------------
-	|
-	| `custom_css_capability` is the capability the default
-	| `visual-editor.edit-block-css` gate requires before a user may write a
-	| block's Custom CSS (checked through the user's hasCapability() /
-	| hasPermissionTo() / hasPermission()). Users without it don't see the
-	| field, and saves keep only the Custom CSS already stored. Redefine the
-	| gate to use your own rule; set to '' to deny everyone.
-	|
-	*/
-	'effects' => [
-		'custom_css_capability' => 'edit_block_css',
-	],
 
 	'visibility' => [
 		'enabled'              => true,
@@ -976,9 +1016,10 @@ return [
 		/*
 		| The capability that gates every mutating Font Library action (install,
 		| upload, uninstall, bulk uninstall). It is checked by `FontPolicy`,
-		| which probes the authenticated user's `hasCapability()`,
-		| `hasPermissionTo()`, and `hasPermission()` methods in turn (each guarded
-		| by `method_exists()`), so a host can grant font management on its own —
+		| which probes the authenticated user's `checkPermissionTo()`,
+		| `hasCapability()`, `hasPermissionTo()`, and `hasPermission()` methods in
+		| turn (each guarded by `method_exists()`; a backend that throws denies),
+		| so a host can grant font management on its own —
 		| whether its users expose WordPress-style capabilities or rbac
 		| permissions — independently of whoever the
 		| bound `SiteEditorAccessGate` lets into the rest of the site editor. A

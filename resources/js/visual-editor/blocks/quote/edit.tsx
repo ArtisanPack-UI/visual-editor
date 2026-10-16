@@ -11,6 +11,7 @@
 import type { ReactElement } from 'react';
 import clsx from 'clsx';
 import { __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import {
     AlignmentControl,
     BlockControls,
@@ -77,7 +78,7 @@ export default function QuoteEdit({
                     onChange={(nextCitation: string) =>
                         setAttributes({ citation: nextCitation })
                     }
-                    placeholder={__('Add citation')}
+                    placeholder={__('Add citation', TEXT_DOMAIN)}
                     className="wp-block-quote__citation"
                 />
             </blockquote>

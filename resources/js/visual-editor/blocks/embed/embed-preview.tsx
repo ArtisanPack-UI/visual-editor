@@ -11,6 +11,7 @@
 import type { ReactElement } from 'react';
 import clsx from 'clsx';
 import { __, sprintf } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { Placeholder, SandBox } from '@wordpress/components';
 import { BlockIcon } from '@wordpress/block-editor';
 import { useEffect, useState } from '@wordpress/element';
@@ -103,7 +104,7 @@ export default function EmbedPreview({
     const embedSourceUrl = getAuthority(url ?? '');
     const iframeTitle = sprintf(
         // translators: %s: host providing embed content e.g: www.youtube.com
-        __('Embedded content from %s'),
+        __('Embedded content from %s', TEXT_DOMAIN),
         embedSourceUrl ?? ''
     );
     const sandboxClassnames = clsx(
@@ -155,7 +156,8 @@ export default function EmbedPreview({
                         {sprintf(
                             /* translators: %s: host providing embed content e.g: www.youtube.com */
                             __(
-                                "Embedded content from %s can't be previewed in the editor."
+                                "Embedded content from %s can't be previewed in the editor.",
+                                TEXT_DOMAIN
                             ),
                             embedSourceUrl ?? ''
                         )}

@@ -23,6 +23,7 @@ import {
 } from '@wordpress/components'
 import { useSettings } from '@wordpress/block-editor'
 import { __ } from '@wordpress/i18n'
+import { TEXT_DOMAIN } from '../../../vendor/i18n'
 
 import {
 	PHOTO_GRID_ATTRIBUTE_DEFAULT,
@@ -38,28 +39,34 @@ interface PhotoGridControlsProps {
 	onChange: ( next: PhotoGridAttribute ) => void
 }
 
-const ASPECT_RATIO_PRESETS: ReadonlyArray< { label: string; value: string } > = [
-	{ label: __( 'Inherit container' ), value: '' },
-	{ label: '1:1', value: '1/1' },
-	{ label: '4:3', value: '4/3' },
-	{ label: '3:2', value: '3/2' },
-	{ label: '16:9', value: '16/9' },
-	{ label: '3:4', value: '3/4' },
-	{ label: '9:16', value: '9/16' },
-	{ label: __( 'Custom…' ), value: '__custom__' },
-]
+// Built per render so the labels pick up locale data loaded after import.
+function aspectRatioPresets(): ReadonlyArray< { label: string; value: string } > {
+	return [
+		{ label: __( 'Inherit container', TEXT_DOMAIN ), value: '' },
+		{ label: '1:1', value: '1/1' },
+		{ label: '4:3', value: '4/3' },
+		{ label: '3:2', value: '3/2' },
+		{ label: '16:9', value: '16/9' },
+		{ label: '3:4', value: '3/4' },
+		{ label: '9:16', value: '9/16' },
+		{ label: __( 'Custom…', TEXT_DOMAIN ), value: '__custom__' },
+	]
+}
 
-const OBJECT_POSITION_CELLS: ReadonlyArray< { label: string; value: string } > = [
-	{ label: __( 'Top left' ),     value: '0% 0%' },
-	{ label: __( 'Top center' ),   value: '50% 0%' },
-	{ label: __( 'Top right' ),    value: '100% 0%' },
-	{ label: __( 'Center left' ),  value: '0% 50%' },
-	{ label: __( 'Center' ),       value: '50% 50%' },
-	{ label: __( 'Center right' ), value: '100% 50%' },
-	{ label: __( 'Bottom left' ),  value: '0% 100%' },
-	{ label: __( 'Bottom center' ),value: '50% 100%' },
-	{ label: __( 'Bottom right' ), value: '100% 100%' },
-]
+// Built per render so the labels pick up locale data loaded after import.
+function objectPositionCells(): ReadonlyArray< { label: string; value: string } > {
+	return [
+		{ label: __( 'Top left', TEXT_DOMAIN ),     value: '0% 0%' },
+		{ label: __( 'Top center', TEXT_DOMAIN ),   value: '50% 0%' },
+		{ label: __( 'Top right', TEXT_DOMAIN ),    value: '100% 0%' },
+		{ label: __( 'Center left', TEXT_DOMAIN ),  value: '0% 50%' },
+		{ label: __( 'Center', TEXT_DOMAIN ),       value: '50% 50%' },
+		{ label: __( 'Center right', TEXT_DOMAIN ), value: '100% 50%' },
+		{ label: __( 'Bottom left', TEXT_DOMAIN ),  value: '0% 100%' },
+		{ label: __( 'Bottom center', TEXT_DOMAIN ),value: '50% 100%' },
+		{ label: __( 'Bottom right', TEXT_DOMAIN ), value: '100% 100%' },
+	]
+}
 
 function useThemePhotoGridDefaults(): PhotoGridDefaults {
 	// `useSettings` reads the dotted path from `__experimentalFeatures`
@@ -119,7 +126,7 @@ function isPresetRatio( value: string | null ): boolean {
 	if ( value === null ) {
 		return true
 	}
-	return ASPECT_RATIO_PRESETS.some( ( p ) => p.value === value )
+	return aspectRatioPresets().some( ( p ) => p.value === value )
 }
 
 export function PhotoGridControls( {
@@ -171,13 +178,14 @@ export function PhotoGridControls( {
 		&& normaliseAspectRatio( value.aspectRatio ) === null
 
 	return (
-		<PanelBody title={ __( 'Photo Grid' ) } initialOpen={ false }>
+		<PanelBody title={ __( 'Photo Grid', TEXT_DOMAIN ) } initialOpen={ false }>
 			<ToggleControl
 				/* @ts-expect-error - upstream prop */
 				__nextHasNoMarginBottom
-				label={ __( 'Enable Photo Grid' ) }
+				label={ __( 'Enable Photo Grid', TEXT_DOMAIN ) }
 				help={ __(
 					'Force every image inside this container onto a uniform aspect ratio.',
+					TEXT_DOMAIN,
 				) }
 				checked={ value.enabled }
 				onChange={ ( enabled: boolean ) => emit( { enabled } ) }
@@ -188,9 +196,9 @@ export function PhotoGridControls( {
 						/* @ts-expect-error - upstream prop */
 						__next40pxDefaultSize
 						__nextHasNoMarginBottom
-						label={ __( 'Aspect ratio' ) }
+						label={ __( 'Aspect ratio', TEXT_DOMAIN ) }
 						value={ ratioDropdownValue }
-						options={ ASPECT_RATIO_PRESETS.map( ( p ) => ( {
+						options={ aspectRatioPresets().map( ( p ) => ( {
 							label: p.label,
 							value: p.value,
 						} ) ) }
@@ -201,7 +209,7 @@ export function PhotoGridControls( {
 							/* @ts-expect-error - upstream prop */
 							__next40pxDefaultSize
 							__nextHasNoMarginBottom
-							label={ __( 'Custom ratio (W/H)' ) }
+							label={ __( 'Custom ratio (W/H)', TEXT_DOMAIN ) }
 							placeholder="16/9"
 							value={ value.aspectRatio ?? '' }
 							onChange={ onCustomAspectChange }
@@ -209,6 +217,7 @@ export function PhotoGridControls( {
 								customAspectInvalid
 									? __(
 										'Invalid ratio. Enter a positive W/H value (e.g. 21/9).',
+										TEXT_DOMAIN,
 									)
 									: undefined
 							}
@@ -219,7 +228,7 @@ export function PhotoGridControls( {
 						__next40pxDefaultSize
 						__nextHasNoMarginBottom
 						isBlock
-						label={ __( 'Object fit' ) }
+						label={ __( 'Object fit', TEXT_DOMAIN ) }
 						value={ value.objectFit }
 						onChange={ ( next: string | number | undefined ) =>
 							emit( {
@@ -230,13 +239,13 @@ export function PhotoGridControls( {
 							} )
 						}
 					>
-						<ToggleGroupControlOption value="cover" label={ __( 'Cover' ) } />
-						<ToggleGroupControlOption value="contain" label={ __( 'Contain' ) } />
+						<ToggleGroupControlOption value="cover" label={ __( 'Cover', TEXT_DOMAIN ) } />
+						<ToggleGroupControlOption value="contain" label={ __( 'Contain', TEXT_DOMAIN ) } />
 					</ToggleGroupControl>
 					<div
 						className="ap-photo-grid-position-picker"
 						role="radiogroup"
-						aria-label={ __( 'Object position' ) }
+						aria-label={ __( 'Object position', TEXT_DOMAIN ) }
 						style={ {
 							display: 'grid',
 							gridTemplateColumns: 'repeat(3, 1fr)',
@@ -244,7 +253,7 @@ export function PhotoGridControls( {
 							marginBlock: '12px',
 						} }
 					>
-						{ OBJECT_POSITION_CELLS.map( ( cell ) => {
+						{ objectPositionCells().map( ( cell ) => {
 							const selected = value.objectPosition === cell.value
 							return (
 								<button
@@ -274,7 +283,7 @@ export function PhotoGridControls( {
 						/* @ts-expect-error - upstream prop */
 						__next40pxDefaultSize
 						__nextHasNoMarginBottom
-						label={ __( 'Object position (x% y%)' ) }
+						label={ __( 'Object position (x% y%)', TEXT_DOMAIN ) }
 						value={ value.objectPosition }
 						placeholder="50% 50%"
 						onChange={ ( raw: string ) =>

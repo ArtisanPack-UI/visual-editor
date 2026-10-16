@@ -14,13 +14,16 @@
  * Phase I5 entity cluster (#413), live-preview path #481.
  */
 
+import { __ } from '@wordpress/i18n';
+
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import {
     createEntityPlaceholderEdit,
     readEntityString,
 } from '../_shared/entity-placeholder-edit';
 
 export default createEntityPlaceholderEdit( {
-    label: 'Post Excerpt',
+    label: () => __( 'Post Excerpt', TEXT_DOMAIN ),
     resolvedKey: '_resolvedExcerpt',
     kind: 'text',
     fromQueryPreview: ( post ) =>

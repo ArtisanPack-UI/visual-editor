@@ -16,9 +16,10 @@
  * @since 1.15.0
  */
 
-import { getBreakpoints } from '../visibility';
+import { getBreakpoints, getDeviceBreakpoints } from '../visibility';
 import type { Block } from '../types';
 import { phpTrim } from './attributes';
+import { cssNumber } from './cssNumber';
 import { expandPresetReference } from './presetReference';
 import { xxh3_64_hex } from './xxh3';
 
@@ -81,15 +82,6 @@ const RESPONSIVE_ALLOWED_UNITS = ['px', 'em', 'rem', 'vh', 'vw', '%'];
 const CSS_VALUE_DISALLOWED = /[^a-zA-Z0-9_+\-*/.,()%#\t\n\r\f ]/g;
 
 const SIDES = ['top', 'right', 'bottom', 'left'];
-
-/**
- * Desktop-first device breakpoints (#820), largest first, with the
- * editor preview width the cascade uses. Mirrors the registry defaults.
- */
-const DEVICE_BREAKPOINTS: ReadonlyArray<{ key: string; maxWidthPx: number; previewWidthPx: number }> = [
-    { key: 'tablet', maxWidthPx: 1023, previewWidthPx: 768 },
-    { key: 'mobile', maxWidthPx: 767, previewWidthPx: 375 },
-];
 
 export interface ResponsiveScope {
     /** The `ve-r-<hash>` class stamped onto the block wrapper. */
@@ -435,7 +427,8 @@ function normaliseResponsiveValue(
         unit = fallbackUnit;
     }
 
-    return phpNumberString(Math.max(0, Number(typeof value === 'string' ? value.trim() : value))) + unit;
+    // `BlockSupports::cssNumber()` twin: never an exponent (R-13).
+    return cssNumber(Math.max(0, Number(typeof value === 'string' ? value.trim() : value))) + unit;
 }
 
 /**
@@ -483,14 +476,17 @@ function responsiveDeclarations(property: string, value: unknown): string {
 
 /**
  * The breakpoint registry the Blade renderer reads from the container:
- * the (host-configurable) legacy min-width keys ascending, then the
- * desktop-first device keys largest first.
+ * the legacy min-width keys ascending, then the desktop-first device
+ * keys largest first (#820). Both come from `setBreakpoints()`, so a
+ * host that passes the server's `BreakpointRegistry::toArray()` gets the
+ * same media queries and cascade as Blade.
  */
 function resolveRegistry(): Registry {
     const legacy = getBreakpoints().sort((a, b) => a.minWidthPx - b.minWidthPx);
+    const devices = getDeviceBreakpoints().sort((a, b) => b.maxWidthPx - a.maxWidthPx);
     const queries = new Map<string, string>([
         ...legacy.map((bp): [string, string] => [bp.key, `(min-width:${bp.minWidthPx}px)`]),
-        ...DEVICE_BREAKPOINTS.map((bp): [string, string] => [bp.key, `(max-width:${bp.maxWidthPx}px)`]),
+        ...devices.map((bp): [string, string] => [bp.key, `(max-width:${bp.maxWidthPx}px)`]),
     ]);
 
     return {
@@ -510,14 +506,14 @@ function resolveRegistry(): Registry {
                 ];
             }
 
-            const device = DEVICE_BREAKPOINTS.find((bp) => bp.key === key);
+            const device = devices.find((bp) => bp.key === key);
 
             if (device === undefined) {
                 return [BASE_KEY];
             }
 
             return [
-                ...DEVICE_BREAKPOINTS.filter((bp) => bp.maxWidthPx >= device.maxWidthPx)
+                ...devices.filter((bp) => bp.maxWidthPx >= device.maxWidthPx)
                     .map((bp) => bp.key)
                     .reverse(),
                 ...legacy

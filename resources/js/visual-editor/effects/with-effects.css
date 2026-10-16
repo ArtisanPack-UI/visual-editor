@@ -1,0 +1,30 @@
+/**
+ * Effects panel styles (#881).
+ *
+ * Invalid Custom CSS gets a thicker border in an error color with at
+ * least 3:1 contrast against the inspector background, plus an "Error:"
+ * prefix in the help text, so the state isn't conveyed by color alone.
+ *
+ * @since 1.15.0
+ */
+
+.ap-effects-custom-css textarea {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.ap-effects-custom-css textarea[aria-invalid="true"] {
+    border: 2px solid var(--ap-visual-editor-error, #cc1818);
+    box-shadow: none;
+}
+
+.ap-effects-custom-css textarea[aria-invalid="true"]:focus {
+    box-shadow: 0 0 0 1px var(--ap-visual-editor-error, #cc1818);
+}
+
+.ap-effects-custom-css__error {
+    color: var(--ap-visual-editor-error, #cc1818);
+}
+
+.ap-effects-text-clip-notice {
+    margin: 8px 0 0;
+}

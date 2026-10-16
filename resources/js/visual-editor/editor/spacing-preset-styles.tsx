@@ -22,6 +22,7 @@
 import { store as blockEditorStore } from '@wordpress/block-editor';
 import { useSelect } from '@wordpress/data';
 import { useMemo, type ReactElement } from 'react';
+import { presetSlug } from '../support/preset-slug';
 
 interface SpacingSizeLike {
     slug?: unknown;
@@ -75,13 +76,14 @@ export function isSafeSpacingValue(value: string): boolean {
  * `[a-z0-9-]` becomes `-` (`big_gap` → `big-gap`). Runs of `-` are kept
  * and nothing is trimmed. Mirrors `PresetRegistry::presetSlug()`, the
  * Blade `BlockSupports` / `ElementsSupport` reference expanders, and the
- * React / Vue renderers' `presetSlug()`.
+ * React / Vue renderers' `presetSlug()` — byte-wise, like PHP, so only
+ * ASCII is lowercased and a non-ASCII character becomes one `-` per UTF-8
+ * byte (R-19).
+ *
+ * @since 1.15.0 Delegates to the shared byte-accurate {@link presetSlug}.
  */
 export function spacingPresetSlug(value: string): string {
-    return value
-        .replace(/([a-z])([A-Z])/g, '$1-$2')
-        .toLowerCase()
-        .replace(/[^a-z0-9-]/g, '-');
+    return presetSlug(value);
 }
 
 /**

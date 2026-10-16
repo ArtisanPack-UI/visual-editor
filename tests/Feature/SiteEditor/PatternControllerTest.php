@@ -12,6 +12,7 @@ declare( strict_types=1 );
 
 use ArtisanPackUI\CMSFramework\Modules\SiteEditor\Models\BlockPattern;
 use ArtisanPackUI\CMSFramework\Modules\Themes\Managers\ThemeManager;
+use ArtisanPackUI\VisualEditor\Effects\CustomCssModelGuard;
 use ArtisanPackUI\VisualEditor\VisualEditorServiceProvider;
 use Tests\Concerns\GrantsSiteEditorAccess;
 use Tests\Concerns\WithCmsFramework;
@@ -378,7 +379,9 @@ describe( 'PUT /visual-editor/api/patterns/{slug}', function (): void {
 			'innerBlocks' => [],
 		];
 
-		$pattern = BlockPattern::create( [
+		// Seeded as a trusted write: the model-level guard (H-2) would
+		// otherwise strip it, since the test acts as a user without the ability.
+		$pattern = app( CustomCssModelGuard::class )->trusted( static fn (): BlockPattern => BlockPattern::create( [
 			'slug'          => 'cta',
 			'title'         => 'CTA',
 			'source'        => 'user',
@@ -387,7 +390,7 @@ describe( 'PUT /visual-editor/api/patterns/{slug}', function (): void {
 			'block_types'   => [],
 			'block_content' => [ $styled( 'color: red;' ) ],
 			'author_id'     => null,
-		] );
+		] ) );
 
 		$this->putJson( '/visual-editor/api/patterns/user/cta', [
 			'content' => [ 'raw' => '', 'blocks' => [ $styled( 'color: red;' ), $styled( 'display: none;' ) ] ],

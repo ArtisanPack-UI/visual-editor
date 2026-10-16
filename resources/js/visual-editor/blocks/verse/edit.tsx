@@ -8,6 +8,7 @@
 
 import type { ReactElement } from 'react';
 import { __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { RichText, useBlockProps } from '@wordpress/block-editor';
 import { createBlock, getDefaultBlockName } from '@wordpress/blocks';
 
@@ -44,8 +45,8 @@ export default function VerseEdit({
             onChange={(nextContent: string) =>
                 setAttributes({ content: nextContent })
             }
-            aria-label={__('Poetry text')}
-            placeholder={__('Write poetry…')}
+            aria-label={__('Poetry text', TEXT_DOMAIN)}
+            placeholder={__('Write poetry…', TEXT_DOMAIN)}
             onRemove={onRemove}
             onMerge={mergeBlocks}
             {...blockProps}

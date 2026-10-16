@@ -187,3 +187,29 @@ it( 'produces a stable scope class for the same responsive payload', function ()
 
 	expect( $first['class'] )->toBe( $second['class'] );
 } );
+
+it( 'never writes a responsive number in exponent notation (R-13)', function ( mixed $value, string $expected ): void {
+	$result = BlockSupports::compileResponsive( [
+		'responsive' => [ 'height' => [ 'md' => $value ] ],
+	] );
+
+	expect( $result['rules'] )->toContain( '{height:' . $expected . '!important}' )
+		->not->toContain( 'E-' )
+		->not->toContain( 'E+' );
+} )->with( [
+	'tiny float'     => [ 1e-8, '0px' ],
+	'tiny string'    => [ '0.00001', '0px' ],
+	'rounds up'      => [ 0.00009999, '0.0001px' ],
+	'decimal'        => [ 12.5, '12.5px' ],
+	'precise'        => [ 0.03125, '0.03125px' ],
+	'huge'           => [ 1e14, '100000000000000px' ],
+	'integer string' => [ '40', '40px' ],
+] );
+
+it( 'formats CSS numbers without exponents (R-13)', function (): void {
+	expect( BlockSupports::cssNumber( 1e-8 ) )->toBe( '0' )
+		->and( BlockSupports::cssNumber( -1e-8 ) )->toBe( '0' )
+		->and( BlockSupports::cssNumber( 12.5 ) )->toBe( '12.5' )
+		->and( BlockSupports::cssNumber( 1.23456789 ) )->toBe( '1.23456789' )
+		->and( BlockSupports::cssNumber( 2e15 ) )->toBe( '2000000000000000' );
+} );

@@ -14,6 +14,10 @@
  * record shape — not the `{ blocks }` envelope the post editor sends.
  */
 
+import { __, sprintf } from '@wordpress/i18n';
+
+import { TEXT_DOMAIN } from '../vendor/i18n';
+
 export type EntityKind = 'template' | 'template-part';
 
 /**
@@ -198,7 +202,11 @@ async function requireOk(response: Response): Promise<unknown> {
     const body = await parseBody(response);
 
     if (!response.ok) {
-        const baseMessage = `Site-editor request failed with status ${response.status}`;
+        const baseMessage = sprintf(
+            /* translators: %d: HTTP status code. */
+            __('Site-editor request failed with status %d', TEXT_DOMAIN),
+            response.status
+        );
         const message =
             body !== null &&
             typeof body === 'object' &&
@@ -211,6 +219,40 @@ async function requireOk(response: Response): Promise<unknown> {
     }
 
     return body;
+}
+
+type EntityAction = 'list' | 'load' | 'create' | 'save' | 'delete';
+
+/**
+ * Translated fallback message for a failed entity request. Each kind and
+ * action gets a whole sentence so translators never assemble a message
+ * from the `template` / `template-part` slug.
+ */
+function failureMessage(action: EntityAction, kind: EntityKind): string {
+    const isPart = kind === 'template-part';
+
+    switch (action) {
+        case 'list':
+            return isPart
+                ? __('Failed to load template part list.', TEXT_DOMAIN)
+                : __('Failed to load template list.', TEXT_DOMAIN);
+        case 'load':
+            return isPart
+                ? __('Failed to load template part.', TEXT_DOMAIN)
+                : __('Failed to load template.', TEXT_DOMAIN);
+        case 'create':
+            return isPart
+                ? __('Failed to create template part.', TEXT_DOMAIN)
+                : __('Failed to create template.', TEXT_DOMAIN);
+        case 'save':
+            return isPart
+                ? __('Failed to save template part.', TEXT_DOMAIN)
+                : __('Failed to save template.', TEXT_DOMAIN);
+        case 'delete':
+            return isPart
+                ? __('Failed to delete template part.', TEXT_DOMAIN)
+                : __('Failed to delete template.', TEXT_DOMAIN);
+    }
 }
 
 function normalizeError(error: unknown, fallbackMessage: string): SiteEditorApiError {
@@ -279,7 +321,7 @@ export async function listEntities<K extends EntityKind>(
             ? (body as readonly EntityRecord<K>[])
             : [];
     } catch (error: unknown) {
-        throw normalizeError(error, `Failed to load ${kind} list.`);
+        throw normalizeError(error, failureMessage('list', kind));
     }
 }
 
@@ -297,7 +339,7 @@ export async function fetchEntity<K extends EntityKind>(
 
         return (await requireOk(response)) as EntityRecord<K>;
     } catch (error: unknown) {
-        throw normalizeError(error, `Failed to load ${kind}.`);
+        throw normalizeError(error, failureMessage('load', kind));
     }
 }
 
@@ -339,7 +381,7 @@ export async function createEntity<K extends EntityKind>(
 
         return (await requireOk(response)) as EntityRecord<K>;
     } catch (error: unknown) {
-        throw normalizeError(error, `Failed to create ${kind}.`);
+        throw normalizeError(error, failureMessage('create', kind));
     }
 }
 
@@ -371,7 +413,7 @@ export async function updateEntity<K extends EntityKind>(
 
         return (await requireOk(response)) as EntityRecord<K>;
     } catch (error: unknown) {
-        throw normalizeError(error, `Failed to save ${kind}.`);
+        throw normalizeError(error, failureMessage('save', kind));
     }
 }
 
@@ -389,6 +431,6 @@ export async function deleteEntity(
 
         await requireOk(response);
     } catch (error: unknown) {
-        throw normalizeError(error, `Failed to delete ${kind}.`);
+        throw normalizeError(error, failureMessage('delete', kind));
     }
 }

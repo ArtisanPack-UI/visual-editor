@@ -50,6 +50,7 @@ import {
 } from '@wordpress/block-editor';
 import { useEffect } from '@wordpress/element';
 import { __, _x } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { file as icon } from '@wordpress/icons';
 import { store as coreStore } from '@wordpress/core-data';
 import { store as noticesStore } from '@wordpress/notices';
@@ -132,7 +133,7 @@ export default function FileEdit({
     useEffect(() => {
         if (RichText.isEmpty(downloadButtonText ?? '')) {
             setAttributes({
-                downloadButtonText: _x('Download', 'button label'),
+                downloadButtonText: _x('Download', 'button label', TEXT_DOMAIN),
             });
         }
         // This effect should only run on mount.
@@ -209,9 +210,10 @@ export default function FileEdit({
                 <MediaPlaceholder
                     icon={<BlockIcon icon={icon} />}
                     labels={{
-                        title: __('File'),
+                        title: __('File', TEXT_DOMAIN),
                         instructions: __(
-                            'Drag and drop a file, upload, or choose from your library.'
+                            'Drag and drop a file, upload, or choose from your library.',
+                            TEXT_DOMAIN
                         ),
                     }}
                     onSelect={onSelectFile}
@@ -224,10 +226,10 @@ export default function FileEdit({
 
     const linkDestinationOptions = attachmentPage
         ? [
-              { value: href, label: __('Media file') },
-              { value: attachmentPage, label: __('Attachment page') },
+              { value: href, label: __('Media file', TEXT_DOMAIN) },
+              { value: attachmentPage, label: __('Attachment page', TEXT_DOMAIN) },
           ]
-        : [{ value: href, label: __('URL') }];
+        : [{ value: href, label: __('URL', TEXT_DOMAIN) }];
 
     const openInNewWindow = !!textLinkTarget;
 
@@ -235,7 +237,7 @@ export default function FileEdit({
         <>
             <InspectorControls>
                 <ToolsPanel
-                    label={__('Settings')}
+                    label={__('Settings', TEXT_DOMAIN)}
                     resetAll={() => {
                         changeLinkDestinationOption(href);
                         changeOpenInNewWindow(false);
@@ -243,39 +245,39 @@ export default function FileEdit({
                     }}
                 >
                     <ToolsPanelItem
-                        label={__('Link to')}
+                        label={__('Link to', TEXT_DOMAIN)}
                         isShownByDefault
                         hasValue={() => textLinkHref !== href}
                         onDeselect={() => changeLinkDestinationOption(href)}
                     >
                         <SelectControl
                             __next40pxDefaultSize
-                            label={__('Link to')}
+                            label={__('Link to', TEXT_DOMAIN)}
                             value={textLinkHref ?? ''}
                             options={linkDestinationOptions}
                             onChange={changeLinkDestinationOption}
                         />
                     </ToolsPanelItem>
                     <ToolsPanelItem
-                        label={__('Open in new tab')}
+                        label={__('Open in new tab', TEXT_DOMAIN)}
                         isShownByDefault
                         hasValue={() => !!openInNewWindow}
                         onDeselect={() => changeOpenInNewWindow(false)}
                     >
                         <ToggleControl
-                            label={__('Open in new tab')}
+                            label={__('Open in new tab', TEXT_DOMAIN)}
                             checked={openInNewWindow}
                             onChange={changeOpenInNewWindow}
                         />
                     </ToolsPanelItem>
                     <ToolsPanelItem
-                        label={__('Show download button')}
+                        label={__('Show download button', TEXT_DOMAIN)}
                         isShownByDefault
                         hasValue={() => !showDownloadButton}
                         onDeselect={() => changeShowDownloadButton(true)}
                     >
                         <ToggleControl
-                            label={__('Show download button')}
+                            label={__('Show download button', TEXT_DOMAIN)}
                             checked={!!showDownloadButton}
                             onChange={changeShowDownloadButton}
                         />
@@ -300,7 +302,7 @@ export default function FileEdit({
                         identifier="fileName"
                         tagName="a"
                         value={fileName ?? ''}
-                        placeholder={__('Write file name…')}
+                        placeholder={__('Write file name…', TEXT_DOMAIN)}
                         withoutInteractiveFormatting
                         onChange={(text: string) =>
                             setAttributes({
@@ -315,14 +317,14 @@ export default function FileEdit({
                             <RichText
                                 identifier="downloadButtonText"
                                 tagName="div"
-                                aria-label={__('Download button text')}
+                                aria-label={__('Download button text', TEXT_DOMAIN)}
                                 className={clsx(
                                     'wp-block-file__button',
                                     __experimentalGetElementClassName('button')
                                 )}
                                 value={downloadButtonText ?? ''}
                                 withoutInteractiveFormatting
-                                placeholder={__('Add text…')}
+                                placeholder={__('Add text…', TEXT_DOMAIN)}
                                 onChange={(text: string) =>
                                     setAttributes({
                                         downloadButtonText:

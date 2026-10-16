@@ -6,6 +6,7 @@
 
 import type { ReactElement } from 'react';
 import { __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { RichText, useBlockProps } from '@wordpress/block-editor';
 import { createBlock, getDefaultBlockName } from '@wordpress/blocks';
 
@@ -43,8 +44,8 @@ export default function PreformattedEdit({
                 setAttributes({ content: nextContent })
             }
             onRemove={onRemove}
-            aria-label={__('Preformatted text')}
-            placeholder={__('Write preformatted text…')}
+            aria-label={__('Preformatted text', TEXT_DOMAIN)}
+            placeholder={__('Write preformatted text…', TEXT_DOMAIN)}
             onMerge={mergeBlocks}
             {...blockProps}
             __unstablePastePlainText

@@ -19,6 +19,7 @@
 import type { ReactElement, FormEvent } from 'react';
 import clsx from 'clsx';
 import { __, _x, sprintf } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { useState, useEffect } from '@wordpress/element';
 import { useDispatch, useSelect } from '@wordpress/data';
 import {
@@ -88,7 +89,7 @@ const EmbedEdit = (props: EmbedEditProps): ReactElement => {
     } = props;
 
     const defaultEmbedInfo = {
-        title: _x('Embed', 'block title'),
+        title: _x('Embed', 'block title', TEXT_DOMAIN),
         icon: embedContentIcon,
     };
     const variation = getEmbedInfoByProvider(providerNameSlug);
@@ -255,7 +256,7 @@ const EmbedEdit = (props: EmbedEditProps): ReactElement => {
     }
 
     // translators: %s: type of embed e.g: "YouTube", "Twitter", etc.
-    const label = sprintf(__('%s URL'), title);
+    const label = sprintf(__('%s URL', TEXT_DOMAIN), title);
 
     const showEmbedPlaceholder = !preview || cannotEmbed || isEditingURL;
 
@@ -335,8 +336,8 @@ const EmbedEdit = (props: EmbedEditProps): ReactElement => {
                     <RichText
                         identifier="caption"
                         tagName="figcaption"
-                        aria-label={__('Embed caption text')}
-                        placeholder={__('Add caption')}
+                        aria-label={__('Embed caption text', TEXT_DOMAIN)}
+                        placeholder={__('Add caption', TEXT_DOMAIN)}
                         value={caption ?? ''}
                         onChange={(value: string) =>
                             setAttributes({ caption: value })

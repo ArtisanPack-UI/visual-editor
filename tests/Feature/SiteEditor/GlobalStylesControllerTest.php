@@ -628,6 +628,48 @@ describe( 'GET /visual-editor/api/global-styles/css', function (): void {
 			File::deleteDirectory( $themesBase );
 		}
 	} );
+
+	it( 'skips an editor style with an unprintable media query and claims handles before the path check, as @themeEditorStyles does (R-3)', function (): void {
+		$themesBase = sys_get_temp_dir() . '/ve-r3-' . uniqid();
+		$slug       = 'r3-theme';
+
+		mkdir( $themesBase . '/' . $slug . '/assets', 0755, true );
+		file_put_contents( $themesBase . '/' . $slug . '/assets/x.css', ".shadowed-by-cdn{color:red}\n" );
+		file_put_contents( $themesBase . '/' . $slug . '/assets/bad.css', ".bad-media{color:red}\n" );
+		file_put_contents( $themesBase . '/' . $slug . '/assets/good.css', ".good{color:teal}\n" );
+
+		config()->set( 'cms.themes.directory', $themesBase );
+
+		$this->mock( ThemeManager::class, function ( $mock ) use ( $slug ): void {
+			$mock->shouldReceive( 'getActiveTheme' )->andReturn( [ 'name' => 'R3 theme', 'slug' => $slug ] );
+			stubThemeManagerHelpersForGlobalStylesTest( $mock );
+		} );
+
+		$theme = new class( $slug ) extends Theme {
+			public function editorStyles(): array
+			{
+				return [
+					'https://cdn.example.com/x.css',
+					'x.css',
+					'bad'  => [ 'src' => 'bad.css', 'media' => 'screen { } body' ],
+					'good' => [ 'src' => 'good.css', 'media' => 'screen' ],
+				];
+			}
+		};
+
+		$this->mock( ThemeLoader::class, function ( $mock ) use ( $theme ): void {
+			$mock->shouldReceive( 'activeTheme' )->andReturn( $theme );
+		} );
+
+		try {
+			expect( $this->get( '/visual-editor/api/global-styles/css' )->assertOk()->getContent() )
+				->toContain( "@media screen {\n.good{color:teal}" )
+				->not->toContain( '.shadowed-by-cdn' )
+				->not->toContain( '.bad-media' );
+		} finally {
+			File::deleteDirectory( $themesBase );
+		}
+	} );
 } );
 
 describe( 'GET /visual-editor/api/global-styles/{id}', function (): void {

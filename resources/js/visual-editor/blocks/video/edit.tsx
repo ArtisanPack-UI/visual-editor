@@ -47,6 +47,7 @@ import {
     useBlockEditingMode,
 } from '@wordpress/block-editor';
 import { __, _x } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { useDispatch } from '@wordpress/data';
 import { video as icon } from '@wordpress/icons';
 import { store as noticesStore } from '@wordpress/notices';
@@ -89,7 +90,7 @@ interface VideoEditProps {
 
 function getAutoplayHelp(checked: boolean): string | null {
     return checked
-        ? __('Autoplay may cause usability issues for some users.')
+        ? __('Autoplay may cause usability issues for some users.', TEXT_DOMAIN)
         : null;
 }
 
@@ -228,7 +229,7 @@ export default function VideoEdit({
             )}
             <InspectorControls>
                 <ToolsPanel
-                    label={__('Settings')}
+                    label={__('Settings', TEXT_DOMAIN)}
                     resetAll={() => {
                         setAttributes({
                             autoplay: false,
@@ -242,7 +243,7 @@ export default function VideoEdit({
                     }}
                 >
                     <ToolsPanelItem
-                        label={__('Autoplay')}
+                        label={__('Autoplay', TEXT_DOMAIN)}
                         isShownByDefault
                         hasValue={() => !!autoplay}
                         onDeselect={() =>
@@ -250,56 +251,56 @@ export default function VideoEdit({
                         }
                     >
                         <ToggleControl
-                            label={__('Autoplay')}
+                            label={__('Autoplay', TEXT_DOMAIN)}
                             onChange={toggleAttribute('autoplay')}
                             checked={!!autoplay}
                             help={getAutoplayHelp}
                         />
                     </ToolsPanelItem>
                     <ToolsPanelItem
-                        label={__('Loop')}
+                        label={__('Loop', TEXT_DOMAIN)}
                         isShownByDefault
                         hasValue={() => !!loop}
                         onDeselect={() => setAttributes({ loop: false })}
                     >
                         <ToggleControl
-                            label={__('Loop')}
+                            label={__('Loop', TEXT_DOMAIN)}
                             onChange={toggleAttribute('loop')}
                             checked={!!loop}
                         />
                     </ToolsPanelItem>
                     <ToolsPanelItem
-                        label={__('Muted')}
+                        label={__('Muted', TEXT_DOMAIN)}
                         isShownByDefault
                         hasValue={() => !!muted}
                         onDeselect={() => setAttributes({ muted: false })}
                     >
                         <ToggleControl
-                            label={__('Muted')}
+                            label={__('Muted', TEXT_DOMAIN)}
                             onChange={toggleAttribute('muted')}
                             checked={!!muted}
                             disabled={autoplay}
                             help={
                                 autoplay
-                                    ? __('Muted because of Autoplay.')
+                                    ? __('Muted because of Autoplay.', TEXT_DOMAIN)
                                     : null
                             }
                         />
                     </ToolsPanelItem>
                     <ToolsPanelItem
-                        label={__('Playback controls')}
+                        label={__('Playback controls', TEXT_DOMAIN)}
                         isShownByDefault
                         hasValue={() => !controls}
                         onDeselect={() => setAttributes({ controls: true })}
                     >
                         <ToggleControl
-                            label={__('Playback controls')}
+                            label={__('Playback controls', TEXT_DOMAIN)}
                             onChange={toggleAttribute('controls')}
                             checked={!!controls}
                         />
                     </ToolsPanelItem>
                     <ToolsPanelItem
-                        label={__('Play inline')}
+                        label={__('Play inline', TEXT_DOMAIN)}
                         isShownByDefault
                         hasValue={() => !!playsInline}
                         onDeselect={() =>
@@ -307,23 +308,25 @@ export default function VideoEdit({
                         }
                     >
                         <ToggleControl
-                            label={__('Play inline')}
+                            label={__('Play inline', TEXT_DOMAIN)}
                             onChange={toggleAttribute('playsInline')}
                             checked={!!playsInline}
                             disabled={autoplay}
                             help={
                                 autoplay
                                     ? __(
-                                          'Play inline enabled because of Autoplay.'
+                                          'Play inline enabled because of Autoplay.',
+                                          TEXT_DOMAIN
                                       )
                                     : __(
-                                          'When enabled, videos will play directly within the webpage on mobile browsers, instead of opening in a fullscreen player.'
+                                          'When enabled, videos will play directly within the webpage on mobile browsers, instead of opening in a fullscreen player.',
+                                          TEXT_DOMAIN
                                       )
                             }
                         />
                     </ToolsPanelItem>
                     <ToolsPanelItem
-                        label={__('Preload')}
+                        label={__('Preload', TEXT_DOMAIN)}
                         isShownByDefault
                         hasValue={() => preload !== 'metadata'}
                         onDeselect={() =>
@@ -332,27 +335,27 @@ export default function VideoEdit({
                     >
                         <SelectControl
                             __next40pxDefaultSize
-                            label={__('Preload')}
+                            label={__('Preload', TEXT_DOMAIN)}
                             value={preload ?? 'metadata'}
                             onChange={(value: string) =>
                                 setAttributes({ preload: value })
                             }
                             options={[
-                                { value: 'auto', label: __('Auto') },
+                                { value: 'auto', label: __('Auto', TEXT_DOMAIN) },
                                 {
                                     value: 'metadata',
-                                    label: __('Metadata'),
+                                    label: __('Metadata', TEXT_DOMAIN),
                                 },
                                 {
                                     value: 'none',
-                                    label: _x('None', 'Preload value'),
+                                    label: _x('None', 'Preload value', TEXT_DOMAIN),
                                 },
                             ]}
                             hideCancelButton
                         />
                     </ToolsPanelItem>
                     <ToolsPanelItem
-                        label={__('Poster image')}
+                        label={__('Poster image', TEXT_DOMAIN)}
                         isShownByDefault
                         hasValue={() => !!poster}
                         onDeselect={() =>
@@ -361,7 +364,7 @@ export default function VideoEdit({
                     >
                         <MediaUploadCheck>
                             <MediaUpload
-                                title={__('Poster image')}
+                                title={__('Poster image', TEXT_DOMAIN)}
                                 onSelect={(image: MediaItem) =>
                                     setAttributes({ poster: image?.url })
                                 }
@@ -373,8 +376,8 @@ export default function VideoEdit({
                                         className="components-button is-secondary"
                                     >
                                         {poster
-                                            ? __('Replace poster image')
-                                            : __('Select poster image')}
+                                            ? __('Replace poster image', TEXT_DOMAIN)
+                                            : __('Select poster image', TEXT_DOMAIN)}
                                     </button>
                                 )}
                             />
@@ -398,8 +401,8 @@ export default function VideoEdit({
                     <RichText
                         identifier="caption"
                         tagName="figcaption"
-                        aria-label={__('Video caption text')}
-                        placeholder={__('Add caption')}
+                        aria-label={__('Video caption text', TEXT_DOMAIN)}
+                        placeholder={__('Add caption', TEXT_DOMAIN)}
                         value={caption ?? ''}
                         onChange={(value: string) =>
                             setAttributes({ caption: value })

@@ -72,6 +72,13 @@ class ClosureDynamicBlock extends DynamicBlock
 		return ( $this->validateCallback )( $attrs );
 	}
 
+	/**
+	 * {@inheritDoc}
+	 *
+	 * Set by the `appliesOwnSupports` registration option.
+	 *
+	 * @since 1.15.0
+	 */
 	public function appliesOwnSupports(): bool
 	{
 		return $this->ownSupports;

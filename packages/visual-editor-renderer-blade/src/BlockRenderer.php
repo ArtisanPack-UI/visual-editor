@@ -67,6 +67,40 @@ class BlockRenderer
 	public const MAX_INNER_DEPTH = 128;
 
 	/**
+	 * Block-support attribute keys a dynamic block's supports merge reads
+	 * from the stored attributes when the block's `validateAttrs()` doesn't
+	 * return them (R-9). Validators are usually allowlist schemas of the
+	 * block's own settings, so without this overlay `anchor`, `style`,
+	 * `className`… would never reach the merge. Any other key a validator
+	 * drops stays dropped, and a key the validator returns (even as `''`
+	 * or `null`) wins over the stored value.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @var array<int, string>
+	 */
+	public const SUPPORT_ATTRIBUTE_KEYS = [
+		'anchor',
+		'className',
+		'align',
+		'textAlign',
+		'style',
+		'backgroundColor',
+		'textColor',
+		'gradient',
+		'fontSize',
+		'fontFamily',
+		'borderColor',
+		'layout',
+		'responsive',
+		'states',
+		'artisanpackStates',
+		'artisanpackEffects',
+		'artisanpackAnimations',
+		'animation',
+	];
+
+	/**
 	 * Block names that consume site-meta `_resolved*` attributes.
 	 *
 	 * @var array<int, string>
@@ -781,9 +815,10 @@ class BlockRenderer
 			// the compiled supports (color, spacing, border, anchor,
 			// className, states, responsive, shadow, position, …) into
 			// the first opening tag, exactly as a Blade-partial block
-			// gets them. The raw attributes are overlaid with the
-			// validated ones so the handler's normalization wins while
-			// support keys it doesn't model (e.g. `anchor`) survive.
+			// gets them. The validated attributes win; only the support
+			// keys the handler doesn't model (e.g. `anchor`) are taken
+			// from the stored attributes, so nothing else it dropped
+			// comes back (R-9).
 			//
 			// Blocks that apply supports themselves (or render no
 			// wrapper of their own) opt out; they keep the #490
@@ -794,7 +829,10 @@ class BlockRenderer
 			} else {
 				$html = BlockSupports::applyToRenderedHtml(
 					$html,
-					$block->supportAttributes( array_merge( $attributes, $validated ) ),
+					$block->supportAttributes( array_merge(
+						array_intersect_key( $attributes, array_flip( self::SUPPORT_ATTRIBUTE_KEYS ) ),
+						$validated,
+					) ),
 				);
 			}
 

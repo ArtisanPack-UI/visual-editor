@@ -98,8 +98,9 @@ class ThemeStylesheets
 	 *
 	 * Entries that point off the theme (absolute or root-relative URLs),
 	 * aren't `.css` files, or escape `assets/` are skipped. An entry's
-	 * `media` wraps it in an `@media` block. Handles dedupe the same way
-	 * the directive does: the first entry wins.
+	 * `media` wraps it in an `@media` block, and an entry whose `media`
+	 * can't be printed safely is skipped. Handles dedupe the same way the
+	 * directive does: the first entry wins, even when it is skipped.
 	 *
 	 * @since 1.15.0
 	 */
@@ -133,14 +134,25 @@ class ThemeStylesheets
 				continue;
 			}
 
-			$path   = $this->assetPath( trim( $src ) );
 			$handle = is_string( $key ) ? $key : pathinfo( trim( $src ), PATHINFO_FILENAME );
 
-			if ( null === $path || '' === $handle || isset( $handles[ $handle ] ) ) {
+			if ( '' === $handle || isset( $handles[ $handle ] ) ) {
 				continue;
 			}
 
+			// Claimed before the path check, as the directive does, so an
+			// off-theme entry still shadows a later one with its handle.
 			$handles[ $handle ] = true;
+
+			$path = $this->assetPath( trim( $src ) );
+
+			// A media query that can't be printed is skipped rather than
+			// inlined unwrapped, where it would apply to every medium.
+			$wrapMedia = '' !== $media && 'all' !== strtolower( $media );
+
+			if ( null === $path || ( $wrapMedia && ! CssValue::isPrintable( $media ) ) ) {
+				continue;
+			}
 
 			$css = $this->readAsset( $slug, $path );
 
@@ -151,7 +163,7 @@ class ThemeStylesheets
 			$baseUrl = $this->assetDirectoryUrl( $slug, $path );
 			$css     = null === $baseUrl ? $css : CssUrlAbsolutizer::absolutize( $css, $baseUrl );
 
-			if ( '' !== $media && 'all' !== strtolower( $media ) && CssValue::isPrintable( $media ) ) {
+			if ( $wrapMedia ) {
 				$css = '@media ' . $media . " {\n" . $css . "\n}";
 			}
 

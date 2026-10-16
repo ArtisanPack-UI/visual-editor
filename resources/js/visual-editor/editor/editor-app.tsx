@@ -91,7 +91,6 @@ import {
     DocumentPanels,
     type AuthorOption,
     type DocumentSupports,
-    type DocumentType,
     type FeaturedImageValue,
     type PostStatus,
 } from './document-panels';

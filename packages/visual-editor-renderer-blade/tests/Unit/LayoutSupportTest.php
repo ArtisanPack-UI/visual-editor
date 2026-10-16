@@ -196,3 +196,116 @@ describe( 'LayoutSupport::container (#871)', function (): void {
 			->and( LayoutSupport::containerClasses( [], 'group', 'is-layout-flow' ) )->toBe( [] );
 	} );
 } );
+
+describe( 'LayoutSupport::layoutClass legacy inherit (F-3)', function (): void {
+	it( 'treats a legacy inherit layout as constrained', function (): void {
+		expect( LayoutSupport::layoutClass( [ 'layout' => [ 'inherit' => true ] ] ) )->toBe( 'is-layout-constrained' );
+	} );
+
+	it( 'lets a stored type win over inherit', function (): void {
+		expect( LayoutSupport::layoutClass( [ 'layout' => [ 'type' => 'flex', 'inherit' => true ] ] ) )->toBe( 'is-layout-flex' );
+		expect( LayoutSupport::layoutClass( [ 'layout' => [ 'inherit' => 'yes' ] ] ) )->toBe( 'is-layout-flow' );
+	} );
+} );
+
+describe( 'LayoutSupport::container block gap (M-15)', function (): void {
+	$css = static fn ( array $attributes, string $layoutClass, string $slug = 'group' ): ?string => LayoutSupport::container( $attributes, $slug, $layoutClass )['css'] ?? null;
+
+	it( 'scopes a flow group gap to its children, matching the shared golden', function (): void {
+		$container = LayoutSupport::container( [ 'style' => [ 'spacing' => [ 'blockGap' => '5rem' ] ] ], 'group', 'is-layout-flow' );
+
+		expect( $container )->toBe( [
+			'class' => 'wp-container-f4f1e681cf25',
+			'css'   => '.wp-block-group.wp-block-group-is-layout-flow.wp-container-f4f1e681cf25 > * + *{margin-block-start:5rem;margin-block-end:0;}',
+		] );
+	} );
+
+	it( 'adds the gap to the flex and grid container rule', function () use ( $css ): void {
+		expect( $css( [ 'layout' => [ 'flexWrap' => 'nowrap' ], 'style' => [ 'spacing' => [ 'blockGap' => 'var:preset|spacing|40' ] ] ], 'is-layout-flex' ) )
+			->toEndWith( '{flex-wrap:nowrap;gap:var(--wp--preset--spacing--40);}' );
+
+		expect( $css( [ 'style' => [ 'spacing' => [ 'blockGap' => '1rem' ] ] ], 'is-layout-flex' ) )
+			->toEndWith( '{gap:1rem;}' );
+
+		expect( $css( [ 'layout' => [ 'columnCount' => 2 ], 'style' => [ 'spacing' => [ 'blockGap' => '2rem' ] ] ], 'is-layout-grid' ) )
+			->toEndWith( '{grid-template-columns:repeat(2, minmax(0, 1fr));gap:2rem;}' );
+	} );
+
+	it( 'combines a per-axis gap with the fallback for the unset side', function () use ( $css ): void {
+		expect( $css( [ 'style' => [ 'spacing' => [ 'blockGap' => [ 'top' => '1rem' ] ] ] ], 'is-layout-flex' ) )
+			->toEndWith( '{gap:1rem 0.5em;}' );
+
+		expect( $css( [ 'style' => [ 'spacing' => [ 'blockGap' => [ 'top' => '2rem', 'left' => '2rem' ] ] ] ], 'is-layout-flex' ) )
+			->toEndWith( '{gap:2rem;}' );
+
+		expect( LayoutSupport::container( [ 'style' => [ 'spacing' => [ 'blockGap' => [ 'left' => '3rem' ] ] ] ], 'columns', 'is-layout-flex', null, '2em' )['css'] )
+			->toEndWith( '{gap:2em 3rem;}' );
+
+		expect( $css( [ 'style' => [ 'spacing' => [ 'blockGap' => [] ] ] ], 'is-layout-flex' ) )->toBeNull();
+	} );
+
+	it( 'spaces flow and constrained children with the top side only', function () use ( $css ): void {
+		expect( $css( [ 'style' => [ 'spacing' => [ 'blockGap' => [ 'top' => '2rem', 'left' => '1rem' ] ] ] ], 'is-layout-constrained' ) )
+			->toBe( $css( [ 'style' => [ 'spacing' => [ 'blockGap' => '2rem' ] ] ], 'is-layout-constrained' ) );
+
+		expect( $css( [ 'style' => [ 'spacing' => [ 'blockGap' => [ 'left' => '1rem' ] ] ] ], 'is-layout-flow' ) )->toBeNull();
+	} );
+
+	it( 'drops a gap that could add declarations (F-10)', function ( mixed $blockGap ) use ( $css ): void {
+		expect( $css( [ 'style' => [ 'spacing' => [ 'blockGap' => $blockGap ] ] ], 'is-layout-flex' ) )->toBeNull()
+			->and( $css( [ 'style' => [ 'spacing' => [ 'blockGap' => $blockGap ] ] ], 'is-layout-flow' ) )->toBeNull();
+	} )->with( [
+		'declaration break' => [ '1rem;position:fixed;inset:0' ],
+		'rule break'        => [ '2rem}body{color:red' ],
+		'unbalanced paren'  => [ 'calc(1rem' ],
+		'stray close paren' => [ '1rem)' ],
+		'comment'           => [ '1rem/*' ],
+		'blank'             => [ '   ' ],
+		'boolean'           => [ true ],
+	] );
+
+	it( 'keys a custom wrapper class into the selector and the hash', function (): void {
+		$attributes = [ 'style' => [ 'spacing' => [ 'blockGap' => '3rem' ] ] ];
+		$inner      = LayoutSupport::container( $attributes, 'cover', 'is-layout-flow', 'wp-block-cover__inner-container' );
+		$outer      = LayoutSupport::container( $attributes, 'cover', 'is-layout-flow' );
+
+		expect( $inner['css'] )->toStartWith( '.wp-block-cover__inner-container.wp-block-cover-is-layout-flow.' . $inner['class'] . ' > * + *' )
+			->and( $inner['class'] )->not->toBe( $outer['class'] );
+	} );
+} );
+
+describe( 'LayoutSupport::blockGapValue (F-10)', function (): void {
+	it( 'expands preset references and keeps safe values', function (): void {
+		expect( LayoutSupport::blockGapValue( 'var:preset|spacing|40' ) )->toBe( 'var(--wp--preset--spacing--40)' )
+			->and( LayoutSupport::blockGapValue( ' 1.5rem ' ) )->toBe( '1.5rem' )
+			->and( LayoutSupport::blockGapValue( 'calc(1rem + 2px)' ) )->toBe( 'calc(1rem + 2px)' )
+			->and( LayoutSupport::blockGapValue( 12 ) )->toBe( '12' );
+	} );
+
+	it( 'rejects values that could break out of the declaration', function ( mixed $value ): void {
+		expect( LayoutSupport::blockGapValue( $value ) )->toBeNull();
+	} )->with( [
+		'semicolon'      => [ '1rem;position:fixed' ],
+		'brace'          => [ '1rem}' ],
+		'protocol slash' => [ 'url(//x)' ],
+		'unbalanced'     => [ 'calc(1rem' ],
+		'empty'          => [ '' ],
+		'null'           => [ null ],
+		'array'          => [ [] ],
+	] );
+} );
+
+describe( 'LayoutSupport::modifierClasses (F-3)', function (): void {
+	it( 'adds the orientation, justification and wrap classes WordPress adds', function (): void {
+		expect( LayoutSupport::modifierClasses( [ 'layout' => [ 'orientation' => 'vertical', 'justifyContent' => 'space-between', 'flexWrap' => 'nowrap' ] ] ) )
+			->toBe( [ 'is-vertical', 'is-content-justification-space-between', 'is-nowrap' ] )
+			->and( LayoutSupport::modifierClasses( [ 'layout' => [ 'orientation' => 'vertical', 'justifyContent' => 'left' ] ], false, false ) )
+			->toBe( [] );
+	} );
+
+	it( 'mints classes only from allowlisted values', function (): void {
+		expect( LayoutSupport::modifierClasses( [ 'layout' => [ 'orientation' => 'diagonal" x', 'justifyContent' => 'center x', 'flexWrap' => 'wrap' ] ] ) )
+			->toBe( [] )
+			->and( LayoutSupport::modifierClasses( [ 'layout' => 'grid' ] ) )->toBe( [] );
+	} );
+} );

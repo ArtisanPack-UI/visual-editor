@@ -16,7 +16,11 @@ import {
     attrRecord,
     attrString,
     classList,
+    layoutClass,
 } from '../../support/attributes';
+import { applyBlockGap } from '../../support/blockGap';
+import { cssNumber } from '../../support/cssNumber';
+import { layoutWrapperClasses } from '../../support/layoutContainer';
 import { safeUrl } from '../../support/urlSanitizer';
 import { blockRendererProps } from '../shared';
 
@@ -95,11 +99,15 @@ export const CoverBlock = defineComponent({
                 // Cover always lays its inner container out as flex (#888).
                 'is-layout-flex',
                 'wp-block-cover-is-layout-flex',
+                // Duotone scope stamped by `stampDuotoneScopes()`.
+                attrString(props.attributes._veDuotone) || null,
                 align !== '' ? `align${align}` : null,
                 className,
             ]);
 
-            let outerStyle: Record<string, string> | undefined;
+            // The cover's own Block spacing rides first, in
+            // `cover.blade.php` order.
+            let outerStyle: Record<string, string> = { ...applyBlockGap(props.attributes) };
 
             if (props.attributes.minHeight !== undefined && props.attributes.minHeight !== null) {
                 const minHeight = Math.max(0, attrFloat(props.attributes.minHeight));
@@ -108,7 +116,7 @@ export const CoverBlock = defineComponent({
                     ? requestedUnit
                     : 'px';
 
-                outerStyle = { 'min-height': `${minHeight}${unit}` };
+                outerStyle = { ...outerStyle, 'min-height': `${cssNumber(minHeight)}${unit}` };
             }
 
             const children: VNode[] = [
@@ -132,14 +140,22 @@ export const CoverBlock = defineComponent({
             children.push(
                 h(
                     'div',
-                    { class: 'wp-block-cover__inner-container' },
+                    {
+                        // F-3 — cover's layout applies to its inner
+                        // container, as in `cover.blade.php`; cover doesn't
+                        // allow justification.
+                        class: classList([
+                            'wp-block-cover__inner-container',
+                            ...layoutWrapperClasses(props.attributes, 'cover', layoutClass(props.attributes), true, false),
+                        ]),
+                    },
                     slots.default ? slots.default() : []
                 )
             );
 
             const coverProps: Record<string, unknown> = { class: classes };
 
-            if (outerStyle !== undefined) {
+            if (Object.keys(outerStyle).length > 0) {
                 coverProps.style = outerStyle;
             }
 
@@ -285,7 +301,13 @@ export const DetailsBlock = defineComponent({
             const summary = attrString(props.attributes.summary);
             const showContent = attrBoolean(props.attributes.showContent);
             const className = attrString(props.attributes.className);
-            const classes = classList(['wp-block-details', className]);
+            // F-3 — layout pair, per-instance scope and modifiers, as in
+            // `details.blade.php`.
+            const classes = classList([
+                'wp-block-details',
+                ...layoutWrapperClasses(props.attributes, 'details', layoutClass(props.attributes)),
+                className,
+            ]);
 
             const children: VNode[] = [h('summary', { innerHTML: summary })];
 
@@ -293,7 +315,14 @@ export const DetailsBlock = defineComponent({
                 children.push(...(slots.default() as VNode[]));
             }
 
-            return h('details', { class: classes, open: showContent }, children);
+            const detailsProps: Record<string, unknown> = { class: classes, open: showContent };
+            const gapStyle = applyBlockGap(props.attributes);
+
+            if (Object.keys(gapStyle).length > 0) {
+                detailsProps.style = gapStyle;
+            }
+
+            return h('details', detailsProps, children);
         };
     },
 });

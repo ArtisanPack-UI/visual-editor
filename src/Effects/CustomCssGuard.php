@@ -40,10 +40,16 @@ class CustomCssGuard
 	/**
 	 * Filter an incoming block tree for the current user.
 	 *
+	 * The values found in `$stored` are also vouched for with
+	 * {@see CustomCssModelGuard::approve()}, so the model-level guard that
+	 * runs when the record is saved keeps them too, even on a new row
+	 * seeded from a theme file.
+	 *
 	 * @since 1.15.0
 	 *
 	 * @param  mixed  $blocks  Incoming block array (anything else passes through).
-	 * @param  mixed  $stored  The record's stored block array, or null for a new record.
+	 * @param  mixed  $stored  The record's stored block array (or the theme file's
+	 *                         blocks for a file→DB upsert), or null for a new record.
 	 */
 	public function filter( mixed $blocks, mixed $stored = null ): mixed
 	{
@@ -57,10 +63,43 @@ class CustomCssGuard
 			$this->collect( $stored, $allowed );
 		}
 
+		app( CustomCssModelGuard::class )->approve( array_keys( $allowed ) );
+
 		return $this->strip( $blocks, $allowed );
 	}
 
 	/**
+	 * Filter an incoming block tree against a stored tree plus extra
+	 * already-normalised values, without vouching for anything. Used by
+	 * {@see CustomCssModelGuard} on model save.
+	 *
+	 * @since 1.15.0
+	 *
+	 * @param  mixed                $blocks    Incoming block array (anything else passes through).
+	 * @param  mixed                $stored    The record's stored block array, or null for a new record.
+	 * @param  array<int, string>  $approved  Normalised values vouched for earlier in the request.
+	 */
+	public function filterAgainst( mixed $blocks, mixed $stored, array $approved = [] ): mixed
+	{
+		if ( ! is_array( $blocks ) || Gate::allows( BlockCssAccess::ABILITY ) ) {
+			return $blocks;
+		}
+
+		$allowed = array_fill_keys( array_filter( $approved, 'is_string' ), true );
+
+		if ( is_array( $stored ) ) {
+			$this->collect( $stored, $allowed );
+		}
+
+		return $this->strip( $blocks, $allowed );
+	}
+
+	/**
+	 * Collect every block's normalised Custom CSS from a stored tree,
+	 * at any depth, into `$allowed`.
+	 *
+	 * @since 1.15.0
+	 *
 	 * @param  array<mixed>  $blocks
 	 * @param  array<string, bool>  $allowed
 	 */
@@ -86,6 +125,11 @@ class CustomCssGuard
 	}
 
 	/**
+	 * Strip Custom CSS not in `$allowed` from every block, at any depth,
+	 * in both the `attributes` and `attrs` bags.
+	 *
+	 * @since 1.15.0
+	 *
 	 * @param  array<mixed>  $blocks
 	 * @param  array<string, bool>  $allowed
 	 *
@@ -117,6 +161,10 @@ class CustomCssGuard
 	}
 
 	/**
+	 * Drop a block's Custom CSS unless its normalised value is allowed.
+	 *
+	 * @since 1.15.0
+	 *
 	 * @param  array<string, mixed>  $attributes
 	 * @param  array<string, bool>  $allowed
 	 *
@@ -145,6 +193,8 @@ class CustomCssGuard
 
 	/**
 	 * A block's normalised, non-empty Custom CSS, or null.
+	 *
+	 * @since 1.15.0
 	 */
 	protected function normalisedValue( mixed $attributes ): ?string
 	{

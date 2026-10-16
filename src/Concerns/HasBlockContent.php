@@ -5,7 +5,8 @@
  *
  * Opt-in trait that marks an Eloquent model as editable by the visual editor.
  * Declares the column that stores the block tree JSON and an optional scope
- * that the editor's REST controller applies when resolving models. Also
+ * that the editor's REST controller applies when resolving models, and
+ * guards that column's Custom CSS on every save. Also
  * exposes a Scout helper — {@see self::toBlockContentSearchableArray()} — that
  * renders the block tree to plain text so a host model's `toSearchableArray()`
  * can index editor content alongside its own fields.
@@ -22,9 +23,11 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Concerns;
 
+use ArtisanPackUI\VisualEditor\Effects\CustomCssModelGuard;
 use ArtisanPackUI\VisualEditor\Search\BlockTreeSearchExtractor;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
 use Traversable;
 
@@ -33,6 +36,22 @@ use Traversable;
  */
 trait HasBlockContent
 {
+	/**
+	 * Boots the trait: every save of the block content column runs through
+	 * {@see CustomCssModelGuard}, so Custom CSS can't be added through a
+	 * write path that skips visual-editor's own controllers (H-2).
+	 *
+	 * @since 1.15.0
+	 */
+	public static function bootHasBlockContent(): void
+	{
+		static::saving( static function ( Model $model ): void {
+			if ( method_exists( $model, 'getBlockContentColumn' ) ) {
+				app( CustomCssModelGuard::class )->guard( $model, $model->getBlockContentColumn() );
+			}
+		} );
+	}
+
 	/**
 	 * Initializes the trait on each model instance by registering an `array`
 	 * cast for the block content column if the model hasn't declared one.
@@ -131,11 +150,11 @@ trait HasBlockContent
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param  Builder<\Illuminate\Database\Eloquent\Model>  $query
+	 * @param  Builder<Model>  $query
 	 *
 	 * @throws InvalidArgumentException When the configured scope method doesn't exist on the model.
 	 *
-	 * @return Builder<\Illuminate\Database\Eloquent\Model>
+	 * @return Builder<Model>
 	 */
 	public function scopeForVisualEditor( Builder $query ): Builder
 	{

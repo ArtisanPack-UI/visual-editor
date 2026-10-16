@@ -76,6 +76,7 @@ vi.mock('@wordpress/block-editor', () => ({
 (globalThis as { React?: unknown }).React = require('react');
 
 import GroupEdit from '../edit';
+import { BreakpointRegistry, LEGACY_DEFAULTS, DEVICE_DEFAULTS, setResponsiveRegistry } from '../../../responsive/registry';
 
 describe('GroupEdit', () => {
     it('renders a div wrapper by default', () => {
@@ -119,5 +120,29 @@ describe('GroupEdit', () => {
             />
         );
         expect(container.querySelector('section')).toBeTruthy();
+    });
+
+    it('serializes flex classes against the host breakpoint registry (M-17)', () => {
+        const attributes = {
+            tagName: 'div',
+            artisanpackFlex: { container: { enabled: { base: true }, direction: { base: 'column', xs: 'row' } } },
+        };
+        const renderEdit = () => render(
+            <GroupEdit attributes={attributes} name="artisanpack/group" setAttributes={vi.fn()} clientId="abc" />
+        ).container.innerHTML;
+
+        expect(renderEdit()).not.toContain('xs:ap-flex-row');
+
+        setResponsiveRegistry(new BreakpointRegistry([
+            ...LEGACY_DEFAULTS,
+            { key: 'xs', minWidthPx: 480, previewWidthPx: 480, label: 'xs' },
+            ...DEVICE_DEFAULTS,
+        ]));
+
+        try {
+            expect(renderEdit()).toContain('xs:ap-flex-row');
+        } finally {
+            setResponsiveRegistry(null);
+        }
     });
 });

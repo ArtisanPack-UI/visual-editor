@@ -13,7 +13,7 @@ import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { createEntityPlaceholderEdit } from '../_shared/entity-placeholder-edit';
 
 export default createEntityPlaceholderEdit( {
-    label: __( 'Comments Count', TEXT_DOMAIN ),
+    label: () => __( 'Comments Count', TEXT_DOMAIN ),
     resolvedKey: '_resolvedCommentCount',
     kind: 'text',
     fromQueryPreview: ( post ) => {

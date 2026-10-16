@@ -18,7 +18,8 @@
 
 	// #873 — duotone filter (`supports.filter.duotone`): the scope
 	// class lands on the figure, the rule targets the inner `<img>`.
-	$duotoneClass = DuotoneSupport::apply( $attributes, 'img' );
+	// Only when the `<img>` renders, so an empty block emits no filter.
+	$duotoneClass = '' !== $url ? DuotoneSupport::apply( $attributes, DuotoneSupport::TARGETS['core/image'] ) : '';
 
 	if ( '' !== $duotoneClass ) {
 		$baseClasses[] = $duotoneClass;

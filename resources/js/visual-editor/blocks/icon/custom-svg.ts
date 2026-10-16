@@ -8,6 +8,10 @@
  * warnings the author sees match what the server actually stripped.
  */
 
+import { __, sprintf } from '@wordpress/i18n';
+
+import { TEXT_DOMAIN } from '../../vendor/i18n';
+
 /**
  * Whether the file looks plausibly like an SVG. We reject by both MIME
  * type AND extension because:
@@ -99,7 +103,14 @@ export async function sanitizeOnServer(
             // ignore — body wasn't JSON, fall through to the throw.
         }
         const detail = warnings.length > 0 ? `: ${ warnings.join( ', ' ) }` : '';
-        throw new Error( `svg sanitize failed (${ response.status })${ detail }` );
+        throw new Error(
+            sprintf(
+                /* translators: 1: HTTP status code, 2: optional ": warning, warning" detail from the server. */
+                __( 'SVG sanitization failed (status %1$d)%2$s', TEXT_DOMAIN ),
+                response.status,
+                detail
+            )
+        );
     }
 
     const body = ( await response.json() ) as Partial< SanitizeResponse >;

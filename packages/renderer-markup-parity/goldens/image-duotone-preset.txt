@@ -1,0 +1,51 @@
+<svg aria-hidden="true" data-ve-duotone="" focusable="false" height="0" style="visibility: hidden; position: absolute; left: -9999px; overflow: hidden" viewbox="0 0 0 0" width="0" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="wp-duotone-midnight">
+      <fecolormatrix color-interpolation-filters="sRGB" type="matrix" values=".299 .587 .114 0 0 .299 .587 .114 0 0 .299 .587 .114 0 0 .299 .587 .114 0 0">
+      </fecolormatrix>
+      <fecomponenttransfer color-interpolation-filters="sRGB">
+        <fefuncr tablevalues="0 1" type="table">
+        </fefuncr>
+        <fefuncg tablevalues="0 0" type="table">
+        </fefuncg>
+        <fefuncb tablevalues="0 0" type="table">
+        </fefuncb>
+        <fefunca tablevalues="1 1" type="table">
+        </fefunca>
+      </fecomponenttransfer>
+      <fecomposite in2="SourceGraphic" operator="in">
+      </fecomposite>
+    </filter>
+    <filter id="wp-duotone-dark-grey">
+      <fecolormatrix color-interpolation-filters="sRGB" type="matrix" values=".299 .587 .114 0 0 .299 .587 .114 0 0 .299 .587 .114 0 0 .299 .587 .114 0 0">
+      </fecolormatrix>
+      <fecomponenttransfer color-interpolation-filters="sRGB">
+        <fefuncr tablevalues="0 0.498" type="table">
+        </fefuncr>
+        <fefuncg tablevalues="0 0.498" type="table">
+        </fefuncg>
+        <fefuncb tablevalues="0 0.498" type="table">
+        </fefuncb>
+        <fefunca tablevalues="1 1" type="table">
+        </fefunca>
+      </fecomponenttransfer>
+      <fecomposite in2="SourceGraphic" operator="in">
+      </fecomposite>
+    </filter>
+  </defs>
+</svg>
+<figure class="wp-block-image wp-duotone-midnight">
+  <img alt="" src="https://example.com/a.jpg" />
+</figure>
+<figure class="wp-block-image wp-duotone-midnight">
+  <img alt="" src="https://example.com/b.jpg" />
+</figure>
+<figure class="wp-block-image wp-duotone-dark-grey">
+  <img alt="" src="https://example.com/c.jpg" />
+</figure>
+<figure class="wp-block-image">
+  <img alt="" src="https://example.com/d.jpg" />
+</figure>
+@@ renderer-instance-css @@
+.wp-duotone-dark-grey img{filter:url(#wp-duotone-dark-grey) !important}
+.wp-duotone-midnight img{filter:url(#wp-duotone-midnight) !important}

@@ -2,7 +2,7 @@
 	"name": "artisanpack-ui/visual-editor-renderer-blade",
 	"description": "Server-side Blade renderer for the ArtisanPack UI visual editor. Renders saved block trees into HTML using per-block Blade partials; dynamic blocks invoke their registered DynamicBlock::render() inline.",
 	"type": "library",
-	"license": "GPL-3.0-or-later",
+	"license": "MIT",
 	"keywords": [
 		"laravel",
 		"blade",

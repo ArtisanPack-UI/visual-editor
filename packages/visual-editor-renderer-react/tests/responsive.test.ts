@@ -30,6 +30,22 @@ describe.each([
         );
     });
 
+    // Same cases as the Blade `BlockSupportsResponsiveTest` R-13 dataset.
+    it.each([
+        [1e-8, '0px'],
+        ['0.00001', '0px'],
+        [0.00009999, '0.0001px'],
+        [12.5, '12.5px'],
+        [0.03125, '0.03125px'],
+        [1e14, '100000000000000px'],
+        ['40', '40px'],
+    ])('never writes a unit value %s in exponent notation (R-13)', (value, expected) => {
+        const css = impl.compileResponsive({ responsive: { height: { md: value } } })?.css ?? '';
+
+        expect(css).toContain(`{height:${expected}!important}`);
+        expect(css).not.toMatch(/\d[eE][+-]?\d/);
+    });
+
     it('escapes slashes and non-ASCII before hashing', () => {
         const scope = impl.compileResponsive({
             responsive: {
@@ -132,9 +148,9 @@ describe.each([
     it('slugs heading text like TocResolver', () => {
         expect(impl.headingSlug('Café &amp; Crème&nbsp;Brûlée')).toBe('cafe-creme-brulee');
         expect(impl.headingSlug('<em>Hello</em>, World! &#8212; 2026')).toBe('hello-world-2026');
-        expect(impl.headingSlug('Привет мир')).toBe('привет-мир');
+        expect(impl.headingSlug('Привет мир')).toBe('heading');
         expect(impl.headingSlug('<br>')).toBe('');
-        expect(impl.headingSlug('Cr&egrave;me &frac12; &AElig;on &bigstar;')).toBe('creme-½-æon-bigstar');
+        expect(impl.headingSlug('Cr&egrave;me &frac12; &AElig;on &bigstar;')).toBe('creme-on-bigstar');
     });
 
     it('stamps unique anchors in document order, honouring author anchors', () => {

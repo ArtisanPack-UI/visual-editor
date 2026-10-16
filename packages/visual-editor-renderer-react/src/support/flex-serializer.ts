@@ -10,27 +10,28 @@
  * @since 1.2.0
  */
 
+import { getBreakpoints, getDeviceBreakpoints } from '../visibility'
 import { safeCssValue } from './cssValue'
 
 const BASE_KEY = 'base' as const
 
-const TAILWIND_DEFAULTS: ReadonlyArray<{ key: string; minWidthPx: number }> = [
-	{ key: 'sm', minWidthPx: 640 },
-	{ key: 'md', minWidthPx: 768 },
-	{ key: 'lg', minWidthPx: 1024 },
-	{ key: 'xl', minWidthPx: 1280 },
-	{ key: '2xl', minWidthPx: 1536 },
-]
+/**
+ * The legacy mobile-first breakpoints, ascending by min-width, from the
+ * host-configurable registry `setBreakpoints()` fills (M-17), as Blade's
+ * `FlexSupport` reads `BreakpointRegistry`. Defaults: `sm` … `2xl`.
+ */
+function legacyBreakpoints(): Array<{ key: string; minWidthPx: number }> {
+	return getBreakpoints().sort( ( a, b ) => a.minWidthPx - b.minWidthPx )
+}
 
 /**
  * Desktop-first device breakpoints (#820), largest first. They follow
  * the legacy mobile-first keys in emission order so a narrower
- * override wins. Mirrors the editor's `DEVICE_DEFAULTS`.
+ * override wins. Defaults: `tablet` (1023px), `mobile` (767px).
  */
-const DEVICE_DEFAULTS: ReadonlyArray<{ key: string; maxWidthPx: number }> = [
-	{ key: 'tablet', maxWidthPx: 1023 },
-	{ key: 'mobile', maxWidthPx: 767 },
-]
+function deviceBreakpoints(): Array<{ key: string; maxWidthPx: number }> {
+	return getDeviceBreakpoints().sort( ( a, b ) => b.maxWidthPx - a.maxWidthPx )
+}
 
 const JUSTIFY_TOKEN: Record<string, string> = {
 	'flex-start': 'start',
@@ -118,7 +119,7 @@ export interface ArbitraryRule {
 }
 
 function keysWithBase(): string[] {
-	return [ BASE_KEY, ...TAILWIND_DEFAULTS.map( ( b ) => b.key ), ...DEVICE_DEFAULTS.map( ( b ) => b.key ) ]
+	return [ BASE_KEY, ...legacyBreakpoints().map( ( b ) => b.key ), ...deviceBreakpoints().map( ( b ) => b.key ) ]
 }
 
 /**
@@ -127,14 +128,14 @@ function keysWithBase(): string[] {
  * inherits from Tablet (#820).
  */
 function cascadeFor( breakpoint: string ): string[] {
-	const legacy = TAILWIND_DEFAULTS.map( ( b ) => b.key )
+	const legacy = legacyBreakpoints().map( ( b ) => b.key )
 	const legacyIndex = legacy.indexOf( breakpoint )
 
 	if ( -1 !== legacyIndex ) {
 		return [ ...legacy.slice( 0, legacyIndex + 1 ).reverse(), BASE_KEY ]
 	}
 
-	const devices = DEVICE_DEFAULTS.map( ( b ) => b.key )
+	const devices = deviceBreakpoints().map( ( b ) => b.key )
 	const deviceIndex = devices.indexOf( breakpoint )
 
 	if ( -1 !== deviceIndex ) {
@@ -175,7 +176,7 @@ function distinctOverrides<T>( attribute: unknown ): Record<string, T> {
 	let previous: T | null       = null
 	let first                    = true
 
-	for ( const key of [ BASE_KEY, ...TAILWIND_DEFAULTS.map( ( b ) => b.key ) ] ) {
+	for ( const key of [ BASE_KEY, ...legacyBreakpoints().map( ( b ) => b.key ) ] ) {
 		const value = resolveValue<T>( attribute, key )
 		if ( null === value ) {
 			continue
@@ -192,9 +193,9 @@ function distinctOverrides<T>( attribute: unknown ): Record<string, T> {
 	const obj = null !== attribute && 'object' === typeof attribute && ! Array.isArray( attribute )
 		? ( attribute as Record<string, unknown> )
 		: {}
-	const hasLegacy = TAILWIND_DEFAULTS.some( ( { key } ) => null !== obj[ key ] && undefined !== obj[ key ] )
+	const hasLegacy = legacyBreakpoints().some( ( { key } ) => null !== obj[ key ] && undefined !== obj[ key ] )
 	previous = resolveValue<T>( attribute, BASE_KEY )
-	for ( const { key } of DEVICE_DEFAULTS ) {
+	for ( const { key } of deviceBreakpoints() ) {
 		const value = hasLegacy ? ( ( obj[ key ] as T | null | undefined ) ?? null ) : resolveValue<T>( attribute, key )
 		if ( null === value ) {
 			continue
@@ -419,8 +420,8 @@ export function buildArbitraryStyles( rules: readonly ArbitraryRule[] ): string 
 			continue
 		}
 
-		const legacy = TAILWIND_DEFAULTS.find( ( entry ) => entry.key === bp )
-		const device = DEVICE_DEFAULTS.find( ( entry ) => entry.key === bp )
+		const legacy = legacyBreakpoints().find( ( entry ) => entry.key === bp )
+		const device = deviceBreakpoints().find( ( entry ) => entry.key === bp )
 		if ( legacy ) {
 			out += `@media (min-width: ${ legacy.minWidthPx }px) { ${ body }} `
 		} else if ( device ) {

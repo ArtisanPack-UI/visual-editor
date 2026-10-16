@@ -1,0 +1,76 @@
+<svg aria-hidden="true" data-ve-duotone="" focusable="false" height="0" style="visibility: hidden; position: absolute; left: -9999px; overflow: hidden" viewbox="0 0 0 0" width="0" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="wp-duotone-308e7f2d45">
+      <fecolormatrix color-interpolation-filters="sRGB" type="matrix" values=".299 .587 .114 0 0 .299 .587 .114 0 0 .299 .587 .114 0 0 .299 .587 .114 0 0">
+      </fecolormatrix>
+      <fecomponenttransfer color-interpolation-filters="sRGB">
+        <fefuncr tablevalues="0 0" type="table">
+        </fefuncr>
+        <fefuncg tablevalues="0 1" type="table">
+        </fefuncg>
+        <fefuncb tablevalues="0 1" type="table">
+        </fefuncb>
+        <fefunca tablevalues="1 1" type="table">
+        </fefunca>
+      </fecomponenttransfer>
+      <fecomposite in2="SourceGraphic" operator="in">
+      </fecomposite>
+    </filter>
+    <filter id="wp-duotone-6fffc60c13">
+      <fecolormatrix color-interpolation-filters="sRGB" type="matrix" values=".299 .587 .114 0 0 .299 .587 .114 0 0 .299 .587 .114 0 0 .299 .587 .114 0 0">
+      </fecolormatrix>
+      <fecomponenttransfer color-interpolation-filters="sRGB">
+        <fefuncr tablevalues="0.0627 0.9412" type="table">
+        </fefuncr>
+        <fefuncg tablevalues="0.1255 0.8784" type="table">
+        </fefuncg>
+        <fefuncb tablevalues="0.1882 0.8157" type="table">
+        </fefuncb>
+        <fefunca tablevalues="1 1" type="table">
+        </fefunca>
+      </fecomponenttransfer>
+      <fecomposite in2="SourceGraphic" operator="in">
+      </fecomposite>
+    </filter>
+  </defs>
+</svg>
+<div class="wp-block-cover is-dark is-layout-flex wp-block-cover-is-layout-flex wp-duotone-6fffc60c13">
+  <span aria-hidden="true" class="wp-block-cover__background has-background-dim" style="opacity: 0.3">
+  </span>
+  <img alt="" class="wp-block-cover__image-background" src="https://example.com/cover.jpg" />
+  <div class="wp-block-cover__inner-container is-layout-flow wp-block-cover-is-layout-flow">
+    <div class="wp-block-avatar wp-duotone-308e7f2d45">
+      <img alt="Ada" height="96" src="https://example.com/ada.png" width="96" />
+    </div>
+    <div class="wp-block-site-logo is-default-size wp-duotone-308e7f2d45">
+      <img alt="Site" class="custom-logo" src="https://example.com/logo.png" />
+    </div>
+    <div class="wp-block-post-author wp-duotone-unset has-text-align-center">
+      <div class="wp-block-post-author__avatar">
+        <img alt="Ada" height="24" src="https://example.com/ada.png" width="24" />
+      </div>
+      <div class="wp-block-post-author__content">
+        <p class="wp-block-post-author__name">
+          "Ada"
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="wp-block-cover is-dark is-layout-flex wp-block-cover-is-layout-flex">
+  <span aria-hidden="true" class="wp-block-cover__background has-background-dim" style="opacity: 0.5">
+  </span>
+  <div class="wp-block-cover__inner-container is-layout-flow wp-block-cover-is-layout-flow">
+  </div>
+</div>
+<div class="wp-block-post-author">
+  <div class="wp-block-post-author__content">
+    <p class="wp-block-post-author__name">
+      "Ada"
+    </p>
+  </div>
+</div>
+@@ renderer-instance-css @@
+.wp-duotone-308e7f2d45 img{filter:url(#wp-duotone-308e7f2d45) !important}
+.wp-duotone-6fffc60c13 > .wp-block-cover__image-background,.wp-duotone-6fffc60c13 > .wp-block-cover__video-background{filter:url(#wp-duotone-6fffc60c13) !important}
+.wp-duotone-unset .wp-block-post-author__avatar img{filter:none !important}

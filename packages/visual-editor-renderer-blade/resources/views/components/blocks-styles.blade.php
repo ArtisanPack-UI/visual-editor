@@ -133,6 +133,18 @@
 	`styles.spacing.blockGap`, else WordPress's `0.5em` flex/grid
 	fallback. Zero specificity, so blocks that size their own gap
 	(columns, gallery, post-template, the Flex panel) still win.
+
+	M-15 — `--wp--style--block-gap` is an inherited property, so a
+	container's own Block spacing (written inline) used to reach every
+	nested container too: a Row inside a Group with a 5rem gap got a 5rem
+	gap of its own. Every layout container now resets the property to the
+	root value (captured on `body` as `--ap-root-block-gap`) at zero
+	specificity, so its own inline value, a theme's per-block value and
+	any block style still win, and a container's own spacing reaches its
+	children through its `wp-container-*` rule instead, as in WordPress.
+	`--ap-columns-gap` keeps the Columns gap readable by its columns'
+	width calc, since each Column resets the property for its own
+	children.
 --}}
 <style data-ve-layout-baseline>
 :where(.is-layout-flow) > :first-child { margin-block-start: 0; }
@@ -149,6 +161,9 @@
 .is-layout-grid > :is(*, div) { margin: 0; }
 :where(.is-layout-flex) { gap: var(--wp--style--block-gap, 0.5em); }
 :where(.is-layout-grid) { gap: var(--wp--style--block-gap, 0.5em); }
+:where(body) { --ap-root-block-gap: var(--wp--style--block-gap); }
+:where(.is-layout-flow, .is-layout-constrained, .is-layout-flex, .is-layout-grid) { --wp--style--block-gap: var(--ap-root-block-gap); }
+:where(.wp-block-columns) { --ap-columns-gap: var(--wp--style--block-gap); }
 :where(.wp-block-gallery.has-nested-images) { gap: var(--wp--style--unstable-gallery-gap, 16px); }
 :where(.wp-block-image.size-full) { width: auto; height: auto; }
 :where(.is-layout-constrained, .is-layout-flow) > .alignleft { float: left; margin-inline-start: 0; margin-inline-end: 2em; }
@@ -159,7 +174,13 @@
 @media (max-width: 767px) { :where(.is-layout-constrained, .is-layout-flow) > :is(.alignleft, .alignright) { float: none; margin-inline: auto; } }
 </style>
 {{-- #879: global styles last, so they beat the block library and sit
-     before the theme stylesheet the host links after this component. --}}
+     before the theme stylesheet the host links after this component.
+     Printed inline when this component claimed them, or from the
+     `ve-global-styles` stack when a block renderer in a layout's section
+     or slot rendered first and queued them there. --}}
 @if( '' !== $globalStylesCss )
 <style data-ve-global-styles>{!! $globalStylesCss !!}</style>
+@endif
+@if( $printGlobalStylesStack )
+@stack( 've-global-styles' )
 @endif

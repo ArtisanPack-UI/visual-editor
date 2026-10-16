@@ -23,6 +23,7 @@ import {
     store as blockEditorStore,
 } from '@wordpress/block-editor';
 import { __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { useViewportMatch } from '@wordpress/compose';
 import { useDispatch } from '@wordpress/data';
 import { createBlobURL, isBlobURL } from '@wordpress/blob';
@@ -124,7 +125,7 @@ function PlaceholderContainer({
         <MediaPlaceholder
             icon={<BlockIcon icon={icon} />}
             labels={{
-                title: __('Media area'),
+                title: __('Media area', TEXT_DOMAIN),
             }}
             className={className}
             onSelect={onSelectMedia}

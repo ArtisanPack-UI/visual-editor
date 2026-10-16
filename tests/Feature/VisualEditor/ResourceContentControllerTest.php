@@ -3,6 +3,7 @@
 declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\Effects\BlockCssAccess;
+use ArtisanPackUI\VisualEditor\Effects\CustomCssModelGuard;
 use ArtisanPackUI\VisualEditor\VisualEditorServiceProvider;
 use Illuminate\Support\Facades\Gate;
 use Tests\Fixtures\TestBlockContentModel;
@@ -219,11 +220,13 @@ function customCssBlock( string $clientId, string $css ): array
 it( 'strips new Custom CSS on PUT for users without the block-CSS ability (#881)', function (): void {
 	makeActor();
 
-	$model = TestBlockContentModel::create( [
+	// Seeded as a trusted write: the model-level guard (H-2) would
+	// otherwise strip it, since the test acts as a user without the ability.
+	$model = app( CustomCssModelGuard::class )->trusted( static fn (): TestBlockContentModel => TestBlockContentModel::create( [
 		'title'   => 'Css',
 		'status'  => 'published',
 		'content' => [ customCssBlock( 'kept', 'color: red;' ) ],
-	] );
+	] ) );
 
 	$this->putJson( "/visual-editor/api/posts/{$model->id}/content", [
 		'blocks' => [ customCssBlock( 'kept', 'color: red;' ), customCssBlock( 'new', 'display: none;' ) ],

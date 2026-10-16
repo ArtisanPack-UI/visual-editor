@@ -506,7 +506,24 @@ describe( 'isSafeFontFamilyValue()', function (): void {
 		'stray bracket'  => [ 'Foo ] Bar' ],
 		'bracket string' => [ '"[" ]' ],
 		'semicolon'      => [ 'Foo; color: red' ],
+		'interleaved "'  => [ "\"a' \"b'" ],
+		"interleaved '"  => [ "'a\" 'b\"" ],
+		'alternating'    => [ '\'"\'"' ],
 	] );
+
+	it( 'drops an interleaved-quote family from presetDefaultsCss() without swallowing the next one (M-3)', function (): void {
+		$css = PresetRegistry::presetDefaultsCss( [
+			'typography' => [
+				'fontFamilies' => [
+					[ 'slug' => 'aa', 'name' => 'Aa', 'fontFamily' => "\"a' \"b'" ],
+					[ 'slug' => 'bb', 'name' => 'Bb', 'fontFamily' => 'Arial' ],
+				],
+			],
+		] );
+
+		expect( $css )->toContain( '--wp--preset--font-family--bb: Arial;' )
+			->and( $css )->not->toContain( 'font-family--aa' );
+	} );
 } );
 
 describe( 'isSafeCssValue() (#814)', function (): void {

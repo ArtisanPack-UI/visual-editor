@@ -35,16 +35,29 @@ use Throwable;
 
 class BlockStyleResolver
 {
+	/**
+	 * cms-framework's theme manager, resolved by name so visual-editor
+	 * stays installable without cms-framework.
+	 *
+	 * @since 1.15.0
+	 */
 	protected const THEME_MANAGER = 'ArtisanPackUI\\CMSFramework\\Modules\\Themes\\Managers\\ThemeManager';
 
 	/**
 	 * Memoized result for the request.
+	 *
+	 * @since 1.15.0
 	 *
 	 * @var list<array{block: string, slug: string, label: string, style: array<string, mixed>, isDefault: bool}>|null
 	 */
 	protected ?array $resolved = null;
 
 	/**
+	 * Build the resolver over the code registry, the partial parser and
+	 * the CSS compiler.
+	 *
+	 * @since 1.15.0
+	 *
 	 * @param  list<string>  $directories  Extra partial directories from config.
 	 */
 	public function __construct(
@@ -130,6 +143,8 @@ class BlockStyleResolver
 	/**
 	 * The resolved global styles' `styles` node, or `[]`.
 	 *
+	 * @since 1.15.0
+	 *
 	 * @return array<string, mixed>
 	 */
 	protected function globalStyles(): array
@@ -146,6 +161,8 @@ class BlockStyleResolver
 	/**
 	 * The active cms-framework theme's `styles/` directory (when
 	 * installed) followed by the configured directories.
+	 *
+	 * @since 1.15.0
 	 *
 	 * @return list<string>
 	 */
@@ -179,6 +196,8 @@ class BlockStyleResolver
 	/**
 	 * Merge entries in, later entries winning per block + slug.
 	 *
+	 * @since 1.15.0
+	 *
 	 * @param  array<string, array<string, mixed>>  $merged
 	 * @param  list<array<string, mixed>>           $entries
 	 */
@@ -199,6 +218,8 @@ class BlockStyleResolver
 	/**
 	 * Re-validate the (possibly filtered) list so a filter callback can't
 	 * hand the compiler or the editor a malformed entry.
+	 *
+	 * @since 1.15.0
 	 *
 	 * @param  array<mixed>  $entries
 	 *

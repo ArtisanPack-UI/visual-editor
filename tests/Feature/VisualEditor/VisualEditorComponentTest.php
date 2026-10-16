@@ -3,6 +3,7 @@
 declare( strict_types=1 );
 
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Gate;
 use Tests\Fixtures\TestBlockContentModel;
 use Tests\Fixtures\TestBlockContentPageModel;
 
@@ -447,4 +448,62 @@ it( 'stamps registered block style variations on the mount (#876)', function ():
 		->and( $html )->toContain( 'card' )
 		->and( $html )->not->toContain( 'Card <b>' )
 		->and( $html )->not->toContain( 'radius' );
+} );
+
+describe( 'Custom CSS flags (#881, R-17, F-11)', function (): void {
+	afterEach( function (): void {
+		removeAllFilters( 'ap.visualEditor.editorConfig' );
+	} );
+
+	function renderEffectsMount(): string
+	{
+		$model = TestBlockContentModel::create( [
+			'title'   => 'Effects',
+			'status'  => 'published',
+			'content' => [],
+		] );
+
+		return Blade::render( '<x-visual-editor :model="$model" />', [ 'model' => $model ] );
+	}
+
+	it( 'leaves the Custom CSS field hidden for a guest and allows URLs by default', function (): void {
+		$html = renderEffectsMount();
+
+		expect( $html )->not->toContain( 'data-can-edit-block-css' )
+			->and( $html )->toContain( 'data-custom-css-allow-urls="true"' );
+	} );
+
+	it( 'stamps the block-CSS ability when the gate allows it', function (): void {
+		Gate::define( ArtisanPackUI\VisualEditor\Effects\BlockCssAccess::ABILITY, fn ( $user = null ): bool => true );
+
+		expect( renderEffectsMount() )->toContain( 'data-can-edit-block-css="true"' );
+	} );
+
+	it( 'stamps the URL switch from config', function (): void {
+		config()->set( 'artisanpack.visual-editor.effects.custom_css_allow_urls', false );
+
+		expect( renderEffectsMount() )->toContain( 'data-custom-css-allow-urls="false"' );
+	} );
+
+	it( 'exposes both flags to the editor config filter', function (): void {
+		Gate::define( ArtisanPackUI\VisualEditor\Effects\BlockCssAccess::ABILITY, fn ( $user = null ): bool => true );
+
+		$seen = [];
+
+		addFilter( 'ap.visualEditor.editorConfig', function ( array $config ) use ( &$seen ): array {
+			$seen = $config;
+
+			$config['canEditBlockCss']    = false;
+			$config['customCssAllowUrls'] = 'no';
+
+			return $config;
+		} );
+
+		$html = renderEffectsMount();
+
+		expect( $seen['canEditBlockCss'] ?? null )->toBeTrue()
+			->and( $seen['customCssAllowUrls'] ?? null )->toBeTrue()
+			->and( $html )->not->toContain( 'data-can-edit-block-css' )
+			->and( $html )->toContain( 'data-custom-css-allow-urls="true"' );
+	} );
 } );

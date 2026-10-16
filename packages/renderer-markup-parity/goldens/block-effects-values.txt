@@ -1,0 +1,24 @@
+<p class="wp-block-paragraph ve-fx-2447215c92cc">
+  "Overflow"
+</p>
+<p class="wp-block-paragraph ve-fx-2108b296f21f">
+  "Stacked"
+</p>
+<p class="wp-block-paragraph ve-fx-93c0c47190c8">
+  "Clamped"
+</p>
+<p class="wp-block-paragraph ve-fx-8117fe2706fd">
+  "Strings"
+</p>
+<p class="wp-block-paragraph ve-fx-d4a3f4835a35">
+  "Invalid"
+</p>
+@@ renderer-instance-css @@
+.ve-fx-2108b296f21f{z-index:-3}
+.ve-fx-2447215c92cc{overflow-y:scroll;isolation:isolate}
+.ve-fx-8117fe2706fd{opacity:0.4;-webkit-backdrop-filter:blur(13px) saturate(0%);backdrop-filter:blur(13px) saturate(0%);z-index:7}
+.ve-fx-93c0c47190c8{opacity:1;-webkit-backdrop-filter:blur(200px) saturate(0%);backdrop-filter:blur(200px) saturate(0%);z-index:99999}
+.ve-fx-d4a3f4835a35{mix-blend-mode:multiply}
+:where(.ve-fx-2108b296f21f){position:relative}
+:where(.ve-fx-8117fe2706fd){position:relative}
+:where(.ve-fx-93c0c47190c8){position:relative}

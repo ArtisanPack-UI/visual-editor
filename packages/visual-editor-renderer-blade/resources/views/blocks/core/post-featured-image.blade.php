@@ -22,8 +22,9 @@
 		$baseClasses[] = 'size-' . $sizeSlug;
 	}
 
-	// #873 — duotone filter, scoped to the featured `<img>`.
-	$duotoneClass = DuotoneSupport::apply( $attributes, 'img' );
+	// #873 — duotone filter, scoped to the featured `<img>`. R-11: only
+	// when there is an image, so a post without one emits no filter.
+	$duotoneClass = '' !== $imageUrl ? DuotoneSupport::apply( $attributes, DuotoneSupport::TARGETS['core/post-featured-image'] ) : '';
 
 	if ( '' !== $duotoneClass ) {
 		$baseClasses[] = $duotoneClass;

@@ -2,6 +2,9 @@
 	use ArtisanPackUI\VisualEditorRendererBlade\Animations\AnimationMarkupResolver;
 	use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\DuotoneSupport;
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\LayoutSupport;
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\UrlSanitizer;
 
 	$url    = (string) ( $attributes['url'] ?? '' );
 	$alt    = (string) ( $attributes['alt'] ?? '' );
@@ -71,6 +74,14 @@
 		$baseClasses[] = 'has-custom-content-position';
 	}
 
+	// F-2 — duotone filter on the background image
+	// (`selectors.filter.duotone`), only when one renders.
+	$duotoneClass = '' !== UrlSanitizer::safe( $url ) ? DuotoneSupport::apply( $attributes, DuotoneSupport::TARGETS['core/cover'] ) : '';
+
+	if ( '' !== $duotoneClass ) {
+		$baseClasses[] = $duotoneClass;
+	}
+
 	// Merge cover's own `min-height` declaration with whatever
 	// block-supports style emerges from compile().
 	//
@@ -104,7 +115,7 @@
 	$style    = '' !== $split['wrapper']['style'] ? rtrim( $split['wrapper']['style'], ';' ) : '';
 
 	if ( null !== $minHeight ) {
-		$style = ( '' !== $style ? $style . '; ' : '' ) . sprintf( 'min-height: %s%s', (string) $minHeight, $minHeightUnit );
+		$style = ( '' !== $style ? $style . '; ' : '' ) . sprintf( 'min-height: %s%s', BlockSupports::cssNumber( $minHeight ), $minHeightUnit );
 	}
 
 	$styleAttr = '' !== $style ? sprintf( ' style="%s"', e( $style . ';' ) ) : '';
@@ -130,6 +141,20 @@
 	}
 
 	$overlayStyle = implode( '; ', $overlayStyleDeclarations ) . ';';
+
+	// F-3 — cover's layout (flow by default; constrained with a content
+	// width) applies to its inner container, as in WordPress, which adds
+	// the layout classes to the element that wraps the inner blocks. The
+	// container's own sizes and the cover's Block spacing (M-15) ride on a
+	// `wp-container-*` scope keyed on the inner container class. Cover
+	// doesn't allow justification, so no justification class is added.
+	$innerLayoutClass      = LayoutSupport::layoutClass( $attributes );
+	$innerContainerClasses = array_merge(
+		[ 'wp-block-cover__inner-container' ],
+		LayoutSupport::pair( 'cover', $innerLayoutClass ),
+		LayoutSupport::containerClasses( $attributes, 'cover', $innerLayoutClass, 'wp-block-cover__inner-container' ),
+		LayoutSupport::modifierClasses( $attributes, true, false )
+	);
 
 	// #489 — resolve any block-animation attribute bag, attach the
 	// wrapper classes + data attributes, and push the per-block CSS
@@ -181,7 +206,7 @@
 	@if ( '' !== $url )
 		<img class="wp-block-cover__image-background" alt="{{ $alt }}" src="{{ $url }}"/>
 	@endif
-	<div class="wp-block-cover__inner-container">
+	<div class="{{ implode( ' ', $innerContainerClasses ) }}">
 		{!! $innerBlocksHtml !!}
 	</div>
 </div>
