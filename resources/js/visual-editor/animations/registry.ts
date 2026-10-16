@@ -12,6 +12,9 @@
  * @since 1.1.0
  */
 
+import { __ } from '@wordpress/i18n';
+
+import { TEXT_DOMAIN } from '../vendor/i18n';
 import {
 	ANIMATION_FAMILIES,
 	type AnimationDefinition,
@@ -54,6 +57,44 @@ export const DEFAULT_ANIMATIONS: Record<AnimationFamily, AnimationDefinition[]> 
 		{ key: 'float',  family: FAMILY_CONTINUOUS, label: 'Float',  keyframe: 'apFloat',  duration: 3000, easing: 'ease-in-out' },
 	],
 };
+
+/**
+ * Display label for an animation definition. The package defaults stay
+ * English in {@link DEFAULT_ANIMATIONS} (they mirror the PHP registry
+ * and load before locale data), so they are translated here at render
+ * time; host-supplied labels pass through unchanged.
+ *
+ * @since 1.15.0
+ */
+export function animationLabel( definition: Pick<AnimationDefinition, 'label'> ): string {
+	const translated: Record<string, string> = {
+		'Fade in': __( 'Fade in', TEXT_DOMAIN ),
+		'Fade in up': __( 'Fade in up', TEXT_DOMAIN ),
+		'Fade in down': __( 'Fade in down', TEXT_DOMAIN ),
+		'Fade in left': __( 'Fade in left', TEXT_DOMAIN ),
+		'Fade in right': __( 'Fade in right', TEXT_DOMAIN ),
+		'Zoom in': __( 'Zoom in', TEXT_DOMAIN ),
+		'Zoom out': __( 'Zoom out', TEXT_DOMAIN ),
+		'Slide in up': __( 'Slide in up', TEXT_DOMAIN ),
+		'Slide in down': __( 'Slide in down', TEXT_DOMAIN ),
+		'Slide in left': __( 'Slide in left', TEXT_DOMAIN ),
+		'Slide in right': __( 'Slide in right', TEXT_DOMAIN ),
+		'Flip X': __( 'Flip X', TEXT_DOMAIN ),
+		'Flip Y': __( 'Flip Y', TEXT_DOMAIN ),
+		'Rotate in': __( 'Rotate in', TEXT_DOMAIN ),
+		'Lift': __( 'Lift', TEXT_DOMAIN ),
+		'Press': __( 'Press', TEXT_DOMAIN ),
+		'Glow': __( 'Glow', TEXT_DOMAIN ),
+		'Pulse': __( 'Pulse', TEXT_DOMAIN ),
+		'Bounce': __( 'Bounce', TEXT_DOMAIN ),
+		'Spin': __( 'Spin', TEXT_DOMAIN ),
+		'Ping': __( 'Ping', TEXT_DOMAIN ),
+		'Wiggle': __( 'Wiggle', TEXT_DOMAIN ),
+		'Float': __( 'Float', TEXT_DOMAIN ),
+	};
+
+	return translated[ definition.label ] ?? definition.label;
+}
 
 export class AnimationRegistry {
 	protected readonly byFamily: Record<AnimationFamily, Map<string, AnimationDefinition>>;

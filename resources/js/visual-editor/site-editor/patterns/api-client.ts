@@ -10,11 +10,14 @@
  * diverge.
  */
 
+import { __, sprintf } from '@wordpress/i18n';
+
 import {
     SiteEditorApiError,
     type SiteEditorApiConfig,
     type ValidationErrors,
 } from '../api-client';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 
 export interface PatternTitle {
     rendered: string;
@@ -205,7 +208,11 @@ async function requireOk(response: Response): Promise<unknown> {
     const body = await parseBody(response);
 
     if (!response.ok) {
-        const baseMessage = `Pattern request failed with status ${response.status}`;
+        const baseMessage = sprintf(
+            /* translators: %d: HTTP status code. */
+            __('Pattern request failed with status %d', TEXT_DOMAIN),
+            response.status
+        );
         const message =
             body !== null &&
             typeof body === 'object' &&
@@ -304,7 +311,7 @@ export async function listPatterns(
 
         return Array.isArray(body) ? (body as readonly PatternRecord[]) : [];
     } catch (error: unknown) {
-        throw normalizeError(error, 'Failed to load patterns.');
+        throw normalizeError(error, __('Failed to load patterns.', TEXT_DOMAIN));
     }
 }
 
@@ -321,7 +328,7 @@ export async function fetchPattern(
 
         return (await requireOk(response)) as PatternRecord;
     } catch (error: unknown) {
-        throw normalizeError(error, 'Failed to load pattern.');
+        throw normalizeError(error, __('Failed to load pattern.', TEXT_DOMAIN));
     }
 }
 
@@ -339,7 +346,7 @@ export async function createPattern(
 
         return (await requireOk(response)) as PatternRecord;
     } catch (error: unknown) {
-        throw normalizeError(error, 'Failed to create pattern.');
+        throw normalizeError(error, __('Failed to create pattern.', TEXT_DOMAIN));
     }
 }
 
@@ -358,7 +365,7 @@ export async function updatePattern(
 
         return (await requireOk(response)) as PatternRecord;
     } catch (error: unknown) {
-        throw normalizeError(error, 'Failed to save pattern.');
+        throw normalizeError(error, __('Failed to save pattern.', TEXT_DOMAIN));
     }
 }
 
@@ -375,7 +382,7 @@ export async function deletePattern(
 
         await requireOk(response);
     } catch (error: unknown) {
-        throw normalizeError(error, 'Failed to delete pattern.');
+        throw normalizeError(error, __('Failed to delete pattern.', TEXT_DOMAIN));
     }
 }
 
@@ -419,7 +426,7 @@ export async function previewPatterns(
                     : {},
         };
     } catch (error: unknown) {
-        throw normalizeError(error, 'Failed to render pattern previews.');
+        throw normalizeError(error, __('Failed to render pattern previews.', TEXT_DOMAIN));
     }
 }
 

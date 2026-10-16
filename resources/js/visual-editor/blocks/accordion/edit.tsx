@@ -38,10 +38,12 @@ const TEMPLATE: [string, Record<string, unknown>][] = [
     ['artisanpack/accordion-body', {}],
 ];
 
-const ICON_OPTIONS = [
-    { value: 'plus-minus' as const, label: 'Plus / Minus' },
-    { value: 'arrows' as const, label: 'Arrows' },
-];
+function iconOptions(): Array<{ value: 'plus-minus' | 'arrows'; label: string }> {
+    return [
+        { value: 'plus-minus', label: __('Plus / Minus', TEXT_DOMAIN) },
+        { value: 'arrows', label: __('Arrows', TEXT_DOMAIN) },
+    ];
+}
 
 function slugify(value: string): string {
     return value
@@ -93,10 +95,7 @@ export default function AccordionEdit({
                     <SelectControl
                         label={__('Toggle icon', TEXT_DOMAIN)}
                         value={panelIcon}
-                        options={ICON_OPTIONS.map((option) => ({
-                            label: __(option.label, TEXT_DOMAIN),
-                            value: option.value,
-                        }))}
+                        options={iconOptions()}
                         onChange={(value) => {
                             if (value === 'plus-minus' || value === 'arrows') {
                                 setAttributes({ panelIcon: value });

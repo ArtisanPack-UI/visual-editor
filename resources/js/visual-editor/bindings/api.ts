@@ -8,6 +8,9 @@
  * @since 1.1.0
  */
 
+import { __, sprintf } from '@wordpress/i18n';
+
+import { TEXT_DOMAIN } from '../vendor/i18n';
 import { getBindingsApiConfig } from './config';
 import type {
 	BindingFieldDefinition,
@@ -74,7 +77,7 @@ export async function fetchBindingSources(
 
 	const body = await jsonOrThrow<SourcesResponse>(
 		response,
-		'Failed to load binding sources.'
+		__( 'Failed to load binding sources.', TEXT_DOMAIN )
 	);
 
 	return body.sources ?? [];
@@ -108,7 +111,11 @@ export async function fetchBindingFields(
 
 	const body = await jsonOrThrow<FieldsResponse>(
 		response,
-		`Failed to load fields for source "${ source }".`
+		sprintf(
+			/* translators: %s: binding source name. */
+			__( 'Failed to load fields for source "%s".', TEXT_DOMAIN ),
+			source
+		)
 	);
 
 	return body.fields ?? [];
@@ -145,7 +152,7 @@ export async function resolveBindings(
 
 	const body = await jsonOrThrow<ResolveResponse>(
 		response,
-		'Failed to resolve bindings.'
+		__( 'Failed to resolve bindings.', TEXT_DOMAIN )
 	);
 
 	return body.values ?? {};

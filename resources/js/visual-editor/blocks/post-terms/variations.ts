@@ -17,8 +17,10 @@
  */
 
 import type { BlockConfiguration } from '@wordpress/blocks';
+import { __, sprintf } from '@wordpress/i18n';
 
 import { getTaxonomies, type TaxonomyDescriptor } from '../../editor/taxonomy-registry';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 
 // A host may register a custom-only taxonomy set that omits `category`
 // (e.g. a bookings site that only surfaces `venue` and `sport`). Without
@@ -46,7 +48,11 @@ const variations: NonNullable<BlockConfiguration['variations']> = taxonomies.map
     (taxonomy) => ({
         name: `term-${taxonomy.slug}`,
         title: taxonomy.label,
-        description: `Display the ${taxonomy.label.toLowerCase()} terms assigned to the post.`,
+        description: sprintf(
+            /* translators: %s: taxonomy label, lowercased (e.g. "category"). */
+            __( 'Display the %s terms assigned to the post.', TEXT_DOMAIN ),
+            taxonomy.label.toLowerCase()
+        ),
         scope: ['inserter', 'transform'],
         attributes: {
             term: taxonomy.slug,

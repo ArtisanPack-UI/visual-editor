@@ -7,6 +7,9 @@
  * treat a 403 as "feature disabled" rather than an auth failure.
  */
 
+import { __, sprintf } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../vendor/i18n';
+
 /**
  * The full set of feature keys the visual-editor's AI surface exposes.
  * This is the JS-side mirror of
@@ -178,7 +181,12 @@ export function createAiApiClient(config: AiApiClientConfig) {
         if (!response.ok) {
             const envelope = (parsed ?? {}) as AgentErrorEnvelope;
             throw new AiApiError(
-                envelope.message ?? `AI API responded with ${response.status}`,
+                envelope.message ??
+                    sprintf(
+                        /* translators: %d: HTTP status code. */
+                        __('AI API responded with %d', TEXT_DOMAIN),
+                        response.status,
+                    ),
                 response.status,
                 envelope.error ?? 'http_error',
                 envelope.feature ?? null,

@@ -15,11 +15,17 @@ export const LINK_DESTINATION_NONE = 'none';
 export const LINK_DESTINATION_MEDIA = 'media';
 export const LINK_DESTINATION_ATTACHMENT = 'attachment';
 
-export const TEMPLATE: ReadonlyArray<readonly [string, Record<string, unknown>]> = [
-    [
-        'core/paragraph',
-        {
-            placeholder: _x('Content…', 'content placeholder', TEXT_DOMAIN),
-        },
-    ],
-];
+/**
+ * Inner-block template. Built per call so the placeholder picks up
+ * locale data loaded after import.
+ */
+export function mediaTextTemplate(): ReadonlyArray<readonly [string, Record<string, unknown>]> {
+    return [
+        [
+            'core/paragraph',
+            {
+                placeholder: _x('Content…', 'content placeholder', TEXT_DOMAIN),
+            },
+        ],
+    ];
+}

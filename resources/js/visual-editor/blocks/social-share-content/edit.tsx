@@ -27,6 +27,7 @@ import { TEXT_DOMAIN } from '../../vendor/i18n';
 import {
     shareSocialPlatforms,
     SHARE_SOCIAL_PLATFORM_SLUGS,
+    socialIconLabel,
     type SocialIconDefinition,
 } from '../_shared/social-icons';
 import { buildSocialColorStyle } from '../_shared/social-color-style';
@@ -54,21 +55,28 @@ interface SocialShareContentEditProps {
     ) => void;
 }
 
-const ICON_STYLE_OPTIONS: ReadonlyArray<{ label: string; value: IconStyle }> = [
-    { label: 'Show icons and labels', value: 'show-label-icon' },
-    { label: 'Show icons only', value: 'show-icon' },
-    { label: 'Show labels only', value: 'show-label' },
-];
+// Built per render so the labels pick up locale data loaded after import.
+function iconStyleOptions(): Array<{ label: string; value: IconStyle }> {
+    return [
+        { label: __('Show icons and labels', TEXT_DOMAIN), value: 'show-label-icon' },
+        { label: __('Show icons only', TEXT_DOMAIN), value: 'show-icon' },
+        { label: __('Show labels only', TEXT_DOMAIN), value: 'show-label' },
+    ];
+}
 
-const DIRECTION_OPTIONS: ReadonlyArray<{ label: string; value: IconsDirection }> = [
-    { label: 'Horizontal', value: 'horizontal' },
-    { label: 'Vertical', value: 'vertical' },
-];
+function directionOptions(): Array<{ label: string; value: IconsDirection }> {
+    return [
+        { label: __('Horizontal', TEXT_DOMAIN), value: 'horizontal' },
+        { label: __('Vertical', TEXT_DOMAIN), value: 'vertical' },
+    ];
+}
 
-const STRETCH_OPTIONS: ReadonlyArray<{ label: string; value: IconsStretch }> = [
-    { label: 'Full width', value: 'full-width' },
-    { label: 'Auto width', value: 'auto-width' },
-];
+function stretchOptions(): Array<{ label: string; value: IconsStretch }> {
+    return [
+        { label: __('Full width', TEXT_DOMAIN), value: 'full-width' },
+        { label: __('Auto width', TEXT_DOMAIN), value: 'auto-width' },
+    ];
+}
 
 function clampRadius(value: number | undefined): number {
     const parsed =
@@ -153,7 +161,7 @@ export default function SocialShareContentEdit({
                     )}
                     {showLabel && (
                         <span className="ap-social-share-content__label">
-                            {platform.label}
+                            {socialIconLabel(platform)}
                         </span>
                     )}
                 </span>
@@ -171,7 +179,7 @@ export default function SocialShareContentEdit({
                     {shareSocialPlatforms().map((platform) => (
                         <CheckboxControl
                             key={platform.slug}
-                            label={__(platform.label, TEXT_DOMAIN)}
+                            label={socialIconLabel(platform)}
                             checked={selected.includes(platform.slug)}
                             onChange={(next) =>
                                 setAttributes({
@@ -188,10 +196,7 @@ export default function SocialShareContentEdit({
                     <SelectControl
                         label={__('Chip style', TEXT_DOMAIN)}
                         value={attributes.iconStyle}
-                        options={ICON_STYLE_OPTIONS.map((option) => ({
-                            label: __(option.label, TEXT_DOMAIN),
-                            value: option.value,
-                        }))}
+                        options={iconStyleOptions()}
                         onChange={(value) => {
                             if (isIconStyle(value)) {
                                 setAttributes({ iconStyle: value });
@@ -202,10 +207,7 @@ export default function SocialShareContentEdit({
                     <SelectControl
                         label={__('Direction', TEXT_DOMAIN)}
                         value={attributes.iconsDirection}
-                        options={DIRECTION_OPTIONS.map((option) => ({
-                            label: __(option.label, TEXT_DOMAIN),
-                            value: option.value,
-                        }))}
+                        options={directionOptions()}
                         onChange={(value) => {
                             if (isDirection(value)) {
                                 setAttributes({ iconsDirection: value });
@@ -216,10 +218,7 @@ export default function SocialShareContentEdit({
                     <SelectControl
                         label={__('Width', TEXT_DOMAIN)}
                         value={attributes.iconsStretch}
-                        options={STRETCH_OPTIONS.map((option) => ({
-                            label: __(option.label, TEXT_DOMAIN),
-                            value: option.value,
-                        }))}
+                        options={stretchOptions()}
                         onChange={(value) => {
                             if (isStretch(value)) {
                                 setAttributes({ iconsStretch: value });

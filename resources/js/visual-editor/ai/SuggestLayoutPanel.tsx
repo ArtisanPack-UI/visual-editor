@@ -8,6 +8,8 @@
  */
 
 import { useCallback } from 'react';
+import { __ } from '@wordpress/i18n';
+import { TEXT_DOMAIN } from '../vendor/i18n';
 import type { AiApiClient, LayoutMatch } from './ai-api-client';
 import { useSuggestLayout } from './hooks';
 
@@ -38,10 +40,10 @@ export function SuggestLayoutPanel(props: SuggestLayoutPanelProps) {
                 disabled={call.status === 'loading'}
                 data-testid="ap-ve-ai-suggest-layout-trigger"
             >
-                {label ?? 'Suggest a layout'}
+                {label ?? __('Suggest a layout', TEXT_DOMAIN)}
             </button>
 
-            {call.status === 'loading' && <span role="status">Matching patterns…</span>}
+            {call.status === 'loading' && <span role="status">{__('Matching patterns…', TEXT_DOMAIN)}</span>}
 
             {call.status === 'error' && call.error && (
                 <div role="alert">{call.error.message}</div>
@@ -50,7 +52,7 @@ export function SuggestLayoutPanel(props: SuggestLayoutPanelProps) {
             {call.status === 'success' && call.result && (
                 <ul className="ap-ve-ai-suggest-layout__list">
                     {call.result.matches.length === 0 && (
-                        <li>No matching pattern in the current library.</li>
+                        <li>{__('No matching pattern in the current library.', TEXT_DOMAIN)}</li>
                     )}
                     {call.result.matches.map((m) => (
                         <li key={m.pattern_slug}>

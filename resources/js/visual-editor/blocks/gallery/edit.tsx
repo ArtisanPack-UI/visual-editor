@@ -91,46 +91,47 @@ interface LinkOption {
     infoText?: string;
 }
 
-const LINK_OPTIONS: LinkOption[] = [
-    {
-        icon: customLink,
-        label: __('Link images to attachment pages', TEXT_DOMAIN),
-        value: LINK_DESTINATION_ATTACHMENT,
-        noticeText: __('Attachment Pages', TEXT_DOMAIN),
-    },
-    {
-        icon: imageIcon,
-        label: __('Link images to media files', TEXT_DOMAIN),
-        value: LINK_DESTINATION_MEDIA,
-        noticeText: __('Media Files', TEXT_DOMAIN),
-    },
-    {
-        icon: fullscreen,
-        label: __('Enlarge on click', TEXT_DOMAIN),
-        value: LINK_DESTINATION_LIGHTBOX,
-        noticeText: __('Lightbox effect', TEXT_DOMAIN),
-        infoText: __('Scale images with a lightbox effect', TEXT_DOMAIN),
-    },
-    {
-        icon: linkOff,
-        label: _x('None', 'Media item link option', TEXT_DOMAIN),
-        value: LINK_DESTINATION_NONE,
-        noticeText: __('None', TEXT_DOMAIN),
-    },
-];
+// Built per render so the labels pick up locale data loaded after import.
+function linkOptionsList(): LinkOption[] {
+    return [
+        {
+            icon: customLink,
+            label: __('Link images to attachment pages', TEXT_DOMAIN),
+            value: LINK_DESTINATION_ATTACHMENT,
+            noticeText: __('Attachment Pages', TEXT_DOMAIN),
+        },
+        {
+            icon: imageIcon,
+            label: __('Link images to media files', TEXT_DOMAIN),
+            value: LINK_DESTINATION_MEDIA,
+            noticeText: __('Media Files', TEXT_DOMAIN),
+        },
+        {
+            icon: fullscreen,
+            label: __('Enlarge on click', TEXT_DOMAIN),
+            value: LINK_DESTINATION_LIGHTBOX,
+            noticeText: __('Lightbox effect', TEXT_DOMAIN),
+            infoText: __('Scale images with a lightbox effect', TEXT_DOMAIN),
+        },
+        {
+            icon: linkOff,
+            label: _x('None', 'Media item link option', TEXT_DOMAIN),
+            value: LINK_DESTINATION_NONE,
+            noticeText: __('None', TEXT_DOMAIN),
+        },
+    ];
+}
 
-const NAVIGATION_BUTTON_TYPE_OPTIONS = [
-    { label: __('Icon', TEXT_DOMAIN), value: 'icon' },
-    { label: __('Text', TEXT_DOMAIN), value: 'text' },
-    { label: __('Both', TEXT_DOMAIN), value: 'both' },
-];
+function navigationButtonTypeOptions(): Array<{ label: string; value: string }> {
+    return [
+        { label: __('Icon', TEXT_DOMAIN), value: 'icon' },
+        { label: __('Text', TEXT_DOMAIN), value: 'text' },
+        { label: __('Both', TEXT_DOMAIN), value: 'both' },
+    ];
+}
 
 const ALLOWED_MEDIA_TYPES = ['image'];
 
-const PLACEHOLDER_TEXT = __(
-    'Drag and drop images, upload, or choose from your library.',
-    TEXT_DOMAIN
-);
 
 const DEFAULT_BLOCK = { name: 'core/image' };
 const EMPTY_ARRAY: readonly never[] = [];
@@ -229,10 +230,10 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
         settingsResult;
 
     const linkOptions = !lightboxSetting?.allowEditing
-        ? LINK_OPTIONS.filter(
+        ? linkOptionsList().filter(
               (option) => option.value !== LINK_DESTINATION_LIGHTBOX
           )
-        : LINK_OPTIONS;
+        : linkOptionsList();
 
     const {
         navigationButtonType,
@@ -747,7 +748,7 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
             icon={sharedIcon}
             labels={{
                 title: __('Gallery', TEXT_DOMAIN),
-                instructions: PLACEHOLDER_TEXT,
+                instructions: __('Drag and drop images, upload, or choose from your library.', TEXT_DOMAIN),
             }}
             onSelect={
                 updateImages as unknown as (media: unknown) => void
@@ -948,7 +949,7 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
                                     TEXT_DOMAIN
                                 )}
                             >
-                                {NAVIGATION_BUTTON_TYPE_OPTIONS.map(
+                                {navigationButtonTypeOptions().map(
                                     (option) => (
                                         <ToggleGroupControlOption
                                             key={option.value}

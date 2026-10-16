@@ -56,7 +56,7 @@ import {
     LINK_DESTINATION_ATTACHMENT,
     LINK_DESTINATION_MEDIA,
     LINK_DESTINATION_NONE,
-    TEMPLATE,
+    mediaTextTemplate,
     WIDTH_CONSTRAINT_PERCENTAGE,
 } from './constants';
 import type { FocalPoint } from './image-fill';
@@ -582,7 +582,7 @@ function MediaTextEdit({
 
     const innerBlocksProps = useInnerBlocksProps(
         { className: 'wp-block-media-text__content' },
-        { template: TEMPLATE as unknown as unknown[], allowedBlocks }
+        { template: mediaTextTemplate() as unknown as unknown[], allowedBlocks }
     );
 
     const blockEditingMode = useBlockEditingMode();

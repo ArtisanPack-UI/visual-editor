@@ -16,6 +16,9 @@
  * Phase I-Block-Fork — post navigation / metadata family (#520).
  */
 
+import { __ } from '@wordpress/i18n';
+
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { createEntityPlaceholderEdit } from '../_shared/entity-placeholder-edit';
 
 // `resolvedKey: 'content'` makes the placeholder helper treat the block's
@@ -23,8 +26,8 @@ import { createEntityPlaceholderEdit } from '../_shared/entity-placeholder-edit'
 // previews the configured link text, and an empty one falls through to
 // the `dummyValue` ("Read more"). No wrapper logic needed.
 export default createEntityPlaceholderEdit( {
-    label: 'Read More',
+    label: () => __( 'Read More', TEXT_DOMAIN ),
     resolvedKey: 'content',
     kind: 'text',
-    dummyValue: { text: 'Read more' },
+    dummyValue: () => ( { text: __( 'Read more', TEXT_DOMAIN ) } ),
 } );

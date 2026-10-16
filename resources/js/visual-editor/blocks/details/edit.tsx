@@ -38,14 +38,17 @@ interface DetailsAttributes {
     readonly placeholder?: string;
 }
 
-const TEMPLATE: Array<[string, Record<string, unknown>]> = [
-    [
-        'core/paragraph',
-        {
-            placeholder: __('Type / to add a hidden block', TEXT_DOMAIN),
-        },
-    ],
-];
+// Built per render so the placeholder picks up locale data loaded after import.
+function detailsTemplate(): Array<[string, Record<string, unknown>]> {
+    return [
+        [
+            'core/paragraph',
+            {
+                placeholder: __('Type / to add a hidden block', TEXT_DOMAIN),
+            },
+        ],
+    ];
+}
 
 export default function DetailsEdit({
     attributes,
@@ -65,7 +68,7 @@ export default function DetailsEdit({
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const innerBlocksProps = (useInnerBlocksProps as any)(blockProps, {
-        template: TEMPLATE,
+        template: detailsTemplate(),
         __experimentalCaptureToolbars: true,
         allowedBlocks,
     });

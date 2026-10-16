@@ -13,11 +13,14 @@
  * one-record-per-theme) rather than the post-type envelope templates and
  * template parts ride on.
  */
+import { __, sprintf } from '@wordpress/i18n';
+
 import {
     SiteEditorApiError,
     type SiteEditorApiConfig,
     type ValidationErrors,
 } from '../api-client';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 
 export interface GlobalStylesRecord {
     id: number;
@@ -123,7 +126,11 @@ async function requireOk(response: Response): Promise<unknown> {
     const body = await parseBody(response);
 
     if (!response.ok) {
-        const baseMessage = `Global-styles request failed with status ${response.status}`;
+        const baseMessage = sprintf(
+            /* translators: %d: HTTP status code. */
+            __('Global-styles request failed with status %d', TEXT_DOMAIN),
+            response.status
+        );
         const message =
             body !== null &&
             typeof body === 'object' &&
@@ -186,7 +193,7 @@ export async function lookupGlobalStyles(
 
         return (await requireOk(response)) as { id: number };
     } catch (error: unknown) {
-        throw normalizeError(error, 'Failed to look up global styles.');
+        throw normalizeError(error, __('Failed to look up global styles.', TEXT_DOMAIN));
     }
 }
 
@@ -206,7 +213,7 @@ export async function fetchGlobalStylesBase(
 
         return (await requireOk(response)) as GlobalStylesBase;
     } catch (error: unknown) {
-        throw normalizeError(error, 'Failed to load global-styles base.');
+        throw normalizeError(error, __('Failed to load global-styles base.', TEXT_DOMAIN));
     }
 }
 
@@ -261,7 +268,7 @@ export async function fetchGlobalStyles(
 
         return (await requireOk(response)) as GlobalStylesRecord;
     } catch (error: unknown) {
-        throw normalizeError(error, 'Failed to load global styles.');
+        throw normalizeError(error, __('Failed to load global styles.', TEXT_DOMAIN));
     }
 }
 
@@ -280,7 +287,7 @@ export async function updateGlobalStyles(
 
         return (await requireOk(response)) as GlobalStylesRecord;
     } catch (error: unknown) {
-        throw normalizeError(error, 'Failed to save global styles.');
+        throw normalizeError(error, __('Failed to save global styles.', TEXT_DOMAIN));
     }
 }
 

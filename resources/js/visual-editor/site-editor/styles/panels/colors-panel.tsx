@@ -161,27 +161,32 @@ function paletteRefFromColor(
     return color;
 }
 
-const STYLE_FIELDS: ReadonlyArray<{
+/**
+ * Built per call so the labels pick up translations loaded after import.
+ */
+function getStyleFields(): ReadonlyArray<{
     label: string;
     path: readonly string[];
     testId: string;
-}> = [
-    {
-        label: 'Background color',
-        path: ['styles', 'color', 'background'],
-        testId: 'color-background',
-    },
-    {
-        label: 'Text color',
-        path: ['styles', 'color', 'text'],
-        testId: 'color-text',
-    },
-    {
-        label: 'Default link color',
-        path: ['styles', 'elements', 'link', 'color', 'text'],
-        testId: 'link-color',
-    },
-];
+}> {
+    return [
+        {
+            label: __('Background color', TEXT_DOMAIN),
+            path: ['styles', 'color', 'background'],
+            testId: 'color-background',
+        },
+        {
+            label: __('Text color', TEXT_DOMAIN),
+            path: ['styles', 'color', 'text'],
+            testId: 'color-text',
+        },
+        {
+            label: __('Default link color', TEXT_DOMAIN),
+            path: ['styles', 'elements', 'link', 'color', 'text'],
+            testId: 'link-color',
+        },
+    ];
+}
 
 export function ColorsPanel(props: ColorsPanelProps): JSX.Element {
     const { editor, validationErrors } = props;
@@ -197,7 +202,7 @@ export function ColorsPanel(props: ColorsPanelProps): JSX.Element {
 
     const customizedStyleCount = useMemo(
         () =>
-            STYLE_FIELDS.filter((field) =>
+            getStyleFields().filter((field) =>
                 editor.isPathCustomized(field.path)
             ).length,
         [editor]
@@ -339,7 +344,7 @@ export function ColorsPanel(props: ColorsPanelProps): JSX.Element {
             customizedCount={customizedCount}
             onResetSection={() => {
                 editor.resetPath(PALETTE_PATH);
-                STYLE_FIELDS.forEach((field) => editor.resetPath(field.path));
+                getStyleFields().forEach((field) => editor.resetPath(field.path));
             }}
             description={__(
                 'Palette entries are exposed as CSS variables (var(--wp--preset--color--{slug})).',
@@ -520,7 +525,7 @@ export function ColorsPanel(props: ColorsPanelProps): JSX.Element {
                 </div>
             </PanelRow>
 
-            {STYLE_FIELDS.map((field) => {
+            {getStyleFields().map((field) => {
                 const value = stringOrEmpty(editor.readValue(field.path));
                 const baseValue = stringOrEmpty(
                     editor.readBaseValue(field.path)
@@ -543,7 +548,7 @@ export function ColorsPanel(props: ColorsPanelProps): JSX.Element {
                             data-testid={`ap-site-editor-style-swatches-${field.testId}`}
                         >
                             <span className="ap-site-editor__style-color-field-label">
-                                {__(field.label, TEXT_DOMAIN)}
+                                {field.label}
                             </span>
                             <ColorPalette
                                 colors={paletteOptions}

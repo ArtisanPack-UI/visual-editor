@@ -34,7 +34,7 @@ import {
 import { useInstanceId } from '@wordpress/compose';
 import { __ } from '@wordpress/i18n';
 
-import type { AnimationRegistry } from './registry';
+import { type AnimationRegistry, animationLabel } from './registry';
 import type {
 	AnimationsAttribute,
 	ContinuousAttribute,
@@ -57,7 +57,7 @@ function dropdownOptions( registry: AnimationRegistry, family: 'entrance' | 'hov
 	return [
 		{ label: __( '(none)', TEXT_DOMAIN ), value: '' },
 		...registry.family( family ).map( ( def ) => ( {
-			label: def.label,
+			label: animationLabel( def ),
 			value: def.key,
 		} ) ),
 	];

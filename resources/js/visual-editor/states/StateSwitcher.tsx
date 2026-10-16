@@ -21,6 +21,7 @@
  */
 
 import { useSyncExternalStore } from 'react'
+import { __, sprintf } from '@wordpress/i18n'
 
 import {
 	getActiveState,
@@ -30,8 +31,9 @@ import {
 	subscribeActiveState,
 	subscribePreviewState,
 } from './active-state'
-import type { StateRegistry } from './registry'
+import { type StateRegistry, stateLabel } from './registry'
 import { BASE_KEY, type StateDefinition, type StatefulAttribute } from './types'
+import { TEXT_DOMAIN } from '../vendor/i18n'
 
 import './state-switcher.css'
 
@@ -107,8 +109,7 @@ export function StateSwitcher( {
 				className={ className ?? 'ap-visual-editor-state-switcher__unsupported' }
 				role="status"
 			>
-				This block doesn't support state styling. Switch to a button, link, or
-				other interactive block to access hover, focus, and active states.
+				{ __( 'This block doesn’t support state styling. Switch to a button, link, or other interactive block to access hover, focus, and active states.', TEXT_DOMAIN ) }
 			</p>
 		)
 	}
@@ -143,7 +144,7 @@ export function StateSwitcher( {
 		<div
 			className={ className ?? 'ap-visual-editor-state-switcher' }
 			role="group"
-			aria-label="Block state"
+			aria-label={ __( 'Block state', TEXT_DOMAIN ) }
 			data-active-state={ active }
 		>
 			{ chips.map( ( definition ) => {
@@ -162,7 +163,7 @@ export function StateSwitcher( {
 						title={ tooltipFor( definition ) }
 					>
 						<span aria-hidden="true" data-icon={ definition.icon } />
-						<span>{ definition.label }</span>
+						<span>{ stateLabel( definition ) }</span>
 					</button>
 				)
 			} ) }
@@ -175,11 +176,11 @@ export function StateSwitcher( {
 						onClick={ togglePreview }
 						title={
 							previewActive
-								? 'Stop simulating this state on the canvas'
-								: 'Simulate this state on the canvas — saved content is unchanged'
+								? __( 'Stop simulating this state on the canvas', TEXT_DOMAIN )
+								: __( 'Simulate this state on the canvas — saved content is unchanged', TEXT_DOMAIN )
 						}
 					>
-						{ previewActive ? 'Stop preview' : 'Preview' }
+						{ previewActive ? __( 'Stop preview', TEXT_DOMAIN ) : __( 'Preview', TEXT_DOMAIN ) }
 					</button>
 				</span>
 			) : null }
@@ -189,12 +190,12 @@ export function StateSwitcher( {
 
 function tooltipFor( definition: StateDefinition ): string {
 	if ( BASE_KEY === definition.key ) {
-		return 'Default styles — apply when no interactive state matches.'
+		return __( 'Default styles — apply when no interactive state matches.', TEXT_DOMAIN )
 	}
 
 	if ( '' === definition.selector ) {
-		return definition.label
+		return stateLabel( definition )
 	}
 
-	return `${ definition.label } — ${ definition.selector.replaceAll( '&', 'block' ) }`
+	return `${ stateLabel( definition ) } — ${ definition.selector.replaceAll( '&', 'block' ) }`
 }

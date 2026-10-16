@@ -13,7 +13,7 @@ import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { createCommentPlaceholderEdit } from '../_shared/comment-placeholder-edit';
 
 export default createCommentPlaceholderEdit( {
-    label: __( 'Comment Date', TEXT_DOMAIN ),
+    label: () => __( 'Comment Date', TEXT_DOMAIN ),
     resolvedKey: '_resolvedDateFormatted',
     kind: 'text',
     fromCommentPreview: ( comment ) => {

@@ -16,14 +16,16 @@
  */
 
 import { useSyncExternalStore } from 'react'
+import { __, sprintf } from '@wordpress/i18n'
 
 import {
 	getPreviewState,
 	setPreviewState,
 	subscribePreviewState,
 } from './active-state'
-import type { StateRegistry } from './registry'
+import { type StateRegistry, stateLabel } from './registry'
 import { BASE_KEY } from './types'
+import { TEXT_DOMAIN } from '../vendor/i18n'
 
 export interface PreviewStateToggleProps {
 	registry: StateRegistry
@@ -49,13 +51,13 @@ export function PreviewStateToggle( {
 	}
 
 	return (
-		<div className={ className ?? 've-preview-state-toggle' } role="group" aria-label="Preview state">
+		<div className={ className ?? 've-preview-state-toggle' } role="group" aria-label={ __( 'Preview state', TEXT_DOMAIN ) }>
 			<button
 				type="button"
 				aria-pressed={ null === preview }
 				onClick={ () => handleSelect( null ) }
 			>
-				No preview
+				{ __( 'No preview', TEXT_DOMAIN ) }
 			</button>
 
 			{ states.map( ( definition ) => (
@@ -65,9 +67,10 @@ export function PreviewStateToggle( {
 					aria-pressed={ definition.key === preview }
 					data-state={ definition.key }
 					onClick={ () => handleSelect( definition.key === preview ? null : definition.key ) }
-					title={ `Simulate ${ definition.label.toLowerCase() } on the canvas` }
+					/* translators: %s: state label, e.g. "Hover". */
+					title={ sprintf( __( 'Simulate the %s state on the canvas', TEXT_DOMAIN ), stateLabel( definition ) ) }
 				>
-					{ definition.label }
+					{ stateLabel( definition ) }
 				</button>
 			) ) }
 		</div>

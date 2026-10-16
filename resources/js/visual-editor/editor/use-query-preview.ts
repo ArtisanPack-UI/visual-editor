@@ -16,6 +16,9 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
+import { __ } from '@wordpress/i18n';
+
+import { TEXT_DOMAIN } from '../vendor/i18n';
 
 export interface QueryPreviewPost {
     id: number;
@@ -227,7 +230,7 @@ export function useQueryPreview(
                         status: 'error',
                         posts: [],
                         total: 0,
-                        error: error instanceof Error ? error.message : 'Failed to resolve query.',
+                        error: error instanceof Error ? error.message : __('Failed to resolve query.', TEXT_DOMAIN),
                     });
                 });
         }, debounceMs);

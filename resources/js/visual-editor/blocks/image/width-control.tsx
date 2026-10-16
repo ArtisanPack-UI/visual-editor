@@ -31,7 +31,7 @@ import {
     __experimentalToggleGroupControlOption as ToggleGroupControlOption,
     __experimentalVStack as VStack,
 } from '@wordpress/components';
-import { __ } from '@wordpress/i18n';
+import { __, _x, sprintf } from '@wordpress/i18n';
 import { TEXT_DOMAIN } from '../../vendor/i18n';
 
 import {
@@ -51,6 +51,26 @@ interface WidthControlAttributes {
 interface WidthControlProps {
     readonly attributes: WidthControlAttributes;
     readonly setAttributes: (next: Partial<WidthControlAttributes>) => void;
+}
+
+/**
+ * Translated short label for a width preset button. `WIDTH_PRESETS`
+ * keeps literal labels (it is a module-level constant); this runs at
+ * render time, after locale data loads.
+ */
+function widthPresetLabel(slug: string, fallback: string): string {
+    switch (slug) {
+        case 'small':
+            return _x('S', 'image width preset: small', TEXT_DOMAIN);
+        case 'medium':
+            return _x('M', 'image width preset: medium', TEXT_DOMAIN);
+        case 'large':
+            return _x('L', 'image width preset: large', TEXT_DOMAIN);
+        case 'full':
+            return _x('Full', 'image width preset', TEXT_DOMAIN);
+        default:
+            return fallback;
+    }
 }
 
 /**
@@ -206,9 +226,14 @@ export default function WidthControl({
                             }
                             onClick={() => applyPreset(preset.percentage)}
                             aria-pressed={activePreset === preset.slug}
-                            aria-label={`${preset.label} (${preset.percentage}%)`}
+                            aria-label={sprintf(
+                                /* translators: 1: width preset label, 2: width percentage. */
+                                __('%1$s (%2$d%%)', TEXT_DOMAIN),
+                                widthPresetLabel(preset.slug, preset.label),
+                                preset.percentage
+                            )}
                         >
-                            {preset.label}
+                            {widthPresetLabel(preset.slug, preset.label)}
                         </Button>
                     ))}
                 </ButtonGroup>

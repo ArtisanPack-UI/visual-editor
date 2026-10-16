@@ -16,16 +16,26 @@
  * @since 1.0.0
  */
 
+import { __ } from '@wordpress/i18n';
+
+import { TEXT_DOMAIN } from '../vendor/i18n';
+
 export interface ContentTypeDescriptor {
     readonly slug: string;
     readonly plural: string;
     readonly label: string;
 }
 
-const FALLBACK_TYPES: ReadonlyArray<ContentTypeDescriptor> = Object.freeze([
-    Object.freeze({ slug: 'post', plural: 'posts', label: 'Post' }),
-    Object.freeze({ slug: 'page', plural: 'pages', label: 'Page' }),
-]);
+/**
+ * The `[post, page]` defaults. Built on each call rather than at import
+ * time so the labels pick up translations loaded after this module.
+ */
+function fallbackTypes(): ReadonlyArray<ContentTypeDescriptor> {
+    return Object.freeze([
+        Object.freeze({ slug: 'post', plural: 'posts', label: __('Post', TEXT_DOMAIN) }),
+        Object.freeze({ slug: 'page', plural: 'pages', label: __('Page', TEXT_DOMAIN) }),
+    ]);
+}
 
 // Plural is later interpolated into the REST collection URL by
 // `single-content/edit.tsx` (`${API_BASE}/${plural}`). Mirror the
@@ -34,7 +44,8 @@ const FALLBACK_TYPES: ReadonlyArray<ContentTypeDescriptor> = Object.freeze([
 // into the fetch.
 const SAFE_PLURAL_PATTERN = /^[a-z0-9_-]+$/;
 
-let cached: ReadonlyArray<ContentTypeDescriptor> | null = null;
+// `undefined` = not read yet; `null` = read, nothing usable stamped.
+let cached: ReadonlyArray<ContentTypeDescriptor> | null | undefined;
 
 function parseFromElement(
     element: Element | null
@@ -111,21 +122,13 @@ function parseFromElement(
  * @since 1.0.0
  */
 export function getContentTypes(): ReadonlyArray<ContentTypeDescriptor> {
-    if (cached !== null) {
-        return cached;
+    if (cached === undefined) {
+        cached = typeof document === 'undefined'
+            ? null
+            : parseFromElement(document.querySelector('[data-ap-visual-editor]'));
     }
 
-    if (typeof document === 'undefined') {
-        cached = FALLBACK_TYPES;
-        return cached;
-    }
-
-    const parsed = parseFromElement(
-        document.querySelector('[data-ap-visual-editor]')
-    );
-
-    cached = parsed ?? FALLBACK_TYPES;
-    return cached;
+    return cached ?? fallbackTypes();
 }
 
 /**
@@ -135,5 +138,5 @@ export function getContentTypes(): ReadonlyArray<ContentTypeDescriptor> {
  * @internal
  */
 export function refreshContentTypes(): void {
-    cached = null;
+    cached = undefined;
 }

@@ -21,12 +21,14 @@
  */
 
 import { useSyncExternalStore } from 'react'
+import { __, sprintf } from '@wordpress/i18n'
 
 import { getActiveState, subscribeActiveState } from './active-state'
 import { clearOverride, promote } from './migrator'
-import type { StateRegistry } from './registry'
+import { type StateRegistry, stateLabel as labelFor } from './registry'
 import { useStateValue } from './useStateValue'
 import { BASE_KEY, type StatefulAttribute } from './types'
+import { TEXT_DOMAIN } from '../vendor/i18n'
 
 export interface StateControlProps<T> {
 	registry: StateRegistry
@@ -72,7 +74,8 @@ export function StateControl<T>( {
 		&& null !== ( value as Record<string, unknown> )[ activeState ]
 		&& undefined !== ( value as Record<string, unknown> )[ activeState ]
 
-	const stateLabel = registry.get( activeState )?.label ?? activeState
+	const definition = registry.get( activeState )
+	const stateLabel = definition ? labelFor( definition ) : activeState
 
 	return (
 		<div className="ve-state-control" data-state={ activeState }>
@@ -86,7 +89,11 @@ export function StateControl<T>( {
 					className="ve-state-control__reset"
 					onClick={ resetOverride }
 				>
-					Reset { stateLabel }
+					{ sprintf(
+						/* translators: %s: state label, e.g. "Hover". */
+						__( 'Reset %s', TEXT_DOMAIN ),
+						stateLabel,
+					) }
 				</button>
 			) : null }
 		</div>
