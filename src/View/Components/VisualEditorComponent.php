@@ -27,6 +27,7 @@ use ArtisanPackUI\VisualEditor\Resources\PresetRegistry;
 use ArtisanPackUI\VisualEditor\Resources\QueryPostTypeRegistry;
 use ArtisanPackUI\VisualEditor\Resources\TaxonomyRegistry;
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
+use ArtisanPackUI\VisualEditor\Support\EditorLocaleData;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;
@@ -190,6 +191,17 @@ class VisualEditorComponent extends Component
 	 */
 	public bool $customCssAllowUrls;
 
+	/**
+	 * Jed locale data for the editor's text domain (#896), from
+	 * {@see EditorLocaleData::resolve()}. Stamped as `data-locale-data`;
+	 * `null` when no translation resolves for the app locale.
+	 *
+	 * @since 1.15.1
+	 *
+	 * @var array<string, mixed>|null
+	 */
+	public ?array $localeData;
+
 	public function __construct(
 		public Model $model,
 		?string $resource = null,
@@ -239,6 +251,7 @@ class VisualEditorComponent extends Component
 		$this->blockStyles          = app( BlockStyleResolver::class )->editorPayload();
 		$this->canEditBlockCss      = Gate::allows( BlockCssAccess::ABILITY );
 		$this->customCssAllowUrls   = (bool) config( EffectsCompiler::ALLOW_URLS_CONFIG, true );
+		$this->localeData           = EditorLocaleData::resolve();
 
 		$this->applyEditorConfigFilter();
 	}
@@ -352,6 +365,7 @@ class VisualEditorComponent extends Component
 			'blockStyles'          => $array,
 			'canEditBlockCss'      => $bool,
 			'customCssAllowUrls'   => $bool,
+			'localeData'           => $nullableArray,
 		];
 	}
 

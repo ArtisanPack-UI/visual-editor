@@ -54,7 +54,7 @@ it( 'renders a table of contents with in-page anchor links (#760)', function ():
 	$html = renderTocTree( $tree );
 
 	expect( $html )->toContain( '<nav' )
-		->and( $html )->toContain( 'class="ap-toc"' )
+		->and( $html )->toContain( 'class="wp-block-artisanpack-toc ap-toc"' )
 		->and( $html )->toContain( '<h2 class="ap-toc__heading">On this page</h2>' )
 		->and( $html )->toContain( '<a class="ap-toc__link" href="#getting-started">Getting started</a>' )
 		->and( $html )->toContain( '<a class="ap-toc__link" href="#installation">Installation</a>' )

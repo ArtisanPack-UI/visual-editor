@@ -83,7 +83,7 @@ export function BreadcrumbsBlock({ attributes }: BlockRendererProps): ReactEleme
     const ariaLabel = attrString(attributes.ariaLabel, 'Breadcrumb');
     const className = attrString(attributes.className);
 
-    const wrapperClasses = classList(['ap-breadcrumbs', className]);
+    const wrapperClasses = classList(['wp-block-artisanpack-breadcrumbs', 'ap-breadcrumbs', className]);
     const separatorPath = SEPARATOR_PATHS[separatorIcon];
 
     const listProps = breadcrumbsSchema

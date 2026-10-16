@@ -2616,6 +2616,99 @@
             ]
         },
         {
+            "name": "artisanpack-block-classes-interactive",
+            "$comment": "#899 — Accordions, Tabs and the other first-party wrappers carry their `wp-block-artisanpack-*` class first, as `useBlockProps()` does in the editor, so block style variations (`.wp-block-artisanpack-accordions.is-style-*`) and `styles.blocks[\"artisanpack/*\"]` rules apply on the front end.",
+            "tree": [
+                {
+                    "clientId": "cls-acc",
+                    "name": "artisanpack/accordions",
+                    "attributes": {
+                        "className": "is-style-boxed"
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "cls-acc-1",
+                            "name": "artisanpack/accordion",
+                            "attributes": {
+                                "panelId": "faq-1"
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "cls-acc-1-t",
+                                    "name": "artisanpack/accordion-title",
+                                    "attributes": {},
+                                    "innerBlocks": [
+                                        {
+                                            "clientId": "cls-acc-1-tp",
+                                            "name": "core/paragraph",
+                                            "attributes": {
+                                                "content": "Question"
+                                            },
+                                            "innerBlocks": []
+                                        }
+                                    ]
+                                },
+                                {
+                                    "clientId": "cls-acc-1-b",
+                                    "name": "artisanpack/accordion-body",
+                                    "attributes": {},
+                                    "innerBlocks": [
+                                        {
+                                            "clientId": "cls-acc-1-bp",
+                                            "name": "core/paragraph",
+                                            "attributes": {
+                                                "content": "Answer"
+                                            },
+                                            "innerBlocks": []
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "clientId": "cls-tabs",
+                    "name": "artisanpack/tabs",
+                    "attributes": {
+                        "className": "is-style-pill"
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "cls-tab-1",
+                            "name": "artisanpack/tab-section",
+                            "attributes": {
+                                "label": "One",
+                                "tabId": "one"
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "cls-tab-1-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "First"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "clientId": "cls-faq",
+                    "name": "artisanpack/faq",
+                    "attributes": {},
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "cls-howto",
+                    "name": "artisanpack/howto",
+                    "attributes": {},
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
             "name": "group-flex-grid-block-gap",
             "$comment": "#883 — a Row and a Grid group with their own Block spacing. The baseline `:where(.is-layout-flex|grid) { gap: var(--wp--style--block-gap, 0.5em) }` reads the inline `--wp--style--block-gap` each wrapper carries, so every renderer must emit it on the container.",
             "tree": [

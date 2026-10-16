@@ -23,7 +23,7 @@
 		$mapEmbedUrl = '' === $sanitized ? null : $sanitized;
 	}
 
-	$baseClasses = [ 'ap-business-address' ];
+	$baseClasses = [ 'wp-block-artisanpack-business-address', 'ap-business-address' ];
 	$ariaLabel   = (string) ( $attributes['ariaLabel'] ?? __( 'Business address' ) );
 @endphp
 <section{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!} aria-label="{{ $ariaLabel }}">

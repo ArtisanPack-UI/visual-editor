@@ -28,7 +28,7 @@
 		$action = '/';
 	}
 @endphp
-<div{!! BlockSupports::wrapperAttrs( $attributes, [ 'ap-search-filters' ] ) !!}>
+<div{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-artisanpack-search-filters', 'ap-search-filters' ] ) !!}>
 	<form class="ap-search-filters__form" method="get" action="{{ $action }}">
 		<input type="hidden" name="post_type" value="{{ $postType }}" />
 		{!! $innerBlocksHtml !!}

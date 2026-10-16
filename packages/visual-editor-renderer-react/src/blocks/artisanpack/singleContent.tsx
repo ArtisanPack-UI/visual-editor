@@ -24,7 +24,7 @@ export function SingleContentBlock({
     }
 
     const className = attrString(attributes.className);
-    const classes = classList(['ap-single-content', className]);
+    const classes = classList(['wp-block-artisanpack-single-content', 'ap-single-content', className]);
 
     return <div className={classes}>{children}</div>;
 }

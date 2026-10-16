@@ -141,6 +141,7 @@ export const AuthorSocialIconsBlock = defineComponent({
             const className = attrString(props.attributes.className);
 
             const classes = classList([
+                'wp-block-artisanpack-author-social-icons',
                 'ap-author-social-icons',
                 `ap-author-social-icons--${direction}`,
                 `ap-author-social-icons--${stretch}`,

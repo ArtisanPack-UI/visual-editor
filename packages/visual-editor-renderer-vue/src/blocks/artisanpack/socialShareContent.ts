@@ -141,6 +141,7 @@ export const SocialShareContentBlock = defineComponent({
             const className = attrString(props.attributes.className);
 
             const classes = classList([
+                'wp-block-artisanpack-social-share-content',
                 'ap-social-share-content',
                 `ap-social-share-content--${direction}`,
                 `ap-social-share-content--${stretch}`,

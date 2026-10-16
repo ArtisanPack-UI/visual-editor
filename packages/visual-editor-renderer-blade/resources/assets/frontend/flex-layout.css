@@ -194,6 +194,7 @@
 	.md\:ap-self-stretch { align-self: stretch; }
 	.md\:ap-grow-0 { flex-grow: 0; }
 	.md\:ap-grow-1 { flex-grow: 1; }
+	.md\:ap-grow-2 { flex-grow: 2; }
 	.md\:ap-shrink-0 { flex-shrink: 0; }
 	.md\:ap-shrink-1 { flex-shrink: 1; }
 	.md\:ap-basis-auto { flex-basis: auto; }
@@ -236,6 +237,7 @@
 	.lg\:ap-self-stretch { align-self: stretch; }
 	.lg\:ap-grow-0 { flex-grow: 0; }
 	.lg\:ap-grow-1 { flex-grow: 1; }
+	.lg\:ap-grow-2 { flex-grow: 2; }
 	.lg\:ap-shrink-0 { flex-shrink: 0; }
 	.lg\:ap-shrink-1 { flex-shrink: 1; }
 	.lg\:ap-basis-auto { flex-basis: auto; }
@@ -371,6 +373,7 @@
 	.tablet\:ap-self-stretch { align-self: stretch; }
 	.tablet\:ap-grow-0 { flex-grow: 0; }
 	.tablet\:ap-grow-1 { flex-grow: 1; }
+	.tablet\:ap-grow-2 { flex-grow: 2; }
 	.tablet\:ap-shrink-0 { flex-shrink: 0; }
 	.tablet\:ap-shrink-1 { flex-shrink: 1; }
 	.tablet\:ap-basis-auto { flex-basis: auto; }
@@ -414,6 +417,7 @@
 	.mobile\:ap-self-stretch { align-self: stretch; }
 	.mobile\:ap-grow-0 { flex-grow: 0; }
 	.mobile\:ap-grow-1 { flex-grow: 1; }
+	.mobile\:ap-grow-2 { flex-grow: 2; }
 	.mobile\:ap-shrink-0 { flex-shrink: 0; }
 	.mobile\:ap-shrink-1 { flex-shrink: 1; }
 	.mobile\:ap-basis-auto { flex-basis: auto; }

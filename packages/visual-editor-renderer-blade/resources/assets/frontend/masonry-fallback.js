@@ -84,6 +84,13 @@
         }
         var viewportWidth = window.innerWidth || 0;
         var active = base;
+        var hasLegacy = false;
+        for (var j = 0; j < BREAKPOINT_MIN_WIDTHS.length; j += 1) {
+            var legacyAttr = container.getAttribute('data-ap-cols-' + BREAKPOINT_MIN_WIDTHS[j][0]);
+            if (legacyAttr !== null && legacyAttr !== '') {
+                hasLegacy = true;
+            }
+        }
         for (var i = 0; i < BREAKPOINT_MIN_WIDTHS.length; i += 1) {
             var bp = BREAKPOINT_MIN_WIDTHS[i][0];
             var minWidth = BREAKPOINT_MIN_WIDTHS[i][1];
@@ -107,6 +114,12 @@
             }
             var deviceAttr = container.getAttribute('data-ap-cols-' + deviceBp);
             if (deviceAttr === null || deviceAttr === '') {
+                // #901 — with no value for this device (or any legacy
+                // breakpoint), collapse the way grid.css does: at most
+                // two columns on Tablet, one on Mobile.
+                if (!hasLegacy) {
+                    active = Math.min(active, 'mobile' === deviceBp ? 1 : 2);
+                }
                 continue;
             }
             var deviceParsed = Number(deviceAttr);

@@ -32,6 +32,8 @@ export interface ShadowSubtree {
 	gradient?: string | null
 	inset?: boolean
 	preset?: string | null
+	/** Raw `box-shadow` value, from a string `style.shadow` (#900). */
+	value?: string | null
 	[key: string]: unknown
 }
 
@@ -53,6 +55,7 @@ export interface ResolvedShadowLayer {
 	gradient: string | null
 	inset: boolean
 	preset: string | null
+	value: string | null
 }
 
 export interface ResolvedBoxShadow {
@@ -67,8 +70,8 @@ export interface ResolvedBoxShadow {
  * the slots we read are typed.
  */
 export interface BoxShadowAttributes {
-	style?: { shadow?: ShadowSubtree } | null
-	states?: Record<string, Record<string, ShadowSubtree | null>> | null
-	responsive?: Record<string, Record<string, ShadowSubtree | null>> | null
+	style?: { shadow?: ShadowSubtree | string } | null
+	states?: Record<string, Record<string, ShadowSubtree | string | null>> | null
+	responsive?: Record<string, Record<string, ShadowSubtree | string | null>> | null
 	[key: string]: unknown
 }

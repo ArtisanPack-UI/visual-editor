@@ -76,7 +76,7 @@ export const AccordionsBlock = defineComponent({
     setup(props, { slots }) {
         return () => {
             const className = attrString(props.attributes.className);
-            const classes = classList(['ap-accordions', className]);
+            const classes = classList(['wp-block-artisanpack-accordions', 'ap-accordions', className]);
 
             return h(
                 'div',
@@ -95,7 +95,7 @@ export const AccordionBlock = defineComponent({
             const panelId = attrString(props.attributes.panelId);
             const panelIcon = normalizePanelIcon(props.attributes.panelIcon);
             const className = attrString(props.attributes.className);
-            const classes = classList(['ap-accordion', className]);
+            const classes = classList(['wp-block-artisanpack-accordion', 'ap-accordion', className]);
 
             const slotVnodes = (slots.default ? slots.default() : []) as VNode[];
             const titleVnode = findChildBlockVnode(
@@ -129,7 +129,7 @@ export const AccordionBlock = defineComponent({
             }
 
             const bodyAttrs: Record<string, unknown> = {
-                class: classList(['ap-accordion__body', childClassName(props.innerBlocks, 'artisanpack/accordion-body')]),
+                class: classList(['wp-block-artisanpack-accordion-body', 'ap-accordion__body', childClassName(props.innerBlocks, 'artisanpack/accordion-body')]),
                 role: 'region',
                 hidden: '',
             };
@@ -142,7 +142,7 @@ export const AccordionBlock = defineComponent({
             const bodyContent = extractSlotContent(bodyVnode) as VNode[] | null;
 
             return h('div', wrapperAttrs, [
-                h('div', { class: classList(['ap-accordion__title', childClassName(props.innerBlocks, 'artisanpack/accordion-title')]) }, [
+                h('div', { class: classList(['wp-block-artisanpack-accordion-title', 'ap-accordion__title', childClassName(props.innerBlocks, 'artisanpack/accordion-title')]) }, [
                     h('div', triggerAttrs, titleContent ?? []),
                     h('span', {
                         class: `ap-accordion__icon ap-accordion__icon--${panelIcon}`,
@@ -166,7 +166,7 @@ export const AccordionTitleBlock = defineComponent({
         return () =>
             h(
                 'div',
-                { class: classList(['ap-accordion__title', attrString(props.attributes.className)]) },
+                { class: classList(['wp-block-artisanpack-accordion-title', 'ap-accordion__title', attrString(props.attributes.className)]) },
                 slots.default ? slots.default() : []
             );
     },
@@ -179,7 +179,7 @@ export const AccordionBodyBlock = defineComponent({
         return () =>
             h(
                 'div',
-                { class: classList(['ap-accordion__body', attrString(props.attributes.className)]) },
+                { class: classList(['wp-block-artisanpack-accordion-body', 'ap-accordion__body', attrString(props.attributes.className)]) },
                 slots.default ? slots.default() : []
             );
     },

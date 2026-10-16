@@ -37,7 +37,7 @@ export function BusinessEmailBlock({ attributes }: BlockRendererProps): ReactEle
     const email = attrString(info.email).trim();
 
     const className = attrString(attributes.className);
-    const wrapperClasses = classList(['ap-business-email', className]);
+    const wrapperClasses = classList(['wp-block-artisanpack-business-email', 'ap-business-email', className]);
 
     const isValid = email !== '' && EMAIL_PATTERN.test(email);
 

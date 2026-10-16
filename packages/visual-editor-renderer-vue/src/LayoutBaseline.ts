@@ -13,25 +13,41 @@
  * Mount once near the top of the layout (alongside `<GlobalStyles />`).
  * The component takes no props — the rules are renderer-static.
  *
+ * When `setBreakpoints()` moved the breakpoints off the defaults, it also
+ * prints the Flex Layout token rules at those widths
+ * (`<style data-ve-flex-layout>`, #895), replacing the static
+ * `flex-layout.css` the host would otherwise link.
+ *
  * @since 1.0.0
  */
 
 import { defineComponent, h } from 'vue';
 import type { VNode } from 'vue';
 
+import { flexLayoutCss } from './support/flexLayoutCss';
 import { LAYOUT_BASELINE_CSS } from './support/layoutBaselineCss';
 
 export const LayoutBaseline = defineComponent({
     name: 'LayoutBaseline',
     setup() {
-        return (): VNode =>
+        return (): VNode | VNode[] => {
             // `innerHTML` rather than a text child: Vue's server renderer
             // HTML-escapes text children, which turned every `>` child
             // combinator into a literal `&gt;` inside the `<style>`
             // element and diverged from React's output (#814 parity).
-            h('style', {
+            const baseline = h('style', {
                 'data-ve-layout-baseline': '',
                 innerHTML: LAYOUT_BASELINE_CSS,
             });
+            const flexCss = flexLayoutCss();
+
+            // #895 — Flex Layout token rules at the breakpoints
+            // `setBreakpoints()` set, in place of the static sheet.
+            if (flexCss === '') {
+                return baseline;
+            }
+
+            return [baseline, h('style', { 'data-ve-flex-layout': '', innerHTML: flexCss })];
+        };
     },
 });

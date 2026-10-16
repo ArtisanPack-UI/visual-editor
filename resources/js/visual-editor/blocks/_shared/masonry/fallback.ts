@@ -138,8 +138,10 @@ function readColumnsFromAttr(container: HTMLElement, fallback: number): number {
  * Walk the legacy breakpoint table in ascending min-width order and pick
  * the column count from the widest breakpoint whose min-width the current
  * viewport meets, then apply any desktop-first device override whose
- * max-width the viewport is within (#820). Falls back to the base
- * `data-ap-cols` (or the given fallback) when no breakpoint matches.
+ * max-width the viewport is within (#820). A device with no value of its
+ * own collapses to at most two columns (Tablet) or one (Mobile) unless a
+ * legacy breakpoint is set (#901). Falls back to the base `data-ap-cols`
+ * (or the given fallback) when no breakpoint matches.
  */
 function readActiveColumnsFromAttrs(container: HTMLElement, fallback: number): number {
     const base = readColumnsFromAttr(container, fallback);
@@ -148,6 +150,10 @@ function readActiveColumnsFromAttrs(container: HTMLElement, fallback: number): n
     }
     const viewportWidth = window.innerWidth ?? 0;
     let active = base;
+    const hasLegacy = BREAKPOINT_MIN_WIDTHS.some(([bp]) => {
+        const attr = container.getAttribute(`data-ap-cols-${bp}`);
+        return attr !== null && attr !== '';
+    });
     for (const [bp, minWidth] of BREAKPOINT_MIN_WIDTHS) {
         if (viewportWidth < minWidth) {
             break;
@@ -168,6 +174,12 @@ function readActiveColumnsFromAttrs(container: HTMLElement, fallback: number): n
         }
         const attr = container.getAttribute(`data-ap-cols-${bp}`);
         if (attr === null || attr === '') {
+            // #901 — with no value for this device (or any legacy
+            // breakpoint), collapse the way grid.css does: at most two
+            // columns on Tablet, one on Mobile.
+            if (!hasLegacy) {
+                active = Math.min(active, bp === 'mobile' ? 1 : 2);
+            }
             continue;
         }
         const parsed = Number(attr);

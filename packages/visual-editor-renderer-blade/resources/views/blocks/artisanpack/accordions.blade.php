@@ -80,7 +80,7 @@
 		}
 	}
 @endphp
-<div{!! BlockSupports::wrapperAttrs( $attributes, [ 'ap-accordions' ] ) !!}>
+<div{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-artisanpack-accordions', 'ap-accordions' ] ) !!}>
 	{!! $innerBlocksHtml !!}
 	@if ( '' !== $faqJsonLd )
 		<script type="application/ld+json">{!! $faqJsonLd !!}</script>

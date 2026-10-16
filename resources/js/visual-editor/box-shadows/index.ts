@@ -13,7 +13,7 @@
  * @since 1.2.0
  */
 
-export { resolveBoxShadow, referencedSlugs } from './resolver'
+export { normalizeShadowSubtree, resolveBoxShadow, referencedSlugs } from './resolver'
 export { emitBoxShadowCss, DEFAULT_TRANSITION } from './emitter'
 export type {
 	BoxShadowAttributes,

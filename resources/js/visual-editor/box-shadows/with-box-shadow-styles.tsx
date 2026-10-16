@@ -29,7 +29,7 @@ import { useCanvasScopedStyle } from '../support/canvas-scoped-styles'
 import { TAILWIND_V4_DEFAULTS, BreakpointRegistry } from '../responsive/registry'
 import { DEFAULT_STATES, StateRegistry } from '../states/registry'
 import { emitBoxShadowCss } from './emitter'
-import { resolveBoxShadow } from './resolver'
+import { normalizeShadowSubtree, resolveBoxShadow } from './resolver'
 import type { BoxShadowAttributes, ShadowSubtree } from './types'
 
 const BLOCK_FILTER_HOOK = 'editor.BlockListBlock'
@@ -144,9 +144,10 @@ function writeScopeId(
 	const style = ( attributes.style && 'object' === typeof attributes.style )
 		? ( attributes.style as Record<string, unknown> )
 		: {}
-	const shadow = ( style.shadow && 'object' === typeof style.shadow )
-		? ( style.shadow as Record<string, unknown> )
-		: {}
+	// A string `style.shadow` (the form WordPress core saves) is
+	// rewritten in its structured form so the scope id can ride on it
+	// without dropping the shadow (#900).
+	const shadow = ( normalizeShadowSubtree( style.shadow ) as Record<string, unknown> | null ) ?? {}
 
 	setAttributes( {
 		style: {

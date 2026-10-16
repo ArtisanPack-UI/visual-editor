@@ -61,7 +61,7 @@ it( 'renders the login link with the "Log in" label for logged-out viewers', fun
 	] ) );
 
 	expect( $rendered )
-		->toContain( 'class="logged-out"' )
+		->toContain( 'class="wp-block-artisanpack-loginout logged-out"' )
 		->toContain( '>Log in<' )
 		->toContain( 'href="' )
 		->toContain( '/login' );
@@ -77,7 +77,7 @@ it( 'renders the logout link with the "Log out" label for logged-in viewers', fu
 	] ) );
 
 	expect( $rendered )
-		->toContain( 'class="logged-in"' )
+		->toContain( 'class="wp-block-artisanpack-loginout logged-in"' )
 		->toContain( '>Log out<' )
 		->toContain( '/logout' );
 
@@ -252,7 +252,7 @@ it( 'omits the has-login-form class when displayLoginAsForm is on but no host fo
 	] ) );
 
 	expect( $rendered )
-		->toContain( 'class="logged-out"' )
+		->toContain( 'class="wp-block-artisanpack-loginout logged-out"' )
 		->toContain( '>Log in<' )
 		->not()->toContain( 'has-login-form' );
 } );

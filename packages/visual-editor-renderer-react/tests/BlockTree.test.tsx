@@ -657,7 +657,7 @@ describe('Core design blocks', () => {
         const html = renderTree(tree);
 
         expect(html).toContain('<nav');
-        expect(html).toContain('class="ap-breadcrumbs"');
+        expect(html).toContain('class="wp-block-artisanpack-breadcrumbs ap-breadcrumbs"');
         expect(html).toContain('aria-label="Breadcrumb"');
         expect(html).toContain('itemtype="https://schema.org/BreadcrumbList"');
         expect(html).toContain('itemtype="https://schema.org/ListItem"');
@@ -939,7 +939,7 @@ describe('Core design blocks', () => {
 
             const html = renderTree(tree);
 
-            expect(html).toContain('class="ap-copyright"');
+            expect(html).toContain('class="wp-block-artisanpack-copyright ap-copyright"');
             expect(html).toContain(`© Acme, Inc. ${PINNED_YEAR}`);
         });
 
@@ -1015,7 +1015,7 @@ describe('Core design blocks', () => {
             }),
         ]);
 
-        expect(html).toContain('class="ap-comments-number"');
+        expect(html).toContain('class="wp-block-artisanpack-comments-number ap-comments-number"');
         expect(html).toContain('5 Replies');
         expect(html).not.toContain('Reply<');
     });
@@ -1061,8 +1061,8 @@ describe('Core design blocks', () => {
 
         const html = renderTree(tree);
 
-        expect(html).toContain('class="ap-accordions"');
-        expect(html).toContain('class="ap-accordion"');
+        expect(html).toContain('class="wp-block-artisanpack-accordions ap-accordions"');
+        expect(html).toContain('class="wp-block-artisanpack-accordion ap-accordion"');
         expect(html).toContain('data-panel-id="faq-1"');
         expect(html).toContain('data-panel-icon="arrows"');
         expect(html).toContain('id="faq-1-control"');

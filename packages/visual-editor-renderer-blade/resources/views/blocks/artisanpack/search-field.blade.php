@@ -36,7 +36,7 @@
 	$attrHash = substr( md5( (string) json_encode( $attributes ) ), 0, 8 );
 	$inputId  = sprintf( 'ap-search-field-%d-%s', $renderIndex ?? 0, $attrHash );
 @endphp
-<div{!! BlockSupports::wrapperAttrs( $attributes, [ 'ap-search-field' ] ) !!}>
+<div{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-artisanpack-search-field', 'ap-search-field' ] ) !!}>
 	<label class="ap-search-field__label" for="{{ $inputId }}">{{ $label }}</label>
 	<input
 		type="search"

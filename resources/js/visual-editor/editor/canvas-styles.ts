@@ -47,6 +47,13 @@ export interface CanvasStyle {
 }
 
 /**
+ * The static Flex Layout token stylesheet's entry, exported so the
+ * canvas can find it by identity and swap it for rules built at the
+ * host's breakpoints (#895).
+ */
+export const FLEX_LAYOUT_STYLE: CanvasStyle = { css: flexLayoutStyles };
+
+/**
  * Auto-discovered block stylesheets — #566.
  *
  * Every block ships its own `.css` file as a side-effect import from
@@ -201,7 +208,7 @@ const baseCanvasStyles: CanvasStyle[] = [
     // `blocks/*/` tree so it isn't picked up by the glob below; hand
     // it to the iframe explicitly so `.ap-flex` and per-breakpoint
     // utilities resolve inside the canvas.
-    { css: flexLayoutStyles },
+    FLEX_LAYOUT_STYLE,
     // Every block-authored stylesheet, auto-discovered via the
     // `blocks/*/*.css` glob (#566). Replaces the per-block manual
     // entries that used to sit here and forced an edit to

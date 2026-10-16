@@ -80,6 +80,7 @@
 	}
 
 	$baseClasses = [
+		'wp-block-artisanpack-author-social-icons',
 		'ap-author-social-icons',
 		'ap-author-social-icons--' . $direction,
 		'ap-author-social-icons--' . $stretch,

@@ -272,6 +272,47 @@ describe('initMasonry — fallback packing', () => {
         expect(measured[0].el.style.width).toBe('200px');
     });
 
+    describe('default collapse with no device value (#901)', () => {
+        const originalWidth = window.innerWidth;
+
+        afterEach(() => {
+            Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalWidth });
+        });
+
+        function widthAt(viewport: number, attrs: Record<string, string>): string {
+            const { container, measured } = makeContainer([{ height: 50 }, { height: 50 }], 400);
+            for (const [name, value] of Object.entries(attrs)) {
+                container.setAttribute(name, value);
+            }
+            Object.defineProperty(window, 'innerWidth', { configurable: true, value: viewport });
+
+            initMasonryTracked(container, { gap: 0, forceFallback: true });
+
+            return measured[0].el.style.width;
+        }
+
+        it('keeps the base columns on desktop', () => {
+            expect(widthAt(1280, { 'data-ap-cols': '4' })).toBe('100px');
+        });
+
+        it('drops to two columns on Tablet', () => {
+            expect(widthAt(900, { 'data-ap-cols': '4' })).toBe('200px');
+        });
+
+        it('stacks to one column on Mobile', () => {
+            expect(widthAt(500, { 'data-ap-cols': '4' })).toBe('400px');
+        });
+
+        it('keeps an explicit device value', () => {
+            expect(widthAt(900, { 'data-ap-cols': '4', 'data-ap-cols-tablet': '4' })).toBe('100px');
+            expect(widthAt(500, { 'data-ap-cols': '4', 'data-ap-cols-mobile': '2' })).toBe('200px');
+        });
+
+        it('leaves grids that set a legacy breakpoint alone', () => {
+            expect(widthAt(500, { 'data-ap-cols': '4', 'data-ap-cols-xl': '4' })).toBe('100px');
+        });
+    });
+
     it('clamps column counts outside 1-12 to safe defaults', () => {
         const { container } = makeContainer(
             [

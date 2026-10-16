@@ -137,7 +137,7 @@
 		$howtoJsonLd = false === $encoded ? '' : $encoded;
 	}
 @endphp
-<div{!! BlockSupports::wrapperAttrs( $attributes, [ 'ap-howto' ] ) !!}>
+<div{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-artisanpack-howto', 'ap-howto' ] ) !!}>
 	@if ( '' !== $howtoName )
 		<h2 class="ap-howto__name">{!! $howtoName !!}</h2>
 	@endif

@@ -7,7 +7,7 @@
 	$searchLabel = (string) ( $attributes['searchLabel'] ?? __( 'Search' ) );
 	$clearLabel  = (string) ( $attributes['clearLabel'] ?? __( 'Clear' ) );
 @endphp
-<div{!! BlockSupports::wrapperAttrs( $attributes, [ 'ap-search-filters-buttons' ] ) !!}>
+<div{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-artisanpack-search-filters-buttons', 'ap-search-filters-buttons' ] ) !!}>
 	<input
 		type="submit"
 		class="ap-search-filters-buttons__submit"
