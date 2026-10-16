@@ -77,7 +77,7 @@ export interface BreakpointInput {
  */
 export type BreakpointMap = Record<string, BreakpointInput | number | string | null | undefined>;
 
-const DEFAULT_BREAKPOINTS: BreakpointDefinition[] = [
+export const DEFAULT_BREAKPOINTS: BreakpointDefinition[] = [
     { key: 'sm', minWidthPx: 640 },
     { key: 'md', minWidthPx: 768 },
     { key: 'lg', minWidthPx: 1024 },
@@ -86,7 +86,7 @@ const DEFAULT_BREAKPOINTS: BreakpointDefinition[] = [
 ];
 
 /** Mirrors the device entries of `BreakpointRegistry::DEFAULTS`. */
-const DEFAULT_DEVICE_BREAKPOINTS: DeviceBreakpointDefinition[] = [
+export const DEFAULT_DEVICE_BREAKPOINTS: DeviceBreakpointDefinition[] = [
     { key: 'tablet', maxWidthPx: 1023, previewWidthPx: 768 },
     { key: 'mobile', maxWidthPx: 767, previewWidthPx: 375 },
 ];

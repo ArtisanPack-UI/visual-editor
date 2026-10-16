@@ -21,7 +21,7 @@ export function BusinessPhoneBlock({ attributes }: BlockRendererProps): ReactEle
     const phone = attrString(info.phone).trim();
 
     const className = attrString(attributes.className);
-    const wrapperClasses = classList(['ap-business-phone', className]);
+    const wrapperClasses = classList(['wp-block-artisanpack-business-phone', 'ap-business-phone', className]);
     const ariaLabel = attrString(attributes.ariaLabel, 'Business phone');
 
     const showIcon = attrBoolean(attributes.showIcon, false);

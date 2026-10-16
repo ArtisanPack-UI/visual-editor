@@ -239,6 +239,13 @@ Besides its `<link>`s, `<x-ve-blocks-styles>` prints
 when each has content, then `<style data-ve-responsive-stacking>`,
 `<style data-ve-layout-baseline>` and `<style data-ve-global-styles>`.
 
+*Since v1.15.1 (#895)*, when the breakpoints differ from the defaults,
+the Flex Layout token rules print as `<style data-ve-flex-layout>` in
+place of the `flex-layout.css` link (see
+[Flex layout](blocks/Flex-Layout.md)). `data-ve-default-tokens` also
+declares WordPress's default shadow presets (#900, see
+[Box shadows](box-shadows.md#theme-schema)).
+
 *Since v1.15.0*, the layout baseline also resets the inherited block gap
 on every layout container at zero specificity, so a nested Row, Stack,
 Grid or Group no longer picks up its parent's Block spacing. Each
@@ -591,6 +598,12 @@ entries with both or neither width. A device preview width wider than its
 max-width is clamped to it. `getDeviceBreakpoints()` returns the active
 device list, largest first. The types `BreakpointInput`, `BreakpointMap`
 and `DeviceBreakpointDefinition` are exported too.
+
+*Since v1.15.1 (#895)*, once `setBreakpoints()` moves the breakpoints
+off the defaults, `<LayoutBaseline />` also prints the Flex Layout token
+rules at the new widths (`<style data-ve-flex-layout>`). Call
+`setBreakpoints()` before the first render, and stop linking the
+published `flex-layout.css`: its default-width rules would still fire.
 
 ### Navigation overlay
 

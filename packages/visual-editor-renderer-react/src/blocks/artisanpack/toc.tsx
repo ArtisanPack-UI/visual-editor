@@ -116,7 +116,7 @@ export function TocBlock({ attributes }: BlockRendererProps): JSX.Element {
     const ordered = attrBoolean(attributes.ordered, false);
     const className = attrString(attributes.className);
 
-    const classes = classList(['ap-toc', className]);
+    const classes = classList(['wp-block-artisanpack-toc', 'ap-toc', className]);
 
     const HeadingTag = `h${level}` as 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 

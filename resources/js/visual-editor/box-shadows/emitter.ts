@@ -5,17 +5,20 @@
  * canvas preview matches the rendered front-end. See the PHP file's
  * docblock for the per-mode CSS strategy rationale.
  *
- * Three emission modes, dispatched per resolved layer:
+ * Four emission modes, dispatched per resolved layer:
  *
  *   1. **Preset** (`layer.preset` set) — `box-shadow: var(--wp--preset--shadow--{slug})`.
  *      Inset is honored via `var(...) inset` (concatenated by the
  *      shadow var convention — themes ship the value WITHOUT the
  *      `inset` keyword).
  *
- *   2. **Solid** (`layer.gradient` null) — stock `box-shadow:
+ *   2. **Raw** (`layer.value` set) — `box-shadow: {value}`, a string
+ *      value stored on the block (#900).
+ *
+ *   3. **Solid** (`layer.gradient` null) — stock `box-shadow:
  *      [inset] X Y blur spread color`.
  *
- *   3. **Gradient** (`layer.gradient` set) — `::before` (outer) or
+ *   4. **Gradient** (`layer.gradient` set) — `::before` (outer) or
  *      `::after` (inset) pseudo with `background: <gradient>`,
  *      `filter: blur(<blur>)`, `transform: translate(<X>, <Y>)`, and
  *      for inset, a `mask-composite: exclude` ring mask to clip the
@@ -138,7 +141,36 @@ function gradientPseudoDeclarations( layer: ResolvedShadowLayer ): string {
 }
 
 function isGradient( layer: ResolvedShadowLayer ): boolean {
-	return null === layer.preset && null !== layer.gradient
+	return null === layer.preset && null === ( layer.value ?? null ) && null !== layer.gradient
+}
+
+/**
+ * Whether parentheses and brackets balance without crossing — PHP
+ * `CssValue::isBalanced()`.
+ */
+function isBalanced( value: string ): boolean {
+	const closers: string[] = []
+
+	for ( const char of value ) {
+		if ( '(' === char ) {
+			closers.push( ')' )
+		} else if ( '[' === char ) {
+			closers.push( ']' )
+		} else if ( ( ')' === char || ']' === char ) && closers.pop() !== char ) {
+			return false
+		}
+	}
+
+	return 0 === closers.length
+}
+
+/**
+ * A raw `box-shadow` value from a string `style.shadow` (#900).
+ */
+function rawBoxShadow( value: string ): string {
+	const sanitized = sanitizeCss( value ).trim()
+
+	return isBalanced( sanitized ) ? sanitized : ''
 }
 
 function isPreset( layer: ResolvedShadowLayer ): boolean {
@@ -183,6 +215,10 @@ function appendPseudoToList( selector: string, pseudo: string ): string {
 function layerBoxShadowValue( layer: ResolvedShadowLayer ): string {
 	if ( isPreset( layer ) ) {
 		return presetBoxShadow( layer )
+	}
+
+	if ( null !== ( layer.value ?? null ) ) {
+		return rawBoxShadow( layer.value as string )
 	}
 
 	return solidBoxShadow( layer )

@@ -92,6 +92,7 @@ The block library — what ships, how to author your own, and how to wire respon
 
 - [[Developer Guide]] — Extending and customizing the editor
 - [[Hooks and Events]] — Filters, actions, and browser events for extending functionality
+- [[Translations]] — Translate the editor UI for the `artisanpack-visual-editor` text domain (v1.15.1)
 - [[Renderers]] — Blade, React, and Vue renderers for the public site
 - [[AI Features]] — Optional AI-powered authoring affordances (suggest next block, layout, alt text, rewrite, heading hierarchy) built on `artisanpack-ui/ai` (v1.3); gated on the `use_ai_features` capability, throttled, and payload-bounded since v1.12.1
 

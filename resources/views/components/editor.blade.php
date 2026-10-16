@@ -49,4 +49,7 @@
 	     partials, `VisualEditor::registerBlockStyle()`) registered into
 	     the Styles picker by `block-style-registry.ts`. --}}
 	data-block-styles="{{ json_encode( $blockStyles, JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS ) }}"
+	{{-- #896 — translations for the editor's text domain, from
+	     `lang/vendor/visual-editor/{locale}.json`. --}}
+	@isset($localeData) data-locale-data="{{ json_encode( $localeData, JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_UNESCAPED_UNICODE ) }}" @endisset
 ></div>

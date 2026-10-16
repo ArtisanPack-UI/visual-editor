@@ -48,7 +48,7 @@
 
 	$ariaLabel = (string) ( $attributes['ariaLabel'] ?? 'Breadcrumb' );
 
-	$baseClasses = [ 'ap-breadcrumbs' ];
+	$baseClasses = [ 'wp-block-artisanpack-breadcrumbs', 'ap-breadcrumbs' ];
 
 	$listAttrs     = $breadcrumbsSchema ? ' itemscope itemtype="https://schema.org/BreadcrumbList"' : '';
 	$listItemAttrs = $breadcrumbsSchema ? ' itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem"' : '';

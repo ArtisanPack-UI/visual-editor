@@ -809,7 +809,7 @@ it( 'renders the artisanpack/copyright block with the © + text + current year (
 	$year = gmdate( 'Y' );
 	$html = makeRenderer()->render( $tree );
 
-	expect( $html )->toContain( 'class="ap-copyright"' )
+	expect( $html )->toContain( 'class="wp-block-artisanpack-copyright ap-copyright"' )
 		->and( $html )->toContain( '© Acme, Inc. ' . $year )
 		->and( $html )->toContain( '<p' );
 } );
@@ -895,7 +895,7 @@ it( 'renders the artisanpack/comments-number block with the resolved count and p
 
 	$html = makeRenderer()->render( $tree );
 
-	expect( $html )->toContain( 'class="ap-comments-number"' )
+	expect( $html )->toContain( 'class="wp-block-artisanpack-comments-number ap-comments-number"' )
 		->and( $html )->toContain( '5 Replies' )
 		->and( $html )->not->toContain( 'Reply<' );
 } );
@@ -943,8 +943,8 @@ it( 'renders an artisanpack/accordions tree with its nested panel + title/body g
 
 	$html = makeRenderer()->render( $tree );
 
-	expect( $html )->toContain( 'class="ap-accordions"' )
-		->and( $html )->toContain( 'class="ap-accordion"' )
+	expect( $html )->toContain( 'class="wp-block-artisanpack-accordions ap-accordions"' )
+		->and( $html )->toContain( 'class="wp-block-artisanpack-accordion ap-accordion"' )
 		->and( $html )->toContain( 'data-panel-id="faq-1"' )
 		->and( $html )->toContain( 'data-panel-icon="arrows"' )
 		->and( $html )->toContain( 'id="faq-1-control"' )
@@ -1137,7 +1137,7 @@ it( 'omits the FAQPage script when faqSchema is on but no accordion panels are p
 
 	$html = makeRenderer()->render( $tree );
 
-	expect( $html )->toContain( 'class="ap-accordions"' )
+	expect( $html )->toContain( 'class="wp-block-artisanpack-accordions ap-accordions"' )
 		->and( $html )->not->toContain( 'application/ld+json' )
 		->and( $html )->not->toContain( 'FAQPage' );
 } );
@@ -1193,7 +1193,7 @@ it( 'renders an artisanpack/faq block with question/answer pairs (#758)', functi
 
 	$html = makeRenderer()->render( $tree );
 
-	expect( $html )->toContain( 'class="ap-faq"' )
+	expect( $html )->toContain( 'class="wp-block-artisanpack-faq ap-faq"' )
 		->and( $html )->toContain( '<h3 class="ap-faq__question">What is ArtisanPack?</h3>' )
 		->and( $html )->toContain( '<div class="ap-faq__answer">A Laravel package suite.</div>' )
 		->and( $html )->toContain( '<h3 class="ap-faq__question">Is it free?</h3>' )
@@ -1389,7 +1389,7 @@ it( 'omits FAQPage JSON-LD for artisanpack/faq when emitSchema is on but every i
 
 	$html = makeRenderer()->render( $tree );
 
-	expect( $html )->toContain( 'class="ap-faq"' )
+	expect( $html )->toContain( 'class="wp-block-artisanpack-faq ap-faq"' )
 		->and( $html )->not->toContain( 'application/ld+json' )
 		->and( $html )->not->toContain( 'FAQPage' );
 } );
@@ -1448,7 +1448,7 @@ it( 'renders an artisanpack/howto block with ordered steps (#759)', function ():
 
 	$html = makeRenderer()->render( $tree );
 
-	expect( $html )->toContain( 'class="ap-howto"' )
+	expect( $html )->toContain( 'class="wp-block-artisanpack-howto ap-howto"' )
 		->and( $html )->toContain( '<h2 class="ap-howto__name">Brew Pour-Over Coffee</h2>' )
 		->and( $html )->toContain( '<p class="ap-howto__description">A quick guide to a great cup.</p>' )
 		->and( $html )->toContain( '<ol class="ap-howto__steps">' )
@@ -1728,7 +1728,7 @@ it( 'omits HowTo JSON-LD for artisanpack/howto when emitSchema is on but every s
 
 	$html = makeRenderer()->render( $tree );
 
-	expect( $html )->toContain( 'class="ap-howto"' )
+	expect( $html )->toContain( 'class="wp-block-artisanpack-howto ap-howto"' )
 		->and( $html )->not->toContain( 'application/ld+json' )
 		->and( $html )->not->toContain( '"HowTo"' );
 } );

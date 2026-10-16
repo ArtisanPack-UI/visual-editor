@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { referencedSlugs, resolveBoxShadow } from '../resolver'
+import { normalizeShadowSubtree, referencedSlugs, resolveBoxShadow } from '../resolver'
 
 describe( 'resolveBoxShadow', () => {
 	it( 'returns null for missing, null, or empty attributes', () => {
@@ -33,6 +33,7 @@ describe( 'resolveBoxShadow', () => {
 			gradient: null,
 			inset:    false,
 			preset:   null,
+			value:    null,
 		} )
 	} )
 
@@ -133,5 +134,59 @@ describe( 'referencedSlugs', () => {
 		} )
 
 		expect( slugs.gradients ).toEqual( [] )
+	} )
+} )
+
+describe( 'string shadow values (#900)', () => {
+	it( 'reads the var:preset|shadow|{slug} string WordPress saves as a preset', () => {
+		const resolved = resolveBoxShadow( { style: { shadow: 'var:preset|shadow|natural' } } )
+
+		expect( resolved!.idle!.preset ).toBe( 'natural' )
+		expect( resolved!.idle!.value ).toBeNull()
+	} )
+
+	it( 'reads a var(--wp--preset--shadow--{slug}) string as a preset', () => {
+		expect( normalizeShadowSubtree( 'var(--wp--preset--shadow--deep)' ) ).toEqual( { preset: 'deep' } )
+	} )
+
+	it( 'reads any other printable string as a raw box-shadow value', () => {
+		const resolved = resolveBoxShadow( { style: { shadow: ' 6px 6px 9px rgba(0, 0, 0, 0.2) ' } } )
+
+		expect( resolved!.idle!.preset ).toBeNull()
+		expect( resolved!.idle!.value ).toBe( '6px 6px 9px rgba(0, 0, 0, 0.2)' )
+	} )
+
+	it.each( [
+		[ 'empty', '   ' ],
+		[ 'rule breakout', '1px 1px red; } body { color: red' ],
+		[ 'unclosed paren', '1px 1px rgba(0, 0, 0' ],
+		[ 'markup', '</style><script>' ],
+	] )( 'drops a string that is unsafe to print or empty (%s)', ( _label, shadow ) => {
+		expect( resolveBoxShadow( { style: { shadow } } ) ).toBeNull()
+	} )
+
+	it( 'reads string values in the states and responsive bags', () => {
+		const resolved = resolveBoxShadow( {
+			states:     { 'style.shadow': { hover: 'var:preset|shadow|sharp' } },
+			responsive: { 'style.shadow': { md: '0 0 4px #000' } },
+		} )
+
+		expect( resolved!.states.hover.preset ).toBe( 'sharp' )
+		expect( resolved!.breakpoints.md.value ).toBe( '0 0 4px #000' )
+	} )
+
+	it( 'collects preset slugs referenced by string values', () => {
+		expect( referencedSlugs( {
+			style:  { shadow: 'var:preset|shadow|natural' },
+			states: { 'style.shadow': { hover: 'var:preset|shadow|crisp' } },
+		} ).shadows ).toEqual( [ 'natural', 'crisp' ] )
+	} )
+
+	it( 'passes structured subtrees through and ignores non-strings', () => {
+		const subtree = { blur: '4px' }
+
+		expect( normalizeShadowSubtree( subtree ) ).toBe( subtree )
+		expect( normalizeShadowSubtree( 42 ) ).toBeNull()
+		expect( normalizeShadowSubtree( [ 'x' ] ) ).toBeNull()
 	} )
 } )

@@ -17,6 +17,6 @@
 	$idAttr        = '' === $tabIdSlug ? '' : ' id="tabs-panel-' . $tabIdSlug . '"';
 	$labelledByAttr = '' === $tabIdSlug ? '' : ' aria-labelledby="tabs-tab-' . $tabIdSlug . '"';
 @endphp
-<div{!! BlockSupports::wrapperAttrs( $attributes, [ 'ap-tab-section' ] ) !!}{!! $idAttr !!} role="tabpanel"{!! $labelledByAttr !!}>
+<div{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-artisanpack-tab-section', 'ap-tab-section' ] ) !!}{!! $idAttr !!} role="tabpanel"{!! $labelledByAttr !!}>
 	{!! $innerBlocksHtml !!}
 </div>

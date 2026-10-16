@@ -38,7 +38,7 @@ export function SkillsSliderBlock({ attributes }: BlockRendererProps): JSX.Eleme
     const ariaLabel = attrString(attributes.ariaLabel);
     const className = attrString(attributes.className);
 
-    const classes = classList(['ap-skills-slider', className]);
+    const classes = classList(['wp-block-artisanpack-skills-slider', 'ap-skills-slider', className]);
 
     const trackStyle: CSSProperties = { height: `${height}px` };
     if (trackColor !== '') {

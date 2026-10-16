@@ -87,7 +87,7 @@
 		];
 	}
 
-	$baseClasses = [ 'ap-tabs', 'align-tabs-' . $tabsAlign, 'space-tabs-' . $tabsSpacing ];
+	$baseClasses = [ 'wp-block-artisanpack-tabs', 'ap-tabs', 'align-tabs-' . $tabsAlign, 'space-tabs-' . $tabsSpacing ];
 @endphp
 <div{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!} data-ap-tabs>
 	<div class="ap-tabs__list">
@@ -112,7 +112,7 @@
 	<div class="ap-tabs__container">
 		@foreach ( $tabs as $tab )
 			<div
-				class="ap-tab-section"
+				class="wp-block-artisanpack-tab-section ap-tab-section"
 				role="tabpanel"
 				id="tabs-panel-{{ $tab['tabId'] }}"
 				aria-labelledby="tabs-tab-{{ $tab['tabId'] }}"

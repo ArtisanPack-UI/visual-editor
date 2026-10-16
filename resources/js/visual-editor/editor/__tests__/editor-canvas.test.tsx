@@ -89,7 +89,8 @@ vi.mock('../post-title', () => ({
     ),
 }));
 
-import { canvasStyles } from '../canvas-styles';
+import { canvasStyles, FLEX_LAYOUT_STYLE } from '../canvas-styles';
+import { BreakpointRegistry, LEGACY_DEFAULTS, setResponsiveRegistry } from '../../responsive/registry';
 import { EditorCanvas } from '../editor-canvas';
 
 describe('EditorCanvas', () => {
@@ -532,6 +533,50 @@ describe('EditorCanvas', () => {
             renderCanvas();
 
             expect(lastStyles()).toBe(canvasStyles);
+        });
+    });
+
+    describe('#895 flex token rules at the host breakpoints', () => {
+        afterEach(() => {
+            setResponsiveRegistry(null);
+        });
+
+        function renderStyles(): { css: string }[] {
+            blockCanvasProps.mockClear();
+
+            render(
+                <EditorCanvas
+                    showTitle={false}
+                    title=""
+                    onTitleChange={() => undefined}
+                    blockContext={null}
+                />
+            );
+
+            return blockCanvasProps.mock.calls.at(-1)?.[0].styles as { css: string }[];
+        }
+
+        it('keeps the static stylesheet with the default breakpoints', () => {
+            expect(renderStyles()).toBe(canvasStyles);
+        });
+
+        it('swaps the static stylesheet for rules at a custom tablet width', () => {
+            setResponsiveRegistry(
+                new BreakpointRegistry([
+                    ...LEGACY_DEFAULTS,
+                    { key: 'tablet', maxWidthPx: 700, previewWidthPx: 700, label: 'Tablet' },
+                    { key: 'mobile', maxWidthPx: 599, previewWidthPx: 375, label: 'Mobile' },
+                ])
+            );
+
+            const styles = renderStyles();
+            const index = canvasStyles.indexOf(FLEX_LAYOUT_STYLE);
+
+            expect(index).toBeGreaterThan(-1);
+            expect(styles).toHaveLength(canvasStyles.length);
+            expect(styles).not.toContain(FLEX_LAYOUT_STYLE);
+            expect(styles[index]?.css).toContain('@media (max-width: 700px) {\n\t:where(.tablet\\:ap-flex)');
+            expect(styles.filter((_, i) => i !== index)).toEqual(canvasStyles.filter((_, i) => i !== index));
         });
     });
 });

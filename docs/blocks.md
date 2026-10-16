@@ -81,6 +81,22 @@ Block authors can wire **per-breakpoint** and **per-state** values into any cont
 
 Both registries are configured in `config/artisanpack/visual-editor.php` — see [[Configuration#breakpoints]] and [[Configuration#states]].
 
+### Grid on small screens
+
+*Since v1.15.1 (#901)*, an `artisanpack/grid` block collapses on small
+screens unless you set its column count for that device:
+
+| Breakpoint | No device value set | Override |
+|------------|---------------------|----------|
+| Tablet (1023px and below) | `min(columns, 2)` columns; wider items span at most 2 | Set **Columns** with the Tablet viewport active |
+| Mobile (767px and below) | 1 column; items drop their spans | Set **Columns** with the Mobile viewport active |
+
+A grid that sets any legacy breakpoint (`sm` … `2xl`) keeps its
+pre-1.15.1 behavior. The rules live in `grid.css`, which the canvas and
+all three renderers share, and the masonry fallback collapses the same
+way. Before 1.15.1 a three- or four-column grid kept its column count at
+every width and overflowed on phones.
+
 ---
 
 ## Effects and Custom CSS

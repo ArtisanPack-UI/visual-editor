@@ -216,8 +216,11 @@ class GlobalStylesController extends Controller
 		// settings and placed *before* the emitter's tokens so theme /
 		// style-variation / user values always win the `:root` cascade.
 		// Skipped when the emitter produced nothing (no active theme).
+		// #900 — WordPress's default shadow presets, the same way, so a
+		// `var:preset|shadow|natural` resolves on a theme with none.
 		if ( '' !== $emitted ) {
 			$parts[] = PresetRegistry::spacingPresetsCss( PresetRegistry::activeThemeSpacingSizes() );
+			$parts[] = PresetRegistry::shadowPresetsCss( PresetRegistry::activeThemeSettings()['shadow'] ?? null );
 		}
 
 		$parts[] = $emitted;

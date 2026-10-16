@@ -44,7 +44,7 @@ export function CopyrightBlock({ attributes }: BlockRendererProps): JSX.Element 
     const copyrightText = attrString(attributes.copyrightText, 'Copyright');
     const className = attrString(attributes.className);
 
-    const classes = classList(['ap-copyright', className]);
+    const classes = classList(['wp-block-artisanpack-copyright', 'ap-copyright', className]);
     const year = new Date().getUTCFullYear();
     const line = buildLine(copyrightType, copyrightText, year);
 

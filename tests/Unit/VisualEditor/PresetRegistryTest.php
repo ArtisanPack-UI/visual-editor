@@ -600,3 +600,37 @@ it( 'keeps the React / Vue renderers\' DEFAULT_SPACING_SIZES in sync with the pa
 	expect( $list( 'DEFAULT_FONT_SIZES', 'size' ) )->toBe( PresetRegistry::DEFAULT_FONT_SIZES );
 	expect( $list( 'DEFAULT_PALETTE', 'color' ) )->toBe( PresetRegistry::DEFAULT_PALETTE );
 } )->with( [ 'react', 'vue' ] );
+
+describe( 'shadowPresetsCss() (#900)', function (): void {
+	it( 'declares WordPress\'s five default shadow presets when the theme has none', function (): void {
+		$css = PresetRegistry::shadowPresetsCss( null );
+
+		expect( $css )
+			->toStartWith( ":root {\n\t" )
+			->toContain( '--wp--preset--shadow--natural: 6px 6px 9px rgba(0, 0, 0, 0.2);' )
+			->toContain( '--wp--preset--shadow--deep: 12px 12px 50px rgba(0, 0, 0, 0.4);' )
+			->toContain( '--wp--preset--shadow--sharp: 6px 6px 0px rgba(0, 0, 0, 0.2);' )
+			->toContain( '--wp--preset--shadow--outlined: 6px 6px 0px -3px rgb(255, 255, 255), 6px 6px rgb(0, 0, 0);' )
+			->toContain( '--wp--preset--shadow--crisp: 6px 6px 0px rgb(0, 0, 0);' );
+	} );
+
+	it( 'declares nothing when the theme sets defaultPresets to false', function (): void {
+		expect( PresetRegistry::shadowPresetsCss( [ 'defaultPresets' => false ] ) )->toBe( '' );
+	} );
+
+	it( 'leaves out a default slug the theme declares itself', function (): void {
+		$css = PresetRegistry::shadowPresetsCss( [
+			'presets' => [ [ 'slug' => 'natural', 'shadow' => '0 0 1px red' ] ],
+		] );
+
+		expect( $css )
+			->not->toContain( '--wp--preset--shadow--natural' )
+			->toContain( '--wp--preset--shadow--deep:' );
+	} );
+
+	it( 'is part of presetDefaultsCss() unless defaultPresets is false', function (): void {
+		expect( PresetRegistry::presetDefaultsCss( null ) )->toContain( '--wp--preset--shadow--natural:' );
+		expect( PresetRegistry::presetDefaultsCss( [ 'shadow' => [ 'defaultPresets' => false ] ] ) )
+			->not->toContain( '--wp--preset--shadow--' );
+	} );
+} );

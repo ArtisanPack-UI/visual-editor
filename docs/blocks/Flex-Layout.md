@@ -74,17 +74,32 @@ beat `tablet:` on phones. The legacy mobile-first prefixes (`sm:`,
 `md:`, `lg:`, `xl:`, `2xl:`) are still shipped so content saved before
 1.12.1 renders unchanged.
 
-The static `flex-layout.css` stylesheet only ships `tablet:` /
-`mobile:` rules for the default 1023px / 767px widths. If you move
-those breakpoints in config or `theme.json`, the Blade renderer's
-arbitrary-value rules follow the new widths (they're built from the
-registry), and since 1.15.0 so do the React and Vue flex serializers,
-once the host passes the server's breakpoints to `setBreakpoints()`
+The static `flex-layout.css` stylesheet ships the rules for the default
+breakpoint widths. If you move the breakpoints in config or
+`theme.json`, the Blade renderer's arbitrary-value rules follow the new
+widths (they're built from the registry). Since 1.15.0 so do the React
+and Vue flex serializers, once the host passes the server's breakpoints
+to `setBreakpoints()`
 (see [Responsive Design Tools](Responsive-Design-Tools.md#25-server-side-rendering)).
-The static utility classes don't follow — ship matching rules
-yourself. Saved editor markup always uses the package's default
-widths, so blocks don't go invalid when a host changes its
-breakpoints.
+
+*Since v1.15.1 (#895)*, the token classes (`tablet:ap-flex-col`,
+`md:ap-flex`, …) follow too:
+
+- **Blade.** `<x-ve-blocks-styles>` prints the token rules at the
+  registry's widths as `<style data-ve-flex-layout>`, in place of the
+  `flex-layout.css` link.
+- **React / Vue.** `<LayoutBaseline />` prints the same
+  `<style data-ve-flex-layout>` once `setBreakpoints()` has moved the
+  breakpoints. If your host links the published `flex-layout.css`, stop
+  linking it when you customize breakpoints. Its default-width rules
+  can't be overridden and would still fire.
+- **Editor canvas.** The canvas swaps the static sheet for the same
+  rules, so a device preview switches where the front end does.
+
+With the default breakpoints nothing changes: the static stylesheet is
+linked as before. Saved editor markup always uses the package's
+default class names, so blocks don't go invalid when a host changes
+its breakpoints.
 
 Arbitrary values (e.g. `ap-gap-x-[3.5rem]`, `ap-basis-[200px]`) come
 with a per-page `<style>` snippet emitted by the renderer — they don't

@@ -74,7 +74,7 @@ export function HowtoBlock({ attributes }: BlockRendererProps): JSX.Element {
     const description = attrString(attributes.description);
     const className = attrString(attributes.className);
 
-    const classes = classList(['ap-howto', className]);
+    const classes = classList(['wp-block-artisanpack-howto', 'ap-howto', className]);
 
     const StepNameTag = `h${level}` as 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 

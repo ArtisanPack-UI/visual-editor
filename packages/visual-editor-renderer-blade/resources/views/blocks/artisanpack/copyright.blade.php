@@ -23,6 +23,6 @@
 			: '© ' . $copyrightText . ' ' . $currentYear;
 	}
 
-	$baseClasses = [ 'ap-copyright' ];
+	$baseClasses = [ 'wp-block-artisanpack-copyright', 'ap-copyright' ];
 @endphp
 <p{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}>{{ $line }}</p>

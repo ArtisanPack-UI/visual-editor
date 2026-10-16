@@ -91,7 +91,7 @@ export function BusinessHoursBlock({ attributes }: BlockRendererProps): ReactEle
 
     const className = attrString(attributes.className);
     const ariaLabel = attrString(attributes.ariaLabel, 'Business hours');
-    const wrapperClasses = classList(['ap-business-hours', className]);
+    const wrapperClasses = classList(['wp-block-artisanpack-business-hours', 'ap-business-hours', className]);
 
     const orderedDays = DAY_ORDER.filter((day) =>
         Object.prototype.hasOwnProperty.call(hours, day)

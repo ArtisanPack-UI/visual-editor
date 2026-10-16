@@ -21,7 +21,7 @@ export function CommentsNumberBlock({
     const label = count === 1 ? singular : plural;
     const className = attrString(attributes.className);
 
-    const classes = classList(['ap-comments-number', className]);
+    const classes = classList(['wp-block-artisanpack-comments-number', 'ap-comments-number', className]);
     const line = `${count} ${label}`.trim();
 
     return <p className={classes}>{line}</p>;

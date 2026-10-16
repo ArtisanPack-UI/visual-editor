@@ -25,7 +25,7 @@ export const SingleContentBlock = defineComponent({
             }
 
             const className = attrString(props.attributes.className);
-            const classes = classList(['ap-single-content', className]);
+            const classes = classList(['wp-block-artisanpack-single-content', 'ap-single-content', className]);
 
             return h('div', { class: classes }, slots.default?.());
         };

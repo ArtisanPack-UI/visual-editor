@@ -14,6 +14,10 @@
  * resolver returns a layer whose `preset` field carries the slug,
  * and the emitter renders `box-shadow: var(--wp--preset--shadow--{slug})`.
  *
+ * A string value, the form WordPress core saves, is read as a preset
+ * reference (`var:preset|shadow|{slug}`) or a raw `box-shadow` value
+ * (#900).
+ *
  * The `gradient` field accepts both slugs (expanded to
  * `var(--wp--preset--gradient--{slug})`) and raw CSS gradient values.
  *
@@ -30,6 +34,76 @@ import type {
 
 const SLUG_RE      = /^[a-z0-9][a-z0-9_-]*$/i
 const SHADOW_PATHS = [ 'style.shadow', 'shadow' ]
+
+const PRESET_REFERENCE_RE = /^var:preset\|shadow\|([a-z0-9][a-z0-9_-]*)$/i
+const PRESET_VARIABLE_RE  = /^var\(\s*--wp--preset--shadow--([a-z0-9][a-z0-9_-]*)\s*\)$/i
+const UNSAFE_CSS_RE       = /[;{}<>\\\x00-\x1F\x7F]|\/\*|\*\//
+
+/**
+ * Whether quotes close and parentheses / brackets balance without
+ * crossing — the string-aware part of PHP `CssValue::isPrintable()`.
+ */
+function isPrintableCss( value: string ): boolean {
+	if ( UNSAFE_CSS_RE.test( value ) ) {
+		return false
+	}
+
+	let quote: string | null = null
+	const closers: string[]  = []
+
+	for ( const char of value ) {
+		if ( null !== quote ) {
+			if ( char === quote ) {
+				quote = null
+			}
+			continue
+		}
+
+		if ( '"' === char || "'" === char ) {
+			quote = char
+		} else if ( '(' === char ) {
+			closers.push( ')' )
+		} else if ( '[' === char ) {
+			closers.push( ']' )
+		} else if ( ( ')' === char || ']' === char ) && closers.pop() !== char ) {
+			return false
+		}
+	}
+
+	return null === quote && 0 === closers.length
+}
+
+/**
+ * Read a stored shadow value as a structured subtree. Objects pass
+ * through. A string is the form WordPress core saves:
+ * `var:preset|shadow|{slug}` (or the `var(--wp--preset--shadow--{slug})`
+ * it compiles to) becomes `{ preset: slug }`, and any other string that
+ * is safe to print becomes `{ value }`, a raw `box-shadow` value (#900).
+ * Mirrors PHP `BoxShadowResolver::normalizeSubtree()`.
+ */
+export function normalizeShadowSubtree( value: unknown ): ShadowSubtree | null {
+	if ( value && 'object' === typeof value && ! Array.isArray( value ) ) {
+		return value as ShadowSubtree
+	}
+
+	if ( 'string' !== typeof value ) {
+		return null
+	}
+
+	const trimmed = value.trim()
+
+	if ( '' === trimmed ) {
+		return null
+	}
+
+	const preset = PRESET_REFERENCE_RE.exec( trimmed ) ?? PRESET_VARIABLE_RE.exec( trimmed )
+
+	if ( null !== preset ) {
+		return { preset: preset[ 1 ] }
+	}
+
+	return isPrintableCss( trimmed ) ? { value: trimmed } : null
+}
 
 function expandGradient( value: unknown ): string | null {
 	if ( 'string' !== typeof value ) {
@@ -69,12 +143,15 @@ function expandPreset( value: unknown ): string | null {
 	return slug
 }
 
-function resolveLayer( subtree: ShadowSubtree | null | undefined ): ResolvedShadowLayer | null {
-	if ( ! subtree || 'object' !== typeof subtree ) {
+function resolveLayer( raw: unknown ): ResolvedShadowLayer | null {
+	const subtree = normalizeShadowSubtree( raw )
+
+	if ( null === subtree ) {
 		return null
 	}
 
 	const preset = expandPreset( subtree.preset )
+	const value  = trimmedString( subtree.value )
 
 	// Defaults are `0px`, not `0`. Safari (and the CSS spec) require
 	// a unit inside `calc()` — `calc(-1 * 0)` is invalid because `0`
@@ -102,7 +179,7 @@ function resolveLayer( subtree: ShadowSubtree | null | undefined ): ResolvedShad
 		|| null !== gradient
 		|| true === subtree.inset
 
-	if ( null === preset && ! hasStructured ) {
+	if ( null === preset && null === value && ! hasStructured ) {
 		return null
 	}
 
@@ -115,11 +192,12 @@ function resolveLayer( subtree: ShadowSubtree | null | undefined ): ResolvedShad
 		gradient,
 		inset,
 		preset,
+		value,
 	}
 }
 
 function collectOverrides(
-	bag: Record<string, Record<string, ShadowSubtree | null>> | null | undefined,
+	bag: Record<string, Record<string, ShadowSubtree | string | null>> | null | undefined,
 ): Record<string, ResolvedShadowLayer> {
 	if ( ! bag || 'object' !== typeof bag ) {
 		return {}
@@ -220,9 +298,11 @@ export function referencedSlugs(
 function collectSubtreeSlugs(
 	shadows: string[],
 	gradients: string[],
-	subtree: ShadowSubtree | null | undefined,
+	raw: unknown,
 ): void {
-	if ( ! subtree || 'object' !== typeof subtree ) {
+	const subtree = normalizeShadowSubtree( raw )
+
+	if ( null === subtree ) {
 		return
 	}
 
@@ -242,7 +322,7 @@ function collectSubtreeSlugs(
 function collectSlugsFromBag(
 	shadows: string[],
 	gradients: string[],
-	bag: Record<string, Record<string, ShadowSubtree | null>> | null | undefined,
+	bag: Record<string, Record<string, ShadowSubtree | string | null>> | null | undefined,
 ): void {
 	if ( ! bag || 'object' !== typeof bag ) {
 		return

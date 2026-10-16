@@ -104,6 +104,23 @@ published page as it does in the canvas. A preset value that could
 break out of the generated stylesheet is dropped instead of printed
 (see [Global styles: value safety](site-editor/Global-Styles.md#value-safety)).
 
+*Since v1.15.1 (#900)*, WordPress's five default shadow presets are
+declared too, on the front end (`<x-ve-blocks-styles>`, `<x-ve-blocks>`)
+and in the editor canvas, unless the theme sets
+`settings.shadow.defaultPresets` to `false`:
+
+| Slug | Value |
+|------|-------|
+| `natural` | `6px 6px 9px rgba(0, 0, 0, 0.2)` |
+| `deep` | `12px 12px 50px rgba(0, 0, 0, 0.4)` |
+| `sharp` | `6px 6px 0px rgba(0, 0, 0, 0.2)` |
+| `outlined` | `6px 6px 0px -3px rgb(255, 255, 255), 6px 6px rgb(0, 0, 0)` |
+| `crisp` | `6px 6px 0px rgb(0, 0, 0)` |
+
+A slug the theme declares itself keeps the theme's value. So content
+imported from WordPress that references `natural` or `deep` resolves
+even on a theme with no shadow presets of its own.
+
 ## Attribute shape
 
 The inspector writes a structured subtree at `attributes.style.shadow`:
@@ -126,6 +143,18 @@ The inspector writes a structured subtree at `attributes.style.shadow`:
 }
 ```
 
+*Since v1.15.1 (#900)*, `style.shadow` (and any state or breakpoint
+override) may also be a string, the form WordPress core saves:
+
+- `"var:preset|shadow|natural"` or `"var(--wp--preset--shadow--natural)"`
+  is read as `{ "preset": "natural" }`.
+- Any other string is used as a raw `box-shadow` value, such as
+  `"0 2px 4px rgba(0, 0, 0, 0.3)"`. A value that could break out of the
+  stylesheet is dropped instead.
+
+Editing the shadow in the inspector rewrites a string value in the
+structured form.
+
 A state or breakpoint override is the same structured subtree under
 `attributes.states['style.shadow'][stateKey]` or
 `attributes.responsive['style.shadow'][breakpointKey]`. Writes of
@@ -141,11 +170,13 @@ legacy keys (`sm`, `md`, `lg`, `xl`, `2xl`) keep their original
 
 ## CSS emission
 
-Three emission modes, dispatched per resolved layer:
+Four emission modes, dispatched per resolved layer:
 
 1. **Preset** — `box-shadow: var(--wp--preset--shadow--{slug})`.
-2. **Solid** — stock `box-shadow: [inset] X Y blur spread color`.
-3. **Gradient** — `::before` (outer) or `::after` (inset) pseudo-
+2. **Raw** (since 1.15.1) — `box-shadow: {value}`, for a string
+   `style.shadow` that isn't a preset reference.
+3. **Solid** — stock `box-shadow: [inset] X Y blur spread color`.
+4. **Gradient** — `::before` (outer) or `::after` (inset) pseudo-
    element painting the gradient, blurred via `filter: blur(<blur>)`,
    translated by `transform: translate(<X>, <Y>)`. The inset variant
    additionally applies a `mask-composite: exclude` ring mask so the

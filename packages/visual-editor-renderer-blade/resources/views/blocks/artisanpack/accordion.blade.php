@@ -45,7 +45,7 @@
 			$titleIdAttr       = '' === $controlId ? '' : ' id="' . $controlId . '"';
 			$titleHtml = sprintf(
 				'<div%s><div class="ap-accordion__title-content" role="button" tabindex="0" aria-expanded="false"%s%s>%s</div><span class="ap-accordion__icon ap-accordion__icon--%s" aria-hidden="true"></span></div>',
-				BlockSupports::wrapperAttrs( $childAttributes, [ 'ap-accordion__title' ] ),
+				BlockSupports::wrapperAttrs( $childAttributes, [ 'wp-block-artisanpack-accordion-title', 'ap-accordion__title' ] ),
 				$titleIdAttr,
 				$titleControlsAttr,
 				$childInner,
@@ -59,7 +59,7 @@
 			$bodyLabelledByAttr = '' === $controlId ? '' : ' aria-labelledby="' . $controlId . '"';
 			$bodyHtml = sprintf(
 				'<div%s%s role="region"%s hidden>%s</div>',
-				BlockSupports::wrapperAttrs( $childAttributes, [ 'ap-accordion__body' ] ),
+				BlockSupports::wrapperAttrs( $childAttributes, [ 'wp-block-artisanpack-accordion-body', 'ap-accordion__body' ] ),
 				$bodyIdAttr,
 				$bodyLabelledByAttr,
 				$childInner
@@ -68,7 +68,7 @@
 		}
 	}
 @endphp
-<div{!! BlockSupports::wrapperAttrs( $attributes, [ 'ap-accordion' ] ) !!}{!! $panelIdAttr !!}{!! $panelIconAttr !!}>
+<div{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-artisanpack-accordion', 'ap-accordion' ] ) !!}{!! $panelIdAttr !!}{!! $panelIconAttr !!}>
 	{!! $titleHtml !!}
 	{!! $bodyHtml !!}
 </div>

@@ -39,7 +39,7 @@ export const BusinessAddressBlock = defineComponent({
 
             const className = attrString(attributes.className);
             const ariaLabel = attrString(attributes.ariaLabel, 'Business address');
-            const wrapperClasses = classList(['ap-business-address', className]);
+            const wrapperClasses = classList(['wp-block-artisanpack-business-address', 'ap-business-address', className]);
 
             const children: VNode[] = [];
 

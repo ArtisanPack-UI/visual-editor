@@ -35,7 +35,7 @@
 	}
 @endphp
 @if ( $isActive )
-	<div{!! BlockSupports::wrapperAttrs( $attributes, [ 'ap-single-post-types-search-results' ] ) !!}>
+	<div{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-artisanpack-single-post-types-search-results', 'ap-single-post-types-search-results' ] ) !!}>
 		{!! $innerBlocksHtml !!}
 	</div>
 @endif

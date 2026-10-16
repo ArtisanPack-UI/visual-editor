@@ -35,7 +35,7 @@ export const LoginoutBlock = defineComponent({
                       : 'logged-out'
             );
             const className = attrString(attributes.className);
-            const classes = classList([resolvedClass, className]);
+            const classes = classList(['wp-block-artisanpack-loginout', resolvedClass, className]);
 
             if (showForm) {
                 // The login form HTML comes from a host-side filter;

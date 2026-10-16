@@ -279,6 +279,27 @@ describe( 'GET /visual-editor/api/global-styles/css', function (): void {
 			->toContain( '--wp--preset--spacing--70: 7rem;' );
 	} );
 
+	it( 'declares WordPress\'s default shadow presets unless the theme opts out (#900)', function ( array $settings, bool $declared ): void {
+		$this->mock( ThemeManager::class, function ( $mock ) use ( $settings ): void {
+			$mock->shouldReceive( 'getActiveTheme' )->andReturn( [
+				'name'     => 'Digital Shopfront',
+				'slug'     => 'digital-shopfront',
+				'settings' => $settings,
+				'styles'   => [],
+			] );
+			stubThemeManagerHelpersForGlobalStylesTest( $mock );
+		} );
+
+		rebuildSiteEditorResolversForGlobalStylesTest();
+
+		$css = $this->get( '/visual-editor/api/global-styles/css' )->assertOk()->getContent();
+
+		expect( str_contains( $css, '--wp--preset--shadow--natural: 6px 6px 9px rgba(0, 0, 0, 0.2);' ) )->toBe( $declared );
+	} )->with( [
+		'no shadow settings'    => [ [ 'color' => [ 'palette' => [ [ 'slug' => 'primary', 'color' => '#0f172a' ] ] ] ], true ],
+		'defaultPresets false'  => [ [ 'color' => [ 'palette' => [ [ 'slug' => 'primary', 'color' => '#0f172a' ] ] ], 'shadow' => [ 'defaultPresets' => false ] ], false ],
+	] );
+
 	it( 'declares the theme\'s own spacing presets instead of the defaults when it ships some (#814)', function (): void {
 		$this->mock( ThemeManager::class, function ( $mock ): void {
 			$mock->shouldReceive( 'getActiveTheme' )->andReturn( [

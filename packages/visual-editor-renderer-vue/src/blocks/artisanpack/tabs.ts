@@ -95,6 +95,7 @@ export const TabsBlock = defineComponent({
             const tabsSpacing = normalizeSpacing(props.attributes.tabsSpacing);
             const className = attrString(props.attributes.className);
             const classes = classList([
+                'wp-block-artisanpack-tabs',
                 'ap-tabs',
                 `align-tabs-${tabsAlign}`,
                 `space-tabs-${tabsSpacing}`,
@@ -146,7 +147,7 @@ export const TabsBlock = defineComponent({
                     'div',
                     {
                         key: `panel-${index}-${tab.tabId}`,
-                        class: 'ap-tab-section',
+                        class: 'wp-block-artisanpack-tab-section ap-tab-section',
                         role: 'tabpanel',
                         id: `tabs-panel-${tab.tabId}`,
                         'aria-labelledby': `tabs-tab-${tab.tabId}`,
@@ -175,7 +176,7 @@ export const TabSectionBlock = defineComponent({
         return () => {
             const tabId = attrString(props.attributes.tabId);
             const className = attrString(props.attributes.className);
-            const classes = classList(['ap-tab-section', className]);
+            const classes = classList(['wp-block-artisanpack-tab-section', 'ap-tab-section', className]);
 
             const attrs: Record<string, unknown> = {
                 class: classes,

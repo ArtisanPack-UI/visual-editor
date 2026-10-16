@@ -46,7 +46,7 @@ export const CopyrightBlock = defineComponent({
             const copyrightText = attrString(props.attributes.copyrightText, 'Copyright');
             const className = attrString(props.attributes.className);
 
-            const classes = classList(['ap-copyright', className]);
+            const classes = classList(['wp-block-artisanpack-copyright', 'ap-copyright', className]);
             const year = new Date().getUTCFullYear();
             const line = buildLine(copyrightType, copyrightText, year);
 

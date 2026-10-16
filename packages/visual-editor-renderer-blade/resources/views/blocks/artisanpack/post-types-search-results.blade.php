@@ -7,6 +7,6 @@
 @php
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 @endphp
-<div{!! BlockSupports::wrapperAttrs( $attributes, [ 'ap-post-types-search-results' ] ) !!}>
+<div{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-artisanpack-post-types-search-results', 'ap-post-types-search-results' ] ) !!}>
 	{!! $innerBlocksHtml !!}
 </div>

@@ -13,18 +13,36 @@
  * Mount once near the top of the layout (alongside `<GlobalStyles />`).
  * The component takes no props — the rules are renderer-static.
  *
+ * When `setBreakpoints()` moved the breakpoints off the defaults, it also
+ * prints the Flex Layout token rules at those widths
+ * (`<style data-ve-flex-layout>`, #895), replacing the static
+ * `flex-layout.css` the host would otherwise link.
+ *
  * @since 1.0.0
  */
 
 import type { ReactElement } from 'react';
 
+import { flexLayoutCss } from './support/flexLayoutCss';
 import { LAYOUT_BASELINE_CSS } from './support/layoutBaselineCss';
 
 export function LayoutBaseline(): ReactElement {
-    return (
+    const baseline = (
         <style
             data-ve-layout-baseline=""
             dangerouslySetInnerHTML={{ __html: LAYOUT_BASELINE_CSS }}
         />
+    );
+    const flexCss = flexLayoutCss();
+
+    if (flexCss === '') {
+        return baseline;
+    }
+
+    return (
+        <>
+            {baseline}
+            <style data-ve-flex-layout="" dangerouslySetInnerHTML={{ __html: flexCss }} />
+        </>
     );
 }

@@ -63,7 +63,7 @@ export function SearchFieldBlock({ attributes }: BlockRendererProps): JSX.Elemen
     const searchValue = attrString(attributes._resolvedSearchValue);
     const className = attrString(attributes.className);
 
-    const classes = classList(['ap-search-field', className]);
+    const classes = classList(['wp-block-artisanpack-search-field', 'ap-search-field', className]);
     const inputId = `ap-search-field-${shortHash(
         `${label}|${placeholder}|${searchValue}`
     )}`;
@@ -93,7 +93,7 @@ export function SearchFiltersBlock({
     const action = safeUrl(attrString(attributes._resolvedFormAction, '/')) || '/';
     const className = attrString(attributes.className);
 
-    const classes = classList(['ap-search-filters', className]);
+    const classes = classList(['wp-block-artisanpack-search-filters', 'ap-search-filters', className]);
 
     return (
         <div className={classes}>
@@ -112,7 +112,7 @@ export function SearchFiltersButtonsBlock({
     const clearLabel = attrString(attributes.clearLabel, 'Clear');
     const className = attrString(attributes.className);
 
-    const classes = classList(['ap-search-filters-buttons', className]);
+    const classes = classList(['wp-block-artisanpack-search-filters-buttons', 'ap-search-filters-buttons', className]);
 
     return (
         <div className={classes}>
@@ -141,7 +141,7 @@ export function SearchFiltersTaxonomyBlock({
     const terms = normalizeTerms(attributes._resolvedTerms);
     const selectedTerm = attrString(attributes._resolvedSelectedTerm);
 
-    const classes = classList(['ap-search-filters-taxonomy', className]);
+    const classes = classList(['wp-block-artisanpack-search-filters-taxonomy', 'ap-search-filters-taxonomy', className]);
     const selectId = `ap-search-filters-taxonomy-${taxonomy}`;
 
     return (
@@ -174,7 +174,7 @@ export function PostTypesSearchResultsBlock({
     children,
 }: BlockRendererProps): JSX.Element {
     const className = attrString(attributes.className);
-    const classes = classList(['ap-post-types-search-results', className]);
+    const classes = classList(['wp-block-artisanpack-post-types-search-results', 'ap-post-types-search-results', className]);
 
     return <div className={classes}>{children}</div>;
 }
@@ -189,7 +189,7 @@ export function SinglePostTypesSearchResultsBlock({
     }
 
     const className = attrString(attributes.className);
-    const classes = classList(['ap-single-post-types-search-results', className]);
+    const classes = classList(['wp-block-artisanpack-single-post-types-search-results', 'ap-single-post-types-search-results', className]);
 
     return <div className={classes}>{children}</div>;
 }

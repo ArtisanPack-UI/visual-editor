@@ -287,6 +287,31 @@ describe( 'stacking at the mobile breakpoint (#820)', function (): void {
 	} );
 } );
 
+describe( 'Flex Layout token rules at the host breakpoints (#895)', function (): void {
+	it( 'links the static stylesheet when the breakpoints are the defaults', function (): void {
+		expect( Blade::render( '<x-ve-blocks-styles />' ) )
+			->toContain( '/frontend/flex-layout.css" data-ve-flex-layout>' )
+			->not->toContain( '<style data-ve-flex-layout>' );
+	} );
+
+	it( 'prints the token rules inline at a custom tablet width instead', function (): void {
+		app()->instance(
+			ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry::class,
+			ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry::fromLayers( [ 'tablet' => [ 'maxWidthPx' => 700, 'previewWidthPx' => 700 ] ] ),
+		);
+
+		$rendered = Blade::render( '<x-ve-blocks-styles />' );
+
+		expect( $rendered )
+			->toContain( '<style data-ve-flex-layout>' )
+			->not->toContain( 'flex-layout.css' )
+			->toContain( '.ap-flex-col { flex-direction: column; }' )
+			->toContain( "@media (max-width: 700px) {\n\t:where(.tablet\\:ap-flex) > * + * { margin-block-start: 0; }" )
+			->toContain( "\t.tablet\\:ap-flex-col { flex-direction: column; }" )
+			->not->toContain( '@media (max-width: 1023px)' );
+	} );
+} );
+
 it( 'floats alignleft / alignright under any flow or constrained layout (#819)', function (): void {
 	$rendered = Blade::render( '<x-ve-blocks-styles />' );
 

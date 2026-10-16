@@ -31,7 +31,7 @@
 	$resolvedClass = isset( $attributes['_resolvedLoginoutClass'] ) && is_string( $attributes['_resolvedLoginoutClass'] )
 		? $attributes['_resolvedLoginoutClass']
 		: ( $isUserLoggedIn ? 'logged-in' : ( $showForm ? 'logged-out has-login-form' : 'logged-out' ) );
-	$baseClasses = array_values( array_filter( preg_split( '/\s+/', $resolvedClass ) ?: [] ) );
+	$baseClasses = array_merge( [ 'wp-block-artisanpack-loginout' ], array_values( array_filter( preg_split( '/\s+/', $resolvedClass ) ?: [] ) ) );
 @endphp
 <div{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}>
 @if ( $showForm )

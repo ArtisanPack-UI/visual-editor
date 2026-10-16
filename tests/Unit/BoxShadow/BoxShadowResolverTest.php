@@ -156,3 +156,59 @@ describe( 'BoxShadowResolver::referencedSlugs', function (): void {
 		expect( $slugs['gradients'] )->toBe( [] );
 	} );
 } );
+
+describe( 'BoxShadowResolver string values (#900)', function (): void {
+	it( 'reads the var:preset|shadow|{slug} string WordPress saves as a preset', function (): void {
+		$resolved = BoxShadowResolver::resolve( [
+			'style' => [ 'shadow' => 'var:preset|shadow|natural' ],
+		] );
+
+		expect( $resolved['idle']['preset'] )->toBe( 'natural' );
+		expect( $resolved['idle']['value'] )->toBeNull();
+	} );
+
+	it( 'reads a var(--wp--preset--shadow--{slug}) string as a preset', function (): void {
+		$resolved = BoxShadowResolver::resolve( [
+			'style' => [ 'shadow' => 'var(--wp--preset--shadow--deep)' ],
+		] );
+
+		expect( $resolved['idle']['preset'] )->toBe( 'deep' );
+	} );
+
+	it( 'reads any other printable string as a raw box-shadow value', function (): void {
+		$resolved = BoxShadowResolver::resolve( [
+			'style' => [ 'shadow' => ' 6px 6px 9px rgba(0, 0, 0, 0.2) ' ],
+		] );
+
+		expect( $resolved['idle']['preset'] )->toBeNull();
+		expect( $resolved['idle']['value'] )->toBe( '6px 6px 9px rgba(0, 0, 0, 0.2)' );
+	} );
+
+	it( 'drops a string that is unsafe to print or empty', function ( string $shadow ): void {
+		expect( BoxShadowResolver::resolve( [ 'style' => [ 'shadow' => $shadow ] ] ) )->toBeNull();
+	} )->with( [
+		'empty'          => [ '   ' ],
+		'rule breakout'  => [ '1px 1px red; } body { color: red' ],
+		'unclosed paren' => [ '1px 1px rgba(0, 0, 0' ],
+		'markup'         => [ '</style><script>' ],
+	] );
+
+	it( 'reads string values in the states and responsive bags', function (): void {
+		$resolved = BoxShadowResolver::resolve( [
+			'states'     => [ 'style.shadow' => [ 'hover' => 'var:preset|shadow|sharp' ] ],
+			'responsive' => [ 'style.shadow' => [ 'md' => '0 0 4px #000' ] ],
+		] );
+
+		expect( $resolved['states']['hover']['preset'] )->toBe( 'sharp' );
+		expect( $resolved['breakpoints']['md']['value'] )->toBe( '0 0 4px #000' );
+	} );
+
+	it( 'collects preset slugs referenced by string values', function (): void {
+		$slugs = BoxShadowResolver::referencedSlugs( [
+			'style'  => [ 'shadow' => 'var:preset|shadow|natural' ],
+			'states' => [ 'style.shadow' => [ 'hover' => 'var:preset|shadow|crisp' ] ],
+		] );
+
+		expect( $slugs['shadows'] )->toBe( [ 'natural', 'crisp' ] );
+	} );
+} );

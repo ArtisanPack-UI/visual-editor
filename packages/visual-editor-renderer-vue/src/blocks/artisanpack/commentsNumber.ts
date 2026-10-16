@@ -24,7 +24,7 @@ export const CommentsNumberBlock = defineComponent({
             const label = count === 1 ? singular : plural;
             const className = attrString(props.attributes.className);
 
-            const classes = classList(['ap-comments-number', className]);
+            const classes = classList(['wp-block-artisanpack-comments-number', 'ap-comments-number', className]);
             const line = `${count} ${label}`.trim();
 
             return h('p', { class: classes }, line);

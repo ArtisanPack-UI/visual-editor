@@ -32,7 +32,7 @@
 	$barColor   = $safeColor( $barColor );
 	$trackColor = $safeColor( $trackColor );
 
-	$baseClasses = [ 'ap-skills-slider' ];
+	$baseClasses = [ 'wp-block-artisanpack-skills-slider', 'ap-skills-slider' ];
 
 	$compiled = BlockSupports::compile( $attributes );
 	$classes  = array_values( array_unique( array_merge( $baseClasses, $compiled['classes'] ) ) );

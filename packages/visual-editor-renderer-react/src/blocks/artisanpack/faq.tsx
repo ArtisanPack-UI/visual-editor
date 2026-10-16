@@ -68,7 +68,7 @@ export function FaqBlock({ attributes }: BlockRendererProps): JSX.Element {
     const items = normalizeItems(attributes.items);
     const className = attrString(attributes.className);
 
-    const classes = classList(['ap-faq', className]);
+    const classes = classList(['wp-block-artisanpack-faq', 'ap-faq', className]);
 
     const QuestionTag = `h${level}` as 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 

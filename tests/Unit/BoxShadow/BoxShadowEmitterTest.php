@@ -156,3 +156,29 @@ describe( 'BoxShadowEmitter::emit', function (): void {
 		expect( $css )->not->toContain( '"' );
 	} );
 } );
+
+describe( 'BoxShadowEmitter raw values (#900)', function (): void {
+	it( 'emits a raw value as the box-shadow declaration', function (): void {
+		$css = $this->emitter->emit( '.scope', [
+			'idle' => bsLayer( [ 'value' => '6px 6px 9px rgba(0, 0, 0, 0.2)' ] ),
+		] );
+
+		expect( $css )->toBe( '.scope{box-shadow:6px 6px 9px rgba(0, 0, 0, 0.2)}' );
+	} );
+
+	it( 'lets a preset win over a raw value', function (): void {
+		$css = $this->emitter->emit( '.scope', [
+			'idle' => bsLayer( [ 'preset' => 'natural', 'value' => '1px 1px red' ] ),
+		] );
+
+		expect( $css )->toBe( '.scope{box-shadow:var(--wp--preset--shadow--natural)}' );
+	} );
+
+	it( 'drops a raw value whose parentheses do not balance once sanitised', function (): void {
+		$css = $this->emitter->emit( '.scope', [
+			'idle' => bsLayer( [ 'value' => '1px 1px rgba(0, 0, 0' ] ),
+		] );
+
+		expect( $css )->toBe( '' );
+	} );
+} );

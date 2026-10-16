@@ -332,6 +332,15 @@
 
 /* === tablet: 1023px and below — desktop-first override (#820) === */
 @media (max-width: 1023px) {
+    /*
+     * #901 — a grid of three or more columns with no Tablet (or legacy)
+     * column count drops to two columns, and its wider items to a span
+     * of two so they don't add implicit columns. An explicit Tablet
+     * value opts out.
+     */
+    .ap-grid:is(.ap-grid-has-3-base-columns, .ap-grid-has-4-base-columns, .ap-grid-has-5-base-columns, .ap-grid-has-6-base-columns, .ap-grid-has-7-base-columns, .ap-grid-has-8-base-columns, .ap-grid-has-9-base-columns, .ap-grid-has-10-base-columns, .ap-grid-has-11-base-columns, .ap-grid-has-12-base-columns):not([class*="-sm-columns"]):not([class*="-md-columns"]):not([class*="-lg-columns"]):not([class*="-xl-columns"]):not([class*="-2xl-columns"]):not([class*="-tablet-columns"]) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ap-grid:is(.ap-grid-has-3-base-columns, .ap-grid-has-4-base-columns, .ap-grid-has-5-base-columns, .ap-grid-has-6-base-columns, .ap-grid-has-7-base-columns, .ap-grid-has-8-base-columns, .ap-grid-has-9-base-columns, .ap-grid-has-10-base-columns, .ap-grid-has-11-base-columns, .ap-grid-has-12-base-columns):not([class*="-sm-columns"]):not([class*="-md-columns"]):not([class*="-lg-columns"]):not([class*="-xl-columns"]):not([class*="-2xl-columns"]):not([class*="-tablet-columns"]) > .ap-grid-item:is(.ap-grid-item-span-3-base-columns, .ap-grid-item-span-4-base-columns, .ap-grid-item-span-5-base-columns, .ap-grid-item-span-6-base-columns, .ap-grid-item-span-7-base-columns, .ap-grid-item-span-8-base-columns, .ap-grid-item-span-9-base-columns, .ap-grid-item-span-10-base-columns, .ap-grid-item-span-11-base-columns, .ap-grid-item-span-12-base-columns, .ap-grid-item-span-3-tablet-columns, .ap-grid-item-span-4-tablet-columns, .ap-grid-item-span-5-tablet-columns, .ap-grid-item-span-6-tablet-columns, .ap-grid-item-span-7-tablet-columns, .ap-grid-item-span-8-tablet-columns, .ap-grid-item-span-9-tablet-columns, .ap-grid-item-span-10-tablet-columns, .ap-grid-item-span-11-tablet-columns, .ap-grid-item-span-12-tablet-columns) { grid-column: span 2; }
+
     .ap-grid.ap-grid-has-1-tablet-columns { grid-template-columns: repeat(1, minmax(0, 1fr)); }
     .ap-grid.ap-grid-has-2-tablet-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .ap-grid.ap-grid-has-3-tablet-columns { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -374,6 +383,14 @@
 
 /* === mobile: 767px and below — desktop-first override (#820) === */
 @media (max-width: 767px) {
+    /*
+     * #901 — a grid of two or more columns with no Mobile (or legacy)
+     * column count stacks to one column on phones, and its items drop
+     * their spans. An explicit Mobile value opts out.
+     */
+    .ap-grid:is(.ap-grid-has-2-base-columns, .ap-grid-has-3-base-columns, .ap-grid-has-4-base-columns, .ap-grid-has-5-base-columns, .ap-grid-has-6-base-columns, .ap-grid-has-7-base-columns, .ap-grid-has-8-base-columns, .ap-grid-has-9-base-columns, .ap-grid-has-10-base-columns, .ap-grid-has-11-base-columns, .ap-grid-has-12-base-columns):not([class*="-sm-columns"]):not([class*="-md-columns"]):not([class*="-lg-columns"]):not([class*="-xl-columns"]):not([class*="-2xl-columns"]):not([class*="-mobile-columns"]) { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+    .ap-grid:is(.ap-grid-has-2-base-columns, .ap-grid-has-3-base-columns, .ap-grid-has-4-base-columns, .ap-grid-has-5-base-columns, .ap-grid-has-6-base-columns, .ap-grid-has-7-base-columns, .ap-grid-has-8-base-columns, .ap-grid-has-9-base-columns, .ap-grid-has-10-base-columns, .ap-grid-has-11-base-columns, .ap-grid-has-12-base-columns):not([class*="-sm-columns"]):not([class*="-md-columns"]):not([class*="-lg-columns"]):not([class*="-xl-columns"]):not([class*="-2xl-columns"]):not([class*="-mobile-columns"]) > .ap-grid-item { grid-column: auto; }
+
     .ap-grid.ap-grid-has-1-mobile-columns { grid-template-columns: repeat(1, minmax(0, 1fr)); }
     .ap-grid.ap-grid-has-2-mobile-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .ap-grid.ap-grid-has-3-mobile-columns { grid-template-columns: repeat(3, minmax(0, 1fr)); }

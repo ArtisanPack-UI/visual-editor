@@ -31,7 +31,7 @@
 
 	$showIcon = ! empty( $attributes['showIcon'] );
 
-	$baseClasses = [ 'ap-business-email' ];
+	$baseClasses = [ 'wp-block-artisanpack-business-email', 'ap-business-email' ];
 @endphp
 <div{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}>
 	@if ( $isValidEmail )

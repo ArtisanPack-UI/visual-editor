@@ -111,6 +111,22 @@ class PresetRegistry
 	];
 
 	/**
+	 * WordPress's default shadow presets, as core's `theme.json` ships
+	 * them. Declared unless a theme sets `settings.shadow.defaultPresets`
+	 * to `false`, so `var:preset|shadow|natural` and friends resolve on a
+	 * theme with no presets of its own (#900).
+	 *
+	 * @since 1.15.1
+	 */
+	public const DEFAULT_SHADOW_PRESETS = [
+		[ 'slug' => 'natural', 'name' => 'Natural', 'shadow' => '6px 6px 9px rgba(0, 0, 0, 0.2)' ],
+		[ 'slug' => 'deep', 'name' => 'Deep', 'shadow' => '12px 12px 50px rgba(0, 0, 0, 0.4)' ],
+		[ 'slug' => 'sharp', 'name' => 'Sharp', 'shadow' => '6px 6px 0px rgba(0, 0, 0, 0.2)' ],
+		[ 'slug' => 'outlined', 'name' => 'Outlined', 'shadow' => '6px 6px 0px -3px rgb(255, 255, 255), 6px 6px rgb(0, 0, 0)' ],
+		[ 'slug' => 'crisp', 'name' => 'Crisp', 'shadow' => '6px 6px 0px rgb(0, 0, 0)' ],
+	];
+
+	/**
 	 * Palette slugs whose `.has-{slug}-color` utility shares its name with
 	 * a block-support marker class. See {@see self::colorUtilitySelector()}.
 	 * Listed in emission order: `text` comes last so its fallback rule
@@ -353,6 +369,47 @@ class PresetRegistry
 	}
 
 	/**
+	 * Declare WordPress's default shadow presets (#900).
+	 *
+	 * Mirrors WordPress: the five {@see self::DEFAULT_SHADOW_PRESETS} are
+	 * declared unless `settings.shadow.defaultPresets` is `false`. A slug
+	 * the theme declares itself is left out, so the theme's value wins
+	 * wherever this block lands in the cascade.
+	 *
+	 * @since 1.15.1
+	 *
+	 * @param  mixed  $themeShadowSettings  The theme's `settings.shadow`, if any.
+	 */
+	public static function shadowPresetsCss( mixed $themeShadowSettings ): string
+	{
+		$shadow = is_array( $themeShadowSettings ) ? $themeShadowSettings : [];
+
+		if ( false === ( $shadow['defaultPresets'] ?? true ) ) {
+			return '';
+		}
+
+		$themeSlugs = [];
+
+		foreach ( is_array( $shadow['presets'] ?? null ) ? $shadow['presets'] : [] as $entry ) {
+			if ( is_array( $entry ) && is_string( $entry['slug'] ?? null ) ) {
+				$themeSlugs[] = self::presetSlug( trim( $entry['slug'] ) );
+			}
+		}
+
+		$declarations = [];
+
+		foreach ( self::DEFAULT_SHADOW_PRESETS as $entry ) {
+			if ( in_array( $entry['slug'], $themeSlugs, true ) ) {
+				continue;
+			}
+
+			$declarations[] = sprintf( '--wp--preset--shadow--%s: %s;', $entry['slug'], $entry['shadow'] );
+		}
+
+		return [] === $declarations ? '' : ":root {\n\t" . implode( "\n\t", $declarations ) . "\n}";
+	}
+
+	/**
 	 * Declare every font-size and palette preset the editor's pickers
 	 * offer, plus the `.has-{slug}-*` classes that point at them (#821).
 	 *
@@ -366,6 +423,7 @@ class PresetRegistry
 	 * @since 1.12.1
 	 * @since 1.14.0 Declares the package defaults under a theme's own lists (#852).
 	 * @since 1.15.0 Declares font families and their `.has-{slug}-font-family` classes (#872).
+	 * @since 1.15.1 Declares WordPress's default shadow presets (#900).
 	 *
 	 * @param  array<string, mixed>|null  $themeSettings  The theme's `settings`, if any.
 	 */
@@ -413,11 +471,15 @@ class PresetRegistry
 			$utilities[]    = sprintf( '.has-%1$s-font-family { font-family: var(--wp--preset--font-family--%1$s) !important; }', $slug );
 		}
 
+		$shadows = self::shadowPresetsCss( $themeSettings['shadow'] ?? null );
+
 		if ( [] === $declarations ) {
-			return '';
+			return $shadows;
 		}
 
-		return ":root {\n\t" . implode( "\n\t", $declarations ) . "\n}\n\n" . implode( "\n", $utilities );
+		$css = ":root {\n\t" . implode( "\n\t", $declarations ) . "\n}\n\n" . implode( "\n", $utilities );
+
+		return '' === $shadows ? $css : $css . "\n\n" . $shadows;
 	}
 
 	/**
