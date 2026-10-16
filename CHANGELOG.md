@@ -6,6 +6,70 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.15.1] - 2026-10-16
+
+### Upgrade notes
+
+- **Grids collapse on small screens by default (#901).** An
+  `artisanpack/grid` with no Tablet column count now shows at most two
+  columns at 1023px and below, and one with no Mobile column count shows
+  one column at 767px and below. Wider items are clamped so they don't
+  overflow. To keep a grid's column count on a device, set **Columns**
+  with that viewport active. Grids that set a legacy breakpoint
+  (`sm` … `2xl`) are unchanged.
+- **Custom breakpoints and the static Flex Layout sheet (#895).** With
+  customized breakpoints, `<x-ve-blocks-styles>` now prints the Flex
+  Layout token rules inline instead of linking `flex-layout.css`. React
+  and Vue hosts that call `setBreakpoints()` get the same rules from
+  `<LayoutBaseline />`, and should stop linking the published
+  `flex-layout.css`, whose default-width rules would still fire. Default
+  breakpoints are unchanged.
+- **New wrapper classes (#899).** First-party blocks now render their
+  `wp-block-artisanpack-{slug}` class first, so `styles.blocks` rules and
+  block style variations reach them on the front end. Theme CSS that
+  targets `.wp-block-artisanpack-accordions` (or another of these blocks)
+  now applies there too.
+
+### Added
+
+- **Editor translations (#896).** Publish a Jed JSON file per locale at
+  `lang/vendor/visual-editor/{locale}.json` (`po2json -f jed1.x` from a
+  translated `.po`), and the post editor and site editor load it for the
+  app locale. Resolution falls back to the language, then the app's
+  fallback locale. The `ap.visualEditor.localeData` filter can supply
+  the data, and `MountConfig.localeData` / `data-locale-data` take it
+  directly. Translations are applied before the editor bundle loads, so
+  block variation titles and preset names are translated too. See
+  `docs/translations.md`.
+- **WordPress's default shadow presets (#900).** `natural`, `deep`,
+  `sharp`, `outlined` and `crisp` are declared on the front end and in
+  the editor canvas unless `settings.shadow.defaultPresets` is `false`. A
+  slug the theme declares keeps the theme's value.
+
+### Fixed
+
+- **String shadow values render (#900).** A `style.shadow` saved as a
+  string, the form WordPress core and the WordPress importer use, now
+  renders. `var:preset|shadow|{slug}` and
+  `var(--wp--preset--shadow--{slug})` are read as presets, and any
+  other safe string as a raw `box-shadow` value, in the Blade renderer
+  and the canvas. Editing such a shadow in the inspector no longer
+  corrupts it.
+- **Block style variations on interactive blocks (#899).** Accordions,
+  Accordion (with its title and body), Tabs and Tab Section render their
+  `wp-block-artisanpack-*` class in Blade, React and Vue, so variations
+  such as a "Boxed" accordion or "Pill" tabs apply on the front end. So
+  do FAQ, HowTo, TOC, Breadcrumbs, the business-info blocks, Comments
+  Number, Copyright, the search blocks, Single Content, Social Share
+  Content, Author Social Icons, Skills Slider and Log in/out.
+- **React Tabs markup (#899).** The React renderer no longer wraps each
+  tab panel twice, and renders `data-ap-tabs=""` like Blade and Vue.
+- **Flex Layout token classes at custom breakpoints (#895).** Classes
+  such as `tablet:ap-flex-col` now switch at the host's breakpoint widths
+  on the front end (Blade, React, Vue) and in the editor canvas.
+- **Flex Layout `grow-2` (#895).** `md:`, `lg:`, `tablet:` and `mobile:`
+  `ap-grow-2` classes now have a rule, as the other breakpoints did.
+
 ## [1.15.0] - 2026-10-15
 
 ### Upgrade notes

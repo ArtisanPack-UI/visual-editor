@@ -239,6 +239,23 @@ The picker only controls what authors can choose. Whatever `postType` a saved bl
 
 ---
 
+### `ap.visualEditor.localeData`
+
+*Since v1.15.1 (#896).* Supplies or adjusts the Jed locale data the
+editor installs for its `artisanpack-visual-editor` text domain.
+Callbacks receive the data resolved from
+`lang/vendor/visual-editor/{locale}.json` (or `null`) and the locale,
+and return locale data, a `wp i18n make-json` file, or `null` for none.
+See [[Translations]].
+
+```php
+addFilter( 'ap.visualEditor.localeData', function ( ?array $data, string $locale ): ?array {
+    $path = resource_path( "i18n/editor-{$locale}.json" );
+
+    return $data ?? ( is_file( $path ) ? json_decode( file_get_contents( $path ), true ) : null );
+} );
+```
+
 ### `ap.visualEditor.patternRender`
 
 PHP filter applied by `PatternAdapter::toArray()` on the rendered raw content of a pattern before it ships to the editor / consumer. Runs on every read.

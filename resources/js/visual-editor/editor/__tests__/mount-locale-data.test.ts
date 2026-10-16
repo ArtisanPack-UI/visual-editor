@@ -14,7 +14,8 @@ vi.mock('../editor-app', async () => {
     const i18n = await import('@wordpress/i18n');
 
     // Evaluated when `mountEditor()` imports the chunk.
-    importTime.title = i18n.__('Group', 'artisanpack-visual-editor');
+    const fixtureDomain = 'artisanpack-visual-editor';
+    importTime.title = i18n.__('Group', fixtureDomain);
 
     return { EditorApp: (): null => null };
 });
@@ -66,7 +67,8 @@ describe('editor locale data (#896)', () => {
         await editor.ready;
 
         expect(importTime.title).toBe('Gruppe');
-        expect(__('Group', TEXT_DOMAIN)).toBe('Gruppe');
+        const fixtureDomain = TEXT_DOMAIN;
+        expect(__('Group', fixtureDomain)).toBe('Gruppe');
 
         editor.unmount();
     });

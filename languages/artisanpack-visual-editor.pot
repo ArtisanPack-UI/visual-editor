@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: artisanpack-ui-visual-editor\n"
-"POT-Creation-Date: 2026-10-16T00:13:53+0000\n"
+"POT-Creation-Date: 2026-10-16T15:20:32+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -941,7 +941,7 @@ msgstr ""
 msgid "Blog home"
 msgstr ""
 
-#: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:380
+#: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:383
 msgid "Blur"
 msgstr ""
 
@@ -1310,8 +1310,8 @@ msgstr ""
 
 #: resources/js/visual-editor/blocks/icon/edit.tsx:361
 #: resources/js/visual-editor/blocks/skills-slider/edit.tsx:109
-#: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:399
-#: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:424
+#: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:402
+#: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:427
 #: resources/js/visual-editor/formats/inline-icon/edit.tsx:257
 msgid "Color"
 msgstr ""
@@ -2923,7 +2923,7 @@ msgstr ""
 msgid "Got it"
 msgstr ""
 
-#: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:422
+#: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:425
 msgid "Gradient"
 msgstr ""
 
@@ -2933,7 +2933,7 @@ msgid "Gradient token(s) no longer available: %s. The affected breakpoint or sta
 msgstr ""
 
 #. translators: %s: comma-separated list of slugs.
-#: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:149
+#: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:152
 msgid "Gradient token(s) no longer available: %s. The affected shadow fill will render as transparent until restored."
 msgstr ""
 
@@ -3290,7 +3290,7 @@ msgstr ""
 msgid "Insert unsynced pattern: %s"
 msgstr ""
 
-#: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:477
+#: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:480
 msgid "Inset"
 msgstr ""
 
@@ -4765,7 +4765,7 @@ msgstr ""
 msgid "Preset size"
 msgstr ""
 
-#: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:327
+#: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:330
 msgid "Presets"
 msgstr ""
 
@@ -5333,7 +5333,7 @@ msgstr ""
 msgid "Select an entity to edit."
 msgstr ""
 
-#: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:425
+#: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:428
 msgid "Select color"
 msgstr ""
 
@@ -5409,18 +5409,18 @@ msgstr ""
 msgid "Severity"
 msgstr ""
 
-#: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:291
-#: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:307
-#: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:432
+#: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:294
+#: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:310
+#: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:435
 msgid "Shadow"
 msgstr ""
 
-#: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:412
+#: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:415
 msgid "Shadow color and gradient picker"
 msgstr ""
 
 #. translators: %s: comma-separated list of slugs.
-#: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:144
+#: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:147
 msgid "Shadow preset(s) no longer available: %s. The affected breakpoint or state will fall back to the idle layer until restored."
 msgstr ""
 
@@ -5787,7 +5787,7 @@ msgstr ""
 msgid "Spin"
 msgstr ""
 
-#: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:388
+#: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:391
 msgid "Spread"
 msgstr ""
 
@@ -6100,11 +6100,11 @@ msgstr ""
 msgid "Template (one iteration)"
 msgstr ""
 
-#: resources/js/visual-editor/editor/editor-canvas.tsx:246
+#: resources/js/visual-editor/editor/editor-canvas.tsx:259
 msgid "Template footer (read-only)"
 msgstr ""
 
-#: resources/js/visual-editor/editor/editor-canvas.tsx:240
+#: resources/js/visual-editor/editor/editor-canvas.tsx:253
 msgid "Template header (read-only)"
 msgstr ""
 
@@ -6845,7 +6845,7 @@ msgstr ""
 msgid "Write title…"
 msgstr ""
 
-#: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:364
+#: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:367
 msgid "X offset"
 msgstr ""
 
@@ -6857,7 +6857,7 @@ msgstr ""
 msgid "X-Large (≥1280px)"
 msgstr ""
 
-#: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:372
+#: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:375
 msgid "Y offset"
 msgstr ""
 

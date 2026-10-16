@@ -19,9 +19,10 @@ namespace ArtisanPackUI\VisualEditor\Support;
  * Resolves the Jed locale data the editor installs for its text domain
  * before it loads (#896).
  *
- * Hosts publish a JSON file per locale at
- * `lang/vendor/visual-editor/{locale}.json`, as `wp i18n make-json` (or
- * `po2json -f jed1.x`) produces it from a translated `.po`. The mounts
+ * Hosts publish a Jed 1.x JSON file per locale at
+ * `lang/vendor/visual-editor/{locale}.json`, as `po2json -f jed1.x`
+ * produces it from a translated `.po` (the shape `wp i18n make-json`
+ * writes is accepted too). The mounts
  * (`<x-visual-editor>`, the `/editor/mount` view and the site editor)
  * stamp the result as `data-locale-data`.
  *
@@ -92,7 +93,8 @@ class EditorLocaleData
 
 	/**
 	 * Read a Jed payload as the bare locale data `setLocaleData()` takes:
-	 * a `wp i18n make-json` file (`{ locale_data: { messages: … } }`) or
+	 * a Jed 1.x file (`{ locale_data: { {domain}: … } }`, as `po2json` and
+	 * `wp i18n make-json` write it) or
 	 * the locale data itself (`{ "": { … }, "Save": [ "…" ] }`). Returns
 	 * `null` for anything else.
 	 *

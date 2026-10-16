@@ -59,7 +59,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /**
  * Read a Jed payload as the bare locale data `setLocaleData()` takes: a
- * `wp i18n make-json` file (`{ locale_data: { messages: … } }`) or the
+ * Jed 1.x file (`{ locale_data: { {domain}: … } }`, as `po2json` and
+ * `wp i18n make-json` write it) or the
  * locale data itself (`{ "": { … }, "Save": [ "…" ] }`). Returns `null` for
  * anything else, or when no translation survives. Mirrors PHP
  * `EditorLocaleData::normalise()`.

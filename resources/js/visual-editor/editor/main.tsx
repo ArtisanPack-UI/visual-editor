@@ -188,7 +188,8 @@ export interface MountConfig {
     blockStyles?: ReadonlyArray<ThemeBlockStyle>;
     /**
      * Jed locale data for the `artisanpack-visual-editor` text domain
-     * (#896) — a `wp i18n make-json` file or its bare locale data.
+     * (#896) — a Jed 1.x file (`po2json -f jed1.x`) or its bare locale
+     * data.
      * Applied before the editor bundle loads, so block variations and
      * presets translate too. Read from `data-locale-data`; omit for
      * English.

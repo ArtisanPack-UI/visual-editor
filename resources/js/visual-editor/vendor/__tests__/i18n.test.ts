@@ -39,6 +39,10 @@ describe('i18n bootstrap', () => {
     });
 });
 
+// Aliased so the `.pot` extractor, which keys on `TEXT_DOMAIN`, skips
+// these fixtures.
+const FIXTURE_DOMAIN = TEXT_DOMAIN;
+
 describe('locale data (#896)', () => {
     const FRENCH = {
         'translation-revision-date': '2026-10-16 00:00+0000',
@@ -82,9 +86,9 @@ describe('locale data (#896)', () => {
     it('translates the text domain and keeps the plural forms', () => {
         expect(installLocaleData(FRENCH)).toBe(true);
 
-        expect(__('Group', TEXT_DOMAIN)).toBe('Groupe');
-        expect(_n('%d block', '%d blocks', 1, TEXT_DOMAIN)).toBe('%d bloc');
-        expect(_n('%d block', '%d blocks', 3, TEXT_DOMAIN)).toBe('%d blocs');
+        expect(__('Group', FIXTURE_DOMAIN)).toBe('Groupe');
+        expect(_n('%d block', '%d blocks', 1, FIXTURE_DOMAIN)).toBe('%d bloc');
+        expect(_n('%d block', '%d blocks', 3, FIXTURE_DOMAIN)).toBe('%d blocs');
         expect(getLocaleData(TEXT_DOMAIN)?.['']).toMatchObject({ domain: TEXT_DOMAIN, lang: 'fr' });
     });
 
@@ -92,7 +96,7 @@ describe('locale data (#896)', () => {
         installLocaleData(FRENCH);
         bootI18n();
 
-        expect(__('Group', TEXT_DOMAIN)).toBe('Groupe');
+        expect(__('Group', FIXTURE_DOMAIN)).toBe('Groupe');
         expect(getLocaleData(TEXT_DOMAIN)?.['']).toMatchObject({ lang: 'fr' });
     });
 
@@ -103,7 +107,7 @@ describe('locale data (#896)', () => {
         expect(installLocaleDataFromDataset('  ')).toBe(false);
         expect(installLocaleDataFromDataset('{not json')).toBe(false);
         expect(installLocaleDataFromDataset(JSON.stringify(FRENCH))).toBe(true);
-        expect(__('Group', TEXT_DOMAIN)).toBe('Groupe');
+        expect(__('Group', FIXTURE_DOMAIN)).toBe('Groupe');
 
         warn.mockRestore();
     });
