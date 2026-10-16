@@ -68,6 +68,16 @@ class EffectsCompiler
 	public const SCOPE_PREFIX = 've-fx-';
 
 	/**
+	 * The text-clip declarations, kept `!important` and printed in their own
+	 * doubled-class rule by {@see self::compile()} (#904).
+	 *
+	 * @since 1.15.2
+	 *
+	 * @var list<string>
+	 */
+	public const TEXT_CLIP_DECLARATIONS = [ '-webkit-background-clip:text!important', 'background-clip:text!important' ];
+
+	/**
 	 * Accepted `overflow-x` / `overflow-y` keywords.
 	 *
 	 * @since 1.15.0
@@ -160,8 +170,20 @@ class EffectsCompiler
 
 		$body  = implode( ';', $declarations );
 		$class = self::SCOPE_PREFIX . substr( sha1( $body . "\n" . $customCss ), 0, 12 );
-		$inner = implode( ';', array_filter( [ $body, $customCss ], static fn ( string $part ): bool => '' !== $part ) );
-		$css   = '.' . $class . '{' . $inner . '}';
+		// The text clip gets its own rule at doubled-class specificity
+		// (0,2,0): the block's gradient arrives as an `!important`
+		// `background` shorthand (`.has-{slug}-gradient-background`, or
+		// inline), which resets `background-clip`, and the editor canvas
+		// loads the global styles after this rule, so `!important` alone
+		// loses on source order there (#904).
+		$hasTextClip = in_array( self::TEXT_CLIP_DECLARATIONS[1], $declarations, true );
+		$rest        = array_values( array_diff( $declarations, self::TEXT_CLIP_DECLARATIONS ) );
+		$inner       = implode( ';', array_filter( [ implode( ';', $rest ), $customCss ], static fn ( string $part ): bool => '' !== $part ) );
+		$css         = '' !== $inner ? '.' . $class . '{' . $inner . '}' : '';
+
+		if ( $hasTextClip ) {
+			$css .= '.' . $class . '.' . $class . '{' . implode( ';', self::TEXT_CLIP_DECLARATIONS ) . '}';
+		}
 
 		if ( null !== self::integer( $effects['zIndex'] ?? null, -99999, 99999 ) ) {
 			$css .= ':where(.' . $class . '){position:relative}';
@@ -169,9 +191,9 @@ class EffectsCompiler
 
 		// Forced-colors mode drops background images and gradients, so
 		// clipped text would be invisible: paint it in the text color.
-		if ( in_array( 'background-clip:text', $declarations, true ) ) {
-			$css .= '@media (forced-colors:active){.' . $class . '{-webkit-text-fill-color:currentColor;'
-				. '-webkit-background-clip:border-box;background-clip:border-box}}';
+		if ( $hasTextClip ) {
+			$css .= '@media (forced-colors:active){.' . $class . '.' . $class . '{-webkit-text-fill-color:currentColor;'
+				. '-webkit-background-clip:border-box!important;background-clip:border-box!important}}';
 		}
 
 		return [
@@ -273,9 +295,12 @@ class EffectsCompiler
 
 		// Without a gradient or image behind it, transparent text would
 		// simply vanish, so text clip needs the caller to confirm one.
+		// `!important` because the gradient reaches the block as a
+		// `background` shorthand (the `.has-{slug}-gradient-background`
+		// preset class is itself `!important`, a custom gradient is inline),
+		// and the shorthand resets `background-clip` (#904).
 		if ( $hasFill && true === ( $effects['textClip'] ?? null ) ) {
-			$declarations[] = '-webkit-background-clip:text';
-			$declarations[] = 'background-clip:text';
+			array_push( $declarations, ...self::TEXT_CLIP_DECLARATIONS );
 			$declarations[] = '-webkit-text-fill-color:transparent';
 		}
 

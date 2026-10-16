@@ -62,6 +62,12 @@ export const BLEND_MODES = [
     'luminosity',
 ];
 
+/**
+ * The text-clip declarations, kept `!important` and printed in their own
+ * doubled-class rule by {@link compileEffects} (#904).
+ */
+export const TEXT_CLIP_DECLARATIONS: readonly string[] = ['-webkit-background-clip:text!important', 'background-clip:text!important'];
+
 export const CLIP_SHAPES: Record<string, string> = {
     circle: 'circle(50% at 50% 50%)',
     ellipse: 'ellipse(50% 50% at 50% 50%)',
@@ -267,8 +273,9 @@ export function effectsDeclarations(effects: Record<string, unknown>, hasFill = 
     // Without a gradient or image behind it, transparent text would
     // simply vanish, so text clip needs the caller to confirm one.
     if (effects.textClip === true && hasFill) {
-        declarations.push('-webkit-background-clip:text');
-        declarations.push('background-clip:text');
+        // `!important` because the gradient reaches the block as a
+        // `background` shorthand, which resets `background-clip` (#904).
+        declarations.push(...TEXT_CLIP_DECLARATIONS);
         declarations.push('-webkit-text-fill-color:transparent');
     }
 
@@ -317,8 +324,19 @@ export function compileEffects(
 
     const body = declarations.join(';');
     const className = EFFECTS_SCOPE_PREFIX + sha1Hex(`${body}\n${customCss}`).slice(0, 12);
-    const inner = [body, customCss].filter((part) => part !== '').join(';');
-    let css = `.${className}{${inner}}`;
+    // The text clip gets its own rule at doubled-class specificity (0,2,0):
+    // the block's gradient arrives as an `!important` `background`
+    // shorthand (`.has-{slug}-gradient-background`, or inline), which resets
+    // `background-clip`, and the canvas loads the global styles after this
+    // rule, so `!important` alone loses on source order there (#904).
+    const hasTextClip = declarations.includes(TEXT_CLIP_DECLARATIONS[1]);
+    const rest = declarations.filter((declaration) => !TEXT_CLIP_DECLARATIONS.includes(declaration));
+    const inner = [rest.join(';'), customCss].filter((part) => part !== '').join(';');
+    let css = inner !== '' ? `.${className}{${inner}}` : '';
+
+    if (hasTextClip) {
+        css += `.${className}.${className}{${TEXT_CLIP_DECLARATIONS.join(';')}}`;
+    }
 
     if (integer(record.zIndex, -99999, 99999) !== null) {
         css += `:where(.${className}){position:relative}`;
@@ -326,10 +344,10 @@ export function compileEffects(
 
     // Forced-colors mode drops background images and gradients, so
     // clipped text would be invisible: paint it in the text color.
-    if (declarations.includes('background-clip:text')) {
+    if (hasTextClip) {
         css +=
-            `@media (forced-colors:active){.${className}{-webkit-text-fill-color:currentColor;` +
-            '-webkit-background-clip:border-box;background-clip:border-box}}';
+            `@media (forced-colors:active){.${className}.${className}{-webkit-text-fill-color:currentColor;` +
+            '-webkit-background-clip:border-box!important;background-clip:border-box!important}}';
     }
 
     return { className, css };

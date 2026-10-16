@@ -253,11 +253,25 @@ A gradient that only comes from a block style variation or global styles
 doesn't count; add the gradient on the block. The panel shows a notice
 when text clip is on without one.
 
-Every text-clip rule also gets a forced-colors fallback, because forced
-colors mode drops background images and gradients:
+*Since v1.15.2 (#904)*, the clip prints in its own rule, `!important` and at
+doubled-class specificity. The block's gradient arrives as a `background`
+shorthand, either the `!important` `.has-{slug}-gradient-background` preset
+class or an inline style, and the shorthand resets `background-clip`. In the
+editor canvas the global styles also load after the effects styles, so
+`!important` alone would lose on source order there. Before 1.15.2, text clip
+over the block's own gradient painted a solid gradient box.
 
 ```css
-@media (forced-colors:active){.ve-fx-1a2b3c4d5e6f{-webkit-text-fill-color:currentColor;-webkit-background-clip:border-box;background-clip:border-box}}
+.ve-fx-1a2b3c4d5e6f{-webkit-text-fill-color:transparent}
+.ve-fx-1a2b3c4d5e6f.ve-fx-1a2b3c4d5e6f{-webkit-background-clip:text!important;background-clip:text!important}
+```
+
+Every text-clip rule also gets a forced-colors fallback, at the same
+specificity, because forced colors mode drops background images and
+gradients:
+
+```css
+@media (forced-colors:active){.ve-fx-1a2b3c4d5e6f.ve-fx-1a2b3c4d5e6f{-webkit-text-fill-color:currentColor;-webkit-background-clip:border-box!important;background-clip:border-box!important}}
 ```
 
 ---
