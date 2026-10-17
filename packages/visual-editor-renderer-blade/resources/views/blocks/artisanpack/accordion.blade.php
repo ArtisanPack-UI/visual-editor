@@ -16,6 +16,10 @@
 		$panelIcon = 'plus-minus';
 	}
 
+	// Open on first paint: the title says so and the body isn't hidden.
+	// `interactivity.js` seeds each panel from `aria-expanded`.
+	$defaultOpen = ! empty( $attributes['defaultOpen'] );
+
 	$panelIdAttr   = '' === $panelId ? '' : ' data-panel-id="' . $panelIdSafe . '"';
 	$panelIconAttr = ' data-panel-icon="' . $panelIcon . '"';
 	$controlId     = '' === $panelId ? '' : $panelIdSafe . '-control';
@@ -44,8 +48,9 @@
 			$titleControlsAttr = '' === $panelId ? '' : ' aria-controls="' . $panelIdSafe . '"';
 			$titleIdAttr       = '' === $controlId ? '' : ' id="' . $controlId . '"';
 			$titleHtml = sprintf(
-				'<div%s><div class="ap-accordion__title-content" role="button" tabindex="0" aria-expanded="false"%s%s>%s</div><span class="ap-accordion__icon ap-accordion__icon--%s" aria-hidden="true"></span></div>',
+				'<div%s><div class="ap-accordion__title-content" role="button" tabindex="0" aria-expanded="%s"%s%s>%s</div><span class="ap-accordion__icon ap-accordion__icon--%s" aria-hidden="true"></span></div>',
 				BlockSupports::wrapperAttrs( $childAttributes, [ 'wp-block-artisanpack-accordion-title', 'ap-accordion__title' ] ),
+				$defaultOpen ? 'true' : 'false',
 				$titleIdAttr,
 				$titleControlsAttr,
 				$childInner,
@@ -58,10 +63,11 @@
 			$bodyIdAttr         = '' === $panelId ? '' : ' id="' . $panelIdSafe . '"';
 			$bodyLabelledByAttr = '' === $controlId ? '' : ' aria-labelledby="' . $controlId . '"';
 			$bodyHtml = sprintf(
-				'<div%s%s role="region"%s hidden>%s</div>',
+				'<div%s%s role="region"%s%s>%s</div>',
 				BlockSupports::wrapperAttrs( $childAttributes, [ 'wp-block-artisanpack-accordion-body', 'ap-accordion__body' ] ),
 				$bodyIdAttr,
 				$bodyLabelledByAttr,
+				$defaultOpen ? '' : ' hidden',
 				$childInner
 			);
 			continue;

@@ -26,6 +26,10 @@
                 "arrows"
             ],
             "default": "plus-minus"
+        },
+        "defaultOpen": {
+            "type": "boolean",
+            "default": false
         }
     },
     "supports": {
