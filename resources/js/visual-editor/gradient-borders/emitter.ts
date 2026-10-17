@@ -61,6 +61,81 @@ function radiusDeclaration( radius: ResolvedGradientBorder[ 'radius' ] ): string
 	return 'border-radius:inherit;'
 }
 
+const COVER_BACKGROUND_LAYERS =
+	'.wp-block-cover__background,.wp-block-cover__gradient-background,'
+	+ '.wp-block-cover__image-background,.wp-block-cover__video-background'
+
+/**
+ * `border-radius` for Cover's background layers when the ring can't be
+ * kept with `overflow-clip-margin` (#912): the wrapper's radius minus
+ * the ring width, per value, so the layers keep the curve `overflow:
+ * clip` would have given them. Empty when no radius is authored (the
+ * layers stay square, as the wrapper is) or for the elliptical `/`
+ * syntax, which has no per-value inset.
+ */
+function innerRadiusDeclaration(
+	radius: ResolvedGradientBorder[ 'radius' ],
+	width: string,
+): string {
+	const safeWidth = sanitizeCss( width )
+	const inset     = ( value: string ): string =>
+		value.trim().split( /\s+/ )
+			.map( ( v ) => `max(0px, calc(${ sanitizeCss( v ) } - ${ safeWidth }))` )
+			.join( ' ' )
+
+	if ( 'string' === typeof radius && '' !== radius.trim() ) {
+		return radius.includes( '/' ) ? '' : `border-radius:${ inset( radius ) };`
+	}
+
+	if ( radius && 'object' === typeof radius ) {
+		const pieces: string[] = []
+
+		const corners: Array<[string, string]> = [
+			[ 'topLeft', 'top-left' ],
+			[ 'topRight', 'top-right' ],
+			[ 'bottomLeft', 'bottom-left' ],
+			[ 'bottomRight', 'bottom-right' ],
+		]
+
+		for ( const [ key, cssKey ] of corners ) {
+			const value = ( radius as Record<string, unknown> )[ key ]
+
+			if ( 'string' !== typeof value || '' === value.trim() || value.includes( '/' ) ) {
+				continue
+			}
+
+			pieces.push( `border-${ cssKey }-radius:${ inset( value ) }` )
+		}
+
+		if ( 0 < pieces.length ) {
+			return pieces.join( ';' ) + ';'
+		}
+	}
+
+	return ''
+}
+
+/**
+ * Fallback for browsers without `overflow-clip-margin` (Safari, #912).
+ * There Cover's `overflow: clip` still cuts the ring away, so a
+ * gradient-bordered Cover stops clipping and its background layers
+ * (all `inset: 0` in the padding box) take the inner radius instead.
+ */
+function coverClipFallback(
+	scope: string,
+	radius: ResolvedGradientBorder[ 'radius' ],
+	width: string,
+): string {
+	const innerRadius = innerRadiusDeclaration( radius, width )
+	let rules         = `${ appendPseudoToList( scope, '.wp-block-cover' ) }{overflow:visible}`
+
+	if ( '' !== innerRadius ) {
+		rules += `${ appendPseudoToList( scope, `.wp-block-cover>:is(${ COVER_BACKGROUND_LAYERS })` ) }{${ innerRadius }}`
+	}
+
+	return `@supports not (overflow-clip-margin:border-box){${ rules }}`
+}
+
 function baseBeforeDeclarations(
 	gradient: string,
 	width: string,
@@ -163,6 +238,8 @@ export function emitGradientBorderCss(
 	rules.push(
 		`${ trimmedScope }{position:relative;border-color:transparent !important;overflow-clip-margin:border-box}`,
 	)
+
+	rules.push( coverClipFallback( trimmedScope, payload.radius, width ) )
 
 	const idleGradient = idle ?? 'transparent'
 	rules.push(

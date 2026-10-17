@@ -136,4 +136,43 @@ describe( 'emitGradientBorderCss', () => {
 		expect( css ).not.toContain( 'padding:2px";' )
 		expect( css ).not.toContain( '}</' )
 	} )
+
+	it( 'lets a Cover stop clipping where overflow-clip-margin is unsupported (#912)', () => {
+		const css = emitGradientBorderCss(
+			'.scope',
+			{ ...baseline, idle: 'red', width: '3px', radius: '12px' },
+			states,
+			breakpoints,
+		)
+
+		expect( css ).toContain( '@supports not (overflow-clip-margin:border-box){.scope.wp-block-cover{overflow:visible}' )
+		expect( css ).toContain(
+			'.scope.wp-block-cover>:is(.wp-block-cover__background,.wp-block-cover__gradient-background,'
+			+ '.wp-block-cover__image-background,.wp-block-cover__video-background)'
+			+ '{border-radius:max(0px, calc(12px - 3px));}}',
+		)
+	} )
+
+	it( 'insets each per-corner radius by the ring width in the Cover fallback', () => {
+		const css = emitGradientBorderCss(
+			'.scope',
+			{ ...baseline, idle: 'red', width: '3px', radius: { topLeft: '12px', topRight: '1rem' } },
+			states,
+			breakpoints,
+		)
+
+		expect( css ).toContain( 'border-top-left-radius:max(0px, calc(12px - 3px));border-top-right-radius:max(0px, calc(1rem - 3px));}}' )
+	} )
+
+	it( 'leaves Cover background layers square in the fallback when no radius is set', () => {
+		const css = emitGradientBorderCss(
+			'.scope',
+			{ ...baseline, idle: 'red', width: '3px' },
+			states,
+			breakpoints,
+		)
+
+		expect( css ).toContain( '@supports not (overflow-clip-margin:border-box){.scope.wp-block-cover{overflow:visible}}' )
+		expect( css ).not.toContain( 'wp-block-cover__background' )
+	} )
 } )
