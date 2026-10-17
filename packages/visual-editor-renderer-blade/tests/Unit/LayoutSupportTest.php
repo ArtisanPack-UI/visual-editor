@@ -310,11 +310,23 @@ describe( 'LayoutSupport::columnsGapDeclaration (#914)', function (): void {
 	it( 'returns null without a usable per-axis left gap', function ( mixed $blockGap ): void {
 		expect( LayoutSupport::columnsGapDeclaration( [ 'style' => [ 'spacing' => [ 'blockGap' => $blockGap ] ] ] ) )->toBeNull();
 	} )->with( [
-		'top only'    => [ [ 'top' => '1rem' ] ],
-		'unsafe left' => [ [ 'top' => '1rem', 'left' => '1rem;position:fixed' ] ],
-		'bare number' => [ [ 'left' => '12' ] ],
-		'string gap'  => [ '2rem' ],
-		'unset'       => [ null ],
+		'top only'       => [ [ 'top' => '1rem' ] ],
+		'unsafe left'    => [ [ 'top' => '1rem', 'left' => '1rem;position:fixed' ] ],
+		'bare number'    => [ [ 'left' => '12' ] ],
+		'string gap'     => [ '2rem' ],
+		'unset'          => [ null ],
+		'keyword'        => [ [ 'left' => 'inherit' ] ],
+		'auto'           => [ [ 'left' => 'auto' ] ],
+		'string keyword' => [ 'unset' ],
+	] );
+
+	it( 'pins a normal gap to 0px, since the width calc needs a length', function ( mixed $blockGap ): void {
+		expect( LayoutSupport::columnsGapDeclaration( [ 'style' => [ 'spacing' => [ 'blockGap' => $blockGap ] ] ] ) )
+			->toBe( '--ap-columns-gap: 0px' );
+	} )->with( [
+		'per-axis'      => [ [ 'top' => '1rem', 'left' => 'normal' ] ],
+		'upper case'    => [ [ 'left' => 'NORMAL' ] ],
+		'string gap'    => [ 'Normal' ],
 	] );
 } );
 

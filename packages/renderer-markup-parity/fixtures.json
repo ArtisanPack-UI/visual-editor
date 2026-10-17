@@ -3677,6 +3677,52 @@
             ]
         },
         {
+            "name": "responsive-overrides-columns-gap",
+            "$comment": "#914 — a Columns block's responsive gap also sets `--ap-columns-gap` (per-axis → its `left`, scalar `normal` → `0px`, keyword → none), so the Column width calc follows the breakpoint's gap; a per-axis gap prints `row-gap` / `column-gap`, never `gap-top`. A Group with a per-axis responsive gap gets the longhands but no var.",
+            "tree": [
+                {
+                    "clientId": "resp-cols",
+                    "name": "core/columns",
+                    "attributes": {
+                        "style": { "spacing": { "blockGap": { "top": "0", "left": "0" } } },
+                        "responsive": {
+                            "style.spacing.blockGap": {
+                                "tablet": { "top": "1rem", "left": "2rem" },
+                                "mobile": "normal"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        { "clientId": "resp-cols-a", "name": "core/column", "attributes": { "width": "50%" }, "innerBlocks": [] },
+                        { "clientId": "resp-cols-b", "name": "core/column", "attributes": { "width": "50%" }, "innerBlocks": [] }
+                    ]
+                },
+                {
+                    "clientId": "resp-cols-scalar",
+                    "name": "artisanpack/columns",
+                    "attributes": {
+                        "responsive": {
+                            "style.spacing.blockGap": { "md": "var:preset|spacing|40", "mobile": "inherit" }
+                        }
+                    },
+                    "innerBlocks": [
+                        { "clientId": "resp-cols-scalar-a", "name": "core/column", "attributes": {}, "innerBlocks": [] }
+                    ]
+                },
+                {
+                    "clientId": "resp-gap-group",
+                    "name": "core/group",
+                    "attributes": {
+                        "layout": { "type": "flex" },
+                        "responsive": {
+                            "style.spacing.blockGap": { "tablet": { "top": "1rem", "left": "2rem" } }
+                        }
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
             "name": "responsive-overrides-tombstone",
             "$comment": "#887 — Tablet sets a custom font size; Mobile picks a preset and the editor tombstones (`false`) the custom half. The tombstone is stored after the preset, so it must not displace the Mobile preset rule.",
             "tree": [

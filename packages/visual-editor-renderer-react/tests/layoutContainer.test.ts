@@ -199,6 +199,16 @@ describe('applyColumnsGap (#914)', () => {
         expect(applyColumnsGap({ style: { spacing: { blockGap: { left: '12' } } } })).toEqual({});
         expect(applyColumnsGap({})).toEqual({});
     });
+
+    it('pins normal to 0px and drops other keywords, since the width calc needs a length', () => {
+        for (const blockGap of [{ top: '1rem', left: 'normal' }, { left: 'NORMAL' }, 'Normal']) {
+            expect(applyColumnsGap({ style: { spacing: { blockGap } } })).toEqual({ '--ap-columns-gap': '0px' });
+        }
+
+        for (const blockGap of [{ left: 'inherit' }, { left: 'auto' }, 'unset']) {
+            expect(applyColumnsGap({ style: { spacing: { blockGap } } })).toEqual({});
+        }
+    });
 });
 
 describe('layoutModifierClasses (F-3)', () => {

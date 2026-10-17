@@ -111,6 +111,16 @@ class BlockSupports
 	];
 
 	/**
+	 * Per-side longhands for a responsive property whose object value is
+	 * not keyed by box side. A per-axis `blockGap` is `{top, left}`, and
+	 * `gap-top` / `gap-left` aren't CSS properties, so it maps to
+	 * `row-gap` / `column-gap` the way the base style does (#914).
+	 */
+	protected const RESPONSIVE_AXIS_PROPERTIES = [
+		'gap' => [ 'top' => 'row-gap', 'left' => 'column-gap' ],
+	];
+
+	/**
 	 * Responsive paths whose value is a preset slug, mapped to the
 	 * preset category it expands under (#877): a `fontSize` override of
 	 * `small` emits `font-size: var(--wp--preset--font-size--small)`.
@@ -197,9 +207,13 @@ class BlockSupports
 	 * classes.
 	 *
 	 * @since 1.0.0
+	 * @since 1.15.2 Accepts `$columnsGap` (#914).
 	 *
 	 * @param  array<string, mixed>  $attributes  Raw block attributes from
 	 *                                            the persisted block tree.
+	 * @param  bool                  $columnsGap  Whether the block is a Columns
+	 *                                            block, whose responsive gap
+	 *                                            rules also set `--ap-columns-gap`.
 	 *
 	 * @return array{classes: array<int, string>, style: string, id: ?string}
 	 *         `classes` is deduped + ordered. `style` is a
@@ -208,7 +222,7 @@ class BlockSupports
 	 *         was emitted). `id` is `null` when no `anchor` attribute is
 	 *         set.
 	 */
-	public static function compile( array $attributes ): array
+	public static function compile( array $attributes, bool $columnsGap = false ): array
 	{
 		$classes = [];
 		$style   = [];
@@ -260,7 +274,7 @@ class BlockSupports
 
 		$styleString = '' === implode( '', $style ) ? '' : implode( '; ', $style ) . ';';
 
-		$responsive = self::compileResponsive( $attributes );
+		$responsive = self::compileResponsive( $attributes, null, $columnsGap );
 
 		if ( '' !== $responsive['class'] ) {
 			$classes[] = $responsive['class'];
@@ -722,15 +736,20 @@ class BlockSupports
 	 * @since 1.0.0
 	 * @since 1.15.0 Accepts a `$propertyMap` so a partial can emit its
 	 *               own paths (spacer `width`) through the same emitter.
+	 * @since 1.15.2 Accepts `$columnsGap`: a Columns block's gap rules
+	 *               also set `--ap-columns-gap`, so the Column width calc
+	 *               follows the breakpoint's gap instead of the base (#914).
 	 *
 	 * @param  array<string, mixed>         $attributes
 	 * @param  array<string, string>|null  $propertyMap  Path → CSS property;
 	 *                                                   `null` uses
 	 *                                                   {@see self::RESPONSIVE_CSS_PROPERTY_MAP}.
+	 * @param  bool                        $columnsGap   Whether the block is a
+	 *                                                   Columns block.
 	 *
 	 * @return array{class: string, rules: string}
 	 */
-	public static function compileResponsive( array $attributes, ?array $propertyMap = null ): array
+	public static function compileResponsive( array $attributes, ?array $propertyMap = null, bool $columnsGap = false ): array
 	{
 		$responsive = $attributes['responsive'] ?? null;
 
@@ -739,6 +758,7 @@ class BlockSupports
 		}
 
 		$propertyMap ??= self::RESPONSIVE_CSS_PROPERTY_MAP;
+		$columnsGap    = $columnsGap && isset( $propertyMap['style.spacing.blockGap'], $responsive['style.spacing.blockGap'] );
 
 		// Pull the request-scoped registry from the container so
 		// host-configured breakpoints (theme.json → config) are
@@ -752,7 +772,7 @@ class BlockSupports
 			? self::resolveRegistry()
 			: BreakpointRegistry::fromLayers();
 		$rules    = [];
-		$scope    = self::generateResponsiveScopeClass( self::responsiveHashInput( $responsive, $attributes, $propertyMap ) );
+		$scope    = self::generateResponsiveScopeClass( self::responsiveHashInput( $responsive, $attributes, $propertyMap, $columnsGap ) );
 
 		// Tripled scope class boosts the rule's specificity to
 		// (0,0,3,0), matching WP core's own
@@ -818,6 +838,15 @@ class BlockSupports
 				}
 
 				$declarations = self::responsiveDeclarations( $property, $value );
+
+				// #914 — keep the Column width calc on this breakpoint's gap.
+				if ( $columnsGap && 'style.spacing.blockGap' === $path ) {
+					$columnsGapValue = LayoutSupport::columnsGapValue( $value );
+
+					if ( null !== $columnsGapValue ) {
+						$declarations .= ( '' === $declarations ? '' : ';' ) . '--ap-columns-gap:' . $columnsGapValue . '!important';
+					}
+				}
 
 				if ( '' === $declarations ) {
 					continue;
@@ -946,15 +975,17 @@ class BlockSupports
 	 * style, so a partial never needs a second `style` attribute.
 	 *
 	 * @since 1.0.0
-	 * @since 1.15.2 Accepts `$extraStyles` (#914).
+	 * @since 1.15.2 Accepts `$extraStyles` and `$columnsGap` (#914).
 	 *
 	 * @param  array<string, mixed>  $attributes
 	 * @param  array<int, string>    $baseClasses
 	 * @param  array<int, string>    $extraStyles  Already-sanitised declarations, without a trailing `;`.
+	 * @param  bool                  $columnsGap   Whether the block is a Columns block
+	 *                                             ({@see self::compileResponsive()}).
 	 */
-	public static function wrapperAttrs( array $attributes, array $baseClasses = [], array $extraStyles = [] ): string
+	public static function wrapperAttrs( array $attributes, array $baseClasses = [], array $extraStyles = [], bool $columnsGap = false ): string
 	{
-		$compiled = self::compile( $attributes );
+		$compiled = self::compile( $attributes, $columnsGap );
 
 		// #914 — block-specific declarations ride after the support ones.
 		$extraStyles = array_values( array_filter( $extraStyles, static fn ( string $declaration ): bool => '' !== trim( $declaration ) ) );
@@ -1107,6 +1138,9 @@ class BlockSupports
 	 * the accumulator would keep only the first one's rules.
 	 *
 	 * @since 1.15.0
+	 * @since 1.15.2 A Columns block's gap overrides also mark the hash
+	 *               (#914): they add `--ap-columns-gap`, so a Group with
+	 *               the same overrides must not share the scope.
 	 *
 	 * @param  array<mixed>           $responsive
 	 * @param  array<string, mixed>   $attributes
@@ -1114,7 +1148,7 @@ class BlockSupports
 	 *
 	 * @return array<mixed>
 	 */
-	protected static function responsiveHashInput( array $responsive, array $attributes, array $propertyMap ): array
+	protected static function responsiveHashInput( array $responsive, array $attributes, array $propertyMap, bool $columnsGap = false ): array
 	{
 		$base = [];
 
@@ -1131,7 +1165,9 @@ class BlockSupports
 			$base[ $unitPath ] = $attributes[ $unitPath ] ?? null;
 		}
 
-		return [] === $base ? $responsive : [ 'responsive' => $responsive, 'base' => $base ];
+		$input = [] === $base ? $responsive : [ 'responsive' => $responsive, 'base' => $base ];
+
+		return $columnsGap ? [ 'responsive' => $input, 'columnsGap' => true ] : $input;
 	}
 
 	/**
@@ -2243,8 +2279,9 @@ class BlockSupports
 	 * Turn a single override value into one or more CSS declarations.
 	 * Scalars become `property: value`. Per-side objects (the shape
 	 * Gutenberg uses for spacing/border: `{top, right, bottom, left}`)
-	 * become per-side declarations (`padding-top: ...`, etc.). The
-	 * resulting declaration list is `;`-joined with no trailing
+	 * become per-side declarations (`padding-top: ...`, etc.); a per-axis
+	 * `gap` object becomes `row-gap` / `column-gap`
+	 * ({@see self::RESPONSIVE_AXIS_PROPERTIES}). The resulting declaration list is `;`-joined with no trailing
 	 * semicolon — callers add the wrapping `{}` and any trailing `;`
 	 * they need.
 	 *
@@ -2277,8 +2314,14 @@ class BlockSupports
 		}
 
 		$pieces = [];
+		$sides  = self::RESPONSIVE_AXIS_PROPERTIES[ $property ] ?? [
+			'top'    => $property . '-top',
+			'right'  => $property . '-right',
+			'bottom' => $property . '-bottom',
+			'left'   => $property . '-left',
+		];
 
-		foreach ( [ 'top', 'right', 'bottom', 'left' ] as $side ) {
+		foreach ( $sides as $side => $longhand ) {
 			if ( ! isset( $value[ $side ] ) || null === $value[ $side ] || '' === $value[ $side ] ) {
 				continue;
 			}
@@ -2289,12 +2332,7 @@ class BlockSupports
 				continue;
 			}
 
-			$pieces[] = sprintf(
-				'%s-%s:%s!important',
-				$property,
-				$side,
-				$resolved,
-			);
+			$pieces[] = sprintf( '%s:%s!important', $longhand, $resolved );
 		}
 
 		return implode( ';', $pieces );
