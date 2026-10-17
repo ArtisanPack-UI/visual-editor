@@ -47,29 +47,36 @@
     width: 100%;
 }
 
-.ap-grid-item.ap-grid-item-layout-normal {
+/*
+ * #930 — the inner-layout presets are defaults, so they sit at zero
+ * specificity: the Flex panel's utilities (`ap-items-*`, `ap-justify-*`,
+ * `ap-flex-col`, …) on a Grid Item win over them whatever order the
+ * stylesheets load in. `.ap-grid-item` itself sets none of these
+ * properties.
+ */
+:where(.ap-grid-item.ap-grid-item-layout-normal) {
     align-items: stretch;
     justify-content: flex-start;
 }
 
-.ap-grid-item.ap-grid-item-layout-equal {
+:where(.ap-grid-item.ap-grid-item-layout-equal) {
     align-items: stretch;
     justify-content: space-between;
     flex-direction: column;
 }
 
-.ap-grid-item.ap-grid-item-layout-center {
+:where(.ap-grid-item.ap-grid-item-layout-center) {
     align-items: center;
     justify-content: center;
     flex-direction: column;
 }
 
-.ap-grid-item.ap-grid-item-layout-bottom {
+:where(.ap-grid-item.ap-grid-item-layout-bottom) {
     flex-direction: column;
     justify-content: flex-end;
 }
 
-.ap-grid-item.ap-grid-item-layout-last-bottom {
+:where(.ap-grid-item.ap-grid-item-layout-last-bottom) {
     flex-direction: column;
     justify-content: space-between;
 }
