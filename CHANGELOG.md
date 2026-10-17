@@ -6,6 +6,10 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- **Form block layout** ([#916](https://github.com/ArtisanPack-UI/visual-editor/issues/916)). `artisanpack/form` has a `layout` attribute (`stacked`, the default, or `inline`) with a Layout toggle in the block's settings. Inline adds `data-layout="inline"` and an `is-layout-inline` class to the wrapper so the host's form island and themes can put the submit button on the same row as the fields; the canvas preview does the same. Stacked output is unchanged, and any other value is dropped. The React and Vue renderers don't render this block, so they're unchanged.
+
 ### Fixed
 
 - **Gradient borders show on Cover** ([#912](https://github.com/ArtisanPack-UI/visual-editor/issues/912)). The ring is a `::before` that sits outside the padding box, and Cover's `overflow: clip` clipped it away, so a Cover with a gradient border showed a transparent border. The gradient-border wrapper rule now sets `overflow-clip-margin: border-box`, in the Blade emitter and the canvas emitter, which only takes effect on blocks with `overflow: clip`. Browsers without `overflow-clip-margin` (Safari) get an `@supports not` fallback: a gradient-bordered Cover stops clipping, and its background layers take the inner radius (the wrapper's radius minus the ring width), so they keep their rounded corners.
