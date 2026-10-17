@@ -683,3 +683,296 @@ describe( 'withResponsiveAttributes — base writes keep their siblings', () => 
 		expect( updates.style ).toBeUndefined()
 	} )
 } )
+
+describe( 'withResponsiveAttributes — spacing overrides use the renderer paths (#918)', () => {
+	beforeEach( () => {
+		__setBlockType( 'artisanpack/columns', {
+			artisanpackResponsive: { attributes: [ 'spacing', 'align', 'columnCount' ] },
+		} )
+
+		act( () => {
+			setActiveBreakpoint( 'tablet' )
+		} )
+	} )
+
+	function renderColumns( attributes: Record<string, unknown>, setAttributes = vi.fn() ): typeof setAttributes {
+		render(
+			<Wrapped
+				name="artisanpack/columns"
+				attributes={ deepFreeze( attributes ) }
+				setAttributes={ setAttributes }
+			/> as never,
+		)
+
+		return setAttributes
+	}
+
+	it( 'splits a first spacing edit on a block with no style into the property paths', () => {
+		const setAttributes = renderColumns( {} )
+
+		captured?.setAttributes( { style: { spacing: { padding: '2rem', blockGap: { left: '3em' } } } } )
+
+		expect( setAttributes ).toHaveBeenCalledWith( {
+			responsive: {
+				'style.spacing.padding': { tablet: '2rem' },
+				'style.spacing.blockGap': { tablet: { left: '3em' } },
+			},
+		} )
+	} )
+
+	it( 'splits a first spacing edit on a block whose style has no spacing', () => {
+		const setAttributes = renderColumns( { style: { color: { text: '#111' } } } )
+
+		captured?.setAttributes( { style: { color: { text: '#111' }, spacing: { margin: { top: '1rem' } } } } )
+
+		expect( setAttributes ).toHaveBeenCalledWith( {
+			responsive: {
+				'style.spacing.margin': { tablet: { top: '1rem' } },
+			},
+		} )
+	} )
+
+	it( 'keeps a gap edit on spacing without blockGap at the gap path', () => {
+		const setAttributes = renderColumns( { style: { spacing: { padding: '1rem' } } } )
+
+		captured?.setAttributes( { style: { spacing: { padding: '1rem', blockGap: '2em' } } } )
+
+		expect( setAttributes ).toHaveBeenCalledWith( {
+			responsive: { 'style.spacing.blockGap': { tablet: '2em' } },
+		} )
+	} )
+
+	it( 'collapses one axis of a per-axis base gap into the gap path', () => {
+		const setAttributes = renderColumns( { style: { spacing: { blockGap: { top: '1em', left: '2em' } } } } )
+
+		captured?.setAttributes( { style: { spacing: { blockGap: { top: '1em', left: '3em' } } } } )
+
+		expect( setAttributes ).toHaveBeenCalledWith( {
+			responsive: { 'style.spacing.blockGap': { tablet: { left: '3em' } } },
+		} )
+	} )
+
+	it( 'merges an axis into the breakpoint\'s existing gap override', () => {
+		const setAttributes = renderColumns( {
+			style: { spacing: { blockGap: { top: '1em', left: '2em' } } },
+			responsive: { 'style.spacing.blockGap': { tablet: { left: '3em' }, mobile: '0' } },
+		} )
+
+		captured?.setAttributes( { style: { spacing: { blockGap: { top: '4em', left: '3em' } } } } )
+
+		expect( setAttributes ).toHaveBeenCalledWith( {
+			responsive: { 'style.spacing.blockGap': { tablet: { left: '3em', top: '4em' }, mobile: '0' } },
+		} )
+	} )
+
+	it( 'collapses per-side padding and margin edits into their paths', () => {
+		const setAttributes = renderColumns( {
+			style: { spacing: { padding: { top: '1rem', bottom: '1rem' }, margin: { top: '0', bottom: '0' } } },
+		} )
+
+		captured?.setAttributes( {
+			style: { spacing: { padding: { top: '2rem', bottom: '3rem' }, margin: { top: '0', bottom: '4rem' } } },
+		} )
+
+		expect( setAttributes ).toHaveBeenCalledWith( {
+			responsive: {
+				'style.spacing.padding': { tablet: { top: '2rem', bottom: '3rem' } },
+				'style.spacing.margin': { tablet: { bottom: '4rem' } },
+			},
+		} )
+	} )
+
+	it( 'drops a cleared side and the breakpoint once no side is left', () => {
+		const setAttributes = renderColumns( {
+			style: { spacing: { padding: { top: '1rem' } } },
+			responsive: { 'style.spacing.padding': { tablet: { top: '2rem' }, mobile: '0' } },
+		} )
+
+		captured?.setAttributes( { style: { spacing: { padding: { top: undefined } } } } )
+
+		const responsive = setAttributes.mock.calls[ 0 ][ 0 ].responsive
+
+		expect( responsive[ 'style.spacing.padding' ].tablet ).toBeUndefined()
+		expect( responsive[ 'style.spacing.padding' ].mobile ).toBe( '0' )
+	} )
+
+	it( 'folds legacy deep and shallow keys into the property path on the next edit', () => {
+		const setAttributes = renderColumns( {
+			style: { spacing: { blockGap: { top: '1em', left: '2em' } } },
+			responsive: {
+				'style.spacing.blockGap.left': { tablet: '3em', mobile: '1em' },
+				'style.spacing': { mobile: { padding: '1rem' } },
+				columnCount: { mobile: 1 },
+			},
+		} )
+
+		captured?.setAttributes( { style: { spacing: { blockGap: { top: '5em', left: '3em' } } } } )
+
+		expect( setAttributes ).toHaveBeenCalledWith( {
+			responsive: {
+				columnCount: { mobile: 1 },
+				'style.spacing.blockGap': { tablet: { left: '3em', top: '5em' }, mobile: { left: '1em' } },
+				'style.spacing.padding': { mobile: '1rem' },
+			},
+		} )
+	} )
+
+	it( 'collapses a per-corner border radius under a `border` root', () => {
+		__setBlockType( 'acme/card', {
+			artisanpackResponsive: { attributes: [ 'border' ] },
+		} )
+
+		const setAttributes = vi.fn()
+
+		render(
+			<Wrapped
+				name="acme/card"
+				attributes={ deepFreeze( { style: { border: { radius: { topLeft: '4px', topRight: '4px' } } } } ) }
+				setAttributes={ setAttributes }
+			/> as never,
+		)
+
+		captured?.setAttributes( { style: { border: { radius: { topLeft: '8px', topRight: '4px' } } } } )
+
+		expect( setAttributes ).toHaveBeenCalledWith( {
+			responsive: { 'style.border.radius': { tablet: { topLeft: '8px' } } },
+		} )
+	} )
+
+	it( 'splits a first border edit under a `border` root into its property paths', () => {
+		__setBlockType( 'acme/card', {
+			artisanpackResponsive: { attributes: [ 'border' ] },
+		} )
+
+		const setAttributes = vi.fn()
+
+		render(
+			<Wrapped
+				name="acme/card"
+				attributes={ {} }
+				setAttributes={ setAttributes }
+			/> as never,
+		)
+
+		captured?.setAttributes( { style: { border: { width: '2px', style: 'solid' } } } )
+
+		expect( setAttributes ).toHaveBeenCalledWith( {
+			responsive: {
+				'style.border.width': { tablet: '2px' },
+				'style.border.style': { tablet: 'solid' },
+			},
+		} )
+	} )
+} )
+
+describe( 'withResponsiveAttributes — coarse roots beyond spacing (#918)', () => {
+	beforeEach( () => {
+		act( () => {
+			setActiveBreakpoint( 'tablet' )
+		} )
+	} )
+
+	function renderBlock( roots: string[], attributes: Record<string, unknown> ): ReturnType<typeof vi.fn> {
+		__setBlockType( 'acme/box', { artisanpackResponsive: { attributes: roots } } )
+
+		const setAttributes = vi.fn()
+
+		render(
+			<Wrapped
+				name="acme/box"
+				attributes={ deepFreeze( attributes ) }
+				setAttributes={ setAttributes }
+			/> as never,
+		)
+
+		return setAttributes
+	}
+
+	it( 'splits a first dimensions edit under a `dimensions` root', () => {
+		const setAttributes = renderBlock( [ 'dimensions' ], {} )
+
+		captured?.setAttributes( { style: { dimensions: { minHeight: '50vh' } } } )
+
+		expect( setAttributes ).toHaveBeenCalledWith( {
+			responsive: { 'style.dimensions.minHeight': { tablet: '50vh' } },
+		} )
+	} )
+
+	it( 'splits a first typography edit under a `typography` root, keeping its #887 pair', () => {
+		const setAttributes = renderBlock( [ 'typography' ], {} )
+
+		captured?.setAttributes( { style: { typography: { fontSize: '20px', lineHeight: '1.4' } } } )
+
+		expect( setAttributes ).toHaveBeenCalledWith( {
+			responsive: {
+				'style.typography.fontSize': { tablet: '20px' },
+				'style.typography.lineHeight': { tablet: '1.4' },
+				fontSize: { tablet: false },
+			},
+		} )
+	} )
+
+	it( 'clears only the stored property paths when a whole spacing object is reset', () => {
+		const setAttributes = renderBlock( [ 'spacing' ], {
+			responsive: {
+				'style.spacing.padding': { tablet: '2rem', mobile: '1rem' },
+				'style.spacing.margin': { mobile: '0' },
+			},
+		} )
+
+		captured?.setAttributes( { style: { spacing: undefined } } )
+
+		const responsive = setAttributes.mock.calls[ 0 ][ 0 ].responsive
+
+		expect( Object.keys( responsive ).sort() ).toEqual( [ 'style.spacing.margin', 'style.spacing.padding' ] )
+		expect( responsive[ 'style.spacing.padding' ] ).toEqual( { mobile: '1rem' } )
+		expect( responsive[ 'style.spacing.margin' ] ).toEqual( { mobile: '0' } )
+	} )
+} )
+
+describe( 'buildOverlay — spacing matches the front end (#918)', () => {
+	const registry = getResponsiveRegistry()
+
+	it( 'reads legacy deep and shallow keys at the property path', () => {
+		expect( buildOverlay( {
+			'style.spacing.blockGap.left': { tablet: '3em' },
+			'style.spacing': { tablet: { padding: '1rem' } },
+		}, 'tablet', registry ) ).toEqual( {
+			style: { spacing: { blockGap: { left: '3em' }, padding: '1rem' } },
+		} )
+	} )
+
+	it( 'prefers the property path over a legacy key at the same breakpoint', () => {
+		expect( buildOverlay( {
+			'style.spacing.blockGap': { tablet: { top: '1em' } },
+			'style.spacing.blockGap.left': { tablet: '3em', mobile: '4em' },
+		}, 'tablet', registry ) ).toEqual( {
+			style: { spacing: { blockGap: { top: '1em' } } },
+		} )
+	} )
+
+	it( 'combines sides across the cascade the way the media rules do', () => {
+		expect( buildOverlay( {
+			'style.spacing.padding': { tablet: { top: '1rem' }, mobile: { left: '2rem' } },
+			'style.spacing.margin': { tablet: '3rem', mobile: { bottom: '0' } },
+		}, 'mobile', registry ) ).toEqual( {
+			style: {
+				spacing: {
+					padding: { left: '2rem', top: '1rem' },
+					margin: { bottom: '0', top: '3rem', right: '3rem', left: '3rem' },
+				},
+			},
+		} )
+	} )
+
+	it( 'fills the sides an override leaves out from a scalar base value', () => {
+		expect( buildOverlay(
+			{ 'style.spacing.blockGap': { tablet: { left: '3em' } } },
+			'tablet',
+			registry,
+			{ style: { spacing: { blockGap: '2em' } } },
+		) ).toEqual( {
+			style: { spacing: { blockGap: { left: '3em', top: '2em' } } },
+		} )
+	} )
+} )

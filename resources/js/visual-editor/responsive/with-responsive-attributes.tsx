@@ -43,8 +43,18 @@ import {
     diffPaths,
     isPlainObject,
     pathMatchesAnyRoot,
+    readPath,
     setPath,
 } from './attribute-paths'
+import {
+    RESPONSIVE_PROPERTY_SIDES,
+    type ResponsiveOverridesByPath,
+    applyPropertyWrites,
+    cascadePropertySides,
+    fillSidesFromBase,
+    foldLegacyResponsivePaths,
+    propertyWritesFor,
+} from './property-paths'
 import { type BreakpointRegistry, getResponsiveRegistry } from './registry'
 import { BASE_KEY } from './types'
 
@@ -69,8 +79,6 @@ interface BlockEditProps {
 interface ResponsiveSupports {
     attributes: string[]
 }
-
-type ResponsiveOverridesByPath = Record<string, Record<string, unknown>>
 
 /**
  * Responsive paths that store one CSS property two ways: a preset slug
@@ -177,15 +185,24 @@ function getResponsiveRoots( name: string ): string[] | null {
  * larger devices (Mobile inherits from Tablet), then any legacy keys
  * that also apply at its preview width (#820). A tombstone on a paired
  * path stops the cascade and clears that path from the read view (#887).
+ *
+ * Shows what the front end renders (#918): overrides saved under a
+ * legacy path are folded into the property path the renderers read, a
+ * per-side property combines its sides along the cascade the way the
+ * media rules do, and the sides it leaves out come from a scalar base
+ * value in `baseAttributes`.
  */
 export function buildOverlay(
-    responsive: ResponsiveOverridesByPath | null | undefined,
+    stored: ResponsiveOverridesByPath | null | undefined,
     activeBreakpoint: string,
     registry: BreakpointRegistry,
+    baseAttributes?: Record<string, unknown>,
 ): Record<string, unknown> {
-    if ( ! responsive || BASE_KEY === activeBreakpoint || ! registry.has( activeBreakpoint ) ) {
+    if ( ! stored || BASE_KEY === activeBreakpoint || ! registry.has( activeBreakpoint ) ) {
         return {}
     }
+
+    const responsive = foldLegacyResponsivePaths( stored )
 
     // `base` lives in the plain attributes, not the overlay.
     const cascade = registry.cascade( activeBreakpoint ).filter( ( key ) => BASE_KEY !== key )
@@ -195,6 +212,16 @@ export function buildOverlay(
         const overridesForPath = responsive[ path ]
 
         if ( ! overridesForPath || 'object' !== typeof overridesForPath ) {
+            continue
+        }
+
+        if ( path in RESPONSIVE_PROPERTY_SIDES ) {
+            const value = cascadePropertySides( path, overridesForPath, cascade )
+
+            if ( undefined !== value ) {
+                writeInto( overlay, path, fillSidesFromBase( path, value, readPath( baseAttributes, path ) ) )
+            }
+
             continue
         }
 
@@ -264,7 +291,14 @@ function writeInto( target: Record<string, unknown>, path: string, value: unknow
         }
     }
 
-    cursor[ segments[ segments.length - 1 ] ] = value
+    const leaf     = segments[ segments.length - 1 ]
+    const existing = cursor[ leaf ]
+
+    // A shallow legacy key's leftovers must not wipe a property path
+    // already written beneath it (#918).
+    cursor[ leaf ] = isPlainObject( value ) && isPlainObject( existing )
+        ? deepMerge( existing, value )
+        : value
 }
 
 export const withResponsiveAttributes = createHigherOrderComponent(
@@ -287,7 +321,7 @@ export const withResponsiveAttributes = createHigherOrderComponent(
                     return attributes
                 }
 
-                const overlay = buildOverlay( responsive, activeBreakpoint, getResponsiveRegistry() )
+                const overlay = buildOverlay( responsive, activeBreakpoint, getResponsiveRegistry(), attributes )
 
                 if ( 0 === Object.keys( overlay ).length ) {
                     return attributes
@@ -319,12 +353,17 @@ export const withResponsiveAttributes = createHigherOrderComponent(
                         splitLeaf( path, value, roots, routed )
                     }
 
-                    for ( const { path, value } of routed.responsive ) {
-                        responsivePatch = responsivePatch ?? {}
-                        responsivePatch[ path ] = {
-                            ...( responsive?.[ path ] ?? {} ),
-                            [ activeBreakpoint ]: value,
-                        }
+                    // Store each routed leaf under the property path the
+                    // renderers read (#918), building on a bag whose
+                    // legacy keys are folded into those paths.
+                    const stored = foldLegacyResponsivePaths( responsive )
+
+                    if ( 0 !== routed.responsive.length ) {
+                        responsivePatch = applyPropertyWrites(
+                            routed.responsive.flatMap( ( { path, value } ) => propertyWritesFor( path, value ) ),
+                            stored,
+                            activeBreakpoint,
+                        )
                     }
 
                     // Gutenberg merges attribute updates at the top level
@@ -351,8 +390,8 @@ export const withResponsiveAttributes = createHigherOrderComponent(
 
                     if ( responsivePatch ) {
                         finalUpdates.responsive = {
-                            ...( responsive ?? {} ),
-                            ...withPairTombstones( responsivePatch, responsive, activeBreakpoint ),
+                            ...( stored ?? {} ),
+                            ...withPairTombstones( responsivePatch, stored, activeBreakpoint ),
                         }
                     }
 

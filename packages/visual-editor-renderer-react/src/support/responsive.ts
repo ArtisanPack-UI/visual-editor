@@ -39,6 +39,24 @@ const COLUMNS_BLOCK_NAMES = ['core/columns', 'artisanpack/columns'];
  */
 const RESPONSIVE_AXIS_PROPERTIES: Readonly<Record<string, Readonly<Record<string, string>>>> = {
     gap: { top: 'row-gap', left: 'column-gap' },
+    // A per-corner radius uses the Gutenberg corner names (#918).
+    'border-radius': {
+        topLeft: 'border-top-left-radius',
+        topRight: 'border-top-right-radius',
+        bottomRight: 'border-bottom-right-radius',
+        bottomLeft: 'border-bottom-left-radius',
+    },
+};
+
+/**
+ * The keys of a responsive path whose value may be a per-side object
+ * (#918). Mirrors `BlockSupports::RESPONSIVE_OBJECT_SIDES`.
+ */
+const RESPONSIVE_OBJECT_SIDES: Readonly<Record<string, readonly string[]>> = {
+    'style.spacing.padding': ['top', 'right', 'bottom', 'left'],
+    'style.spacing.margin': ['top', 'right', 'bottom', 'left'],
+    'style.spacing.blockGap': ['top', 'left'],
+    'style.border.radius': ['topLeft', 'topRight', 'bottomRight', 'bottomLeft'],
 };
 
 export const RESPONSIVE_SCOPE_PREFIX = 've-r-';
@@ -129,8 +147,11 @@ export function compileResponsive(
         return null;
     }
 
+    // The scope hashes the payload as stored, so content that only uses
+    // the property paths keeps its class (#918).
+    const folded = foldLegacyResponsivePaths(stored, propertyMap);
     const emitColumnsGap =
-        columnsGap && hasOwn(propertyMap, 'style.spacing.blockGap') && isSet(stored['style.spacing.blockGap']);
+        columnsGap && hasOwn(propertyMap, 'style.spacing.blockGap') && isSet(folded['style.spacing.blockGap']);
 
     let json: string;
     try {
@@ -143,7 +164,7 @@ export function compileResponsive(
     const className = RESPONSIVE_SCOPE_PREFIX + xxh3_64_hex(json).slice(0, 10);
     // Tripled scope class — see the matching comment in `BlockSupports`.
     const selector = `.${className}.${className}.${className}`;
-    const responsive: Record<string, unknown> = { ...stored };
+    const responsive: Record<string, unknown> = { ...folded };
 
     // A unit-only override still needs its value path walked (#877).
     for (const [path, [unitPath]] of Object.entries(RESPONSIVE_UNIT_PATHS)) {
@@ -229,6 +250,160 @@ export function compileResponsive(
     }
 
     return { className, css: rules.join('') };
+}
+
+/**
+ * Fold overrides saved under a legacy path into the path the map reads
+ * (#918): a key one side deeper than a per-side path
+ * (`style.spacing.blockGap.left`) and a shallower object
+ * (`style.spacing`) contribute to the mapped path's per-breakpoint
+ * value, later keys over earlier ones; a breakpoint the mapped path
+ * already sets keeps its own value. Mirrors
+ * `BlockSupports::foldLegacyResponsivePaths()`.
+ */
+function foldLegacyResponsivePaths(
+    responsive: Record<string, unknown>,
+    propertyMap: Readonly<Record<string, string>>
+): Record<string, unknown> {
+    const out: Record<string, unknown> = {};
+    const legacy = new Map<string, Record<string, unknown>>();
+    let folded = false;
+
+    const contribute = (path: string, breakpoint: string, value: unknown): void => {
+        const byBreakpoint = legacy.get(path) ?? {};
+
+        byBreakpoint[breakpoint] = value;
+        legacy.set(path, byBreakpoint);
+    };
+
+    for (const [key, overrides] of Object.entries(responsive)) {
+        if (hasOwn(propertyMap, key) || !isPhpArray(overrides)) {
+            out[key] = overrides;
+            continue;
+        }
+
+        const side = responsiveSideOf(key, propertyMap);
+
+        if (side !== null) {
+            const [path, sideKey] = side;
+            folded = true;
+
+            for (const [breakpoint, value] of Object.entries(overrides)) {
+                if (!isScalar(value) || value === '') {
+                    continue;
+                }
+
+                contribute(path, breakpoint, withResponsiveSide(path, legacy.get(path)?.[breakpoint], sideKey, value));
+            }
+
+            continue;
+        }
+
+        const nested = Object.keys(propertyMap).filter((path) => path.startsWith(`${key}.`));
+
+        if (nested.length === 0) {
+            out[key] = overrides;
+            continue;
+        }
+
+        folded = true;
+
+        for (const [breakpoint, value] of Object.entries(overrides)) {
+            if (!isPhpArray(value)) {
+                continue;
+            }
+
+            for (const path of nested) {
+                const nestedValue = readResponsivePath(value, path.slice(key.length + 1));
+
+                if (nestedValue === null || nestedValue === undefined) {
+                    continue;
+                }
+
+                contribute(path, breakpoint, mergeResponsiveValue(path, legacy.get(path)?.[breakpoint], nestedValue));
+            }
+        }
+    }
+
+    if (!folded) {
+        return responsive;
+    }
+
+    for (const [path, byBreakpoint] of legacy) {
+        const current = out[path];
+        const canonical: Record<string, unknown> = isPhpArray(current) ? { ...current } : {};
+
+        for (const [breakpoint, value] of Object.entries(byBreakpoint)) {
+            if (!isSet(canonical[breakpoint])) {
+                canonical[breakpoint] = value;
+            }
+        }
+
+        out[path] = canonical;
+    }
+
+    return out;
+}
+
+/** The mapped per-side path and side a key one side deeper names, or null (#918). */
+function responsiveSideOf(key: string, propertyMap: Readonly<Record<string, string>>): [string, string] | null {
+    for (const [path, sides] of Object.entries(RESPONSIVE_OBJECT_SIDES)) {
+        if (!hasOwn(propertyMap, path) || !key.startsWith(`${path}.`)) {
+            continue;
+        }
+
+        const side = key.slice(path.length + 1);
+
+        return sides.includes(side) ? [path, side] : null;
+    }
+
+    return null;
+}
+
+/** `existing` with one side set; a scalar is spread over every side first (#918). */
+function withResponsiveSide(path: string, existing: unknown, side: string, value: unknown): Record<string, unknown> {
+    const next = isPhpArray(existing) ? { ...existing } : spreadResponsiveScalar(path, existing);
+
+    next[side] = value;
+
+    return next;
+}
+
+/** Lay a later legacy value over an earlier one: objects merge, a scalar replaces (#918). */
+function mergeResponsiveValue(path: string, existing: unknown, value: unknown): unknown {
+    if (!isPhpArray(value)) {
+        return value;
+    }
+
+    const base = isPhpArray(existing) ? { ...existing } : spreadResponsiveScalar(path, existing);
+
+    return Object.assign(base, value);
+}
+
+/** A scalar spread over every side of a per-side path, or `{}` (#918). */
+function spreadResponsiveScalar(path: string, value: unknown): Record<string, unknown> {
+    const sides = RESPONSIVE_OBJECT_SIDES[path];
+
+    if (sides === undefined || value === '' || (typeof value !== 'string' && typeof value !== 'number')) {
+        return {};
+    }
+
+    return Object.fromEntries(sides.map((side) => [side, value]));
+}
+
+/** The value at a dotted path inside a legacy override, or null. */
+function readResponsivePath(value: Record<string, unknown>, path: string): unknown {
+    let cursor: unknown = value;
+
+    for (const segment of path.split('.')) {
+        if (!isPhpArray(cursor) || !hasOwn(cursor, segment)) {
+            return null;
+        }
+
+        cursor = cursor[segment];
+    }
+
+    return cursor;
 }
 
 /**

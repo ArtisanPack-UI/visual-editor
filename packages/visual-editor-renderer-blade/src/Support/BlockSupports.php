@@ -114,10 +114,33 @@ class BlockSupports
 	 * Per-side longhands for a responsive property whose object value is
 	 * not keyed by box side. A per-axis `blockGap` is `{top, left}`, and
 	 * `gap-top` / `gap-left` aren't CSS properties, so it maps to
-	 * `row-gap` / `column-gap` the way the base style does (#914).
+	 * `row-gap` / `column-gap` the way the base style does (#914). A
+	 * per-corner radius uses the Gutenberg corner names (#918).
 	 */
 	protected const RESPONSIVE_AXIS_PROPERTIES = [
-		'gap' => [ 'top' => 'row-gap', 'left' => 'column-gap' ],
+		'gap'           => [ 'top' => 'row-gap', 'left' => 'column-gap' ],
+		'border-radius' => [
+			'topLeft'     => 'border-top-left-radius',
+			'topRight'    => 'border-top-right-radius',
+			'bottomRight' => 'border-bottom-right-radius',
+			'bottomLeft'  => 'border-bottom-left-radius',
+		],
+	];
+
+	/**
+	 * The keys of a responsive path whose value may be a per-side object
+	 * (#918). Older editor builds stored one side of such a value under a
+	 * deeper key (`style.spacing.blockGap.left`), which
+	 * {@see self::foldLegacyResponsivePaths()} folds back in; a scalar
+	 * value is spread over these keys when one side is laid over it.
+	 *
+	 * @since 1.15.2
+	 */
+	protected const RESPONSIVE_OBJECT_SIDES = [
+		'style.spacing.padding'  => [ 'top', 'right', 'bottom', 'left' ],
+		'style.spacing.margin'   => [ 'top', 'right', 'bottom', 'left' ],
+		'style.spacing.blockGap' => [ 'top', 'left' ],
+		'style.border.radius'    => [ 'topLeft', 'topRight', 'bottomRight', 'bottomLeft' ],
 	];
 
 	/**
@@ -739,6 +762,9 @@ class BlockSupports
 	 * @since 1.15.2 Accepts `$columnsGap`: a Columns block's gap rules
 	 *               also set `--ap-columns-gap`, so the Column width calc
 	 *               follows the breakpoint's gap instead of the base (#914).
+	 * @since 1.15.2 Reads overrides older editor builds saved under a
+	 *               legacy path ({@see self::foldLegacyResponsivePaths()},
+	 *               #918).
 	 *
 	 * @param  array<string, mixed>         $attributes
 	 * @param  array<string, string>|null  $propertyMap  Path → CSS property;
@@ -758,7 +784,12 @@ class BlockSupports
 		}
 
 		$propertyMap ??= self::RESPONSIVE_CSS_PROPERTY_MAP;
-		$columnsGap    = $columnsGap && isset( $propertyMap['style.spacing.blockGap'], $responsive['style.spacing.blockGap'] );
+
+		// The scope hashes the payload as stored, so content that only
+		// uses the property paths keeps its class (#918).
+		$stored     = $responsive;
+		$responsive = self::foldLegacyResponsivePaths( $responsive, $propertyMap );
+		$columnsGap = $columnsGap && isset( $propertyMap['style.spacing.blockGap'], $responsive['style.spacing.blockGap'] );
 
 		// Pull the request-scoped registry from the container so
 		// host-configured breakpoints (theme.json → config) are
@@ -772,7 +803,7 @@ class BlockSupports
 			? self::resolveRegistry()
 			: BreakpointRegistry::fromLayers();
 		$rules    = [];
-		$scope    = self::generateResponsiveScopeClass( self::responsiveHashInput( $responsive, $attributes, $propertyMap, $columnsGap ) );
+		$scope    = self::generateResponsiveScopeClass( self::responsiveHashInput( $stored, $attributes, $propertyMap, $columnsGap ) );
 
 		// Tripled scope class boosts the rule's specificity to
 		// (0,0,3,0), matching WP core's own
@@ -1127,6 +1158,212 @@ class BlockSupports
 		}
 
 		return self::cssNumber( max( 0.0, (float) $value ) ) . $unit;
+	}
+
+	/**
+	 * Fold overrides saved under a legacy path into the path this map
+	 * reads (#918). Before 1.15.2 the editor stored a breakpoint edit
+	 * under whichever leaf changed, so the key depended on the block's
+	 * base value:
+	 *
+	 * - one side deeper than a per-side path, when the base value was
+	 *   already per-side (`style.spacing.blockGap.left`,
+	 *   `style.spacing.padding.top`);
+	 * - a shallower object, when the block had no value yet
+	 *   (`style.spacing` holding `{padding, blockGap}`).
+	 *
+	 * Both contribute to the mapped path's per-breakpoint value, later
+	 * keys over earlier ones. A breakpoint the mapped path already sets
+	 * keeps its own value. The payload comes back untouched when it has
+	 * no legacy key.
+	 *
+	 * @since 1.15.2
+	 *
+	 * @param  array<mixed>           $responsive
+	 * @param  array<string, string>  $propertyMap
+	 *
+	 * @return array<mixed>
+	 */
+	protected static function foldLegacyResponsivePaths( array $responsive, array $propertyMap ): array
+	{
+		$out    = [];
+		$legacy = [];
+		$folded = false;
+
+		foreach ( $responsive as $key => $overrides ) {
+			$key = (string) $key;
+
+			if ( isset( $propertyMap[ $key ] ) || ! is_array( $overrides ) ) {
+				$out[ $key ] = $overrides;
+
+				continue;
+			}
+
+			$side = self::responsiveSideOf( $key, $propertyMap );
+
+			if ( null !== $side ) {
+				[ $path, $sideKey ] = $side;
+				$folded             = true;
+
+				foreach ( $overrides as $breakpoint => $value ) {
+					if ( ! is_scalar( $value ) || '' === $value ) {
+						continue;
+					}
+
+					$legacy[ $path ][ $breakpoint ] = self::withResponsiveSide( $path, $legacy[ $path ][ $breakpoint ] ?? null, $sideKey, $value );
+				}
+
+				continue;
+			}
+
+			$nested = array_values( array_filter(
+				array_map( 'strval', array_keys( $propertyMap ) ),
+				static fn ( string $path ): bool => str_starts_with( $path, $key . '.' ),
+			) );
+
+			if ( [] === $nested ) {
+				$out[ $key ] = $overrides;
+
+				continue;
+			}
+
+			$folded = true;
+
+			foreach ( $overrides as $breakpoint => $value ) {
+				if ( ! is_array( $value ) ) {
+					continue;
+				}
+
+				foreach ( $nested as $path ) {
+					$nestedValue = self::readResponsivePath( $value, substr( $path, strlen( $key ) + 1 ) );
+
+					if ( null === $nestedValue ) {
+						continue;
+					}
+
+					$legacy[ $path ][ $breakpoint ] = self::mergeResponsiveValue( $path, $legacy[ $path ][ $breakpoint ] ?? null, $nestedValue );
+				}
+			}
+		}
+
+		if ( ! $folded ) {
+			return $responsive;
+		}
+
+		foreach ( $legacy as $path => $byBreakpoint ) {
+			$canonical = isset( $out[ $path ] ) && is_array( $out[ $path ] ) ? $out[ $path ] : [];
+
+			foreach ( $byBreakpoint as $breakpoint => $value ) {
+				if ( ! isset( $canonical[ $breakpoint ] ) ) {
+					$canonical[ $breakpoint ] = $value;
+				}
+			}
+
+			$out[ $path ] = $canonical;
+		}
+
+		return $out;
+	}
+
+	/**
+	 * The mapped per-side path and side a key one side deeper names
+	 * (`style.spacing.blockGap.left` → `[style.spacing.blockGap, left]`),
+	 * or null (#918).
+	 *
+	 * @since 1.15.2
+	 *
+	 * @param  array<string, string>  $propertyMap
+	 *
+	 * @return array{0: string, 1: string}|null
+	 */
+	protected static function responsiveSideOf( string $key, array $propertyMap ): ?array
+	{
+		foreach ( self::RESPONSIVE_OBJECT_SIDES as $path => $sides ) {
+			if ( ! isset( $propertyMap[ $path ] ) || ! str_starts_with( $key, $path . '.' ) ) {
+				continue;
+			}
+
+			$side = substr( $key, strlen( $path ) + 1 );
+
+			return in_array( $side, $sides, true ) ? [ $path, $side ] : null;
+		}
+
+		return null;
+	}
+
+	/**
+	 * `$existing` with one side set; a scalar is spread over every side
+	 * first so the others survive (#918).
+	 *
+	 * @since 1.15.2
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected static function withResponsiveSide( string $path, mixed $existing, string $side, mixed $value ): array
+	{
+		$next          = is_array( $existing ) ? $existing : self::spreadResponsiveScalar( $path, $existing );
+		$next[ $side ] = $value;
+
+		return $next;
+	}
+
+	/**
+	 * Lay a later legacy value over an earlier one for the same path:
+	 * objects merge side by side, a scalar replaces (#918).
+	 *
+	 * @since 1.15.2
+	 */
+	protected static function mergeResponsiveValue( string $path, mixed $existing, mixed $value ): mixed
+	{
+		if ( ! is_array( $value ) ) {
+			return $value;
+		}
+
+		$base = is_array( $existing ) ? $existing : self::spreadResponsiveScalar( $path, $existing );
+
+		foreach ( $value as $side => $sideValue ) {
+			$base[ $side ] = $sideValue;
+		}
+
+		return $base;
+	}
+
+	/**
+	 * A scalar spread over every side of a per-side path, or `[]` (#918).
+	 *
+	 * @since 1.15.2
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected static function spreadResponsiveScalar( string $path, mixed $value ): array
+	{
+		if ( ! isset( self::RESPONSIVE_OBJECT_SIDES[ $path ] ) || '' === $value || ( ! is_string( $value ) && ! is_int( $value ) && ! is_float( $value ) ) ) {
+			return [];
+		}
+
+		return array_fill_keys( self::RESPONSIVE_OBJECT_SIDES[ $path ], $value );
+	}
+
+	/**
+	 * The value at a dotted path inside a legacy override, or null.
+	 *
+	 * @since 1.15.2
+	 *
+	 * @param  array<mixed>  $value
+	 */
+	protected static function readResponsivePath( array $value, string $path ): mixed
+	{
+		$cursor = $value;
+
+		foreach ( explode( '.', $path ) as $segment ) {
+			if ( ! is_array( $cursor ) || ! array_key_exists( $segment, $cursor ) ) {
+				return null;
+			}
+
+			$cursor = $cursor[ $segment ];
+		}
+
+		return $cursor;
 	}
 
 	/**
