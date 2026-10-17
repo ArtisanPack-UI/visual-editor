@@ -38,8 +38,34 @@ describe('button deprecation chain (simplified fork)', () => {
         expect(deprecated).toHaveLength(3);
     });
 
-    it('pre-#921 entry only matches invalid markup (no isEligible)', () => {
-        expect('isEligible' in deprecated[0]).toBe(false);
+    it('pre-#921 entry is eligible only for a legacy numeric width', () => {
+        const entry = deprecated[0];
+        expect(entry.isEligible({ width: 50 })).toBe(true);
+        expect(entry.isEligible({ style: { dimensions: { width: '100%' } } })).toBe(false);
+        expect(entry.isEligible({})).toBe(false);
+    });
+
+    it('pre-#921 entry keeps a legacy numeric width it validates first', () => {
+        const entry = deprecated[0];
+        expect(entry.attributes.width).toEqual({ type: 'number' });
+
+        const migrated = entry.migrate({
+            width: 50,
+            className: 'has-custom-width wp-block-button__width-50',
+        });
+        expect(migrated.width).toBeUndefined();
+        expect(migrated.style?.dimensions?.width).toBe('50%');
+        expect('className' in migrated).toBe(false);
+    });
+
+    it('width migrations drop the classes save() writes but keep custom ones', () => {
+        for (const entry of [deprecated[0], deprecated[1]]) {
+            const migrated = entry.migrate({
+                width: 25,
+                className: 'wp-block-button has-custom-width wp-block-button__width wp-block-button__width-25 is-style-outline my-button',
+            });
+            expect(migrated.className).toBe('is-style-outline my-button');
+        }
     });
 
     it('pre-#921 entry saves the wrapper without width classes or style', () => {
