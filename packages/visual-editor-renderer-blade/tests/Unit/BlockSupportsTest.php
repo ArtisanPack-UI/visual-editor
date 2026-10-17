@@ -869,3 +869,22 @@ describe( 'BlockSupports::safeCssValue (#720 shared CSS-value whitelist)', funct
 		expect( BlockSupports::safeCssValue( "200px\u{00A0}" ) )->toBeNull();
 	} );
 } );
+
+describe( 'BlockSupports::compile (position)', function (): void {
+	it( 'stamps a base-only position inline', function (): void {
+		$result = BlockSupports::compile( [
+			'style' => [ 'position' => [ 'value' => 'absolute', 'offsets' => [ 'top' => [ 'value' => 0, 'unit' => 'px' ] ] ] ],
+		] );
+
+		expect( $result['style'] )->toContain( 'position: absolute !important;' );
+	} );
+
+	it( 'leaves the position off the inline style when breakpoints override it (#929)', function (): void {
+		$result = BlockSupports::compile( [
+			'style'      => [ 'position' => [ 'value' => 'absolute', 'offsets' => [ 'top' => [ 'value' => 0, 'unit' => 'px' ] ] ] ],
+			'responsive' => [ 'style.position' => [ 'mobile' => [ 'value' => 'static' ] ] ],
+		] );
+
+		expect( $result['style'] )->not->toContain( 'position:' );
+	} );
+} );

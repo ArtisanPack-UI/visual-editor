@@ -104,7 +104,7 @@ describe( 'emitPositionCss', () => {
 		)
 	} )
 
-	it( 'skips media queries when a breakpoint layer resolves to static-only', () => {
+	it( 'emits position:static at a breakpoint that undoes a positioned base (#929)', () => {
 		const attrs = {
 			style: { position: { value: 'relative' } },
 			responsive: {
@@ -117,8 +117,24 @@ describe( 'emitPositionCss', () => {
 		const merged  = mergedBreakpointLayers( payload, registry )
 		const css     = emitPositionCss( '.wrap', payload, registry, merged )
 
-		expect( css ).toContain( '.wrap{position:relative !important}' )
-		expect( css ).not.toContain( '@media' )
+		expect( css ).toBe(
+			'.wrap{position:relative !important}@media (min-width:1024px){.wrap{position:static !important}}',
+		)
+	} )
+
+	it( 'skips media queries when every layer is static', () => {
+		const attrs = {
+			style: { position: { value: 'static' } },
+			responsive: {
+				'style.position': {
+					lg: { value: 'static' },
+				},
+			},
+		}
+		const payload = resolvePosition( attrs )!
+		const merged  = mergedBreakpointLayers( payload, registry )
+
+		expect( emitPositionCss( '.wrap', payload, registry, merged ) ).toBe( '' )
 	} )
 
 	it( 'legacy sticky (bare string) round-trips to a single position:sticky rule', () => {
