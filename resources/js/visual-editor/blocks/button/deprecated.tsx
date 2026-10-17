@@ -19,6 +19,8 @@ import {
     getColorClassName,
     useBlockProps,
 } from '@wordpress/block-editor';
+import metadata from './block.json';
+import save from './save';
 
 interface LegacyWidthAttributes {
     readonly width?: number | string;
@@ -185,4 +187,26 @@ const v1 = {
     },
 };
 
-export default [widthDeprecation, v1];
+/**
+ * Before #921, `save()` dropped `style.dimensions.width`: the wrapper had
+ * no width classes, although the canvas showed them. Same attributes as
+ * today; the saved markup is today's `save()` without the width. No
+ * `isEligible`: Gutenberg applies an eligible deprecation even to valid
+ * blocks, which would re-migrate every button that has a width.
+ */
+const v2WithoutWidthClasses = {
+    attributes: metadata.attributes,
+    supports: metadata.supports,
+    save({ attributes }: { attributes: LegacyWidthAttributes }): ReactElement {
+        const { width: _width, ...dimensions } = attributes.style?.dimensions ?? {};
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return (save as any)({
+            attributes: {
+                ...attributes,
+                style: { ...attributes.style, dimensions },
+            },
+        });
+    },
+};
+
+export default [v2WithoutWidthClasses, widthDeprecation, v1];

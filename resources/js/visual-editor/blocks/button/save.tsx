@@ -23,6 +23,7 @@ import {
     __experimentalGetElementClassName,
     getTypographyClassesAndStyles,
 } from '@wordpress/block-editor';
+import { getWidthClasses, getWidthStyle } from './utils';
 
 interface ButtonSaveAttributes {
     readonly tagName?: 'a' | 'button';
@@ -33,6 +34,7 @@ interface ButtonSaveAttributes {
     readonly style?: {
         border?: { radius?: number };
         typography?: { fontSize?: string };
+        dimensions?: { width?: string };
     };
     readonly text?: string;
     readonly title?: string;
@@ -89,9 +91,11 @@ export default function buttonSave({
         writingMode: undefined,
     };
 
+    const width = style?.dimensions?.width;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const blockProps = (useBlockProps.save as any)({
-        className: 'wp-block-button',
+        className: clsx('wp-block-button', getWidthClasses(width)),
+        style: getWidthStyle(width),
     });
 
     return (
