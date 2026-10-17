@@ -1043,6 +1043,22 @@ it( 'omits accordion-title aria wiring when the parent panel id is empty', funct
 		->and( $html )->not->toContain( 'id="-control"' );
 } );
 
+it( 'starts an accordion panel open when defaultOpen is set', function (): void {
+	$panel = fn ( mixed $defaultOpen ): array => makeBlock( 'artisanpack/accordion', [ 'panelId' => 'faq-1', 'defaultOpen' => $defaultOpen ], [
+		makeBlock( 'artisanpack/accordion-title', [], [], 'title-1' ),
+		makeBlock( 'artisanpack/accordion-body', [], [], 'body-1' ),
+	] );
+
+	$open   = makeRenderer()->render( [ $panel( true ) ] );
+	$closed = makeRenderer()->render( [ $panel( false ) ] );
+
+	expect( $open )->toContain( 'aria-expanded="true"' )
+		->and( $open )->not->toMatch( '/<div class="wp-block-artisanpack-accordion-body ap-accordion__body"[^>]*hidden/' )
+		->and( $closed )->toContain( 'aria-expanded="false"' )
+		->and( $closed )->toMatch( '/<div class="wp-block-artisanpack-accordion-body ap-accordion__body"[^>]*hidden>/' )
+		->and( makeRenderer()->render( [ $panel( 'false' ) ] ) )->toContain( 'aria-expanded="false"' );
+} );
+
 it( 'prints the accordions block spacing as the gap between panels (#933)', function (): void {
 	$render = fn ( array $attributes ): string => makeRenderer()->render( [ makeBlock( 'artisanpack/accordions', $attributes ) ] );
 
