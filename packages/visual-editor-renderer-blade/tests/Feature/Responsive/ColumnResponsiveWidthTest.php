@@ -349,3 +349,58 @@ describe( 'desktop-first Mobile override (#820)', function (): void {
 			->toBeLessThan( strpos( $rendered, '@media (max-width:767px)' ) );
 	} );
 } );
+
+it( 'treats a width that is not a length, like "undefined%", as no width (#925)', function ( string $width ): void {
+	$tree = [
+		[
+			'clientId'    => 'col-1',
+			'name'        => 'artisanpack/column',
+			'attributes'  => [ 'width' => $width ],
+			'innerBlocks' => [],
+		],
+	];
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+	expect( $rendered )->not->toContain( 'flex-basis' );
+	expect( $rendered )->not->toContain( 've-w-' );
+	expect( $rendered )->not->toContain( '<style data-ve-responsive>' );
+} )->with( [ 'undefined%', 'NaN%', 'auto%' ] );
+
+it( 'skips a per-breakpoint width that is not a length but keeps the base width (#925)', function (): void {
+	$tree = [
+		[
+			'clientId'    => 'col-1',
+			'name'        => 'artisanpack/column',
+			'attributes'  => [
+				'width'      => '40%',
+				'responsive' => [ 'width' => [ 'md' => 'undefined%' ] ],
+			],
+			'innerBlocks' => [],
+		],
+	];
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+	preg_match( '#<style data-ve-responsive>(.*?)</style>#s', $rendered, $matches );
+	$responsive = $matches[1] ?? '';
+
+	expect( $rendered )->toContain( 'flex-basis: 40%' );
+	expect( $responsive )->toContain( 'flex-basis:calc(40%' );
+	expect( $responsive )->not->toContain( 'undefined' );
+} );
+
+it( 'keeps lengths and CSS functions as widths (#925)', function ( string $width ): void {
+	$tree = [
+		[
+			'clientId'    => 'col-1',
+			'name'        => 'artisanpack/column',
+			'attributes'  => [ 'width' => $width ],
+			'innerBlocks' => [],
+		],
+	];
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+	expect( $rendered )->toContain( 'flex-basis: ' . $width );
+} )->with( [ '33.33%', '250px', '12.5rem', '.5em', 'calc(50% - 1rem)', 'var(--col-width)' ] );
