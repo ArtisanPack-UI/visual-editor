@@ -2884,7 +2884,8 @@ class BlockSupports
 	 * Covers the standard WP core dimensions block-support keys that map
 	 * cleanly to a single inline CSS property:
 	 * - `minHeight`   → `min-height`
-	 * - `aspectRatio` → `aspect-ratio`
+	 * - `aspectRatio` → `aspect-ratio`, plus `min-height: unset` (it wins
+	 *   over `minHeight`, as in WordPress; #906)
 	 *
 	 * A block only opts into a given key via its `block.json`
 	 * (`supports.dimensions.minHeight: true` etc.). The compiler runs
@@ -2908,19 +2909,22 @@ class BlockSupports
 			return;
 		}
 
-		$mappings = [
-			'minHeight'   => 'min-height',
-			'aspectRatio' => 'aspect-ratio',
-		];
+		$aspectRatio = self::stringAttr( $dimensions['aspectRatio'] ?? null );
 
-		foreach ( $mappings as $attrKey => $cssProperty ) {
-			$value = self::stringAttr( $dimensions[ $attrKey ] ?? null );
+		// An aspect ratio wins over min-height, as in WordPress's
+		// dimensions support: `min-height: unset` keeps a block's default
+		// min-height (cover's 430px) from overriding the ratio (#906).
+		if ( '' !== $aspectRatio ) {
+			$style[] = 'aspect-ratio: ' . self::expandPresetReference( $aspectRatio );
+			$style[] = 'min-height: unset';
 
-			if ( '' === $value ) {
-				continue;
-			}
+			return;
+		}
 
-			$style[] = $cssProperty . ': ' . self::expandPresetReference( $value );
+		$minHeight = self::stringAttr( $dimensions['minHeight'] ?? null );
+
+		if ( '' !== $minHeight ) {
+			$style[] = 'min-height: ' . self::expandPresetReference( $minHeight );
 		}
 	}
 

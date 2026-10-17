@@ -8,6 +8,7 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
+- **Cover overlay and aspect ratio match the canvas** ([#906](https://github.com/ArtisanPack-UI/visual-editor/issues/906)). The Blade, React and Vue renderers defaulted a missing `dimRatio` to 50, but `block.json` defaults it to 100 and the editor omits defaults, so a full-overlay cover rendered at half opacity. They now fall back to 100. An aspect ratio (`style.dimensions.aspectRatio`) now also emits `min-height: unset` and replaces any min-height (the dimensions value and cover's own `minHeight`), as WordPress's dimensions support does, so the block library's default cover min-height no longer overrides the ratio.
 - **Text clip over the block's own gradient** ([#904](https://github.com/ArtisanPack-UI/visual-editor/issues/904)). Effects → Text clip on a block with a gradient preset or a custom gradient painted a solid gradient box instead of gradient text, on the front end and in the canvas. The gradient reaches the block as a `background` shorthand (the `!important` `.has-{slug}-gradient-background` class, or inline), which resets `background-clip`, and the canvas loads the global styles after the effects styles. The clip declarations now print `!important` in their own doubled-class rule, with the forced-colors reset at the same specificity, in the Blade, canvas, React and Vue compilers. Scope hashes still cover every declaration, so class names stay in parity across renderers.
 
 ## [1.15.1] - 2026-10-16

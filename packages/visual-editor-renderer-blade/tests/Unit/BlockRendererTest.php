@@ -468,6 +468,26 @@ it( 'clamps cover dimRatio to 0-100 and whitelists minHeightUnit', function (): 
 		->not->toContain( 'javascript:' );
 } );
 
+it( 'defaults a cover without dimRatio to a full overlay, as block.json does (#906)', function (): void {
+	$html = makeRenderer()->render( [ makeBlock( 'core/cover', [ 'customGradient' => 'linear-gradient(red, blue)' ] ) ] );
+
+	expect( $html )->toContain( 'style="opacity: 1;' )
+		->not->toContain( 'opacity: 0.5' );
+} );
+
+it( 'lets a cover aspect ratio replace min-height, as WordPress does (#906)', function (): void {
+	$html = makeRenderer()->render( [
+		makeBlock( 'core/cover', [
+			'minHeight' => 600,
+			'style'     => [ 'dimensions' => [ 'aspectRatio' => '16/11', 'minHeight' => '300px' ] ],
+		] ),
+	] );
+
+	expect( $html )->toContain( 'aspect-ratio: 16/11; min-height: unset' )
+		->not->toContain( 'min-height: 600px' )
+		->not->toContain( 'min-height: 300px' );
+} );
+
 it( 'routes cover palette gradient class to the overlay span, not the wrapper', function (): void {
 	$tree = [
 		makeBlock( 'core/cover', [

@@ -65,7 +65,8 @@ export function CoverBlock({ attributes, children }: BlockRendererProps): JSX.El
     const url = safeUrl(attributes.url);
     const isDark = attributes.isDark === undefined ? true : attrBoolean(attributes.isDark);
 
-    const rawDim = attrInt(attributes.dimRatio, 50);
+    // block.json defaults dimRatio to 100 and the editor omits defaults (#906).
+    const rawDim = attrInt(attributes.dimRatio, 100);
     const dimRatio = Math.max(0, Math.min(100, rawDim));
 
     const align = attrString(attributes.align);
@@ -86,7 +87,10 @@ export function CoverBlock({ attributes, children }: BlockRendererProps): JSX.El
     // The cover's own Block spacing rides first, in `cover.blade.php` order.
     let style: Record<string, string> = { ...applyBlockGap(attributes) };
 
-    if (attributes.minHeight !== undefined && attributes.minHeight !== null) {
+    // An aspect ratio replaces the cover's own min-height (#906).
+    const hasAspectRatio = attrString(attrRecord(attrRecord(attributes.style).dimensions).aspectRatio) !== '';
+
+    if (attributes.minHeight !== undefined && attributes.minHeight !== null && !hasAspectRatio) {
         const minHeight = Math.max(0, attrFloat(attributes.minHeight));
         const requestedUnit = attrString(attributes.minHeightUnit);
         const unit = (ALLOWED_MIN_HEIGHT_UNITS as ReadonlyArray<string>).includes(requestedUnit)

@@ -40,16 +40,22 @@ export function applyDimensions(attributes: Record<string, unknown>): DimensionS
     const dimensions = attrRecord(style.dimensions);
     const out: DimensionStyle = {};
 
-    const minHeight = stringAttr(dimensions.minHeight);
-
-    if (minHeight !== '') {
-        out.minHeight = expandPresetReference(minHeight);
-    }
-
+    // An aspect ratio wins over min-height, as in WordPress's dimensions
+    // support: `min-height: unset` keeps a block's default min-height
+    // (cover's 430px) from overriding the ratio (#906).
     const aspectRatio = stringAttr(dimensions.aspectRatio);
 
     if (aspectRatio !== '') {
         out.aspectRatio = expandPresetReference(aspectRatio);
+        out.minHeight = 'unset';
+
+        return out;
+    }
+
+    const minHeight = stringAttr(dimensions.minHeight);
+
+    if (minHeight !== '') {
+        out.minHeight = expandPresetReference(minHeight);
     }
 
     return out;
