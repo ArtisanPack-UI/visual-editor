@@ -44,8 +44,7 @@ vi.mock('@wordpress/i18n', () => ({
     __: (text: string) => text,
 }));
 
-import save, { renderCoverSave } from '../save';
-import deprecated from '../deprecated';
+import save from '../save';
 
 const attributes = { gradient: 'neon', isDark: false, tagName: 'div' } as const;
 
@@ -61,16 +60,5 @@ describe('cover save props order (#908)', () => {
         expect(html).not.toContain('copy-command');
     });
 
-    it('reproduces the pre-1.15.2 order for the deprecation that recognises those saves', () => {
-        const html = renderToStaticMarkup(renderCoverSave(attributes as never, { innerBlocksFirst: true }));
 
-        expect(html).toMatch(/^<div class="wp-block-artisanpack-copy-command/);
-    });
-
-    it('lists that deprecation first', () => {
-        provider.blockClass = 'wp-block-artisanpack-cover';
-        const html = renderToStaticMarkup(deprecated[0].save({ attributes } as never));
-
-        expect(html).toMatch(/^<div class="wp-block-artisanpack-copy-command/);
-    });
 });

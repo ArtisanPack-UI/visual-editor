@@ -23,7 +23,6 @@ import {
 } from '@wordpress/block-editor';
 // Saved markup must not vary by locale, so strings serialized by save() (or persisted by migrate()) stay untranslated literals.
 import { compose } from '@wordpress/compose';
-import { renderCoverSave } from './save';
 
 import {
     IMAGE_BACKGROUND_TYPE,
@@ -1432,18 +1431,4 @@ const v1 = {
     },
 };
 
-/**
- * Covers saved before 1.15.2 (#908). Their save read the inner blocks'
- * props before the wrapper's, so a cover with inner blocks was saved with
- * its last descendant's classes and styles on the root. Same attributes
- * and supports as the current block; only the call order differs, so this
- * reproduces those saves exactly and lets them migrate to the fixed
- * markup instead of showing as invalid.
- */
-const v15 = {
-    save({ attributes }: { attributes: LegacyAttributes }): ReactElement {
-        return renderCoverSave(attributes as Parameters<typeof renderCoverSave>[0], { innerBlocksFirst: true });
-    },
-};
-
-export default [v15, v14, v13, v12, v11, v10, v9, v8, v7, v6, v5, v4, v3, v2, v1];
+export default [v14, v13, v12, v11, v10, v9, v8, v7, v6, v5, v4, v3, v2, v1];
