@@ -100,6 +100,7 @@ scope class (`ve-gb-<hash>`) and the rules below:
 .ve-gb-abc123 {
     position: relative;
     border-color: transparent !important;  /* suppress any stale border-color */
+    overflow-clip-margin: border-box;      /* keep the ring on blocks with overflow: clip */
 }
 .ve-gb-abc123::before {
     content: '';
@@ -121,6 +122,32 @@ scope class (`ve-gb-<hash>`) and the rules below:
     pointer-events: none;
 }
 ```
+
+The ring sits outside the padding box, so a block that clips its
+overflow would cut it away. Cover does (`overflow: clip`), which is
+why the wrapper sets `overflow-clip-margin: border-box` (#912). It only
+applies with `overflow: clip`; a block that sets `overflow: hidden`
+still clips the ring.
+
+Safari doesn't support `overflow-clip-margin`, so the emitter adds a
+fallback for Cover inside `@supports not (overflow-clip-margin:
+border-box)`: the Cover stops clipping (`overflow: visible`), and its
+background layers (`__background`, `__gradient-background`,
+`__image-background`, `__video-background`, all `inset: 0` in the
+padding box) take the inner radius, the wrapper's radius minus the
+ring width, so they keep the curve clipping would have given them:
+
+```css
+@supports not (overflow-clip-margin: border-box) {
+    .ve-gb-abc123.wp-block-cover { overflow: visible; }
+    .ve-gb-abc123.wp-block-cover > :is(.wp-block-cover__background, …) {
+        border-radius: max(0px, calc(12px - 3px));
+    }
+}
+```
+
+With no authored radius the layers stay square, as the Cover is. An
+elliptical radius (`a / b`) gets no inset.
 
 `border-image` would have been simpler for linear gradients on a
 zero-radius block, but it doesn't follow `border-radius` — the
