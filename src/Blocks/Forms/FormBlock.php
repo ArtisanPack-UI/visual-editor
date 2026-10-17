@@ -48,6 +48,20 @@ use Closure;
  */
 class FormBlock extends DynamicBlock
 {
+
+	/**
+	 * Allowed values for the `layout` attribute.
+	 *
+	 * `stacked` is the block.json default and renders the original
+	 * mount-point markup; `inline` adds a `data-layout` hook and an
+	 * `is-layout-inline` class for the host island and themes (#916).
+	 *
+	 * @since 1.15.2
+	 *
+	 * @var list<string>
+	 */
+	private const LAYOUTS = [ 'stacked', 'inline' ];
+
 	/**
 	 * Resolver for the form record keyed off the validated `formId`.
 	 *
@@ -115,6 +129,12 @@ class FormBlock extends DynamicBlock
 			$normalized['style'] = $attrs['style'];
 		}
 
+		// #916 — `layout` survives only when it's one of the enum values;
+		// anything else is dropped so render() falls back to stacked.
+		if ( isset( $attrs['layout'] ) && in_array( $attrs['layout'], self::LAYOUTS, true ) ) {
+			$normalized['layout'] = $attrs['layout'];
+		}
+
 		return $normalized;
 	}
 
@@ -136,11 +156,19 @@ class FormBlock extends DynamicBlock
 			return $this->placeholder( $attrs, __( 'The selected form is inactive.' ) );
 		}
 
+		// #916 — the inline layout adds a class (for themes) and a
+		// `data-layout` attribute (for the host's form island). Stacked
+		// adds neither, so its markup is byte-identical to pre-#916 output.
+		$isInline     = 'inline' === ( $attrs['layout'] ?? null );
+		$baseClasses  = $isInline ? [ 'wp-block-artisanpack-form', 'is-layout-inline' ] : [ 'wp-block-artisanpack-form' ];
+		$layoutAttr   = $isInline ? sprintf( ' data-layout="%s"', e( 'inline' ) ) : '';
+
 		return sprintf(
-			'<div%s data-keystone-form="%s" data-form-id="%d"></div>',
-			BlockSupports::wrapperAttrs( $attrs, [ 'wp-block-artisanpack-form' ] ),
+			'<div%s data-keystone-form="%s" data-form-id="%d"%s></div>',
+			BlockSupports::wrapperAttrs( $attrs, $baseClasses ),
 			e( $form->slug ),
 			$form->id,
+			$layoutAttr,
 		);
 	}
 
