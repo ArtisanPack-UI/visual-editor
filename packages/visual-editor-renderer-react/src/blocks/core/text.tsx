@@ -9,7 +9,7 @@
 import { attrBoolean, attrInt, attrRecord, attrString, classList, layoutClass, phpTrim } from '../../support/attributes';
 import { applyBackground } from '../../support/background';
 import { applyBlockGap } from '../../support/blockGap';
-import { applyDimensions, hasDimensionStyle } from '../../support/dimensions';
+import { applyDimensions, dimensionsClassName, hasDimensionStyle } from '../../support/dimensions';
 import { layoutWrapperClasses } from '../../support/layoutContainer';
 import { resolveAnchor } from '../../support/headingAnchors';
 import { presetClasses } from '../../support/presetClasses';
@@ -128,6 +128,7 @@ export function QuoteBlock({ attributes, children }: BlockRendererProps): JSX.El
     const classes = classList([
         'wp-block-quote',
         ...layoutWrapperClasses(attributes, 'quote', layoutClass(attributes)),
+        dimensionsClassName(attributes),
         className,
     ]);
     // `BlockSupports::compile()` order: background image (F-4), then
@@ -171,6 +172,7 @@ export function VerseBlock({ attributes }: BlockRendererProps): JSX.Element {
     const classes = classList([
         'wp-block-verse',
         textAlign !== '' ? `has-text-align-${textAlign}` : null,
+        dimensionsClassName(attributes),
         attrString(attributes.className),
     ]);
     const style = backgroundAndDimensions(attributes);
@@ -182,7 +184,7 @@ export function PullquoteBlock({ attributes }: BlockRendererProps): JSX.Element 
     const className = attrString(attributes.className);
     const value = attrString(attributes.value);
     const citation = attrString(attributes.citation);
-    const classes = classList(['wp-block-pullquote', className]);
+    const classes = classList(['wp-block-pullquote', dimensionsClassName(attributes), className]);
     const style = backgroundAndDimensions(attributes);
 
     return (

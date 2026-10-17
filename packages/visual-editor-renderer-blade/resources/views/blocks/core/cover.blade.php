@@ -10,7 +10,8 @@
 	$alt    = (string) ( $attributes['alt'] ?? '' );
 	$isDark = ! isset( $attributes['isDark'] ) || ! empty( $attributes['isDark'] );
 
-	$dimRatio = isset( $attributes['dimRatio'] ) ? (int) $attributes['dimRatio'] : 50;
+	// block.json defaults dimRatio to 100 and the editor omits defaults (#906).
+	$dimRatio = isset( $attributes['dimRatio'] ) ? (int) $attributes['dimRatio'] : 100;
 	$dimRatio = max( 0, min( 100, $dimRatio ) );
 
 	$allowedUnits  = [ 'px', 'em', 'rem', 'vh', 'vw', '%' ];
@@ -114,7 +115,11 @@
 	$classes  = array_values( array_unique( array_merge( $baseClasses, $split['wrapper']['classes'] ) ) );
 	$style    = '' !== $split['wrapper']['style'] ? rtrim( $split['wrapper']['style'], ';' ) : '';
 
-	if ( null !== $minHeight ) {
+	// An aspect ratio replaces the cover's own min-height (the dimensions
+	// support already emits `min-height: unset`; #906).
+	$hasAspectRatio = '' !== trim( (string) ( $attributes['style']['dimensions']['aspectRatio'] ?? '' ) );
+
+	if ( null !== $minHeight && ! $hasAspectRatio ) {
 		$style = ( '' !== $style ? $style . '; ' : '' ) . sprintf( 'min-height: %s%s', BlockSupports::cssNumber( $minHeight ), $minHeightUnit );
 	}
 

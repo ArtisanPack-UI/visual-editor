@@ -18,7 +18,7 @@ import {
 } from '../../support/attributes';
 import { applyBackground } from '../../support/background';
 import { layoutWrapperClasses } from '../../support/layoutContainer';
-import { applyDimensions, hasDimensionStyle } from '../../support/dimensions';
+import { applyDimensions, dimensionsClassName, hasDimensionStyle } from '../../support/dimensions';
 import { safeUrl } from '../../support/urlSanitizer';
 import { blockRendererProps } from '../shared';
 
@@ -101,6 +101,7 @@ export const PostContentBlock = defineComponent({
                 // (#871), then the layout modifier classes (F-3).
                 ...layoutWrapperClasses(props.attributes, 'post-content', layoutClass(props.attributes)),
                 align !== '' ? `has-text-align-${align}` : null,
+                dimensionsClassName(props.attributes),
                 className,
             ]);
 
