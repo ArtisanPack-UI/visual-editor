@@ -29,7 +29,11 @@ describe('LayoutBaseline', () => {
 
         const css = container.querySelector('style[data-ve-layout-baseline]')?.innerHTML ?? '';
 
-        expect(css).toContain('.is-layout-flex { display: flex;');
+        expect(css).toContain('.is-layout-flex { display: flex; }');
+        // #927 — wrap/alignment defaults at zero specificity, so the Flex
+        // panel's `ap-flex-nowrap` / `ap-items-*` utilities win.
+        expect(css).toContain(':where(.is-layout-flex) { flex-wrap: wrap; align-items: center; }');
+        expect(css).not.toContain('.is-layout-flex { display: flex; flex-wrap');
         expect(css).toContain('.is-layout-grid { display: grid; }');
         // #883 — flex/grid children are spaced by the block gap.
         expect(css).toContain(':where(.is-layout-flex) { gap: var(--wp--style--block-gap, 0.5em); }');
