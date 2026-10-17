@@ -77,6 +77,26 @@ describe( 'PositionEmitter::emit', function (): void {
 		expect( $css )->toContain( '@media (min-width:1024px){.wrap{position:sticky !important;top:0px !important;z-index:3 !important}}' );
 	} );
 
+	it( 'emits position:static at a breakpoint that undoes a positioned base (#929)', function (): void {
+		$payload = PositionResolver::resolve( [
+			'style'      => [ 'position' => [ 'value' => 'absolute', 'offsets' => [ 'top' => [ 'value' => 0, 'unit' => 'px' ] ] ] ],
+			'responsive' => [ 'style.position' => [ 'lg' => [ 'value' => 'static' ] ] ],
+		] );
+
+		$css = ( new PositionEmitter( positionMakeRegistry() ) )->emit( '.wrap', $payload );
+
+		expect( $css )->toBe( '.wrap{position:absolute !important;top:0px !important}@media (min-width:1024px){.wrap{position:static !important}}' );
+	} );
+
+	it( 'emits nothing when every layer is static', function (): void {
+		$payload = PositionResolver::resolve( [
+			'style'      => [ 'position' => [ 'value' => 'static' ] ],
+			'responsive' => [ 'style.position' => [ 'lg' => [ 'value' => 'static' ] ] ],
+		] );
+
+		expect( ( new PositionEmitter( positionMakeRegistry() ) )->emit( '.wrap', $payload ) )->toBe( '' );
+	} );
+
 	it( 'legacy sticky (bare string) round-trips to a single sticky rule', function (): void {
 		$payload = PositionResolver::resolve( [ 'style' => [ 'position' => 'sticky' ] ] );
 

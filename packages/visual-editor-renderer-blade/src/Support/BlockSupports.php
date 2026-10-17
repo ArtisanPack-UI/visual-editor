@@ -289,7 +289,12 @@ class BlockSupports
 		// has no position attributes (the default path).
 		$positionPayload            = PositionResolver::resolve( $attributes );
 		self::$positionPayloadCache = $positionPayload;
-		$positionInlineBase         = self::baseInlinePositionStyle( $positionPayload['base'] ?? null );
+		// #929 — the inline stamp is `!important`, which no `@media` rule
+		// can beat, so a block with breakpoint overrides relies on the
+		// scoped rules alone.
+		$positionInlineBase = [] === ( $positionPayload['breakpoints'] ?? [] )
+			? self::baseInlinePositionStyle( $positionPayload['base'] ?? null )
+			: '';
 
 		if ( '' !== $positionInlineBase ) {
 			$style[] = $positionInlineBase;

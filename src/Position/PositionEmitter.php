@@ -10,7 +10,10 @@
  * Contracts (per #643):
  *
  *  - `position: static` emits nothing — orphan offsets / z-index stay
- *    in attributes but produce no CSS while static.
+ *    in attributes but produce no CSS while static. The exception is a
+ *    breakpoint layer that resolves to `static` while another layer is
+ *    positioned: it emits `position:static` so the override can undo
+ *    the inherited rule (#929).
  *  - `unit: 'auto'` renders as `top: auto` etc.
  *  - Breakpoints emit inside `@media (min-width:<n>px)` blocks using
  *    the request-scoped breakpoint registry.
@@ -72,6 +75,14 @@ class PositionEmitter
 		$merged      = PositionResolver::mergedBreakpointLayers( $payload, $legacyKeys )
 			+ PositionResolver::mergedBreakpointLayers( $payload, $deviceKeys );
 
+		// #929 — a breakpoint that resolves to `static` must still emit,
+		// or nothing undoes a positioned base (or a positioned smaller /
+		// larger breakpoint it would otherwise inherit).
+		$hasPositionedLayer = self::isPositioned( $payload['base'] ?? null );
+		foreach ( $merged as $layer ) {
+			$hasPositionedLayer = $hasPositionedLayer || self::isPositioned( $layer );
+		}
+
 		foreach ( $orderedKeys as $key ) {
 			$layer = $merged[ $key ] ?? null;
 
@@ -79,7 +90,9 @@ class PositionEmitter
 				continue;
 			}
 
-			$decls = self::layerDeclarations( $layer );
+			$decls = ( $hasPositionedLayer && 'static' === ( $layer['value'] ?? null ) )
+				? 'position:static !important'
+				: self::layerDeclarations( $layer );
 			if ( '' === $decls ) {
 				continue;
 			}
@@ -130,6 +143,20 @@ class PositionEmitter
 		}
 
 		return implode( ';', $parts );
+	}
+
+	/**
+	 * Whether a layer sets a position other than `static`.
+	 *
+	 * @param  array<string, mixed>|null  $layer
+	 *
+	 * @since 1.15.2
+	 */
+	protected static function isPositioned( ?array $layer ): bool
+	{
+		$value = $layer['value'] ?? null;
+
+		return null !== $value && 'static' !== $value;
 	}
 
 	/**
