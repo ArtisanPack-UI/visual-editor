@@ -17,7 +17,7 @@ import { flexClassNames } from '../../support/flex-serializer';
 import { safeCssValue } from '../../support/cssValue';
 import { applyBackground } from '../../support/background';
 import { applyBlockGap } from '../../support/blockGap';
-import { applyDimensions } from '../../support/dimensions';
+import { applyDimensions, dimensionsClassName } from '../../support/dimensions';
 import { layoutModifierClasses, panelLayoutClass } from '../../support/layoutContainer';
 import { safeUrl } from '../../support/urlSanitizer';
 import type { BlockRendererProps } from '../../types';
@@ -70,6 +70,7 @@ export function GroupBlock({ attributes, children }: BlockRendererProps): JSX.El
         ...layoutModifierClasses(attributes),
         ...flexClasses,
         photoGridScope !== '' ? photoGridScope : null,
+        dimensionsClassName(attributes),
         className,
     ]);
 

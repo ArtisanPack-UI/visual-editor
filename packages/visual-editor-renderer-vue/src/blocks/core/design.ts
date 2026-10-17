@@ -19,6 +19,7 @@ import {
     layoutClass,
 } from '../../support/attributes';
 import { applyBlockGap } from '../../support/blockGap';
+import { dimensionsClassName } from '../../support/dimensions';
 import { cssNumber } from '../../support/cssNumber';
 import { layoutWrapperClasses } from '../../support/layoutContainer';
 import { safeUrl } from '../../support/urlSanitizer';
@@ -103,6 +104,7 @@ export const CoverBlock = defineComponent({
                 // Duotone scope stamped by `stampDuotoneScopes()`.
                 attrString(props.attributes._veDuotone) || null,
                 align !== '' ? `align${align}` : null,
+                dimensionsClassName(props.attributes),
                 className,
             ]);
 

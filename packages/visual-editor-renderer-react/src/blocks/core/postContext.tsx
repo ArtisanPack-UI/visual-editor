@@ -20,7 +20,7 @@ import {
 } from '../../support/attributes';
 import { applyBackground } from '../../support/background';
 import { layoutWrapperClasses } from '../../support/layoutContainer';
-import { applyDimensions } from '../../support/dimensions';
+import { applyDimensions, dimensionsClassName } from '../../support/dimensions';
 import { safeUrl } from '../../support/urlSanitizer';
 import type { BlockRendererProps } from '../../types';
 
@@ -97,6 +97,7 @@ export function PostContentBlock({ attributes }: BlockRendererProps): JSX.Elemen
         // then the layout modifier classes (F-3).
         ...layoutWrapperClasses(attributes, 'post-content', layoutClass(attributes)),
         align !== '' ? `has-text-align-${align}` : null,
+        dimensionsClassName(attributes),
         className,
     ]);
 

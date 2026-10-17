@@ -231,7 +231,7 @@ class BlockSupports
 		self::applySpacing( $attributes, $style );
 		self::applyBorder( $attributes, $classes, $style );
 		self::applyTypography( $attributes, $classes, $style );
-		self::applyDimensions( $attributes, $style );
+		self::applyDimensions( $attributes, $classes, $style );
 		self::applyClassName( $attributes, $classes );
 
 		$id = self::resolveAnchor( $attributes );
@@ -2885,7 +2885,8 @@ class BlockSupports
 	 * cleanly to a single inline CSS property:
 	 * - `minHeight`   → `min-height`
 	 * - `aspectRatio` → `aspect-ratio`, plus `min-height: unset` (it wins
-	 *   over `minHeight`, as in WordPress; #906)
+	 *   over `minHeight`) and the `has-aspect-ratio` class, as WordPress's
+	 *   dimensions support does (#906)
 	 *
 	 * A block only opts into a given key via its `block.json`
 	 * (`supports.dimensions.minHeight: true` etc.). The compiler runs
@@ -2899,9 +2900,10 @@ class BlockSupports
 	 * @since 1.9.0
 	 *
 	 * @param  array<string, mixed>  $attributes
+	 * @param  array<int, string>   &$classes
 	 * @param  array<int, string>   &$style
 	 */
-	protected static function applyDimensions( array $attributes, array &$style ): void
+	protected static function applyDimensions( array $attributes, array &$classes, array &$style ): void
 	{
 		$dimensions = $attributes['style']['dimensions'] ?? null;
 
@@ -2915,7 +2917,8 @@ class BlockSupports
 		// dimensions support: `min-height: unset` keeps a block's default
 		// min-height (cover's 430px) from overriding the ratio (#906).
 		if ( '' !== $aspectRatio ) {
-			$style[] = 'aspect-ratio: ' . self::expandPresetReference( $aspectRatio );
+			$classes[] = 'has-aspect-ratio';
+			$style[]   = 'aspect-ratio: ' . self::expandPresetReference( $aspectRatio );
 			$style[] = 'min-height: unset';
 
 			return;

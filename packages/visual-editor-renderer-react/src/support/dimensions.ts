@@ -71,3 +71,14 @@ export function applyDimensions(attributes: Record<string, unknown>): DimensionS
 export function hasDimensionStyle(style: DimensionStyle): boolean {
     return style.minHeight !== undefined || style.aspectRatio !== undefined;
 }
+
+/**
+ * The `has-aspect-ratio` class WordPress's dimensions support adds when the
+ * block has an aspect ratio, mirroring `BlockSupports::applyDimensions()`
+ * (#906). `null` otherwise, so it drops out of a class list.
+ */
+export function dimensionsClassName(attributes: Record<string, unknown>): string | null {
+    const dimensions = attrRecord(attrRecord(attributes.style).dimensions);
+
+    return stringAttr(dimensions.aspectRatio) !== '' ? 'has-aspect-ratio' : null;
+}

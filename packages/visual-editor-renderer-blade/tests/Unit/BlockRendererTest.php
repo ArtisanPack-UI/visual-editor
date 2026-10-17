@@ -484,6 +484,7 @@ it( 'lets a cover aspect ratio replace min-height, as WordPress does (#906)', fu
 	] );
 
 	expect( $html )->toContain( 'aspect-ratio: 16/11; min-height: unset' )
+		->toMatch( '/<div class="[^"]*\\bhas-aspect-ratio\\b[^"]*"/' )
 		->not->toContain( 'min-height: 600px' )
 		->not->toContain( 'min-height: 300px' );
 } );

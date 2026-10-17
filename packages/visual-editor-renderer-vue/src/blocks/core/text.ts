@@ -10,7 +10,7 @@ import { defineComponent, h } from 'vue';
 import { attrBoolean, attrInt, attrRecord, attrString, classList, layoutClass, phpTrim } from '../../support/attributes';
 import { applyBackground } from '../../support/background';
 import { applyBlockGap } from '../../support/blockGap';
-import { applyDimensions, hasDimensionStyle } from '../../support/dimensions';
+import { applyDimensions, dimensionsClassName, hasDimensionStyle } from '../../support/dimensions';
 import { layoutWrapperClasses } from '../../support/layoutContainer';
 import { resolveAnchor } from '../../support/headingAnchors';
 import { presetClasses } from '../../support/presetClasses';
@@ -152,6 +152,7 @@ export const QuoteBlock = defineComponent({
             const classes = classList([
                 'wp-block-quote',
                 ...layoutWrapperClasses(props.attributes, 'quote', layoutClass(props.attributes)),
+                dimensionsClassName(props.attributes),
                 className,
             ]);
             const children = slots.default ? slots.default() : [];
@@ -217,6 +218,7 @@ export const VerseBlock = defineComponent({
             const classes = classList([
                 'wp-block-verse',
                 textAlign !== '' ? `has-text-align-${textAlign}` : null,
+                dimensionsClassName(props.attributes),
                 attrString(props.attributes.className),
             ]);
 
@@ -240,7 +242,7 @@ export const PullquoteBlock = defineComponent({
             const className = attrString(props.attributes.className);
             const value = attrString(props.attributes.value);
             const citation = attrString(props.attributes.citation);
-            const classes = classList(['wp-block-pullquote', className]);
+            const classes = classList(['wp-block-pullquote', dimensionsClassName(props.attributes), className]);
 
             const wrapperStyle = backgroundAndDimensions(props.attributes);
             const nodeProps: Record<string, unknown> = { class: classes };

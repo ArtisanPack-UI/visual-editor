@@ -18,6 +18,7 @@ import {
     layoutClass,
 } from '../../support/attributes';
 import { applyBlockGap } from '../../support/blockGap';
+import { dimensionsClassName } from '../../support/dimensions';
 import { cssNumber } from '../../support/cssNumber';
 import { layoutWrapperClasses } from '../../support/layoutContainer';
 import { safeUrl } from '../../support/urlSanitizer';
@@ -81,6 +82,7 @@ export function CoverBlock({ attributes, children }: BlockRendererProps): JSX.El
         // Duotone scope stamped by `stampDuotoneScopes()`.
         attrString(attributes._veDuotone) || null,
         align !== '' ? `align${align}` : null,
+        dimensionsClassName(attributes),
         className,
     ]);
 
