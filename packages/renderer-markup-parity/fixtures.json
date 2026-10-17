@@ -3723,6 +3723,39 @@
             ]
         },
         {
+            "name": "responsive-overrides-legacy-paths",
+            "$comment": "#918 — overrides older editor builds saved under legacy keys render: a Columns gap axis under `style.spacing.blockGap.left` (with `--ap-columns-gap`), a Group's per-side padding under `style.spacing.padding.top`, and a shallow `style.spacing` object split into its properties. The property path wins over a legacy key at the same breakpoint.",
+            "tree": [
+                {
+                    "clientId": "resp-legacy-cols",
+                    "name": "core/columns",
+                    "attributes": {
+                        "style": { "spacing": { "blockGap": { "top": "1em", "left": "2em" } } },
+                        "responsive": {
+                            "style.spacing.blockGap.left": { "tablet": "3em", "mobile": "1em" }
+                        }
+                    },
+                    "innerBlocks": [
+                        { "clientId": "resp-legacy-cols-a", "name": "core/column", "attributes": { "width": "50%" }, "innerBlocks": [] },
+                        { "clientId": "resp-legacy-cols-b", "name": "core/column", "attributes": { "width": "50%" }, "innerBlocks": [] }
+                    ]
+                },
+                {
+                    "clientId": "resp-legacy-group",
+                    "name": "core/group",
+                    "attributes": {
+                        "layout": { "type": "flex" },
+                        "responsive": {
+                            "style.spacing.padding.top": { "tablet": "2rem" },
+                            "style.spacing": { "mobile": { "margin": { "bottom": "0" }, "blockGap": "4px" } },
+                            "style.spacing.blockGap": { "mobile": "8px" }
+                        }
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
             "name": "responsive-overrides-tombstone",
             "$comment": "#887 — Tablet sets a custom font size; Mobile picks a preset and the editor tombstones (`false`) the custom half. The tombstone is stored after the preset, so it must not displace the Mobile preset rule.",
             "tree": [

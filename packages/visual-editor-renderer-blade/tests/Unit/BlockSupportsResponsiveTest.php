@@ -265,3 +265,88 @@ it( 'formats CSS numbers without exponents (R-13)', function (): void {
 		->and( BlockSupports::cssNumber( 1.23456789 ) )->toBe( '1.23456789' )
 		->and( BlockSupports::cssNumber( 2e15 ) )->toBe( '2000000000000000' );
 } );
+
+it( 'renders a gap axis saved under a legacy deeper key (#918)', function (): void {
+	$result = BlockSupports::compileResponsive( [
+		'responsive' => [
+			'style.spacing.blockGap.left' => [ 'tablet' => '3em' ],
+			'style.spacing.blockGap.top'  => [ 'tablet' => '1em', 'mobile' => '0' ],
+		],
+	], null, true );
+
+	$selector = sprintf( '.%1$s.%1$s.%1$s', $result['class'] );
+
+	expect( $result['rules'] )
+		->toContain( '@media (max-width:1023px){' . $selector . '{row-gap:1em!important;column-gap:3em!important;--ap-columns-gap:3em!important}}' )
+		->toContain( '@media (max-width:767px){' . $selector . '{row-gap:0!important}}' );
+} );
+
+it( 'renders padding sides saved under legacy deeper keys (#918)', function (): void {
+	$result = BlockSupports::compileResponsive( [
+		'responsive' => [
+			'style.spacing.padding.top'   => [ 'tablet' => '2rem' ],
+			'style.spacing.margin.bottom' => [ 'mobile' => '1rem' ],
+		],
+	] );
+
+	expect( $result['rules'] )
+		->toContain( '{padding-top:2rem!important}' )
+		->toContain( '{margin-bottom:1rem!important}' );
+} );
+
+it( 'splits a legacy shallow spacing object into its properties (#918)', function (): void {
+	$result = BlockSupports::compileResponsive( [
+		'responsive' => [
+			'style.spacing' => [ 'tablet' => [ 'padding' => '2rem', 'blockGap' => [ 'left' => '3em' ], 'other' => 'x' ] ],
+		],
+	] );
+
+	expect( $result['rules'] )
+		->toContain( '{padding:2rem!important}' )
+		->toContain( '{column-gap:3em!important}' )
+		->not->toContain( 'other' );
+} );
+
+it( 'prefers the property path over a legacy key at the same breakpoint (#918)', function (): void {
+	$result = BlockSupports::compileResponsive( [
+		'responsive' => [
+			'style.spacing.blockGap'      => [ 'tablet' => [ 'top' => '1em' ] ],
+			'style.spacing.blockGap.left' => [ 'tablet' => '3em', 'mobile' => '4em' ],
+		],
+	] );
+
+	expect( $result['rules'] )
+		->toContain( '@media (max-width:1023px){' . sprintf( '.%1$s.%1$s.%1$s', $result['class'] ) . '{row-gap:1em!important}}' )
+		->toContain( '{column-gap:4em!important}' )
+		->not->toContain( 'column-gap:3em' );
+} );
+
+it( 'spreads a scalar shallow value under a later legacy side (#918)', function (): void {
+	$result = BlockSupports::compileResponsive( [
+		'responsive' => [
+			'style.spacing'             => [ 'tablet' => [ 'padding' => '2rem' ] ],
+			'style.spacing.padding.top' => [ 'tablet' => '5rem' ],
+		],
+	] );
+
+	expect( $result['rules'] )->toContain( '{padding-top:5rem!important;padding-right:2rem!important;padding-bottom:2rem!important;padding-left:2rem!important}' );
+} );
+
+it( 'emits per-corner radius longhands (#918)', function (): void {
+	$result = BlockSupports::compileResponsive( [
+		'responsive' => [
+			'style.border.radius.topLeft' => [ 'tablet' => '8px' ],
+			'style.border.radius'         => [ 'mobile' => [ 'bottomRight' => '2px' ] ],
+		],
+	] );
+
+	expect( $result['rules'] )
+		->toContain( '{border-top-left-radius:8px!important}' )
+		->toContain( '{border-bottom-right-radius:2px!important}' );
+} );
+
+it( 'keeps the scope class of a payload that only uses property paths (#918)', function (): void {
+	$payload = [ 'style.spacing.padding' => [ 'md' => '2rem' ] ];
+
+	expect( BlockSupports::compileResponsive( [ 'responsive' => $payload ] )['class'] )->toBe( 've-r-e22d713cfb' );
+} );
