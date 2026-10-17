@@ -211,8 +211,16 @@
 				$basisExpr( $normalizeBasis( $value ) )
 			);
 
+			// The "All sizes" width applies everywhere only when the
+			// parent doesn't stack on mobile. Otherwise it starts at
+			// WordPress's stacking breakpoint, so the `flex-basis: 100%`
+			// stacking rule wins on phones, as in WordPress (#910).
+			// Explicit per-breakpoint widths still win in their ranges. A
+			// descendant combinator, because the React and Vue renderers
+			// escape `>` in their <style> text.
 			if ( BreakpointRegistry::BASE_KEY === $bp ) {
-				$widthRules[] = sprintf( '%s{%s}', $widthSelector, $declaration );
+				$widthRules[] = sprintf( '.wp-block-columns.is-not-stacked-on-mobile %s{%s}', $widthSelector, $declaration );
+				$widthRules[] = sprintf( '@media (min-width: 782px){%s{%s}}', $widthSelector, $declaration );
 				continue;
 			}
 

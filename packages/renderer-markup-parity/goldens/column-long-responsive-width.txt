@@ -6,7 +6,8 @@
   </div>
 </div>
 @@ renderer-instance-css @@
-.ve-w-4a70d7eaf7.ve-w-4a70d7eaf7.ve-w-4a70d7eaf7{flex-basis:calc(100% - var(--wp--style--block-gap, 0.5em) * 0.5)!important;flex-grow:0!important}
+.wp-block-columns.is-not-stacked-on-mobile .ve-w-4a70d7eaf7.ve-w-4a70d7eaf7.ve-w-4a70d7eaf7{flex-basis:calc(100% - var(--wp--style--block-gap, 0.5em) * 0.5)!important;flex-grow:0!important}
+@media (min-width: 782px){.ve-w-4a70d7eaf7.ve-w-4a70d7eaf7.ve-w-4a70d7eaf7{flex-basis:calc(100% - var(--wp--style--block-gap, 0.5em) * 0.5)!important;flex-grow:0!important}}
 @media (min-width:1024px){.ve-w-4a70d7eaf7.ve-w-4a70d7eaf7.ve-w-4a70d7eaf7{flex-basis:calc(100% - var(--wp--style--block-gap, 0.5em) * 0.5)!important;flex-grow:0!important}}
 @media (min-width:1280px){.ve-w-4a70d7eaf7.ve-w-4a70d7eaf7.ve-w-4a70d7eaf7{flex-basis:calc(100% - var(--wp--style--block-gap, 0.5em) * 0.5)!important;flex-grow:0!important}}
 @media (min-width:640px){.ve-w-4a70d7eaf7.ve-w-4a70d7eaf7.ve-w-4a70d7eaf7{flex-basis:calc(100% - var(--wp--style--block-gap, 0.5em) * 0.5)!important;flex-grow:0!important}}

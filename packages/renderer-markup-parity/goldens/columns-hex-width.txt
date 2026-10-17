@@ -6,4 +6,5 @@
   </div>
 </div>
 @@ renderer-instance-css @@
-.ve-w-845d99af8b.ve-w-845d99af8b.ve-w-845d99af8b{flex-basis:0x1A!important;flex-grow:0!important}
+.wp-block-columns.is-not-stacked-on-mobile .ve-w-845d99af8b.ve-w-845d99af8b.ve-w-845d99af8b{flex-basis:0x1A!important;flex-grow:0!important}
+@media (min-width: 782px){.ve-w-845d99af8b.ve-w-845d99af8b.ve-w-845d99af8b{flex-basis:0x1A!important;flex-grow:0!important}}
