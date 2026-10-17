@@ -1044,7 +1044,7 @@ it( 'omits accordion-title aria wiring when the parent panel id is empty', funct
 } );
 
 it( 'starts an accordion panel open when defaultOpen is set', function (): void {
-	$panel = fn ( bool $defaultOpen ): array => makeBlock( 'artisanpack/accordion', [ 'panelId' => 'faq-1', 'defaultOpen' => $defaultOpen ], [
+	$panel = fn ( mixed $defaultOpen ): array => makeBlock( 'artisanpack/accordion', [ 'panelId' => 'faq-1', 'defaultOpen' => $defaultOpen ], [
 		makeBlock( 'artisanpack/accordion-title', [], [], 'title-1' ),
 		makeBlock( 'artisanpack/accordion-body', [], [], 'body-1' ),
 	] );
@@ -1055,7 +1055,8 @@ it( 'starts an accordion panel open when defaultOpen is set', function (): void 
 	expect( $open )->toContain( 'aria-expanded="true"' )
 		->and( $open )->not->toMatch( '/<div class="wp-block-artisanpack-accordion-body ap-accordion__body"[^>]*hidden/' )
 		->and( $closed )->toContain( 'aria-expanded="false"' )
-		->and( $closed )->toMatch( '/<div class="wp-block-artisanpack-accordion-body ap-accordion__body"[^>]*hidden>/' );
+		->and( $closed )->toMatch( '/<div class="wp-block-artisanpack-accordion-body ap-accordion__body"[^>]*hidden>/' )
+		->and( makeRenderer()->render( [ $panel( 'false' ) ] ) )->toContain( 'aria-expanded="false"' );
 } );
 
 it( 'emits FAQPage JSON-LD from accordion panels when the accordions faqSchema toggle is on (#757)', function (): void {

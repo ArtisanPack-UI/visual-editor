@@ -17,8 +17,10 @@
 	}
 
 	// Open on first paint: the title says so and the body isn't hidden.
-	// `interactivity.js` seeds each panel from `aria-expanded`.
-	$defaultOpen = ! empty( $attributes['defaultOpen'] );
+	// `interactivity.js` seeds each panel from `aria-expanded`. Only a real
+	// boolean opens it, as in the React and Vue renderers, so a stray
+	// string such as "false" keeps the panel closed.
+	$defaultOpen = true === ( $attributes['defaultOpen'] ?? false );
 
 	$panelIdAttr   = '' === $panelId ? '' : ' data-panel-id="' . $panelIdSafe . '"';
 	$panelIconAttr = ' data-panel-icon="' . $panelIcon . '"';
