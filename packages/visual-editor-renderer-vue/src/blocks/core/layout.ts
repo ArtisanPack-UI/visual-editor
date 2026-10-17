@@ -17,7 +17,7 @@ import { isNonEmptyWidth, normalizeBasis } from '../../support/columnWidth';
 import { flexClassNames } from '../../support/flex-serializer';
 import { safeCssValue } from '../../support/cssValue';
 import { applyBackground } from '../../support/background';
-import { applyBlockGap } from '../../support/blockGap';
+import { applyBlockGap, applyColumnsGap } from '../../support/blockGap';
 import { applyDimensions, dimensionsClassName } from '../../support/dimensions';
 import { layoutModifierClasses, panelLayoutClass } from '../../support/layoutContainer';
 import { safeUrl } from '../../support/urlSanitizer';
@@ -177,7 +177,20 @@ export const ColumnsBlock = defineComponent({
                 className,
             ]);
 
-            return h('div', { class: classes }, slots.default ? slots.default() : []);
+            // The Columns' own Block spacing, as `columns.blade.php` prints
+            // it. #914 — plus the per-axis left gap for the Column width
+            // calc, last.
+            const style: Record<string, string> = {
+                ...applyBlockGap(props.attributes),
+                ...applyColumnsGap(props.attributes),
+            };
+            const divProps: Record<string, unknown> = { class: classes };
+
+            if (Object.keys(style).length > 0) {
+                divProps.style = style;
+            }
+
+            return h('div', divProps, slots.default ? slots.default() : []);
         };
     },
 });

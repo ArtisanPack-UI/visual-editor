@@ -19,6 +19,7 @@
 import { getBreakpoints, getDeviceBreakpoints } from '../visibility';
 import type { Block } from '../types';
 import { phpTrim } from './attributes';
+import { columnsGapValue } from './blockGap';
 import { cssNumber } from './cssNumber';
 import { expandPresetReference } from './presetReference';
 import { xxh3_64_hex } from './xxh3';
@@ -26,6 +27,19 @@ import { xxh3_64_hex } from './xxh3';
 const BASE_KEY = 'base';
 
 const SPACER_BLOCK_NAME = 'core/spacer';
+
+/** Blocks rendered by the Columns partial, whose gap rules set `--ap-columns-gap` (#914). */
+const COLUMNS_BLOCK_NAMES = ['core/columns', 'artisanpack/columns'];
+
+/**
+ * Per-side longhands for a responsive property whose object value is not
+ * keyed by box side: a per-axis `blockGap` is `{top, left}`, and
+ * `gap-top` / `gap-left` aren't CSS properties (#914). Mirrors
+ * `BlockSupports::RESPONSIVE_AXIS_PROPERTIES`.
+ */
+const RESPONSIVE_AXIS_PROPERTIES: Readonly<Record<string, Readonly<Record<string, string>>>> = {
+    gap: { top: 'row-gap', left: 'column-gap' },
+};
 
 export const RESPONSIVE_SCOPE_PREFIX = 've-r-';
 
@@ -100,11 +114,14 @@ interface Registry {
 /**
  * Compile a block's responsive overrides into a scope class and its
  * rules, or `null` when no override survives. Mirrors
- * `BlockSupports::compileResponsive()`.
+ * `BlockSupports::compileResponsive()`. With `columnsGap` (a Columns
+ * block), each gap rule also sets `--ap-columns-gap` so the Column width
+ * calc follows the breakpoint's gap instead of the base (#914).
  */
 export function compileResponsive(
     attributes: Record<string, unknown>,
-    propertyMap: Readonly<Record<string, string>> = RESPONSIVE_CSS_PROPERTY_MAP
+    propertyMap: Readonly<Record<string, string>> = RESPONSIVE_CSS_PROPERTY_MAP,
+    columnsGap = false
 ): ResponsiveScope | null {
     const stored = attributes.responsive;
 
@@ -112,9 +129,12 @@ export function compileResponsive(
         return null;
     }
 
+    const emitColumnsGap =
+        columnsGap && hasOwn(propertyMap, 'style.spacing.blockGap') && isSet(stored['style.spacing.blockGap']);
+
     let json: string;
     try {
-        json = phpJsonEncode(responsiveHashInput(stored, attributes, propertyMap));
+        json = phpJsonEncode(responsiveHashInput(stored, attributes, propertyMap, emitColumnsGap));
     } catch {
         return null;
     }
@@ -174,7 +194,16 @@ export function compileResponsive(
                 continue;
             }
 
-            const declarations = responsiveDeclarations(property, value);
+            let declarations = responsiveDeclarations(property, value);
+
+            // #914 — keep the Column width calc on this breakpoint's gap.
+            if (emitColumnsGap && entry[0] === 'style.spacing.blockGap') {
+                const gap = columnsGapValue(value);
+
+                if (gap !== null) {
+                    declarations += `${declarations === '' ? '' : ';'}--ap-columns-gap:${gap}!important`;
+                }
+            }
 
             if (declarations === '') {
                 continue;
@@ -262,7 +291,8 @@ export function stampResponsiveScopes(tree: Block[]): { tree: Block[]; css: stri
             const attrs: Record<string, unknown> = { ...(raw as Record<string, unknown>) };
             delete attrs._veSpacerWidthScope;
 
-            const scope = compileResponsive(attrs);
+            const name = typeof block.name === 'string' ? block.name.trim() : '';
+            const scope = compileResponsive(attrs, RESPONSIVE_CSS_PROPERTY_MAP, COLUMNS_BLOCK_NAMES.includes(name));
 
             if (scope !== null) {
                 collect(scope);
@@ -271,7 +301,6 @@ export function stampResponsiveScopes(tree: Block[]): { tree: Block[]; css: stri
                 attrs.className = existing === '' ? scope.className : `${existing} ${scope.className}`;
             }
 
-            const name = typeof block.name === 'string' ? block.name.trim() : '';
             const widthScope = name === SPACER_BLOCK_NAME ? compileSpacerWidth(attrs) : null;
 
             if (widthScope !== null) {
@@ -288,13 +317,15 @@ export function stampResponsiveScopes(tree: Block[]): { tree: Block[]; css: stri
 
 /**
  * The payload the scope class is hashed from: the responsive map, plus
- * the base value and unit when a unit path is overridden. Mirrors
- * `BlockSupports::responsiveHashInput()`.
+ * the base value and unit when a unit path is overridden, wrapped with a
+ * `columnsGap` marker when a Columns block's gap rules add
+ * `--ap-columns-gap` (#914). Mirrors `BlockSupports::responsiveHashInput()`.
  */
 function responsiveHashInput(
     responsive: Record<string, unknown>,
     attributes: Record<string, unknown>,
-    propertyMap: Readonly<Record<string, string>>
+    propertyMap: Readonly<Record<string, string>>,
+    columnsGap = false
 ): unknown {
     const base: Record<string, unknown> = {};
 
@@ -311,7 +342,9 @@ function responsiveHashInput(
         base[unitPath] = attributes[unitPath] ?? null;
     }
 
-    return Object.keys(base).length === 0 ? responsive : { responsive, base };
+    const input = Object.keys(base).length === 0 ? responsive : { responsive, base };
+
+    return columnsGap ? { responsive: input, columnsGap: true } : input;
 }
 
 /**
@@ -433,7 +466,8 @@ function normaliseResponsiveValue(
 
 /**
  * Turn one override into its declarations: a scalar becomes
- * `property:value!important`, a per-side object one declaration per side.
+ * `property:value!important`, a per-side object one declaration per side
+ * (a per-axis `gap` object becomes `row-gap` / `column-gap`).
  * Values are stripped to the CSS-value whitelist and dropped when they
  * carry a comment delimiter or unbalanced parentheses. Mirrors
  * `BlockSupports::responsiveDeclarations()`.
@@ -454,8 +488,10 @@ function responsiveDeclarations(property: string, value: unknown): string {
     }
 
     const pieces: string[] = [];
+    const axes = RESPONSIVE_AXIS_PROPERTIES[property];
+    const sides = axes === undefined ? SIDES : Object.keys(axes);
 
-    for (const side of SIDES) {
+    for (const side of sides) {
         const sideValue = value[side];
 
         if (!isScalar(sideValue) || sideValue === '') {
@@ -468,7 +504,9 @@ function responsiveDeclarations(property: string, value: unknown): string {
             continue;
         }
 
-        pieces.push(`${property}-${side}:${resolved}!important`);
+        const longhand = axes === undefined ? `${property}-${side}` : axes[side];
+
+        pieces.push(`${longhand}:${resolved}!important`);
     }
 
     return pieces.join(';');

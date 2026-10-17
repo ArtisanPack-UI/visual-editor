@@ -150,6 +150,58 @@ it( 'wrapperCss() returns an empty string (rules now go through the accumulator)
 	] ) )->toBe( '' );
 } );
 
+it( 'maps a per-axis blockGap override to row-gap / column-gap, not gap-top (#914)', function (): void {
+	$result = BlockSupports::compileResponsive( [
+		'responsive' => [
+			'style.spacing.blockGap' => [ 'md' => [ 'top' => '1rem', 'left' => '2rem' ] ],
+		],
+	] );
+
+	expect( $result['rules'] )->toContain( '{row-gap:1rem!important;column-gap:2rem!important}' )
+		->not->toContain( 'gap-top' )
+		->not->toContain( 'gap-left' )
+		->not->toContain( '--ap-columns-gap' );
+} );
+
+it( 'keeps --ap-columns-gap in sync with a Columns block\'s responsive gap (#914)', function ( mixed $gap, string $declarations ): void {
+	$result = BlockSupports::compileResponsive( [
+		'responsive' => [ 'style.spacing.blockGap' => [ 'tablet' => $gap ] ],
+	], null, true );
+
+	expect( $result['rules'] )->toBe( sprintf(
+		'@media (max-width:1023px){.%1$s.%1$s.%1$s{%2$s}}',
+		$result['class'],
+		$declarations,
+	) );
+} )->with( [
+	'scalar'          => [ '2rem', 'gap:2rem!important;--ap-columns-gap:2rem!important' ],
+	'per-axis'        => [ [ 'top' => '1rem', 'left' => '3rem' ], 'row-gap:1rem!important;column-gap:3rem!important;--ap-columns-gap:3rem!important' ],
+	'preset'          => [ 'var:preset|spacing|40', 'gap:var(--wp--preset--spacing--40)!important;--ap-columns-gap:var(--wp--preset--spacing--40)!important' ],
+	'unitless zero'   => [ [ 'left' => '0' ], 'column-gap:0!important;--ap-columns-gap:0px!important' ],
+	'normal'          => [ 'Normal', 'gap:Normal!important;--ap-columns-gap:0px!important' ],
+	'keyword'         => [ 'inherit', 'gap:inherit!important' ],
+	'top-only object' => [ [ 'top' => '1rem' ], 'row-gap:1rem!important' ],
+] );
+
+it( 'keeps --ap-columns-gap off a non-Columns block\'s responsive gap (#914)', function (): void {
+	$responsive = [ 'responsive' => [ 'style.spacing.blockGap' => [ 'md' => '2rem' ] ] ];
+	$group      = BlockSupports::compileResponsive( $responsive );
+	$columns    = BlockSupports::compileResponsive( $responsive, null, true );
+
+	expect( $group['rules'] )->toContain( 'gap:2rem!important' )
+		->not->toContain( '--ap-columns-gap' );
+
+	// Different rules need different scopes, or the accumulator keeps one.
+	expect( $columns['class'] )->not->toBe( $group['class'] );
+} );
+
+it( 'leaves a Columns scope unchanged when no gap is overridden (#914)', function (): void {
+	$responsive = [ 'responsive' => [ 'style.spacing.padding' => [ 'md' => '2rem' ] ] ];
+
+	expect( BlockSupports::compileResponsive( $responsive, null, true ) )
+		->toBe( BlockSupports::compileResponsive( $responsive ) );
+} );
+
 it( 'wrapperCss() still pushes into the accumulator for the side effect', function (): void {
 	$accumulator = app( ResponsiveCssAccumulator::class );
 

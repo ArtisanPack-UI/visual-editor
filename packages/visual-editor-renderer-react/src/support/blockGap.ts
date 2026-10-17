@@ -65,3 +65,78 @@ export function applyBlockGap(attributes: Record<string, unknown>): BlockGapStyl
 export function hasBlockGapStyle(style: BlockGapStyle): boolean {
     return Object.keys(style).length > 0;
 }
+
+export interface ColumnsGapStyle {
+    '--ap-columns-gap'?: string;
+}
+
+/**
+ * Mirrors `LayoutSupport::columnsGapDeclaration()` (#914). A Columns
+ * block whose `blockGap` is a per-axis object only prints
+ * `rowGap` / `columnGap`, so the Column width calc read the baseline's
+ * `--ap-columns-gap: var(--wp--style--block-gap)` (the global gap). This
+ * hands the `left` value to that calc instead, through
+ * {@link columnsGapValue}. A string `blockGap` normally needs nothing: it
+ * already sets `--wp--style--block-gap`. The exception is `normal`, which
+ * the calc can't multiply, so it is pinned to `0px`.
+ *
+ * Only the Columns renderer calls this — the property is scoped to that
+ * block so it never leaks onto other flex containers.
+ *
+ * @since 1.15.2
+ */
+export function applyColumnsGap(attributes: Record<string, unknown>): ColumnsGapStyle {
+    const blockGap = attrRecord(attrRecord(attributes.style).spacing).blockGap;
+    const isObject = blockGap !== null && typeof blockGap === 'object';
+
+    if (!isObject && !isNormalGap(blockGapValue(blockGap))) {
+        return {};
+    }
+
+    const left = columnsGapValue(blockGap);
+
+    return left === null ? {} : { '--ap-columns-gap': left };
+}
+
+/**
+ * The length a Columns `blockGap` hands the Column width calc
+ * (`--ap-columns-gap`), or null when it has none. Mirrors
+ * `LayoutSupport::columnsGapValue()` (#914).
+ *
+ * A scalar is used as-is; a per-axis object contributes its `left`
+ * value. Either goes through `blockGapValue()` (presets expand, unsafe
+ * values drop — F-10). The calc multiplies the gap, so it must be a
+ * length: a unitless zero and `normal` become `0px`; any other bare
+ * number or keyword (`auto`, `inherit`, …) returns null so the calc
+ * keeps its fallback instead of going invalid.
+ *
+ * @since 1.15.2
+ */
+export function columnsGapValue(gap: unknown): string | null {
+    const raw = gap !== null && typeof gap === 'object' && !Array.isArray(gap) ? attrRecord(gap).left : gap;
+    const value = blockGapValue(raw);
+
+    if (value === null) {
+        return null;
+    }
+
+    if (/^[+-]?(?:\d+\.?\d*|\.\d+)$/.test(value)) {
+        return Number(value) === 0 ? '0px' : null;
+    }
+
+    if (isNormalGap(value)) {
+        return '0px';
+    }
+
+    // A bare identifier is a keyword, never a length.
+    if (/^-?[a-z_][a-z0-9_-]*$/i.test(value)) {
+        return null;
+    }
+
+    return value;
+}
+
+/** Whether a sanitised gap value is the `normal` keyword, in any case. */
+function isNormalGap(value: string | null): boolean {
+    return value !== null && value.toLowerCase() === 'normal';
+}
