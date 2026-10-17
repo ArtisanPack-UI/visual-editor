@@ -1106,6 +1106,22 @@ describe('Core design blocks', () => {
         expect(html).not.toContain('id="-control"');
     });
 
+    it('starts an accordion panel open when defaultOpen is set', () => {
+        const panel = (defaultOpen: boolean) =>
+            makeBlock('artisanpack/accordion', { panelId: 'faq-1', defaultOpen }, [
+                makeBlock('artisanpack/accordion-title', {}),
+                makeBlock('artisanpack/accordion-body', {}),
+            ]);
+
+        const open = renderTree([panel(true)]);
+        const closed = renderTree([panel(false)]);
+
+        expect(open).toContain('aria-expanded="true"');
+        expect(open).toMatch(/<div class="wp-block-artisanpack-accordion-body ap-accordion__body"[^>]*role="region"(?![^>]*hidden)[^>]*>/);
+        expect(closed).toContain('aria-expanded="false"');
+        expect(closed).toMatch(/<div class="wp-block-artisanpack-accordion-body ap-accordion__body"[^>]*hidden[^>]*>/);
+    });
+
     it('renders the artisanpack/tabs family with triggers derived from tab-section children', () => {
         const tree = [
             makeBlock(

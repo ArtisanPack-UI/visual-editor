@@ -12,7 +12,7 @@
 
 import { useEffect, type ReactElement } from 'react';
 import { InspectorControls, useBlockProps, useInnerBlocksProps } from '@wordpress/block-editor';
-import { PanelBody, SelectControl, TextControl } from '@wordpress/components';
+import { PanelBody, SelectControl, TextControl, ToggleControl } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
 import { TEXT_DOMAIN } from '../../vendor/i18n';
@@ -20,6 +20,7 @@ import { TEXT_DOMAIN } from '../../vendor/i18n';
 interface AccordionAttributes {
     readonly panelId: string;
     readonly panelIcon: 'plus-minus' | 'arrows';
+    readonly defaultOpen: boolean;
 }
 
 interface AccordionEditProps {
@@ -64,7 +65,7 @@ export default function AccordionEdit({
     setAttributes,
     clientId,
 }: AccordionEditProps): ReactElement {
-    const { panelId, panelIcon } = attributes;
+    const { panelId, panelIcon, defaultOpen } = attributes;
 
     useEffect(() => {
         if (panelId === '') {
@@ -101,6 +102,13 @@ export default function AccordionEdit({
                                 setAttributes({ panelIcon: value });
                             }
                         }}
+                        __nextHasNoMarginBottom
+                    />
+                    <ToggleControl
+                        label={__('Open by default', TEXT_DOMAIN)}
+                        help={__('The panel starts expanded on the front end.', TEXT_DOMAIN)}
+                        checked={defaultOpen}
+                        onChange={(value) => setAttributes({ defaultOpen: value })}
                         __nextHasNoMarginBottom
                     />
                 </PanelBody>
