@@ -1043,6 +1043,15 @@ it( 'omits accordion-title aria wiring when the parent panel id is empty', funct
 		->and( $html )->not->toContain( 'id="-control"' );
 } );
 
+it( 'prints the accordions block spacing as the gap between panels (#933)', function (): void {
+	$render = fn ( array $attributes ): string => makeRenderer()->render( [ makeBlock( 'artisanpack/accordions', $attributes ) ] );
+
+	expect( $render( [ 'style' => [ 'spacing' => [ 'blockGap' => '1rem' ] ] ] ) )->toContain( 'gap: 1rem;' )
+		->and( $render( [ 'style' => [ 'spacing' => [ 'blockGap' => 'var:preset|spacing|40' ] ] ] ) )->toContain( 'gap: var(--wp--preset--spacing--40);' )
+		->and( $render( [] ) )->not->toContain( 'gap:' )
+		->and( $render( [ 'style' => [ 'spacing' => [ 'blockGap' => '1rem;position:fixed' ] ] ] ) )->not->toContain( 'position' );
+} );
+
 it( 'emits FAQPage JSON-LD from accordion panels when the accordions faqSchema toggle is on (#757)', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/accordions', [ 'faqSchema' => true ], [

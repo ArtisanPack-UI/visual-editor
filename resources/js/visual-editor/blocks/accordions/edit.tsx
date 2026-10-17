@@ -12,6 +12,7 @@
 
 import type { ReactElement } from 'react';
 import {
+    __experimentalGetGapCSSValue as getGapCSSValue,
     InspectorControls,
     useBlockProps,
     useInnerBlocksProps,
@@ -27,6 +28,11 @@ const TEMPLATE: [string, Record<string, unknown>][] = [['artisanpack/accordion',
 
 interface AccordionsAttributes {
     readonly faqSchema: boolean;
+    readonly style?: {
+        readonly spacing?: {
+            readonly blockGap?: string | { readonly top?: string; readonly left?: string };
+        };
+    };
 }
 
 interface AccordionsEditProps {
@@ -40,7 +46,18 @@ export default function AccordionsEdit({
 }: AccordionsEditProps): ReactElement {
     const { faqSchema } = attributes;
 
-    const blockProps = useBlockProps({ className: 'ap-accordions' });
+    // #933 — the block's own Block spacing is the gap between panels, as
+    // the renderers print it. Reading `--wp--style--block-gap` in CSS
+    // would inherit an ancestor's gap instead.
+    const blockGap = attributes.style?.spacing?.blockGap;
+    const ownGap = (getGapCSSValue as (value?: string) => string | null)(
+        typeof blockGap === 'string' ? blockGap : blockGap?.top
+    );
+
+    const blockProps = useBlockProps({
+        className: 'ap-accordions',
+        style: ownGap ? { rowGap: ownGap } : undefined,
+    });
     const innerBlocksProps = useInnerBlocksProps(blockProps, {
         allowedBlocks: ALLOWED_BLOCKS,
         template: TEMPLATE,
