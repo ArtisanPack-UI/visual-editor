@@ -148,6 +148,15 @@ it( 'spaces flex and grid layout children with the block gap (#883)', function (
 		->toContain( ':where(.is-layout-grid) { gap: var(--wp--style--block-gap, 0.5em); }' );
 } );
 
+it( 'keeps the flex wrap and alignment defaults below the Flex panel utilities (#927)', function (): void {
+	// The baseline prints after flex-layout.css, so at class specificity
+	// its defaults beat `ap-flex-nowrap` / `ap-items-*` on Flex-panel rows.
+	expect( Blade::render( '<x-ve-blocks-styles />' ) )
+		->toContain( '.is-layout-flex { display: flex; }' )
+		->toContain( ':where(.is-layout-flex) { flex-wrap: wrap; align-items: center; }' )
+		->not->toContain( '.is-layout-flex { display: flex; flex-wrap: wrap;' );
+} );
+
 it( 'publishes block-library assets under the visual-editor-renderer-blade-assets tag', function (): void {
 	$published = public_path( 'vendor/visual-editor-renderer-blade' );
 

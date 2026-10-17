@@ -151,6 +151,12 @@
 	`--ap-columns-gap` keeps the Columns gap readable by its columns'
 	width calc, since each Column resets the property for its own
 	children.
+
+	#927 — the flex defaults (`flex-wrap: wrap; align-items: center`) sit
+	at zero specificity. This block prints after `flex-layout.css`, so at
+	class specificity they beat the Flex panel's `ap-flex-nowrap` /
+	`ap-items-*` utilities on every Group the panel turns into a flex
+	row. Only `display: flex` keeps class specificity.
 --}}
 <style data-ve-layout-baseline>
 :where(.is-layout-flow) > :first-child { margin-block-start: 0; }
@@ -161,7 +167,8 @@
 :where(.is-layout-constrained) > :last-child { margin-block-end: 0; }
 :where(.is-layout-constrained) > * { margin-block-start: 0; margin-block-end: 0; }
 :where(.is-layout-constrained) > * + * { margin-block-start: var(--wp--style--block-gap, 24px); margin-block-end: 0; }
-.is-layout-flex { display: flex; flex-wrap: wrap; align-items: center; }
+.is-layout-flex { display: flex; }
+:where(.is-layout-flex) { flex-wrap: wrap; align-items: center; }
 .is-layout-flex > :is(*, div) { margin: 0; }
 .is-layout-grid { display: grid; }
 .is-layout-grid > :is(*, div) { margin: 0; }
