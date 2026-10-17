@@ -25,6 +25,10 @@ interface TabRecord {
     readonly label: string;
     readonly tabId: string;
     readonly content: ReactNode;
+    /** The section's own class (custom class, block style), #922. */
+    readonly className: string;
+    /** The section's aria-label; replaces aria-labelledby when set (#922). */
+    readonly ariaLabel: string;
 }
 
 function normalizeAlign(value: unknown): TabsAlign {
@@ -130,6 +134,8 @@ export function TabsBlock({
             label: labelRaw === '' ? `Tab ${sectionIndex}` : labelRaw,
             tabId,
             content,
+            className: attrString(childAttrs.className),
+            ariaLabel: attrString(childAttrs.ariaLabel).trim(),
         });
     });
 
@@ -160,10 +166,11 @@ export function TabsBlock({
                 {tabs.map((tab, index) => (
                     <div
                         key={`panel-${index}-${tab.tabId}`}
-                        className="wp-block-artisanpack-tab-section ap-tab-section"
+                        className={classList(['wp-block-artisanpack-tab-section', 'ap-tab-section', tab.className])}
                         role="tabpanel"
                         id={`tabs-panel-${tab.tabId}`}
-                        aria-labelledby={`tabs-tab-${tab.tabId}`}
+                        aria-label={tab.ariaLabel === '' ? undefined : tab.ariaLabel}
+                        aria-labelledby={tab.ariaLabel === '' ? `tabs-tab-${tab.tabId}` : undefined}
                     >
                         {tab.content}
                     </div>
@@ -193,6 +200,13 @@ export function TabSectionBlock({
         const safeId = sanitizeTabId(tabId, 1);
         wrapperProps.id = `tabs-panel-${safeId}`;
         wrapperProps['aria-labelledby'] = `tabs-tab-${safeId}`;
+    }
+
+    const ariaLabel = attrString(attributes.ariaLabel).trim();
+
+    if (ariaLabel !== '') {
+        delete wrapperProps['aria-labelledby'];
+        wrapperProps['aria-label'] = ariaLabel;
     }
 
     return <div {...wrapperProps}>{children}</div>;

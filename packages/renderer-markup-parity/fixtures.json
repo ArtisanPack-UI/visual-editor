@@ -833,6 +833,25 @@
             ]
         },
         {
+            "name": "tabs-section-class-label",
+            "$comment": "#922: a tab section's class and aria-label reach its panel; the aria-label replaces aria-labelledby.",
+            "tree": [
+                {
+                    "clientId": "tabs-c",
+                    "name": "artisanpack/tabs",
+                    "attributes": { "tabsSpacing": "center" },
+                    "innerBlocks": [
+                        { "clientId": "ts1", "name": "artisanpack/tab-section", "attributes": { "label": "Monthly", "tabId": "monthly", "className": "is-style-repro" }, "innerBlocks": [
+                            { "clientId": "tp1", "name": "core/paragraph", "attributes": { "content": "One" }, "innerBlocks": [] }
+                        ] },
+                        { "clientId": "ts2", "name": "artisanpack/tab-section", "attributes": { "label": "Annual", "tabId": "annual", "ariaLabel": "Annual plans" }, "innerBlocks": [
+                            { "clientId": "tp2", "name": "core/paragraph", "attributes": { "content": "Two" }, "innerBlocks": [] }
+                        ] }
+                    ]
+                }
+            ]
+        },
+        {
             "name": "buttons-layout-vertical",
             "$comment": "F-3 — vertical, non-wrapping, aligned buttons with their own Block spacing get a `wp-container-*` scope plus the `is-vertical` / `is-nowrap` modifiers.",
             "tree": [

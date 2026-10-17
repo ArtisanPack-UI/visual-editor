@@ -25,6 +25,10 @@ interface TabRecord {
     readonly label: string;
     readonly tabId: string;
     readonly content: VNode[];
+    /** The section's own class (custom class, block style), #922. */
+    readonly className: string;
+    /** The section's aria-label; replaces aria-labelledby when set (#922). */
+    readonly ariaLabel: string;
 }
 
 function normalizeAlign(value: unknown): TabsAlign {
@@ -121,6 +125,8 @@ export const TabsBlock = defineComponent({
                     label: labelRaw === '' ? `Tab ${sectionIndex}` : labelRaw,
                     tabId,
                     content: extractSlotContent(slotVnodes[index]),
+                    className: attrString(childAttrs.className),
+                    ariaLabel: attrString(childAttrs.ariaLabel).trim(),
                 });
             });
 
@@ -147,10 +153,12 @@ export const TabsBlock = defineComponent({
                     'div',
                     {
                         key: `panel-${index}-${tab.tabId}`,
-                        class: 'wp-block-artisanpack-tab-section ap-tab-section',
+                        class: classList(['wp-block-artisanpack-tab-section', 'ap-tab-section', tab.className]),
                         role: 'tabpanel',
                         id: `tabs-panel-${tab.tabId}`,
-                        'aria-labelledby': `tabs-tab-${tab.tabId}`,
+                        ...(tab.ariaLabel === ''
+                            ? { 'aria-labelledby': `tabs-tab-${tab.tabId}` }
+                            : { 'aria-label': tab.ariaLabel }),
                     },
                     tab.content
                 )
@@ -187,6 +195,13 @@ export const TabSectionBlock = defineComponent({
                 const safeId = sanitizeTabId(tabId, 1);
                 attrs.id = `tabs-panel-${safeId}`;
                 attrs['aria-labelledby'] = `tabs-tab-${safeId}`;
+            }
+
+            const ariaLabel = attrString(props.attributes.ariaLabel).trim();
+
+            if (ariaLabel !== '') {
+                delete attrs['aria-labelledby'];
+                attrs['aria-label'] = ariaLabel;
             }
 
             return h('div', attrs, slots.default ? slots.default() : []);
