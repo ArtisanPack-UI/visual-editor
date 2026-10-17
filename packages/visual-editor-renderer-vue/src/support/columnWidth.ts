@@ -104,7 +104,12 @@ export function columnWidthScope( attributes: Record<string, unknown> ): ColumnW
 		const declaration = `flex-basis:${ basisExpr( normalized ) }!important;flex-grow:0!important`;
 
 		if ( key === BASE_KEY ) {
-			rules.push( `${ selector }{${ declaration }}` );
+			// The "All sizes" width applies everywhere only when the parent
+			// doesn't stack on mobile; otherwise it starts at WordPress's
+			// stacking breakpoint so the stacking rule wins on phones (#910).
+			// Descendant combinator: `>` would be escaped in the <style> text.
+			rules.push( `.wp-block-columns.is-not-stacked-on-mobile ${ selector }{${ declaration }}` );
+			rules.push( `@media (min-width: 782px){${ selector }{${ declaration }}}` );
 			continue;
 		}
 
