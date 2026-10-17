@@ -18,7 +18,7 @@ import { flexClassNames } from '../../support/flex-serializer';
 import { safeCssValue } from '../../support/cssValue';
 import { applyBackground } from '../../support/background';
 import { applyBlockGap } from '../../support/blockGap';
-import { applyDimensions } from '../../support/dimensions';
+import { applyDimensions, dimensionsClassName } from '../../support/dimensions';
 import { layoutModifierClasses, panelLayoutClass } from '../../support/layoutContainer';
 import { safeUrl } from '../../support/urlSanitizer';
 import { blockRendererProps } from '../shared';
@@ -78,6 +78,7 @@ export const GroupBlock = defineComponent({
                 ...layoutModifierClasses(props.attributes),
                 ...flexClasses,
                 photoGridScope !== '' ? photoGridScope : null,
+                dimensionsClassName(props.attributes),
                 className,
             ]);
 

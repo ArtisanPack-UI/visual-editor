@@ -19,6 +19,7 @@ import {
     layoutClass,
 } from '../../support/attributes';
 import { applyBlockGap } from '../../support/blockGap';
+import { dimensionsClassName } from '../../support/dimensions';
 import { cssNumber } from '../../support/cssNumber';
 import { layoutWrapperClasses } from '../../support/layoutContainer';
 import { safeUrl } from '../../support/urlSanitizer';
@@ -87,7 +88,8 @@ export const CoverBlock = defineComponent({
             const url = safeUrl(props.attributes.url);
             const isDark = props.attributes.isDark === undefined ? true : attrBoolean(props.attributes.isDark);
 
-            const rawDim = attrInt(props.attributes.dimRatio, 50);
+            // block.json defaults dimRatio to 100 and the editor omits defaults (#906).
+            const rawDim = attrInt(props.attributes.dimRatio, 100);
             const dimRatio = Math.max(0, Math.min(100, rawDim));
 
             const align = attrString(props.attributes.align);
@@ -102,6 +104,7 @@ export const CoverBlock = defineComponent({
                 // Duotone scope stamped by `stampDuotoneScopes()`.
                 attrString(props.attributes._veDuotone) || null,
                 align !== '' ? `align${align}` : null,
+                dimensionsClassName(props.attributes),
                 className,
             ]);
 
@@ -109,7 +112,11 @@ export const CoverBlock = defineComponent({
             // `cover.blade.php` order.
             let outerStyle: Record<string, string> = { ...applyBlockGap(props.attributes) };
 
-            if (props.attributes.minHeight !== undefined && props.attributes.minHeight !== null) {
+            // An aspect ratio replaces the cover's own min-height (#906).
+            const hasAspectRatio =
+                attrString(attrRecord(attrRecord(props.attributes.style).dimensions).aspectRatio) !== '';
+
+            if (props.attributes.minHeight !== undefined && props.attributes.minHeight !== null && !hasAspectRatio) {
                 const minHeight = Math.max(0, attrFloat(props.attributes.minHeight));
                 const requestedUnit = attrString(props.attributes.minHeightUnit);
                 const unit = (ALLOWED_MIN_HEIGHT_UNITS as ReadonlyArray<string>).includes(requestedUnit)

@@ -1,5 +1,5 @@
 <div class="wp-block-cover is-dark is-layout-flex wp-block-cover-is-layout-flex" style="--wp--style--block-gap: 3rem">
-  <span aria-hidden="true" class="wp-block-cover__background has-background-dim" style="opacity: 0.5">
+  <span aria-hidden="true" class="wp-block-cover__background has-background-dim" style="opacity: 1">
   </span>
   <div class="wp-block-cover__inner-container is-layout-constrained wp-block-cover-is-layout-constrained wp-container-1f828ae2c796">
     <p class="wp-block-paragraph">
