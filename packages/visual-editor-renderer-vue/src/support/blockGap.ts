@@ -66,3 +66,47 @@ export function applyBlockGap(attributes: Record<string, unknown>): BlockGapStyl
 export function hasBlockGapStyle(style: BlockGapStyle): boolean {
     return Object.keys(style).length > 0;
 }
+
+export interface ColumnsGapStyle {
+    '--ap-columns-gap'?: string;
+}
+
+/**
+ * Mirrors `LayoutSupport::columnsGapDeclaration()` (#914). A Columns
+ * block whose `blockGap` is a per-axis object only prints
+ * `rowGap` / `columnGap`, so the Column width calc read the baseline's
+ * `--ap-columns-gap: var(--wp--style--block-gap)` (the global gap). This
+ * hands the `left` value to that calc instead, expanded and sanitised
+ * through `blockGapValue()` exactly like `columnGap` (F-10). A string
+ * `blockGap` needs nothing: it already sets `--wp--style--block-gap`.
+ *
+ * The calc multiplies the gap, so a bare number can't go in as-is:
+ * `calc(52.5% - 0 * 0.475)` is invalid and leaves the Column with no basis.
+ * A unitless zero becomes `0px`; any other bare number is no length (so
+ * `columnGap` ignores it too) and nothing is emitted.
+ *
+ * Only the Columns renderer calls this — the property is scoped to that
+ * block so it never leaks onto other flex containers.
+ *
+ * @since 1.15.2
+ */
+export function applyColumnsGap(attributes: Record<string, unknown>): ColumnsGapStyle {
+    const blockGap = attrRecord(attrRecord(attributes.style).spacing).blockGap;
+
+    if (blockGap === null || typeof blockGap !== 'object') {
+        return {};
+    }
+
+    const left = blockGapValue(attrRecord(blockGap).left);
+
+    if (left === null) {
+        return {};
+    }
+
+    // #914 — a bare number would make the width calc invalid.
+    if (/^[+-]?(?:\d+\.?\d*|\.\d+)$/.test(left)) {
+        return Number(left) === 0 ? { '--ap-columns-gap': '0px' } : {};
+    }
+
+    return { '--ap-columns-gap': left };
+}

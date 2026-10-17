@@ -295,6 +295,29 @@ describe( 'LayoutSupport::blockGapValue (F-10)', function (): void {
 	] );
 } );
 
+describe( 'LayoutSupport::columnsGapDeclaration (#914)', function (): void {
+	it( 'hands a per-axis left gap to the Column width calc', function ( mixed $left, string $expected ): void {
+		$attributes = [ 'style' => [ 'spacing' => [ 'blockGap' => [ 'top' => '0', 'left' => $left ] ] ] ];
+
+		expect( LayoutSupport::columnsGapDeclaration( $attributes ) )->toBe( '--ap-columns-gap: ' . $expected );
+	} )->with( [
+		'unitless zero' => [ '0', '0px' ],
+		'integer zero'  => [ 0, '0px' ],
+		'length'        => [ '4rem', '4rem' ],
+		'preset'        => [ 'var:preset|spacing|40', 'var(--wp--preset--spacing--40)' ],
+	] );
+
+	it( 'returns null without a usable per-axis left gap', function ( mixed $blockGap ): void {
+		expect( LayoutSupport::columnsGapDeclaration( [ 'style' => [ 'spacing' => [ 'blockGap' => $blockGap ] ] ] ) )->toBeNull();
+	} )->with( [
+		'top only'    => [ [ 'top' => '1rem' ] ],
+		'unsafe left' => [ [ 'top' => '1rem', 'left' => '1rem;position:fixed' ] ],
+		'bare number' => [ [ 'left' => '12' ] ],
+		'string gap'  => [ '2rem' ],
+		'unset'       => [ null ],
+	] );
+} );
+
 describe( 'LayoutSupport::modifierClasses (F-3)', function (): void {
 	it( 'adds the orientation, justification and wrap classes WordPress adds', function (): void {
 		expect( LayoutSupport::modifierClasses( [ 'layout' => [ 'orientation' => 'vertical', 'justifyContent' => 'space-between', 'flexWrap' => 'nowrap' ] ] ) )

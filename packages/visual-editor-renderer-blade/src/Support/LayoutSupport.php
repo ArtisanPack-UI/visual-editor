@@ -378,6 +378,59 @@ class LayoutSupport
 	}
 
 	/**
+	 * The `--ap-columns-gap` declaration for a Columns block whose
+	 * `style.spacing.blockGap` is a per-axis object with a usable `left`
+	 * value, or null (#914).
+	 *
+	 * A per-axis gap only prints `row-gap` / `column-gap`, so without
+	 * this the Column width calc read the baseline's
+	 * `--ap-columns-gap: var(--wp--style--block-gap)`, i.e. the global
+	 * gap rather than the Columns block's own horizontal gap. The value
+	 * goes through {@see self::blockGapValue()}, so presets expand the
+	 * same way as `column-gap` and unsafe values are dropped (F-10). A
+	 * string `blockGap` needs nothing: it sets `--wp--style--block-gap`
+	 * on the wrapper, which the baseline already reads.
+	 *
+	 * The calc multiplies the gap, so a bare number can't go in as-is:
+	 * `calc(52.5% - 0 * 0.475)` subtracts a number from a percentage,
+	 * which is invalid and leaves the Column with no basis at all. A
+	 * unitless zero (what the inspector stores for "no gap") becomes
+	 * `0px`; any other bare number is no length, so `column-gap` ignores
+	 * it too, and nothing is emitted.
+	 *
+	 * @since 1.15.2
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 */
+	public static function columnsGapDeclaration( array $attributes ): ?string
+	{
+		$style   = is_array( $attributes['style'] ?? null ) ? $attributes['style'] : [];
+		$spacing = is_array( $style['spacing'] ?? null ) ? $style['spacing'] : [];
+		$gap     = $spacing['blockGap'] ?? null;
+
+		if ( ! is_array( $gap ) ) {
+			return null;
+		}
+
+		$left = self::blockGapValue( $gap['left'] ?? null );
+
+		if ( null === $left ) {
+			return null;
+		}
+
+		// #914 — a bare number would make the width calc invalid.
+		if ( 1 === preg_match( '/^[+-]?(?:\d+\.?\d*|\.\d+)$/', $left ) ) {
+			if ( 0.0 !== (float) $left ) {
+				return null;
+			}
+
+			$left = '0px';
+		}
+
+		return '--ap-columns-gap: ' . $left;
+	}
+
+	/**
 	 * A stored length (`contentSize`, `wideSize`, `minimumColumnWidth`)
 	 * that is safe to splice into a `<style>` block, or null. Values
 	 * that fail {@see BlockSupports::safeCssValue()} or leave a

@@ -704,6 +704,42 @@ it( 'preserves fractional column widths', function (): void {
 	expect( $html )->toContain( 'flex-basis: 33.33%;' );
 } );
 
+it( 'scopes a per-axis left gap to the Columns wrapper as --ap-columns-gap (#914)', function ( string $name ): void {
+	$tree = [
+		makeBlock( $name, [ 'style' => [ 'spacing' => [ 'blockGap' => [ 'top' => '0', 'left' => '0' ] ] ] ], [
+			makeBlock( 'core/column', [ 'width' => '52.5%' ], [], 'col-a' ),
+			makeBlock( 'core/column', [ 'width' => '47.5%' ], [], 'col-b' ),
+		] ),
+	];
+
+	expect( makeRenderer()->render( $tree ) )->toContain( 'style="row-gap: 0; column-gap: 0; --ap-columns-gap: 0px;"' );
+} )->with( [ 'core/columns', 'artisanpack/columns' ] );
+
+it( 'leaves --ap-columns-gap unset without a usable per-axis left gap (#914)', function ( array $blockGap ): void {
+	$tree = [
+		makeBlock( 'core/columns', [ 'style' => [ 'spacing' => [ 'blockGap' => $blockGap ] ] ], [
+			makeBlock( 'core/column', [ 'width' => 50 ], [], 'col-a' ),
+		] ),
+	];
+
+	expect( makeRenderer()->render( $tree ) )->not->toContain( '--ap-columns-gap:' );
+} )->with( [
+	'top only'    => [ [ 'top' => '1rem' ] ],
+	'unsafe left' => [ [ 'top' => '1rem', 'left' => '1rem;position:fixed' ] ],
+] );
+
+it( 'keeps --ap-columns-gap off other blocks with a per-axis gap (#914)', function (): void {
+	$tree = [
+		makeBlock( 'core/group', [
+			'layout' => [ 'type' => 'flex' ],
+			'style'  => [ 'spacing' => [ 'blockGap' => [ 'top' => '0', 'left' => '2rem' ] ] ],
+		], [] ),
+	];
+
+	expect( makeRenderer()->render( $tree ) )->toContain( 'column-gap: 2rem;' )
+		->not->toContain( '--ap-columns-gap:' );
+} );
+
 it( 'renders the artisanpack/callout reference block with severity and icon', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/callout', [

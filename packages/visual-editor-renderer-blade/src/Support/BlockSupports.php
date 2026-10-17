@@ -941,16 +941,27 @@ class BlockSupports
 	 * style="…" id="…"`), or an empty string when none are. `$baseClasses`
 	 * are prepended verbatim before the compiled support classes so each
 	 * block partial can declare its own `wp-block-{name}` / layout class
-	 * list without the compiler knowing about them.
+	 * list without the compiler knowing about them. `$extraStyles` are
+	 * block-specific declarations appended after the compiled support
+	 * style, so a partial never needs a second `style` attribute.
 	 *
 	 * @since 1.0.0
+	 * @since 1.15.2 Accepts `$extraStyles` (#914).
 	 *
 	 * @param  array<string, mixed>  $attributes
 	 * @param  array<int, string>    $baseClasses
+	 * @param  array<int, string>    $extraStyles  Already-sanitised declarations, without a trailing `;`.
 	 */
-	public static function wrapperAttrs( array $attributes, array $baseClasses = [] ): string
+	public static function wrapperAttrs( array $attributes, array $baseClasses = [], array $extraStyles = [] ): string
 	{
 		$compiled = self::compile( $attributes );
+
+		// #914 — block-specific declarations ride after the support ones.
+		$extraStyles = array_values( array_filter( $extraStyles, static fn ( string $declaration ): bool => '' !== trim( $declaration ) ) );
+
+		if ( [] !== $extraStyles ) {
+			$compiled['style'] = ( '' !== $compiled['style'] ? $compiled['style'] . ' ' : '' ) . implode( '; ', $extraStyles ) . ';';
+		}
 
 		$classes = array_values( array_unique( array_filter(
 			array_merge( $baseClasses, $compiled['classes'] ),

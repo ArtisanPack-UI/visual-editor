@@ -103,7 +103,11 @@
 			BlockSupports::pushResponsive( $columnsScope, implode( '', $columnsRules ) );
 		}
 	}
+
+	// #914 — a per-axis gap only prints `column-gap`, so hand its left
+	// value to the Column width calc too. Otherwise it reads the global gap.
+	$columnsGap = LayoutSupport::columnsGapDeclaration( $attributes );
 @endphp
-<div{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}>
+<div{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses, null !== $columnsGap ? [ $columnsGap ] : [] ) !!}>
 	{!! $innerBlocksHtml !!}
 </div>

@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { applyBlockGap } from '../src/support/blockGap';
+import { applyBlockGap, applyColumnsGap } from '../src/support/blockGap';
 import { blockGapValue, layoutContainer, layoutModifierClasses, stampLayoutScopes } from '../src/support/layoutContainer';
 import type { Block } from '../src/types';
 
@@ -176,6 +176,28 @@ describe('blockGapValue (F-10)', () => {
         expect(applyBlockGap({ style: { spacing: { blockGap: { top: '2rem}body{color:red', left: '1rem' } } } })).toEqual({
             columnGap: '1rem',
         });
+    });
+});
+
+describe('applyColumnsGap (#914)', () => {
+    it('hands a per-axis left gap to the Column width calc', () => {
+        expect(applyColumnsGap({ style: { spacing: { blockGap: { top: '0', left: '0' } } } })).toEqual({
+            '--ap-columns-gap': '0px',
+        });
+        expect(applyColumnsGap({ style: { spacing: { blockGap: { left: '4rem' } } } })).toEqual({
+            '--ap-columns-gap': '4rem',
+        });
+        expect(applyColumnsGap({ style: { spacing: { blockGap: { left: 'var:preset|spacing|40' } } } })).toEqual({
+            '--ap-columns-gap': 'var(--wp--preset--spacing--40)',
+        });
+    });
+
+    it('stays unset without a usable per-axis left gap', () => {
+        expect(applyColumnsGap({ style: { spacing: { blockGap: { top: '1rem' } } } })).toEqual({});
+        expect(applyColumnsGap({ style: { spacing: { blockGap: { top: '1rem', left: '1rem;position:fixed' } } } })).toEqual({});
+        expect(applyColumnsGap({ style: { spacing: { blockGap: '2rem' } } })).toEqual({});
+        expect(applyColumnsGap({ style: { spacing: { blockGap: { left: '12' } } } })).toEqual({});
+        expect(applyColumnsGap({})).toEqual({});
     });
 });
 

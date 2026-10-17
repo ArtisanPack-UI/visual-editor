@@ -472,6 +472,258 @@
             ]
         },
         {
+            "name": "columns-block-gap-axes",
+            "$comment": "#914 — a per-axis Columns gap prints `row-gap` / `column-gap` and hands its left value to the Column width calc as `--ap-columns-gap` (presets expanded, unsafe values dropped). A top-only gap leaves the property unset; a string gap sets `--wp--style--block-gap`, which the baseline already reads.",
+            "tree": [
+                {
+                    "clientId": "gap-zero",
+                    "name": "core/columns",
+                    "attributes": {
+                        "style": {
+                            "spacing": {
+                                "blockGap": {
+                                    "top": "0",
+                                    "left": "0"
+                                }
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "gap-zero-a",
+                            "name": "core/column",
+                            "attributes": {
+                                "width": "52.5%"
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "gap-zero-a-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "A"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        },
+                        {
+                            "clientId": "gap-zero-b",
+                            "name": "core/column",
+                            "attributes": {
+                                "width": "47.5%"
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "gap-zero-b-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "B"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "clientId": "gap-preset",
+                    "name": "artisanpack/columns",
+                    "attributes": {
+                        "style": {
+                            "spacing": {
+                                "blockGap": {
+                                    "top": "1rem",
+                                    "left": "var:preset|spacing|40"
+                                }
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "gap-preset-a",
+                            "name": "core/column",
+                            "attributes": {
+                                "width": "52.5%"
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "gap-preset-a-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "A"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        },
+                        {
+                            "clientId": "gap-preset-b",
+                            "name": "core/column",
+                            "attributes": {
+                                "width": "47.5%"
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "gap-preset-b-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "B"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "clientId": "gap-top-only",
+                    "name": "core/columns",
+                    "attributes": {
+                        "style": {
+                            "spacing": {
+                                "blockGap": {
+                                    "top": "2rem"
+                                }
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "gap-top-only-a",
+                            "name": "core/column",
+                            "attributes": {
+                                "width": "52.5%"
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "gap-top-only-a-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "A"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        },
+                        {
+                            "clientId": "gap-top-only-b",
+                            "name": "core/column",
+                            "attributes": {
+                                "width": "47.5%"
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "gap-top-only-b-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "B"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "clientId": "gap-unsafe",
+                    "name": "core/columns",
+                    "attributes": {
+                        "style": {
+                            "spacing": {
+                                "blockGap": {
+                                    "top": "1rem",
+                                    "left": "1rem;position:fixed"
+                                }
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "gap-unsafe-a",
+                            "name": "core/column",
+                            "attributes": {
+                                "width": "52.5%"
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "gap-unsafe-a-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "A"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        },
+                        {
+                            "clientId": "gap-unsafe-b",
+                            "name": "core/column",
+                            "attributes": {
+                                "width": "47.5%"
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "gap-unsafe-b-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "B"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "clientId": "gap-string",
+                    "name": "core/columns",
+                    "attributes": {
+                        "style": {
+                            "spacing": {
+                                "blockGap": "4rem"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "gap-string-a",
+                            "name": "core/column",
+                            "attributes": {
+                                "width": "52.5%"
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "gap-string-a-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "A"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        },
+                        {
+                            "clientId": "gap-string-b",
+                            "name": "core/column",
+                            "attributes": {
+                                "width": "47.5%"
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "gap-string-b-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "B"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
             "name": "columns-responsive-width",
             "$comment": "#712 — a column with the legacy scalar `width` promoted to the `base` slot plus a `responsive.width` per-breakpoint override. Exercises the merged-map hash and the `ve-w-<hash>` scope token now shared by all three renderers.",
             "tree": [

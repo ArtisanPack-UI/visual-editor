@@ -16,7 +16,7 @@ import { isNonEmptyWidth, normalizeBasis } from '../../support/columnWidth';
 import { flexClassNames } from '../../support/flex-serializer';
 import { safeCssValue } from '../../support/cssValue';
 import { applyBackground } from '../../support/background';
-import { applyBlockGap } from '../../support/blockGap';
+import { applyBlockGap, applyColumnsGap } from '../../support/blockGap';
 import { applyDimensions, dimensionsClassName } from '../../support/dimensions';
 import { layoutModifierClasses, panelLayoutClass } from '../../support/layoutContainer';
 import { safeUrl } from '../../support/urlSanitizer';
@@ -140,6 +140,14 @@ export function ColumnsBlock({ attributes, children }: BlockRendererProps): JSX.
         photoGridScope !== '' ? photoGridScope : null,
         className,
     ]);
+
+    // The Columns' own Block spacing, as `columns.blade.php` prints it.
+    // #914 — plus the per-axis left gap for the Column width calc, last.
+    const style = { ...applyBlockGap(attributes), ...applyColumnsGap(attributes) };
+
+    if (Object.keys(style).length > 0) {
+        return <div className={classes} style={style as React.CSSProperties}>{children}</div>;
+    }
 
     return <div className={classes}>{children}</div>;
 }
