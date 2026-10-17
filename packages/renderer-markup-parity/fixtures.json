@@ -817,6 +817,22 @@
             ]
         },
         {
+            "name": "button-width",
+            "$comment": "#921: a preset width gets the legacy class, another percentage the width variable, a length an inline width.",
+            "tree": [
+                {
+                    "clientId": "btns-w",
+                    "name": "core/buttons",
+                    "attributes": {},
+                    "innerBlocks": [
+                        { "clientId": "bw1", "name": "core/button", "attributes": { "text": "Full", "url": "#", "className": "is-style-outline", "style": { "dimensions": { "width": "100%" } } }, "innerBlocks": [] },
+                        { "clientId": "bw2", "name": "core/button", "attributes": { "text": "Sixty", "url": "#", "style": { "dimensions": { "width": "60%" } } }, "innerBlocks": [] },
+                        { "clientId": "bw3", "name": "core/button", "attributes": { "text": "Fixed", "url": "#", "style": { "dimensions": { "width": "240px" } } }, "innerBlocks": [] }
+                    ]
+                }
+            ]
+        },
+        {
             "name": "buttons-layout-vertical",
             "$comment": "F-3 — vertical, non-wrapping, aligned buttons with their own Block spacing get a `wp-container-*` scope plus the `is-vertical` / `is-nowrap` modifiers.",
             "tree": [
