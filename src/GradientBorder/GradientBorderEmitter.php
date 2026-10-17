@@ -141,7 +141,13 @@ class GradientBorderEmitter
 		// two stacked borders. `!important` matches the inline
 		// `style="border-color:…"` specificity the supports compiler
 		// emits.
-		$rules[] = sprintf( '%s{position:relative;border-color:transparent !important}', $scope );
+		//
+		// `overflow-clip-margin: border-box` keeps the ring visible on
+		// blocks that clip their overflow (Cover sets `overflow: clip`,
+		// which clips to the padding box by default and would cut the
+		// ::before away entirely, #912). It only applies with
+		// `overflow: clip`, so other blocks are unaffected.
+		$rules[] = sprintf( '%s{position:relative;border-color:transparent !important;overflow-clip-margin:border-box}', $scope );
 
 		// Idle ::before rule. Always emitted when *any* gradient value
 		// exists at any state/breakpoint so the cascade has a base to

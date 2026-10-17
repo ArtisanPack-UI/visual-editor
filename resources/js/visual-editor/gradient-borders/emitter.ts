@@ -154,8 +154,14 @@ export function emitGradientBorderCss(
 	// has the native color picker enabled). Without it the native
 	// `applyBorder` would paint a solid edge underneath our gradient
 	// `::before` and the user would see two stacked borders.
+	//
+	// `overflow-clip-margin: border-box` keeps the ring visible on
+	// blocks that clip their overflow (Cover sets `overflow: clip`,
+	// which clips to the padding box by default and would cut the
+	// ::before away entirely, #912). It only applies with
+	// `overflow: clip`, so other blocks are unaffected.
 	rules.push(
-		`${ trimmedScope }{position:relative;border-color:transparent !important}`,
+		`${ trimmedScope }{position:relative;border-color:transparent !important;overflow-clip-margin:border-box}`,
 	)
 
 	const idleGradient = idle ?? 'transparent'

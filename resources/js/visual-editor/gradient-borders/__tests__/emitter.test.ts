@@ -36,7 +36,7 @@ describe( 'emitGradientBorderCss', () => {
 			breakpoints,
 		)
 
-		expect( css ).toContain( '.scope{position:relative;border-color:transparent !important}' )
+		expect( css ).toContain( '.scope{position:relative;border-color:transparent !important;overflow-clip-margin:border-box}' )
 		expect( css ).toContain( '.scope::before{content:""' )
 		expect( css ).toContain( 'padding:2px' )
 		expect( css ).toContain( 'background:linear-gradient(135deg, #ff0000, #0000ff)' )

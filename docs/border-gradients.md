@@ -100,6 +100,7 @@ scope class (`ve-gb-<hash>`) and the rules below:
 .ve-gb-abc123 {
     position: relative;
     border-color: transparent !important;  /* suppress any stale border-color */
+    overflow-clip-margin: border-box;      /* keep the ring on blocks with overflow: clip */
 }
 .ve-gb-abc123::before {
     content: '';
@@ -121,6 +122,12 @@ scope class (`ve-gb-<hash>`) and the rules below:
     pointer-events: none;
 }
 ```
+
+The ring sits outside the padding box, so a block that clips its
+overflow would cut it away. Cover does (`overflow: clip`), which is
+why the wrapper sets `overflow-clip-margin: border-box` (#912). It only
+applies with `overflow: clip`; a block that sets `overflow: hidden`
+still clips the ring.
 
 `border-image` would have been simpler for linear gradients on a
 zero-radius block, but it doesn't follow `border-radius` — the
