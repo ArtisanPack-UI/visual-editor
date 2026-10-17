@@ -1,5 +1,13 @@
 @php
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\LayoutSupport;
+
+	// #933 — the panels' spacing is a flex `gap`. The spacing support only
+	// prints a string Block spacing as `--wp--style--block-gap`, which the
+	// stylesheet can't read without inheriting an ancestor's gap, so the
+	// block's own value is printed as `gap` here. A per-axis value already
+	// prints `row-gap`.
+	$ownGap = LayoutSupport::blockGapValue( $attributes['style']['spacing']['blockGap'] ?? null );
 
 	$faqSchema = (bool) ( $attributes['faqSchema'] ?? false );
 
@@ -80,7 +88,7 @@
 		}
 	}
 @endphp
-<div{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-artisanpack-accordions', 'ap-accordions' ] ) !!}>
+<div{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-artisanpack-accordions', 'ap-accordions' ], null === $ownGap ? [] : [ 'gap: ' . $ownGap ] ) !!}>
 	{!! $innerBlocksHtml !!}
 	@if ( '' !== $faqJsonLd )
 		<script type="application/ld+json">{!! $faqJsonLd !!}</script>
