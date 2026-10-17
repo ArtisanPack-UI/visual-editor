@@ -795,6 +795,25 @@
             ]
         },
         {
+            "name": "columns-undefined-width",
+            "$comment": "#925: a width that isn't a length (the Column v1 deprecation stored \"undefined%\") is no width in every renderer: no inline flex-basis, no `ve-w-<hash>` scope. A per-breakpoint one is skipped while the base width stays.",
+            "tree": [
+                {
+                    "clientId": "ucols-1",
+                    "name": "core/columns",
+                    "attributes": {},
+                    "innerBlocks": [
+                        { "clientId": "ucol-1", "name": "core/column", "attributes": { "width": "undefined%" }, "innerBlocks": [
+                            { "clientId": "ucol-1-p", "name": "core/paragraph", "attributes": { "content": "No width" }, "innerBlocks": [] }
+                        ] },
+                        { "clientId": "ucol-2", "name": "core/column", "attributes": { "width": "40%", "responsive": { "width": { "md": "undefined%" } } }, "innerBlocks": [
+                            { "clientId": "ucol-2-p", "name": "core/paragraph", "attributes": { "content": "Forty" }, "innerBlocks": [] }
+                        ] }
+                    ]
+                }
+            ]
+        },
+        {
             "name": "buttons",
             "tree": [
                 {
@@ -1310,7 +1329,7 @@
         },
         {
             "name": "columns-hex-width",
-            "$comment": "L16 — a JS-only numeric literal (`0x1A`). `isNumeric` rejects it like PHP `is_numeric`, so it is treated as an opaque CSS string on both sides rather than read as the number 26.",
+            "$comment": "L16 — a JS-only numeric literal (`0x1A`). `isNumeric` rejects it like PHP `is_numeric`, so neither side reads it as the number 26. Since #925 it isn't a length either, so every renderer drops it (no flex-basis, no scope) instead of printing it as an opaque string.",
             "tree": [
                 {
                     "clientId": "columns-hex-width-w",

@@ -276,6 +276,24 @@ function mergeResponsiveWidths( attributes: Record<string, unknown> ): Record<st
  * `''` is treated as "no width" the same way the Blade partial's
  * `! empty( $attributes['width'] )` guard is.
  */
+/**
+ * Whether a width looks like a length (#925): a number, a number with an
+ * optional unit, or a CSS function (`calc()`, `var()`, …). The column's
+ * legacy deprecation used to store `"undefined%"` for a column with no
+ * width; it passes the CSS whitelist but isn't a length, so it counts as no
+ * width. Mirrors `$isWidthValue` in the Blade partial.
+ */
+export function isWidthValue( value: unknown ): boolean {
+	if ( typeof value === 'number' ) {
+		return true;
+	}
+
+	return (
+		typeof value === 'string' &&
+		( /^\s*[-+]?(?:\d+(?:\.\d+)?|\.\d+)\s*[a-z%]*\s*$/i.test( value ) || value.includes( '(' ) )
+	);
+}
+
 export function isNonEmptyWidth( value: unknown ): boolean {
 	if ( value === undefined || value === null || value === false ) {
 		return false;
@@ -289,7 +307,7 @@ export function isNonEmptyWidth( value: unknown ): boolean {
 		return false;
 	}
 
-	return value !== 0 && value !== '0' && value !== '';
+	return value !== 0 && value !== '0' && value !== '' && ( typeof value === 'boolean' || isWidthValue( value ) );
 }
 
 /**
@@ -319,6 +337,11 @@ export function normalizeBasis( value: unknown ): NormalizedBasis | null {
 	}
 
 	const str = String( value );
+
+	if ( ! isWidthValue( str ) ) {
+		return null;
+	}
+
 	const match = /^(\d+(?:\.\d+)?)\s*%$/.exec( str );
 
 	if ( match !== null ) {

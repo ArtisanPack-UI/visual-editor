@@ -29,11 +29,30 @@ const v1 = {
     isEligible({ width }: V1Attributes): boolean {
         return typeof width === 'number' && isFinite(width);
     },
+    // #925 — v1's save is a bare <div>, so almost any column whose saved
+    // HTML lacks its support output matches it, not just legacy numeric
+    // widths. Only convert a numeric width; otherwise leave `width` out
+    // rather than storing "undefined%". The fold of unexpected root
+    // classes into `className` also picks up `wp-block-column`, which the
+    // current save writes itself, so drop that token.
     migrate(attributes: V1Attributes & Record<string, unknown>) {
-        return {
-            ...attributes,
-            width: `${attributes.width}%`,
-        };
+        const { width, className, ...rest } = attributes;
+        const migrated: Record<string, unknown> = { ...rest };
+
+        if (typeof width === 'number' && isFinite(width)) {
+            migrated.width = `${width}%`;
+        }
+
+        const classes =
+            typeof className === 'string'
+                ? className.split(/\s+/).filter((token) => token !== '' && token !== 'wp-block-column')
+                : [];
+
+        if (classes.length > 0) {
+            migrated.className = classes.join(' ');
+        }
+
+        return migrated;
     },
     save({ attributes }: { attributes: V1Attributes }): ReactElement {
         const { verticalAlignment, width } = attributes;

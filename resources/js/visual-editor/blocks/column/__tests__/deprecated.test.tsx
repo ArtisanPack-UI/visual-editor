@@ -37,6 +37,20 @@ describe('column deprecation chain', () => {
         expect(migrated.width).toBe('50%');
     });
 
+    it('v1 migrate() leaves a missing width out instead of storing "undefined%" (#925)', () => {
+        const v1 = deprecated[0];
+        const migrated = v1.migrate({ verticalAlignment: 'center', style: { spacing: { padding: { top: '2rem' } } } });
+        expect('width' in migrated).toBe(false);
+        expect(migrated.verticalAlignment).toBe('center');
+        expect(migrated.style).toEqual({ spacing: { padding: { top: '2rem' } } });
+    });
+
+    it('v1 migrate() drops the folded wp-block-column class and keeps custom ones (#925)', () => {
+        const v1 = deprecated[0];
+        expect('className' in v1.migrate({ className: 'wp-block-column' })).toBe(false);
+        expect(v1.migrate({ className: 'wp-block-column is-style-boxed' }).className).toBe('is-style-boxed');
+    });
+
     it('v1 renders a div wrapper with flex-basis style', () => {
         const v1 = deprecated[0];
         const html = renderToStaticMarkup(
