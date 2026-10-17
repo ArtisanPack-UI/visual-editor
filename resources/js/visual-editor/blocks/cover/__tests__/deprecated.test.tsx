@@ -64,13 +64,13 @@ vi.mock('@wordpress/i18n', () => ({
 import deprecated from '../deprecated';
 
 describe('cover deprecation chain', () => {
-    it('ships the full 14-entry chain (v14..v1) matching upstream', () => {
+    it('ships the #908 entry plus the full 14-entry upstream chain (v14..v1)', () => {
         expect(Array.isArray(deprecated)).toBe(true);
-        expect(deprecated).toHaveLength(14);
+        expect(deprecated).toHaveLength(15);
     });
 
     it('renders v14 markup with the modern overlay-first structure', () => {
-        const v14 = deprecated[0];
+        const v14 = deprecated[1];
         const html = renderToStaticMarkup(
             v14.save({
                 attributes: {
@@ -122,7 +122,7 @@ describe('cover deprecation chain', () => {
     });
 
     it('v12 isEligible returns true when overlay colors set without isUserOverlayColor', () => {
-        const v12 = deprecated[2];
+        const v12 = deprecated[3];
         expect(
             v12.isEligible({
                 customOverlayColor: '#abcdef',

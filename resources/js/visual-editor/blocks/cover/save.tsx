@@ -59,7 +59,36 @@ interface CoverSaveProps {
     attributes: CoverSaveAttributes;
 }
 
+/**
+ * Options for {@link renderCoverSave}.
+ *
+ * @since 1.15.2
+ */
+export interface CoverSaveOptions {
+    /**
+     * Read the inner blocks' props before the wrapper's, as every release
+     * before 1.15.2 did (#908). Only the deprecation that recognises those
+     * saves passes `true`.
+     */
+    readonly innerBlocksFirst?: boolean;
+}
+
 export default function save({ attributes }: CoverSaveProps): ReactElement {
+    return renderCoverSave(attributes);
+}
+
+/**
+ * Build the cover's saved element.
+ *
+ * `useBlockProps.save()` must run before `useInnerBlocksProps.save()`:
+ * the latter serializes the inner blocks on the spot, and each child's
+ * save repoints the block-props provider `useBlockProps.save()` reads, so
+ * reading the wrapper props second gave the cover the last child's
+ * classes and styles (#908). Upstream calls them in this order inline.
+ *
+ * @since 1.15.2
+ */
+export function renderCoverSave(attributes: CoverSaveAttributes, options: CoverSaveOptions = {}): ReactElement {
     const {
         backgroundType,
         gradient,
@@ -139,12 +168,18 @@ export default function save({ attributes }: CoverSaveProps): ReactElement {
 
     const gradientValue = gradient || customGradient;
 
-    const innerBlocksSaveProps = useInnerBlocksProps.save({
-        className: 'wp-block-cover__inner-container',
-    });
+    const innerBlocksProps = (): ReturnType<typeof useInnerBlocksProps.save> =>
+        useInnerBlocksProps.save({
+            className: 'wp-block-cover__inner-container',
+        });
+
+    // Pre-1.15.2 order, kept only for the #908 deprecation.
+    const legacyInnerBlocksSaveProps = options.innerBlocksFirst ? innerBlocksProps() : null;
+    const blockProps = useBlockProps.save({ className: classes, style });
+    const innerBlocksSaveProps = legacyInnerBlocksSaveProps ?? innerBlocksProps();
 
     return (
-        <Tag {...useBlockProps.save({ className: classes, style })}>
+        <Tag {...blockProps}>
             {!useFeaturedImage &&
                 isImageBackground &&
                 url &&
