@@ -153,10 +153,11 @@
 	children.
 
 	#927 — the flex defaults (`flex-wrap: wrap; align-items: center`) sit
-	at zero specificity. This block prints after `flex-layout.css`, so at
-	class specificity they beat the Flex panel's `ap-flex-nowrap` /
-	`ap-items-*` utilities on every Group the panel turns into a flex
-	row. Only `display: flex` keeps class specificity.
+	in a zero-specificity `:where()`, so the Flex panel's `ap-flex-nowrap`
+	/ `ap-items-*` utilities win regardless of load order. They used to
+	share the class-specificity rule below, which beat those utilities
+	because this block prints after `flex-layout.css`. Only
+	`display: flex` keeps class specificity.
 --}}
 <style data-ve-layout-baseline>
 :where(.is-layout-flow) > :first-child { margin-block-start: 0; }

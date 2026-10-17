@@ -149,8 +149,9 @@ it( 'spaces flex and grid layout children with the block gap (#883)', function (
 } );
 
 it( 'keeps the flex wrap and alignment defaults below the Flex panel utilities (#927)', function (): void {
-	// The baseline prints after flex-layout.css, so at class specificity
-	// its defaults beat `ap-flex-nowrap` / `ap-items-*` on Flex-panel rows.
+	// The wrap/alignment defaults sit in a zero-specificity `:where()`, so
+	// `ap-flex-nowrap` / `ap-items-*` win even though the baseline prints
+	// after flex-layout.css. A class-specificity rule would beat them.
 	expect( Blade::render( '<x-ve-blocks-styles />' ) )
 		->toContain( '.is-layout-flex { display: flex; }' )
 		->toContain( ':where(.is-layout-flex) { flex-wrap: wrap; align-items: center; }' )
