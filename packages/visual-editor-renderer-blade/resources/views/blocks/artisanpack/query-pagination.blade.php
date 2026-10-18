@@ -2,10 +2,20 @@
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\LayoutSupport;
 
-	// QueryInliner stamps the page count; one page renders nothing, as in
-	// WordPress (#955). An unstamped wrapper (no query around it) renders.
+	// QueryInliner stamps the page count. On one page the previous / numbers
+	// / next leaves render nothing, so a wrapper holding only those is
+	// skipped, as WordPress skips an empty one (#955). Any other inner
+	// block keeps it, and an unstamped wrapper (no query around it) renders.
 	$totalPages = isset( $attributes['_resolvedTotalPages'] ) && is_numeric( $attributes['_resolvedTotalPages'] ) ? (int) $attributes['_resolvedTotalPages'] : null;
-	$isRendered = null === $totalPages || $totalPages > 1;
+	$onlyLeaves = true;
+	foreach ( isset( $innerBlocks ) && is_array( $innerBlocks ) ? $innerBlocks : [] as $child ) {
+		$childName = is_array( $child ) && isset( $child['name'] ) && is_string( $child['name'] ) ? $child['name'] : '';
+		if ( 1 !== preg_match( '#^(core|artisanpack)/query-pagination-(previous|numbers|next)$#', $childName ) ) {
+			$onlyLeaves = false;
+			break;
+		}
+	}
+	$isRendered = null === $totalPages || $totalPages > 1 || ! $onlyLeaves;
 
 	// Always a flex layout (block.json disallows switching), as in
 	// `comments-pagination.blade.php`: the layout pair, a `wp-container-*`

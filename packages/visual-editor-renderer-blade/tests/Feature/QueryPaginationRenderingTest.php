@@ -66,3 +66,13 @@ it( 'renders the wrapper and numbers for two or more pages, and an unstamped wra
 		->and( $html )->toContain( '<a class="page-numbers" href="/blog?page=2">2</a>' )
 		->and( $unstamped )->toContain( '<nav class="wp-block-query-pagination' );
 } );
+
+it( 'keeps a one-page wrapper that holds other content', function (): void {
+	$pagination                  = singlePagePagination( 1 );
+	$pagination['innerBlocks'][] = [ 'clientId' => 'qp-para', 'name' => 'core/paragraph', 'attributes' => [ 'content' => 'Page one of one' ], 'innerBlocks' => [] ];
+
+	$html = renderPaginationTree( [ $pagination ] );
+
+	expect( $html )->toContain( '<nav class="wp-block-query-pagination' )
+		->and( $html )->toContain( 'Page one of one' );
+} );
