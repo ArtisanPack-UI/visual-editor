@@ -11,22 +11,28 @@
  * `.is-layout-grid` already picks up `display: grid` from the layout
  * baseline emitted by <x-ve-blocks-styles />. These rules add the
  * track definition and item reset that the baseline doesn't supply.
+ *
+ * Related Posts (#964) reuses the tracks, gap, item reset and collapse
+ * when its own grid `displayLayout` makes `.ap-related-posts` the grid
+ * around its related items. `:is()` keeps the selectors' specificity.
+ * Its items carry no variant spans, so the span clamps stay Post
+ * Template-only.
  */
 
-.wp-block-post-template.is-layout-grid {
+:is(.wp-block-post-template, .ap-related-posts).is-layout-grid {
     grid-template-columns: repeat(1, minmax(0, 1fr));
     gap: var(--wp--style--block-gap, 1.25em);
     list-style: none;
     padding: 0;
 }
 
-.wp-block-post-template.is-layout-grid.columns-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.wp-block-post-template.is-layout-grid.columns-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.wp-block-post-template.is-layout-grid.columns-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.wp-block-post-template.is-layout-grid.columns-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-.wp-block-post-template.is-layout-grid.columns-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+:is(.wp-block-post-template, .ap-related-posts).is-layout-grid.columns-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+:is(.wp-block-post-template, .ap-related-posts).is-layout-grid.columns-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+:is(.wp-block-post-template, .ap-related-posts).is-layout-grid.columns-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+:is(.wp-block-post-template, .ap-related-posts).is-layout-grid.columns-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+:is(.wp-block-post-template, .ap-related-posts).is-layout-grid.columns-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 
-.wp-block-post-template.is-layout-grid > .wp-block-post-template-item {
+:is(.wp-block-post-template, .ap-related-posts).is-layout-grid > .wp-block-post-template-item {
     margin: 0;
     width: auto;
     min-width: 0;
@@ -46,7 +52,7 @@
  * last.
  */
 @media (min-width: 768px) and (max-width: 1023px) {
-    .wp-block-post-template.is-layout-grid:is(.columns-3, .columns-4, .columns-5, .columns-6) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    :is(.wp-block-post-template, .ap-related-posts).is-layout-grid:is(.columns-3, .columns-4, .columns-5, .columns-6) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .wp-block-post-template.is-layout-grid:is(.columns-3, .columns-4, .columns-5, .columns-6) > .wp-block-post-template-item:is(.ap-post-span-3-tablet-columns, .ap-post-span-4-tablet-columns, .ap-post-span-5-tablet-columns, .ap-post-span-6-tablet-columns, .ap-post-span-7-tablet-columns, .ap-post-span-8-tablet-columns, .ap-post-span-9-tablet-columns, .ap-post-span-10-tablet-columns, .ap-post-span-11-tablet-columns, .ap-post-span-12-tablet-columns),
     .wp-block-post-template.is-layout-grid:is(.columns-3, .columns-4, .columns-5, .columns-6) > .wp-block-post-template-item:is(.ap-post-span-3-md-columns, .ap-post-span-4-md-columns, .ap-post-span-5-md-columns, .ap-post-span-6-md-columns, .ap-post-span-7-md-columns, .ap-post-span-8-md-columns, .ap-post-span-9-md-columns, .ap-post-span-10-md-columns, .ap-post-span-11-md-columns, .ap-post-span-12-md-columns):not([class*="-tablet-columns"]),
     .wp-block-post-template.is-layout-grid:is(.columns-3, .columns-4, .columns-5, .columns-6) > .wp-block-post-template-item:is(.ap-post-span-3-sm-columns, .ap-post-span-4-sm-columns, .ap-post-span-5-sm-columns, .ap-post-span-6-sm-columns, .ap-post-span-7-sm-columns, .ap-post-span-8-sm-columns, .ap-post-span-9-sm-columns, .ap-post-span-10-sm-columns, .ap-post-span-11-sm-columns, .ap-post-span-12-sm-columns):not([class*="-tablet-columns"]):not([class*="-md-columns"]),
@@ -58,8 +64,8 @@
 }
 
 @media (max-width: 767px) {
-    .wp-block-post-template.is-layout-grid:is(.columns-2, .columns-3, .columns-4, .columns-5, .columns-6) { grid-template-columns: repeat(1, minmax(0, 1fr)); }
-    .wp-block-post-template.is-layout-grid:is(.columns-2, .columns-3, .columns-4, .columns-5, .columns-6) > :is(.wp-block-post-template-item, .wp-block-post),
+    :is(.wp-block-post-template, .ap-related-posts).is-layout-grid:is(.columns-2, .columns-3, .columns-4, .columns-5, .columns-6) { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+    :is(.wp-block-post-template, .ap-related-posts).is-layout-grid:is(.columns-2, .columns-3, .columns-4, .columns-5, .columns-6) > :is(.wp-block-post-template-item, .wp-block-post),
     .wp-block-post-template.is-layout-grid:is(.columns-2, .columns-3, .columns-4, .columns-5, .columns-6) > .wp-block-post-template-item[class*="ap-post-span-"],
     .wp-block-post-template.is-layout-grid:is(.columns-2, .columns-3, .columns-4, .columns-5, .columns-6) > .wp-block-post:has([class*="ap-post-span-"]) { grid-column: auto; }
     .wp-block-post-template.is-layout-grid:is(.columns-2, .columns-3, .columns-4, .columns-5, .columns-6) > .wp-block-post-template-item:not([class*="-mobile-row"]),

@@ -3881,6 +3881,118 @@
                     "innerBlocks": []
                 }
             ]
+        },
+        {
+            "name": "related-posts-grid",
+            "$comment": "#964 — a grid `displayLayout` with the related items directly under the block makes the wrapper Post Template's grid (`is-layout-grid` + `columns-N`), with its own Block spacing gap; the synthetic post-template items are the grid items.",
+            "resolveQueries": false,
+            "tree": [
+                {
+                    "clientId": "rp-grid",
+                    "name": "artisanpack/related-posts",
+                    "attributes": {
+                        "numColumns": 3,
+                        "displayLayout": {
+                            "type": "grid",
+                            "columns": 3
+                        },
+                        "style": {
+                            "spacing": {
+                                "blockGap": "2rem"
+                            }
+                        },
+                        "_resolvedItems": 2,
+                        "_resolvedTotal": 2
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "rp-11",
+                            "name": "core/post-template-item",
+                            "attributes": {
+                                "postId": 11,
+                                "className": "related-post post-11"
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "rp-11-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "Related A"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        },
+                        {
+                            "clientId": "rp-12",
+                            "name": "core/post-template-item",
+                            "attributes": {
+                                "postId": 12,
+                                "className": "related-post post-12"
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "rp-12-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "Related B"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "related-posts-grid-nested-post-template",
+            "$comment": "#964 — with a nested Post Template the template owns the layout, so the Related Posts wrapper ignores its own grid `displayLayout`.",
+            "resolveQueries": false,
+            "tree": [
+                {
+                    "clientId": "rp-nested",
+                    "name": "artisanpack/related-posts",
+                    "attributes": {
+                        "displayLayout": {
+                            "type": "grid",
+                            "columns": 3
+                        },
+                        "_resolvedItems": 1,
+                        "_resolvedTotal": 1
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "rp-nested-pt",
+                            "name": "artisanpack/post-template",
+                            "attributes": {
+                                "layout": "grid",
+                                "columns": 2
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "rp-13",
+                                    "name": "core/post-template-item",
+                                    "attributes": {
+                                        "postId": 13,
+                                        "className": "related-post post-13"
+                                    },
+                                    "innerBlocks": [
+                                        {
+                                            "clientId": "rp-13-p",
+                                            "name": "core/paragraph",
+                                            "attributes": {
+                                                "content": "Related C"
+                                            },
+                                            "innerBlocks": []
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
         }
     ]
 }
