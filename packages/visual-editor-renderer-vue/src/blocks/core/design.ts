@@ -23,7 +23,7 @@ import { dimensionsClassName } from '../../support/dimensions';
 import { cssNumber } from '../../support/cssNumber';
 import { layoutWrapperClasses } from '../../support/layoutContainer';
 import { coverImageUrl } from '../../support/coverImage';
-import { searchFormAction } from '../../support/searchForm';
+import { searchButtonClasses, searchButtonPosition, searchFormAction } from '../../support/searchForm';
 import { safeUrl } from '../../support/urlSanitizer';
 import { blockRendererProps } from '../shared';
 
@@ -370,23 +370,31 @@ export const SearchBlock = defineComponent({
                 useIcon ? 'has-icon' : null,
             ]);
 
+            // #961: button position classes as WordPress prints them;
+            // `no-button` renders no button, so Enter submits.
+            const hasButton = searchButtonPosition(props.attributes) !== 'no-button';
             const classes = classList([
                 'wp-block-search',
-                !showLabel ? 'wp-block-search__button-inside' : null,
+                ...searchButtonClasses(props.attributes, useIcon),
                 className,
             ]);
 
             const children: VNode[] = [];
 
-            if (showLabel) {
-                children.push(
-                    h(
-                        'label',
-                        { class: 'wp-block-search__label', for: inputId },
-                        label
-                    )
-                );
-            }
+            // A hidden label stays for screen readers: it is the input's
+            // only accessible name.
+            children.push(
+                h(
+                    'label',
+                    {
+                        class: showLabel
+                            ? 'wp-block-search__label'
+                            : 'wp-block-search__label screen-reader-text',
+                        for: inputId,
+                    },
+                    label
+                )
+            );
 
             children.push(
                 h('div', { class: 'wp-block-search__inside-wrapper' }, [
@@ -398,39 +406,42 @@ export const SearchBlock = defineComponent({
                         value: searchValue,
                         placeholder: placeholder === '' ? undefined : placeholder,
                     }),
-                    useIcon
-                        ? h(
-                              'button',
-                              {
-                                  type: 'submit',
-                                  class: buttonClasses,
-                                  'aria-label': ariaLabel,
-                              },
-                              [
-                                  h(
-                                      'svg',
-                                      {
-                                          class: 'wp-block-search__button-icon',
-                                          xmlns: 'http://www.w3.org/2000/svg',
-                                          viewBox: '0 0 24 24',
-                                          width: '24',
-                                          height: '24',
-                                          'aria-hidden': 'true',
-                                          focusable: 'false',
-                                      },
-                                      [
-                                          h('path', {
-                                              d: 'M13.5 6C10.5 6 8 8.5 8 11.5c0 1.1.3 2.1.9 3l-3.4 3 1 1.1 3.4-3c1 .9 2.2 1.4 3.6 1.4 3 0 5.5-2.5 5.5-5.5C19 8.5 16.5 6 13.5 6zm0 9.5c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4z',
-                                          }),
-                                      ]
-                                  ),
-                              ]
-                          )
-                        : h(
-                              'button',
-                              { type: 'submit', class: buttonClasses },
-                              buttonText
-                          ),
+                    // `no-button`: no submit button, Enter submits.
+                    ...(!hasButton
+                        ? []
+                        : [useIcon
+                            ? h(
+                                  'button',
+                                  {
+                                      type: 'submit',
+                                      class: buttonClasses,
+                                      'aria-label': ariaLabel,
+                                  },
+                                  [
+                                      h(
+                                          'svg',
+                                          {
+                                              class: 'wp-block-search__button-icon',
+                                              xmlns: 'http://www.w3.org/2000/svg',
+                                              viewBox: '0 0 24 24',
+                                              width: '24',
+                                              height: '24',
+                                              'aria-hidden': 'true',
+                                              focusable: 'false',
+                                          },
+                                          [
+                                              h('path', {
+                                                  d: 'M13.5 6C10.5 6 8 8.5 8 11.5c0 1.1.3 2.1.9 3l-3.4 3 1 1.1 3.4-3c1 .9 2.2 1.4 3.6 1.4 3 0 5.5-2.5 5.5-5.5C19 8.5 16.5 6 13.5 6zm0 9.5c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4z',
+                                              }),
+                                          ]
+                                      ),
+                                  ]
+                              )
+                            : h(
+                                  'button',
+                                  { type: 'submit', class: buttonClasses },
+                                  buttonText
+                              )]),
                 ])
             );
 

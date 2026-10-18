@@ -91,3 +91,41 @@ describe('search input prefill', () => {
         ).toContain('<input type="hidden" name="post_type" value="package">');
     });
 });
+
+function formClasses(html: string): string {
+    return /<form[^>]*class="([^"]*)"/.exec(html)?.[1] ?? '';
+}
+
+describe('search button position', () => {
+    it.each([
+        [{}, 'wp-block-search wp-block-search__button-outside wp-block-search__text-button'],
+        [{ buttonPosition: 'button-inside' }, 'wp-block-search wp-block-search__button-inside wp-block-search__text-button'],
+        [
+            { buttonPosition: 'button-inside', buttonUseIcon: true },
+            'wp-block-search wp-block-search__button-inside wp-block-search__icon-button',
+        ],
+        [{ buttonPosition: 'no-button', buttonUseIcon: true }, 'wp-block-search wp-block-search__no-button'],
+        [{ buttonPosition: 'button-only' }, 'wp-block-search wp-block-search__button-only wp-block-search__text-button'],
+        [{ buttonPosition: 'sideways' }, 'wp-block-search wp-block-search__button-outside wp-block-search__text-button'],
+        [{ showLabel: false }, 'wp-block-search wp-block-search__button-outside wp-block-search__text-button'],
+    ])('%o → %s', (attributes, classes) => {
+        expect(formClasses(renderTree([makeBlock('artisanpack/search', attributes)]))).toBe(classes);
+    });
+
+    it('renders no submit button for no-button', () => {
+        const html = renderTree([makeBlock('artisanpack/search', { buttonPosition: 'no-button' })]);
+
+        expect(html).not.toContain('<button');
+        expect(html).toContain('class="wp-block-search__input"');
+    });
+
+    it('keeps a hidden label for screen readers', () => {
+        const html = renderTree([
+            makeBlock('artisanpack/search', { showLabel: false, label: 'Search posts' }),
+        ]);
+
+        expect(html).toMatch(
+            /<label class="wp-block-search__label screen-reader-text" for="wp-block-search-input-[\w-]+">Search posts<\/label>/
+        );
+    });
+});

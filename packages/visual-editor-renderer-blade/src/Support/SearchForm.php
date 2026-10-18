@@ -18,6 +18,8 @@
  *
  * A host-stamped `_resolvedFormAction` always wins over the attribute.
  *
+ * It also normalises the Search block's `buttonPosition`.
+ *
  * Mirrored by `searchFormAction()` in the React and Vue renderers'
  * `support/searchForm.ts`, which have no request to read: they omit the
  * action for `'current'` (the browser then submits to the current
@@ -46,6 +48,25 @@ class SearchForm
 	 * @var string
 	 */
 	public const ACTION_CURRENT = 'current';
+
+	/**
+	 * `buttonPosition` values the Search block accepts, as WordPress does.
+	 * The first is the default.
+	 *
+	 * @since 1.15.2
+	 *
+	 * @var array<int, string>
+	 */
+	public const BUTTON_POSITIONS = [ 'button-outside', 'button-inside', 'no-button', 'button-only' ];
+
+	/**
+	 * The `buttonPosition` value that renders no submit button.
+	 *
+	 * @since 1.15.2
+	 *
+	 * @var string
+	 */
+	public const BUTTON_NONE = 'no-button';
 
 	/**
 	 * Site search URL used when the config key is unset or unusable.
@@ -94,6 +115,25 @@ class SearchForm
 		}
 
 		return self::siteSearchUrl();
+	}
+
+	/**
+	 * The Search block's button position: its `buttonPosition` attribute
+	 * when it is one of {@see BUTTON_POSITIONS}, otherwise `button-outside`.
+	 *
+	 * Mirrored by `searchButtonPosition()` in the React and Vue renderers.
+	 *
+	 * @since 1.15.2
+	 *
+	 * @param  array<string, mixed>  $attributes  The block's attributes.
+	 */
+	public static function buttonPosition( array $attributes ): string
+	{
+		$position = $attributes['buttonPosition'] ?? null;
+
+		return is_string( $position ) && in_array( $position, self::BUTTON_POSITIONS, true )
+			? $position
+			: self::BUTTON_POSITIONS[0];
 	}
 
 	/**

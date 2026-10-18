@@ -76,3 +76,40 @@ export function searchFormAction(attributes: Record<string, unknown>): string | 
 
     return DEFAULT_SEARCH_URL;
 }
+
+/**
+ * `buttonPosition` values the Search block accepts. The first is the default.
+ */
+export const SEARCH_BUTTON_POSITIONS = ['button-outside', 'button-inside', 'no-button', 'button-only'] as const;
+
+export type SearchButtonPosition = (typeof SEARCH_BUTTON_POSITIONS)[number];
+
+/**
+ * The Search block's button position, defaulting to `button-outside`.
+ * Mirrors PHP `SearchForm::buttonPosition()`.
+ */
+export function searchButtonPosition(attributes: Record<string, unknown>): SearchButtonPosition {
+    const position = attributes.buttonPosition;
+
+    return (SEARCH_BUTTON_POSITIONS as ReadonlyArray<unknown>).includes(position)
+        ? (position as SearchButtonPosition)
+        : SEARCH_BUTTON_POSITIONS[0];
+}
+
+/**
+ * The Search form's wrapper classes for its button position, following
+ * WordPress's `render_block_core_search()`. WordPress also adds
+ * `wp-block-search__searchfield-hidden` to `button-only` and expands the
+ * field with its interactivity script; no such script ships here, so the
+ * field stays visible and the form works without JavaScript.
+ */
+export function searchButtonClasses(attributes: Record<string, unknown>, useIcon: boolean): string[] {
+    const position = searchButtonPosition(attributes);
+    const classes = [`wp-block-search__${position}`];
+
+    if (position !== 'no-button') {
+        classes.push(useIcon ? 'wp-block-search__icon-button' : 'wp-block-search__text-button');
+    }
+
+    return classes;
+}
