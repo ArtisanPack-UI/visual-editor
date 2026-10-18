@@ -17,7 +17,7 @@ import {
     attrString,
     classList,
 } from '../../support/attributes';
-import { safeUrl } from '../../support/urlSanitizer';
+import { searchFormAction } from '../../support/searchForm';
 import type { BlockRendererProps } from '../../types';
 
 const SLUG_PATTERN = /[^a-z0-9_-]/gi;
@@ -90,7 +90,7 @@ export function SearchFiltersBlock({
     children,
 }: BlockRendererProps): JSX.Element {
     const postType = sanitizeSlug(attributes.postType, 'post');
-    const action = safeUrl(attrString(attributes._resolvedFormAction, '/')) || '/';
+    const action = searchFormAction(attributes);
     const className = attrString(attributes.className);
 
     const classes = classList(['wp-block-artisanpack-search-filters', 'ap-search-filters', className]);

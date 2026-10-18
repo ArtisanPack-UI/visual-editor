@@ -16,7 +16,7 @@
         "added": "file unique to the fork (no upstream)"
     },
     "files": [
-        { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped to the artisanpack namespace; attributes/supports verbatim." },
+        { "fork": "block.json", "upstream": "block.json", "status": "extended", "notes": "name + textdomain swapped to the artisanpack namespace; supports verbatim. Adds an `action` attribute (#961) choosing where the form submits: the site search URL, the current page, or a same-site path." },
         { "fork": "edit.tsx", "upstream": "edit.js", "status": "adapted", "notes": "TypeScript port. Drops the block-library-internal `useToolsPanelDropdownMenuProps` hook (ToolsPanel falls back to its default dropdown). The icon button's aria-label falls back buttonText → label → 'Search' so the canvas matches the renderers' #338 a11y output. Native branches dropped (web-only)." },
         { "fork": "save.tsx", "upstream": "n/a", "status": "added", "notes": "core/search ships no save (rendered outside save); the fork returns null so the block serializes to its delimiter and the front-end renderers build the form from attributes." },
         { "fork": "deprecated.ts", "upstream": "n/a", "status": "added", "notes": "Upstream has no deprecated.js; empty array exported for symmetry." },
@@ -33,7 +33,8 @@
         "edit.tsx labels the icon button via buttonText → label → 'Search', matching the renderers' #338 fix, where upstream falls back only buttonText → 'Search'.",
         "save returns null (dynamic); the front-end markup is produced by the Blade/React/Vue renderers, which reuse the core/search renderers carrying the #338 fix.",
         "transforms.ts adds bidirectional block transforms that don't exist upstream — required to coexist with core/search during the V1 rollout.",
-        "index.ts drops upstream's privateApis content-only inspector fields and PHP-side init wiring."
+        "index.ts drops upstream's privateApis content-only inspector fields and PHP-side init wiring.",
+        "block.json adds an `action` attribute and edit.tsx a \"Submit to\" inspector control (#961). Upstream always submits to the home URL; the fork submits to the configured site search URL, the current page, or a same-site path, and prefills the input from the request."
     ],
     "triage": {
         "label": "in-sync",

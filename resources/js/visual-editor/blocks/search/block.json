@@ -48,6 +48,10 @@
         "isSearchFieldHidden": {
             "type": "boolean",
             "default": false
+        },
+        "action": {
+            "type": "string",
+            "default": ""
         }
     },
     "supports": {

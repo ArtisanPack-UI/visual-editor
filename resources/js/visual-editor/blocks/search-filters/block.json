@@ -15,6 +15,10 @@
         "postType": {
             "type": "string",
             "default": "post"
+        },
+        "action": {
+            "type": "string",
+            "default": ""
         }
     },
     "supports": {
