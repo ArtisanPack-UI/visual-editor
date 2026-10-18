@@ -278,6 +278,17 @@ describe('Query Pagination on a single page (#955)', () => {
         expect(html).toContain('<a class="page-numbers" href="/blog?page=2">2</a>');
         expect(renderTree([makeBlock('artisanpack/query-pagination')])).toContain('<nav class="wp-block-query-pagination');
     });
+
+    it('keeps a one-page wrapper that holds other content', () => {
+        const html = renderTree([
+            makeBlock('artisanpack/query-pagination', { _resolvedTotalPages: 1 }, [
+                makeBlock('core/paragraph', { content: 'Page one of one' }),
+            ]),
+        ]);
+
+        expect(html).toContain('<nav class="wp-block-query-pagination');
+        expect(html).toContain('Page one of one');
+    });
 });
 
 describe('Core site-context blocks', () => {

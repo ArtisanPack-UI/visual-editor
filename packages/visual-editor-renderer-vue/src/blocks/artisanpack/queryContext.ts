@@ -11,6 +11,7 @@ import { defineComponent, h } from 'vue';
 import { attrInt, attrString, classList } from '../../support/attributes';
 import { safeUrl } from '../../support/urlSanitizer';
 import { blockRendererProps } from '../shared';
+import type { Block } from '../../types';
 
 export const QueryNoResultsBlock = defineComponent({
     name: 'QueryNoResultsBlock',
@@ -27,14 +28,27 @@ export const QueryNoResultsBlock = defineComponent({
     },
 });
 
+const PAGINATION_LEAF = /^(core|artisanpack)\/query-pagination-(previous|numbers|next)$/;
+
+/**
+ * Whether a pagination wrapper renders: not on one page when it holds only
+ * the previous / numbers / next leaves, which render nothing there, as
+ * WordPress skips an empty wrapper (#955). Any other inner block keeps it,
+ * and an unstamped wrapper (no query around it) renders.
+ */
+export function queryPaginationRenders(attributes: Record<string, unknown>, innerBlocks: Block[]): boolean {
+    return (
+        attrInt(attributes._resolvedTotalPages, 2) > 1 ||
+        !innerBlocks.every((child) => PAGINATION_LEAF.test(child.name))
+    );
+}
+
 export const QueryPaginationBlock = defineComponent({
     name: 'QueryPaginationBlock',
     props: blockRendererProps,
     setup(props, { slots }) {
         return () => {
-            // One page renders nothing, as in WordPress (#955). An unstamped
-            // wrapper (no query around it) falls back to rendering.
-            if (attrInt(props.attributes._resolvedTotalPages, 2) <= 1) {
+            if (!queryPaginationRenders(props.attributes, props.innerBlocks ?? [])) {
                 return null;
             }
             const className = attrString(props.attributes.className);

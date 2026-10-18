@@ -14,7 +14,7 @@ import type { JSX } from 'react';
 
 import { attrInt, attrString, classList } from '../../support/attributes';
 import { safeUrl } from '../../support/urlSanitizer';
-import type { BlockRendererProps } from '../../types';
+import type { Block, BlockRendererProps } from '../../types';
 
 export function QueryNoResultsBlock({ attributes, children }: BlockRendererProps): JSX.Element {
     const className = attrString(attributes.className);
@@ -23,10 +23,23 @@ export function QueryNoResultsBlock({ attributes, children }: BlockRendererProps
     return <div className={classes}>{children}</div>;
 }
 
-export function QueryPaginationBlock({ attributes, children }: BlockRendererProps): JSX.Element | null {
-    // One page renders nothing, as in WordPress (#955). An unstamped
-    // wrapper (no query around it) falls back to rendering.
-    if (attrInt(attributes._resolvedTotalPages, 2) <= 1) {
+const PAGINATION_LEAF = /^(core|artisanpack)\/query-pagination-(previous|numbers|next)$/;
+
+/**
+ * Whether a pagination wrapper renders: not on one page when it holds only
+ * the previous / numbers / next leaves, which render nothing there, as
+ * WordPress skips an empty wrapper (#955). Any other inner block keeps it,
+ * and an unstamped wrapper (no query around it) renders.
+ */
+export function queryPaginationRenders(attributes: Record<string, unknown>, innerBlocks: Block[]): boolean {
+    return (
+        attrInt(attributes._resolvedTotalPages, 2) > 1 ||
+        !innerBlocks.every((child) => PAGINATION_LEAF.test(child.name))
+    );
+}
+
+export function QueryPaginationBlock({ attributes, innerBlocks, children }: BlockRendererProps): JSX.Element | null {
+    if (!queryPaginationRenders(attributes, innerBlocks ?? [])) {
         return null;
     }
 
