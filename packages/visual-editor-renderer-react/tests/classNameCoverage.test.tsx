@@ -47,6 +47,10 @@ const PROBE_ATTRIBUTES: Record<string, unknown> = {
     _resolvedHasAdjacent: true,
     _resolvedNextPageUrl: 'https://example.com/next',
     _resolvedPreviousPageUrl: 'https://example.com/previous',
+    _resolvedPageNumbers: [
+        { number: 1, url: 'https://example.com/page/1' },
+        { number: 2, url: 'https://example.com/page/2' },
+    ],
     _resolvedQueryTitle: 'Query title',
     _resolvedHasPost: true,
     _resolvedItems: 1,
