@@ -28,6 +28,52 @@ describe('Core post-context blocks', () => {
 
         expect(renderTree(tree)).toContain('<h3 class="wp-block-post-title">Hello World</h3>');
     });
+});
+
+describe('Post Reading Time (#943)', () => {
+    it('renders the minutes with the default suffix, or a custom prefix and suffix', () => {
+        expect(renderTree([makeBlock('artisanpack/post-reading-time', { _resolvedReadingTime: 6 })])).toContain(
+            '<div class="wp-block-artisanpack-post-reading-time">6 min read</div>'
+        );
+        expect(
+            renderTree([
+                makeBlock('artisanpack/post-reading-time', {
+                    prefix: 'Reading time: ',
+                    suffix: 'minutes',
+                    _resolvedReadingTime: 6,
+                }),
+            ])
+        ).toContain('>Reading time: 6 minutes</div>');
+    });
+
+    it('renders nothing without minutes', () => {
+        expect(renderTree([makeBlock('artisanpack/post-reading-time', {})])).not.toContain(
+            'wp-block-artisanpack-post-reading-time'
+        );
+    });
+});
+
+describe('Cover with "Use featured image" (#942)', () => {
+    it('renders the stamped featured image instead of the saved url', () => {
+        const html = renderTree([
+            makeBlock('core/cover', {
+                useFeaturedImage: true,
+                url: 'https://example.test/saved.jpg',
+                _resolvedImageUrl: 'https://example.test/featured.jpg',
+            }),
+        ]);
+
+        expect(html).toContain('src="https://example.test/featured.jpg"');
+        expect(html).not.toContain('saved.jpg');
+    });
+
+    it('renders no image when the post has none', () => {
+        const html = renderTree([
+            makeBlock('core/cover', { useFeaturedImage: true, url: 'https://example.test/saved.jpg' }),
+        ]);
+
+        expect(html).not.toContain('wp-block-cover__image-background');
+    });
 
     it('wraps post-title in a permalink when isLink is true', () => {
         const tree = [
@@ -159,49 +205,6 @@ describe('Core post-context blocks', () => {
         const tree = [makeBlock('core/post-featured-image', {})];
 
         expect(renderTree(tree)).toBe('<figure class="wp-block-post-featured-image"></figure>');
-    });
-});
-
-describe('Cover with "Use featured image" (#942)', () => {
-    it('renders the stamped featured image instead of the saved url', () => {
-        const html = renderTree([
-            makeBlock('core/cover', {
-                useFeaturedImage: true,
-                url: 'https://example.test/saved.jpg',
-                _resolvedImageUrl: 'https://example.test/featured.jpg',
-            }),
-        ]);
-
-        expect(html).toContain('src="https://example.test/featured.jpg"');
-        expect(html).not.toContain('saved.jpg');
-    });
-
-    it('renders no image when the post has none', () => {
-        const html = renderTree([
-            makeBlock('core/cover', { useFeaturedImage: true, url: 'https://example.test/saved.jpg' }),
-        ]);
-
-        expect(html).not.toContain('wp-block-cover__image-background');
-describe('Post Reading Time (#943)', () => {
-    it('renders the minutes with the default suffix, or a custom prefix and suffix', () => {
-        expect(renderTree([makeBlock('artisanpack/post-reading-time', { _resolvedReadingTime: 6 })])).toContain(
-            '<div class="wp-block-artisanpack-post-reading-time">6 min read</div>'
-        );
-        expect(
-            renderTree([
-                makeBlock('artisanpack/post-reading-time', {
-                    prefix: 'Reading time: ',
-                    suffix: 'minutes',
-                    _resolvedReadingTime: 6,
-                }),
-            ])
-        ).toContain('>Reading time: 6 minutes</div>');
-    });
-
-    it('renders nothing without minutes', () => {
-        expect(renderTree([makeBlock('artisanpack/post-reading-time', {})])).not.toContain(
-            'wp-block-artisanpack-post-reading-time'
-        );
     });
 });
 

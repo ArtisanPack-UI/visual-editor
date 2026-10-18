@@ -12,6 +12,58 @@ beforeEach( function (): void {
 	Carbon::setLocale( 'en' );
 } );
 
+it( 'stamps artisanpack/post-reading-time with minutes and words', function (): void {
+	$resolved = ( new PostResolver() )->stampBlock(
+		[ 'name' => 'artisanpack/post-reading-time', 'attributes' => [], 'innerBlocks' => [] ],
+		fakePost( [ 'content' => '<p>' . implode( ' ', array_fill( 0, 450, 'word' ) ) . '</p>' ] ),
+	);
+
+	expect( $resolved['attributes']['_resolvedReadingTime'] )->toBe( 3 )
+		->and( $resolved['attributes']['_resolvedWordCount'] )->toBe( 450 );
+} );
+
+it( 'stamps the featured image on a cover set to use it', function (): void {
+	$resolver = new class extends PostResolver {
+		protected function resolveFeaturedImage( object $post ): array
+		{
+			return [ '_resolvedImageUrl' => 'https://example.test/featured.jpg', '_resolvedImageAlt' => 'Alt' ];
+		}
+	};
+
+	$featured = $resolver->stampBlock(
+		[ 'name' => 'artisanpack/cover', 'attributes' => [ 'useFeaturedImage' => true ], 'innerBlocks' => [] ],
+		fakePost(),
+	);
+	$plain = $resolver->stampBlock(
+		[ 'name' => 'artisanpack/cover', 'attributes' => [ 'url' => 'https://example.test/own.jpg' ], 'innerBlocks' => [] ],
+		fakePost(),
+	);
+
+	expect( $featured['attributes']['_resolvedImageUrl'] )->toBe( 'https://example.test/featured.jpg' )
+		->and( $featured['attributes']['_resolvedImageAlt'] )->toBe( 'Alt' )
+		->and( $plain['attributes'] )->not->toHaveKey( '_resolvedImageUrl' );
+} );
+
+it( 'formats post-date with the block format attribute', function (): void {
+	$resolved = ( new PostResolver() )->stampBlock(
+		[ 'name' => 'artisanpack/post-date', 'attributes' => [ 'format' => 'M j' ], 'innerBlocks' => [] ],
+		fakePost(),
+	);
+
+	expect( $resolved['attributes']['_resolvedDate'] )->toBe( '2026-04-20T12:00:00+00:00' )
+		->and( $resolved['attributes']['_resolvedDateFormatted'] )->toBe( 'Apr 20' )
+		->and( $resolved['attributes']['_resolvedModifiedDateFormatted'] )->toBe( 'Apr 21' );
+} );
+
+it( 'falls back to the default post-date format for a blank format', function (): void {
+	$resolved = ( new PostResolver() )->stampBlock(
+		[ 'name' => 'core/post-date', 'attributes' => [ 'format' => '  ' ], 'innerBlocks' => [] ],
+		fakePost(),
+	);
+
+	expect( $resolved['attributes']['_resolvedDateFormatted'] )->toBe( 'April 20, 2026' );
+} );
+
 function fakePost( array $overrides = [] ): object
 {
 	$post                    = new stdClass();
@@ -105,54 +157,6 @@ it( 'stamps post-date attributes including modified date', function (): void {
 		->and( $resolved['attributes']['_resolvedDateFormatted'] )->toBe( 'April 20, 2026' )
 		->and( $resolved['attributes']['_resolvedModifiedDate'] )->toBe( '2026-04-21T09:00:00+00:00' )
 		->and( $resolved['attributes']['_resolvedModifiedDateFormatted'] )->toBe( 'April 21, 2026' );
-} );
-
-it( 'formats post-date with the block format attribute', function (): void {
-	$resolved = ( new PostResolver() )->stampBlock(
-		[ 'name' => 'artisanpack/post-date', 'attributes' => [ 'format' => 'M j' ], 'innerBlocks' => [] ],
-		fakePost(),
-	);
-
-	expect( $resolved['attributes']['_resolvedDate'] )->toBe( '2026-04-20T12:00:00+00:00' )
-		->and( $resolved['attributes']['_resolvedDateFormatted'] )->toBe( 'Apr 20' )
-		->and( $resolved['attributes']['_resolvedModifiedDateFormatted'] )->toBe( 'Apr 21' );
-} );
-
-it( 'falls back to the default post-date format for a blank format', function (): void {
-	$resolved = ( new PostResolver() )->stampBlock(
-		[ 'name' => 'core/post-date', 'attributes' => [ 'format' => '  ' ], 'innerBlocks' => [] ],
-		fakePost(),
-	);
-
-	expect( $resolved['attributes']['_resolvedDateFormatted'] )->toBe( 'April 20, 2026' );
-it( 'stamps the featured image on a cover set to use it', function (): void {
-	$resolver = new class extends PostResolver {
-		protected function resolveFeaturedImage( object $post ): array
-		{
-			return [ '_resolvedImageUrl' => 'https://example.test/featured.jpg', '_resolvedImageAlt' => 'Alt' ];
-		}
-	};
-
-	$featured = $resolver->stampBlock(
-		[ 'name' => 'artisanpack/cover', 'attributes' => [ 'useFeaturedImage' => true ], 'innerBlocks' => [] ],
-		fakePost(),
-	);
-	$plain = $resolver->stampBlock(
-		[ 'name' => 'artisanpack/cover', 'attributes' => [ 'url' => 'https://example.test/own.jpg' ], 'innerBlocks' => [] ],
-		fakePost(),
-	);
-
-	expect( $featured['attributes']['_resolvedImageUrl'] )->toBe( 'https://example.test/featured.jpg' )
-		->and( $featured['attributes']['_resolvedImageAlt'] )->toBe( 'Alt' )
-		->and( $plain['attributes'] )->not->toHaveKey( '_resolvedImageUrl' );
-it( 'stamps artisanpack/post-reading-time with minutes and words', function (): void {
-	$resolved = ( new PostResolver() )->stampBlock(
-		[ 'name' => 'artisanpack/post-reading-time', 'attributes' => [], 'innerBlocks' => [] ],
-		fakePost( [ 'content' => '<p>' . implode( ' ', array_fill( 0, 450, 'word' ) ) . '</p>' ] ),
-	);
-
-	expect( $resolved['attributes']['_resolvedReadingTime'] )->toBe( 3 )
-		->and( $resolved['attributes']['_resolvedWordCount'] )->toBe( 450 );
 } );
 
 it( 'stamps post-author attributes from the loaded relation', function (): void {
