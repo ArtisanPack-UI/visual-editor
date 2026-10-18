@@ -53,6 +53,8 @@ import {
     DEFAULT_OVERLAY_COLOR,
 } from './color-utils';
 import { DEFAULT_MEDIA_SIZE_SLUG } from '../constants';
+import { PREVIEW_CONTEXT_KEY } from '../../_shared/entity-placeholder-edit';
+import type { QueryPreviewPost } from '../../../editor/use-query-preview';
 import { getIframeSrc, getBackgroundVideoSrc } from '../embed-video-utils';
 
 interface FocalPoint {
@@ -94,7 +96,33 @@ interface CoverEditProps {
     setAttributes: (next: Partial<CoverAttributes>) => void;
     setOverlayColor: (color: string | undefined) => void;
     toggleSelection: (enabled: boolean) => void;
-    context?: { postId?: number; postType?: string };
+    context?: {
+        postId?: number;
+        postType?: string;
+        [PREVIEW_CONTEXT_KEY]?: QueryPreviewPost | null;
+    };
+}
+
+/**
+ * The featured image URL a "Use featured image" cover previews when the
+ * entity has no `featured_media` attachment: the query loop's preview
+ * post (#483), then the live entity's `_preview` envelope (#481). Hosts
+ * such as Keystone store the image outside WordPress's `featured_media`
+ * field, so the attachment lookup alone leaves the canvas empty (#942).
+ */
+function fallbackFeaturedImageUrl(
+    context: CoverEditProps['context'],
+    entityPreview: { featuredImage?: { url?: string } | null } | undefined
+): string | undefined {
+    const fromLoop = context?.[PREVIEW_CONTEXT_KEY]?.featuredImage?.url;
+
+    if (typeof fromLoop === 'string' && fromLoop !== '') {
+        return fromLoop;
+    }
+
+    const fromEntity = entityPreview?.featuredImage?.url;
+
+    return typeof fromEntity === 'string' && fromEntity !== '' ? fromEntity : undefined;
 }
 
 function getInnerBlocksTemplate(
@@ -169,6 +197,13 @@ function CoverEdit({
         postId
     ) as [number | undefined];
 
+    const [entityPreview] = useEntityProp(
+        'postType',
+        postType ?? '',
+        '_preview',
+        postId
+    ) as unknown as [{ featuredImage?: { url?: string } | null } | undefined];
+
     const { getSettings } = useSelect(blockEditorStore, []);
     const { __unstableMarkNextChangeAsNotPersistent } = useDispatch(
         blockEditorStore
@@ -219,7 +254,10 @@ function CoverEdit({
 
     const mediaUrl =
         media?.media_details?.sizes?.[sizeSlug ?? '']?.source_url ??
-        media?.source_url;
+        media?.source_url ??
+        (useFeaturedImage
+            ? fallbackFeaturedImageUrl(context, entityPreview)
+            : undefined);
 
     useEffect(() => {
         // #578 — capture the refinement version so a concurrent

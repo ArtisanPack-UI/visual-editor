@@ -110,6 +110,11 @@ describe('inlineQueries', () => {
             makeQueryBlock([
                 { name: 'core/post-date', attributes: {}, innerBlocks: [] } as Block,
                 { name: 'core/post-date', attributes: { format: 'M j' }, innerBlocks: [] } as Block,
+    it('stamps the featured image on a cover set to use it (#942)', () => {
+        const tree = [
+            makeQueryBlock([
+                { name: 'artisanpack/cover', attributes: { useFeaturedImage: true }, innerBlocks: [] } as Block,
+                { name: 'artisanpack/cover', attributes: {}, innerBlocks: [] } as Block,
             ]),
         ];
 
@@ -122,6 +127,7 @@ describe('inlineQueries', () => {
                         title: 'Post',
                         permalink: '/posts/1',
                         publishedAt: '2026-10-02T13:00:00+00:00',
+                        featuredImage: { url: 'https://example.test/featured.jpg', alt: 'Alt' },
                     },
                 ],
             },
@@ -134,6 +140,11 @@ describe('inlineQueries', () => {
             'October 2, 2026'
         );
         expect((stamped[1].attributes as Record<string, unknown>)._resolvedDateFormatted).toBe('Oct 2');
+        expect(stamped[0].attributes).toMatchObject({
+            _resolvedImageUrl: 'https://example.test/featured.jpg',
+            _resolvedImageAlt: 'Alt',
+        });
+        expect(stamped[1].attributes).not.toHaveProperty('_resolvedImageUrl');
     });
 
     it('recurses into nested queries and groups', () => {

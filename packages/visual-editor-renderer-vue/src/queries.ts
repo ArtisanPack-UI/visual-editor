@@ -71,6 +71,12 @@ const POST_CONTEXT_BLOCKS = new Set([
     'core/post-featured-image',
 ]);
 
+/**
+ * Covers stamped with the post's featured image when `useFeaturedImage`
+ * is on (#942), as `PostResolver::FEATURED_IMAGE_COVERS` does.
+ */
+const FEATURED_IMAGE_COVER_BLOCKS = new Set(['core/cover', 'artisanpack/cover']);
+
 const QUERY_BLOCK_NAMES = new Set(['core/query', 'artisanpack/query']);
 const POST_TEMPLATE_BLOCK_NAMES = new Set(['core/post-template', 'artisanpack/post-template']);
 
@@ -239,6 +245,18 @@ function expandQuery(block: Block, queries: Map<string, ResolvedQuery>): Block {
 
 function stampPost(block: Block, post: ResolvedPost): Block {
     const next = cloneBlock(block);
+
+    if (
+        typeof next.name === 'string' &&
+        FEATURED_IMAGE_COVER_BLOCKS.has(next.name) &&
+        (next.attributes as Record<string, unknown>).useFeaturedImage === true
+    ) {
+        next.attributes = {
+            _resolvedImageUrl: post.featuredImage?.url ?? '',
+            _resolvedImageAlt: post.featuredImage?.alt ?? '',
+            ...(next.attributes as Record<string, unknown>),
+        };
+    }
 
     if (typeof next.name === 'string' && POST_CONTEXT_BLOCKS.has(next.name)) {
         const own =

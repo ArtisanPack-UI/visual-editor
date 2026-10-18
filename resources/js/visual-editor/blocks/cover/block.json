@@ -97,7 +97,8 @@
     },
     "usesContext": [
         "postId",
-        "postType"
+        "postType",
+        "artisanpack/postPreview"
     ],
     "supports": {
         "position": true,

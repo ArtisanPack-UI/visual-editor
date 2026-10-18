@@ -21,6 +21,7 @@ import { applyBlockGap } from '../../support/blockGap';
 import { dimensionsClassName } from '../../support/dimensions';
 import { cssNumber } from '../../support/cssNumber';
 import { layoutWrapperClasses } from '../../support/layoutContainer';
+import { coverImageUrl } from '../../support/coverImage';
 import { safeUrl } from '../../support/urlSanitizer';
 import type { BlockRendererProps } from '../../types';
 
@@ -63,7 +64,7 @@ export function SpacerBlock({ attributes }: BlockRendererProps): JSX.Element {
 }
 
 export function CoverBlock({ attributes, children }: BlockRendererProps): JSX.Element {
-    const url = safeUrl(attributes.url);
+    const url = coverImageUrl(attributes);
     const isDark = attributes.isDark === undefined ? true : attrBoolean(attributes.isDark);
 
     // block.json defaults dimRatio to 100 and the editor omits defaults (#906).

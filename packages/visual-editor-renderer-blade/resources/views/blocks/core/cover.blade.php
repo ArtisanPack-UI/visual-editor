@@ -8,6 +8,14 @@
 
 	$url    = (string) ( $attributes['url'] ?? '' );
 	$alt    = (string) ( $attributes['alt'] ?? '' );
+
+	// "Use featured image" (#942): the post resolver stamps the current
+	// post's featured image; the saved `url` (if any) is ignored, as in
+	// WordPress. An `alt` set on the cover still wins over the image's.
+	if ( ! empty( $attributes['useFeaturedImage'] ) ) {
+		$url = is_string( $attributes['_resolvedImageUrl'] ?? null ) ? $attributes['_resolvedImageUrl'] : '';
+		$alt = '' !== $alt ? $alt : ( is_string( $attributes['_resolvedImageAlt'] ?? null ) ? $attributes['_resolvedImageAlt'] : '' );
+	}
 	$isDark = ! isset( $attributes['isDark'] ) || ! empty( $attributes['isDark'] );
 
 	// block.json defaults dimRatio to 100 and the editor omits defaults (#906).

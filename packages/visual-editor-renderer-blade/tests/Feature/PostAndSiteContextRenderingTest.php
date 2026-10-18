@@ -144,6 +144,34 @@ it( 'renders post-featured-image with link wrapper when isLink is true', functio
 	expect( $rendered )->toContain( 'height="600"' );
 } );
 
+it( 'renders a featured-image cover from the stamped image (#942)', function (): void {
+	$tree = [
+		blockNode( 'core/cover', [
+			'useFeaturedImage'  => true,
+			'url'               => 'https://example.test/saved.jpg',
+			'_resolvedImageUrl' => 'https://example.test/featured.jpg',
+			'_resolvedImageAlt' => 'Featured photo',
+		] ),
+	];
+
+	$rendered = $this->stripGlobalStyles( renderTree( $tree ) );
+
+	expect( $rendered )->toContain( '<img class="wp-block-cover__image-background" alt="Featured photo" src="https://example.test/featured.jpg"/>' )
+		->and( $rendered )->not->toContain( 'saved.jpg' );
+} );
+
+it( 'renders no cover image when the post has no featured image (#942)', function (): void {
+	$tree = [
+		blockNode( 'core/cover', [
+			'useFeaturedImage'  => true,
+			'url'               => 'https://example.test/saved.jpg',
+			'_resolvedImageUrl' => '',
+		] ),
+	];
+
+	expect( $this->stripGlobalStyles( renderTree( $tree ) ) )->not->toContain( 'wp-block-cover__image-background' );
+} );
+
 it( 'drops javascript: URLs from post-featured-image hrefs', function (): void {
 	$tree = [
 		blockNode( 'core/post-featured-image', [
