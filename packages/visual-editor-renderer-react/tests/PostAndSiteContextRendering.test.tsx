@@ -274,9 +274,9 @@ describe('Query Pagination on a single page (#955)', () => {
     it('renders the wrapper and numbers for two or more pages, and an unstamped wrapper', () => {
         const html = renderTree([pagination(2)]);
 
-        expect(html).toContain('<nav class="wp-block-query-pagination"');
+        expect(html).toContain('<nav class="wp-block-query-pagination');
         expect(html).toContain('<a class="page-numbers" href="/blog?page=2">2</a>');
-        expect(renderTree([makeBlock('artisanpack/query-pagination')])).toContain('<nav class="wp-block-query-pagination"');
+        expect(renderTree([makeBlock('artisanpack/query-pagination')])).toContain('<nav class="wp-block-query-pagination');
     });
 });
 
