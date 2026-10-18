@@ -34,6 +34,7 @@ import {
     NAVIGATION_OVERLAY_CSS,
     treeHasNavigationOverlay,
 } from './support/navigationOverlayCss';
+import { treeNavigationCollapseCss } from './support/navigationCollapseCss';
 import { stampDuotoneScopes } from './support/duotone';
 import type { DuotonePresets } from './support/duotone';
 import { stampEffectsScopes } from './support/effects';
@@ -315,6 +316,10 @@ export const BlockTree = defineComponent({
 
         const hasNavigationOverlay = computed(() => treeHasNavigationOverlay(duotone.value.tree));
 
+        // Navigation collapse breakpoint (#977) — the rules for every
+        // `collapseBreakpoint` a navigation in the tree uses, each once.
+        const navigationCollapseCss = computed(() => treeNavigationCollapseCss(duotone.value.tree));
+
         return () => {
             const endpoint = props.dynamicBlockEndpoint ?? DEFAULT_ENDPOINT;
             const children: VNode[] = [];
@@ -405,6 +410,16 @@ export const BlockTree = defineComponent({
                         'style',
                         { 'data-ve-navigation-overlay': '' },
                         NAVIGATION_OVERLAY_CSS
+                    )
+                );
+            }
+
+            if (navigationCollapseCss.value !== '') {
+                children.push(
+                    h(
+                        'style',
+                        { 'data-ve-navigation-collapse': '' },
+                        navigationCollapseCss.value
                     )
                 );
             }

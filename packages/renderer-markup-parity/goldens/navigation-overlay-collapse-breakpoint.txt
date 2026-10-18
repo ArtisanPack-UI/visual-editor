@@ -1,0 +1,137 @@
+<nav class="wp-block-navigation is-layout-flex wp-block-navigation-is-layout-flex is-horizontal is-responsive collapses-at-tablet">
+  <button aria-expanded="false" aria-haspopup="dialog" aria-label="Menu" class="wp-block-navigation__responsive-container-open" type="button">
+    <svg aria-hidden="true" focusable="false" height="24" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+      <rect height="1.5" width="16" x="4" y="7.5">
+      </rect>
+      <rect height="1.5" width="16" x="4" y="15">
+      </rect>
+    </svg>
+  </button>
+  <div class="wp-block-navigation__responsive-container">
+    <div class="wp-block-navigation__responsive-close" tabindex="-1">
+      <div class="wp-block-navigation__responsive-dialog">
+        <button aria-label="Close menu" class="wp-block-navigation__responsive-container-close" type="button">
+          <svg aria-hidden="true" focusable="false" height="24" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M13 11.8l6.1-6.3-1-1-6.1 6.2-6.1-6.2-1 1 6.1 6.3-6.5 6.7 1 1 6.5-6.6 6.5 6.6 1-1z">
+            </path>
+          </svg>
+        </button>
+        <div class="wp-block-navigation__responsive-container-content">
+          <ul class="wp-block-navigation__container">
+            <li class="wp-block-navigation-item wp-block-navigation-link">
+              <a class="wp-block-navigation-item__content" href="/">
+                <span class="wp-block-navigation-item__label">
+                  "Home"
+                </span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+<nav class="wp-block-navigation is-layout-flex wp-block-navigation-is-layout-flex is-horizontal is-responsive collapses-at-tablet">
+  <button aria-expanded="false" aria-haspopup="dialog" aria-label="Menu" class="wp-block-navigation__responsive-container-open" type="button">
+    <svg aria-hidden="true" focusable="false" height="24" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+      <rect height="1.5" width="16" x="4" y="7.5">
+      </rect>
+      <rect height="1.5" width="16" x="4" y="15">
+      </rect>
+    </svg>
+  </button>
+  <div class="wp-block-navigation__responsive-container">
+    <div class="wp-block-navigation__responsive-close" tabindex="-1">
+      <div class="wp-block-navigation__responsive-dialog">
+        <button aria-label="Close menu" class="wp-block-navigation__responsive-container-close" type="button">
+          <svg aria-hidden="true" focusable="false" height="24" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M13 11.8l6.1-6.3-1-1-6.1 6.2-6.1-6.2-1 1 6.1 6.3-6.5 6.7 1 1 6.5-6.6 6.5 6.6 1-1z">
+            </path>
+          </svg>
+        </button>
+        <div class="wp-block-navigation__responsive-container-content">
+          <ul class="wp-block-navigation__container">
+            <li class="wp-block-navigation-item wp-block-navigation-link">
+              <a class="wp-block-navigation-item__content" href="/about">
+                <span class="wp-block-navigation-item__label">
+                  "About"
+                </span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+<nav class="wp-block-navigation is-layout-flex wp-block-navigation-is-layout-flex is-horizontal is-responsive collapses-at-mobile">
+  <button aria-expanded="false" aria-haspopup="dialog" aria-label="Menu" class="wp-block-navigation__responsive-container-open" type="button">
+    <svg aria-hidden="true" focusable="false" height="24" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+      <rect height="1.5" width="16" x="4" y="7.5">
+      </rect>
+      <rect height="1.5" width="16" x="4" y="15">
+      </rect>
+    </svg>
+  </button>
+  <div class="wp-block-navigation__responsive-container">
+    <div class="wp-block-navigation__responsive-close" tabindex="-1">
+      <div class="wp-block-navigation__responsive-dialog">
+        <button aria-label="Close menu" class="wp-block-navigation__responsive-container-close" type="button">
+          <svg aria-hidden="true" focusable="false" height="24" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M13 11.8l6.1-6.3-1-1-6.1 6.2-6.1-6.2-1 1 6.1 6.3-6.5 6.7 1 1 6.5-6.6 6.5 6.6 1-1z">
+            </path>
+          </svg>
+        </button>
+        <div class="wp-block-navigation__responsive-container-content">
+          <ul class="wp-block-navigation__container">
+            <li class="wp-block-navigation-item wp-block-navigation-link">
+              <a class="wp-block-navigation-item__content" href="/blog">
+                <span class="wp-block-navigation-item__label">
+                  "Blog"
+                </span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+<nav class="wp-block-navigation is-layout-flex wp-block-navigation-is-layout-flex is-horizontal is-responsive">
+  <button aria-expanded="false" aria-haspopup="dialog" aria-label="Menu" class="wp-block-navigation__responsive-container-open always-shown" type="button">
+    <svg aria-hidden="true" focusable="false" height="24" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+      <rect height="1.5" width="16" x="4" y="7.5">
+      </rect>
+      <rect height="1.5" width="16" x="4" y="15">
+      </rect>
+    </svg>
+  </button>
+  <div class="wp-block-navigation__responsive-container is-always-overlay hidden-by-default">
+    <div class="wp-block-navigation__responsive-close" tabindex="-1">
+      <div class="wp-block-navigation__responsive-dialog">
+        <button aria-label="Close menu" class="wp-block-navigation__responsive-container-close" type="button">
+          <svg aria-hidden="true" focusable="false" height="24" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M13 11.8l6.1-6.3-1-1-6.1 6.2-6.1-6.2-1 1 6.1 6.3-6.5 6.7 1 1 6.5-6.6 6.5 6.6 1-1z">
+            </path>
+          </svg>
+        </button>
+        <div class="wp-block-navigation__responsive-container-content">
+          <ul class="wp-block-navigation__container">
+            <li class="wp-block-navigation-item wp-block-navigation-link">
+              <a class="wp-block-navigation-item__content" href="/contact">
+                <span class="wp-block-navigation-item__label">
+                  "Contact"
+                </span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+@@ renderer-instance-css @@
+@media (max-width: 1023px) {.wp-block-navigation.collapses-at-tablet .wp-block-navigation__responsive-container:not(.hidden-by-default):not(.is-menu-open) { display: none; }.wp-block-navigation.collapses-at-tablet .wp-block-navigation__responsive-container-open:not(.always-shown) { display: flex; }}
+@media (max-width: 767px) {.wp-block-navigation.collapses-at-mobile .wp-block-navigation__responsive-container:not(.hidden-by-default):not(.is-menu-open) { display: none; }.wp-block-navigation.collapses-at-mobile .wp-block-navigation__responsive-container-open:not(.always-shown) { display: flex; }}
+@media (min-width: 1024px) {.wp-block-navigation.collapses-at-tablet .wp-block-navigation__responsive-container:not(.hidden-by-default):not(.is-menu-open) { display: block; width: 100%; position: relative; z-index: auto; background-color: inherit; }.wp-block-navigation.collapses-at-tablet .wp-block-navigation__responsive-container:not(.hidden-by-default):not(.is-menu-open) .wp-block-navigation__responsive-container-close { display: none; }.wp-block-navigation.collapses-at-tablet .wp-block-navigation__responsive-container-open:not(.always-shown) { display: none; }}
+@media (min-width: 768px) {.wp-block-navigation.collapses-at-mobile .wp-block-navigation__responsive-container:not(.hidden-by-default):not(.is-menu-open) { display: block; width: 100%; position: relative; z-index: auto; background-color: inherit; }.wp-block-navigation.collapses-at-mobile .wp-block-navigation__responsive-container:not(.hidden-by-default):not(.is-menu-open) .wp-block-navigation__responsive-container-close { display: none; }.wp-block-navigation.collapses-at-mobile .wp-block-navigation__responsive-container-open:not(.always-shown) { display: none; }}

@@ -17,6 +17,7 @@ import type { VNode } from 'vue';
 import { attrBoolean, attrString, classList, phpTrim } from '../../support/attributes';
 import { applyBlockGap, hasBlockGapStyle } from '../../support/blockGap';
 import { safeCssValue } from '../../support/cssValue';
+import { navigationCollapseClass } from '../../support/navigationCollapseCss';
 import { presetPickClass } from '../../support/layoutBaselineCss';
 import { layoutModifierClasses } from '../../support/layoutContainer';
 import { safeUrl } from '../../support/urlSanitizer';
@@ -240,6 +241,7 @@ export const NavigationBlock = defineComponent({
                 itemsJustify !== '' ? `items-justified-${itemsJustify}` : null,
                 ...layoutModifierClasses(props.attributes, false),
                 wantsOverlay ? 'is-responsive' : null,
+                navigationCollapseClass(props.attributes),
                 className,
             ]);
 

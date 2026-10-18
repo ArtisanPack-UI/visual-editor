@@ -105,6 +105,7 @@ Attributes:
 | `location` | string | Menu-location slug. |
 | `ref` | number | Pattern reference id for synced nav patterns. |
 | `overlayMenu` | string | `'always'` \| `'mobile'` \| `'never'`. |
+| `collapseBreakpoint` | string | Where a `mobile` overlay collapses: empty / absent = below 600px (the default), `'mobile'` = at the registry's Mobile max-width and below (767px by default), `'tablet'` = at the Tablet max-width and below (1023px). Adds `collapses-at-{key}` to the `<nav>`. |
 | `overlay` | string | Slug of a `navigation-overlay` template part rendered inside the open overlay. Empty = default overlay. |
 | `submenuVisibility` | string | `'hover'` \| `'click'` \| `'always'` (vertical only). |
 | `showSubmenuIcon` | boolean | Render the chevron icon. |
@@ -114,6 +115,27 @@ Attributes:
 The block stores no inner blocks — the items come from the resolved
 menu at render time. Editing the menu in the site editor updates every
 page using this block.
+
+### Collapse breakpoint
+
+A `mobile` overlay collapses behind its open button below 600px — the
+block-library default, which matches none of the registry's
+breakpoints. The **Responsive** panel's **Collapse below** select
+(Default / Mobile / Tablet, with the widths read from the breakpoint
+registry) sets `collapseBreakpoint`. With `tablet`, the `<nav>` gains
+`collapses-at-tablet`, and the renderer emits, once per breakpoint per
+page, rules that keep the drawer collapsed up to the Tablet max-width
+and show the inline menu above it, in both directions overriding the
+600px rules. Blade prints them as `<style data-ve-navigation-collapse="tablet">`
+after the first such nav; React and Vue print one
+`<style data-ve-navigation-collapse>` from `BlockTree`. The keys match
+the screen-size visibility keys, so a block hidden on `tablet` hides at
+exactly the width the menu collapses. The canvas preview uses the same
+rules. `always` and `never` overlays ignore the attribute.
+
+```html
+<!-- wp:navigation {"collapseBreakpoint":"tablet"} /-->
+```
 
 ### Overlay controls
 

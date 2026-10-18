@@ -1,8 +1,10 @@
 @php
 	use ArtisanPackUI\VisualEditor\Resources\PresetRegistry;
+	use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 	use ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\LayoutSupport;
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\NavigationCollapseStyles;
 
 	$overlayMenu = isset( $attributes['overlayMenu'] ) && is_string( $attributes['overlayMenu'] ) ? $attributes['overlayMenu'] : 'mobile';
 
@@ -72,6 +74,17 @@
 
 	if ( 'never' !== $overlayMenu ) {
 		$baseClasses[] = 'is-responsive';
+	}
+
+	// Collapse breakpoint (#977). A `mobile` overlay collapses below the
+	// bundled stylesheet's fixed 600px unless `collapseBreakpoint` names a
+	// registry device key (`mobile` / `tablet`); then the nav carries
+	// `collapses-at-{key}` and the rules for that key are emitted once per
+	// response after it. An empty / unknown value keeps the 600px default.
+	$collapse = NavigationCollapseStyles::resolve( $attributes, app( BreakpointRegistry::class ) );
+
+	if ( null !== $collapse ) {
+		$baseClasses[] = NavigationCollapseStyles::className( $collapse['key'] );
 	}
 
 	// Nav-block-specific color attributes (Keystone #53). The shared
@@ -145,6 +158,13 @@
 
 	if ( $emitScript ) {
 		$overlayTracker->markScriptEmitted();
+	}
+
+	$collapseCss = '';
+
+	if ( null !== $collapse && ! $overlayTracker->hasEmittedCollapseCss( $collapse['key'] ) ) {
+		$overlayTracker->markCollapseCssEmitted( $collapse['key'] );
+		$collapseCss = NavigationCollapseStyles::css( $collapse['key'], $collapse['maxWidth'] );
 	}
 
 	$overlayClasses = [ 'wp-block-navigation__responsive-container' ];
@@ -322,6 +342,9 @@
 	<ul class="wp-block-navigation__container">{!! $innerBlocksHtml !!}</ul>
 @endif
 </nav>
+@if ( '' !== $collapseCss )
+<style data-ve-navigation-collapse="{{ $collapse['key'] }}">{!! $collapseCss !!}</style>
+@endif
 @if ( $emitScript )
 <style>
 /*! Keystone #54 — nav overlay layout fix-ups. Emitted once per response. */
