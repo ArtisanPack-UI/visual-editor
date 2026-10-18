@@ -107,6 +107,28 @@ it( 'stamps post-date attributes including modified date', function (): void {
 		->and( $resolved['attributes']['_resolvedModifiedDateFormatted'] )->toBe( 'April 21, 2026' );
 } );
 
+it( 'stamps the featured image on a cover set to use it', function (): void {
+	$resolver = new class extends PostResolver {
+		protected function resolveFeaturedImage( object $post ): array
+		{
+			return [ '_resolvedImageUrl' => 'https://example.test/featured.jpg', '_resolvedImageAlt' => 'Alt' ];
+		}
+	};
+
+	$featured = $resolver->stampBlock(
+		[ 'name' => 'artisanpack/cover', 'attributes' => [ 'useFeaturedImage' => true ], 'innerBlocks' => [] ],
+		fakePost(),
+	);
+	$plain = $resolver->stampBlock(
+		[ 'name' => 'artisanpack/cover', 'attributes' => [ 'url' => 'https://example.test/own.jpg' ], 'innerBlocks' => [] ],
+		fakePost(),
+	);
+
+	expect( $featured['attributes']['_resolvedImageUrl'] )->toBe( 'https://example.test/featured.jpg' )
+		->and( $featured['attributes']['_resolvedImageAlt'] )->toBe( 'Alt' )
+		->and( $plain['attributes'] )->not->toHaveKey( '_resolvedImageUrl' );
+} );
+
 it( 'stamps post-author attributes from the loaded relation', function (): void {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'core/post-author', 'attributes' => [], 'innerBlocks' => [] ],

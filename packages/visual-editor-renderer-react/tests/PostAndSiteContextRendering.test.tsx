@@ -162,6 +162,29 @@ describe('Core post-context blocks', () => {
     });
 });
 
+describe('Cover with "Use featured image" (#942)', () => {
+    it('renders the stamped featured image instead of the saved url', () => {
+        const html = renderTree([
+            makeBlock('core/cover', {
+                useFeaturedImage: true,
+                url: 'https://example.test/saved.jpg',
+                _resolvedImageUrl: 'https://example.test/featured.jpg',
+            }),
+        ]);
+
+        expect(html).toContain('src="https://example.test/featured.jpg"');
+        expect(html).not.toContain('saved.jpg');
+    });
+
+    it('renders no image when the post has none', () => {
+        const html = renderTree([
+            makeBlock('core/cover', { useFeaturedImage: true, url: 'https://example.test/saved.jpg' }),
+        ]);
+
+        expect(html).not.toContain('wp-block-cover__image-background');
+    });
+});
+
 describe('Core site-context blocks', () => {
     it('renders site-title with default link to site URL', () => {
         const tree = [

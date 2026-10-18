@@ -22,6 +22,7 @@ import { applyBlockGap } from '../../support/blockGap';
 import { dimensionsClassName } from '../../support/dimensions';
 import { cssNumber } from '../../support/cssNumber';
 import { layoutWrapperClasses } from '../../support/layoutContainer';
+import { coverImageUrl } from '../../support/coverImage';
 import { safeUrl } from '../../support/urlSanitizer';
 import { blockRendererProps } from '../shared';
 
@@ -85,7 +86,7 @@ export const CoverBlock = defineComponent({
     props: blockRendererProps,
     setup(props, { slots }) {
         return () => {
-            const url = safeUrl(props.attributes.url);
+            const url = coverImageUrl(props.attributes);
             const isDark = props.attributes.isDark === undefined ? true : attrBoolean(props.attributes.isDark);
 
             // block.json defaults dimRatio to 100 and the editor omits defaults (#906).

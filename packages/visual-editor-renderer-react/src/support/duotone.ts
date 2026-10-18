@@ -30,6 +30,7 @@
  */
 
 import { attrBoolean, attrRecord, attrString, phpTrim } from './attributes';
+import { coverImageUrl } from './coverImage';
 import { namedColorHex } from './cssNamedColors';
 import { phpNumberFormat } from './phpNumberFormat';
 import { safeUrl } from './urlSanitizer';
@@ -84,7 +85,7 @@ const EMPTY: CompiledDuotone = { class: '', rules: '', filterId: '', filter: '' 
 const MEDIA_RENDERED: Readonly<Record<string, (attributes: Record<string, unknown>) => boolean>> = {
     'core/image': (attributes) => safeUrl(attributes.url) !== '',
     'core/post-featured-image': (attributes) => safeUrl(attrString(attributes._resolvedImageUrl)) !== '',
-    'core/cover': (attributes) => safeUrl(attributes.url) !== '',
+    'core/cover': (attributes) => coverImageUrl(attributes) !== '',
     'core/avatar': (attributes) => safeUrl(attrString(attributes._resolvedAuthorAvatar)) !== '',
     'core/site-logo': (attributes) => safeUrl(attrString(attributes._resolvedLogoUrl)) !== '',
     'core/post-author': (attributes) =>

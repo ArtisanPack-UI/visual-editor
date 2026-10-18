@@ -121,6 +121,20 @@ class PostResolver
 	];
 
 	/**
+	 * Cover blocks stamped with the post's featured image when their
+	 * `useFeaturedImage` attribute is on (#942). Uses the same
+	 * `_resolvedImage*` keys as `post-featured-image`.
+	 *
+	 * @since 1.15.2
+	 *
+	 * @var array<int, string>
+	 */
+	protected const FEATURED_IMAGE_COVERS = [
+		'core/cover',
+		'artisanpack/cover',
+	];
+
+	/**
 	 * Allow-list for HTML tags surviving the term-description sanitizer.
 	 * Mirrors {@see CommentResolver::COMMENT_CONTENT_ALLOWED_TAGS} so
 	 * descriptions can carry basic formatting (paragraphs, emphasis,
@@ -217,6 +231,12 @@ class PostResolver
 		$name = isset( $block['name'] ) && is_string( $block['name'] ) ? $block['name'] : '';
 
 		$attributes = isset( $block['attributes'] ) && is_array( $block['attributes'] ) ? $block['attributes'] : [];
+
+		// A Cover set to "Use featured image" takes the post's featured
+		// image as its background (#942).
+		if ( in_array( $name, self::FEATURED_IMAGE_COVERS, true ) && ! empty( $attributes['useFeaturedImage'] ) ) {
+			$attributes = array_merge( $this->resolveFeaturedImage( $post ), $attributes );
+		}
 
 		// Adjacent-post container blocks (#499): swap the post context
 		// for the inner tree to the resolved adjacent post so every

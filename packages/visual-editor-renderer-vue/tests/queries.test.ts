@@ -105,6 +105,38 @@ describe('inlineQueries', () => {
         );
     });
 
+    it('stamps the featured image on a cover set to use it (#942)', () => {
+        const tree = [
+            makeQueryBlock([
+                { name: 'artisanpack/cover', attributes: { useFeaturedImage: true }, innerBlocks: [] } as Block,
+                { name: 'artisanpack/cover', attributes: {}, innerBlocks: [] } as Block,
+            ]),
+        ];
+
+        const queries: ResolvedQuery[] = [
+            {
+                queryId: 'q1',
+                posts: [
+                    {
+                        id: 1,
+                        title: 'Post',
+                        permalink: '/posts/1',
+                        featuredImage: { url: 'https://example.test/featured.jpg', alt: 'Alt' },
+                    },
+                ],
+            },
+        ];
+
+        const result = inlineQueries(tree, { queries });
+        const stamped = result[0].innerBlocks?.[0].innerBlocks?.[0].innerBlocks ?? [];
+
+        expect(stamped[0].attributes).toMatchObject({
+            _resolvedImageUrl: 'https://example.test/featured.jpg',
+            _resolvedImageAlt: 'Alt',
+        });
+        expect(stamped[1].attributes).not.toHaveProperty('_resolvedImageUrl');
+    });
+
     it('recurses into nested queries and groups', () => {
         const tree = [
             {
