@@ -13,6 +13,8 @@
 import type { JSX } from 'react';
 
 import { attrInt, attrString, classList } from '../../support/attributes';
+import { applyBlockGap } from '../../support/blockGap';
+import { layoutWrapperClasses } from '../../support/layoutContainer';
 import { safeUrl } from '../../support/urlSanitizer';
 import type { BlockRendererProps } from '../../types';
 
@@ -25,10 +27,20 @@ export function QueryNoResultsBlock({ attributes, children }: BlockRendererProps
 
 export function QueryPaginationBlock({ attributes, children }: BlockRendererProps): JSX.Element {
     const className = attrString(attributes.className);
-    const classes = classList(['wp-block-query-pagination', className]);
+    // Always a flex layout, as in `query-pagination.blade.php` (#956).
+    const classes = classList([
+        'wp-block-query-pagination',
+        ...layoutWrapperClasses(attributes, 'query-pagination', 'is-layout-flex'),
+        className,
+    ]);
+    const gapStyle = applyBlockGap(attributes);
 
     return (
-        <nav className={classes} aria-label="Pagination navigation">
+        <nav
+            className={classes}
+            aria-label="Pagination navigation"
+            style={Object.keys(gapStyle).length > 0 ? (gapStyle as React.CSSProperties) : undefined}
+        >
             {children}
         </nav>
     );

@@ -3571,7 +3571,7 @@
         },
         {
             "name": "comments-pagination-layout",
-            "$comment": "F-3 — comments pagination is always a flex layout: the layout pair, a `wp-container-*` scope for justification and wrap, and the layout modifier classes. Query pagination keeps its own grid layout (#599), so it gets none of them.",
+            "$comment": "F-3 — comments and query pagination are always a flex layout: the layout pair, a `wp-container-*` scope for justification and wrap, and the layout modifier classes. Query pagination keeps its grid (#599) only while no justification or orientation is saved (#956).",
             "tree": [
                 {
                     "clientId": "qp-lay",
