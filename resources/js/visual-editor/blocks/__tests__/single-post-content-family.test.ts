@@ -37,6 +37,11 @@ import singleContentSave from '../single-content/save';
 import relatedPostsSave from '../related-posts/save';
 import authorSocialIconsSave from '../author-social-icons/save';
 import socialShareContentSave from '../social-share-content/save';
+import {
+    getShareSocialIcon,
+    SHARE_SOCIAL_PLATFORM_SLUGS,
+    socialIconLabel,
+} from '../_shared/social-icons';
 
 const FAMILY = [
     { slug: 'single-content', meta: singleContentMeta },
@@ -115,6 +120,29 @@ describe('single-post content cluster block.json', () => {
         expect(attrs?.iconsDirection?.default).toBe('vertical');
         expect(attrs?.iconsStretch?.default).toBe('full-width');
         expect(attrs?.iconsBorderRadius?.default).toBe(0);
+    });
+});
+
+describe('social-share-content platform picker', () => {
+    it('offers LinkedIn and Copy link alongside the share platforms (#963)', () => {
+        expect(SHARE_SOCIAL_PLATFORM_SLUGS).toEqual([
+            'facebook',
+            'twitter',
+            'linkedin',
+            'mastodon',
+            'reddit',
+            'pinterest',
+            'email',
+            'copyLink',
+        ]);
+
+        const linkedin = getShareSocialIcon('linkedin');
+        const copyLink = getShareSocialIcon('copyLink');
+
+        expect(linkedin?.label).toBe('LinkedIn');
+        expect(linkedin?.path).not.toBe('');
+        expect(copyLink && socialIconLabel(copyLink)).toBe('Copy link');
+        expect(copyLink?.path).not.toBe('');
     });
 });
 
