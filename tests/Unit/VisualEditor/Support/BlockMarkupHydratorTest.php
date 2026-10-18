@@ -3,6 +3,7 @@
 declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\Registries\BlockTypeRegistry;
+use ArtisanPackUI\VisualEditor\Support\BlockAttributeSourceResolver;
 use ArtisanPackUI\VisualEditor\Support\BlockMarkupHydrator;
 
 beforeEach( function (): void {
@@ -141,6 +142,19 @@ it( 'recovers a query source into one entry per match', function (): void {
 	expect( array_column( $body[0]['cells'], 'content' ) )->toBe( [ 'A1', 'B1' ] );
 	expect( $body[1]['cells'][1]['tag'] )->toBe( 'td' );
 } )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
+
+it( 'recovers table cell colspan, rowspan and scope from the saved HTML', function (): void {
+	$innerHtml = '<figure class="wp-block-table"><table class="has-fixed-layout">'
+		. '<tbody><tr><th scope="row" rowspan="2">A</th><td>B</td></tr><tr><td>C</td></tr></tbody>'
+		. '<tfoot><tr><td colspan="3">Note</td></tr></tfoot>'
+		. '</table></figure>';
+
+	$definition = app( BlockTypeRegistry::class )->get( 'artisanpack/table' );
+	$attributes = app( BlockAttributeSourceResolver::class )->recover( $definition['attributes'], $innerHtml );
+
+	expect( $attributes['body'][0]['cells'][0] )->toMatchArray( [ 'tag' => 'th', 'scope' => 'row', 'rowspan' => '2' ] );
+	expect( $attributes['foot'][0]['cells'][0] )->toMatchArray( [ 'content' => 'Note', 'tag' => 'td', 'colspan' => '3' ] );
+} );
 
 it( 'recurses into inner blocks', function (): void {
 	$markup = <<<'HTML'

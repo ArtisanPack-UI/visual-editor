@@ -1082,6 +1082,31 @@
             ]
         },
         {
+            "$comment": "#971 — table cell spans, scope and fixed layout. Spans are positive integers clamped to HTML's ceilings (colspan 1000, rowspan 65534); junk and zero are dropped. Scope is allowlisted and only printed on `th`. `hasFixedLayout` defaults to true, so the first table (no attribute) carries `has-fixed-layout` on its `<table>` and the second (`false`) does not.",
+            "name": "table-cell-spans",
+            "tree": [
+                {
+                    "clientId": "tbl-spans",
+                    "name": "artisanpack/table",
+                    "attributes": {
+                        "head": [ { "cells": [ { "content": "Name", "tag": "th", "scope": "col" }, { "content": "Score", "tag": "th", "scope": "bogus\" onclick=\"x", "colspan": "2" } ] } ],
+                        "body": [ { "cells": [ { "content": "Ada", "tag": "th", "scope": "row", "rowspan": "2" }, { "content": "1", "tag": "td", "scope": "col" }, { "content": "2", "tag": "td", "colspan": "0" } ] }, { "cells": [ { "content": "3", "tag": "td", "colspan": "2\" onclick=\"x" }, { "content": "4", "tag": "td", "rowspan": 3 } ] } ],
+                        "foot": [ { "cells": [ { "content": "Note", "tag": "td", "colspan": "5000" } ] } ]
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "tbl-auto",
+                    "name": "core/table",
+                    "attributes": {
+                        "hasFixedLayout": false,
+                        "body": [ { "cells": [ { "content": "Auto", "tag": "td" } ] } ]
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
             "name": "columns-boolean-widths",
             "$comment": "M12 — boolean per-breakpoint widths. `false` and `true` are non-scalar and rejected on both sides (`(string) false === ''`; the scalar guard skips `true`), so only each column's base 50% rule survives — no `flex-basis:false`/`flex-basis:true` leak.",
             "tree": [

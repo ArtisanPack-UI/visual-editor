@@ -3,8 +3,18 @@
 
 	$baseClasses = [ 'wp-block-table' ];
 
-	if ( ! empty( $attributes['hasFixedLayout'] ) ) {
-		$baseClasses[] = 'has-fixed-layout';
+	// `hasFixedLayout` defaults to true in block.json and has no source, so
+	// a saved block only carries it in the delimiter when it is false.
+	// Upstream save puts the class on the `<table>`, which is also where
+	// the `.wp-block-table .has-fixed-layout` rule expects it (#971).
+	$rawFixedLayout = $attributes['hasFixedLayout'] ?? null;
+
+	if ( null === $rawFixedLayout ) {
+		$hasFixedLayout = true;
+	} elseif ( is_string( $rawFixedLayout ) ) {
+		$hasFixedLayout = ! in_array( strtolower( trim( $rawFixedLayout ) ), [ '', 'false', '0' ], true );
+	} else {
+		$hasFixedLayout = (bool) $rawFixedLayout;
 	}
 
 	$caption = (string) ( $attributes['caption'] ?? '' );
@@ -28,8 +38,35 @@
 	];
 
 	$allowedAligns = [ 'left', 'center', 'right', 'justify' ];
+	$allowedScopes = [ 'row', 'col', 'rowgroup', 'colgroup' ];
 
-	$renderCell = static function ( array $cell, string $defaultTag ) use ( $allowedAligns ): string {
+	// HTML's own ceilings for the span attributes (colspan 1000, rowspan 65534).
+	$spanLimits = [
+		'colspan' => 1000,
+		'rowspan' => 65534,
+	];
+
+	$spanAttr = static function ( array $cell, string $name ) use ( $spanLimits ): string {
+		$raw = $cell[ $name ] ?? null;
+
+		if ( is_int( $raw ) ) {
+			$raw = (string) $raw;
+		}
+
+		if ( ! is_string( $raw ) || 1 !== preg_match( '/^([0-9]+)$/D', $raw, $matches ) ) {
+			return '';
+		}
+
+		$span = (int) $matches[1];
+
+		if ( $span < 1 ) {
+			return '';
+		}
+
+		return sprintf( ' %s="%d"', $name, min( $span, $spanLimits[ $name ] ) );
+	};
+
+	$renderCell = static function ( array $cell, string $defaultTag ) use ( $allowedAligns, $allowedScopes, $spanAttr ): string {
 		$cellContent = (string) ( $cell['content'] ?? '' );
 		$rawAlign    = isset( $cell['align'] ) ? strtolower( (string) $cell['align'] ) : '';
 		$cellAlign   = in_array( $rawAlign, $allowedAligns, true ) ? $rawAlign : '';
@@ -41,11 +78,24 @@
 			? sprintf( ' style="text-align: %s;"', $cellAlign )
 			: '';
 
-		return sprintf( '<%1$s%2$s>%3$s</%1$s>', $tag, $styleAttr, $cellContent );
+		$rawScope  = isset( $cell['scope'] ) && is_string( $cell['scope'] ) ? strtolower( $cell['scope'] ) : '';
+		$scopeAttr = 'th' === $tag && in_array( $rawScope, $allowedScopes, true )
+			? sprintf( ' scope="%s"', $rawScope )
+			: '';
+
+		return sprintf(
+			'<%1$s%2$s%3$s%4$s%5$s>%6$s</%1$s>',
+			$tag,
+			$scopeAttr,
+			$spanAttr( $cell, 'colspan' ),
+			$spanAttr( $cell, 'rowspan' ),
+			$styleAttr,
+			$cellContent
+		);
 	};
 @endphp
 <figure{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}>
-	<table>
+	<table{!! $hasFixedLayout ? ' class="has-fixed-layout"' : '' !!}>
 		@foreach ( $sections as $sectionKey => $rows )
 			@if ( ! empty( $rows ) )
 				<{{ $sectionTag[ $sectionKey ] }}>

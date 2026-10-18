@@ -28,6 +28,39 @@ import type { BlockRendererProps } from '../../types';
 
 const ALLOWED_MIN_HEIGHT_UNITS = ['px', 'em', 'rem', 'vh', 'vw', '%'] as const;
 const ALLOWED_CELL_ALIGN = ['left', 'center', 'right', 'justify'] as const;
+const ALLOWED_CELL_SCOPE = ['row', 'col', 'rowgroup', 'colgroup'] as const;
+
+/** HTML's own ceilings for the span attributes, mirrored from `table.blade.php`. */
+const CELL_SPAN_LIMITS = { colspan: 1000, rowspan: 65534 } as const;
+
+/**
+ * Sanitise a table cell's `colspan` / `rowspan` to a positive integer, or
+ * undefined when the stored value is missing or not a plain integer (#971).
+ */
+function cellSpan(value: unknown, name: keyof typeof CELL_SPAN_LIMITS): number | undefined {
+    const raw = typeof value === 'number' && Number.isInteger(value) ? String(value) : value;
+
+    if (typeof raw !== 'string') {
+        return undefined;
+    }
+
+    const match = /^([0-9]+)$/.exec(raw);
+
+    if (match === null) {
+        return undefined;
+    }
+
+    const span = Number.parseInt(match[1], 10);
+
+    return span < 1 ? undefined : Math.min(span, CELL_SPAN_LIMITS[name]);
+}
+
+/** Allowlist a `<th>` scope; `<td>` never carries one (upstream save drops it). */
+function cellScope(value: unknown, tag: 'td' | 'th'): string | undefined {
+    const scope = typeof value === 'string' ? value.toLowerCase() : '';
+
+    return tag === 'th' && (ALLOWED_CELL_SCOPE as ReadonlyArray<string>).includes(scope) ? scope : undefined;
+}
 
 export function SeparatorBlock({ attributes }: BlockRendererProps): JSX.Element {
     const style = attrString(attributes.style, 'default');
@@ -169,14 +202,12 @@ export function MediaTextBlock({ attributes, children }: BlockRendererProps): JS
 
 export function TableBlock({ attributes }: BlockRendererProps): JSX.Element {
     const className = attrString(attributes.className);
-    const hasFixedLayout = attrBoolean(attributes.hasFixedLayout);
+    // Defaults to true in block.json and is unsourced, so a saved block
+    // only carries it when false. The class belongs on `<table>` (#971).
+    const hasFixedLayout = attrBoolean(attributes.hasFixedLayout, true);
     const caption = attrString(attributes.caption);
 
-    const classes = classList([
-        'wp-block-table',
-        hasFixedLayout ? 'has-fixed-layout' : null,
-        className,
-    ]);
+    const classes = classList(['wp-block-table', className]);
 
     const sections = [
         { key: 'head' as const, Tag: 'thead' as const, defaultTag: 'th' as const },
@@ -186,7 +217,7 @@ export function TableBlock({ attributes }: BlockRendererProps): JSX.Element {
 
     return (
         <figure className={classes}>
-            <table>
+            <table className={hasFixedLayout ? 'has-fixed-layout' : undefined}>
                 {sections.map(({ key, Tag, defaultTag }) => {
                     const rows = attrArray(attributes[key]);
 
@@ -217,6 +248,9 @@ export function TableBlock({ attributes }: BlockRendererProps): JSX.Element {
                                             return (
                                                 <CellTag
                                                     key={cellIndex}
+                                                    scope={cellScope(cellRecord.scope, CellTag)}
+                                                    colSpan={cellSpan(cellRecord.colspan, 'colspan')}
+                                                    rowSpan={cellSpan(cellRecord.rowspan, 'rowspan')}
                                                     style={cellStyle}
                                                     dangerouslySetInnerHTML={{ __html: content }}
                                                 />
