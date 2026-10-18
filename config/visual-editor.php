@@ -313,6 +313,7 @@ return [
 		'artisanpack/copyright',
 		'artisanpack/marquee',
 		'artisanpack/comments-number',
+		'artisanpack/post-reading-time',
 		'artisanpack/single-content',
 		'artisanpack/related-posts',
 		'artisanpack/author-social-icons',

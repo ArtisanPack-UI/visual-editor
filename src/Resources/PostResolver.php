@@ -110,6 +110,8 @@ class PostResolver
 		// share URLs from the post's permalink, title, and featured image.
 		'artisanpack/author-social-icons',
 		'artisanpack/social-share-content',
+		// Estimated reading time for the post's body (#943).
+		'artisanpack/post-reading-time',
 	];
 
 	/**
@@ -340,6 +342,7 @@ class PostResolver
 			'term-description'        => $this->resolveTermDescription( $post ),
 			'author-social-icons'     => $this->resolveAuthorSocialIcons( $post ),
 			'social-share-content'    => $this->resolveSocialShareContent( $post ),
+			'post-reading-time'       => $this->resolveReadingTime( $post ),
 			default                   => [],
 		};
 	}
@@ -970,6 +973,24 @@ class PostResolver
 
 		return [
 			'_resolvedAuthorSocialLinks' => $links,
+		];
+	}
+
+	/**
+	 * Estimated reading time for the post (#943). See {@see ReadingTime}.
+	 *
+	 * @since 1.15.2
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function resolveReadingTime( object $post ): array
+	{
+		$readingTime = new ReadingTime();
+		$words       = $readingTime->words( $post );
+
+		return [
+			'_resolvedReadingTime' => $readingTime->minutes( $post, $words ),
+			'_resolvedWordCount'   => $words,
 		];
 	}
 

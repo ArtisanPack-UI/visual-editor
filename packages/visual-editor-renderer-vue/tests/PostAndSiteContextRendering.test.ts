@@ -184,6 +184,26 @@ describe('Cover with "Use featured image" (#942)', () => {
         ]);
 
         expect(html).not.toContain('wp-block-cover__image-background');
+describe('Post Reading Time (#943)', () => {
+    it('renders the minutes with the default suffix, or a custom prefix and suffix', () => {
+        expect(renderTree([makeBlock('artisanpack/post-reading-time', { _resolvedReadingTime: 6 })])).toContain(
+            '<div class="wp-block-artisanpack-post-reading-time">6 min read</div>'
+        );
+        expect(
+            renderTree([
+                makeBlock('artisanpack/post-reading-time', {
+                    prefix: 'Reading time: ',
+                    suffix: 'minutes',
+                    _resolvedReadingTime: 6,
+                }),
+            ])
+        ).toContain('>Reading time: 6 minutes</div>');
+    });
+
+    it('renders nothing without minutes', () => {
+        expect(renderTree([makeBlock('artisanpack/post-reading-time', {})])).not.toContain(
+            'wp-block-artisanpack-post-reading-time'
+        );
     });
 });
 

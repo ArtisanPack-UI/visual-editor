@@ -119,6 +119,16 @@ it( 'formats the post date for display in `dateFormatted`', function (): void {
 	expect( $array['_preview']['dateFormatted'] )->toBe( 'April 30, 2026' );
 } );
 
+it( 'estimates the reading time in `readingTime` (#943)', function (): void {
+	$model = previewStubModel( [
+		'content' => '<p>' . implode( ' ', array_fill( 0, 250, 'word' ) ) . '</p>',
+	] );
+
+	$array = ( new PostResource( $model ) )->toArray( Request::create( '/' ) );
+
+	expect( $array['_preview']['readingTime'] )->toBe( 2 );
+} );
+
 it( 'returns a null featured image when no media-library helpers are bound', function (): void {
 	$model = previewStubModel( [
 		'featured_image_id' => 42,

@@ -145,6 +145,14 @@ it( 'stamps the featured image on a cover set to use it', function (): void {
 	expect( $featured['attributes']['_resolvedImageUrl'] )->toBe( 'https://example.test/featured.jpg' )
 		->and( $featured['attributes']['_resolvedImageAlt'] )->toBe( 'Alt' )
 		->and( $plain['attributes'] )->not->toHaveKey( '_resolvedImageUrl' );
+it( 'stamps artisanpack/post-reading-time with minutes and words', function (): void {
+	$resolved = ( new PostResolver() )->stampBlock(
+		[ 'name' => 'artisanpack/post-reading-time', 'attributes' => [], 'innerBlocks' => [] ],
+		fakePost( [ 'content' => '<p>' . implode( ' ', array_fill( 0, 450, 'word' ) ) . '</p>' ] ),
+	);
+
+	expect( $resolved['attributes']['_resolvedReadingTime'] )->toBe( 3 )
+		->and( $resolved['attributes']['_resolvedWordCount'] )->toBe( 450 );
 } );
 
 it( 'stamps post-author attributes from the loaded relation', function (): void {

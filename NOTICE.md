@@ -6,7 +6,7 @@ apply to those assets and do not extend to the rest of the package
 
 ## Font Awesome Free
 
-The 25 first-party block inserter icons under
+The 28 first-party block inserter icons under
 `resources/js/visual-editor/blocks/*/inserter-icon.tsx` embed SVG path
 data copied verbatim from [Font Awesome Free Solid][fa-free] v7.2.0 by
 Fonticons, Inc., licensed under [CC BY 4.0][cc-by-4].
@@ -30,6 +30,7 @@ The bundled `.svg` source assets live under
 | grid-item | [`square`](https://fontawesome.com/icons/square) |
 | howto | [`list-check`](https://fontawesome.com/icons/list-check) |
 | marquee | [`bullhorn`](https://fontawesome.com/icons/bullhorn) |
+| post-reading-time | [`clock`](https://fontawesome.com/icons/clock) |
 | post-types-search-results | [`magnifying-glass-arrow-right`](https://fontawesome.com/icons/magnifying-glass-arrow-right) |
 | related-posts | [`newspaper`](https://fontawesome.com/icons/newspaper) |
 | search-field | [`magnifying-glass`](https://fontawesome.com/icons/magnifying-glass) |

@@ -170,6 +170,25 @@ it( 'renders no cover image when the post has no featured image (#942)', functio
 	];
 
 	expect( $this->stripGlobalStyles( renderTree( $tree ) ) )->not->toContain( 'wp-block-cover__image-background' );
+it( 'renders post-reading-time with its prefix and suffix (#943)', function (): void {
+	$default = renderTree( [ blockNode( 'artisanpack/post-reading-time', [ '_resolvedReadingTime' => 6 ] ) ] );
+	$custom  = renderTree( [ blockNode( 'artisanpack/post-reading-time', [
+		'prefix'               => 'Reading time: ',
+		'suffix'               => 'minutes',
+		'_resolvedReadingTime' => 6,
+	] ) ] );
+
+	expect( $this->stripGlobalStyles( $default ) )->toContain( '<div class="wp-block-artisanpack-post-reading-time">6 min read</div>' )
+		->and( $this->stripGlobalStyles( $custom ) )->toContain( '>Reading time: 6 minutes</div>' );
+} );
+
+it( 'renders nothing for post-reading-time without minutes (#943)', function (): void {
+	$rendered = renderTree( [
+		blockNode( 'artisanpack/post-reading-time' ),
+		blockNode( 'artisanpack/post-reading-time', [ '_resolvedReadingTime' => 0 ], [], 'cid2' ),
+	] );
+
+	expect( $rendered )->not->toContain( 'wp-block-artisanpack-post-reading-time' );
 } );
 
 it( 'drops javascript: URLs from post-featured-image hrefs', function (): void {

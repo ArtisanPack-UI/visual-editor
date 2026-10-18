@@ -34,6 +34,12 @@ export interface QueryPreviewPost {
      * preview (#483).
      */
     dateFormatted?: string;
+    /**
+     * Estimated reading time in whole minutes, as `PostResolver` stamps
+     * `_resolvedReadingTime`. Used by the `artisanpack/post-reading-time`
+     * editor preview (#943).
+     */
+    readingTime?: number;
     modifiedAt?: string;
     author?: {
         name?: string;
@@ -379,6 +385,8 @@ function mapWpEntityToPost(entity: Record<string, unknown>): QueryPreviewPost {
         permalink: typeof entity.link === 'string' ? entity.link : undefined,
         dateFormatted:
             typeof preview.dateFormatted === 'string' ? preview.dateFormatted : undefined,
+        readingTime:
+            typeof preview.readingTime === 'number' ? preview.readingTime : undefined,
         author: mapPreviewAuthor(preview.author),
         featuredImage: mapPreviewFeaturedImage(preview.featuredImage),
         terms: mapPreviewTerms(preview.terms),
