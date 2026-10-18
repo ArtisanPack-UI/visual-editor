@@ -12,6 +12,7 @@
 
 import { getBreakpoints, getDeviceBreakpoints } from '../visibility'
 import { safeCssValue } from './cssValue'
+import { FLEX_LAYOUT_BASE_RULES } from './flexLayoutCss'
 
 const BASE_KEY = 'base' as const
 
@@ -356,6 +357,63 @@ function emitNumeric(
 
 export function flexClassNames( flex: unknown ): string[] {
 	return serializeFlex( flex ).classes
+}
+
+const KEYWORD_RULE = /^\.([a-z0-9-]+) \{ ([a-z-]+): ([^;{}]+); \}$/
+
+let keywordDeclarations: Map<string, { property: string; value: string }> | null = null
+
+/**
+ * Inline rules for a block's breakpoint keyword classes that compete with
+ * one of its own arbitrary values (#949). Mirrors the Blade
+ * `FlexSupport::keywordOverrideRules`.
+ *
+ * `mobile:ap-basis-auto` is styled by the static stylesheet, which loads
+ * before the inline arbitrary rules; an arbitrary `ap-basis-[280px]` on the
+ * same block has the same specificity and comes later, so it won at every
+ * width. Each non-base keyword class whose property also has an arbitrary
+ * rule on the block comes back as a rule in its breakpoint's bucket, so
+ * {@link buildArbitraryStyles} prints it after the arbitrary ones.
+ */
+export function keywordOverrideRules( result: SerializeResult ): ArbitraryRule[] {
+	const arbitraryProperties = new Set( result.arbitraryRules.map( ( rule ) => rule.property ) )
+
+	if ( 0 === arbitraryProperties.size ) {
+		return []
+	}
+
+	if ( null === keywordDeclarations ) {
+		keywordDeclarations = new Map()
+		for ( const rule of FLEX_LAYOUT_BASE_RULES ) {
+			const match = KEYWORD_RULE.exec( rule )
+			if ( match ) {
+				keywordDeclarations.set( match[ 1 ], { property: match[ 2 ], value: match[ 3 ] } )
+			}
+		}
+	}
+
+	const rules: ArbitraryRule[] = []
+
+	for ( const className of result.classes ) {
+		const separator = className.indexOf( ':' )
+		if ( -1 === separator || className.includes( '[' ) ) {
+			continue
+		}
+
+		const declaration = keywordDeclarations.get( className.slice( separator + 1 ) )
+		if ( ! declaration || ! arbitraryProperties.has( declaration.property ) ) {
+			continue
+		}
+
+		rules.push( {
+			className,
+			property: declaration.property,
+			value: declaration.value,
+			breakpoint: className.slice( 0, separator ),
+		} )
+	}
+
+	return rules
 }
 
 /**
