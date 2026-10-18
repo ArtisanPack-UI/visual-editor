@@ -51,6 +51,7 @@ const PROBE_ATTRIBUTES: Record<string, unknown> = {
     _resolvedHasPost: true,
     _resolvedItems: 1,
     _resolvedActive: true,
+    _resolvedReadingTime: 1,
 };
 
 function probeTree(name: string): Block[] {

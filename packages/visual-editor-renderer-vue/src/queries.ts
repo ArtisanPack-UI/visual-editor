@@ -14,6 +14,7 @@
  * results on the fly use the `useQueryPreview` hook instead.
  */
 
+import { phpDateFormat } from './support/phpDateFormat';
 import type { Block } from './types';
 
 export const QUERY_RESOLUTION_ERROR_NO_RESULTS = 'no-results';
@@ -69,6 +70,12 @@ const POST_CONTEXT_BLOCKS = new Set([
     'core/post-author',
     'core/post-featured-image',
 ]);
+
+/**
+ * Covers stamped with the post's featured image when `useFeaturedImage`
+ * is on (#942), as `PostResolver::FEATURED_IMAGE_COVERS` does.
+ */
+const FEATURED_IMAGE_COVER_BLOCKS = new Set(['core/cover', 'artisanpack/cover']);
 
 const QUERY_BLOCK_NAMES = new Set(['core/query', 'artisanpack/query']);
 const POST_TEMPLATE_BLOCK_NAMES = new Set(['core/post-template', 'artisanpack/post-template']);
@@ -239,12 +246,27 @@ function expandQuery(block: Block, queries: Map<string, ResolvedQuery>): Block {
 function stampPost(block: Block, post: ResolvedPost): Block {
     const next = cloneBlock(block);
 
-    if (typeof next.name === 'string' && POST_CONTEXT_BLOCKS.has(next.name)) {
+    if (
+        typeof next.name === 'string' &&
+        FEATURED_IMAGE_COVER_BLOCKS.has(next.name) &&
+        (next.attributes as Record<string, unknown>).useFeaturedImage === true
+    ) {
         next.attributes = {
-            ...resolvedAttributesFor(next.name, post),
-            ...(typeof next.attributes === 'object' && next.attributes !== null
+            _resolvedImageUrl: post.featuredImage?.url ?? '',
+            _resolvedImageAlt: post.featuredImage?.alt ?? '',
+            ...(next.attributes as Record<string, unknown>),
+        };
+    }
+
+    if (typeof next.name === 'string' && POST_CONTEXT_BLOCKS.has(next.name)) {
+        const own =
+            typeof next.attributes === 'object' && next.attributes !== null
                 ? (next.attributes as Record<string, unknown>)
-                : {}),
+                : {};
+
+        next.attributes = {
+            ...resolvedAttributesFor(next.name, post, own),
+            ...own,
         };
     }
 
@@ -255,7 +277,11 @@ function stampPost(block: Block, post: ResolvedPost): Block {
     return next;
 }
 
-function resolvedAttributesFor(name: string, post: ResolvedPost): Record<string, unknown> {
+function resolvedAttributesFor(
+    name: string,
+    post: ResolvedPost,
+    attributes: Record<string, unknown>,
+): Record<string, unknown> {
     switch (name) {
         case 'core/post-title':
             return {
@@ -271,14 +297,17 @@ function resolvedAttributesFor(name: string, post: ResolvedPost): Record<string,
                 _resolvedExcerpt: post.excerpt ?? '',
                 _resolvedPermalink: post.permalink ?? '',
             };
-        case 'core/post-date':
+        case 'core/post-date': {
+            const format = typeof attributes.format === 'string' ? attributes.format : '';
+
             return {
                 _resolvedDate: post.publishedAt ?? '',
-                _resolvedDateFormatted: formatHumanDate(post.publishedAt),
+                _resolvedDateFormatted: formatHumanDate(post.publishedAt, format),
                 _resolvedModifiedDate: post.modifiedAt ?? '',
-                _resolvedModifiedDateFormatted: formatHumanDate(post.modifiedAt),
+                _resolvedModifiedDateFormatted: formatHumanDate(post.modifiedAt, format),
                 _resolvedPermalink: post.permalink ?? '',
             };
+        }
         case 'core/post-author':
             return {
                 _resolvedAuthorName: post.author?.name ?? '',
@@ -302,7 +331,8 @@ function resolvedAttributesFor(name: string, post: ResolvedPost): Record<string,
 /**
  * Format an ISO timestamp as a human-readable "F j, Y" date so the
  * client-side `_resolvedDateFormatted` matches the server-side output
- * Carbon's `translatedFormat('F j, Y')` produces.
+ * Carbon's `translatedFormat('F j, Y')` produces. A block `format` (a PHP
+ * date format string) is applied through `phpDateFormat()` instead (#941).
  *
  * Locale resolution prefers the document's `<html lang>` so a host that
  * sets `lang="es"` gets Spanish month names (matching the server-side
@@ -313,7 +343,7 @@ function resolvedAttributesFor(name: string, post: ResolvedPost): Record<string,
  * raw string when the date is unparseable so the renderer never throws
  * on malformed input.
  */
-function formatHumanDate(iso: string | null | undefined): string {
+function formatHumanDate(iso: string | null | undefined, format = ''): string {
     if (iso === null || iso === undefined || iso === '') {
         return '';
     }
@@ -328,6 +358,10 @@ function formatHumanDate(iso: string | null | undefined): string {
         typeof document !== 'undefined' && document.documentElement?.lang
             ? document.documentElement.lang
             : 'en-US';
+
+    if (format.trim() !== '') {
+        return phpDateFormat(iso, format, locale);
+    }
 
     return new Intl.DateTimeFormat(locale, {
         year: 'numeric',

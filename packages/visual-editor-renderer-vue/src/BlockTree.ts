@@ -26,6 +26,7 @@ import { UnknownBlock } from './blocks/unknownBlock';
 import {
     buildArbitraryStyles,
     serializeFlex,
+    keywordOverrideRules,
     type ArbitraryRule,
 } from './support/flex-serializer';
 import { stampColumnWidthScopes } from './support/columnWidth';
@@ -472,9 +473,10 @@ function collectFlexArbitraryRules(blocks: Block[]): ArbitraryRule[] {
                 : null;
 
         if (flex && typeof flex === 'object') {
-            const { arbitraryRules } = serializeFlex(flex);
-            if (arbitraryRules.length > 0) {
-                rules.push(...arbitraryRules);
+            const serialized = serializeFlex(flex);
+            if (serialized.arbitraryRules.length > 0) {
+                // #949 — breakpoint keywords re-emitted after the arbitrary rules they compete with.
+                rules.push(...serialized.arbitraryRules, ...keywordOverrideRules(serialized));
             }
         }
 

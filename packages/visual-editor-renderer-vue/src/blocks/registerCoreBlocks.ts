@@ -25,6 +25,7 @@ import { BusinessHoursBlock } from './artisanpack/businessHours';
 import { BusinessPhoneBlock } from './artisanpack/businessPhone';
 import { CalloutBlock } from './artisanpack/callout';
 import { CommentsNumberBlock } from './artisanpack/commentsNumber';
+import { PostReadingTimeBlock } from './artisanpack/postReadingTime';
 import { CopyrightBlock } from './artisanpack/copyright';
 import { FaqBlock } from './artisanpack/faq';
 import { GridBlock, GridItemBlock } from './artisanpack/grid';
@@ -332,6 +333,8 @@ const CORE_BLOCKS: Record<string, BlockRenderer> = {
     'artisanpack/copyright': CopyrightBlock,
     'artisanpack/marquee': MarqueeBlock,
     'artisanpack/comments-number': CommentsNumberBlock,
+    // Estimated reading time (#943), stamped by PostResolver.
+    'artisanpack/post-reading-time': PostReadingTimeBlock,
     // Single-post content cluster (#501) — registered under the
     // artisanpack/* namespace only. `single-content` + `related-posts`
     // resolve through `QueryInliner` via `QueryResolverContract`; the

@@ -28,6 +28,52 @@ describe('Core post-context blocks', () => {
 
         expect(renderTree(tree)).toContain('<h3 class="wp-block-post-title">Hello World</h3>');
     });
+});
+
+describe('Post Reading Time (#943)', () => {
+    it('renders the minutes with the default suffix, or a custom prefix and suffix', () => {
+        expect(renderTree([makeBlock('artisanpack/post-reading-time', { _resolvedReadingTime: 6 })])).toContain(
+            '<div class="wp-block-artisanpack-post-reading-time">6 min read</div>'
+        );
+        expect(
+            renderTree([
+                makeBlock('artisanpack/post-reading-time', {
+                    prefix: 'Reading time: ',
+                    suffix: 'minutes',
+                    _resolvedReadingTime: 6,
+                }),
+            ])
+        ).toContain('>Reading time: 6 minutes</div>');
+    });
+
+    it('renders nothing without minutes', () => {
+        expect(renderTree([makeBlock('artisanpack/post-reading-time', {})])).not.toContain(
+            'wp-block-artisanpack-post-reading-time'
+        );
+    });
+});
+
+describe('Cover with "Use featured image" (#942)', () => {
+    it('renders the stamped featured image instead of the saved url', () => {
+        const html = renderTree([
+            makeBlock('core/cover', {
+                useFeaturedImage: true,
+                url: 'https://example.test/saved.jpg',
+                _resolvedImageUrl: 'https://example.test/featured.jpg',
+            }),
+        ]);
+
+        expect(html).toContain('src="https://example.test/featured.jpg"');
+        expect(html).not.toContain('saved.jpg');
+    });
+
+    it('renders no image when the post has none', () => {
+        const html = renderTree([
+            makeBlock('core/cover', { useFeaturedImage: true, url: 'https://example.test/saved.jpg' }),
+        ]);
+
+        expect(html).not.toContain('wp-block-cover__image-background');
+    });
 
     it('wraps post-title in a permalink when isLink is true', () => {
         const tree = [
@@ -138,6 +184,50 @@ describe('Core post-context blocks', () => {
         expect(html).toContain('href="https://example.test/post"');
         expect(html).toContain('src="https://example.test/featured.jpg"');
         expect(html).toContain('alt="Featured photo"');
+    });
+
+    it('covers a post-featured-image frame by default when scale is unsaved (#948)', () => {
+        const html = renderTree([
+            makeBlock('core/post-featured-image', {
+                aspectRatio: '16/10',
+                _resolvedImageUrl: 'https://example.test/wide.jpg',
+            }),
+        ]);
+
+        expect(html).toMatch(/aspect-ratio:\s*16\/10;\s*object-fit:\s*cover/);
+    });
+
+    it('sizes the post-featured-image figure and image from width and height (#948)', () => {
+        const html = renderTree([
+            makeBlock('core/post-featured-image', {
+                width: '130px',
+                height: '100%',
+                scale: 'contain',
+                _resolvedImageUrl: 'https://example.test/wide.jpg',
+            }),
+        ]);
+
+        expect(html).toMatch(/<figure[^>]*style="width:\s*130px;\s*height:\s*100%;?"/);
+        expect(html).toMatch(/<img[^>]*style="height:\s*100%;\s*object-fit:\s*contain;?"/);
+    });
+
+    it('leaves an image-less post-featured-image figure unsized (#948)', () => {
+        expect(renderTree([makeBlock('core/post-featured-image', { width: '130px', height: '100%' })]))
+            .toBe('<figure class="wp-block-post-featured-image"></figure>');
+    });
+
+    it('paints the avatar border and radius on the image, not the wrapper (#952)', () => {
+        const html = renderTree([
+            makeBlock('core/avatar', {
+                size: 28,
+                borderColor: 'primary',
+                style: { border: { radius: '50%', width: '2px' } },
+                _resolvedAuthorAvatar: 'https://example.test/me.jpg',
+            }),
+        ]);
+
+        expect(html).toContain('<div class="wp-block-avatar">');
+        expect(html).toMatch(/<img[^>]*class="avatar wp-block-avatar__image has-border-color has-primary-border-color"[^>]*style="border-radius:\s*50%;\s*border-width:\s*2px;?"/);
     });
 
     it('drops javascript: hrefs from post-featured-image', () => {

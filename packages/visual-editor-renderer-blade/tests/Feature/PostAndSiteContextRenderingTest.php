@@ -32,6 +32,55 @@ it( 'renders a post-title block at the configured level', function (): void {
 	expect( $this->normalizeHtml( $rendered ) )->toContain( '<h3 class="wp-block-post-title">Hello World</h3>' );
 } );
 
+it( 'renders post-reading-time with its prefix and suffix (#943)', function (): void {
+	$default = renderTree( [ blockNode( 'artisanpack/post-reading-time', [ '_resolvedReadingTime' => 6 ] ) ] );
+	$custom  = renderTree( [ blockNode( 'artisanpack/post-reading-time', [
+		'prefix'               => 'Reading time: ',
+		'suffix'               => 'minutes',
+		'_resolvedReadingTime' => 6,
+	] ) ] );
+
+	expect( $this->stripGlobalStyles( $default ) )->toContain( '<div class="wp-block-artisanpack-post-reading-time">6 min read</div>' )
+		->and( $this->stripGlobalStyles( $custom ) )->toContain( '>Reading time: 6 minutes</div>' );
+} );
+
+it( 'renders nothing for post-reading-time without minutes (#943)', function (): void {
+	$rendered = renderTree( [
+		blockNode( 'artisanpack/post-reading-time' ),
+		blockNode( 'artisanpack/post-reading-time', [ '_resolvedReadingTime' => 0 ], [], 'cid2' ),
+	] );
+
+	expect( $rendered )->not->toContain( 'wp-block-artisanpack-post-reading-time' );
+} );
+
+it( 'renders a featured-image cover from the stamped image (#942)', function (): void {
+	$tree = [
+		blockNode( 'core/cover', [
+			'useFeaturedImage'  => true,
+			'url'               => 'https://example.test/saved.jpg',
+			'_resolvedImageUrl' => 'https://example.test/featured.jpg',
+			'_resolvedImageAlt' => 'Featured photo',
+		] ),
+	];
+
+	$rendered = $this->stripGlobalStyles( renderTree( $tree ) );
+
+	expect( $rendered )->toContain( '<img class="wp-block-cover__image-background" alt="Featured photo" src="https://example.test/featured.jpg"/>' )
+		->and( $rendered )->not->toContain( 'saved.jpg' );
+} );
+
+it( 'renders no cover image when the post has no featured image (#942)', function (): void {
+	$tree = [
+		blockNode( 'core/cover', [
+			'useFeaturedImage'  => true,
+			'url'               => 'https://example.test/saved.jpg',
+			'_resolvedImageUrl' => '',
+		] ),
+	];
+
+	expect( $this->stripGlobalStyles( renderTree( $tree ) ) )->not->toContain( 'wp-block-cover__image-background' );
+} );
+
 it( 'wraps the post-title in a permalink when isLink is true', function (): void {
 	$tree = [
 		blockNode( 'core/post-title', [
@@ -142,6 +191,93 @@ it( 'renders post-featured-image with link wrapper when isLink is true', functio
 	expect( $rendered )->toContain( 'alt="Featured photo"' );
 	expect( $rendered )->toContain( 'width="800"' );
 	expect( $rendered )->toContain( 'height="600"' );
+} );
+
+it( 'covers a post-featured-image frame by default when scale is unsaved (#948)', function (): void {
+	$tree = [
+		blockNode( 'core/post-featured-image', [
+			'aspectRatio' => '16/10',
+			'_resolvedImageUrl' => 'https://example.test/wide.jpg',
+		] ),
+	];
+
+	$rendered = $this->stripGlobalStyles( renderTree( $tree ) );
+
+	expect( $rendered )->toContain( 'style="aspect-ratio:16/10;object-fit:cover"' );
+} );
+
+it( 'keeps a saved post-featured-image scale over the cover default (#948)', function (): void {
+	$tree = [
+		blockNode( 'core/post-featured-image', [
+			'aspectRatio' => '1',
+			'scale' => 'contain',
+			'_resolvedImageUrl' => 'https://example.test/wide.jpg',
+		] ),
+	];
+
+	$rendered = $this->stripGlobalStyles( renderTree( $tree ) );
+
+	expect( $rendered )->toContain( 'object-fit:contain' );
+	expect( $rendered )->not()->toContain( 'object-fit:cover' );
+} );
+
+it( 'sizes the post-featured-image figure and image from width and height (#948)', function (): void {
+	$tree = [
+		blockNode( 'core/post-featured-image', [
+			'width' => '130px',
+			'height' => '100%',
+			'_resolvedImageUrl' => 'https://example.test/wide.jpg',
+		] ),
+	];
+
+	$rendered = $this->stripGlobalStyles( renderTree( $tree ) );
+
+	expect( $rendered )->toContain( 'style="width:130px; height:100%;"' );
+	expect( $rendered )->toContain( 'style="height:100%;object-fit:cover"' );
+} );
+
+it( 'leaves an image-less post-featured-image figure unsized (#948)', function (): void {
+	$tree = [
+		blockNode( 'core/post-featured-image', [
+			'width'  => '130px',
+			'height' => '100%',
+		] ),
+	];
+
+	$rendered = $this->stripGlobalStyles( renderTree( $tree ) );
+
+	expect( $rendered )->toContain( '<figure class="wp-block-post-featured-image">' );
+	expect( $rendered )->not()->toContain( 'height:100%' );
+} );
+
+it( 'drops an unsafe post-featured-image height (#948)', function (): void {
+	$tree = [
+		blockNode( 'core/post-featured-image', [
+			'height' => '10px;background:red',
+			'_resolvedImageUrl' => 'https://example.test/wide.jpg',
+		] ),
+	];
+
+	$rendered = $this->stripGlobalStyles( renderTree( $tree ) );
+
+	expect( $rendered )->not()->toContain( 'background:red' );
+	expect( $rendered )->not()->toContain( 'object-fit' );
+} );
+
+it( 'paints the avatar border and radius on the image, not the wrapper (#952)', function (): void {
+	$tree = [
+		blockNode( 'core/avatar', [
+			'size'                 => 28,
+			'borderColor'          => 'primary',
+			'style'                => [ 'border' => [ 'radius' => '50%', 'width' => '2px' ] ],
+			'_resolvedAuthorAvatar' => 'https://example.test/me.jpg',
+		] ),
+	];
+
+	$rendered = $this->stripGlobalStyles( renderTree( $tree ) );
+
+	expect( $rendered )->toContain( '<div class="wp-block-avatar">' );
+	expect( $rendered )->toContain( 'class="avatar wp-block-avatar__image has-border-color has-primary-border-color" style="border-radius: 50%; border-width: 2px;' );
 } );
 
 it( 'drops javascript: URLs from post-featured-image hrefs', function (): void {
