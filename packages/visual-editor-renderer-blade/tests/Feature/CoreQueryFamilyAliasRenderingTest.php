@@ -6,7 +6,7 @@ declare( strict_types=1 );
  * Core query-family aliases (#856) — Blade renderer parity.
  *
  * Unsaved theme files keep WordPress's `core/query-pagination*`,
- * `core/query-no-results` and `core/query-title` names. Each `core/*`
+ * `core/query-no-results`, `core/query-title` and `core/query-total` names. Each `core/*`
  * partial is a thin `@include` over its `artisanpack/*` fork, so these
  * tests render both names side by side and assert identical markup with
  * no unknown-block fallback.
@@ -93,6 +93,7 @@ dataset( 'coreQueryFamilyAliases', [
 	], [] ],
 	'query-no-results'          => [ 'query-no-results', [], [ aliasBlockNode( 'core/paragraph', [ 'content' => 'Nothing found' ] ) ] ],
 	'query-title'               => [ 'query-title', [ 'level' => 2, '_resolvedQueryTitle' => 'Blog' ], [] ],
+	'query-total'               => [ 'query-total', [ '_resolvedTotal' => 3, 'displayType' => 'total-results' ], [] ],
 ] );
 
 it( 'renders the core alias identically to its artisanpack fork', function ( string $slug, array $attributes, array $innerBlocks ): void {

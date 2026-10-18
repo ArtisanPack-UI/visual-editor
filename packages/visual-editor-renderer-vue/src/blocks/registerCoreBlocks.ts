@@ -76,6 +76,7 @@ import {
     QueryPaginationNumbersBlock,
     QueryPaginationPreviousBlock,
     QueryTitleBlock,
+    QueryTotalBlock,
 } from './artisanpack/queryContext';
 import {
     CoverBlock,
@@ -322,6 +323,8 @@ const CORE_BLOCKS: Record<string, BlockRenderer> = {
     'artisanpack/query-pagination-previous': QueryPaginationPreviousBlock,
     'core/query-title': QueryTitleBlock,
     'artisanpack/query-title': QueryTitleBlock,
+    'core/query-total': QueryTotalBlock,
+    'artisanpack/query-total': QueryTotalBlock,
     // Auth family (#522) — registered under the artisanpack/* namespace
     // only; loginout never shipped as `core/*` in v1 so there is no
     // core counterpart to mirror here.

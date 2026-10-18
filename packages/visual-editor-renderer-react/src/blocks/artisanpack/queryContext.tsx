@@ -7,7 +7,8 @@
  * reads its `_resolved*` attributes stamped by visual-editor's
  * QueryInliner before the tree reaches the renderer, so this file
  * stays pure — no data fetching, no DOM side effects, byte-shape
- * parity with the Blade and Vue counterparts.
+ * parity with the Blade and Vue counterparts. Query Total (#962) joins
+ * them as a seventh leaf.
  */
 
 import type { JSX } from 'react';
@@ -15,6 +16,7 @@ import type { JSX } from 'react';
 import { attrInt, attrString, classList } from '../../support/attributes';
 import { applyBlockGap } from '../../support/blockGap';
 import { layoutWrapperClasses } from '../../support/layoutContainer';
+import { presetClasses } from '../../support/presetClasses';
 import { safeUrl } from '../../support/urlSanitizer';
 import type { Block, BlockRendererProps } from '../../types';
 
@@ -195,4 +197,78 @@ export function QueryTitleBlock({ attributes }: BlockRendererProps): JSX.Element
     ) as 'p' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 
     return <Tag className={classes}>{title}</Tag>;
+}
+
+function numericAttr(value: unknown): number | null {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return Math.trunc(value);
+    }
+    if (typeof value === 'string' && value.trim() !== '' && Number.isFinite(Number(value))) {
+        return Math.trunc(Number(value));
+    }
+    return null;
+}
+
+/**
+ * The text parts of a query-total line (#962): the noun for the total
+ * and, for `range-display` with results, the "first–last" range of the
+ * current page. Mirrored by the Vue renderer; both match
+ * `query-total.blade.php`. Returns null outside a resolved query.
+ */
+export function queryTotalParts(
+    attributes: Record<string, unknown>,
+): { total: number; range: string | null; noun: string; prefix: string; suffix: string } | null {
+    const rawTotal = numericAttr(attributes._resolvedTotal);
+    if (rawTotal === null) {
+        return null;
+    }
+    const total = Math.max(0, rawTotal);
+    const text = (key: string, fallback: string): string =>
+        typeof attributes[key] === 'string' ? (attributes[key] as string) : fallback;
+
+    const noun = total === 1 ? text('singular', 'result') : text('plural', 'results');
+    let range: string | null = null;
+
+    if ((attributes.displayType ?? 'total-results') === 'range-display' && total > 0) {
+        const current = Math.max(1, numericAttr(attributes._resolvedCurrentPage) ?? 1);
+        const perPage = Math.max(0, numericAttr(attributes._resolvedPerPage) ?? 0);
+        const rawItems = numericAttr(attributes._resolvedItems);
+        const items = rawItems === null ? null : Math.max(0, rawItems);
+
+        const first = perPage === 0 ? 1 : Math.min(total, (current - 1) * perPage + 1);
+        let last = perPage === 0 ? total : Math.min(total, current * perPage);
+        if (items !== null && items > 0) {
+            last = Math.min(total, first + items - 1);
+        }
+        range = first === last ? String(first) : `${first}–${last}`;
+    }
+
+    return { total, range, noun, prefix: text('prefix', ''), suffix: text('suffix', '') };
+}
+
+export function QueryTotalBlock({ attributes }: BlockRendererProps): JSX.Element | null {
+    const parts = queryTotalParts(attributes);
+
+    if (parts === null) {
+        return null;
+    }
+
+    const className = attrString(attributes.className);
+    // Preset colour / font-size classes match the Blade partial's
+    // `BlockSupports::wrapperAttrs()` output (#888).
+    const classes = classList(['wp-block-query-total', ...presetClasses(attributes), className]);
+
+    return (
+        <div className={classes}>
+            {parts.prefix}
+            {parts.range !== null ? (
+                <>
+                    <strong>{parts.range}</strong> of <strong>{parts.total}</strong>
+                </>
+            ) : (
+                <strong>{parts.total}</strong>
+            )}
+            {`${parts.noun !== '' ? ` ${parts.noun}` : ''}${parts.suffix}`}
+        </div>
+    );
 }
