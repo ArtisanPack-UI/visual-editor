@@ -653,6 +653,17 @@ inside template parts, synced patterns (when you pass `patterns`) and
 query loops. A part that references itself, directly or through
 another part, is skipped instead of recursing.
 
+*Since v1.15.2 (#973)*, the Blade renderer runs the overlay part
+through the same passes as the page: nested template parts and synced
+patterns are inlined, and a `core/navigation` inside the part that uses
+a menu location (`__unstableLocation`) or `ref` renders its menu items,
+resolved against the theme the page renders with (`<x-ve-blocks
+default-theme>`, `<x-ve-template theme>`). Give such a navigation
+`overlayMenu: 'never'` so it doesn't open a drawer of its own. The React
+and Vue renderers don't look menus up: pass the overlay part's
+navigation blocks with their items already resolved, as you do for the
+page.
+
 **Custom navigation renderers.** The renderer resolves the part into an
 internal overlay-content block and hands its rendered blocks to the
 `core/navigation` renderer as a named slot, not as `children`:
