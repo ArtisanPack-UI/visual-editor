@@ -288,7 +288,8 @@ class CategoriesBlock extends DynamicBlock
 	}
 
 	/**
-	 * Drops terms with no published posts unless `showEmpty` is set.
+	 * Drops terms with no published posts unless `showEmpty` is set, keeping
+	 * the ancestors of non-empty terms when `showHierarchy` is on.
 	 *
 	 * Filtering post-hoc keeps the SQL portable: `having` on a `withCount`
 	 * alias works in MySQL but not in every SQLite/Postgres configuration,
@@ -307,9 +308,32 @@ class CategoriesBlock extends DynamicBlock
 			return $terms;
 		}
 
-		return $terms->filter(
-			static fn ( object $term ): bool => (int) ( $term->posts_count ?? 0 ) > 0,
-		)->values();
+		// With `showHierarchy`, an empty term stays when a descendant has
+		// published posts, as in WordPress, or the hierarchy walk (which
+		// starts at the top level) would never reach that descendant.
+		$byId = $terms->keyBy( static fn ( object $term ): int => (int) $term->id );
+		$keep = [];
+
+		foreach ( $terms as $term ) {
+			if ( (int) ( $term->posts_count ?? 0 ) <= 0 ) {
+				continue;
+			}
+
+			$keep[ (int) $term->id ] = true;
+
+			if ( ! $attrs['showHierarchy'] ) {
+				continue;
+			}
+
+			$parent = $term->parent_id ?? null;
+
+			while ( null !== $parent && isset( $byId[ (int) $parent ] ) && ! isset( $keep[ (int) $parent ] ) ) {
+				$keep[ (int) $parent ] = true;
+				$parent                = $byId[ (int) $parent ]->parent_id ?? null;
+			}
+		}
+
+		return $terms->filter( static fn ( object $term ): bool => isset( $keep[ (int) $term->id ] ) )->values();
 	}
 
 	/**
@@ -710,9 +734,21 @@ class CategoriesBlock extends DynamicBlock
 			return '';
 		}
 
-		$scheme = strtolower( (string) parse_url( $trimmed, PHP_URL_SCHEME ) );
+		// Browsers drop tabs and newlines inside a URL, so check a copy
+		// without control characters or spaces; a URL `parse_url()` can't
+		// read fails closed.
+		$probe = (string) preg_replace( '/[\x00-\x20\x7F]+/', '', $trimmed );
 
-		return in_array( $scheme, [ '', 'http', 'https' ], true ) ? $trimmed : '';
+		if ( false === parse_url( $probe ) ) {
+			return '';
+		}
+
+		if ( 1 === preg_match( '#^https?:#i', $probe ) ) {
+			return $trimmed;
+		}
+
+		// Relative only when no `:` comes before the first `/`, `?` or `#`.
+		return 1 === preg_match( '#^[^:/?\#]*(?:[/?\#]|$)#', $probe ) ? $trimmed : '';
 	}
 
 	/**
