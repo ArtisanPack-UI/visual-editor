@@ -38,6 +38,13 @@ use Throwable;
 class PostResolver
 {
 	/**
+	 * PHP date format `post-date` uses when the block sets no `format`.
+	 *
+	 * @since 1.15.2
+	 */
+	public const DEFAULT_DATE_FORMAT = 'F j, Y';
+
+	/**
 	 * Block names this resolver knows how to stamp. Blocks not in this
 	 * list are returned untouched.
 	 *
@@ -258,7 +265,7 @@ class PostResolver
 		}
 
 		if ( in_array( $name, self::SUPPORTED_BLOCKS, true ) ) {
-			$attributes = array_merge( $this->resolveAttributesFor( $name, $post ), $attributes );
+			$attributes = array_merge( $this->resolveAttributesFor( $name, $post, $attributes ), $attributes );
 		}
 
 		$inner = isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] )
@@ -278,10 +285,14 @@ class PostResolver
 	 * already resolved values upstream keeps full control.
 	 *
 	 * @since 1.0.0
+	 * @since 1.15.2 Accepts the block's own attributes, so `post-date`
+	 *               can honour its `format` (#941).
+	 *
+	 * @param  array<string, mixed>  $attributes  The block's saved attributes.
 	 *
 	 * @return array<string, mixed>
 	 */
-	protected function resolveAttributesFor( string $name, object $post ): array
+	protected function resolveAttributesFor( string $name, object $post, array $attributes = [] ): array
 	{
 		// Match on the unqualified block slug so both the `core/*` blocks
 		// and their Phase I5 `artisanpack/*` forks (#413) resolve through
@@ -292,7 +303,7 @@ class PostResolver
 			'post-title'              => $this->resolveTitle( $post ),
 			'post-content'            => $this->resolveContent( $post ),
 			'post-excerpt'            => $this->resolveExcerpt( $post ),
-			'post-date'               => $this->resolveDate( $post ),
+			'post-date'               => $this->resolveDate( $post, $attributes ),
 			'post-author',
 			'post-author-name',
 			'post-author-biography',
@@ -362,18 +373,27 @@ class PostResolver
 	}
 
 	/**
+	 * Stamps the published and modified dates, formatted with the
+	 * block's `format` attribute (a PHP date format string) or
+	 * `F j, Y` when it has none (#941).
+	 *
+	 * @param  array<string, mixed>  $attributes  The block's saved attributes.
+	 *
 	 * @return array<string, mixed>
 	 */
-	protected function resolveDate( object $post ): array
+	protected function resolveDate( object $post, array $attributes = [] ): array
 	{
 		$published = $this->toCarbon( $post->published_at ?? null );
 		$modified  = $this->toCarbon( $post->updated_at ?? null );
+		$format    = isset( $attributes['format'] ) && is_string( $attributes['format'] ) && '' !== trim( $attributes['format'] )
+			? $attributes['format']
+			: self::DEFAULT_DATE_FORMAT;
 
 		return [
 			'_resolvedDate'                  => null === $published ? '' : $published->toIso8601String(),
-			'_resolvedDateFormatted'         => null === $published ? '' : $published->translatedFormat( 'F j, Y' ),
+			'_resolvedDateFormatted'         => null === $published ? '' : $published->translatedFormat( $format ),
 			'_resolvedModifiedDate'          => null === $modified ? '' : $modified->toIso8601String(),
-			'_resolvedModifiedDateFormatted' => null === $modified ? '' : $modified->translatedFormat( 'F j, Y' ),
+			'_resolvedModifiedDateFormatted' => null === $modified ? '' : $modified->translatedFormat( $format ),
 			'_resolvedPermalink'             => $this->permalink( $post ),
 		];
 	}

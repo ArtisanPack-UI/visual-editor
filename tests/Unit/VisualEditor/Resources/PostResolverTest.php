@@ -107,6 +107,26 @@ it( 'stamps post-date attributes including modified date', function (): void {
 		->and( $resolved['attributes']['_resolvedModifiedDateFormatted'] )->toBe( 'April 21, 2026' );
 } );
 
+it( 'formats post-date with the block format attribute', function (): void {
+	$resolved = ( new PostResolver() )->stampBlock(
+		[ 'name' => 'artisanpack/post-date', 'attributes' => [ 'format' => 'M j' ], 'innerBlocks' => [] ],
+		fakePost(),
+	);
+
+	expect( $resolved['attributes']['_resolvedDate'] )->toBe( '2026-04-20T12:00:00+00:00' )
+		->and( $resolved['attributes']['_resolvedDateFormatted'] )->toBe( 'Apr 20' )
+		->and( $resolved['attributes']['_resolvedModifiedDateFormatted'] )->toBe( 'Apr 21' );
+} );
+
+it( 'falls back to the default post-date format for a blank format', function (): void {
+	$resolved = ( new PostResolver() )->stampBlock(
+		[ 'name' => 'core/post-date', 'attributes' => [ 'format' => '  ' ], 'innerBlocks' => [] ],
+		fakePost(),
+	);
+
+	expect( $resolved['attributes']['_resolvedDateFormatted'] )->toBe( 'April 20, 2026' );
+} );
+
 it( 'stamps post-author attributes from the loaded relation', function (): void {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'core/post-author', 'attributes' => [], 'innerBlocks' => [] ],
