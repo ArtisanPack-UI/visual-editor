@@ -1,0 +1,48 @@
+<nav class="wp-block-navigation is-layout-flex wp-block-navigation-is-layout-flex is-horizontal">
+  <ul class="wp-block-navigation__container">
+    <li class="wp-block-navigation-item wp-block-navigation-link">
+      <a class="wp-block-navigation-item__content" href="/">
+        <span class="wp-block-navigation-item__label">
+          "Home"
+        </span>
+      </a>
+    </li>
+    <li class="wp-block-navigation-item wp-block-navigation-link current-menu-ancestor">
+      <a class="wp-block-navigation-item__content" href="/services/">
+        <span class="wp-block-navigation-item__label">
+          "All services"
+        </span>
+      </a>
+    </li>
+    <li class="wp-block-navigation-item wp-block-navigation-submenu has-child current-menu-ancestor">
+      <a class="wp-block-navigation-item__content" href="/what-we-do">
+        <span class="wp-block-navigation-item__label">
+          "What we do"
+        </span>
+      </a>
+      <ul class="wp-block-navigation__submenu-container">
+        <li class="wp-block-navigation-item wp-block-navigation-link current-menu-item">
+          <a aria-current="page" class="wp-block-navigation-item__content" href="http://localhost/services/design/">
+            <span class="wp-block-navigation-item__label">
+              "Design"
+            </span>
+          </a>
+        </li>
+        <li class="wp-block-navigation-item wp-block-navigation-link">
+          <a class="wp-block-navigation-item__content" href="/services/build">
+            <span class="wp-block-navigation-item__label">
+              "Build"
+            </span>
+          </a>
+        </li>
+      </ul>
+    </li>
+    <li class="wp-block-navigation-item wp-block-navigation-link">
+      <a class="wp-block-navigation-item__content" href="https://partner.test/services/design">
+        <span class="wp-block-navigation-item__label">
+          "Partner"
+        </span>
+      </a>
+    </li>
+  </ul>
+</nav>

@@ -19,6 +19,7 @@ import { applyBlockGap, hasBlockGapStyle } from '../../support/blockGap';
 import { safeCssValue } from '../../support/cssValue';
 import { presetPickClass } from '../../support/layoutBaselineCss';
 import { layoutModifierClasses } from '../../support/layoutContainer';
+import { navigationCurrentClasses } from '../../support/navigationCurrent';
 import { safeUrl } from '../../support/urlSanitizer';
 import { NAVIGATION_OVERLAY_SLOT } from '../../templateParts';
 import { blockRendererProps } from '../shared';
@@ -392,7 +393,8 @@ export const NavigationBlock = defineComponent({
 function buildNavLinkProps(
     url: string,
     opensInNewTab: boolean,
-    rel: string
+    rel: string,
+    isCurrent: boolean
 ): Record<string, string> {
     const props: Record<string, string> = { class: 'wp-block-navigation-item__content' };
 
@@ -405,6 +407,11 @@ function buildNavLinkProps(
         props.rel = `noopener noreferrer${rel === '' ? '' : ` ${rel}`}`.trim();
     } else if (rel !== '') {
         props.rel = rel;
+    }
+
+    // #975 — the link for the page being viewed, as Blade marks it.
+    if (isCurrent) {
+        props['aria-current'] = 'page';
     }
 
     return props;
@@ -426,10 +433,11 @@ export const NavigationLinkBlock = defineComponent({
             const classes = classList([
                 'wp-block-navigation-item',
                 'wp-block-navigation-link',
+                ...navigationCurrentClasses(props.attributes, false),
                 className,
             ]);
 
-            const linkProps = buildNavLinkProps(url, opensInNewTab, rel);
+            const linkProps = buildNavLinkProps(url, opensInNewTab, rel, props.attributes._veNavCurrent === 'current');
 
             if (title !== '') {
                 linkProps.title = title;
@@ -465,10 +473,11 @@ export const NavigationSubmenuBlock = defineComponent({
                 'wp-block-navigation-item',
                 'wp-block-navigation-submenu',
                 'has-child',
+                ...navigationCurrentClasses(props.attributes, true),
                 className,
             ]);
 
-            const linkProps = buildNavLinkProps(url, opensInNewTab, rel);
+            const linkProps = buildNavLinkProps(url, opensInNewTab, rel, props.attributes._veNavCurrent === 'current');
             const children: VNode[] = slots.default ? (slots.default() as VNode[]) : [];
 
             return h('li', { class: classes }, [

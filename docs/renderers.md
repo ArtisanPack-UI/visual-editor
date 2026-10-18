@@ -529,12 +529,13 @@ prints one tag per kind inside the rendered fragment:
   `supports.layout`, with the same inline Block spacing
   (`--wp--style--block-gap`, `row-gap`, `column-gap`) Blade prints.
 
-Two `<BlockTree>` props control the parts that depend on server config:
+Three `<BlockTree>` props control the parts that depend on server config or the request:
 
 | Prop | Type | Default | Notes |
 |------|------|---------|-------|
 | `duotonePresets` | `DuotonePresets` | — | The theme's `settings.color.duotone`, as a flat list or keyed by origin (`{ theme, custom, default }`). Without it, `var:preset\|duotone\|…` picks render no filter; custom stops still work. Also accepted by `<Template>`. |
 | `customCssAllowUrls` | `boolean` | `true` | Pass the host's [`effects.custom_css_allow_urls`](Configuration.md#effects). When `false`, Custom CSS that loads a resource (`url(`, `image-set(`, `image(`, `src(`) is dropped, as Blade drops it. `<Template>` takes the same prop and forwards it. |
+| `currentUrl` | `string \| null` | — | Absolute URL of the page being rendered (#975). Navigation links / submenus pointing at it get `current-menu-item` + `aria-current="page"`, ones to a parent path and submenus leading to it get `current-menu-ancestor` — what Blade derives from the request. Under Inertia: `new URL(usePage().url, window.location.origin).href` (or the site URL during SSR). Omitted, nothing is marked. Also accepted by `<Template>`. |
 
 Resolve both on the server and pass them in the page props:
 

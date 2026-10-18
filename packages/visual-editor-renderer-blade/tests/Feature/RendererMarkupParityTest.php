@@ -23,6 +23,7 @@ declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditorRendererBlade\Services\DuotoneCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Tests\Support\CanonicalMarkup;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\View;
 
@@ -149,7 +150,13 @@ function markupParityDivergencesFor( string $name ): array
  * `:resolve-queries="false"`; the JS renderers take the tree as given
  * anyway.
  *
- * @return array<string, array{0: string, 1: array<int, mixed>, 2: array<int, array<string, mixed>>, 3: array<int|string, mixed>, 4: bool}>
+ * A fixture may also carry `currentUrl` (#975): the JS side hands it to
+ * `BlockTree`'s `currentUrl` prop and this suite serves the fixture as a
+ * request for that URL. Without one, the request is for a path no fixture
+ * links to, so — like the JS renderers given no `currentUrl` — no
+ * navigation link is marked current.
+ *
+ * @return array<string, array{0: string, 1: array<int, mixed>, 2: array<int, array<string, mixed>>, 3: array<int|string, mixed>, 4: bool, 5: string}>
  */
 function markupParityFixtures(): array
 {
@@ -158,7 +165,7 @@ function markupParityFixtures(): array
 	$dataset = [];
 
 	foreach ( $json['fixtures'] as $fixture ) {
-		$dataset[ $fixture['name'] ] = [ $fixture['name'], $fixture['tree'], $fixture['templateParts'] ?? [], $fixture['duotonePresets'] ?? [], false !== ( $fixture['resolveQueries'] ?? true ) ];
+		$dataset[ $fixture['name'] ] = [ $fixture['name'], $fixture['tree'], $fixture['templateParts'] ?? [], $fixture['duotonePresets'] ?? [], false !== ( $fixture['resolveQueries'] ?? true ), $fixture['currentUrl'] ?? 'http://localhost/__no-current-page__' ];
 	}
 
 	return $dataset;
@@ -356,7 +363,9 @@ function markupParityCanonicalCss( string $css ): string
 	return implode( "\n", $rules );
 }
 
-it( 'matches the golden markup shared with the React and Vue renderers', function ( string $name, array $tree, array $templateParts, array $duotonePresets, bool $resolveQueries ): void {
+it( 'matches the golden markup shared with the React and Vue renderers', function ( string $name, array $tree, array $templateParts, array $duotonePresets, bool $resolveQueries, string $currentUrl ): void {
+	app()->instance( 'request', Request::create( $currentUrl ) );
+
 	if ( [] !== $templateParts ) {
 		markupParityBindTemplateParts( $templateParts );
 	}

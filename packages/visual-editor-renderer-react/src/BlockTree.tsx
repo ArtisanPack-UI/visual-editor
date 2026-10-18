@@ -39,6 +39,7 @@ import type { DuotonePresets } from './support/duotone';
 import { stampEffectsScopes } from './support/effects';
 import { stampHeadingAnchors } from './support/headingAnchors';
 import { stampLayoutScopes } from './support/layoutContainer';
+import { stampNavigationCurrent } from './support/navigationCurrent';
 import { stampPhotoGridScopes } from './support/photoGrid';
 import { stampResponsiveScopes } from './support/responsive';
 import {
@@ -125,6 +126,17 @@ export interface BlockTreeProps {
      * @since 1.15.0
      */
     duotonePresets?: DuotonePresets;
+    /**
+     * URL of the page being rendered, so navigation links / submenus
+     * pointing at it get `current-menu-item` + `aria-current="page"` and
+     * the ones leading to it `current-menu-ancestor`, as Blade marks them
+     * from the request. Pass an absolute URL (e.g. `new URL(page.url,
+     * siteUrl).href` under Inertia): with a relative one only relative
+     * menu links can match. Omitted, no link is marked.
+     *
+     * @since 1.15.2
+     */
+    currentUrl?: string | null;
 }
 
 export function BlockTree({
@@ -141,6 +153,7 @@ export function BlockTree({
     queryResults,
     customCssAllowUrls = true,
     duotonePresets,
+    currentUrl,
 }: BlockTreeProps): ReactElement {
     const blocks = useMemo(() => {
         const normalized = normalizeTree(tree);
@@ -200,7 +213,10 @@ export function BlockTree({
         // Heading anchors (#888) — stamp a unique auto-generated `anchor`
         // on every heading that lacks one, after every inliner so injected
         // headings take part, the way Blade's `TocResolver` pass does.
-        return stampHeadingAnchors(withQueries);
+        // Current page (#975) — mark navigation links against the
+        // host-supplied URL, after every inliner so links from template
+        // parts and patterns take part.
+        return stampNavigationCurrent(stampHeadingAnchors(withQueries), currentUrl);
     }, [
         tree,
         templateParts,
@@ -210,6 +226,7 @@ export function BlockTree({
         maxPatternDepth,
         siteMeta,
         queryResults,
+        currentUrl,
     ]);
 
     const flexArbitraryCss = useMemo(
