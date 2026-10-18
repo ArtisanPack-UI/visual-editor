@@ -82,7 +82,7 @@ every package upgrade to pick up refreshed CSS.
 | `theme-json`  | `array<string, mixed>\|null`  | `null`                                   | Decoded `theme.json` payload. When `null`, the token `<style>` is omitted.           |
 | `asset-base`  | `string\|null`                | `/vendor/visual-editor-renderer-blade`   | Override the bundled-CSS URL prefix — point at a CDN or your own asset pipeline.     |
 | `bundle`      | `bool`                        | `true`                                   | Set to `false` if your stack already loads `@wordpress/block-library` CSS elsewhere. |
-| `interactive` | `bool`                        | `true`                                   | Set to `false` to skip the accordion / tabs stylesheets and interactivity script.     |
+| `interactive` | `bool`                        | `true`                                   | Set to `false` to skip the accordion / tabs stylesheets and interactivity script (which also upgrades Social Share Content's copy-link chip; without it the chip stays a plain link to the post). |
 | `global-styles` | `bool`                      | `true`                                   | Set to `false` so this component never takes the global styles (see below).          |
 | `block-style-variations` | `bool`             | `true`                                   | Set to `false` to skip compiling `theme.json` block style variations into the tokens. |
 

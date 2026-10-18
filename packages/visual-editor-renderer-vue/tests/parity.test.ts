@@ -627,6 +627,30 @@ const FIXTURES: Array<{ name: string; tree: Block[] }> = [
         ],
     },
     {
+        name: 'artisanpack/social-share-content LinkedIn + copy-link chips (#963)',
+        tree: [
+            makeBlock(
+                'artisanpack/social-share-content',
+                {
+                    socialIcons: ['linkedin', 'copyLink'],
+                    iconStyle: 'show-icon',
+                    iconsDirection: 'horizontal',
+                    iconsStretch: 'auto-width',
+                    iconsBorderRadius: 8,
+                    _resolvedShareLinks: [
+                        {
+                            slug: 'linkedin',
+                            url: 'https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fexample.test%2Fpost',
+                        },
+                        { slug: 'copyLink', url: 'https://example.test/post' },
+                    ],
+                },
+                [],
+                'ssc-3'
+            ),
+        ],
+    },
+    {
         name: 'artisanpack/search-field with no resolved value',
         tree: [
             makeBlock(

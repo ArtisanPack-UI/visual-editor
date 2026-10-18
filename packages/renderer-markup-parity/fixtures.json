@@ -3826,6 +3826,30 @@
                     "innerBlocks": []
                 }
             ]
+        },
+        {
+            "name": "social-share-content-linkedin-copy-link",
+            "$comment": "#963 — a LinkedIn share chip plus the copy-link chip, which links to the permalink and carries it in `data-ap-copy-link` for the front-end script to upgrade into a copy-to-clipboard button. `email` is resolved but not picked, so it is dropped.",
+            "tree": [
+                {
+                    "clientId": "ssc-li-copy",
+                    "name": "artisanpack/social-share-content",
+                    "attributes": {
+                        "socialIcons": ["twitter", "linkedin", "copyLink"],
+                        "iconStyle": "show-label-icon",
+                        "iconsDirection": "horizontal",
+                        "iconsStretch": "auto-width",
+                        "iconColor": "#112233",
+                        "_resolvedShareLinks": [
+                            { "slug": "twitter", "url": "https://twitter.com/share?url=https%3A%2F%2Fexample.test%2Fposts%2Fhello&text=Hello" },
+                            { "slug": "linkedin", "url": "https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fexample.test%2Fposts%2Fhello" },
+                            { "slug": "email", "url": "mailto:?subject=Hello&body=https%3A%2F%2Fexample.test%2Fposts%2Fhello" },
+                            { "slug": "copyLink", "url": "https://example.test/posts/hello" }
+                        ]
+                    },
+                    "innerBlocks": []
+                }
+            ]
         }
     ]
 }

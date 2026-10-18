@@ -6,6 +6,10 @@
  * post's permalink + title + featured image and stamps
  * `_resolvedShareLinks`; this renderer intersects them with the block's
  * saved `socialIcons` picker and emits one chip per surviving platform.
+ *
+ * The `copyLink` chip links to the permalink and carries it in
+ * `data-ap-copy-link`; the Blade package's `frontend/interactivity.js`
+ * upgrades it to a copy-to-clipboard button (#963).
  */
 
 import type { CSSProperties, JSX } from 'react';
@@ -40,7 +44,9 @@ interface ResolvedChip {
     readonly slug: string;
     readonly url: string;
     readonly label: string;
+    readonly ariaLabel: string;
     readonly path: string;
+    readonly copy: boolean;
 }
 
 function clampRadius(value: unknown): number {
@@ -106,11 +112,18 @@ function resolvedChips(
             continue;
         }
 
+        // `copyLink` (#963) carries the bare permalink: the chip is a
+        // plain link to the post until the front-end interactivity
+        // script upgrades it to a copy-to-clipboard button.
+        const copy = slug === 'copyLink';
+
         chips.push({
             slug,
             url,
             label: definition.label,
+            ariaLabel: copy ? definition.label : `Share on ${definition.label}`,
             path: definition.path,
+            copy,
         });
     }
 
@@ -172,7 +185,8 @@ export function SocialShareContentBlock({
                         className={`ap-social-share-content__chip ${chip.slug}`}
                         href={chip.url}
                         style={chipStyle}
-                        aria-label={`Share on ${chip.label}`}
+                        aria-label={chip.ariaLabel}
+                        data-ap-copy-link={chip.copy ? chip.url : undefined}
                     >
                         {showIcon && (
                             <svg

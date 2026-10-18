@@ -80,3 +80,26 @@
 	font-size: 0.875rem;
 	font-style: italic;
 }
+
+/* Copy-link chip (#963). The interactivity script swaps the fallback
+ * `<a>` for a `<button>`; reset the UA button styles so both look the
+ * same, and keep the live-region status visually hidden. */
+button.ap-social-share-content__chip {
+	margin: 0;
+	border: 0;
+	font: inherit;
+	line-height: inherit;
+	cursor: pointer;
+}
+
+.ap-social-share-content__status {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
