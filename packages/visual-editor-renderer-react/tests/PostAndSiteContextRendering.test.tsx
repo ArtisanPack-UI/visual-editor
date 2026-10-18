@@ -162,6 +162,29 @@ describe('Core post-context blocks', () => {
     });
 });
 
+describe('Post Reading Time (#943)', () => {
+    it('renders the minutes with the default suffix, or a custom prefix and suffix', () => {
+        expect(renderTree([makeBlock('artisanpack/post-reading-time', { _resolvedReadingTime: 6 })])).toContain(
+            '<div class="wp-block-artisanpack-post-reading-time">6 min read</div>'
+        );
+        expect(
+            renderTree([
+                makeBlock('artisanpack/post-reading-time', {
+                    prefix: 'Reading time: ',
+                    suffix: 'minutes',
+                    _resolvedReadingTime: 6,
+                }),
+            ])
+        ).toContain('>Reading time: 6 minutes</div>');
+    });
+
+    it('renders nothing without minutes', () => {
+        expect(renderTree([makeBlock('artisanpack/post-reading-time', {})])).not.toContain(
+            'wp-block-artisanpack-post-reading-time'
+        );
+    });
+});
+
 describe('Core site-context blocks', () => {
     it('renders site-title with default link to site URL', () => {
         const tree = [

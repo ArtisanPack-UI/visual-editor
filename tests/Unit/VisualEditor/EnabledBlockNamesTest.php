@@ -102,6 +102,7 @@ it( 'returns the frozen V1 block allow-list under the default config', function 
 		'artisanpack/copyright',
 		'artisanpack/marquee',
 		'artisanpack/comments-number',
+		'artisanpack/post-reading-time',
 		'artisanpack/single-content',
 		'artisanpack/related-posts',
 		'artisanpack/author-social-icons',
