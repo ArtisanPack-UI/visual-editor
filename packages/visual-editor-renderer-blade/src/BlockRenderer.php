@@ -23,8 +23,6 @@ namespace ArtisanPackUI\VisualEditorRendererBlade;
 
 use ArtisanPackUI\VisualEditor\Blocks\DynamicContent\DynamicLoopBlock;
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
-use ArtisanPackUI\VisualEditor\Resources\PatternInliner;
-use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingResolver;
@@ -36,6 +34,7 @@ use ArtisanPackUI\VisualEditor\Visibility\VisibilityEvaluator;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\LoginoutResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\SiteMetaResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\BlockTreeReferenceResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\BoxShadowCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\DuotoneCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ElementsCssAccumulator;
@@ -301,8 +300,10 @@ class BlockRenderer
 	 * Structural resolution runs too: `template-part` and synced-pattern
 	 * references are inlined before the walk, so a template's
 	 * `parts/header.html` and its patterns render as real content rather
-	 * than empty wrappers. Both passes are entity-independent, which is
-	 * what lets them run from a plain string entry point.
+	 * than empty wrappers, and with a `$defaultTheme` a `core/navigation`
+	 * block's menu location resolves to its items. These passes are
+	 * entity-independent, which is what lets them run from a plain string
+	 * entry point.
 	 *
 	 * SCOPE: what this canNOT do is resolve blocks that need an entity in
 	 * scope — `post-*`, `core/query` loops, comments, breadcrumbs — because
@@ -321,6 +322,7 @@ class BlockRenderer
 	 * "Trust boundary" note.
 	 *
 	 * @since 1.5.5
+	 * @since 1.15.2 Resolves navigation menus and records the theme for nested overlay renders (#973).
 	 *
 	 * @param  string   $markup        Raw block markup, e.g. the contents of a theme `templates/*.html` file.
 	 * @param  ?string  $defaultTheme  Theme assumed for `template-part` blocks that omit a `theme` attribute.
@@ -334,18 +336,20 @@ class BlockRenderer
 		try {
 			$tree = app( BlockMarkupHydrator::class )->hydrate( $markup );
 
-			// Mirrors the ordering in `BlocksComponent`: parts first, so
-			// a part that itself references a synced pattern resolves in
-			// the same pass.
-			$tree = app( TemplatePartInliner::class )->inline( $tree, $defaultTheme );
-			$tree = app( PatternInliner::class )->inline( $tree );
+			// The same reference passes `BlocksComponent` runs: parts,
+			// then synced patterns, then navigation menus (#973).
+			$references = app( BlockTreeReferenceResolver::class );
+			$tree       = $references->resolveNavigation(
+				$references->inlineReferences( $tree, $defaultTheme ),
+				$defaultTheme,
+			);
 		} catch ( Throwable $e ) {
 			report( $e );
 
 			return '';
 		}
 
-		return $this->render( $tree );
+		return $references->withTheme( $defaultTheme, fn (): string => $this->render( $tree ) );
 	}
 
 	/**

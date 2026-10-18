@@ -2027,6 +2027,69 @@
             ]
         },
         {
+            "$comment": "#973 — an overlay part runs the page's reference passes: a template part nested in it is inlined, and a navigation inside it (`overlayMenu: 'never'`) renders without an overlay of its own. The fixture has no theme or menu tables, so the nested navigation's `__unstableLocation` stays unresolved and its list is empty in every renderer.",
+            "name": "navigation-overlay-nested-part",
+            "templateParts": [
+                {
+                    "slug": "mobile-drawer-nested",
+                    "area": "navigation-overlay",
+                    "blocks": [
+                        {
+                            "clientId": "drawer-tp",
+                            "name": "core/template-part",
+                            "attributes": {
+                                "slug": "drawer-cta"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "drawer-nav",
+                            "name": "core/navigation",
+                            "attributes": {
+                                "__unstableLocation": "primary",
+                                "overlayMenu": "never"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                },
+                {
+                    "slug": "drawer-cta",
+                    "area": "uncategorized",
+                    "blocks": [
+                        {
+                            "clientId": "drawer-cta-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Drawer CTA"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ],
+            "tree": [
+                {
+                    "clientId": "nav-nested",
+                    "name": "core/navigation",
+                    "attributes": {
+                        "overlay": "mobile-drawer-nested"
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "nav-nested-l1",
+                            "name": "core/navigation-link",
+                            "attributes": {
+                                "label": "Home",
+                                "url": "/"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
             "$comment": "RN-12 — nav-level attributes only the Blade partial honors: modern `layout.orientation` / `layout.justifyContent` (the JS renderers read only the legacy top-level `orientation` / `itemsJustification`), the block-specific `customTextColor` / `customBackgroundColor`, and the Elements API link color (`ElementsSupport`, a scoped `wp-elements-*` class plus an attribute-less `<style>`). Each is a declared divergence scoped to this fixture; `overlayMenu: 'never'` keeps the overlay out of the picture.",
             "name": "navigation-layout-colors-elements",
             "tree": [
