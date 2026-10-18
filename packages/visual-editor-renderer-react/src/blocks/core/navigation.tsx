@@ -18,6 +18,7 @@ import type { CSSProperties, MouseEvent } from 'react';
 import { attrBoolean, attrString, classList, phpTrim } from '../../support/attributes';
 import { applyBlockGap, hasBlockGapStyle } from '../../support/blockGap';
 import { safeCssValue } from '../../support/cssValue';
+import { navigationCollapseClass } from '../../support/navigationCollapseCss';
 import { presetPickClass } from '../../support/layoutBaselineCss';
 import { layoutModifierClasses } from '../../support/layoutContainer';
 import { navigationCurrentClasses } from '../../support/navigationCurrent';
@@ -226,6 +227,7 @@ export function NavigationBlock({ attributes, children, slots }: BlockRendererPr
         itemsJustify !== '' ? `items-justified-${itemsJustify}` : null,
         ...layoutModifierClasses(attributes, false),
         wantsOverlay ? 'is-responsive' : null,
+        navigationCollapseClass(attributes),
         className,
     ]);
 

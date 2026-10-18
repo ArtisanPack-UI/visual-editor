@@ -51,6 +51,7 @@ import {
     addForkedCoreAnimationsSupport,
     registerForkedCoreBlocks,
 } from '../../../editor/register-forked-cores';
+import { addNavigationCollapseBreakpointAttribute } from '../../../editor/navigation-collapse-breakpoint';
 
 const FAMILY = [
     'core/navigation',
@@ -108,6 +109,21 @@ describe('registerForkedCoreBlocks', () => {
 
         expect(navigation?.supports?.artisanpackAnimations).toBe(true);
         expect(navigation?.attributes).toHaveProperty('artisanpackAnimations');
+    });
+
+    it('adds the collapseBreakpoint attribute to core/navigation without a default (#977)', () => {
+        registerForkedCoreBlocks();
+
+        expect(getBlockType('core/navigation')?.attributes?.collapseBreakpoint).toEqual({ type: 'string' });
+        expect(getBlockType('core/navigation-link')?.attributes).not.toHaveProperty('collapseBreakpoint');
+    });
+
+    it('leaves other blocks and an existing collapseBreakpoint attribute untouched (#977)', () => {
+        const other = { attributes: { label: { type: 'string' } } };
+        expect(addNavigationCollapseBreakpointAttribute(other, 'core/navigation-link')).toBe(other);
+
+        const existing = { attributes: { collapseBreakpoint: { type: 'string', default: 'tablet' } } };
+        expect(addNavigationCollapseBreakpointAttribute(existing, 'core/navigation')).toBe(existing);
     });
 
     it('leaves other blocks and explicit opt-outs untouched', () => {

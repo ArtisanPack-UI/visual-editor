@@ -80,6 +80,7 @@ import {
 import { useFreshContentDetection } from './page-pattern-modal/use-fresh-content-detection';
 import { filterModalPatterns } from './page-pattern-modal/filter-modal-patterns';
 import { registerNavigationBlockGap } from './navigation-block-gap';
+import { registerNavigationCollapseBreakpoint } from './with-navigation-collapse-breakpoint';
 import { registerSyncedPatternIndicator } from './synced-pattern-indicator';
 import {
     listPatterns,
@@ -144,6 +145,8 @@ function registerOnce(): void {
     registerSyncedPatternIndicator();
     // #814 — surface `core/navigation`'s Block spacing in the canvas.
     registerNavigationBlockGap();
+    // #977 — `core/navigation`'s "Collapse below" control + canvas preview.
+    registerNavigationCollapseBreakpoint();
     // #649 — register the background-controls BlockEdit HOC FIRST so
     // it wraps innermost. `@wordpress/hooks` composes filters in
     // registration order, so the LAST-registered HOC wraps outermost;

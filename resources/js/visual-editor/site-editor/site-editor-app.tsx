@@ -82,6 +82,7 @@ import {
 } from '../editor/contrast-warning';
 import { TopBar } from '../editor/top-bar';
 import { registerNavigationBlockGap } from '../editor/navigation-block-gap';
+import { registerNavigationCollapseBreakpoint } from '../editor/with-navigation-collapse-breakpoint';
 import { registerSyncedPatternIndicator } from '../editor/synced-pattern-indicator';
 import { registryFromSnapshot, setResponsiveRegistry } from '../responsive/registry';
 import type { BreakpointRegistrySnapshot } from '../responsive/types';
@@ -233,6 +234,8 @@ function ensureEditorBoot(): void {
     // upstream's layout-support `gap` rule for `core/navigation` never
     // reaches the DOM. Write it onto the wrapper instead.
     registerNavigationBlockGap();
+    // #977 — `core/navigation`'s "Collapse below" control + canvas preview.
+    registerNavigationCollapseBreakpoint();
 
     // #649 — register the background-controls BlockEdit HOC so external
     // packages can contribute panels to any block that opts into a

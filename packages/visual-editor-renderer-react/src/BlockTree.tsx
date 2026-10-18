@@ -34,6 +34,7 @@ import {
     NAVIGATION_OVERLAY_CSS,
     treeHasNavigationOverlay,
 } from './support/navigationOverlayCss';
+import { treeNavigationCollapseCss } from './support/navigationCollapseCss';
 import { stampDuotoneScopes } from './support/duotone';
 import type { DuotonePresets } from './support/duotone';
 import { stampEffectsScopes } from './support/effects';
@@ -300,6 +301,10 @@ export function BlockTree({
     // rules, emitted once when any navigation block has its overlay on.
     const hasNavigationOverlay = useMemo(() => treeHasNavigationOverlay(renderTree), [renderTree]);
 
+    // Navigation collapse breakpoint (#977) — the rules for every
+    // `collapseBreakpoint` a navigation in the tree uses, each once.
+    const navigationCollapseCss = useMemo(() => treeNavigationCollapseCss(renderTree), [renderTree]);
+
     return (
         <>
             <GlobalStyles css={globalStylesCss} />
@@ -336,6 +341,9 @@ export function BlockTree({
             )}
             {hasNavigationOverlay && (
                 <style data-ve-navigation-overlay="">{NAVIGATION_OVERLAY_CSS}</style>
+            )}
+            {navigationCollapseCss !== '' && (
+                <style data-ve-navigation-collapse="">{navigationCollapseCss}</style>
             )}
             {duotoneCss !== '' && (
                 // Raw HTML so a `>` target combinator isn't escaped.

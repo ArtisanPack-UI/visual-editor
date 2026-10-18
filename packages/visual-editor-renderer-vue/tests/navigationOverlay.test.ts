@@ -8,6 +8,7 @@ import { BlockTree } from '../src/BlockTree';
 import type { PatternRecord } from '../src/patterns';
 import type { TemplatePartRecord } from '../src/templateParts';
 import type { Block } from '../src/types';
+import { setBreakpoints } from '../src/visibility';
 import { makeBlock } from './helpers';
 
 function navigation(attributes: Record<string, unknown> = {}, clientId = 'nav-1'): Block {
@@ -445,5 +446,70 @@ describe('NavigationBlock overlay interaction (#804)', () => {
         wrapper.unmount();
 
         expect(document.body.style.overflow).toBe('');
+    });
+});
+
+describe('NavigationBlock collapse breakpoint (#977)', () => {
+    afterEach(() => {
+        setBreakpoints({});
+    });
+
+    function collapseStyles(container: HTMLElement): HTMLStyleElement[] {
+        return Array.from(container.querySelectorAll<HTMLStyleElement>('style[data-ve-navigation-collapse]'));
+    }
+
+    it('leaves the default nav without a collapse class or rules', () => {
+        const container = renderNav([navigation(), navigation({ collapseBreakpoint: '' }, 'nav-2')]);
+
+        expect(container.querySelector('nav')?.className).toBe(
+            'wp-block-navigation is-layout-flex wp-block-navigation-is-layout-flex is-horizontal is-responsive'
+        );
+        expect(container.innerHTML).not.toContain('collapses-at-');
+        expect(collapseStyles(container)).toHaveLength(0);
+    });
+
+    it('stamps collapses-at-tablet and emits the tablet rules once', () => {
+        const container = renderNav([
+            navigation({ collapseBreakpoint: 'tablet' }),
+            navigation({ collapseBreakpoint: 'tablet' }, 'nav-2'),
+        ]);
+
+        const styles = collapseStyles(container);
+        const css = styles[0]?.textContent ?? '';
+
+        expect(container.querySelectorAll('nav.collapses-at-tablet')).toHaveLength(2);
+        expect(styles).toHaveLength(1);
+        expect(css.match(/@media \(max-width: 1023px\)/g)).toHaveLength(1);
+        expect(css).toContain(
+            '@media (max-width: 1023px) {.wp-block-navigation.collapses-at-tablet .wp-block-navigation__responsive-container:not(.hidden-by-default):not(.is-menu-open) { display: none; }'
+        );
+        expect(css).toContain('@media (min-width: 1024px) {');
+        expect(css).not.toContain('@layer');
+    });
+
+    it('reads the max-width from the configured breakpoints', () => {
+        setBreakpoints({ tablet: { maxWidthPx: 899, previewWidthPx: 800 } });
+
+        const css = collapseStyles(renderNav([navigation({ collapseBreakpoint: 'tablet' })]))[0]?.textContent ?? '';
+
+        expect(css).toContain('@media (max-width: 899px) {');
+        expect(css).toContain('@media (min-width: 900px) {');
+    });
+
+    it('ignores the attribute on an always overlay', () => {
+        const container = renderNav([navigation({ collapseBreakpoint: 'tablet', overlayMenu: 'always' })]);
+
+        expect(container.innerHTML).not.toContain('collapses-at-');
+        expect(collapseStyles(container)).toHaveLength(0);
+    });
+
+    it('still opens and closes the drawer', async () => {
+        const wrapper = mountNav([navigation({ collapseBreakpoint: 'tablet' })]);
+
+        await wrapper.find('.wp-block-navigation__responsive-container-open').trigger('click');
+        expect(wrapper.find('.wp-block-navigation__responsive-container').classes()).toContain('is-menu-open');
+
+        await wrapper.find('.wp-block-navigation__responsive-container-close').trigger('click');
+        expect(wrapper.find('.wp-block-navigation__responsive-container').classes()).not.toContain('is-menu-open');
     });
 });
