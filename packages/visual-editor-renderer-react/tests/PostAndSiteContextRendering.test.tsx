@@ -379,4 +379,23 @@ describe('Core navigation blocks', () => {
         expect(html).not.toContain('javascript:');
         expect(html).not.toContain('href=');
     });
+
+    it('wraps each post term in its own element, linked or not (#939)', () => {
+        const tree = [
+            makeBlock('core/post-terms', {
+                term: 'package-tag',
+                _resolvedTermsByTaxonomy: {
+                    'package-tag': [
+                        { name: 'a11y', slug: 'a11y', url: '' },
+                        { name: 'Core', slug: 'core', url: 'https://example.test/tag/core' },
+                    ],
+                },
+            }),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('<span class="wp-block-post-terms__term">a11y</span><span class="wp-block-post-terms__separator">, </span>');
+        expect(html).toMatch(/<a (class="wp-block-post-terms__term" href="https:\/\/example\.test\/tag\/core"|href="https:\/\/example\.test\/tag\/core" class="wp-block-post-terms__term")>Core<\/a>/);
+    });
 });

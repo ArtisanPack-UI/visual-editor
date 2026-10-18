@@ -28,13 +28,15 @@
 			continue;
 		}
 
+		// Each term carries `wp-block-post-terms__term`, so a theme can
+		// style one term (chips, spacing) whether or not it links (#939).
 		if ( '' === $url ) {
 			// Upstream `get_the_term_list` always produces anchors; we
-			// degrade gracefully to plain text when the host can't
+			// degrade gracefully to a plain span when the host can't
 			// resolve a permalink for the term.
-			$items[] = e( $name );
+			$items[] = sprintf( '<span class="wp-block-post-terms__term">%s</span>', e( $name ) );
 		} else {
-			$items[] = sprintf( '<a href="%s">%s</a>', e( $url ), e( $name ) );
+			$items[] = sprintf( '<a class="wp-block-post-terms__term" href="%s">%s</a>', e( $url ), e( $name ) );
 		}
 	}
 

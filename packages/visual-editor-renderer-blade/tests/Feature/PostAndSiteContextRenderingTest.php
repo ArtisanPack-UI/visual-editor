@@ -320,3 +320,23 @@ it( 'forces noopener when a navigation link opens in a new tab', function (): vo
 	expect( $rendered )->toContain( 'target="_blank"' );
 	expect( $rendered )->toContain( 'rel="noopener noreferrer"' );
 } );
+
+it( 'wraps each post term in its own element, linked or not (#939)', function (): void {
+	$tree = [
+		blockNode( 'core/post-terms', [
+			'term'                     => 'package-tag',
+			'_resolvedTermsByTaxonomy' => [
+				'package-tag' => [
+					[ 'name' => 'a11y', 'slug' => 'a11y', 'url' => '' ],
+					[ 'name' => 'Core', 'slug' => 'core', 'url' => 'https://example.test/tag/core' ],
+				],
+			],
+		] ),
+	];
+
+	$rendered = $this->normalizeHtml( $this->stripGlobalStyles( renderTree( $tree ) ) );
+
+	expect( $rendered )
+		->toContain( '<span class="wp-block-post-terms__term">a11y</span><span class="wp-block-post-terms__separator">, </span>' )
+		->toContain( '<a class="wp-block-post-terms__term" href="https://example.test/tag/core">Core</a>' );
+} );
