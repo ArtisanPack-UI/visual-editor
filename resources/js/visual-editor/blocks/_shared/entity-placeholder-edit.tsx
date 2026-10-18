@@ -138,9 +138,11 @@ export interface EntityPlaceholderConfig {
      * `artisanpack/postPreview` block context the query block pipes
      * down (#483). When the block is inside an `artisanpack/query`
      * loop, the resolved first post is available here; otherwise the
-     * extractor is skipped and the next strategy is tried.
+     * extractor is skipped and the next strategy is tried. The block's
+     * own attributes are passed too, so an extractor can honour a
+     * display setting such as Post Date's `format` (#941).
      */
-    readonly fromQueryPreview?: ( post: QueryPreviewPost ) => EntityPreviewValue | null;
+    readonly fromQueryPreview?: ( post: QueryPreviewPost, attributes: AnyProps ) => EntityPreviewValue | null;
     /**
      * Optional extractor that pulls the block's value from a live
      * post entity record fetched through the core-data shim. Triggered
@@ -149,8 +151,9 @@ export interface EntityPlaceholderConfig {
      * active page's id/type — see `editor-app.tsx`). Used by the
      * `artisanpack/post-*` previews so a block placed at the page
      * level (outside a query loop) reads the live page entity (#481).
+     * Receives the block's attributes like `fromQueryPreview`.
      */
-    readonly fromPostEntity?: ( entity: PostEntityRecord ) => EntityPreviewValue | null;
+    readonly fromPostEntity?: ( entity: PostEntityRecord, attributes: AnyProps ) => EntityPreviewValue | null;
     /**
      * Optional extractor that pulls the block's value from the live
      * singleton site-meta entity (`root/__unstableBase`). Used by the
@@ -279,6 +282,7 @@ function readPostEntityIdentity( context: unknown ): PostEntityIdentity | null {
 function useLivePostEntityValue(
     extractor: EntityPlaceholderConfig['fromPostEntity'] | null | undefined,
     blockContext: unknown,
+    attributes: AnyProps,
 ): EntityPreviewValue | null {
     const identity = readPostEntityIdentity( blockContext );
 
@@ -296,7 +300,7 @@ function useLivePostEntityValue(
         return null;
     }
 
-    return extractor( record );
+    return extractor( record, attributes );
 }
 
 /**
@@ -348,6 +352,7 @@ export function createEntityPlaceholderEdit(
         const livePostEntityValue = useLivePostEntityValue(
             config.fromPostEntity,
             props.context,
+            attributes,
         );
         const liveSiteEntityValue = useLiveSiteEntityValue( config.fromSiteEntity );
 
@@ -367,7 +372,7 @@ export function createEntityPlaceholderEdit(
             const post = readQueryPreviewPost( props.context );
 
             if ( post !== null ) {
-                const fromContext = config.fromQueryPreview( post );
+                const fromContext = config.fromQueryPreview( post, attributes );
 
                 if ( fromContext !== null && hasPreviewValue( config.kind, fromContext ) ) {
                     return renderResolved( config.kind, fromContext, blockProps );

@@ -105,6 +105,37 @@ describe('inlineQueries', () => {
         );
     });
 
+    it('formats core/post-date with the block format attribute', () => {
+        const tree = [
+            makeQueryBlock([
+                { name: 'core/post-date', attributes: {}, innerBlocks: [] } as Block,
+                { name: 'core/post-date', attributes: { format: 'M j' }, innerBlocks: [] } as Block,
+            ]),
+        ];
+
+        const queries: ResolvedQuery[] = [
+            {
+                queryId: 'q1',
+                posts: [
+                    {
+                        id: 1,
+                        title: 'Post',
+                        permalink: '/posts/1',
+                        publishedAt: '2026-10-02T13:00:00+00:00',
+                    },
+                ],
+            },
+        ];
+
+        const result = inlineQueries(tree, { queries });
+        const stamped = result[0].innerBlocks?.[0].innerBlocks?.[0].innerBlocks ?? [];
+
+        expect((stamped[0].attributes as Record<string, unknown>)._resolvedDateFormatted).toBe(
+            'October 2, 2026'
+        );
+        expect((stamped[1].attributes as Record<string, unknown>)._resolvedDateFormatted).toBe('Oct 2');
+    });
+
     it('recurses into nested queries and groups', () => {
         const tree = [
             {
