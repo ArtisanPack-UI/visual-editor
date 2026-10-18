@@ -17,8 +17,13 @@ describe.each([
         ['Y-m-d H:i:s', '2026-10-02 13:05:09'],
         ['g:i A', '1:05 PM'],
         ['N w z t L', '5 5 274 31 0'],
+        ['W', '40'],
     ])('formats %s', (pattern, expected) => {
         expect(format('2026-10-02T13:05:09-05:00', pattern)).toBe(expected);
+    });
+
+    it('gives ISO-8601 week numbers across a year boundary (PHP W)', () => {
+        expect(['2026-01-01', '2027-01-01', '2027-01-04'].map((date) => format(date, 'W'))).toEqual(['01', '53', '01']);
     });
 
     it('formats the timestamp wall-clock time, not the viewer timezone', () => {
