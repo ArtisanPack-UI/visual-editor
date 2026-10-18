@@ -646,6 +646,45 @@ it( 'validates table cell alignment against an allowlist', function (): void {
 		->not->toContain( 'expression' );
 } );
 
+it( 'prints sanitised table cell colspan, rowspan and scope', function (): void {
+	$tree = [
+		makeBlock( 'core/table', [
+			'head' => [ [ 'cells' => [
+				[ 'content' => 'Name', 'tag' => 'th', 'scope' => 'col' ],
+				[ 'content' => 'Bad', 'tag' => 'th', 'scope' => 'col" onclick="x' ],
+			] ] ],
+			'body' => [ [ 'cells' => [
+				[ 'content' => 'Ada', 'tag' => 'td', 'scope' => 'row', 'rowspan' => '2' ],
+				[ 'content' => 'Zero', 'tag' => 'td', 'colspan' => '0' ],
+				[ 'content' => 'Junk', 'tag' => 'td', 'colspan' => '2" onclick="x' ],
+			] ] ],
+			'foot' => [ [ 'cells' => [ [ 'content' => 'Note', 'tag' => 'td', 'colspan' => '3' ] ] ] ],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( '<th scope="col">Name</th>' )
+		->toContain( '<th>Bad</th>' )
+		->toContain( '<td rowspan="2">Ada</td>' )
+		->toContain( '<td>Zero</td>' )
+		->toContain( '<td>Junk</td>' )
+		->toContain( '<td colspan="3">Note</td>' )
+		->not->toContain( 'onclick' );
+} );
+
+it( 'puts has-fixed-layout on the table, defaulting to on', function (): void {
+	$cells = [ [ 'cells' => [ [ 'content' => 'A', 'tag' => 'td' ] ] ] ];
+
+	$defaulted = makeRenderer()->render( [ makeBlock( 'core/table', [ 'body' => $cells ] ) ] );
+	$auto      = makeRenderer()->render( [ makeBlock( 'core/table', [ 'body' => $cells, 'hasFixedLayout' => false ] ) ] );
+
+	expect( $defaulted )->toContain( '<table class="has-fixed-layout">' )
+		->toContain( '<figure class="wp-block-table">' );
+	expect( $auto )->toContain( '<table>' )
+		->not->toContain( 'has-fixed-layout' );
+} );
+
 it( 'generates stable unique ids for multiple search blocks on the same page', function (): void {
 	$tree = [
 		makeBlock( 'core/search', [ 'label' => 'First', 'buttonText' => 'Go' ], [], 's-1' ),

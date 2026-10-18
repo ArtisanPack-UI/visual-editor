@@ -1,0 +1,53 @@
+<figure class="wp-block-table">
+  <table class="has-fixed-layout">
+    <thead>
+      <tr>
+        <th scope="col">
+          "Name"
+        </th>
+        <th colspan="2">
+          "Score"
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th rowspan="2" scope="row">
+          "Ada"
+        </th>
+        <td>
+          "1"
+        </td>
+        <td>
+          "2"
+        </td>
+      </tr>
+      <tr>
+        <td>
+          "3"
+        </td>
+        <td rowspan="3">
+          "4"
+        </td>
+      </tr>
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="1000">
+          "Note"
+        </td>
+      </tr>
+    </tfoot>
+  </table>
+</figure>
+<figure class="wp-block-table">
+  <table>
+    <tbody>
+      <tr>
+        <td>
+          "Auto"
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</figure>
