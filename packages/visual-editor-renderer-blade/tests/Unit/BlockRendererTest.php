@@ -438,6 +438,53 @@ it( 'drops unsafe URL schemes from image hrefs and src', function (): void {
 		->not->toContain( '<a ' );
 } );
 
+it( 'renders string image dimensions as an inline style with is-resized (#985)', function (): void {
+	$tree = [
+		makeBlock( 'artisanpack/image', [
+			'url'      => 'https://example.test/logo.png',
+			'width'    => 'auto',
+			'height'   => '30px',
+			'sizeSlug' => 'full',
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( '<figure class="wp-block-image size-full is-resized">' )
+		->toContain( 'height="30"' )
+		->toContain( 'style="width:auto;height:30px"' )
+		->not->toContain( 'width="' );
+} );
+
+it( 'keeps legacy numeric image dimensions as HTML attributes only (#985)', function (): void {
+	$tree = [ makeBlock( 'core/image', [ 'url' => 'https://example.test/a.png', 'width' => 300, 'height' => '200' ] ) ];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'width="300"' )
+		->toContain( 'height="200"' )
+		->not->toContain( 'style=' )
+		->not->toContain( 'is-resized' );
+} );
+
+it( 'drops image dimensions that are not a CSS length or auto (#985)', function (): void {
+	$tree = [
+		makeBlock( 'core/image', [
+			'url'    => 'https://example.test/a.png',
+			'width'  => '10px;position:fixed',
+			'height' => "30px\n",
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->not->toContain( 'position' )
+		->not->toContain( 'style=' )
+		->not->toContain( 'width="' )
+		->not->toContain( 'height="' )
+		->not->toContain( 'is-resized' );
+} );
+
 it( 'places media-text width on the right column when mediaPosition is right', function (): void {
 	$tree = [
 		makeBlock( 'core/media-text', [

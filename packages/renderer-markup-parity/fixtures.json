@@ -2714,6 +2714,161 @@
             ]
         },
         {
+            "name": "image-dimensions-auto-width-px-height",
+            "$comment": "#985 — WordPress 6.3+ string dimensions: `auto` width + px height print an inline style and `is-resized`; only the whole-px height also prints an HTML attribute.",
+            "tree": [
+                {
+                    "clientId": "i1",
+                    "name": "core/image",
+                    "attributes": {
+                        "url": "https://example.com/photo.jpg",
+                        "alt": "A photo",
+                        "width": "auto",
+                        "height": "30px",
+                        "sizeSlug": "full"
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "name": "image-dimensions-px-width",
+            "$comment": "#985 — a px width alone: style, `is-resized` and the integer `width` attribute; a fractional px or non-px length gets the style only.",
+            "tree": [
+                {
+                    "clientId": "i1",
+                    "name": "core/image",
+                    "attributes": {
+                        "url": "https://example.com/photo.jpg",
+                        "alt": "A photo",
+                        "width": "278px"
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "i2",
+                    "name": "core/image",
+                    "attributes": {
+                        "url": "https://example.com/photo.jpg",
+                        "alt": "A photo",
+                        "width": "50%",
+                        "height": "12.5rem"
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "i3",
+                    "name": "core/image",
+                    "attributes": {
+                        "url": "https://example.com/photo.jpg",
+                        "alt": "A photo",
+                        "width": "120.5px"
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "name": "image-dimensions-legacy-numeric",
+            "$comment": "#985 — legacy numeric dimensions (JSON numbers, unitless numeric strings) keep the old output: integer HTML attributes, no style, no `is-resized`.",
+            "tree": [
+                {
+                    "clientId": "i1",
+                    "name": "core/image",
+                    "attributes": {
+                        "url": "https://example.com/photo.jpg",
+                        "alt": "A photo",
+                        "width": 300,
+                        "height": 200
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "i2",
+                    "name": "core/image",
+                    "attributes": {
+                        "url": "https://example.com/photo.jpg",
+                        "alt": "A photo",
+                        "width": "640",
+                        "height": "480.7"
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "name": "image-dimensions-aspect-ratio-scale",
+            "$comment": "#985 — width / height follow aspect-ratio and object-fit in the editor's save() declaration order.",
+            "tree": [
+                {
+                    "clientId": "i1",
+                    "name": "core/image",
+                    "attributes": {
+                        "url": "https://example.com/photo.jpg",
+                        "alt": "A photo",
+                        "aspectRatio": "4/3",
+                        "scale": "cover",
+                        "width": "100%",
+                        "height": "auto",
+                        "sizeSlug": "large"
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "name": "image-dimensions-hostile",
+            "$comment": "#985 — a dimension that is not a CSS length or `auto` is dropped: no style, no attribute, no `is-resized`.",
+            "tree": [
+                {
+                    "clientId": "i1",
+                    "name": "core/image",
+                    "attributes": {
+                        "url": "https://example.com/photo.jpg",
+                        "alt": "A photo",
+                        "width": "300px;position:fixed",
+                        "height": "expression(alert(1))"
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "i2",
+                    "name": "core/image",
+                    "attributes": {
+                        "url": "https://example.com/photo.jpg",
+                        "alt": "A photo",
+                        "width": "",
+                        "height": "-5px"
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "i3",
+                    "name": "core/image",
+                    "attributes": {
+                        "url": "https://example.com/photo.jpg",
+                        "alt": "A photo",
+                        "width": "calc(100% - 1px)",
+                        "height": "30px\n"
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "i4",
+                    "name": "core/image",
+                    "attributes": {
+                        "url": "https://example.com/photo.jpg",
+                        "alt": "A photo",
+                        "width": true,
+                        "height": [
+                            "30px"
+                        ]
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
             "name": "image-hostile-aspect-ratio-scale",
             "tree": [
                 {
