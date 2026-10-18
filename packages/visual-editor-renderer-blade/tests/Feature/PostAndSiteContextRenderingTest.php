@@ -187,6 +187,20 @@ it( 'sizes the post-featured-image figure and image from width and height (#948)
 	expect( $rendered )->toContain( 'style="height:100%;object-fit:cover"' );
 } );
 
+it( 'leaves an image-less post-featured-image figure unsized (#948)', function (): void {
+	$tree = [
+		blockNode( 'core/post-featured-image', [
+			'width'  => '130px',
+			'height' => '100%',
+		] ),
+	];
+
+	$rendered = $this->stripGlobalStyles( renderTree( $tree ) );
+
+	expect( $rendered )->toContain( '<figure class="wp-block-post-featured-image">' );
+	expect( $rendered )->not()->toContain( 'height:100%' );
+} );
+
 it( 'drops an unsafe post-featured-image height (#948)', function (): void {
 	$tree = [
 		blockNode( 'core/post-featured-image', [

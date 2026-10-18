@@ -36,13 +36,15 @@
 	// `width` the figure, and a fixed frame (aspect ratio or height) crops
 	// with `scale`, whose block.json default `cover` the editor never
 	// saves — so an unsaved scale still covers instead of stretching.
+	// A post without an image keeps its empty figure unsized, so a query
+	// loop doesn't leave an image-sized gap where there's nothing to show.
 	$figureStyles = [];
 
-	if ( '' !== $frameWidth ) {
+	if ( '' !== $imageUrl && '' !== $frameWidth ) {
 		$figureStyles[] = 'width:' . $frameWidth;
 	}
 
-	if ( '' !== $frameHeight ) {
+	if ( '' !== $imageUrl && '' !== $frameHeight ) {
 		$figureStyles[] = 'height:' . $frameHeight;
 	}
 

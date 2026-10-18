@@ -165,6 +165,11 @@ describe('Core post-context blocks', () => {
         expect(html).toMatch(/<img[^>]*style="height:\s*100%;\s*object-fit:\s*contain;?"/);
     });
 
+    it('leaves an image-less post-featured-image figure unsized (#948)', () => {
+        expect(renderTree([makeBlock('core/post-featured-image', { width: '130px', height: '100%' })]))
+            .toBe('<figure class="wp-block-post-featured-image"></figure>');
+    });
+
     it('drops javascript: hrefs from post-featured-image', () => {
         const tree = [
             makeBlock('core/post-featured-image', {

@@ -334,6 +334,11 @@ export function PostFeaturedImageBlock({ attributes }: BlockRendererProps): JSX.
         className,
     ]);
 
+    if (imageUrl === '') {
+        return <figure className={classes} />;
+    }
+
+    // Frame sizing only applies once there is an image to frame.
     const figureStyle: Record<string, string> = {};
 
     if (frameWidth !== '') {
@@ -345,10 +350,6 @@ export function PostFeaturedImageBlock({ attributes }: BlockRendererProps): JSX.
     }
 
     const figureProps = Object.keys(figureStyle).length > 0 ? { style: figureStyle } : {};
-
-    if (imageUrl === '') {
-        return <figure className={classes} {...figureProps} />;
-    }
 
     const style: Record<string, string> = {};
 
