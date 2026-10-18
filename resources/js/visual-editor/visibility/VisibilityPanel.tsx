@@ -23,7 +23,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { __, _x } from '@wordpress/i18n';
+import { __, _x, sprintf } from '@wordpress/i18n';
 import {
     Button,
     ButtonGroup,
@@ -310,7 +310,12 @@ function ScreenSizePanel({ value, onChange, breakpoints }: { value: ScreenSizeRu
                     {groups.devices.map((bp, index) => (
                         <CheckboxControl
                             key={bp.key}
-                            label={`${bp.label} (≤${bp.maxWidthPx}px)`}
+                            label={sprintf(
+                                /* translators: 1: device name, e.g. "Mobile". 2: its maximum width in pixels. */
+                                __('%1$s (≤%2$dpx)', 'artisanpack-visual-editor'),
+                                bp.label,
+                                bp.maxWidthPx
+                            )}
                             help={index > 0
                                 ? __('Includes every smaller screen, phones too.', 'artisanpack-visual-editor')
                                 : undefined}
@@ -320,7 +325,11 @@ function ScreenSizePanel({ value, onChange, breakpoints }: { value: ScreenSizeRu
                     ))}
                     {groups.desktopMinWidthPx !== null && (
                         <CheckboxControl
-                            label={`${__('Desktop', 'artisanpack-visual-editor')} (≥${groups.desktopMinWidthPx}px)`}
+                            label={sprintf(
+                                /* translators: %d: the minimum desktop width in pixels. */
+                                __('Desktop (≥%dpx)', 'artisanpack-visual-editor'),
+                                groups.desktopMinWidthPx
+                            )}
                             checked={desktopChecked}
                             onChange={(checked) => write(groups.desktopKeys, checked)}
                         />
