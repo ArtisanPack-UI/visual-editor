@@ -15,11 +15,56 @@ import type { BlockRendererProps } from '../../types';
 const IMAGE_SCALES = ['cover', 'contain', 'fill', 'none', 'scale-down'];
 
 /**
+ * Unitless numeric string — a legacy image dimension (#985).
+ */
+const LEGACY_DIMENSION = /^\d+(\.\d+)?$/;
+
+/**
+ * The CSS lengths (plus `auto`) an image `width` / `height` may carry (#985).
+ */
+const CSS_DIMENSION =
+    /^(auto|(\d+(\.\d+)?|\.\d+)(px|em|rem|%|vw|vh|vmin|vmax|svw|svh|lvw|lvh|dvw|dvh|ch|ex|cm|mm|in|pt|pc))$/;
+
+/**
+ * Resolve an image `width` / `height` attribute (#985), mirroring
+ * `image.blade.php`: a legacy numeric value (a number or a unitless
+ * numeric string) keeps the integer HTML attribute and nothing else; a
+ * CSS length or `auto` becomes an inline style, plus the HTML attribute
+ * for a whole-px value; anything else is dropped.
+ */
+function imageDimension(value: unknown): { attr?: number; style?: string } {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return { attr: Math.trunc(value) };
+    }
+
+    if (typeof value !== 'string') {
+        return {};
+    }
+
+    if (LEGACY_DIMENSION.test(value)) {
+        return { attr: Number.parseInt(value, 10) };
+    }
+
+    if (!CSS_DIMENSION.test(value)) {
+        return {};
+    }
+
+    const px = /^(\d+)px$/.exec(value);
+
+    return px === null ? { style: value } : { attr: Number.parseInt(px[1], 10), style: value };
+}
+
+/**
  * The `<img>` style for the image block's `aspectRatio` + `scale`
  * attributes (#873), mirroring `image.blade.php`: the ratio must pass
- * `safeCssValue`, the scale must be a known object-fit keyword.
+ * `safeCssValue`, the scale must be a known object-fit keyword. The
+ * resolved width / height (#985) follow, in the editor `save()` order.
  */
-function imageStyle(attributes: Record<string, unknown>): Record<string, string> | undefined {
+function imageStyle(
+    attributes: Record<string, unknown>,
+    width: string | undefined,
+    height: string | undefined,
+): Record<string, string> | undefined {
     const style: Record<string, string> = {};
     const aspectRatio =
         typeof attributes.aspectRatio === 'string' ? safeCssValue(attributes.aspectRatio) : null;
@@ -33,6 +78,14 @@ function imageStyle(attributes: Record<string, unknown>): Record<string, string>
         style.objectFit = scale;
     }
 
+    if (width !== undefined) {
+        style.width = width;
+    }
+
+    if (height !== undefined) {
+        style.height = height;
+    }
+
     return Object.keys(style).length > 0 ? style : undefined;
 }
 
@@ -42,20 +95,19 @@ export function ImageBlock({ attributes }: BlockRendererProps): JSX.Element {
     const caption = attrString(attributes.caption);
     const href = safeUrl(attributes.href);
     const id = attrInt(attributes.id);
-    const hasDimension = (key: 'width' | 'height'): boolean =>
-        attributes[key] !== undefined && attributes[key] !== null && attributes[key] !== '';
-    const width = hasDimension('width') ? attrInt(attributes.width) : undefined;
-    const height = hasDimension('height') ? attrInt(attributes.height) : undefined;
+    const width = imageDimension(attributes.width);
+    const height = imageDimension(attributes.height);
 
     const align = attrString(attributes.align);
     const sizeSlug = attrString(attributes.sizeSlug);
     const className = attrString(attributes.className);
 
-    // Blade order: base, size, duotone scope (stamped by
+    // Blade order: base, size, is-resized (#985), duotone scope (stamped by
     // `stampDuotoneScopes()`), then the supports' align and className.
     const figureClasses = classList([
         'wp-block-image',
         sizeSlug !== '' ? `size-${sizeSlug}` : null,
+        width.style !== undefined || height.style !== undefined ? 'is-resized' : null,
         attrString(attributes._veDuotone) || null,
         align !== '' ? `align${align}` : null,
         className,
@@ -68,9 +120,9 @@ export function ImageBlock({ attributes }: BlockRendererProps): JSX.Element {
                 src={url}
                 alt={alt}
                 className={imgClass}
-                width={width}
-                height={height}
-                style={imageStyle(attributes)}
+                width={width.attr}
+                height={height.attr}
+                style={imageStyle(attributes, width.style, height.style)}
             />
         );
 

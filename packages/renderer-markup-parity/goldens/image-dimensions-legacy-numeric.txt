@@ -1,0 +1,6 @@
+<figure class="wp-block-image">
+  <img alt="A photo" height="200" src="https://example.com/photo.jpg" width="300" />
+</figure>
+<figure class="wp-block-image">
+  <img alt="A photo" height="480" src="https://example.com/photo.jpg" width="640" />
+</figure>

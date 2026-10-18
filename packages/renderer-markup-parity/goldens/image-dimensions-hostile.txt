@@ -1,0 +1,12 @@
+<figure class="wp-block-image">
+  <img alt="A photo" src="https://example.com/photo.jpg" />
+</figure>
+<figure class="wp-block-image">
+  <img alt="A photo" src="https://example.com/photo.jpg" />
+</figure>
+<figure class="wp-block-image">
+  <img alt="A photo" src="https://example.com/photo.jpg" />
+</figure>
+<figure class="wp-block-image">
+  <img alt="A photo" src="https://example.com/photo.jpg" />
+</figure>
