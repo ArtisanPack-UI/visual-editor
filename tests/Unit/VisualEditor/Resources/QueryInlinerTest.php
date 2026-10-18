@@ -87,6 +87,21 @@ it( 'forwards the nested query attribute payload to the resolver', function (): 
 	] );
 } );
 
+it( 'never forwards a saved status to the resolver (cms-framework #403)', function (): void {
+	$this->inliner->inline( [ makeQueryBlock( [], [ 'postType' => 'post', 'status' => 'draft' ] ) ] );
+
+	expect( $this->fake->lastAttributes )->toBe( [ 'postType' => 'post' ] );
+} );
+
+it( 'forwards the block queryId so the loop pages on its own variable (cms-framework #403)', function (): void {
+	$block                          = makeQueryBlock( [], [ 'postType' => 'post', 'perPage' => 2 ] );
+	$block['attributes']['queryId'] = 'blog';
+
+	$this->inliner->inline( [ $block ] );
+
+	expect( $this->fake->lastAttributes )->toBe( [ 'postType' => 'post', 'perPage' => 2, 'queryId' => 'blog' ] );
+} );
+
 it( 'falls back to top-level attributes when query is not nested', function (): void {
 	$tree = [
 		[

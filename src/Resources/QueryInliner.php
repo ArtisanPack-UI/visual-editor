@@ -373,6 +373,17 @@ class QueryInliner
 				'terms'    => $termIds,
 			];
 
+			// The resolver filters on `taxQuery`, as the REST path sends it
+			// (`QueryResolveController::applyRelatedTo()`); the flat keys stay
+			// for resolvers that read them (cms-framework #403).
+			if ( '' !== (string) $taxonomy && [] !== $termIds ) {
+				$queryAttrs['taxQuery'] = [
+					'taxonomy' => $taxonomy,
+					'terms'    => $termIds,
+					'operator' => 'IN',
+				];
+			}
+
 			$paginator = $resolver->resolve( $queryAttrs );
 		} catch ( Throwable $e ) {
 			report( $e );
@@ -638,6 +649,18 @@ class QueryInliner
 		$queryAttrs = isset( $attributes['query'] ) && is_array( $attributes['query'] )
 			? $attributes['query']
 			: $attributes;
+
+		// A saved loop never chooses which statuses the public sees: a
+		// block attribute of `"status":"draft"` would otherwise list drafts
+		// on the front end (cms-framework #403). The resolver's default is
+		// the published scope.
+		unset( $queryAttrs['status'] );
+
+		// Pass the loop's `queryId` so the resolver can page it on its own
+		// query-string variable (cms-framework #403).
+		if ( ! isset( $queryAttrs['queryId'] ) && isset( $attributes['queryId'] ) && ( is_string( $attributes['queryId'] ) || is_int( $attributes['queryId'] ) ) ) {
+			$queryAttrs['queryId'] = $attributes['queryId'];
+		}
 
 		if ( ! $this->container->bound( QueryResolverContract::class ) ) {
 			return $this->markFailed( $block, self::ERROR_NO_RUNTIME );
