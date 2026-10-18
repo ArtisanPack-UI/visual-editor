@@ -379,10 +379,11 @@
  * default (the inline desktop view shows the menu); once the drawer
  * opens (`is-menu-open`) the menu is swapped out for the overlay's
  * content. Scoped to `.has-overlay-template` so navs without an
- * overlay keep showing their menu in the open drawer. */
-.wp-block-navigation__responsive-container-content.has-overlay-template .wp-block-navigation__overlay-content{display:none;}
-.wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-content.has-overlay-template .wp-block-navigation__container{display:none;}
-.wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-content.has-overlay-template .wp-block-navigation__overlay-content{display:block;}
+ * overlay keep showing their menu in the open drawer, and to its direct
+ * children so a menu inside the overlay part isn't swapped out too (#984). */
+.wp-block-navigation__responsive-container-content.has-overlay-template > .wp-block-navigation__overlay-content{display:none;}
+.wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-content.has-overlay-template > .wp-block-navigation__container{display:none;}
+.wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-content.has-overlay-template > .wp-block-navigation__overlay-content{display:block;}
 </style>
 <script>
 /*! Keystone #54 — nav overlay toggle. Tiny inline controller; emitted once per response. */

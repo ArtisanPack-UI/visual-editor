@@ -46,9 +46,9 @@ export const NAVIGATION_OVERLAY_CSS =
     '.is-menu-open .wp-block-navigation__responsive-close, .is-menu-open .wp-block-navigation__responsive-dialog, .is-menu-open .wp-block-navigation__responsive-container-content { box-sizing: border-box; }\n' +
     '@media (min-width: 600px) { .wp-block-navigation__responsive-container:not(.hidden-by-default):not(.is-menu-open) { display: block; width: 100%; position: relative; z-index: auto; background-color: inherit; } .wp-block-navigation__responsive-container:not(.hidden-by-default):not(.is-menu-open) .wp-block-navigation__responsive-container-close { display: none; } .wp-block-navigation__responsive-container-open:not(.always-shown) { display: none; } }\n' +
     '.wp-block-navigation__responsive-container.is-menu-open { --navigation-layout-justification-setting: stretch; --navigation-layout-justify: flex-start; --navigation-layout-align: stretch; --wp--style--root--padding-top: 1.5rem; --wp--style--root--padding-right: 1.5rem; --wp--style--root--padding-bottom: 1.5rem; --wp--style--root--padding-left: 1.5rem; }\n' +
-    '.wp-block-navigation__responsive-container-content.has-overlay-template .wp-block-navigation__overlay-content { display: none; }\n' +
-    '.wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-content.has-overlay-template .wp-block-navigation__container { display: none; }\n' +
-    '.wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-content.has-overlay-template .wp-block-navigation__overlay-content { display: block; }\n' +
+    '.wp-block-navigation__responsive-container-content.has-overlay-template > .wp-block-navigation__overlay-content { display: none; }\n' +
+    '.wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-content.has-overlay-template > .wp-block-navigation__container { display: none; }\n' +
+    '.wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-content.has-overlay-template > .wp-block-navigation__overlay-content { display: block; }\n' +
     '}';
 
 /**

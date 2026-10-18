@@ -213,7 +213,7 @@ describe('NavigationBlock overlay markup (#804)', () => {
 
         expect(styles).toHaveLength(1);
         expect(styles[0].textContent).toContain('.wp-block-navigation__responsive-container-open:not(.always-shown) { display: none; }');
-        expect(styles[0].textContent).toContain('.has-overlay-template .wp-block-navigation__overlay-content { display: block; }');
+        expect(styles[0].textContent).toContain('.has-overlay-template > .wp-block-navigation__overlay-content { display: block; }');
     });
 });
 
@@ -511,5 +511,30 @@ describe('NavigationBlock collapse breakpoint (#977)', () => {
 
         await wrapper.find('.wp-block-navigation__responsive-container-close').trigger('click');
         expect(wrapper.find('.wp-block-navigation__responsive-container').classes()).not.toContain('is-menu-open');
+    });
+});
+
+describe('NavigationBlock overlay swap with a menu inside the part (#984)', () => {
+    it('hides only the outer menu, not a navigation inside the overlay part', () => {
+        const nestedNav = makeBlock(
+            'core/navigation',
+            { overlayMenu: 'never' },
+            [makeBlock('core/navigation-link', { label: 'Docs', url: '/docs' }, [], 'nested-link')],
+            'nested-nav'
+        );
+        const wrapper = mountNav([navigation({ overlay: 'mobile-overlay' })], [{ ...OVERLAY_PART, blocks: [nestedNav] }]);
+        const container = wrapper.element as HTMLElement;
+        const css = container.querySelector('style[data-ve-navigation-overlay]')?.textContent ?? '';
+        const selector = css.match(/([^{}\n]*has-overlay-template[^{}]*__container)\s*\{\s*display:\s*none;/)?.[1]?.trim();
+        const responsive = container.querySelector('.wp-block-navigation__responsive-container');
+        responsive?.classList.add('is-menu-open');
+
+        const outer = container.querySelector('.has-overlay-template > ul.wp-block-navigation__container');
+        const nested = container.querySelector('.wp-block-navigation__overlay-content ul.wp-block-navigation__container');
+
+        expect(selector).toBeDefined();
+        expect(nested?.querySelector('a[href="/docs"]')).not.toBeNull();
+        expect(outer?.matches(selector as string)).toBe(true);
+        expect(nested?.matches(selector as string)).toBe(false);
     });
 });
