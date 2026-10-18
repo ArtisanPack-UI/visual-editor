@@ -19,6 +19,7 @@ import {
 import { applyBackground } from '../../support/background';
 import { layoutWrapperClasses } from '../../support/layoutContainer';
 import { applyDimensions, dimensionsClassName, hasDimensionStyle } from '../../support/dimensions';
+import { safeCssValue } from '../../support/cssValue';
 import { safeUrl } from '../../support/urlSanitizer';
 import { blockRendererProps } from '../shared';
 
@@ -386,6 +387,8 @@ export const PostFeaturedImageBlock = defineComponent({
             const rel = attrString(props.attributes.rel);
             const aspect = attrString(props.attributes.aspectRatio);
             const scale = attrString(props.attributes.scale);
+            const frameWidth = safeCssValue(attrString(props.attributes.width)) ?? '';
+            const frameHeight = safeCssValue(attrString(props.attributes.height)) ?? '';
             const sizeSlug = attrString(props.attributes.sizeSlug);
             const className = attrString(props.attributes.className);
 
@@ -403,8 +406,20 @@ export const PostFeaturedImageBlock = defineComponent({
                 className,
             ]);
 
+            const figureStyle: Record<string, string> = {};
+
+            if (frameWidth !== '') {
+                figureStyle.width = frameWidth;
+            }
+
+            if (frameHeight !== '') {
+                figureStyle.height = frameHeight;
+            }
+
+            const figureProps = Object.keys(figureStyle).length > 0 ? { style: figureStyle } : {};
+
             if (imageUrl === '') {
-                return h('figure', { class: classes });
+                return h('figure', { class: classes, ...figureProps });
             }
 
             const style: Record<string, string> = {};
@@ -413,8 +428,16 @@ export const PostFeaturedImageBlock = defineComponent({
                 style.aspectRatio = aspect;
             }
 
+            if (frameHeight !== '') {
+                style.height = frameHeight;
+            }
+
+            // #948 — a fixed frame crops with `scale`, defaulting to block.json's
+            // `cover` (never saved), as the Blade renderer does.
             if (scale !== '') {
                 style.objectFit = scale;
+            } else if (aspect !== '' || frameHeight !== '') {
+                style.objectFit = 'cover';
             }
 
             const imgProps: Record<string, unknown> = { src: imageUrl, alt };
@@ -436,10 +459,10 @@ export const PostFeaturedImageBlock = defineComponent({
             if (isLink && permalink !== '') {
                 const linkProps = buildLinkProps(permalink, linkTarget, rel);
 
-                return h('figure', { class: classes }, [h('a', linkProps, [img])]);
+                return h('figure', { class: classes, ...figureProps }, [h('a', linkProps, [img])]);
             }
 
-            return h('figure', { class: classes }, [img]);
+            return h('figure', { class: classes, ...figureProps }, [img]);
         };
     },
 });

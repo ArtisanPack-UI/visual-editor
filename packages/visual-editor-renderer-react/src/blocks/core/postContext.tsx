@@ -21,6 +21,7 @@ import {
 import { applyBackground } from '../../support/background';
 import { layoutWrapperClasses } from '../../support/layoutContainer';
 import { applyDimensions, dimensionsClassName } from '../../support/dimensions';
+import { safeCssValue } from '../../support/cssValue';
 import { safeUrl } from '../../support/urlSanitizer';
 import type { BlockRendererProps } from '../../types';
 
@@ -314,6 +315,8 @@ export function PostFeaturedImageBlock({ attributes }: BlockRendererProps): JSX.
     const rel = attrString(attributes.rel);
     const aspect = attrString(attributes.aspectRatio);
     const scale = attrString(attributes.scale);
+    const frameWidth = safeCssValue(attrString(attributes.width)) ?? '';
+    const frameHeight = safeCssValue(attrString(attributes.height)) ?? '';
     const sizeSlug = attrString(attributes.sizeSlug);
     const className = attrString(attributes.className);
 
@@ -331,8 +334,20 @@ export function PostFeaturedImageBlock({ attributes }: BlockRendererProps): JSX.
         className,
     ]);
 
+    const figureStyle: Record<string, string> = {};
+
+    if (frameWidth !== '') {
+        figureStyle.width = frameWidth;
+    }
+
+    if (frameHeight !== '') {
+        figureStyle.height = frameHeight;
+    }
+
+    const figureProps = Object.keys(figureStyle).length > 0 ? { style: figureStyle } : {};
+
     if (imageUrl === '') {
-        return <figure className={classes} />;
+        return <figure className={classes} {...figureProps} />;
     }
 
     const style: Record<string, string> = {};
@@ -341,8 +356,16 @@ export function PostFeaturedImageBlock({ attributes }: BlockRendererProps): JSX.
         style.aspectRatio = aspect;
     }
 
+    if (frameHeight !== '') {
+        style.height = frameHeight;
+    }
+
+    // #948 — a fixed frame crops with `scale`, defaulting to block.json's
+    // `cover` (never saved), as the Blade renderer does.
     if (scale !== '') {
         style.objectFit = scale;
+    } else if (aspect !== '' || frameHeight !== '') {
+        style.objectFit = 'cover';
     }
 
     const imgProps: Record<string, unknown> = {
@@ -365,11 +388,11 @@ export function PostFeaturedImageBlock({ attributes }: BlockRendererProps): JSX.
         const linkProps = buildLinkProps(permalink, linkTarget, rel);
 
         return (
-            <figure className={classes}>
+            <figure className={classes} {...figureProps}>
                 <a {...linkProps}>{img}</a>
             </figure>
         );
     }
 
-    return <figure className={classes}>{img}</figure>;
+    return <figure className={classes} {...figureProps}>{img}</figure>;
 }
