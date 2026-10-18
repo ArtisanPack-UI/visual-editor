@@ -136,6 +136,7 @@ it( 'gives every layout block its pair and a scope for its own Block spacing (F-
 	'quote'               => [ 'quote', 'wp-block-quote', 'is-layout-flow' ],
 	'details'             => [ 'details', 'wp-block-details', 'is-layout-flow' ],
 	'comments-pagination' => [ 'comments-pagination', 'wp-block-comments-pagination', 'is-layout-flex' ],
+	'query-pagination'    => [ 'query-pagination', 'wp-block-query-pagination', 'is-layout-flex' ],
 	'post-content'        => [ 'post-content', 'wp-block-post-content', 'is-layout-flow' ],
 	'group'               => [ 'group', 'wp-block-group', 'is-layout-flow' ],
 ] );
@@ -187,15 +188,22 @@ it( 'leaves vertical alignment out of the navigation scope (F-3)', function (): 
 	}
 } );
 
-it( 'leaves columns, gallery, post-template and query pagination to their own layout handling (F-3)', function ( string $partial, array $attributes ): void {
+it( 'scopes a saved query pagination justification, so it places the links (#956)', function (): void {
+	$html = renderLayoutTree( [ layoutNode( 'core/query-pagination', [ 'layout' => [ 'type' => 'flex', 'justifyContent' => 'center' ] ] ) ] );
+
+	expect( $html )
+		->toMatch( '/class="wp-block-query-pagination is-layout-flex wp-block-query-pagination-is-layout-flex wp-container-[0-9a-f]{12} is-content-justification-center"/' )
+		->toMatch( '/\.wp-block-query-pagination\.wp-block-query-pagination-is-layout-flex\.wp-container-[0-9a-f]{12}\{justify-content:center;\}/' );
+} );
+
+it( 'leaves columns, gallery and post-template to their own layout handling (F-3)', function ( string $partial, array $attributes ): void {
 	$html = renderLayoutPartial( $partial, $attributes + [ 'style' => [ 'spacing' => [ 'blockGap' => '1.25rem' ] ] ] );
 
 	expect( $html )->not->toContain( 'wp-container-' );
 } )->with( [
-	'columns'          => [ 'columns', [] ],
-	'gallery'          => [ 'gallery', [] ],
-	'post-template'    => [ 'post-template', [ 'layout' => 'grid' ] ],
-	'query-pagination' => [ 'query-pagination', [ 'layout' => [ 'type' => 'flex', 'justifyContent' => 'center' ] ] ],
+	'columns'       => [ 'columns', [] ],
+	'gallery'       => [ 'gallery', [] ],
+	'post-template' => [ 'post-template', [ 'layout' => 'grid' ] ],
 ] );
 
 it( 'keeps an outer group Block spacing out of a nested flex container (M-15)', function (): void {

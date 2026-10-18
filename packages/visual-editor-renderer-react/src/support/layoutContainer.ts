@@ -78,6 +78,7 @@ const QUERY: LayoutScopeBlock = { slug: 'query', type: 'stored' };
 const QUOTE: LayoutScopeBlock = { slug: 'quote', type: 'stored' };
 const DETAILS: LayoutScopeBlock = { slug: 'details', type: 'stored' };
 const COMMENTS_PAGINATION: LayoutScopeBlock = { slug: 'comments-pagination', type: 'flex' };
+const QUERY_PAGINATION: LayoutScopeBlock = { slug: 'query-pagination', type: 'flex' };
 
 const LAYOUT_SCOPE_BLOCKS: Readonly<Record<string, LayoutScopeBlock>> = {
     'core/group': GROUP,
@@ -99,6 +100,8 @@ const LAYOUT_SCOPE_BLOCKS: Readonly<Record<string, LayoutScopeBlock>> = {
     'core/details': DETAILS,
     'artisanpack/details': DETAILS,
     'artisanpack/comments-pagination': COMMENTS_PAGINATION,
+    'core/query-pagination': QUERY_PAGINATION,
+    'artisanpack/query-pagination': QUERY_PAGINATION,
 };
 
 type LayoutRule = [suffix: string, declarations: string[]];

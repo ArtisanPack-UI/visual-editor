@@ -9,6 +9,8 @@
 import { defineComponent, h } from 'vue';
 
 import { attrInt, attrString, classList } from '../../support/attributes';
+import { applyBlockGap } from '../../support/blockGap';
+import { layoutWrapperClasses } from '../../support/layoutContainer';
 import { safeUrl } from '../../support/urlSanitizer';
 import { blockRendererProps } from '../shared';
 
@@ -38,14 +40,22 @@ export const QueryPaginationBlock = defineComponent({
                 return null;
             }
             const className = attrString(props.attributes.className);
-            return h(
-                'nav',
-                {
-                    class: classList(['wp-block-query-pagination', className]),
-                    'aria-label': 'Pagination navigation',
-                },
-                slots.default?.()
-            );
+            // Always a flex layout, as in `query-pagination.blade.php` (#956).
+            const navProps: Record<string, unknown> = {
+                class: classList([
+                    'wp-block-query-pagination',
+                    ...layoutWrapperClasses(props.attributes, 'query-pagination', 'is-layout-flex'),
+                    className,
+                ]),
+                'aria-label': 'Pagination navigation',
+            };
+            const gapStyle = applyBlockGap(props.attributes);
+
+            if (Object.keys(gapStyle).length > 0) {
+                navProps.style = gapStyle;
+            }
+
+            return h('nav', navProps, slots.default?.());
         };
     },
 });
