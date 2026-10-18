@@ -406,6 +406,11 @@ export const PostFeaturedImageBlock = defineComponent({
                 className,
             ]);
 
+            if (imageUrl === '') {
+                return h('figure', { class: classes });
+            }
+
+            // Frame sizing only applies once there is an image to frame.
             const figureStyle: Record<string, string> = {};
 
             if (frameWidth !== '') {
@@ -417,10 +422,6 @@ export const PostFeaturedImageBlock = defineComponent({
             }
 
             const figureProps = Object.keys(figureStyle).length > 0 ? { style: figureStyle } : {};
-
-            if (imageUrl === '') {
-                return h('figure', { class: classes, ...figureProps });
-            }
 
             const style: Record<string, string> = {};
 

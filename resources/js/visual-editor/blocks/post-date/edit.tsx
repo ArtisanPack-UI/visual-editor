@@ -117,9 +117,15 @@ interface PostDateEditProps {
 export default function PostDateEdit( props: PostDateEditProps ): ReactElement {
     const { attributes, setAttributes } = props;
     const format = readFormat( attributes );
-    const [ isCustom, setIsCustom ] = useState<boolean>(
-        format !== '' && ! FORMAT_PRESETS.includes( format )
-    );
+    const formatIsCustom = format !== '' && ! FORMAT_PRESETS.includes( format );
+    // The mode the control last chose, and the format it chose it for. A
+    // `format` that arrives from elsewhere (undo, redo, another editor)
+    // doesn't match, so the mode follows the format itself instead.
+    const [ chosen, setChosen ] = useState<{ custom: boolean; format: string }>( {
+        custom: formatIsCustom,
+        format,
+    } );
+    const isCustom = chosen.format === format ? chosen.custom : formatIsCustom;
     const sample = new Date().toISOString();
     const locale = documentLocale();
 
@@ -150,12 +156,13 @@ export default function PostDateEdit( props: PostDateEditProps ): ReactElement {
                             options={ options }
                             onChange={ ( value: string ) => {
                                 if ( value === CUSTOM_OPTION ) {
-                                    setIsCustom( true );
-                                    setAttributes( { format: format !== '' ? format : DEFAULT_FORMAT } );
+                                    const nextFormat = format !== '' ? format : DEFAULT_FORMAT;
+                                    setChosen( { custom: true, format: nextFormat } );
+                                    setAttributes( { format: nextFormat } );
                                     return;
                                 }
 
-                                setIsCustom( false );
+                                setChosen( { custom: false, format: value } );
                                 setAttributes( { format: value === '' ? undefined : value } );
                             } }
                         />
@@ -167,9 +174,10 @@ export default function PostDateEdit( props: PostDateEditProps ): ReactElement {
                                 label={ __( 'Custom format', TEXT_DOMAIN ) }
                                 help={ __( 'A PHP date format, such as "M j, Y".', TEXT_DOMAIN ) }
                                 value={ format }
-                                onChange={ ( value: string ) =>
-                                    setAttributes( { format: value === '' ? undefined : value } )
-                                }
+                                onChange={ ( value: string ) => {
+                                    setChosen( { custom: true, format: value.trim() === '' ? '' : value } );
+                                    setAttributes( { format: value === '' ? undefined : value } );
+                                } }
                             />
                         ) }
                     </PanelBody>

@@ -7,7 +7,7 @@
  * agree. The timestamp's own wall-clock time is formatted (its offset is
  * not converted to the viewer's timezone), matching the server output.
  *
- * Supports the day, month, year and time characters (`d D j l N S w z
+ * Supports the day, month, year and time characters (`d D j l N S w W z
  * F m M n t L Y y a A g G h H i s`) and backslash escapes; any other
  * character is copied as is. Month and day names come from `Intl` in
  * `locale`.
@@ -78,6 +78,9 @@ export function phpDateFormat(iso: string | null | undefined, format: string, lo
                 break;
             case 'w':
                 output += String(weekday);
+                break;
+            case 'W':
+                output += pad(isoWeek(parts.year, parts.month, parts.day));
                 break;
             case 'z':
                 output += String((Date.UTC(parts.year, parts.month - 1, parts.day) - Date.UTC(parts.year, 0, 1)) / 86400000);
@@ -165,6 +168,15 @@ function ordinalSuffix(day: number): string {
     }
 
     return ['th', 'st', 'nd', 'rd'][day % 10] ?? 'th';
+}
+
+/** ISO-8601 week number (PHP `W`): weeks start on Monday, and week 1 holds the year's first Thursday. */
+function isoWeek(year: number, month: number, day: number): number {
+    const date = new Date(Date.UTC(year, month - 1, day));
+    const thursday = new Date(date.getTime() + (3 - ((date.getUTCDay() + 6) % 7)) * 86400000);
+    const firstDay = Date.UTC(thursday.getUTCFullYear(), 0, 1);
+
+    return Math.floor((thursday.getTime() - firstDay) / 86400000 / 7) + 1;
 }
 
 function isLeapYear(year: number): boolean {
