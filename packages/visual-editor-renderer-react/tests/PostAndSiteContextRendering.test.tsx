@@ -252,6 +252,45 @@ describe('Cover with "Use featured image" (#942)', () => {
     });
 });
 
+describe('Query Pagination on a single page (#955)', () => {
+    const pages = (count: number) =>
+        Array.from({ length: count }, (_, i) => ({ number: i + 1, url: `/blog?page=${i + 1}` }));
+    const pagination = (totalPages: number) =>
+        makeBlock('artisanpack/query-pagination', { _resolvedTotalPages: totalPages }, [
+            makeBlock('artisanpack/query-pagination-numbers', {
+                _resolvedCurrentPage: 1,
+                _resolvedPageNumbers: pages(totalPages),
+                _resolvedTotalPages: totalPages,
+            }),
+        ]);
+
+    it('renders nothing when the results fit on one page', () => {
+        expect(renderTree([pagination(1)])).not.toContain('wp-block-query-pagination');
+        expect(
+            renderTree([makeBlock('artisanpack/query-pagination-numbers', { _resolvedPageNumbers: pages(1) })])
+        ).not.toContain('page-numbers');
+    });
+
+    it('renders the wrapper and numbers for two or more pages, and an unstamped wrapper', () => {
+        const html = renderTree([pagination(2)]);
+
+        expect(html).toContain('<nav class="wp-block-query-pagination');
+        expect(html).toContain('<a class="page-numbers" href="/blog?page=2">2</a>');
+        expect(renderTree([makeBlock('artisanpack/query-pagination')])).toContain('<nav class="wp-block-query-pagination');
+    });
+
+    it('keeps a one-page wrapper that holds other content', () => {
+        const html = renderTree([
+            makeBlock('artisanpack/query-pagination', { _resolvedTotalPages: 1 }, [
+                makeBlock('core/paragraph', { content: 'Page one of one' }),
+            ]),
+        ]);
+
+        expect(html).toContain('<nav class="wp-block-query-pagination');
+        expect(html).toContain('Page one of one');
+    });
+});
+
 describe('Core site-context blocks', () => {
     it('renders site-title with default link to site URL', () => {
         const tree = [

@@ -230,7 +230,7 @@ describe('layoutModifierClasses (F-3)', () => {
 describe('stampLayoutScopes for every layout block (F-3)', () => {
     const scopeOf = (node: Block): unknown => (node as { attributes: Record<string, unknown> }).attributes._veLayoutScope;
 
-    it('stamps buttons, column, cover, navigation, query, quote, details and comments pagination', () => {
+    it('stamps buttons, column, cover, navigation, query, quote, details, comments and query pagination', () => {
         const gap = { style: { spacing: { blockGap: '1rem' } } };
         const names = [
             'core/buttons',
@@ -241,6 +241,7 @@ describe('stampLayoutScopes for every layout block (F-3)', () => {
             'core/quote',
             'artisanpack/details',
             'artisanpack/comments-pagination',
+            'artisanpack/query-pagination',
         ];
         const { tree, css } = stampLayoutScopes(names.map((name) => block(name, gap)));
 
@@ -252,15 +253,26 @@ describe('stampLayoutScopes for every layout block (F-3)', () => {
         expect(css).toContain('.wp-block-cover__inner-container.wp-block-cover-is-layout-flow.');
         expect(css).toContain('.wp-block-navigation.wp-block-navigation-is-layout-flex.');
         expect(css).toContain('.wp-block-comments-pagination.wp-block-comments-pagination-is-layout-flex.');
+        expect(css).toContain('.wp-block-query-pagination.wp-block-query-pagination-is-layout-flex.');
     });
 
-    it('leaves columns, gallery, post-template and query pagination to their own layout handling', () => {
+    it('scopes a saved query pagination justification, so it places the links (#956)', () => {
+        const { tree, css } = stampLayoutScopes([
+            block('core/query-pagination', { layout: { type: 'flex', justifyContent: 'center' } }),
+        ]);
+
+        expect(scopeOf(tree[0])).toMatch(/^wp-container-[0-9a-f]{12}$/);
+        expect(css).toMatch(
+            /\.wp-block-query-pagination\.wp-block-query-pagination-is-layout-flex\.wp-container-[0-9a-f]{12}\{justify-content:center;\}/
+        );
+    });
+
+    it('leaves columns, gallery and post-template to their own layout handling', () => {
         const gap = { style: { spacing: { blockGap: '1rem' }, layout: { justifyContent: 'center' } } };
         const { tree, css } = stampLayoutScopes([
             block('core/columns', gap),
             block('core/gallery', gap),
             block('core/post-template', gap),
-            block('core/query-pagination', { ...gap, layout: { type: 'flex', justifyContent: 'center' } }),
         ]);
 
         for (const node of tree) {

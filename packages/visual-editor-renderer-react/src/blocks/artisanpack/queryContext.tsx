@@ -13,8 +13,10 @@
 import type { JSX } from 'react';
 
 import { attrInt, attrString, classList } from '../../support/attributes';
+import { applyBlockGap } from '../../support/blockGap';
+import { layoutWrapperClasses } from '../../support/layoutContainer';
 import { safeUrl } from '../../support/urlSanitizer';
-import type { BlockRendererProps } from '../../types';
+import type { Block, BlockRendererProps } from '../../types';
 
 export function QueryNoResultsBlock({ attributes, children }: BlockRendererProps): JSX.Element {
     const className = attrString(attributes.className);
@@ -23,12 +25,41 @@ export function QueryNoResultsBlock({ attributes, children }: BlockRendererProps
     return <div className={classes}>{children}</div>;
 }
 
-export function QueryPaginationBlock({ attributes, children }: BlockRendererProps): JSX.Element {
+const PAGINATION_LEAF = /^(core|artisanpack)\/query-pagination-(previous|numbers|next)$/;
+
+/**
+ * Whether a pagination wrapper renders: not on one page when it holds only
+ * the previous / numbers / next leaves, which render nothing there, as
+ * WordPress skips an empty wrapper (#955). Any other inner block keeps it,
+ * and an unstamped wrapper (no query around it) renders.
+ */
+export function queryPaginationRenders(attributes: Record<string, unknown>, innerBlocks: Block[]): boolean {
+    return (
+        attrInt(attributes._resolvedTotalPages, 2) > 1 ||
+        !innerBlocks.every((child) => PAGINATION_LEAF.test(child.name))
+    );
+}
+
+export function QueryPaginationBlock({ attributes, innerBlocks, children }: BlockRendererProps): JSX.Element | null {
+    if (!queryPaginationRenders(attributes, innerBlocks ?? [])) {
+        return null;
+    }
+
     const className = attrString(attributes.className);
-    const classes = classList(['wp-block-query-pagination', className]);
+    // Always a flex layout, as in `query-pagination.blade.php` (#956).
+    const classes = classList([
+        'wp-block-query-pagination',
+        ...layoutWrapperClasses(attributes, 'query-pagination', 'is-layout-flex'),
+        className,
+    ]);
+    const gapStyle = applyBlockGap(attributes);
 
     return (
-        <nav className={classes} aria-label="Pagination navigation">
+        <nav
+            className={classes}
+            aria-label="Pagination navigation"
+            style={Object.keys(gapStyle).length > 0 ? (gapStyle as React.CSSProperties) : undefined}
+        >
             {children}
         </nav>
     );
@@ -75,12 +106,17 @@ interface ResolvedPage {
     readonly url?: unknown;
 }
 
-export function QueryPaginationNumbersBlock({ attributes }: BlockRendererProps): JSX.Element {
+export function QueryPaginationNumbersBlock({ attributes }: BlockRendererProps): JSX.Element | null {
     const className = attrString(attributes.className);
     const classes = classList(['wp-block-query-pagination-numbers', className]);
     const current = attrInt(attributes._resolvedCurrentPage, 1);
     const rawPages = attributes._resolvedPageNumbers;
     const pages: ResolvedPage[] = Array.isArray(rawPages) ? (rawPages as ResolvedPage[]) : [];
+
+    // Fewer than two pages renders nothing, as `paginate_links()` does (#955).
+    if (pages.length < 2) {
+        return null;
+    }
 
     return (
         <div className={classes}>
