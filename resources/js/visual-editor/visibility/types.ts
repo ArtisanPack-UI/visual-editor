@@ -22,6 +22,21 @@ export interface ScreenSizeRuleAttrs {
     breakpoints?: string[];
 }
 
+/**
+ * A breakpoint the Screen size subsection can offer. Desktop-first
+ * device keys (`mobile`, `tablet`) carry `maxWidthPx` and hide at that
+ * width and below; legacy keys (`sm` … `2xl`) carry `minWidthPx` and
+ * hide from it up to the next legacy key's min-width (#974).
+ *
+ * @since 1.15.2
+ */
+export interface VisibilityBreakpointOption {
+    key: string;
+    label: string;
+    minWidthPx?: number;
+    maxWidthPx?: number;
+}
+
 export interface QueryStringClause {
     key: string;
     value: string;

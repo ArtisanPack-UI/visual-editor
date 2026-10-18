@@ -46,3 +46,45 @@ it( 'is visible when direction=show covers every registered breakpoint', functio
 
 	expect( $decision->isVisible() )->toBeTrue();
 } );
+
+it( 'hides the device keys when listed (#974)', function (): void {
+	$decision = screenRule()->evaluate(
+		[ 'direction' => 'hide', 'breakpoints' => [ 'mobile', 'tablet', 'xl' ] ],
+		new VisibilityContext(),
+	);
+
+	expect( $decision->isCssHidden() )->toBeTrue();
+	expect( $decision->hiddenBreakpoints )->toEqualCanonicalizing( [ 'mobile', 'tablet', 'xl' ] );
+} );
+
+it( 'ignores unknown keys', function (): void {
+	expect( screenRule()->evaluate( [ 'direction' => 'hide', 'breakpoints' => [ 'phone' ] ], new VisibilityContext() )->isVisible() )
+		->toBeTrue();
+} );
+
+it( 'shows only on mobile by hiding every legacy range from 768px up', function (): void {
+	$decision = screenRule()->evaluate(
+		[ 'direction' => 'show', 'breakpoints' => [ 'mobile' ] ],
+		new VisibilityContext(),
+	);
+
+	expect( $decision->hiddenBreakpoints )->toEqualCanonicalizing( [ 'md', 'lg', 'xl', '2xl' ] );
+} );
+
+it( 'shows up to tablet by hiding every legacy range from 1024px up', function (): void {
+	$decision = screenRule()->evaluate(
+		[ 'direction' => 'show', 'breakpoints' => [ 'tablet' ] ],
+		new VisibilityContext(),
+	);
+
+	expect( $decision->hiddenBreakpoints )->toEqualCanonicalizing( [ 'lg', 'xl', '2xl' ] );
+} );
+
+it( 'shows on mobile plus a listed legacy range', function (): void {
+	$decision = screenRule()->evaluate(
+		[ 'direction' => 'show', 'breakpoints' => [ 'mobile', 'xl' ] ],
+		new VisibilityContext(),
+	);
+
+	expect( $decision->hiddenBreakpoints )->toEqualCanonicalizing( [ 'md', 'lg', '2xl' ] );
+} );

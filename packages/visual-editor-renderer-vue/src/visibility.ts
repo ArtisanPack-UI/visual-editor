@@ -297,6 +297,14 @@ export function stampVisibilityScopes(tree: Block[]): { tree: Block[]; css: stri
 
     const indexByKey = new Map(ordered.map((bp, i) => [bp.key, i]));
 
+    // Desktop-first device keys (`mobile`, `tablet`) hide at their
+    // max-width and below (#974), mirroring `BlockRenderer.php`.
+    const maxWidthByKey = new Map(
+        deviceBreakpoints
+            .filter((bp) => Number.isFinite(bp.maxWidthPx) && bp.maxWidthPx > 0)
+            .map((bp) => [bp.key, bp.maxWidthPx]),
+    );
+
     function walk(nodes: Block[]): Block[] {
         return nodes.map((block) => {
             if (block === null || typeof block !== 'object') {
@@ -319,6 +327,12 @@ export function stampVisibilityScopes(tree: Block[]): { tree: Block[]; css: stri
             const rules: string[] = [];
 
             for (const key of bpKeys) {
+                const maxWidth = maxWidthByKey.get(key);
+                if (maxWidth !== undefined) {
+                    rules.push(`@media (max-width:${maxWidth}px){.${scopeClass}{display:none !important;}}`);
+                    continue;
+                }
+
                 const position = indexByKey.get(key);
                 if (position === undefined) {
                     continue;

@@ -49,12 +49,13 @@ import type {
     SpecificUserRuleAttrs,
     UserRoleRuleAttrs,
     VisibilityAttribute,
+    VisibilityBreakpointOption,
 } from './types';
 
 interface Props {
     value: VisibilityAttribute | null;
     onChange: (next: VisibilityAttribute | null) => void;
-    breakpointOptions: Array<{ key: string; label: string }>;
+    breakpointOptions: VisibilityBreakpointOption[];
     roleOptions: Array<{ slug: string; label: string }>;
     searchUsers: (term: string) => Promise<SpecificUserRef[]>;
 }
@@ -205,8 +206,91 @@ function HidePanel({ value, onChange }: { value: VisibilityAttribute['hide']; on
     );
 }
 
-function ScreenSizePanel({ value, onChange, breakpoints }: { value: ScreenSizeRuleAttrs | undefined; onChange: (next: ScreenSizeRuleAttrs | undefined) => void; breakpoints: Array<{ key: string; label: string }> }): JSX.Element {
-    const active = value !== undefined;
+interface ScreenSizeGroups {
+    devices: Array<{ key: string; label: string; maxWidthPx: number }>;
+    legacy: Array<{ key: string; label: string; minWidthPx: number; rangeLabel: string }>;
+    desktopKeys: string[];
+    desktopMinWidthPx: number | null;
+    unsized: Array<{ key: string; label: string }>;
+}
+
+/**
+ * Splits the registered breakpoints into the families the Screen size
+ * subsection presents (#974):
+ *
+ * - **devices** — `mobile` / `tablet`, smallest first, each hiding at
+ *   its max-width and below.
+ * - **desktop** — the legacy keys that start one pixel above the widest
+ *   device. Hiding all of them hides from that width up, so they are
+ *   offered as a single "Desktop" option. Omitted when no legacy key
+ *   starts exactly there (a host-customised registry), since it would
+ *   leave a gap.
+ * - **legacy** — every min-width key as its own width range, shown only
+ *   when saved content uses one the options above don't express.
+ * - **unsized** — options without widths (host-published lists that
+ *   predate #974); rendered as-is under their own label.
+ */
+export function groupScreenSizeBreakpoints(options: VisibilityBreakpointOption[]): ScreenSizeGroups {
+    const devices = options
+        .flatMap((bp) => (typeof bp.minWidthPx !== 'number' && typeof bp.maxWidthPx === 'number' && bp.maxWidthPx > 0
+            ? [{ key: bp.key, label: bp.label, maxWidthPx: bp.maxWidthPx }]
+            : []))
+        .sort((a, b) => a.maxWidthPx - b.maxWidthPx);
+
+    const sortedLegacy = options
+        .flatMap((bp) => (typeof bp.minWidthPx === 'number' && bp.minWidthPx > 0
+            ? [{ key: bp.key, label: bp.label, minWidthPx: bp.minWidthPx }]
+            : []))
+        .sort((a, b) => a.minWidthPx - b.minWidthPx);
+
+    const legacy = sortedLegacy.map((bp, index) => {
+        const next = sortedLegacy[index + 1]?.minWidthPx;
+
+        return {
+            ...bp,
+            rangeLabel: next !== undefined && next > bp.minWidthPx
+                ? `${bp.minWidthPx}–${next - 1}px`
+                : `≥${bp.minWidthPx}px`,
+        };
+    });
+
+    const unsized = options.filter((bp) => typeof bp.minWidthPx !== 'number' && typeof bp.maxWidthPx !== 'number');
+
+    const widestDevice      = devices.length > 0 ? devices[devices.length - 1].maxWidthPx : null;
+    const desktop           = widestDevice === null ? [] : legacy.filter((bp) => bp.minWidthPx > widestDevice);
+    const desktopMinWidthPx = desktop.length > 0 && widestDevice !== null && desktop[0].minWidthPx === widestDevice + 1
+        ? desktop[0].minWidthPx
+        : null;
+
+    return {
+        devices,
+        legacy,
+        desktopKeys: desktopMinWidthPx === null ? [] : desktop.map((bp) => bp.key),
+        desktopMinWidthPx,
+        unsized,
+    };
+}
+
+function ScreenSizePanel({ value, onChange, breakpoints }: { value: ScreenSizeRuleAttrs | undefined; onChange: (next: ScreenSizeRuleAttrs | undefined) => void; breakpoints: VisibilityBreakpointOption[] }): JSX.Element {
+    const active   = value !== undefined;
+    const selected = new Set(value?.breakpoints ?? []);
+    const groups   = groupScreenSizeBreakpoints(breakpoints);
+
+    const desktopChecked = groups.desktopKeys.length > 0 && groups.desktopKeys.every((key) => selected.has(key));
+    const coveredLegacy  = new Set(desktopChecked ? groups.desktopKeys : []);
+    const legacyInUse    = groups.legacy.some((bp) => selected.has(bp.key) && !coveredLegacy.has(bp.key));
+    // Without device keys there is nothing to group, so the legacy
+    // ranges are the only options.
+    const showLegacy     = legacyInUse || groups.devices.length === 0;
+
+    function write(keys: string[], checked: boolean): void {
+        const current = new Set(value?.breakpoints ?? []);
+        keys.forEach((key) => (checked ? current.add(key) : current.delete(key)));
+        // `direction: 'hide'` is pinned — the UI has no inverse mode.
+        // The attribute is still written so the persisted shape stays
+        // stable with the rule's schema.
+        onChange({ ...(value ?? {}), direction: 'hide', breakpoints: Array.from(current) });
+    }
 
     return (
         <>
@@ -220,23 +304,52 @@ function ScreenSizePanel({ value, onChange, breakpoints }: { value: ScreenSizeRu
             </PanelRow>
             {active && (
                 <div style={SUBSECTION_STYLE}>
-                    <strong>{__('Hide on:', 'artisanpack-visual-editor')}</strong>
-                    {breakpoints.map((bp) => (
+                    {(groups.devices.length > 0 || groups.unsized.length > 0) && (
+                        <strong>{__('Hide on:', 'artisanpack-visual-editor')}</strong>
+                    )}
+                    {groups.devices.map((bp, index) => (
+                        <CheckboxControl
+                            key={bp.key}
+                            label={`${bp.label} (≤${bp.maxWidthPx}px)`}
+                            help={index > 0
+                                ? __('Includes every smaller screen, phones too.', 'artisanpack-visual-editor')
+                                : undefined}
+                            checked={selected.has(bp.key)}
+                            onChange={(checked) => write([bp.key], checked)}
+                        />
+                    ))}
+                    {groups.desktopMinWidthPx !== null && (
+                        <CheckboxControl
+                            label={`${__('Desktop', 'artisanpack-visual-editor')} (≥${groups.desktopMinWidthPx}px)`}
+                            checked={desktopChecked}
+                            onChange={(checked) => write(groups.desktopKeys, checked)}
+                        />
+                    )}
+                    {groups.unsized.map((bp) => (
                         <CheckboxControl
                             key={bp.key}
                             label={bp.label}
-                            checked={(value?.breakpoints ?? []).includes(bp.key)}
-                            onChange={(checked) => {
-                                const current = new Set(value?.breakpoints ?? []);
-                                if (checked) { current.add(bp.key); } else { current.delete(bp.key); }
-                                // `direction: 'hide'` is pinned — the UI has no
-                                // inverse mode. The attribute is still written
-                                // so the persisted shape stays stable with
-                                // the rule's schema.
-                                onChange({ ...(value ?? {}), direction: 'hide', breakpoints: Array.from(current) });
-                            }}
+                            checked={selected.has(bp.key)}
+                            onChange={(checked) => write([bp.key], checked)}
                         />
                     ))}
+                    {showLegacy && (
+                        <>
+                            <strong>
+                                {groups.devices.length > 0
+                                    ? __('Legacy width ranges:', 'artisanpack-visual-editor')
+                                    : __('Hide on:', 'artisanpack-visual-editor')}
+                            </strong>
+                            {groups.legacy.map((bp) => (
+                                <CheckboxControl
+                                    key={bp.key}
+                                    label={bp.rangeLabel}
+                                    checked={selected.has(bp.key)}
+                                    onChange={(checked) => write([bp.key], checked)}
+                                />
+                            ))}
+                        </>
+                    )}
                 </div>
             )}
         </>
