@@ -63,6 +63,7 @@ class QueryInliner
 	 */
 	protected const QUERY_CONTROL_RESOLVERS = [
 		'query-no-results'           => 'stampNoResults',
+		'query-pagination'           => 'stampPagination',
 		'query-pagination-next'      => 'stampPaginationNext',
 		'query-pagination-previous'  => 'stampPaginationPrevious',
 		'query-pagination-numbers'   => 'stampPaginationNumbers',
@@ -987,6 +988,25 @@ class QueryInliner
 		return [
 			'_resolvedTotal'       => $paginator->total(),
 			'_resolvedCurrentPage' => $paginator->currentPage(),
+		];
+	}
+
+	/**
+	 * Stamp the page count on the pagination wrapper, so the renderers
+	 * can skip it when the results fit on one page. WordPress renders
+	 * nothing there too: `paginate_links()` returns nothing for one page
+	 * and the wrapper is skipped when its content is empty (#955).
+	 *
+	 * @param  array<string, mixed>  $queryAttrs
+	 * @param  array<string, mixed>  $attributes
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function stampPagination( LengthAwarePaginator $paginator, array $queryAttrs, array $attributes ): array
+	{
+		return [
+			'_resolvedCurrentPage' => $paginator->currentPage(),
+			'_resolvedTotalPages'  => $paginator->lastPage(),
 		];
 	}
 

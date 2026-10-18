@@ -319,7 +319,25 @@ it( 'stamps pagination URLs on the next / previous / numbers leaves', function (
 		->and( count( $leaves['artisanpack/query-pagination-numbers']['_resolvedPageNumbers'] ) )->toBe( 3 )
 		->and( $leaves['artisanpack/query-pagination-numbers']['_resolvedPageNumbers'][0]['number'] )->toBe( 1 )
 		->and( $leaves['artisanpack/query-pagination-numbers']['_resolvedPageNumbers'][2]['number'] )->toBe( 3 )
-		->and( $leaves['artisanpack/query-pagination-numbers']['_resolvedCurrentPage'] )->toBe( 2 );
+		->and( $leaves['artisanpack/query-pagination-numbers']['_resolvedCurrentPage'] )->toBe( 2 )
+		->and( $pagination['attributes']['_resolvedTotalPages'] )->toBe( 3 );
+} );
+
+it( 'stamps a single page count on the pagination wrapper when the results fit on one page (#955)', function (): void {
+	$this->fake->setItems( [ postFixture( 1, 'A' ), postFixture( 2, 'B' ) ] );
+	$this->fake->totalOverride = 2;
+	$this->fake->perPage       = 5;
+	$this->fake->currentPage   = 1;
+
+	$tree = [ makeQueryBlockWithSiblings( [ [ 'name' => 'artisanpack/query-pagination', 'attributes' => [], 'innerBlocks' => [] ] ] ) ];
+
+	$pagination = array_values( array_filter(
+		$this->inliner->inline( $tree )[0]['innerBlocks'],
+		static fn ( array $block ): bool => 'artisanpack/query-pagination' === ( $block['name'] ?? '' ),
+	) )[0];
+
+	expect( $pagination['attributes']['_resolvedTotalPages'] )->toBe( 1 )
+		->and( $pagination['attributes']['_resolvedCurrentPage'] )->toBe( 1 );
 } );
 
 it( 'emits an empty previous-page url on page 1 and stamps the next link', function (): void {
