@@ -4081,6 +4081,77 @@
                     ]
                 }
             ]
+        },
+        {
+            "$comment": "#975 — current page on `/services/design`: the Design link gets `current-menu-item` + `aria-current=\"page\"`, its submenu and the `/services/` parent-path link get `current-menu-ancestor`, Home (`/`) and the other-host link get nothing.",
+            "name": "navigation-current-page",
+            "currentUrl": "http://localhost/services/design?ref=nav#top",
+            "tree": [
+                {
+                    "clientId": "nav-current",
+                    "name": "core/navigation",
+                    "attributes": {
+                        "overlayMenu": "never"
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "nav-current-home",
+                            "name": "core/navigation-link",
+                            "attributes": {
+                                "label": "Home",
+                                "url": "/"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "nav-current-parent",
+                            "name": "core/navigation-link",
+                            "attributes": {
+                                "label": "All services",
+                                "url": "/services/"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "nav-current-sub",
+                            "name": "core/navigation-submenu",
+                            "attributes": {
+                                "label": "What we do",
+                                "url": "/what-we-do"
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "nav-current-design",
+                                    "name": "core/navigation-link",
+                                    "attributes": {
+                                        "label": "Design",
+                                        "url": "http://localhost/services/design/"
+                                    },
+                                    "innerBlocks": []
+                                },
+                                {
+                                    "clientId": "nav-current-build",
+                                    "name": "core/navigation-link",
+                                    "attributes": {
+                                        "label": "Build",
+                                        "url": "/services/build"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        },
+                        {
+                            "clientId": "nav-current-other",
+                            "name": "core/navigation-link",
+                            "attributes": {
+                                "label": "Partner",
+                                "url": "https://partner.test/services/design"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
         }
     ]
 }

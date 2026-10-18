@@ -252,6 +252,30 @@ import { Navigation } from '@artisanpack-ui/visual-editor-renderer-react';
 <Navigation location="primary" />
 ```
 
+### Current page (#975)
+
+As in WordPress, the menu item for the page being viewed is marked so
+screen readers announce it and themes can style it:
+
+| Item | `<li>` class | `<a>` attribute |
+|------|--------------|-----------------|
+| Link / submenu whose URL is the current page | `current-menu-item` | `aria-current="page"` |
+| Link / submenu whose URL is a parent path (`/blog` on `/blog/hello`) | `current-menu-ancestor` | — |
+| Submenu with a current or parent-path link anywhere below it | `current-menu-ancestor` | — |
+
+Matching compares paths, ignoring a trailing slash, the query string and
+the fragment. Relative links (`/blog`) match on path alone; absolute or
+protocol-relative links must also name the request's host and port (the
+scheme is ignored), so a link to another site is never current. `/` is
+only ever current on the home page, never an ancestor. `#anchor`,
+`mailto:` and other non-`http(s)` URLs never match.
+
+Blade reads the request (`request()->url()`); the React and Vue renderers
+take the page URL through `<BlockTree currentUrl>` / `<Template
+currentUrl>` (see [Renderers](../renderers.md)). The matcher is
+`ArtisanPackUI\VisualEditorRendererBlade\Support\NavigationCurrentState`
+and its TypeScript twin `matchNavigationUrl()`.
+
 ---
 
 ## 8. Per-viewport visibility (mobile-overlay-only content)
