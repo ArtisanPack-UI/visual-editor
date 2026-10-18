@@ -534,6 +534,25 @@ const FIXTURES: Array<{ name: string; tree: Block[] }> = [
         ],
     },
     {
+        name: 'artisanpack/related-posts grid layout with a block gap (#964)',
+        tree: [
+            makeBlock(
+                'artisanpack/related-posts',
+                {
+                    _resolvedItems: 2,
+                    numColumns: 3,
+                    displayLayout: { type: 'grid', columns: '4' },
+                    style: { spacing: { blockGap: 'var:preset|spacing|40' } },
+                },
+                [
+                    makeBlock('core/paragraph', { content: 'Related A' }, [], 'pg-a'),
+                    makeBlock('core/paragraph', { content: 'Related B' }, [], 'pg-b'),
+                ],
+                'rp-3'
+            ),
+        ],
+    },
+    {
         name: 'artisanpack/author-social-icons icon + label chips',
         tree: [
             makeBlock(

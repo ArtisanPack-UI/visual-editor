@@ -127,6 +127,11 @@ A fixture may also carry `duotonePresets` (a theme's
 to `BlockTree`'s `duotonePresets` prop, and the Pest suite seeds them as the
 request's resolved presets through `DuotoneCssAccumulator::presets()`.
 
+A fixture may also set `resolveQueries: false` when its tree is already
+expanded the way `QueryInliner` leaves it (Related Posts items, for
+example, only resolve against a host post). The Pest suite then renders it
+with `:resolve-queries="false"`; the JS renderers take the tree as given.
+
 Currently declared (RN-12, navigation):
 
 - **Overlay (`^navigation-overlay-`).** Element `id`s (Blade tracker ids,

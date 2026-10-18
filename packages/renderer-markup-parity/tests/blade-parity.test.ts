@@ -49,6 +49,12 @@ interface Fixture {
      * (`markupParitySeedDuotonePresets()`).
      */
     duotonePresets?: DuotonePresets;
+    /**
+     * `false` when the tree is already expanded the way `QueryInliner`
+     * leaves it. Only the Pest suite reads it (`:resolve-queries`); the
+     * JS renderers take the tree as given.
+     */
+    resolveQueries?: boolean;
 }
 
 /**

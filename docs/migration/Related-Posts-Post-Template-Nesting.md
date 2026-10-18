@@ -32,11 +32,15 @@ through the editor template) or insert a new Related Posts block.
 
 ## Editor changes
 
-- Related Posts no longer exposes layout (list / grid / masonry) or
-  column controls itself — the nested `artisanpack/post-template`
-  owns those via its existing toolbar + inspector, matching the
-  Query Loop experience. Selecting the inner Post Template surfaces
-  the layout toolbar and column count.
+- With a nested `artisanpack/post-template`, Related Posts doesn't
+  expose layout (list / grid / masonry) or column controls itself —
+  the post template owns those via its existing toolbar + inspector,
+  matching the Query Loop experience. Selecting the inner Post
+  Template surfaces the layout toolbar and column count.
+- Flat content (no nested post template) lays out its related items
+  itself (#964): Related Posts shows List / Grid toolbar toggles and,
+  for a grid, a Columns control (2–6). They write `displayLayout`
+  (`{ type, columns }`) and mirror the column count into `numColumns`.
 - Related Posts gains a Post Variants inspector panel — the same
   `PostVariantsPanel` Query Loop uses — so authors can register
   position / pattern / meta variants without leaving the parent
@@ -83,6 +87,21 @@ masonry / list) and column count are rendered by the nested
 classes — the same module the standalone Query Loop renders against,
 so masonry + grid-spans + variants reuse one CSS module instead of
 forking per host.
+
+Flat content is the exception (#964). There the related items are the
+synthetic `core/post-template-item`s directly under the wrapper, so a
+grid `displayLayout` puts Post Template's grid classes on the wrapper
+itself: `ap-related-posts is-layout-grid
+wp-block-artisanpack-related-posts-is-layout-grid columns-N`, with the
+column count read from `displayLayout.columns`, else `numColumns`,
+else 3 (clamped to 1–12). `post-template.css` styles
+`.ap-related-posts.is-layout-grid` like `.wp-block-post-template`: the
+same tracks, the `--wp--style--block-gap` gap from Block spacing
+(`style.spacing.blockGap`), and the same collapse (three or more
+columns drop to two at 1023px and below, and every grid to one at
+767px and below). The React and Vue renderers now print the wrapper's
+Block spacing too, as Blade does. With a nested post template the
+wrapper ignores `displayLayout`.
 
 The pre-#601 wrapper classes (`ap-related-posts-has-N-columns`,
 `ap-related-posts__item*`, etc.) and their styles have been removed —
