@@ -1,0 +1,12 @@
+<div class="ap-related-posts is-layout-grid wp-block-artisanpack-related-posts-is-layout-grid columns-3" style="--wp--style--block-gap: 2rem">
+  <li class="wp-block-post-template-item related-post post-11" id="post-11">
+    <p class="wp-block-paragraph">
+      "Related A"
+    </p>
+  </li>
+  <li class="wp-block-post-template-item related-post post-12" id="post-12">
+    <p class="wp-block-paragraph">
+      "Related B"
+    </p>
+  </li>
+</div>

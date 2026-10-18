@@ -15,7 +15,7 @@ import {
     attrString,
     classList,
 } from '../../support/attributes';
-import { safeUrl } from '../../support/urlSanitizer';
+import { searchFormAction } from '../../support/searchForm';
 import { blockRendererProps } from '../shared';
 
 const SLUG_PATTERN = /[^a-z0-9_-]/gi;
@@ -98,9 +98,7 @@ export const SearchFiltersBlock = defineComponent({
     setup(props, { slots }) {
         return (): VNode => {
             const postType = sanitizeSlug(props.attributes.postType, 'post');
-            const action =
-                safeUrl(attrString(props.attributes._resolvedFormAction, '/')) ||
-                '/';
+            const action = searchFormAction(props.attributes);
             const className = attrString(props.attributes.className);
 
             const classes = classList(['wp-block-artisanpack-search-filters', 'ap-search-filters', className]);

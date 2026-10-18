@@ -179,15 +179,20 @@ class PostResolver
 	 * just provides the canonical `{slug, url}` pair for every platform
 	 * so the renderer never has to know about share-URL syntax.
 	 *
+	 * `copyLink` is not a share endpoint: its `url` is the bare permalink,
+	 * which the renderers put on a copy-to-clipboard chip (#963).
+	 *
 	 * @var array<int, string>
 	 */
 	protected const SHARE_PLATFORM_SLUGS = [
 		'facebook',
 		'twitter',
+		'linkedin',
 		'mastodon',
 		'reddit',
 		'pinterest',
 		'email',
+		'copyLink',
 	];
 
 	/**
@@ -998,7 +1003,8 @@ class PostResolver
 	 * Stamp pre-built share URLs for the host post onto the
 	 * `artisanpack/social-share-content` block as `_resolvedShareLinks`.
 	 * Each entry is `{ slug, url }`. The renderer maps `slug` to the
-	 * shared icon path / human label registry.
+	 * shared icon path / human label registry. The `copyLink` entry
+	 * carries the unencoded permalink rather than a share URL (#963).
 	 *
 	 * @since 1.0.0
 	 *
@@ -1017,7 +1023,9 @@ class PostResolver
 		$links = [];
 
 		foreach ( self::SHARE_PLATFORM_SLUGS as $slug ) {
-			$url = $this->shareUrl( $slug, $encodedUrl, $encodedTitle, $encodedImage );
+			$url = 'copyLink' === $slug
+				? $permalink
+				: $this->shareUrl( $slug, $encodedUrl, $encodedTitle, $encodedImage );
 
 			if ( '' === $url ) {
 				continue;
@@ -1144,6 +1152,9 @@ class PostResolver
 				? ''
 				: 'https://twitter.com/share?url=' . $encodedUrl
 					. ( '' === $encodedTitle ? '' : '&text=' . $encodedTitle ),
+			'linkedin'  => '' === $encodedUrl
+				? ''
+				: 'https://www.linkedin.com/sharing/share-offsite/?url=' . $encodedUrl,
 			'mastodon'  => '' === $encodedUrl
 				? ''
 				: 'https://mastodonshare.com/?url=' . $encodedUrl

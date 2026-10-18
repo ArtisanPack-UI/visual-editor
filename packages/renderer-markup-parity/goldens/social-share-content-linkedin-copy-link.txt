@@ -1,0 +1,35 @@
+<div class="wp-block-artisanpack-social-share-content ap-social-share-content ap-social-share-content--horizontal ap-social-share-content--auto-width">
+  <div class="ap-social-share-content__item">
+    <a aria-label="Share on X" class="ap-social-share-content__chip twitter" href="https://twitter.com/share?url=https%3A%2F%2Fexample.test%2Fposts%2Fhello&text=Hello" style="--ap-social-color: #112233">
+      <svg aria-hidden="true" class="ap-social-share-content__icon" fill="currentColor" focusable="false" height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg">
+        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.45-6.231Zm-1.161 17.52h1.833L7.084 4.126H5.117l11.966 15.644Z">
+        </path>
+      </svg>
+      <span class="ap-social-share-content__label">
+        "X"
+      </span>
+    </a>
+  </div>
+  <div class="ap-social-share-content__item">
+    <a aria-label="Share on LinkedIn" class="ap-social-share-content__chip linkedin" href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fexample.test%2Fposts%2Fhello" style="--ap-social-color: #112233">
+      <svg aria-hidden="true" class="ap-social-share-content__icon" fill="currentColor" focusable="false" height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg">
+        <path d="M6.202 21l-4.355 0 0-14.02 4.355 0 0 14.02zM4.022 5.067C2.63 5.067 1.5 3.914 1.5 2.522 1.5 1.852 1.767 1.214 2.241 .741s1.116-.741 1.781-.741 1.308 .267 1.781 .741 .741 1.116 .741 1.781c0 1.392-1.13 2.545-2.522 2.545zM22.495 21l-4.345 0 0-6.825c0-1.627-.033-3.713-2.264-3.713-2.264 0-2.611 1.767-2.611 3.595l0 6.942-4.35 0 0-14.02 4.177 0 0 1.912 .061 0c.581-1.102 2.002-2.264 4.12-2.264 4.406 0 5.217 2.902 5.217 6.67l0 7.702-.005 0z">
+        </path>
+      </svg>
+      <span class="ap-social-share-content__label">
+        "LinkedIn"
+      </span>
+    </a>
+  </div>
+  <div class="ap-social-share-content__item">
+    <a aria-label="Copy link" class="ap-social-share-content__chip copyLink" data-ap-copy-link="https://example.test/posts/hello" href="https://example.test/posts/hello" style="--ap-social-color: #112233">
+      <svg aria-hidden="true" class="ap-social-share-content__icon" fill="currentColor" focusable="false" height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg">
+        <path d="M17.479 5.333c-.692 0-1.362 .188-1.95 .529-.658-.667-1.425-1.225-2.271-1.646 1.175-1 2.671-1.55 4.221-1.55 3.6 0 6.521 2.917 6.521 6.521 0 1.729-.687 3.387-1.908 4.608l-2.962 2.962c-1.221 1.221-2.879 1.908-4.608 1.908-3.6 0-6.521-2.917-6.521-6.521 0-.062 0-.125 .004-.187 .021-.737 .633-1.317 1.371-1.296s1.317 .633 1.296 1.371c0 .038 0 .075 0 .108 0 2.129 1.725 3.854 3.854 3.854 1.021 0 2-.404 2.725-1.129l2.962-2.962c.721-.721 1.129-1.704 1.129-2.725 0-2.129-1.725-3.854-3.854-3.854zM11.467 8.554c-.079-.033-.158-.079-.229-.129-.525-.271-1.125-.425-1.754-.425-1.021 0-2 .404-2.725 1.129L3.796 12.092c-.721 .721-1.129 1.704-1.129 2.725 0 2.129 1.725 3.854 3.854 3.854 .688 0 1.358-.183 1.946-.525 .658 .667 1.425 1.225 2.275 1.646-1.175 .996-2.667 1.55-4.221 1.55-3.6 0-6.521-2.917-6.521-6.521 0-1.729 .688-3.387 1.908-4.608l2.962-2.962c1.221-1.221 2.879-1.908 4.608-1.908 3.608 0 6.521 2.942 6.521 6.538 0 .054 0 .108 0 .162-.017 .737-.629 1.317-1.367 1.3s-1.317-.629-1.3-1.367c0-.033 0-.062 0-.096 0-1.404-.75-2.637-1.867-3.317z">
+        </path>
+      </svg>
+      <span class="ap-social-share-content__label">
+        "Copy link"
+      </span>
+    </a>
+  </div>
+</div>

@@ -61,6 +61,7 @@ import {
     MIN_WIDTH,
     isPercentageUnit,
 } from './constants';
+import SearchFormActionControl from '../_shared/search-form-action-control';
 
 // Used to calculate border radius adjustment to avoid "fat" corners when
 // the button is placed inside the wrapper.
@@ -78,6 +79,7 @@ interface SearchAttributes {
     readonly buttonPosition?: string;
     readonly buttonUseIcon?: boolean;
     readonly isSearchFieldHidden?: boolean;
+    readonly action?: string;
     readonly style?: { border?: { radius?: number | object } };
     readonly [key: string]: unknown;
 }
@@ -110,6 +112,7 @@ export default function SearchEdit( {
         buttonPosition,
         buttonUseIcon,
         isSearchFieldHidden,
+        action,
         style,
     } = attributes;
 
@@ -405,6 +408,7 @@ export default function SearchEdit( {
                         buttonUseIcon: false,
                         buttonPosition: 'button-outside',
                         isSearchFieldHidden: false,
+                        action: '',
                     } );
                 } }
             >
@@ -557,6 +561,25 @@ export default function SearchEdit( {
                             } ) }
                         </ToggleGroupControl>
                     </VStack>
+                </ToolsPanelItem>
+                <ToolsPanelItem
+                    hasValue={ () => !! action }
+                    label={ __( 'Submit to', TEXT_DOMAIN ) }
+                    onDeselect={ () => {
+                        setAttributes( {
+                            action: '',
+                        } );
+                    } }
+                    isShownByDefault
+                >
+                    <SearchFormActionControl
+                        action={ action }
+                        onChange={ ( value ) =>
+                            setAttributes( {
+                                action: value,
+                            } )
+                        }
+                    />
                 </ToolsPanelItem>
             </ToolsPanel>
         </InspectorControls>

@@ -22,6 +22,7 @@ import { dimensionsClassName } from '../../support/dimensions';
 import { cssNumber } from '../../support/cssNumber';
 import { layoutWrapperClasses } from '../../support/layoutContainer';
 import { coverImageUrl } from '../../support/coverImage';
+import { searchButtonClasses, searchButtonPosition, searchFormAction } from '../../support/searchForm';
 import { safeUrl } from '../../support/urlSanitizer';
 import type { BlockRendererProps } from '../../types';
 
@@ -267,6 +268,9 @@ export function SearchBlock({ attributes }: BlockRendererProps): JSX.Element {
     const useIcon = attrBoolean(attributes.buttonUseIcon);
     const queryName = attrString(attrRecord(attributes.query).name, 's');
     const className = attrString(attributes.className);
+    // #961: the form's target and the term it shows (see support/searchForm).
+    const action = searchFormAction(attributes);
+    const searchValue = attrString(attributes._resolvedSearchValue);
 
     const ariaLabel =
         buttonText.trim() !== ''
@@ -275,9 +279,12 @@ export function SearchBlock({ attributes }: BlockRendererProps): JSX.Element {
             ? label
             : 'Search';
 
+    // #961: button position classes as WordPress prints them; `no-button`
+    // renders no button, so Enter submits.
+    const hasButton = searchButtonPosition(attributes) !== 'no-button';
     const classes = classList([
         'wp-block-search',
-        !showLabel ? 'wp-block-search__button-inside' : null,
+        ...searchButtonClasses(attributes, useIcon),
         className,
     ]);
 
@@ -289,21 +296,24 @@ export function SearchBlock({ attributes }: BlockRendererProps): JSX.Element {
     const inputId = `wp-block-search-input-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
 
     return (
-        <form role="search" method="get" action="/" className={classes}>
-            {showLabel ? (
-                <label className="wp-block-search__label" htmlFor={inputId}>
-                    {label}
-                </label>
-            ) : null}
+        <form role="search" method="get" action={action} className={classes}>
+            {/* A hidden label stays for screen readers: it is the input's only accessible name. */}
+            <label
+                className={showLabel ? 'wp-block-search__label' : 'wp-block-search__label screen-reader-text'}
+                htmlFor={inputId}
+            >
+                {label}
+            </label>
             <div className="wp-block-search__inside-wrapper">
                 <input
                     id={inputId}
                     type="search"
                     className="wp-block-search__input"
                     name={queryName}
+                    defaultValue={searchValue}
                     placeholder={placeholder === '' ? undefined : placeholder}
                 />
-                {useIcon ? (
+                {!hasButton ? null : useIcon ? (
                     <button type="submit" className={buttonClasses} aria-label={ariaLabel}>
                         <svg
                             className="wp-block-search__button-icon"

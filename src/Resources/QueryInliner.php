@@ -68,6 +68,7 @@ class QueryInliner
 		'query-pagination-previous'  => 'stampPaginationPrevious',
 		'query-pagination-numbers'   => 'stampPaginationNumbers',
 		'query-title'                => 'stampQueryTitle',
+		'query-total'                => 'stampQueryTotal',
 	];
 
 	/**
@@ -1072,6 +1073,32 @@ class QueryInliner
 			'_resolvedPageNumbers'  => $pages,
 			'_resolvedCurrentPage'  => $current,
 			'_resolvedTotalPages'   => $lastPage,
+		];
+	}
+
+	/**
+	 * Stamp the result count and the current page's position in it, so
+	 * `query-total` can print "25 results" or "Showing 1–9 of 25"
+	 * without re-running the query (#962).
+	 *
+	 * `_resolvedItems` is the number of rows on the current page, which
+	 * the range display needs for a short last page.
+	 *
+	 * @since 1.15.2
+	 *
+	 * @param  array<string, mixed>  $queryAttrs
+	 * @param  array<string, mixed>  $attributes
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function stampQueryTotal( LengthAwarePaginator $paginator, array $queryAttrs, array $attributes ): array
+	{
+		return [
+			'_resolvedTotal'       => (int) $paginator->total(),
+			'_resolvedItems'       => count( $paginator->items() ),
+			'_resolvedCurrentPage' => max( 1, (int) $paginator->currentPage() ),
+			'_resolvedPerPage'     => max( 0, (int) $paginator->perPage() ),
+			'_resolvedTotalPages'  => max( 1, (int) $paginator->lastPage() ),
 		];
 	}
 

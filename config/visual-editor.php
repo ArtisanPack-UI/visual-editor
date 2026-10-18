@@ -539,6 +539,28 @@ return [
 
 	/*
 	|--------------------------------------------------------------------------
+	| Search blocks (#961)
+	|--------------------------------------------------------------------------
+	|
+	| `url` is the site search page that `artisanpack/search` and
+	| `artisanpack/search-filters` submit to when their `action` attribute
+	| is left on "Site search" (the default). Blocks can instead submit to
+	| the current page (`action: "current"`) or a same-site path. A relative
+	| path or an absolute URL both work here; the host is responsible for
+	| the route reading `?s=`.
+	|
+	| The Blade renderer reads this value. The React and Vue renderers have
+	| no config access and use `/search` unless the host stamps
+	| `_resolvedFormAction` on the block.
+	|
+	*/
+
+	'search' => [
+		'url' => '/search',
+	],
+
+	/*
+	|--------------------------------------------------------------------------
 	| Business-info blocks (#761)
 	|--------------------------------------------------------------------------
 	|
@@ -565,6 +587,24 @@ return [
 
 	'business' => [
 		'google_maps_api_key' => null,
+	],
+
+	/*
+	|--------------------------------------------------------------------------
+	| Categories (Terms List) block (#960)
+	|--------------------------------------------------------------------------
+	|
+	| `posts_index_url` is where the `artisanpack/categories` block's "All"
+	| item links for the `category` and `post_tag` taxonomies: the
+	| unfiltered posts list. A path is resolved through `url()`; an
+	| absolute URL is used as-is. Hosts that need a per-request value can
+	| answer the `ap.visualEditor.terms.allUrl` filter instead, which
+	| receives this URL as its default for the built-in taxonomies.
+	|
+	*/
+
+	'categories' => [
+		'posts_index_url' => '/blog',
 	],
 
 	/*

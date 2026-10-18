@@ -94,9 +94,11 @@ the site editor:
 | `core/query-pagination-next` | `artisanpack/query-pagination-next` |
 | `core/query-no-results` | `artisanpack/query-no-results` |
 | `core/query-title` | `artisanpack/query-title` |
+| `core/query-total` | `artisanpack/query-total` |
 
 *Since v1.14.0 (#856).* Earlier versions rendered these names through the
-unknown-block wrapper. The Blade, React and Vue renderers all follow this
+unknown-block wrapper. `core/query-total` (WordPress 6.8's Query Total) is
+rendered since v1.15.2 (#962). The Blade, React and Vue renderers all follow this
 mapping.
 
 ### Tree shapes

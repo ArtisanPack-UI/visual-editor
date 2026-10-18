@@ -143,7 +143,13 @@ function markupParityDivergencesFor( string $name ): array
  * `duotonePresets` prop and this suite seeds it as the request's resolved
  * presets (see markupParitySeedDuotonePresets()).
  *
- * @return array<string, array{0: string, 1: array<int, mixed>, 2: array<int, array<string, mixed>>, 3: array<int|string, mixed>}>
+ * A fixture may also set `resolveQueries: false` for a tree that is already
+ * expanded the way `QueryInliner` would leave it (e.g. Related Posts items,
+ * which need a host post to resolve). This suite then renders it with
+ * `:resolve-queries="false"`; the JS renderers take the tree as given
+ * anyway.
+ *
+ * @return array<string, array{0: string, 1: array<int, mixed>, 2: array<int, array<string, mixed>>, 3: array<int|string, mixed>, 4: bool}>
  */
 function markupParityFixtures(): array
 {
@@ -152,7 +158,7 @@ function markupParityFixtures(): array
 	$dataset = [];
 
 	foreach ( $json['fixtures'] as $fixture ) {
-		$dataset[ $fixture['name'] ] = [ $fixture['name'], $fixture['tree'], $fixture['templateParts'] ?? [], $fixture['duotonePresets'] ?? [] ];
+		$dataset[ $fixture['name'] ] = [ $fixture['name'], $fixture['tree'], $fixture['templateParts'] ?? [], $fixture['duotonePresets'] ?? [], false !== ( $fixture['resolveQueries'] ?? true ) ];
 	}
 
 	return $dataset;
@@ -350,7 +356,7 @@ function markupParityCanonicalCss( string $css ): string
 	return implode( "\n", $rules );
 }
 
-it( 'matches the golden markup shared with the React and Vue renderers', function ( string $name, array $tree, array $templateParts, array $duotonePresets ): void {
+it( 'matches the golden markup shared with the React and Vue renderers', function ( string $name, array $tree, array $templateParts, array $duotonePresets, bool $resolveQueries ): void {
 	if ( [] !== $templateParts ) {
 		markupParityBindTemplateParts( $templateParts );
 	}
@@ -359,7 +365,10 @@ it( 'matches the golden markup shared with the React and Vue renderers', functio
 		markupParitySeedDuotonePresets( $duotonePresets );
 	}
 
-	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+	$rendered = Blade::render(
+		'<x-ve-blocks :tree="$tree" :resolve-queries="$resolveQueries" />',
+		[ 'tree' => $tree, 'resolveQueries' => $resolveQueries ],
+	);
 
 	$divergences = markupParityDivergencesFor( $name );
 

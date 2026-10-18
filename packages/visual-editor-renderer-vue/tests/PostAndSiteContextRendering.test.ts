@@ -530,3 +530,48 @@ describe('Core navigation blocks (Vue)', () => {
         expect(html).toMatch(/<a (class="wp-block-post-terms__term" href="https:\/\/example\.test\/tag\/core"|href="https:\/\/example\.test\/tag\/core" class="wp-block-post-terms__term")>Core<\/a>/);
     });
 });
+
+describe('Query Total (#962)', () => {
+    const total = (attributes: Record<string, unknown>, name = 'artisanpack/query-total') =>
+        renderTree([makeBlock(name, attributes)]);
+
+    it('renders the total with the plural noun, and the singular for one result', () => {
+        expect(total({ _resolvedTotal: 25 })).toContain(
+            '<div class="wp-block-query-total"><strong>25</strong> results</div>'
+        );
+        expect(total({ _resolvedTotal: 1, singular: 'package', plural: 'packages' })).toContain(
+            '<strong>1</strong> package</div>'
+        );
+    });
+
+    it('renders zero results with the plural noun in either display type', () => {
+        expect(total({ _resolvedTotal: 0, displayType: 'range-display' })).toContain(
+            '<div class="wp-block-query-total"><strong>0</strong> results</div>'
+        );
+    });
+
+    it('wraps the count in the prefix and suffix', () => {
+        expect(total({ _resolvedTotal: 25, prefix: 'Showing ', plural: 'packages', suffix: '.' })).toContain(
+            'Showing <strong>25</strong> packages.</div>'
+        );
+    });
+
+    it('renders the current page range', () => {
+        const range = (page: number, items: number) =>
+            total({
+                _resolvedTotal: 25,
+                _resolvedCurrentPage: page,
+                _resolvedPerPage: 9,
+                _resolvedItems: items,
+                displayType: 'range-display',
+            });
+
+        expect(range(1, 9)).toContain('<strong>1–9</strong> of <strong>25</strong> results</div>');
+        expect(range(3, 7)).toContain('<strong>19–25</strong> of <strong>25</strong> results</div>');
+    });
+
+    it('renders nothing outside a resolved query, and the core alias like the fork', () => {
+        expect(total({})).not.toContain('wp-block-query-total');
+        expect(total({ _resolvedTotal: 4 }, 'core/query-total')).toBe(total({ _resolvedTotal: 4 }));
+    });
+});

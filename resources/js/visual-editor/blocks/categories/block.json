@@ -41,6 +41,22 @@
         "showLabel": {
             "type": "boolean",
             "default": true
+        },
+        "countStyle": {
+            "type": "string",
+            "enum": [
+                "inline",
+                "badge"
+            ],
+            "default": "inline"
+        },
+        "showAll": {
+            "type": "boolean",
+            "default": false
+        },
+        "allLabel": {
+            "type": "string",
+            "role": "content"
         }
     },
     "usesContext": [
