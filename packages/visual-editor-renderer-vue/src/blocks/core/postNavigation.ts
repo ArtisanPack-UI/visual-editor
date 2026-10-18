@@ -148,13 +148,15 @@ export const PostTermsBlock = defineComponent({
                 const name = attrString(term.name);
                 const url = safeUrl(attrString(term.url));
 
+                // Each term carries `wp-block-post-terms__term`, so a theme
+                // can style one term whether or not it links (#939).
                 if (url === '') {
                     // Upstream `get_the_term_list` always produces anchors;
-                    // we degrade gracefully to plain text when the host
+                    // we degrade gracefully to a plain span when the host
                     // can't resolve a permalink for the term.
-                    children.push(name);
+                    children.push(h('span', { class: 'wp-block-post-terms__term' }, name));
                 } else {
-                    children.push(h('a', { href: url }, name));
+                    children.push(h('a', { class: 'wp-block-post-terms__term', href: url }, name));
                 }
             });
 
