@@ -31,3 +31,32 @@
     width: auto;
     min-width: 0;
 }
+
+/*
+ * Collapse on smaller screens (#937), as the Grid block does (#901):
+ * three or more columns drop to two at 1023px and below, and every grid
+ * drops to one at 767px and below. Spans wider than the collapsed grid
+ * are clamped so they never add implicit tracks; an explicit Tablet or
+ * Mobile span on a post variant still wins at its own width.
+ *
+ * Items are matched as `.wp-block-post-template-item` (front end) and
+ * `.wp-block-post` (editor canvas), as post-variant.css does. The reset
+ * selectors outrank post-variant.css's span rules, whichever file loads
+ * last, and mobile-first `sm` / `md` spans count as they can apply below
+ * 1024px.
+ */
+@media (max-width: 1023px) {
+    .wp-block-post-template.is-layout-grid:is(.columns-3, .columns-4, .columns-5, .columns-6) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .wp-block-post-template.is-layout-grid:is(.columns-3, .columns-4, .columns-5, .columns-6) > .wp-block-post-template-item:is(.ap-post-span-3-base-columns, .ap-post-span-4-base-columns, .ap-post-span-5-base-columns, .ap-post-span-6-base-columns, .ap-post-span-7-base-columns, .ap-post-span-8-base-columns, .ap-post-span-9-base-columns, .ap-post-span-10-base-columns, .ap-post-span-11-base-columns, .ap-post-span-12-base-columns):not([class*="-tablet-columns"]),
+    .wp-block-post-template.is-layout-grid:is(.columns-3, .columns-4, .columns-5, .columns-6) > .wp-block-post-template-item:is(.ap-post-span-3-tablet-columns, .ap-post-span-4-tablet-columns, .ap-post-span-5-tablet-columns, .ap-post-span-6-tablet-columns, .ap-post-span-7-tablet-columns, .ap-post-span-8-tablet-columns, .ap-post-span-9-tablet-columns, .ap-post-span-10-tablet-columns, .ap-post-span-11-tablet-columns, .ap-post-span-12-tablet-columns, .ap-post-span-3-sm-columns, .ap-post-span-4-sm-columns, .ap-post-span-5-sm-columns, .ap-post-span-6-sm-columns, .ap-post-span-7-sm-columns, .ap-post-span-8-sm-columns, .ap-post-span-9-sm-columns, .ap-post-span-10-sm-columns, .ap-post-span-11-sm-columns, .ap-post-span-12-sm-columns, .ap-post-span-3-md-columns, .ap-post-span-4-md-columns, .ap-post-span-5-md-columns, .ap-post-span-6-md-columns, .ap-post-span-7-md-columns, .ap-post-span-8-md-columns, .ap-post-span-9-md-columns, .ap-post-span-10-md-columns, .ap-post-span-11-md-columns, .ap-post-span-12-md-columns),
+    .wp-block-post-template.is-layout-grid:is(.columns-3, .columns-4, .columns-5, .columns-6) > .wp-block-post:has(:is(.ap-post-span-3-base-columns, .ap-post-span-4-base-columns, .ap-post-span-5-base-columns, .ap-post-span-6-base-columns, .ap-post-span-7-base-columns, .ap-post-span-8-base-columns, .ap-post-span-9-base-columns, .ap-post-span-10-base-columns, .ap-post-span-11-base-columns, .ap-post-span-12-base-columns, .ap-post-span-3-tablet-columns, .ap-post-span-4-tablet-columns, .ap-post-span-5-tablet-columns, .ap-post-span-6-tablet-columns, .ap-post-span-7-tablet-columns, .ap-post-span-8-tablet-columns, .ap-post-span-9-tablet-columns, .ap-post-span-10-tablet-columns, .ap-post-span-11-tablet-columns, .ap-post-span-12-tablet-columns, .ap-post-span-3-sm-columns, .ap-post-span-4-sm-columns, .ap-post-span-5-sm-columns, .ap-post-span-6-sm-columns, .ap-post-span-7-sm-columns, .ap-post-span-8-sm-columns, .ap-post-span-9-sm-columns, .ap-post-span-10-sm-columns, .ap-post-span-11-sm-columns, .ap-post-span-12-sm-columns, .ap-post-span-3-md-columns, .ap-post-span-4-md-columns, .ap-post-span-5-md-columns, .ap-post-span-6-md-columns, .ap-post-span-7-md-columns, .ap-post-span-8-md-columns, .ap-post-span-9-md-columns, .ap-post-span-10-md-columns, .ap-post-span-11-md-columns, .ap-post-span-12-md-columns)) { grid-column: span 2; }
+}
+
+@media (max-width: 767px) {
+    .wp-block-post-template.is-layout-grid:is(.columns-2, .columns-3, .columns-4, .columns-5, .columns-6) { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+    .wp-block-post-template.is-layout-grid:is(.columns-2, .columns-3, .columns-4, .columns-5, .columns-6) > :is(.wp-block-post-template-item, .wp-block-post),
+    .wp-block-post-template.is-layout-grid:is(.columns-2, .columns-3, .columns-4, .columns-5, .columns-6) > .wp-block-post-template-item[class*="ap-post-span-"],
+    .wp-block-post-template.is-layout-grid:is(.columns-2, .columns-3, .columns-4, .columns-5, .columns-6) > .wp-block-post:has([class*="ap-post-span-"]) { grid-column: auto; }
+    .wp-block-post-template.is-layout-grid:is(.columns-2, .columns-3, .columns-4, .columns-5, .columns-6) > .wp-block-post-template-item:not([class*="-mobile-row"]),
+    .wp-block-post-template.is-layout-grid:is(.columns-2, .columns-3, .columns-4, .columns-5, .columns-6) > .wp-block-post:not(:has([class*="-mobile-row"])) { grid-row: auto; }
+}
