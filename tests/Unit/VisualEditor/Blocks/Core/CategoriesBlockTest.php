@@ -370,3 +370,41 @@ it( 'defaults the taxonomy to category', function (): void {
 	expect( test()->block->validateAttrs( [] )['taxonomy'] )->toBe( 'category' )
 		->and( test()->block->validateAttrs( [ 'taxonomy' => '  ' ] )['taxonomy'] )->toBe( 'category' );
 } );
+
+it( 'keeps an empty parent whose child has published posts when nesting', function (): void {
+	visitCategoriesUrl( '/packages' );
+
+	addFilter( CategoriesBlock::FILTER_TERMS, static fn ( $terms, string $taxonomy ) => 'package-category' === $taxonomy ? [
+		[ 'id' => 20, 'name' => 'Group', 'url' => '/packages?package-category=group', 'count' => 0 ],
+		[ 'id' => 21, 'name' => 'Child', 'url' => '/packages?package-category=child', 'count' => 2, 'parentId' => 20 ],
+		[ 'id' => 22, 'name' => 'Lonely', 'url' => '/packages?package-category=lonely', 'count' => 0 ],
+	] : $terms );
+
+	$nested = test()->block->render( test()->block->validateAttrs( [ 'taxonomy' => 'package-category', 'showHierarchy' => true ] ) );
+	$flat   = test()->block->render( test()->block->validateAttrs( [ 'taxonomy' => 'package-category' ] ) );
+
+	expect( $nested )->toContain( 'cat-item-20' )
+		->and( $nested )->toContain( 'cat-item-21' )
+		->and( $nested )->not->toContain( 'cat-item-22' )
+		->and( $flat )->not->toContain( 'cat-item-20' )
+		->and( $flat )->toContain( 'cat-item-21' );
+} );
+
+it( 'drops host term URLs that hide a script scheme', function ( string $url ): void {
+	visitCategoriesUrl( '/packages' );
+
+	addFilter( CategoriesBlock::FILTER_TERMS, static fn ( $terms, string $taxonomy ) => 'package-category' === $taxonomy ? [
+		[ 'id' => 30, 'name' => 'Sneaky', 'url' => $url, 'count' => 1 ],
+		[ 'id' => 31, 'name' => 'Fine', 'url' => '/packages?package-category=fine', 'count' => 1 ],
+	] : $terms );
+
+	$html = test()->block->render( test()->block->validateAttrs( [ 'taxonomy' => 'package-category' ] ) );
+
+	expect( $html )->not->toContain( 'cat-item-30' )
+		->and( $html )->toContain( 'cat-item-31' );
+} )->with( [
+	'unparseable'      => [ 'javascript://:65536/%0aalert(1)' ],
+	'tab in scheme'    => [ "java\tscript:alert(1)" ],
+	'newline in scheme' => [ "java\nscript:alert(1)" ],
+	'data URL'         => [ 'data:text/html,<b>x</b>' ],
+] );
