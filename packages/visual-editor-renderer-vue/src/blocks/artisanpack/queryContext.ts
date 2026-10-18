@@ -32,6 +32,11 @@ export const QueryPaginationBlock = defineComponent({
     props: blockRendererProps,
     setup(props, { slots }) {
         return () => {
+            // One page renders nothing, as in WordPress (#955). An unstamped
+            // wrapper (no query around it) falls back to rendering.
+            if (attrInt(props.attributes._resolvedTotalPages, 2) <= 1) {
+                return null;
+            }
             const className = attrString(props.attributes.className);
             return h(
                 'nav',
@@ -98,6 +103,11 @@ export const QueryPaginationNumbersBlock = defineComponent({
             const current = attrInt(props.attributes._resolvedCurrentPage, 1);
             const raw = props.attributes._resolvedPageNumbers;
             const pages: ResolvedPage[] = Array.isArray(raw) ? (raw as ResolvedPage[]) : [];
+
+            // Fewer than two pages renders nothing, as `paginate_links()` does (#955).
+            if (pages.length < 2) {
+                return null;
+            }
 
             const children = pages
                 .map((page, idx) => {

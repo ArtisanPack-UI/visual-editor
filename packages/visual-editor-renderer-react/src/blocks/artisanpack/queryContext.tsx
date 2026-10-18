@@ -23,7 +23,13 @@ export function QueryNoResultsBlock({ attributes, children }: BlockRendererProps
     return <div className={classes}>{children}</div>;
 }
 
-export function QueryPaginationBlock({ attributes, children }: BlockRendererProps): JSX.Element {
+export function QueryPaginationBlock({ attributes, children }: BlockRendererProps): JSX.Element | null {
+    // One page renders nothing, as in WordPress (#955). An unstamped
+    // wrapper (no query around it) falls back to rendering.
+    if (attrInt(attributes._resolvedTotalPages, 2) <= 1) {
+        return null;
+    }
+
     const className = attrString(attributes.className);
     const classes = classList(['wp-block-query-pagination', className]);
 
@@ -75,12 +81,17 @@ interface ResolvedPage {
     readonly url?: unknown;
 }
 
-export function QueryPaginationNumbersBlock({ attributes }: BlockRendererProps): JSX.Element {
+export function QueryPaginationNumbersBlock({ attributes }: BlockRendererProps): JSX.Element | null {
     const className = attrString(attributes.className);
     const classes = classList(['wp-block-query-pagination-numbers', className]);
     const current = attrInt(attributes._resolvedCurrentPage, 1);
     const rawPages = attributes._resolvedPageNumbers;
     const pages: ResolvedPage[] = Array.isArray(rawPages) ? (rawPages as ResolvedPage[]) : [];
+
+    // Fewer than two pages renders nothing, as `paginate_links()` does (#955).
+    if (pages.length < 2) {
+        return null;
+    }
 
     return (
         <div className={classes}>
