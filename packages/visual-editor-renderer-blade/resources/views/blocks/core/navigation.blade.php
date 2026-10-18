@@ -231,6 +231,10 @@
 	// inline-menu duplicate the bundled style.css's mobile rules
 	// were already styled against.
 	//
+	// The part's blocks go through the same template-part, pattern and
+	// navigation passes as the page tree (#973), so a navigation inside
+	// the overlay that uses a menu location or `ref` renders its items.
+	//
 	// The tracker's overlay stack guards against recursion: an overlay
 	// part whose own nav points back at itself (or an A → B → A cycle)
 	// is skipped at the repeat, and nesting stops at
@@ -255,6 +259,13 @@
 						$overlayBlocks = is_array( $resolved->blocks ?? null ) ? $resolved->blocks : [];
 
 						if ( [] !== $overlayBlocks ) {
+							// Run the page's reference passes on the part
+							// (#973): nested template parts and synced
+							// patterns inline, and a navigation's menu
+							// location resolves against the page's theme.
+							$overlayBlocks = app( \ArtisanPackUI\VisualEditorRendererBlade\Services\BlockTreeReferenceResolver::class )
+								->resolveStandalone( $overlayBlocks );
+
 							$overlayHtml = app( \ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer::class )
 								->render( $overlayBlocks );
 

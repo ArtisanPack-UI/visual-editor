@@ -38,6 +38,7 @@ use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\BreadcrumbsResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\BusinessInfoResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\BlockTreeReferenceResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\BoxShadowCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\DuotoneCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ElementsCssAccumulator;
@@ -120,22 +121,10 @@ class BlocksComponent extends Component
 		// front so every resolver below reads one shape (#863).
 		$normalized = BlockShape::normalizeTree( $this->normalizeTree( $tree ) );
 
-		$resolved = $resolveParts
-			? $this->inliner->inline( $normalized, $defaultTheme )
-			: $normalized;
-
-		// Pattern inlining runs after template-part inlining so a part
-		// that itself contains a synced-pattern reference resolves in the
-		// same pass.
-		$resolved = $resolvePatterns
-			? $this->patternInliner->inline( $resolved )
-			: $resolved;
-
-		// Template parts and synced patterns splice in stored subtrees
-		// that may themselves be in the `attrs` shape.
-		$resolved = ( $resolveParts || $resolvePatterns )
-			? BlockShape::normalizeTree( $resolved )
-			: $resolved;
+		// Template parts, then synced patterns, so a part that itself
+		// contains a synced-pattern reference resolves in the same pass
+		// (see BlockTreeReferenceResolver::inlineReferences()).
+		$resolved = $this->referenceResolver()->inlineReferences( $normalized, $defaultTheme, $resolveParts, $resolvePatterns );
 
 		// Query inlining runs before nav-block resolution so a `core/query`
 		// loop with a navigation block inside it (rare but legal) still
@@ -221,8 +210,8 @@ class BlocksComponent extends Component
 		// `<li><a>` markup without any per-renderer menu-lookup glue.
 		// No-ops cleanly when `$defaultTheme` is null or cms-framework
 		// isn't installed.
-		$this->tree = ( $resolveNavigation && null !== $defaultTheme )
-			? $this->navigationResolver->resolve( $resolved, $defaultTheme )
+		$this->tree = $resolveNavigation
+			? $this->referenceResolver()->resolveNavigation( $resolved, $defaultTheme )
 			: $resolved;
 	}
 
@@ -238,7 +227,14 @@ class BlocksComponent extends Component
 		// the TOC pass (#851); it never writes resolved values into
 		// `$this->tree`, because a second pass over already-resolved
 		// attrs would re-apply the `hide` / `placeholder` policies.
-		$html               = $this->renderer->render( $this->tree, $this->bindingContext() );
+		//
+		// The render runs with the page's theme recorded so a navigation
+		// overlay part rendered from inside it resolves its own menus
+		// against the same theme (#973).
+		$html               = $this->referenceResolver()->withTheme(
+			$this->defaultTheme,
+			fn (): string => $this->renderer->render( $this->tree, $this->bindingContext() ),
+		);
 		$responsiveCss      = $this->responsiveAccumulator->flush();
 		$statesCss          = $this->stateAccumulator->flush();
 		$animationOutput    = $this->animationAccumulator->flush();
@@ -262,6 +258,20 @@ class BlocksComponent extends Component
 			'elementsCss'             => $elementsCss,
 			'duotoneCss'              => $duotoneCss,
 		] );
+	}
+
+	/**
+	 * The shared template-part / pattern / navigation reference passes.
+	 *
+	 * Resolved from the container rather than injected so the
+	 * component's constructor signature stays unchanged for subclasses
+	 * and hosts that construct it directly.
+	 *
+	 * @since 1.15.2
+	 */
+	protected function referenceResolver(): BlockTreeReferenceResolver
+	{
+		return app( BlockTreeReferenceResolver::class );
 	}
 
 	/**
