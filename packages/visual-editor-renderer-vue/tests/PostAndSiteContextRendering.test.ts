@@ -142,6 +142,31 @@ describe('Core post-context blocks (Vue)', () => {
         expect(html).toContain('alt="Featured photo"');
     });
 
+    it('covers a post-featured-image frame by default when scale is unsaved (#948)', () => {
+        const html = renderTree([
+            makeBlock('core/post-featured-image', {
+                aspectRatio: '16/10',
+                _resolvedImageUrl: 'https://example.test/wide.jpg',
+            }),
+        ]);
+
+        expect(html).toMatch(/aspect-ratio:\s*16\/10;\s*object-fit:\s*cover/);
+    });
+
+    it('sizes the post-featured-image figure and image from width and height (#948)', () => {
+        const html = renderTree([
+            makeBlock('core/post-featured-image', {
+                width: '130px',
+                height: '100%',
+                scale: 'contain',
+                _resolvedImageUrl: 'https://example.test/wide.jpg',
+            }),
+        ]);
+
+        expect(html).toMatch(/<figure[^>]*style="width:\s*130px;\s*height:\s*100%;?"/);
+        expect(html).toMatch(/<img[^>]*style="height:\s*100%;\s*object-fit:\s*contain;?"/);
+    });
+
     it('drops javascript: hrefs from post-featured-image', () => {
         const tree = [
             makeBlock('core/post-featured-image', {

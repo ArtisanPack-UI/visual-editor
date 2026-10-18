@@ -144,6 +144,63 @@ it( 'renders post-featured-image with link wrapper when isLink is true', functio
 	expect( $rendered )->toContain( 'height="600"' );
 } );
 
+it( 'covers a post-featured-image frame by default when scale is unsaved (#948)', function (): void {
+	$tree = [
+		blockNode( 'core/post-featured-image', [
+			'aspectRatio' => '16/10',
+			'_resolvedImageUrl' => 'https://example.test/wide.jpg',
+		] ),
+	];
+
+	$rendered = $this->stripGlobalStyles( renderTree( $tree ) );
+
+	expect( $rendered )->toContain( 'style="aspect-ratio:16/10;object-fit:cover"' );
+} );
+
+it( 'keeps a saved post-featured-image scale over the cover default (#948)', function (): void {
+	$tree = [
+		blockNode( 'core/post-featured-image', [
+			'aspectRatio' => '1',
+			'scale' => 'contain',
+			'_resolvedImageUrl' => 'https://example.test/wide.jpg',
+		] ),
+	];
+
+	$rendered = $this->stripGlobalStyles( renderTree( $tree ) );
+
+	expect( $rendered )->toContain( 'object-fit:contain' );
+	expect( $rendered )->not()->toContain( 'object-fit:cover' );
+} );
+
+it( 'sizes the post-featured-image figure and image from width and height (#948)', function (): void {
+	$tree = [
+		blockNode( 'core/post-featured-image', [
+			'width' => '130px',
+			'height' => '100%',
+			'_resolvedImageUrl' => 'https://example.test/wide.jpg',
+		] ),
+	];
+
+	$rendered = $this->stripGlobalStyles( renderTree( $tree ) );
+
+	expect( $rendered )->toContain( 'style="width:130px; height:100%;"' );
+	expect( $rendered )->toContain( 'style="height:100%;object-fit:cover"' );
+} );
+
+it( 'drops an unsafe post-featured-image height (#948)', function (): void {
+	$tree = [
+		blockNode( 'core/post-featured-image', [
+			'height' => '10px;background:red',
+			'_resolvedImageUrl' => 'https://example.test/wide.jpg',
+		] ),
+	];
+
+	$rendered = $this->stripGlobalStyles( renderTree( $tree ) );
+
+	expect( $rendered )->not()->toContain( 'background:red' );
+	expect( $rendered )->not()->toContain( 'object-fit' );
+} );
+
 it( 'drops javascript: URLs from post-featured-image hrefs', function (): void {
 	$tree = [
 		blockNode( 'core/post-featured-image', [
