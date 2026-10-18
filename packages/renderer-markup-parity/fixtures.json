@@ -4018,6 +4018,53 @@
                     ]
                 }
             ]
+        },
+        {
+            "$comment": "#976 — a template-part wrapper carries the author `className` and the Effects `ve-fx-<sha1>` scope (z-index, with its zero-specificity `position: relative`) in every renderer, so a theme can stack a sticky site header above the content. The Position support (`style.position`) is printed by Blade only and is pinned by SavedTemplatePartRenderingTest instead.",
+            "name": "template-part-effects-z-index",
+            "templateParts": [
+                {
+                    "slug": "header",
+                    "area": "header",
+                    "blocks": [
+                        {
+                            "clientId": "tp-header-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Site header"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ],
+            "tree": [
+                {
+                    "clientId": "tp-header",
+                    "name": "core/template-part",
+                    "attributes": {
+                        "slug": "header",
+                        "tagName": "header",
+                        "className": "site-header",
+                        "artisanpackEffects": {
+                            "zIndex": 50
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "tp-header-fork",
+                    "name": "artisanpack/template-part",
+                    "attributes": {
+                        "slug": "header",
+                        "tagName": "header",
+                        "artisanpackEffects": {
+                            "zIndex": 50
+                        }
+                    },
+                    "innerBlocks": []
+                }
+            ]
         }
     ]
 }
