@@ -23,6 +23,7 @@ import { dimensionsClassName } from '../../support/dimensions';
 import { cssNumber } from '../../support/cssNumber';
 import { layoutWrapperClasses } from '../../support/layoutContainer';
 import { coverImageUrl } from '../../support/coverImage';
+import { searchFormAction } from '../../support/searchForm';
 import { safeUrl } from '../../support/urlSanitizer';
 import { blockRendererProps } from '../shared';
 
@@ -350,6 +351,9 @@ export const SearchBlock = defineComponent({
             const useIcon = attrBoolean(props.attributes.buttonUseIcon);
             const queryName = attrString(attrRecord(props.attributes.query).name, 's');
             const className = attrString(props.attributes.className);
+            // #961: the form's target and the term it shows (see support/searchForm).
+            const action = searchFormAction(props.attributes);
+            const searchValue = attrString(props.attributes._resolvedSearchValue);
 
             // #338: an icon-only button must still expose an accessible
             // name. Precedence matches the Blade + React renderers so all
@@ -391,6 +395,7 @@ export const SearchBlock = defineComponent({
                         type: 'search',
                         class: 'wp-block-search__input',
                         name: queryName,
+                        value: searchValue,
                         placeholder: placeholder === '' ? undefined : placeholder,
                     }),
                     useIcon
@@ -431,7 +436,7 @@ export const SearchBlock = defineComponent({
 
             return h(
                 'form',
-                { role: 'search', method: 'get', action: '/', class: classes },
+                { role: 'search', method: 'get', action, class: classes },
                 children
             );
         };

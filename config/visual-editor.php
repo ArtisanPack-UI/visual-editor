@@ -539,6 +539,28 @@ return [
 
 	/*
 	|--------------------------------------------------------------------------
+	| Search blocks (#961)
+	|--------------------------------------------------------------------------
+	|
+	| `url` is the site search page that `artisanpack/search` and
+	| `artisanpack/search-filters` submit to when their `action` attribute
+	| is left on "Site search" (the default). Blocks can instead submit to
+	| the current page (`action: "current"`) or a same-site path. A relative
+	| path or an absolute URL both work here; the host is responsible for
+	| the route reading `?s=`.
+	|
+	| The Blade renderer reads this value. The React and Vue renderers have
+	| no config access and use `/search` unless the host stamps
+	| `_resolvedFormAction` on the block.
+	|
+	*/
+
+	'search' => [
+		'url' => '/search',
+	],
+
+	/*
+	|--------------------------------------------------------------------------
 	| Business-info blocks (#761)
 	|--------------------------------------------------------------------------
 	|
