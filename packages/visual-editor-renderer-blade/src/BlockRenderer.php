@@ -935,6 +935,9 @@ class BlockRenderer
 	 * is per-block so two blocks hidden at different breakpoints don't
 	 * accidentally share their rules.
 	 *
+	 * Legacy min-width keys each emit a width range; desktop-first
+	 * device keys emit `@media (max-width:Npx)` (#974).
+	 *
 	 * @since 1.4.0
 	 */
 	protected function wrapWithScreenSizeCss( string $html, VisibilityDecision $decision ): string
@@ -967,6 +970,21 @@ class BlockRenderer
 		$css = '';
 
 		foreach ( $decision->hiddenBreakpoints as $key ) {
+			// Desktop-first device keys (`mobile`, `tablet`) hide at
+			// their max-width and below (#974) — the only way to reach
+			// phone widths under the first legacy min-width.
+			$maxWidth = $breakpointRegistry->maxWidth( $key );
+
+			if ( is_int( $maxWidth ) && $maxWidth > 0 ) {
+				$css .= sprintf(
+					'@media (max-width:%dpx){.%s{display:none !important;}}',
+					$maxWidth,
+					$scopeClass,
+				);
+
+				continue;
+			}
+
 			$position = array_search( $key, $orderedKeys, true );
 
 			if ( false === $position ) {

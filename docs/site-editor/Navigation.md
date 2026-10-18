@@ -270,30 +270,29 @@ render to specific breakpoints. Every block ships opted-in to block
 visibility, so the Screen Size subsection is already available in the
 Inspector for these blocks.
 
-To render a CTA only inside the mobile overlay:
+To render a CTA only inside the mobile overlay of a nav that collapses
+below 1024px:
 
 1. Select the nested `core/buttons` (or a `core/navigation-link`) inside
    the nav.
 2. Open the **Visibility** panel in the Inspector.
-3. Under **Screen Size**, pick `Show` at these sizes and check only
-   `Small (≥640px)`.
+3. Turn on **Screen size** and check **Desktop (≥1024px)**.
 
-The renderer emits a scoped `@media (min-width:...)` `display:none`
-rule for every breakpoint you didn't check, so the CTA disappears from
-the desktop / tablet bar while staying visible inside the drawer on
-mobile. There's no runtime JavaScript for the gate — the CSS is scoped
-per block so two blocks hidden at different breakpoints don't share
-rules.
+The renderer emits a scoped `display:none` rule for 1024px and up, so
+the CTA disappears from the desktop bar while staying visible inside
+the drawer. There's no runtime JavaScript for the gate — the CSS is
+scoped per block so two blocks hidden at different breakpoints don't
+share rules.
 
-The inverse workflow — a "Book a demo" button visible only on desktop
-— uses the same rule with `Show at → Large` + larger breakpoints, or
-`Hide at → Small` + `Medium`.
-
-The Screen Size options are the legacy mobile-first breakpoint keys
-(`sm`, `md`, `lg`, `xl`, `2xl`), not the desktop-first **Tablet** /
-**Mobile** overrides the viewport switcher uses for styles since
-1.12.1. The two systems are independent: style overrides set at
-Tablet or Mobile don't change which screen sizes a block renders at.
+The inverse — a "Book a demo" button visible only in the desktop bar —
+checks **Tablet (≤1023px)**, which stores
+`{"direction":"hide","breakpoints":["tablet"]}` and emits
+`@media (max-width:1023px)`. **Mobile (≤767px)** (`"mobile"`) hides at
+767px and below. These are the same named keys as the desktop-first
+breakpoint registry, so a host that changes the Tablet / Mobile widths
+moves the visibility queries with them. See
+[Block Visibility](../visibility.md#screen-size) for the legacy
+`sm`–`2xl` ranges and `direction: "show"`.
 
 Links and submenus live in the menu, not in the page's block tree, so
 their visibility settings are saved with the menu item. Menu items
