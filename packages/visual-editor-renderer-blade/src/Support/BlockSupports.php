@@ -2973,6 +2973,31 @@ class BlockSupports
 	}
 
 	/**
+	 * The border support's classes and declarations on their own, for a
+	 * block whose `block.json` skips border serialization on the wrapper
+	 * and paints it on an inner element instead, as core's Avatar does
+	 * on its `<img>` (#952).
+	 *
+	 * @since 1.15.2
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 *
+	 * @return array{classes: array<int, string>, style: string}
+	 */
+	public static function borderAttrs( array $attributes ): array
+	{
+		$classes = [];
+		$style   = [];
+
+		self::applyBorder( $attributes, $classes, $style );
+
+		return [
+			'classes' => $classes,
+			'style'   => [] !== $style ? implode( '; ', $style ) . ';' : '',
+		];
+	}
+
+	/**
 	 * Border support — radius (string or per-corner object), per-side
 	 * style/width/color (object), and the palette slug
 	 * `borderColor` → `has-{slug}-border-color has-border-color`.

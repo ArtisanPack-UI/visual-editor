@@ -216,6 +216,20 @@ describe('Cover with "Use featured image" (#942)', () => {
             .toBe('<figure class="wp-block-post-featured-image"></figure>');
     });
 
+    it('paints the avatar border and radius on the image, not the wrapper (#952)', () => {
+        const html = renderTree([
+            makeBlock('core/avatar', {
+                size: 28,
+                borderColor: 'primary',
+                style: { border: { radius: '50%', width: '2px' } },
+                _resolvedAuthorAvatar: 'https://example.test/me.jpg',
+            }),
+        ]);
+
+        expect(html).toContain('<div class="wp-block-avatar">');
+        expect(html).toMatch(/<img[^>]*class="avatar wp-block-avatar__image has-border-color has-primary-border-color"[^>]*style="border-radius:\s*50%;\s*border-width:\s*2px;?"/);
+    });
+
     it('drops javascript: hrefs from post-featured-image', () => {
         const tree = [
             makeBlock('core/post-featured-image', {

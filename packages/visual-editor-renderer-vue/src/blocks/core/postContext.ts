@@ -20,6 +20,7 @@ import { applyBackground } from '../../support/background';
 import { layoutWrapperClasses } from '../../support/layoutContainer';
 import { applyDimensions, dimensionsClassName, hasDimensionStyle } from '../../support/dimensions';
 import { safeCssValue } from '../../support/cssValue';
+import { expandPresetReference } from '../../support/presetReference';
 import { safeUrl } from '../../support/urlSanitizer';
 import { blockRendererProps } from '../shared';
 
@@ -338,6 +339,41 @@ export const PostAuthorBiographyBlock = defineComponent({
     },
 });
 
+/**
+ * The Avatar's root border, painted on its `<img>` as core does (#952):
+ * block.json skips border serialization on the wrapper. Mirrors the
+ * root-level part of the Blade `BlockSupports::borderAttrs()`.
+ */
+function avatarImageBorder(attributes: Record<string, unknown>): { className: string; style: Record<string, string> } {
+    const classes = ['avatar', 'wp-block-avatar__image'];
+    const style: Record<string, string> = {};
+    const borderColor = attrString(attributes.borderColor);
+
+    if (borderColor !== '') {
+        classes.push('has-border-color', `has-${borderColor}-border-color`);
+    }
+
+    const styleAttr = attributes.style as Record<string, unknown> | undefined;
+    const border = styleAttr && typeof styleAttr.border === 'object' && styleAttr.border !== null
+        ? (styleAttr.border as Record<string, unknown>)
+        : {};
+    const declarations: Array<[string, string]> = [
+        ['borderRadius', attrString(border.radius)],
+        ['borderColor', attrString(border.color)],
+        ['borderStyle', attrString(border.style)],
+        ['borderWidth', attrString(border.width)],
+    ];
+
+    for (const [property, value] of declarations) {
+        const safe = value !== '' ? safeCssValue(expandPresetReference(value)) : null;
+        if (safe !== null) {
+            style[property] = safe;
+        }
+    }
+
+    return { className: classes.join(' '), style };
+}
+
 export const AvatarBlock = defineComponent({
     name: 'AvatarBlock',
     props: blockRendererProps,
@@ -359,11 +395,14 @@ export const AvatarBlock = defineComponent({
                 return h('div', { class: classes });
             }
 
+            const border = avatarImageBorder(props.attributes);
             const img = h('img', {
                 alt,
                 width: size,
                 height: size,
                 src: avatarUrl,
+                class: border.className,
+                ...(Object.keys(border.style).length > 0 ? { style: border.style } : {}),
             });
 
             if (isLink && authorUrl !== '') {

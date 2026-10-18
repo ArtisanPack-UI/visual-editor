@@ -264,6 +264,22 @@ it( 'drops an unsafe post-featured-image height (#948)', function (): void {
 	expect( $rendered )->not()->toContain( 'object-fit' );
 } );
 
+it( 'paints the avatar border and radius on the image, not the wrapper (#952)', function (): void {
+	$tree = [
+		blockNode( 'core/avatar', [
+			'size'                 => 28,
+			'borderColor'          => 'primary',
+			'style'                => [ 'border' => [ 'radius' => '50%', 'width' => '2px' ] ],
+			'_resolvedAuthorAvatar' => 'https://example.test/me.jpg',
+		] ),
+	];
+
+	$rendered = $this->stripGlobalStyles( renderTree( $tree ) );
+
+	expect( $rendered )->toContain( '<div class="wp-block-avatar">' );
+	expect( $rendered )->toContain( 'class="avatar wp-block-avatar__image has-border-color has-primary-border-color" style="border-radius: 50%; border-width: 2px;' );
+} );
+
 it( 'drops javascript: URLs from post-featured-image hrefs', function (): void {
 	$tree = [
 		blockNode( 'core/post-featured-image', [
