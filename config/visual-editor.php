@@ -569,6 +569,24 @@ return [
 
 	/*
 	|--------------------------------------------------------------------------
+	| Categories (Terms List) block (#960)
+	|--------------------------------------------------------------------------
+	|
+	| `posts_index_url` is where the `artisanpack/categories` block's "All"
+	| item links for the `category` and `post_tag` taxonomies: the
+	| unfiltered posts list. A path is resolved through `url()`; an
+	| absolute URL is used as-is. Hosts that need a per-request value can
+	| answer the `ap.visualEditor.terms.allUrl` filter instead, which
+	| receives this URL as its default for the built-in taxonomies.
+	|
+	*/
+
+	'categories' => [
+		'posts_index_url' => '/blog',
+	],
+
+	/*
+	|--------------------------------------------------------------------------
 	| Global styles
 	|--------------------------------------------------------------------------
 	|
