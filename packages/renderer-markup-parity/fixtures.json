@@ -3826,6 +3826,37 @@
                     "innerBlocks": []
                 }
             ]
+        },
+        {
+            "name": "query-total",
+            "$comment": "#962 — Query Total prints the stamped count with the number in <strong>: the plural noun with a prefix and supports, the singular for one result (core alias), and the current page's range with a suffix.",
+            "tree": [
+                {
+                    "clientId": "qt-total",
+                    "name": "artisanpack/query-total",
+                    "attributes": { "_resolvedTotal": 25, "prefix": "Showing ", "plural": "packages", "fontSize": "small", "textColor": "primary" },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "qt-one",
+                    "name": "core/query-total",
+                    "attributes": { "_resolvedTotal": 1 },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "qt-range",
+                    "name": "artisanpack/query-total",
+                    "attributes": {
+                        "displayType": "range-display",
+                        "_resolvedTotal": 25,
+                        "_resolvedCurrentPage": 3,
+                        "_resolvedPerPage": 9,
+                        "_resolvedItems": 7,
+                        "suffix": "."
+                    },
+                    "innerBlocks": []
+                }
+            ]
         }
     ]
 }
