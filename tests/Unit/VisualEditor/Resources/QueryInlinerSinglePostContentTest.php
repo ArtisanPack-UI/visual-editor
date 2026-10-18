@@ -154,6 +154,22 @@ it( 'expands artisanpack/related-posts into one core/post-template-item per reso
 		->and( $this->fake->lastAttributes['exclude'] )->toBe( [ 1 ] );
 } );
 
+it( 'sends related-posts the host terms as a taxQuery (cms-framework #403)', function (): void {
+	$this->fake->setItems( [ singlePostFixture( 11, 'Alpha' ) ] );
+
+	$host             = singlePostFixture( 1, 'Host' );
+	$host->post_type  = 'post';
+	$host->categories = [ (object) [ 'id' => 5 ], (object) [ 'id' => 7 ] ];
+
+	$this->inliner->inline( [ makeRelatedPostsBlock( 3 ) ], $host );
+
+	expect( $this->fake->lastAttributes['taxQuery'] )->toBe( [
+		'taxonomy' => 'category',
+		'terms'    => [ 5, 7 ],
+		'operator' => 'IN',
+	] );
+} );
+
 it( 'returns artisanpack/related-posts with zero items when no host post is in scope', function (): void {
 	$this->fake->setItems( [ singlePostFixture( 99, 'Unused' ) ] );
 
