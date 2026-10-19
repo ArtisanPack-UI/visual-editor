@@ -72,7 +72,7 @@ it( 'prints the text clip !important at doubled-class specificity so the gradien
 	expect( $result['css'] )->toContain( $scope . '{-webkit-background-clip:text!important;background-clip:text!important}' )
 		->and( $result['css'] )->toContain( '@media (forced-colors:active){' . $scope . '{' );
 } )->with( [
-	'preset gradient (has-*-gradient-background is !important)' => [ [ 'gradient' => 'cool-to-warm' ] ],
+	'preset gradient (has-*-gradient-background is !important)'   => [ [ 'gradient' => 'cool-to-warm' ] ],
 	'custom gradient (inline background shorthand)'               => [ [ 'style' => [ 'color' => [ 'gradient' => 'linear-gradient(red, blue)' ] ] ] ],
 ] );
 

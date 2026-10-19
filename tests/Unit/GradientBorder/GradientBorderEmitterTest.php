@@ -187,7 +187,7 @@ describe( 'GradientBorderEmitter::emit', function (): void {
 		expect( $css )->toContain(
 			'.scope.wp-block-cover>:is(.wp-block-cover__background,.wp-block-cover__gradient-background,'
 			. '.wp-block-cover__image-background,.wp-block-cover__video-background)'
-			. '{border-radius:max(0px, calc(12px - 3px));}}'
+			. '{border-radius:max(0px, calc(12px - 3px));}}',
 		);
 	} );
 

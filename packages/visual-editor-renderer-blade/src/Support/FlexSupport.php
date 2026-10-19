@@ -389,31 +389,6 @@ class FlexSupport
 	}
 
 	/**
-	 * Single-declaration token rules from {@see FlexLayoutStyles::BASE_RULES},
-	 * keyed by class name.
-	 *
-	 * @return array<string, array{property: string, value: string}>
-	 */
-	private static function keywordDeclarations(): array
-	{
-		static $declarations = null;
-
-		if ( null !== $declarations ) {
-			return $declarations;
-		}
-
-		$declarations = [];
-
-		foreach ( FlexLayoutStyles::BASE_RULES as $rule ) {
-			if ( 1 === preg_match( '/^\.([a-z0-9-]+) \{ ([a-z-]+): ([^;{}]+); \}$/', $rule, $match ) ) {
-				$declarations[ $match[1] ] = [ 'property' => $match[2], 'value' => $match[3] ];
-			}
-		}
-
-		return $declarations;
-	}
-
-	/**
 	 * Build a scoped `<style>` snippet for arbitrary-value rules.
 	 *
 	 * @param  array<int, array<string, string>>  $rules
@@ -471,6 +446,31 @@ class FlexSupport
 		}
 
 		return trim( $out );
+	}
+
+	/**
+	 * Single-declaration token rules from {@see FlexLayoutStyles::BASE_RULES},
+	 * keyed by class name.
+	 *
+	 * @return array<string, array{property: string, value: string}>
+	 */
+	private static function keywordDeclarations(): array
+	{
+		static $declarations = null;
+
+		if ( null !== $declarations ) {
+			return $declarations;
+		}
+
+		$declarations = [];
+
+		foreach ( FlexLayoutStyles::BASE_RULES as $rule ) {
+			if ( 1 === preg_match( '/^\.([a-z0-9-]+) \{ ([a-z-]+): ([^;{}]+); \}$/', $rule, $match ) ) {
+				$declarations[ $match[1] ] = [ 'property' => $match[2], 'value' => $match[3] ];
+			}
+		}
+
+		return $declarations;
 	}
 
 	private function emitForEachBreakpoint( $attribute, callable $cb ): void

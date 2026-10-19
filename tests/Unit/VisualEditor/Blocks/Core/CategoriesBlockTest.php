@@ -403,8 +403,8 @@ it( 'drops host term URLs that hide a script scheme', function ( string $url ): 
 	expect( $html )->not->toContain( 'cat-item-30' )
 		->and( $html )->toContain( 'cat-item-31' );
 } )->with( [
-	'unparseable'      => [ 'javascript://:65536/%0aalert(1)' ],
-	'tab in scheme'    => [ "java\tscript:alert(1)" ],
+	'unparseable'       => [ 'javascript://:65536/%0aalert(1)' ],
+	'tab in scheme'     => [ "java\tscript:alert(1)" ],
 	'newline in scheme' => [ "java\nscript:alert(1)" ],
-	'data URL'         => [ 'data:text/html,<b>x</b>' ],
+	'data URL'          => [ 'data:text/html,<b>x</b>' ],
 ] );

@@ -196,7 +196,7 @@ it( 'renders post-featured-image with link wrapper when isLink is true', functio
 it( 'covers a post-featured-image frame by default when scale is unsaved (#948)', function (): void {
 	$tree = [
 		blockNode( 'core/post-featured-image', [
-			'aspectRatio' => '16/10',
+			'aspectRatio'       => '16/10',
 			'_resolvedImageUrl' => 'https://example.test/wide.jpg',
 		] ),
 	];
@@ -209,8 +209,8 @@ it( 'covers a post-featured-image frame by default when scale is unsaved (#948)'
 it( 'keeps a saved post-featured-image scale over the cover default (#948)', function (): void {
 	$tree = [
 		blockNode( 'core/post-featured-image', [
-			'aspectRatio' => '1',
-			'scale' => 'contain',
+			'aspectRatio'       => '1',
+			'scale'             => 'contain',
 			'_resolvedImageUrl' => 'https://example.test/wide.jpg',
 		] ),
 	];
@@ -224,8 +224,8 @@ it( 'keeps a saved post-featured-image scale over the cover default (#948)', fun
 it( 'sizes the post-featured-image figure and image from width and height (#948)', function (): void {
 	$tree = [
 		blockNode( 'core/post-featured-image', [
-			'width' => '130px',
-			'height' => '100%',
+			'width'             => '130px',
+			'height'            => '100%',
 			'_resolvedImageUrl' => 'https://example.test/wide.jpg',
 		] ),
 	];
@@ -253,7 +253,7 @@ it( 'leaves an image-less post-featured-image figure unsized (#948)', function (
 it( 'drops an unsafe post-featured-image height (#948)', function (): void {
 	$tree = [
 		blockNode( 'core/post-featured-image', [
-			'height' => '10px;background:red',
+			'height'            => '10px;background:red',
 			'_resolvedImageUrl' => 'https://example.test/wide.jpg',
 		] ),
 	];
@@ -267,9 +267,9 @@ it( 'drops an unsafe post-featured-image height (#948)', function (): void {
 it( 'paints the avatar border and radius on the image, not the wrapper (#952)', function (): void {
 	$tree = [
 		blockNode( 'core/avatar', [
-			'size'                 => 28,
-			'borderColor'          => 'primary',
-			'style'                => [ 'border' => [ 'radius' => '50%', 'width' => '2px' ] ],
+			'size'                  => 28,
+			'borderColor'           => 'primary',
+			'style'                 => [ 'border' => [ 'radius' => '50%', 'width' => '2px' ] ],
 			'_resolvedAuthorAvatar' => 'https://example.test/me.jpg',
 		] ),
 	];

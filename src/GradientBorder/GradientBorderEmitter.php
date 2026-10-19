@@ -340,6 +340,7 @@ class GradientBorderEmitter
 	 * @param string $scope  The block's scope selector.
 	 * @param mixed  $radius The authored radius (string or per-corner array).
 	 * @param string $width  The ring width.
+	 *
 	 * @return string An `@supports not (…)` block.
 	 */
 	protected static function coverClipFallback( string $scope, mixed $radius, string $width ): string
@@ -369,6 +370,7 @@ class GradientBorderEmitter
 	 *
 	 * @param mixed  $radius The authored radius (string or per-corner array).
 	 * @param string $width  The ring width.
+	 *
 	 * @return string The declaration(s), or an empty string.
 	 */
 	protected static function innerRadiusDeclaration( mixed $radius, string $width ): string

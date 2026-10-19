@@ -68,6 +68,6 @@ it( 'lets hosts change the rate and override the minutes', function (): void {
 	addFilter( 'ap.visualEditor.readingTime.wordsPerMinute', fn (): int => 100 );
 	expect( ( new ReadingTime() )->minutes( $post ) )->toBe( 3 );
 
-	addFilter( 'ap.visualEditor.readingTime.minutes', fn ( int $minutes, object $filtered, int $words ): int => $words === 300 ? 12 : $minutes );
+	addFilter( 'ap.visualEditor.readingTime.minutes', fn ( int $minutes, object $filtered, int $words ): int => 300 === $words ? 12 : $minutes );
 	expect( ( new ReadingTime() )->minutes( $post ) )->toBe( 12 );
 } );

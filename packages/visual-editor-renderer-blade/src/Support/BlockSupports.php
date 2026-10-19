@@ -1119,6 +1119,31 @@ class BlockSupports
 	}
 
 	/**
+	 * The border support's classes and declarations on their own, for a
+	 * block whose `block.json` skips border serialization on the wrapper
+	 * and paints it on an inner element instead, as core's Avatar does
+	 * on its `<img>` (#952).
+	 *
+	 * @since 1.15.2
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 *
+	 * @return array{classes: array<int, string>, style: string}
+	 */
+	public static function borderAttrs( array $attributes ): array
+	{
+		$classes = [];
+		$style   = [];
+
+		self::applyBorder( $attributes, $classes, $style );
+
+		return [
+			'classes' => $classes,
+			'style'   => [] !== $style ? implode( '; ', $style ) . ';' : '',
+		];
+	}
+
+	/**
 	 * Turn a stored responsive override into the CSS value the generic
 	 * emitter writes (#877). Preset paths expand their slug into the
 	 * `var:preset|…` shorthand {@see self::responsiveDeclarations()}
@@ -2973,31 +2998,6 @@ class BlockSupports
 	}
 
 	/**
-	 * The border support's classes and declarations on their own, for a
-	 * block whose `block.json` skips border serialization on the wrapper
-	 * and paints it on an inner element instead, as core's Avatar does
-	 * on its `<img>` (#952).
-	 *
-	 * @since 1.15.2
-	 *
-	 * @param  array<string, mixed>  $attributes
-	 *
-	 * @return array{classes: array<int, string>, style: string}
-	 */
-	public static function borderAttrs( array $attributes ): array
-	{
-		$classes = [];
-		$style   = [];
-
-		self::applyBorder( $attributes, $classes, $style );
-
-		return [
-			'classes' => $classes,
-			'style'   => [] !== $style ? implode( '; ', $style ) . ';' : '',
-		];
-	}
-
-	/**
 	 * Border support — radius (string or per-corner object), per-side
 	 * style/width/color (object), and the palette slug
 	 * `borderColor` → `has-{slug}-border-color has-border-color`.
@@ -3235,7 +3235,7 @@ class BlockSupports
 		if ( '' !== $aspectRatio ) {
 			$classes[] = 'has-aspect-ratio';
 			$style[]   = 'aspect-ratio: ' . self::expandPresetReference( $aspectRatio );
-			$style[] = 'min-height: unset';
+			$style[]   = 'min-height: unset';
 
 			return;
 		}
@@ -3341,7 +3341,7 @@ class BlockSupports
 
 	/**
 	 * Normalise one `var:preset|…` segment into its custom-property form.
-	 * Mirrors {@see \ArtisanPackUI\VisualEditor\Resources\PresetRegistry::presetSlug()}:
+	 * Mirrors {@see PresetRegistry::presetSlug()}:
 	 * split camelCase boundaries, lowercase, then every character outside
 	 * `[a-z0-9-]` becomes `-` (`big_gap` → `big-gap`). Runs of `-` are kept
 	 * and nothing is trimmed, so the result matches the declaration sites
@@ -3380,7 +3380,7 @@ class BlockSupports
 	 *
 	 * @param  array<int, string>  $style
 	 */
-	protected static function styleListContains( array $style, string $prefix ): bool
+	protected static function styleListContains( array $style, string $prefix): bool
 	{
 		foreach ( $style as $declaration ) {
 			if ( str_starts_with( $declaration, $prefix ) ) {

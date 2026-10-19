@@ -59,7 +59,7 @@ it( 'renders no numbers for a single page outside a stamped wrapper', function (
 } );
 
 it( 'renders the wrapper and numbers for two or more pages, and an unstamped wrapper', function (): void {
-	$html      = renderPaginationTree( [ singlePagePagination( 2 ) ] );
+	$html       = renderPaginationTree( [ singlePagePagination( 2 ) ] );
 	$unstamped  = renderPaginationTree( [ [ 'clientId' => 'qp-bare', 'name' => 'artisanpack/query-pagination', 'attributes' => [], 'innerBlocks' => [] ] ] );
 
 	expect( $html )->toContain( '<nav class="wp-block-query-pagination' )
