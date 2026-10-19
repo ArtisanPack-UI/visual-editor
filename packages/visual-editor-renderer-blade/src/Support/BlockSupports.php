@@ -111,6 +111,39 @@ class BlockSupports
 	];
 
 	/**
+	 * Per-side longhands for a responsive property whose object value is
+	 * not keyed by box side. A per-axis `blockGap` is `{top, left}`, and
+	 * `gap-top` / `gap-left` aren't CSS properties, so it maps to
+	 * `row-gap` / `column-gap` the way the base style does (#914). A
+	 * per-corner radius uses the Gutenberg corner names (#918).
+	 */
+	protected const RESPONSIVE_AXIS_PROPERTIES = [
+		'gap'           => [ 'top' => 'row-gap', 'left' => 'column-gap' ],
+		'border-radius' => [
+			'topLeft'     => 'border-top-left-radius',
+			'topRight'    => 'border-top-right-radius',
+			'bottomRight' => 'border-bottom-right-radius',
+			'bottomLeft'  => 'border-bottom-left-radius',
+		],
+	];
+
+	/**
+	 * The keys of a responsive path whose value may be a per-side object
+	 * (#918). Older editor builds stored one side of such a value under a
+	 * deeper key (`style.spacing.blockGap.left`), which
+	 * {@see self::foldLegacyResponsivePaths()} folds back in; a scalar
+	 * value is spread over these keys when one side is laid over it.
+	 *
+	 * @since 1.15.2
+	 */
+	protected const RESPONSIVE_OBJECT_SIDES = [
+		'style.spacing.padding'  => [ 'top', 'right', 'bottom', 'left' ],
+		'style.spacing.margin'   => [ 'top', 'right', 'bottom', 'left' ],
+		'style.spacing.blockGap' => [ 'top', 'left' ],
+		'style.border.radius'    => [ 'topLeft', 'topRight', 'bottomRight', 'bottomLeft' ],
+	];
+
+	/**
 	 * Responsive paths whose value is a preset slug, mapped to the
 	 * preset category it expands under (#877): a `fontSize` override of
 	 * `small` emits `font-size: var(--wp--preset--font-size--small)`.
@@ -197,9 +230,13 @@ class BlockSupports
 	 * classes.
 	 *
 	 * @since 1.0.0
+	 * @since 1.15.2 Accepts `$columnsGap` (#914).
 	 *
 	 * @param  array<string, mixed>  $attributes  Raw block attributes from
 	 *                                            the persisted block tree.
+	 * @param  bool                  $columnsGap  Whether the block is a Columns
+	 *                                            block, whose responsive gap
+	 *                                            rules also set `--ap-columns-gap`.
 	 *
 	 * @return array{classes: array<int, string>, style: string, id: ?string}
 	 *         `classes` is deduped + ordered. `style` is a
@@ -208,7 +245,7 @@ class BlockSupports
 	 *         was emitted). `id` is `null` when no `anchor` attribute is
 	 *         set.
 	 */
-	public static function compile( array $attributes ): array
+	public static function compile( array $attributes, bool $columnsGap = false ): array
 	{
 		$classes = [];
 		$style   = [];
@@ -231,7 +268,7 @@ class BlockSupports
 		self::applySpacing( $attributes, $style );
 		self::applyBorder( $attributes, $classes, $style );
 		self::applyTypography( $attributes, $classes, $style );
-		self::applyDimensions( $attributes, $style );
+		self::applyDimensions( $attributes, $classes, $style );
 		self::applyClassName( $attributes, $classes );
 
 		$id = self::resolveAnchor( $attributes );
@@ -252,7 +289,12 @@ class BlockSupports
 		// has no position attributes (the default path).
 		$positionPayload            = PositionResolver::resolve( $attributes );
 		self::$positionPayloadCache = $positionPayload;
-		$positionInlineBase         = self::baseInlinePositionStyle( $positionPayload['base'] ?? null );
+		// #929 — the inline stamp is `!important`, which no `@media` rule
+		// can beat, so a block with breakpoint overrides relies on the
+		// scoped rules alone.
+		$positionInlineBase = [] === ( $positionPayload['breakpoints'] ?? [] )
+			? self::baseInlinePositionStyle( $positionPayload['base'] ?? null )
+			: '';
 
 		if ( '' !== $positionInlineBase ) {
 			$style[] = $positionInlineBase;
@@ -260,7 +302,7 @@ class BlockSupports
 
 		$styleString = '' === implode( '', $style ) ? '' : implode( '; ', $style ) . ';';
 
-		$responsive = self::compileResponsive( $attributes );
+		$responsive = self::compileResponsive( $attributes, null, $columnsGap );
 
 		if ( '' !== $responsive['class'] ) {
 			$classes[] = $responsive['class'];
@@ -722,15 +764,23 @@ class BlockSupports
 	 * @since 1.0.0
 	 * @since 1.15.0 Accepts a `$propertyMap` so a partial can emit its
 	 *               own paths (spacer `width`) through the same emitter.
+	 * @since 1.15.2 Accepts `$columnsGap`: a Columns block's gap rules
+	 *               also set `--ap-columns-gap`, so the Column width calc
+	 *               follows the breakpoint's gap instead of the base (#914).
+	 * @since 1.15.2 Reads overrides older editor builds saved under a
+	 *               legacy path ({@see self::foldLegacyResponsivePaths()},
+	 *               #918).
 	 *
 	 * @param  array<string, mixed>         $attributes
 	 * @param  array<string, string>|null  $propertyMap  Path → CSS property;
 	 *                                                   `null` uses
 	 *                                                   {@see self::RESPONSIVE_CSS_PROPERTY_MAP}.
+	 * @param  bool                        $columnsGap   Whether the block is a
+	 *                                                   Columns block.
 	 *
 	 * @return array{class: string, rules: string}
 	 */
-	public static function compileResponsive( array $attributes, ?array $propertyMap = null ): array
+	public static function compileResponsive( array $attributes, ?array $propertyMap = null, bool $columnsGap = false ): array
 	{
 		$responsive = $attributes['responsive'] ?? null;
 
@@ -739,6 +789,12 @@ class BlockSupports
 		}
 
 		$propertyMap ??= self::RESPONSIVE_CSS_PROPERTY_MAP;
+
+		// The scope hashes the payload as stored, so content that only
+		// uses the property paths keeps its class (#918).
+		$stored     = $responsive;
+		$responsive = self::foldLegacyResponsivePaths( $responsive, $propertyMap );
+		$columnsGap = $columnsGap && isset( $propertyMap['style.spacing.blockGap'], $responsive['style.spacing.blockGap'] );
 
 		// Pull the request-scoped registry from the container so
 		// host-configured breakpoints (theme.json → config) are
@@ -752,7 +808,7 @@ class BlockSupports
 			? self::resolveRegistry()
 			: BreakpointRegistry::fromLayers();
 		$rules    = [];
-		$scope    = self::generateResponsiveScopeClass( self::responsiveHashInput( $responsive, $attributes, $propertyMap ) );
+		$scope    = self::generateResponsiveScopeClass( self::responsiveHashInput( $stored, $attributes, $propertyMap, $columnsGap ) );
 
 		// Tripled scope class boosts the rule's specificity to
 		// (0,0,3,0), matching WP core's own
@@ -818,6 +874,15 @@ class BlockSupports
 				}
 
 				$declarations = self::responsiveDeclarations( $property, $value );
+
+				// #914 — keep the Column width calc on this breakpoint's gap.
+				if ( $columnsGap && 'style.spacing.blockGap' === $path ) {
+					$columnsGapValue = LayoutSupport::columnsGapValue( $value );
+
+					if ( null !== $columnsGapValue ) {
+						$declarations .= ( '' === $declarations ? '' : ';' ) . '--ap-columns-gap:' . $columnsGapValue . '!important';
+					}
+				}
 
 				if ( '' === $declarations ) {
 					continue;
@@ -941,16 +1006,29 @@ class BlockSupports
 	 * style="…" id="…"`), or an empty string when none are. `$baseClasses`
 	 * are prepended verbatim before the compiled support classes so each
 	 * block partial can declare its own `wp-block-{name}` / layout class
-	 * list without the compiler knowing about them.
+	 * list without the compiler knowing about them. `$extraStyles` are
+	 * block-specific declarations appended after the compiled support
+	 * style, so a partial never needs a second `style` attribute.
 	 *
 	 * @since 1.0.0
+	 * @since 1.15.2 Accepts `$extraStyles` and `$columnsGap` (#914).
 	 *
 	 * @param  array<string, mixed>  $attributes
 	 * @param  array<int, string>    $baseClasses
+	 * @param  array<int, string>    $extraStyles  Already-sanitised declarations, without a trailing `;`.
+	 * @param  bool                  $columnsGap   Whether the block is a Columns block
+	 *                                             ({@see self::compileResponsive()}).
 	 */
-	public static function wrapperAttrs( array $attributes, array $baseClasses = [] ): string
+	public static function wrapperAttrs( array $attributes, array $baseClasses = [], array $extraStyles = [], bool $columnsGap = false ): string
 	{
-		$compiled = self::compile( $attributes );
+		$compiled = self::compile( $attributes, $columnsGap );
+
+		// #914 — block-specific declarations ride after the support ones.
+		$extraStyles = array_values( array_filter( $extraStyles, static fn ( string $declaration ): bool => '' !== trim( $declaration ) ) );
+
+		if ( [] !== $extraStyles ) {
+			$compiled['style'] = ( '' !== $compiled['style'] ? $compiled['style'] . ' ' : '' ) . implode( '; ', $extraStyles ) . ';';
+		}
 
 		$classes = array_values( array_unique( array_filter(
 			array_merge( $baseClasses, $compiled['classes'] ),
@@ -1041,6 +1119,31 @@ class BlockSupports
 	}
 
 	/**
+	 * The border support's classes and declarations on their own, for a
+	 * block whose `block.json` skips border serialization on the wrapper
+	 * and paints it on an inner element instead, as core's Avatar does
+	 * on its `<img>` (#952).
+	 *
+	 * @since 1.15.2
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 *
+	 * @return array{classes: array<int, string>, style: string}
+	 */
+	public static function borderAttrs( array $attributes ): array
+	{
+		$classes = [];
+		$style   = [];
+
+		self::applyBorder( $attributes, $classes, $style );
+
+		return [
+			'classes' => $classes,
+			'style'   => [] !== $style ? implode( '; ', $style ) . ';' : '',
+		];
+	}
+
+	/**
 	 * Turn a stored responsive override into the CSS value the generic
 	 * emitter writes (#877). Preset paths expand their slug into the
 	 * `var:preset|…` shorthand {@see self::responsiveDeclarations()}
@@ -1088,6 +1191,212 @@ class BlockSupports
 	}
 
 	/**
+	 * Fold overrides saved under a legacy path into the path this map
+	 * reads (#918). Before 1.15.2 the editor stored a breakpoint edit
+	 * under whichever leaf changed, so the key depended on the block's
+	 * base value:
+	 *
+	 * - one side deeper than a per-side path, when the base value was
+	 *   already per-side (`style.spacing.blockGap.left`,
+	 *   `style.spacing.padding.top`);
+	 * - a shallower object, when the block had no value yet
+	 *   (`style.spacing` holding `{padding, blockGap}`).
+	 *
+	 * Both contribute to the mapped path's per-breakpoint value, later
+	 * keys over earlier ones. A breakpoint the mapped path already sets
+	 * keeps its own value. The payload comes back untouched when it has
+	 * no legacy key.
+	 *
+	 * @since 1.15.2
+	 *
+	 * @param  array<mixed>           $responsive
+	 * @param  array<string, string>  $propertyMap
+	 *
+	 * @return array<mixed>
+	 */
+	protected static function foldLegacyResponsivePaths( array $responsive, array $propertyMap ): array
+	{
+		$out    = [];
+		$legacy = [];
+		$folded = false;
+
+		foreach ( $responsive as $key => $overrides ) {
+			$key = (string) $key;
+
+			if ( isset( $propertyMap[ $key ] ) || ! is_array( $overrides ) ) {
+				$out[ $key ] = $overrides;
+
+				continue;
+			}
+
+			$side = self::responsiveSideOf( $key, $propertyMap );
+
+			if ( null !== $side ) {
+				[ $path, $sideKey ] = $side;
+				$folded             = true;
+
+				foreach ( $overrides as $breakpoint => $value ) {
+					if ( ! is_scalar( $value ) || '' === $value ) {
+						continue;
+					}
+
+					$legacy[ $path ][ $breakpoint ] = self::withResponsiveSide( $path, $legacy[ $path ][ $breakpoint ] ?? null, $sideKey, $value );
+				}
+
+				continue;
+			}
+
+			$nested = array_values( array_filter(
+				array_map( 'strval', array_keys( $propertyMap ) ),
+				static fn ( string $path ): bool => str_starts_with( $path, $key . '.' ),
+			) );
+
+			if ( [] === $nested ) {
+				$out[ $key ] = $overrides;
+
+				continue;
+			}
+
+			$folded = true;
+
+			foreach ( $overrides as $breakpoint => $value ) {
+				if ( ! is_array( $value ) ) {
+					continue;
+				}
+
+				foreach ( $nested as $path ) {
+					$nestedValue = self::readResponsivePath( $value, substr( $path, strlen( $key ) + 1 ) );
+
+					if ( null === $nestedValue ) {
+						continue;
+					}
+
+					$legacy[ $path ][ $breakpoint ] = self::mergeResponsiveValue( $path, $legacy[ $path ][ $breakpoint ] ?? null, $nestedValue );
+				}
+			}
+		}
+
+		if ( ! $folded ) {
+			return $responsive;
+		}
+
+		foreach ( $legacy as $path => $byBreakpoint ) {
+			$canonical = isset( $out[ $path ] ) && is_array( $out[ $path ] ) ? $out[ $path ] : [];
+
+			foreach ( $byBreakpoint as $breakpoint => $value ) {
+				if ( ! isset( $canonical[ $breakpoint ] ) ) {
+					$canonical[ $breakpoint ] = $value;
+				}
+			}
+
+			$out[ $path ] = $canonical;
+		}
+
+		return $out;
+	}
+
+	/**
+	 * The mapped per-side path and side a key one side deeper names
+	 * (`style.spacing.blockGap.left` → `[style.spacing.blockGap, left]`),
+	 * or null (#918).
+	 *
+	 * @since 1.15.2
+	 *
+	 * @param  array<string, string>  $propertyMap
+	 *
+	 * @return array{0: string, 1: string}|null
+	 */
+	protected static function responsiveSideOf( string $key, array $propertyMap ): ?array
+	{
+		foreach ( self::RESPONSIVE_OBJECT_SIDES as $path => $sides ) {
+			if ( ! isset( $propertyMap[ $path ] ) || ! str_starts_with( $key, $path . '.' ) ) {
+				continue;
+			}
+
+			$side = substr( $key, strlen( $path ) + 1 );
+
+			return in_array( $side, $sides, true ) ? [ $path, $side ] : null;
+		}
+
+		return null;
+	}
+
+	/**
+	 * `$existing` with one side set; a scalar is spread over every side
+	 * first so the others survive (#918).
+	 *
+	 * @since 1.15.2
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected static function withResponsiveSide( string $path, mixed $existing, string $side, mixed $value ): array
+	{
+		$next          = is_array( $existing ) ? $existing : self::spreadResponsiveScalar( $path, $existing );
+		$next[ $side ] = $value;
+
+		return $next;
+	}
+
+	/**
+	 * Lay a later legacy value over an earlier one for the same path:
+	 * objects merge side by side, a scalar replaces (#918).
+	 *
+	 * @since 1.15.2
+	 */
+	protected static function mergeResponsiveValue( string $path, mixed $existing, mixed $value ): mixed
+	{
+		if ( ! is_array( $value ) ) {
+			return $value;
+		}
+
+		$base = is_array( $existing ) ? $existing : self::spreadResponsiveScalar( $path, $existing );
+
+		foreach ( $value as $side => $sideValue ) {
+			$base[ $side ] = $sideValue;
+		}
+
+		return $base;
+	}
+
+	/**
+	 * A scalar spread over every side of a per-side path, or `[]` (#918).
+	 *
+	 * @since 1.15.2
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected static function spreadResponsiveScalar( string $path, mixed $value ): array
+	{
+		if ( ! isset( self::RESPONSIVE_OBJECT_SIDES[ $path ] ) || '' === $value || ( ! is_string( $value ) && ! is_int( $value ) && ! is_float( $value ) ) ) {
+			return [];
+		}
+
+		return array_fill_keys( self::RESPONSIVE_OBJECT_SIDES[ $path ], $value );
+	}
+
+	/**
+	 * The value at a dotted path inside a legacy override, or null.
+	 *
+	 * @since 1.15.2
+	 *
+	 * @param  array<mixed>  $value
+	 */
+	protected static function readResponsivePath( array $value, string $path ): mixed
+	{
+		$cursor = $value;
+
+		foreach ( explode( '.', $path ) as $segment ) {
+			if ( ! is_array( $cursor ) || ! array_key_exists( $segment, $cursor ) ) {
+				return null;
+			}
+
+			$cursor = $cursor[ $segment ];
+		}
+
+		return $cursor;
+	}
+
+	/**
 	 * The payload the responsive scope class is hashed from. Normally
 	 * just `attributes.responsive`, but a unit path's rules also read the
 	 * block's base value and unit (#877), so those join the hash
@@ -1096,6 +1405,9 @@ class BlockSupports
 	 * the accumulator would keep only the first one's rules.
 	 *
 	 * @since 1.15.0
+	 * @since 1.15.2 A Columns block's gap overrides also mark the hash
+	 *               (#914): they add `--ap-columns-gap`, so a Group with
+	 *               the same overrides must not share the scope.
 	 *
 	 * @param  array<mixed>           $responsive
 	 * @param  array<string, mixed>   $attributes
@@ -1103,7 +1415,7 @@ class BlockSupports
 	 *
 	 * @return array<mixed>
 	 */
-	protected static function responsiveHashInput( array $responsive, array $attributes, array $propertyMap ): array
+	protected static function responsiveHashInput( array $responsive, array $attributes, array $propertyMap, bool $columnsGap = false ): array
 	{
 		$base = [];
 
@@ -1120,7 +1432,9 @@ class BlockSupports
 			$base[ $unitPath ] = $attributes[ $unitPath ] ?? null;
 		}
 
-		return [] === $base ? $responsive : [ 'responsive' => $responsive, 'base' => $base ];
+		$input = [] === $base ? $responsive : [ 'responsive' => $responsive, 'base' => $base ];
+
+		return $columnsGap ? [ 'responsive' => $input, 'columnsGap' => true ] : $input;
 	}
 
 	/**
@@ -2232,8 +2546,9 @@ class BlockSupports
 	 * Turn a single override value into one or more CSS declarations.
 	 * Scalars become `property: value`. Per-side objects (the shape
 	 * Gutenberg uses for spacing/border: `{top, right, bottom, left}`)
-	 * become per-side declarations (`padding-top: ...`, etc.). The
-	 * resulting declaration list is `;`-joined with no trailing
+	 * become per-side declarations (`padding-top: ...`, etc.); a per-axis
+	 * `gap` object becomes `row-gap` / `column-gap`
+	 * ({@see self::RESPONSIVE_AXIS_PROPERTIES}). The resulting declaration list is `;`-joined with no trailing
 	 * semicolon — callers add the wrapping `{}` and any trailing `;`
 	 * they need.
 	 *
@@ -2266,8 +2581,14 @@ class BlockSupports
 		}
 
 		$pieces = [];
+		$sides  = self::RESPONSIVE_AXIS_PROPERTIES[ $property ] ?? [
+			'top'    => $property . '-top',
+			'right'  => $property . '-right',
+			'bottom' => $property . '-bottom',
+			'left'   => $property . '-left',
+		];
 
-		foreach ( [ 'top', 'right', 'bottom', 'left' ] as $side ) {
+		foreach ( $sides as $side => $longhand ) {
 			if ( ! isset( $value[ $side ] ) || null === $value[ $side ] || '' === $value[ $side ] ) {
 				continue;
 			}
@@ -2278,12 +2599,7 @@ class BlockSupports
 				continue;
 			}
 
-			$pieces[] = sprintf(
-				'%s-%s:%s!important',
-				$property,
-				$side,
-				$resolved,
-			);
+			$pieces[] = sprintf( '%s:%s!important', $longhand, $resolved );
 		}
 
 		return implode( ';', $pieces );
@@ -2884,7 +3200,9 @@ class BlockSupports
 	 * Covers the standard WP core dimensions block-support keys that map
 	 * cleanly to a single inline CSS property:
 	 * - `minHeight`   → `min-height`
-	 * - `aspectRatio` → `aspect-ratio`
+	 * - `aspectRatio` → `aspect-ratio`, plus `min-height: unset` (it wins
+	 *   over `minHeight`) and the `has-aspect-ratio` class, as WordPress's
+	 *   dimensions support does (#906)
 	 *
 	 * A block only opts into a given key via its `block.json`
 	 * (`supports.dimensions.minHeight: true` etc.). The compiler runs
@@ -2898,9 +3216,10 @@ class BlockSupports
 	 * @since 1.9.0
 	 *
 	 * @param  array<string, mixed>  $attributes
+	 * @param  array<int, string>   &$classes
 	 * @param  array<int, string>   &$style
 	 */
-	protected static function applyDimensions( array $attributes, array &$style ): void
+	protected static function applyDimensions( array $attributes, array &$classes, array &$style ): void
 	{
 		$dimensions = $attributes['style']['dimensions'] ?? null;
 
@@ -2908,19 +3227,23 @@ class BlockSupports
 			return;
 		}
 
-		$mappings = [
-			'minHeight'   => 'min-height',
-			'aspectRatio' => 'aspect-ratio',
-		];
+		$aspectRatio = self::stringAttr( $dimensions['aspectRatio'] ?? null );
 
-		foreach ( $mappings as $attrKey => $cssProperty ) {
-			$value = self::stringAttr( $dimensions[ $attrKey ] ?? null );
+		// An aspect ratio wins over min-height, as in WordPress's
+		// dimensions support: `min-height: unset` keeps a block's default
+		// min-height (cover's 430px) from overriding the ratio (#906).
+		if ( '' !== $aspectRatio ) {
+			$classes[] = 'has-aspect-ratio';
+			$style[]   = 'aspect-ratio: ' . self::expandPresetReference( $aspectRatio );
+			$style[]   = 'min-height: unset';
 
-			if ( '' === $value ) {
-				continue;
-			}
+			return;
+		}
 
-			$style[] = $cssProperty . ': ' . self::expandPresetReference( $value );
+		$minHeight = self::stringAttr( $dimensions['minHeight'] ?? null );
+
+		if ( '' !== $minHeight ) {
+			$style[] = 'min-height: ' . self::expandPresetReference( $minHeight );
 		}
 	}
 
@@ -3018,7 +3341,7 @@ class BlockSupports
 
 	/**
 	 * Normalise one `var:preset|…` segment into its custom-property form.
-	 * Mirrors {@see \ArtisanPackUI\VisualEditor\Resources\PresetRegistry::presetSlug()}:
+	 * Mirrors {@see PresetRegistry::presetSlug()}:
 	 * split camelCase boundaries, lowercase, then every character outside
 	 * `[a-z0-9-]` becomes `-` (`big_gap` → `big-gap`). Runs of `-` are kept
 	 * and nothing is trimmed, so the result matches the declaration sites
@@ -3057,7 +3380,7 @@ class BlockSupports
 	 *
 	 * @param  array<int, string>  $style
 	 */
-	protected static function styleListContains( array $style, string $prefix ): bool
+	protected static function styleListContains( array $style, string $prefix): bool
 	{
 		foreach ( $style as $declaration ) {
 			if ( str_starts_with( $declaration, $prefix ) ) {

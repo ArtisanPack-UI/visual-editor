@@ -308,6 +308,41 @@ Each returned entry is normalized to `{reviewer, quote, rating, source, url, dat
 
 The block emits no `Review` / `AggregateRating` JSON-LD by design — self-serving review markup on the reviewed entity is ineligible for Google's rich result. See [`docs/blocks/Reviews.md`](blocks/Reviews.md) for the payload shape.
 
+### `ap.visualEditor.terms`
+
+**Since v1.15.2 (#960).** PHP filter that supplies the terms the `artisanpack/categories` (Terms List) block lists for a taxonomy other than `category` and `post_tag`, which the block reads from cms-framework itself. Fires at render time with the block's `taxonomy` attribute.
+
+**Signature:** `null $terms, string $taxonomy, array $attrs -> array|null`
+
+Return a list, in display order, of `['id' => int, 'name' => string, 'url' => string, 'count' => int, 'parentId' => int|null]` (`count` defaults to 0, `parentId` to `null`), or leave the `null` default for a taxonomy you don't own. `count` should count published records only. Entries without an integer `id`, a `name` or a relative / `http(s)` `url` are dropped. The block applies `showEmpty`, `showOnlyTopLevel` and `showHierarchy` (via `parentId`) itself. A `null` or empty answer renders the block's empty shell.
+
+```php
+addFilter( 'ap.visualEditor.terms', function ( $terms, string $taxonomy, array $attrs ) {
+    if ( 'package-category' !== $taxonomy ) {
+        return $terms;
+    }
+
+    return PackageCategory::withCount( 'publishedPackages' )->orderBy( 'name' )->get()
+        ->map( fn ( $term ) => [
+            'id'       => $term->id,
+            'name'     => $term->name,
+            'url'      => url( '/packages?package-category=' . $term->slug ),
+            'count'    => $term->published_packages_count,
+            'parentId' => $term->parent_id,
+        ] )->all();
+} );
+```
+
+The item whose URL matches the request (same path, and the same value for every query parameter the URL carries, ignoring `page`, `paged` and `query-{id}-page`) gets `current-cat` and `aria-current="page"`.
+
+### `ap.visualEditor.terms.allUrl`
+
+**Since v1.15.2 (#960).** PHP filter that supplies the link of the Terms List block's "All" item (`showAll`). For `category` and `post_tag` the default is the posts index (`visual-editor.categories.posts_index_url`, `/blog` by default, resolved through `url()`); for any other taxonomy it is `null`, which drops the item.
+
+**Signature:** `string|null $url, string $taxonomy, array $attrs -> string|array|null`
+
+Return a URL, or `['url' => string, 'count' => int]` to also give the item's count. For `category` / `post_tag` the count defaults to every published post. Other taxonomies have no default count, because summing the term counts double-counts records with several terms: return the total of published records yourself, or the item shows no count. The item is current when no term is, the request is on its URL, and the request carries none of the query parameters the terms' URLs filter by.
+
 ### `ap.visualEditor.bindings.allowedAttributes`
 
 **Since v1.15.0 (#869).** PHP filter that adjusts which attributes of a related model block bindings may read when the opt-in allowlist is enforced (`bindings.enforce_allowlist`). It runs on the list merged from the model's `DefinesBindableAttributes::bindableAttributes()` and the `bindings.allowed_attributes` config, and its result is final. It isn't called while enforcement is off.

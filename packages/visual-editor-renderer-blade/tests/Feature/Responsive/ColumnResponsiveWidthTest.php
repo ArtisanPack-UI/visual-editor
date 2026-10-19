@@ -46,14 +46,34 @@ it( 'promotes legacy width attribute into a gap-aware base !important rule', fun
 	$rendered = $this->stripGlobalStyles( Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] ) );
 
 	// Legacy `width` attribute keeps producing the bare inline style
-	// (for backward compat) AND a base rule with `!important` so it
-	// beats WP core's stacking rule at <782px. The base rule
+	// (for backward compat) AND a base rule with `!important` that
+	// applies from WP core's stacking breakpoint up (#910). The base rule
 	// subtracts the parent's block-gap so two 50% columns fit on one
 	// row when the theme sets `gap` on `.wp-block-columns`.
 	expect( $rendered )->toContain( 'style="flex-basis: 50%;"' );
 	expect( $rendered )->toContain( '<style data-ve-responsive>' );
 	// 50% width → factor (100-50)/100 = 0.5
 	expect( $rendered )->toMatch( '/\.ve-w-[a-f0-9]+\.ve-w-[a-f0-9]+\.ve-w-[a-f0-9]+\{flex-basis:calc\(50% - var\(--ap-columns-gap, var\(--wp--style--block-gap, 0\.5em\)\) \* 0\.5\)!important;flex-grow:0!important\}/' );
+} );
+
+it( 'lets Stack on mobile win below 782px, as WordPress does (#910)', function (): void {
+	$tree = [
+		[
+			'clientId'    => 'col-1',
+			'name'        => 'artisanpack/column',
+			'attributes'  => [ 'width' => '52.5%' ],
+			'innerBlocks' => [],
+		],
+	];
+
+	$rendered = $this->stripGlobalStyles( Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] ) );
+	$scope    = '\\.ve-w-[a-f0-9]+\\.ve-w-[a-f0-9]+\\.ve-w-[a-f0-9]+';
+
+	// The "All sizes" width only applies from the stacking breakpoint up,
+	// and everywhere inside a Columns block that doesn't stack on mobile.
+	expect( $rendered )->toMatch( '/@media \\(min-width: 782px\\)\\{' . $scope . '\\{flex-basis:calc\\(52\\.5%/' )
+		->toMatch( '/\\.wp-block-columns\\.is-not-stacked-on-mobile ' . $scope . '\\{flex-basis:calc\\(52\\.5%/' )
+		->not->toMatch( '/\\}' . $scope . '\\{flex-basis/' );
 } );
 
 it( 'merges legacy base width with responsive overrides into one rule set', function (): void {
@@ -279,9 +299,10 @@ it( 'keeps a safe base width while dropping a hostile per-breakpoint override', 
 	$responsive = $matches[1] ?? '';
 
 	// The safe base rule survives; the hostile md override is skipped, so
-	// no `@media` block and no injected declaration are emitted.
+	// no breakpoint `@media` block (only the base rule's stacking-aware
+	// min-width query, #910) and no injected declaration are emitted.
 	expect( $responsive )->toContain( 'flex-basis:calc(50% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.5)!important' );
-	expect( $responsive )->not->toContain( '@media' );
+	expect( $responsive )->not->toMatch( '/@media (?!\\(min-width: 782px\\))/' );
 	expect( $responsive )->not->toContain( 'html{opacity:0' );
 } );
 
@@ -328,3 +349,58 @@ describe( 'desktop-first Mobile override (#820)', function (): void {
 			->toBeLessThan( strpos( $rendered, '@media (max-width:767px)' ) );
 	} );
 } );
+
+it( 'treats a width that is not a length, like "undefined%", as no width (#925)', function ( string $width ): void {
+	$tree = [
+		[
+			'clientId'    => 'col-1',
+			'name'        => 'artisanpack/column',
+			'attributes'  => [ 'width' => $width ],
+			'innerBlocks' => [],
+		],
+	];
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+	expect( $rendered )->not->toContain( 'flex-basis' );
+	expect( $rendered )->not->toContain( 've-w-' );
+	expect( $rendered )->not->toContain( '<style data-ve-responsive>' );
+} )->with( [ 'undefined%', 'NaN%', 'auto%' ] );
+
+it( 'skips a per-breakpoint width that is not a length but keeps the base width (#925)', function (): void {
+	$tree = [
+		[
+			'clientId'    => 'col-1',
+			'name'        => 'artisanpack/column',
+			'attributes'  => [
+				'width'      => '40%',
+				'responsive' => [ 'width' => [ 'md' => 'undefined%' ] ],
+			],
+			'innerBlocks' => [],
+		],
+	];
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+	preg_match( '#<style data-ve-responsive>(.*?)</style>#s', $rendered, $matches );
+	$responsive = $matches[1] ?? '';
+
+	expect( $rendered )->toContain( 'flex-basis: 40%' );
+	expect( $responsive )->toContain( 'flex-basis:calc(40%' );
+	expect( $responsive )->not->toContain( 'undefined' );
+} );
+
+it( 'keeps lengths and CSS functions as widths (#925)', function ( string $width ): void {
+	$tree = [
+		[
+			'clientId'    => 'col-1',
+			'name'        => 'artisanpack/column',
+			'attributes'  => [ 'width' => $width ],
+			'innerBlocks' => [],
+		],
+	];
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+	expect( $rendered )->toContain( 'flex-basis: ' . $width );
+} )->with( [ '33.33%', '250px', '12.5rem', '.5em', 'calc(50% - 1rem)', 'var(--col-width)' ] );

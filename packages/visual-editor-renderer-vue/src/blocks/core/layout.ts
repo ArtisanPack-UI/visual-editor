@@ -17,8 +17,8 @@ import { isNonEmptyWidth, normalizeBasis } from '../../support/columnWidth';
 import { flexClassNames } from '../../support/flex-serializer';
 import { safeCssValue } from '../../support/cssValue';
 import { applyBackground } from '../../support/background';
-import { applyBlockGap } from '../../support/blockGap';
-import { applyDimensions } from '../../support/dimensions';
+import { applyBlockGap, applyColumnsGap } from '../../support/blockGap';
+import { applyDimensions, dimensionsClassName } from '../../support/dimensions';
 import { layoutModifierClasses, panelLayoutClass } from '../../support/layoutContainer';
 import { safeUrl } from '../../support/urlSanitizer';
 import { blockRendererProps } from '../shared';
@@ -78,6 +78,7 @@ export const GroupBlock = defineComponent({
                 ...layoutModifierClasses(props.attributes),
                 ...flexClasses,
                 photoGridScope !== '' ? photoGridScope : null,
+                dimensionsClassName(props.attributes),
                 className,
             ]);
 
@@ -176,7 +177,20 @@ export const ColumnsBlock = defineComponent({
                 className,
             ]);
 
-            return h('div', { class: classes }, slots.default ? slots.default() : []);
+            // The Columns' own Block spacing, as `columns.blade.php` prints
+            // it. #914 — plus the per-axis left gap for the Column width
+            // calc, last.
+            const style: Record<string, string> = {
+                ...applyBlockGap(props.attributes),
+                ...applyColumnsGap(props.attributes),
+            };
+            const divProps: Record<string, unknown> = { class: classes };
+
+            if (Object.keys(style).length > 0) {
+                divProps.style = style;
+            }
+
+            return h('div', divProps, slots.default ? slots.default() : []);
         };
     },
 });
@@ -290,6 +304,38 @@ export const ButtonsBlock = defineComponent({
     },
 });
 
+/**
+ * Width classes and style for a button wrapper (#921). Mirrors the Blade
+ * view: 25/50/75/100% get the legacy class, another percentage sets
+ * `--wp--block-button--width`, and a plain length is set directly.
+ */
+function buttonWidth(attributes: Record<string, unknown>): { classes: string[]; style?: string; property?: string } {
+    const style = attributes.style as { dimensions?: { width?: unknown } } | undefined;
+    const raw = style?.dimensions?.width;
+
+    if ('string' !== typeof raw || '' === raw.trim()) {
+        return { classes: [] };
+    }
+
+    const width = raw.trim();
+
+    if (width.endsWith('%')) {
+        const amount = width.slice(0, -1);
+
+        if (['25', '50', '75', '100'].includes(amount)) {
+            return { classes: ['has-custom-width', 'wp-block-button__width', `wp-block-button__width-${amount}`] };
+        }
+
+        return '' !== amount && !Number.isNaN(Number(amount))
+            ? { classes: ['has-custom-width', 'wp-block-button__width'], property: '--wp--block-button--width', style: String(parseFloat(amount)) }
+            : { classes: ['has-custom-width', 'wp-block-button__width'] };
+    }
+
+    return /^\d*\.?\d+(px|rem|em|vw|ch)$/.test(width)
+        ? { classes: ['has-custom-width'], property: 'width', style: width }
+        : { classes: ['has-custom-width'] };
+}
+
 export const ButtonBlock = defineComponent({
     name: 'ButtonBlock',
     props: blockRendererProps,
@@ -301,7 +347,11 @@ export const ButtonBlock = defineComponent({
             const title = attrString(props.attributes.title);
             const className = attrString(props.attributes.className);
 
-            const wrapperClasses = classList(['wp-block-button', className]);
+            const width = buttonWidth(props.attributes);
+            const wrapperClasses = classList(['wp-block-button', ...width.classes, className]);
+            const wrapperProps = width.property
+                ? { class: wrapperClasses, style: `${width.property}:${width.style}` }
+                : { class: wrapperClasses };
             const linkClasses = 'wp-block-button__link wp-element-button';
 
             let rel = attrString(props.attributes.rel);
@@ -321,7 +371,7 @@ export const ButtonBlock = defineComponent({
             if (url === '') {
                 return h(
                     'div',
-                    { class: wrapperClasses },
+                    wrapperProps,
                     h('span', {
                         class: linkClasses,
                         title: title === '' ? undefined : title,
@@ -332,7 +382,7 @@ export const ButtonBlock = defineComponent({
 
             return h(
                 'div',
-                { class: wrapperClasses },
+                wrapperProps,
                 h('a', {
                     class: linkClasses,
                     href: url,

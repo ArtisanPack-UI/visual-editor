@@ -242,6 +242,22 @@ describe('post-* edit components — query-preview integration', () => {
         expect(getByText('2026-05-01')).not.toBeNull();
     });
 
+    it('post-date applies its `format` to `publishedAt` from context (#941)', () => {
+        const { getByText } = render(
+            <PostDateEdit
+                attributes={{ format: 'M j' }}
+                context={{
+                    [previewKey]: {
+                        id: 1,
+                        dateFormatted: 'May 1, 2026',
+                        publishedAt: '2026-05-01T12:00:00+00:00',
+                    },
+                }}
+            />
+        );
+        expect(getByText('May 1')).not.toBeNull();
+    });
+
     it('post-excerpt shows the excerpt from context', () => {
         const { getByText } = render(
             <PostExcerptEdit

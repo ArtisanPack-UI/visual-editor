@@ -18,7 +18,9 @@ import {
 } from '../../support/attributes';
 import { applyBackground } from '../../support/background';
 import { layoutWrapperClasses } from '../../support/layoutContainer';
-import { applyDimensions, hasDimensionStyle } from '../../support/dimensions';
+import { applyDimensions, dimensionsClassName, hasDimensionStyle } from '../../support/dimensions';
+import { safeCssValue } from '../../support/cssValue';
+import { expandPresetReference } from '../../support/presetReference';
 import { safeUrl } from '../../support/urlSanitizer';
 import { blockRendererProps } from '../shared';
 
@@ -101,6 +103,7 @@ export const PostContentBlock = defineComponent({
                 // (#871), then the layout modifier classes (F-3).
                 ...layoutWrapperClasses(props.attributes, 'post-content', layoutClass(props.attributes)),
                 align !== '' ? `has-text-align-${align}` : null,
+                dimensionsClassName(props.attributes),
                 className,
             ]);
 
@@ -336,6 +339,41 @@ export const PostAuthorBiographyBlock = defineComponent({
     },
 });
 
+/**
+ * The Avatar's root border, painted on its `<img>` as core does (#952):
+ * block.json skips border serialization on the wrapper. Mirrors the
+ * root-level part of the Blade `BlockSupports::borderAttrs()`.
+ */
+function avatarImageBorder(attributes: Record<string, unknown>): { className: string; style: Record<string, string> } {
+    const classes = ['avatar', 'wp-block-avatar__image'];
+    const style: Record<string, string> = {};
+    const borderColor = attrString(attributes.borderColor);
+
+    if (borderColor !== '') {
+        classes.push('has-border-color', `has-${borderColor}-border-color`);
+    }
+
+    const styleAttr = attributes.style as Record<string, unknown> | undefined;
+    const border = styleAttr && typeof styleAttr.border === 'object' && styleAttr.border !== null
+        ? (styleAttr.border as Record<string, unknown>)
+        : {};
+    const declarations: Array<[string, string]> = [
+        ['borderRadius', attrString(border.radius)],
+        ['borderColor', attrString(border.color)],
+        ['borderStyle', attrString(border.style)],
+        ['borderWidth', attrString(border.width)],
+    ];
+
+    for (const [property, value] of declarations) {
+        const safe = value !== '' ? safeCssValue(expandPresetReference(value)) : null;
+        if (safe !== null) {
+            style[property] = safe;
+        }
+    }
+
+    return { className: classes.join(' '), style };
+}
+
 export const AvatarBlock = defineComponent({
     name: 'AvatarBlock',
     props: blockRendererProps,
@@ -357,11 +395,14 @@ export const AvatarBlock = defineComponent({
                 return h('div', { class: classes });
             }
 
+            const border = avatarImageBorder(props.attributes);
             const img = h('img', {
                 alt,
                 width: size,
                 height: size,
                 src: avatarUrl,
+                class: border.className,
+                ...(Object.keys(border.style).length > 0 ? { style: border.style } : {}),
             });
 
             if (isLink && authorUrl !== '') {
@@ -385,6 +426,8 @@ export const PostFeaturedImageBlock = defineComponent({
             const rel = attrString(props.attributes.rel);
             const aspect = attrString(props.attributes.aspectRatio);
             const scale = attrString(props.attributes.scale);
+            const frameWidth = safeCssValue(attrString(props.attributes.width)) ?? '';
+            const frameHeight = safeCssValue(attrString(props.attributes.height)) ?? '';
             const sizeSlug = attrString(props.attributes.sizeSlug);
             const className = attrString(props.attributes.className);
 
@@ -406,14 +449,35 @@ export const PostFeaturedImageBlock = defineComponent({
                 return h('figure', { class: classes });
             }
 
+            // Frame sizing only applies once there is an image to frame.
+            const figureStyle: Record<string, string> = {};
+
+            if (frameWidth !== '') {
+                figureStyle.width = frameWidth;
+            }
+
+            if (frameHeight !== '') {
+                figureStyle.height = frameHeight;
+            }
+
+            const figureProps = Object.keys(figureStyle).length > 0 ? { style: figureStyle } : {};
+
             const style: Record<string, string> = {};
 
             if (aspect !== '') {
                 style.aspectRatio = aspect;
             }
 
+            if (frameHeight !== '') {
+                style.height = frameHeight;
+            }
+
+            // #948 — a fixed frame crops with `scale`, defaulting to block.json's
+            // `cover` (never saved), as the Blade renderer does.
             if (scale !== '') {
                 style.objectFit = scale;
+            } else if (aspect !== '' || frameHeight !== '') {
+                style.objectFit = 'cover';
             }
 
             const imgProps: Record<string, unknown> = { src: imageUrl, alt };
@@ -435,10 +499,10 @@ export const PostFeaturedImageBlock = defineComponent({
             if (isLink && permalink !== '') {
                 const linkProps = buildLinkProps(permalink, linkTarget, rel);
 
-                return h('figure', { class: classes }, [h('a', linkProps, [img])]);
+                return h('figure', { class: classes, ...figureProps }, [h('a', linkProps, [img])]);
             }
 
-            return h('figure', { class: classes }, [img]);
+            return h('figure', { class: classes, ...figureProps }, [img]);
         };
     },
 });

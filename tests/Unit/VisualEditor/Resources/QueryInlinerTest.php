@@ -87,6 +87,21 @@ it( 'forwards the nested query attribute payload to the resolver', function (): 
 	] );
 } );
 
+it( 'never forwards a saved status to the resolver (cms-framework #403)', function (): void {
+	$this->inliner->inline( [ makeQueryBlock( [], [ 'postType' => 'post', 'status' => 'draft' ] ) ] );
+
+	expect( $this->fake->lastAttributes )->toBe( [ 'postType' => 'post' ] );
+} );
+
+it( 'forwards the block queryId so the loop pages on its own variable (cms-framework #403)', function (): void {
+	$block                          = makeQueryBlock( [], [ 'postType' => 'post', 'perPage' => 2 ] );
+	$block['attributes']['queryId'] = 'blog';
+
+	$this->inliner->inline( [ $block ] );
+
+	expect( $this->fake->lastAttributes )->toBe( [ 'postType' => 'post', 'perPage' => 2, 'queryId' => 'blog' ] );
+} );
+
 it( 'falls back to top-level attributes when query is not nested', function (): void {
 	$tree = [
 		[
@@ -304,7 +319,25 @@ it( 'stamps pagination URLs on the next / previous / numbers leaves', function (
 		->and( count( $leaves['artisanpack/query-pagination-numbers']['_resolvedPageNumbers'] ) )->toBe( 3 )
 		->and( $leaves['artisanpack/query-pagination-numbers']['_resolvedPageNumbers'][0]['number'] )->toBe( 1 )
 		->and( $leaves['artisanpack/query-pagination-numbers']['_resolvedPageNumbers'][2]['number'] )->toBe( 3 )
-		->and( $leaves['artisanpack/query-pagination-numbers']['_resolvedCurrentPage'] )->toBe( 2 );
+		->and( $leaves['artisanpack/query-pagination-numbers']['_resolvedCurrentPage'] )->toBe( 2 )
+		->and( $pagination['attributes']['_resolvedTotalPages'] )->toBe( 3 );
+} );
+
+it( 'stamps a single page count on the pagination wrapper when the results fit on one page (#955)', function (): void {
+	$this->fake->setItems( [ postFixture( 1, 'A' ), postFixture( 2, 'B' ) ] );
+	$this->fake->totalOverride = 2;
+	$this->fake->perPage       = 5;
+	$this->fake->currentPage   = 1;
+
+	$tree = [ makeQueryBlockWithSiblings( [ [ 'name' => 'artisanpack/query-pagination', 'attributes' => [], 'innerBlocks' => [] ] ] ) ];
+
+	$pagination = array_values( array_filter(
+		$this->inliner->inline( $tree )[0]['innerBlocks'],
+		static fn ( array $block ): bool => 'artisanpack/query-pagination' === ( $block['name'] ?? '' ),
+	) )[0];
+
+	expect( $pagination['attributes']['_resolvedTotalPages'] )->toBe( 1 )
+		->and( $pagination['attributes']['_resolvedCurrentPage'] )->toBe( 1 );
 } );
 
 it( 'emits an empty previous-page url on page 1 and stamps the next link', function (): void {
@@ -409,4 +442,83 @@ it( 'preserves host-stamped _resolvedQueryTitle overrides', function (): void {
 	) )[0];
 
 	expect( $title['attributes']['_resolvedQueryTitle'] )->toBe( 'Custom: 2026 Posts' );
+} );
+
+/**
+ * Pull the first `query-total` block out of a query's inner tree, at any
+ * depth, so the tests below can nest it inside a group.
+ *
+ * @param  array<int, array<string, mixed>>  $blocks
+ *
+ * @return array<string, mixed>|null
+ */
+function findQueryTotal( array $blocks ): ?array
+{
+	foreach ( $blocks as $block ) {
+		if ( str_ends_with( (string) ( $block['name'] ?? '' ), '/query-total' ) ) {
+			return $block;
+		}
+
+		$found = findQueryTotal( $block['innerBlocks'] ?? [] );
+
+		if ( null !== $found ) {
+			return $found;
+		}
+	}
+
+	return null;
+}
+
+it( 'stamps the total and page snapshot on query-total (#962)', function (): void {
+	$this->fake->setItems( [ postFixture( 10, 'J' ), postFixture( 11, 'K' ) ] );
+	$this->fake->totalOverride = 11;
+	$this->fake->perPage       = 9;
+	$this->fake->currentPage   = 2;
+
+	$tree = [ makeQueryBlockWithSiblings( [
+		[
+			'name'        => 'artisanpack/group',
+			'attributes'  => [],
+			'innerBlocks' => [
+				[ 'name' => 'artisanpack/query-total', 'attributes' => [ 'displayType' => 'range-display' ], 'innerBlocks' => [] ],
+			],
+		],
+	] ) ];
+
+	$total = findQueryTotal( $this->inliner->inline( $tree )[0]['innerBlocks'] );
+
+	expect( $total['attributes'] )->toMatchArray( [
+		'displayType'          => 'range-display',
+		'_resolvedTotal'       => 11,
+		'_resolvedItems'       => 2,
+		'_resolvedCurrentPage' => 2,
+		'_resolvedPerPage'     => 9,
+		'_resolvedTotalPages'  => 2,
+	] );
+} );
+
+it( 'stamps a zero total on query-total when the query has no results (#962)', function (): void {
+	$this->fake->setItems( [] );
+
+	$tree = [ makeQueryBlockWithSiblings( [
+		[ 'name' => 'core/query-total', 'attributes' => [], 'innerBlocks' => [] ],
+	] ) ];
+
+	$total = findQueryTotal( $this->inliner->inline( $tree )[0]['innerBlocks'] );
+
+	expect( $total['attributes']['_resolvedTotal'] )->toBe( 0 )
+		->and( $total['attributes']['_resolvedItems'] )->toBe( 0 )
+		->and( $total['attributes']['_resolvedCurrentPage'] )->toBe( 1 );
+} );
+
+it( 'keeps a host-stamped query-total count (#962)', function (): void {
+	$this->fake->setItems( [ postFixture( 1, 'A' ) ] );
+
+	$tree = [ makeQueryBlockWithSiblings( [
+		[ 'name' => 'artisanpack/query-total', 'attributes' => [ '_resolvedTotal' => 42 ], 'innerBlocks' => [] ],
+	] ) ];
+
+	$total = findQueryTotal( $this->inliner->inline( $tree )[0]['innerBlocks'] );
+
+	expect( $total['attributes']['_resolvedTotal'] )->toBe( 42 );
 } );

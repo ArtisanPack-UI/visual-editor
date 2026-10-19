@@ -33,10 +33,11 @@ describe.each([
             `.${result?.className}{opacity:0.8;overflow-x:hidden;overflow-y:auto;` +
                 '-webkit-backdrop-filter:blur(12px) saturate(180%);backdrop-filter:blur(12px) saturate(180%);' +
                 'mix-blend-mode:multiply;isolation:isolate;z-index:5;clip-path:circle(50% at 50% 50%);' +
-                '-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}' +
+                '-webkit-text-fill-color:transparent}' +
+                `.${result?.className}.${result?.className}{-webkit-background-clip:text!important;background-clip:text!important}` +
                 `:where(.${result?.className}){position:relative}` +
-                `@media (forced-colors:active){.${result?.className}{-webkit-text-fill-color:currentColor;` +
-                '-webkit-background-clip:border-box;background-clip:border-box}}'
+                `@media (forced-colors:active){.${result?.className}.${result?.className}{-webkit-text-fill-color:currentColor;` +
+                '-webkit-background-clip:border-box!important;background-clip:border-box!important}}'
         );
     });
 
@@ -60,9 +61,10 @@ describe.each([
         const result = impl.compileEffects({ artisanpackEffects: { textClip: true }, ...attributes });
 
         expect(result?.css).toBe(
-            `.${result?.className}{-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}` +
-                `@media (forced-colors:active){.${result?.className}{-webkit-text-fill-color:currentColor;` +
-                '-webkit-background-clip:border-box;background-clip:border-box}}'
+            `.${result?.className}{-webkit-text-fill-color:transparent}` +
+                `.${result?.className}.${result?.className}{-webkit-background-clip:text!important;background-clip:text!important}` +
+                `@media (forced-colors:active){.${result?.className}.${result?.className}{-webkit-text-fill-color:currentColor;` +
+                '-webkit-background-clip:border-box!important;background-clip:border-box!important}}'
         );
     });
 

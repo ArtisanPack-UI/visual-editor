@@ -80,6 +80,7 @@ import {
 import { useFreshContentDetection } from './page-pattern-modal/use-fresh-content-detection';
 import { filterModalPatterns } from './page-pattern-modal/filter-modal-patterns';
 import { registerNavigationBlockGap } from './navigation-block-gap';
+import { registerNavigationCollapseBreakpoint } from './with-navigation-collapse-breakpoint';
 import { registerSyncedPatternIndicator } from './synced-pattern-indicator';
 import {
     listPatterns,
@@ -144,6 +145,8 @@ function registerOnce(): void {
     registerSyncedPatternIndicator();
     // #814 — surface `core/navigation`'s Block spacing in the canvas.
     registerNavigationBlockGap();
+    // #977 — `core/navigation`'s "Collapse below" control + canvas preview.
+    registerNavigationCollapseBreakpoint();
     // #649 — register the background-controls BlockEdit HOC FIRST so
     // it wraps innermost. `@wordpress/hooks` composes filters in
     // registration order, so the LAST-registered HOC wraps outermost;
@@ -586,19 +589,28 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
         setResponsiveRegistry(registry);
         return registry;
     }, [props.breakpoints]);
-    // Publish the hydrated breakpoint list to the Visibility panel so
-    // its Screen Size subsection lists every registered viewport
-    // (sm / md / lg / xl / 2xl + host overrides), not just the three
-    // fallback entries baked into with-visibility-panel.tsx. Screen-size
-    // visibility still builds its ranges from the min-width entries, so
-    // only those are offered (#820).
+    // Publish the hydrated breakpoint list, with widths, to the
+    // Visibility panel so its Screen Size subsection offers the device
+    // keys (Mobile ≤767 / Tablet ≤1023, hidden via max-width) plus a
+    // Desktop shortcut, and still renders legacy min-width keys that
+    // saved content uses (#974).
     useEffect(() => {
-        setVisibilityBreakpoints(
-            viewportRegistry.legacyPrefixes().map((key: string) => ({
-                key,
-                label: viewportRegistry.label(key),
-            })),
-        );
+        setVisibilityBreakpoints([
+            ...viewportRegistry.devicePrefixes().flatMap((key: string) => {
+                const maxWidthPx = viewportRegistry.maxWidth(key);
+
+                return typeof maxWidthPx === 'number'
+                    ? [{ key, label: viewportRegistry.label(key), maxWidthPx }]
+                    : [];
+            }),
+            ...viewportRegistry.legacyPrefixes().flatMap((key: string) => {
+                const minWidthPx = viewportRegistry.get(key);
+
+                return typeof minWidthPx === 'number'
+                    ? [{ key, label: viewportRegistry.label(key), minWidthPx }]
+                    : [];
+            }),
+        ]);
     }, [viewportRegistry]);
     // Publish the host-supplied role list to the Visibility panel's
     // User Role subsection (#492). When the prop is omitted the panel

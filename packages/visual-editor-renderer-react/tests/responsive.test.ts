@@ -46,6 +46,97 @@ describe.each([
         expect(css).not.toMatch(/\d[eE][+-]?\d/);
     });
 
+    describe('legacy keys (#918)', () => {
+        const scopeOf = (css: string): string => /\.(ve-r-[0-9a-f]+)\./.exec(css)?.[1] ?? '';
+
+        it('renders a gap axis saved under a deeper key', () => {
+            const scope = impl.compileResponsive(
+                {
+                    responsive: {
+                        'style.spacing.blockGap.left': { tablet: '3em' },
+                        'style.spacing.blockGap.top': { tablet: '1em', mobile: '0' },
+                    },
+                },
+                impl.RESPONSIVE_CSS_PROPERTY_MAP,
+                true
+            );
+            const selector = `.${scope?.className}.${scope?.className}.${scope?.className}`;
+
+            expect(scope?.css).toContain(
+                `@media (max-width:1023px){${selector}{row-gap:1em!important;column-gap:3em!important;--ap-columns-gap:3em!important}}`
+            );
+            expect(scope?.css).toContain(`@media (max-width:767px){${selector}{row-gap:0!important}}`);
+        });
+
+        it('renders padding and margin sides saved under deeper keys', () => {
+            const css =
+                impl.compileResponsive({
+                    responsive: {
+                        'style.spacing.padding.top': { tablet: '2rem' },
+                        'style.spacing.margin.bottom': { mobile: '1rem' },
+                    },
+                })?.css ?? '';
+
+            expect(css).toContain('{padding-top:2rem!important}');
+            expect(css).toContain('{margin-bottom:1rem!important}');
+        });
+
+        it('splits a shallow spacing object into its properties', () => {
+            const css =
+                impl.compileResponsive({
+                    responsive: {
+                        'style.spacing': { tablet: { padding: '2rem', blockGap: { left: '3em' }, other: 'x' } },
+                    },
+                })?.css ?? '';
+
+            expect(css).toContain('{padding:2rem!important}');
+            expect(css).toContain('{column-gap:3em!important}');
+            expect(css).not.toContain('other');
+        });
+
+        it('prefers the property path over a legacy key at the same breakpoint', () => {
+            const css =
+                impl.compileResponsive({
+                    responsive: {
+                        'style.spacing.blockGap': { tablet: { top: '1em' } },
+                        'style.spacing.blockGap.left': { tablet: '3em', mobile: '4em' },
+                    },
+                })?.css ?? '';
+            const scope = scopeOf(css);
+
+            expect(css).toContain(`@media (max-width:1023px){.${scope}.${scope}.${scope}{row-gap:1em!important}}`);
+            expect(css).toContain('{column-gap:4em!important}');
+            expect(css).not.toContain('column-gap:3em');
+        });
+
+        it('spreads a scalar shallow value under a later side', () => {
+            const css =
+                impl.compileResponsive({
+                    responsive: {
+                        'style.spacing': { tablet: { padding: '2rem' } },
+                        'style.spacing.padding.top': { tablet: '5rem' },
+                    },
+                })?.css ?? '';
+
+            expect(css).toContain(
+                '{padding-top:5rem!important;padding-right:2rem!important;padding-bottom:2rem!important;padding-left:2rem!important}'
+            );
+        });
+
+        it('emits per-corner radius longhands', () => {
+            const css =
+                impl.compileResponsive({
+                    responsive: {
+                        'style.border.radius.topLeft': { tablet: '8px' },
+                        'style.border.radius': { mobile: { bottomRight: '2px' } },
+                    },
+                })?.css ?? '';
+
+            expect(css).toContain('{border-top-left-radius:8px!important}');
+            expect(css).toContain('{border-bottom-right-radius:2px!important}');
+        });
+    });
+
     it('escapes slashes and non-ASCII before hashing', () => {
         const scope = impl.compileResponsive({
             responsive: {
@@ -138,6 +229,65 @@ describe.each([
         expect(css.split(scope?.className ?? '').length - 1).toBe(3);
         expect(attrs[2]._veSpacerWidthScope).toMatch(/^ve-r-[0-9a-f]{10}$/);
         expect(attrs[3]).not.toHaveProperty('_veSpacerWidthScope');
+    });
+
+    it('maps a per-axis blockGap override to row-gap / column-gap, not gap-top (#914)', () => {
+        const css = impl.compileResponsive({
+            responsive: { 'style.spacing.blockGap': { md: { top: '1rem', left: '2rem' } } },
+        })?.css;
+
+        expect(css).toContain('{row-gap:1rem!important;column-gap:2rem!important}');
+        expect(css).not.toMatch(/gap-(top|left)|--ap-columns-gap/);
+    });
+
+    it.each([
+        ['scalar', '2rem', 'gap:2rem!important;--ap-columns-gap:2rem!important'],
+        [
+            'per-axis',
+            { top: '1rem', left: '3rem' },
+            'row-gap:1rem!important;column-gap:3rem!important;--ap-columns-gap:3rem!important',
+        ],
+        [
+            'preset',
+            'var:preset|spacing|40',
+            'gap:var(--wp--preset--spacing--40)!important;--ap-columns-gap:var(--wp--preset--spacing--40)!important',
+        ],
+        ['unitless zero', { left: '0' }, 'column-gap:0!important;--ap-columns-gap:0px!important'],
+        ['normal', 'Normal', 'gap:Normal!important;--ap-columns-gap:0px!important'],
+        ['keyword', 'inherit', 'gap:inherit!important'],
+        ['top-only object', { top: '1rem' }, 'row-gap:1rem!important'],
+    ])('keeps --ap-columns-gap in sync with a Columns block\'s %s responsive gap (#914)', (_label, gap, declarations) => {
+        const scope = impl.compileResponsive(
+            { responsive: { 'style.spacing.blockGap': { tablet: gap } } },
+            impl.RESPONSIVE_CSS_PROPERTY_MAP,
+            true
+        );
+        const selector = `.${scope?.className}.${scope?.className}.${scope?.className}`;
+
+        expect(scope?.css).toBe(`@media (max-width:1023px){${selector}{${declarations}}}`);
+    });
+
+    it('stamps --ap-columns-gap on Columns only, under its own scope (#914)', () => {
+        const responsive = { 'style.spacing.blockGap': { md: '2rem' } };
+        const { tree, css } = impl.stampResponsiveScopes([
+            block('core/group', { responsive }),
+            block('core/columns', { responsive }),
+            block('artisanpack/columns', { responsive }),
+        ]);
+        const [group, columns, apColumns] = tree.map((node) => (node.attributes as Record<string, unknown>).className);
+
+        expect(columns).not.toBe(group);
+        expect(apColumns).toBe(columns);
+        expect(css).toContain(`.${group}{gap:2rem!important}`);
+        expect(css).toContain(`.${columns}{gap:2rem!important;--ap-columns-gap:2rem!important}`);
+    });
+
+    it('leaves a Columns scope unchanged when no gap is overridden (#914)', () => {
+        const attributes = { responsive: { 'style.spacing.padding': { md: '2rem' } } };
+
+        expect(impl.compileResponsive(attributes, impl.RESPONSIVE_CSS_PROPERTY_MAP, true)).toEqual(
+            impl.compileResponsive(attributes)
+        );
     });
 });
 

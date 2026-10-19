@@ -215,6 +215,10 @@ vi.mock('../../editor/navigation-block-gap', () => ({
     registerNavigationBlockGap: () => undefined,
 }));
 
+vi.mock('../../editor/with-navigation-collapse-breakpoint', () => ({
+    registerNavigationCollapseBreakpoint: () => undefined,
+}));
+
 vi.mock('../../editor/synced-pattern-indicator', () => ({
     registerSyncedPatternIndicator: () => undefined,
 }));

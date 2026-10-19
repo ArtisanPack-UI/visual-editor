@@ -472,6 +472,258 @@
             ]
         },
         {
+            "name": "columns-block-gap-axes",
+            "$comment": "#914 — a per-axis Columns gap prints `row-gap` / `column-gap` and hands its left value to the Column width calc as `--ap-columns-gap` (presets expanded, unsafe values dropped). A top-only gap leaves the property unset; a string gap sets `--wp--style--block-gap`, which the baseline already reads.",
+            "tree": [
+                {
+                    "clientId": "gap-zero",
+                    "name": "core/columns",
+                    "attributes": {
+                        "style": {
+                            "spacing": {
+                                "blockGap": {
+                                    "top": "0",
+                                    "left": "0"
+                                }
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "gap-zero-a",
+                            "name": "core/column",
+                            "attributes": {
+                                "width": "52.5%"
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "gap-zero-a-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "A"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        },
+                        {
+                            "clientId": "gap-zero-b",
+                            "name": "core/column",
+                            "attributes": {
+                                "width": "47.5%"
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "gap-zero-b-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "B"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "clientId": "gap-preset",
+                    "name": "artisanpack/columns",
+                    "attributes": {
+                        "style": {
+                            "spacing": {
+                                "blockGap": {
+                                    "top": "1rem",
+                                    "left": "var:preset|spacing|40"
+                                }
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "gap-preset-a",
+                            "name": "core/column",
+                            "attributes": {
+                                "width": "52.5%"
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "gap-preset-a-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "A"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        },
+                        {
+                            "clientId": "gap-preset-b",
+                            "name": "core/column",
+                            "attributes": {
+                                "width": "47.5%"
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "gap-preset-b-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "B"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "clientId": "gap-top-only",
+                    "name": "core/columns",
+                    "attributes": {
+                        "style": {
+                            "spacing": {
+                                "blockGap": {
+                                    "top": "2rem"
+                                }
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "gap-top-only-a",
+                            "name": "core/column",
+                            "attributes": {
+                                "width": "52.5%"
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "gap-top-only-a-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "A"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        },
+                        {
+                            "clientId": "gap-top-only-b",
+                            "name": "core/column",
+                            "attributes": {
+                                "width": "47.5%"
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "gap-top-only-b-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "B"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "clientId": "gap-unsafe",
+                    "name": "core/columns",
+                    "attributes": {
+                        "style": {
+                            "spacing": {
+                                "blockGap": {
+                                    "top": "1rem",
+                                    "left": "1rem;position:fixed"
+                                }
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "gap-unsafe-a",
+                            "name": "core/column",
+                            "attributes": {
+                                "width": "52.5%"
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "gap-unsafe-a-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "A"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        },
+                        {
+                            "clientId": "gap-unsafe-b",
+                            "name": "core/column",
+                            "attributes": {
+                                "width": "47.5%"
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "gap-unsafe-b-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "B"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "clientId": "gap-string",
+                    "name": "core/columns",
+                    "attributes": {
+                        "style": {
+                            "spacing": {
+                                "blockGap": "4rem"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "gap-string-a",
+                            "name": "core/column",
+                            "attributes": {
+                                "width": "52.5%"
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "gap-string-a-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "A"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        },
+                        {
+                            "clientId": "gap-string-b",
+                            "name": "core/column",
+                            "attributes": {
+                                "width": "47.5%"
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "gap-string-b-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "B"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
             "name": "columns-responsive-width",
             "$comment": "#712 — a column with the legacy scalar `width` promoted to the `base` slot plus a `responsive.width` per-breakpoint override. Exercises the merged-map hash and the `ve-w-<hash>` scope token now shared by all three renderers.",
             "tree": [
@@ -543,6 +795,25 @@
             ]
         },
         {
+            "name": "columns-undefined-width",
+            "$comment": "#925: a width that isn't a length (the Column v1 deprecation stored \"undefined%\") is no width in every renderer: no inline flex-basis, no `ve-w-<hash>` scope. A per-breakpoint one is skipped while the base width stays.",
+            "tree": [
+                {
+                    "clientId": "ucols-1",
+                    "name": "core/columns",
+                    "attributes": {},
+                    "innerBlocks": [
+                        { "clientId": "ucol-1", "name": "core/column", "attributes": { "width": "undefined%" }, "innerBlocks": [
+                            { "clientId": "ucol-1-p", "name": "core/paragraph", "attributes": { "content": "No width" }, "innerBlocks": [] }
+                        ] },
+                        { "clientId": "ucol-2", "name": "core/column", "attributes": { "width": "40%", "responsive": { "width": { "md": "undefined%" } } }, "innerBlocks": [
+                            { "clientId": "ucol-2-p", "name": "core/paragraph", "attributes": { "content": "Forty" }, "innerBlocks": [] }
+                        ] }
+                    ]
+                }
+            ]
+        },
+        {
             "name": "buttons",
             "tree": [
                 {
@@ -560,6 +831,41 @@
                             },
                             "innerBlocks": []
                         }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "button-width",
+            "$comment": "#921: a preset width gets the legacy class, another percentage the width variable, a length an inline width.",
+            "tree": [
+                {
+                    "clientId": "btns-w",
+                    "name": "core/buttons",
+                    "attributes": {},
+                    "innerBlocks": [
+                        { "clientId": "bw1", "name": "core/button", "attributes": { "text": "Full", "url": "#", "className": "is-style-outline", "style": { "dimensions": { "width": "100%" } } }, "innerBlocks": [] },
+                        { "clientId": "bw2", "name": "core/button", "attributes": { "text": "Sixty", "url": "#", "style": { "dimensions": { "width": "60%" } } }, "innerBlocks": [] },
+                        { "clientId": "bw3", "name": "core/button", "attributes": { "text": "Fixed", "url": "#", "style": { "dimensions": { "width": "240px" } } }, "innerBlocks": [] }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "tabs-section-class-label",
+            "$comment": "#922: a tab section's class and aria-label reach its panel; the aria-label replaces aria-labelledby.",
+            "tree": [
+                {
+                    "clientId": "tabs-c",
+                    "name": "artisanpack/tabs",
+                    "attributes": { "tabsSpacing": "center" },
+                    "innerBlocks": [
+                        { "clientId": "ts1", "name": "artisanpack/tab-section", "attributes": { "label": "Monthly", "tabId": "monthly", "className": "is-style-repro" }, "innerBlocks": [
+                            { "clientId": "tp1", "name": "core/paragraph", "attributes": { "content": "One" }, "innerBlocks": [] }
+                        ] },
+                        { "clientId": "ts2", "name": "artisanpack/tab-section", "attributes": { "label": "Annual", "tabId": "annual", "ariaLabel": "Annual plans" }, "innerBlocks": [
+                            { "clientId": "tp2", "name": "core/paragraph", "attributes": { "content": "Two" }, "innerBlocks": [] }
+                        ] }
                     ]
                 }
             ]
@@ -771,6 +1077,31 @@
                     "clientId": "p-nbsp",
                     "name": "core/paragraph",
                     "attributes": { "content": "Hello&nbsp;world &nbsp; spaced" },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "$comment": "#971 — table cell spans, scope and fixed layout. Spans are positive integers clamped to HTML's ceilings (colspan 1000, rowspan 65534); junk and zero are dropped. Scope is allowlisted and only printed on `th`. `hasFixedLayout` defaults to true, so the first table (no attribute) carries `has-fixed-layout` on its `<table>` and the second (`false`) does not.",
+            "name": "table-cell-spans",
+            "tree": [
+                {
+                    "clientId": "tbl-spans",
+                    "name": "artisanpack/table",
+                    "attributes": {
+                        "head": [ { "cells": [ { "content": "Name", "tag": "th", "scope": "col" }, { "content": "Score", "tag": "th", "scope": "bogus\" onclick=\"x", "colspan": "2" } ] } ],
+                        "body": [ { "cells": [ { "content": "Ada", "tag": "th", "scope": "row", "rowspan": "2" }, { "content": "1", "tag": "td", "scope": "col" }, { "content": "2", "tag": "td", "colspan": "0" } ] }, { "cells": [ { "content": "3", "tag": "td", "colspan": "2\" onclick=\"x" }, { "content": "4", "tag": "td", "rowspan": 3 } ] } ],
+                        "foot": [ { "cells": [ { "content": "Note", "tag": "td", "colspan": "5000" } ] } ]
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "tbl-auto",
+                    "name": "core/table",
+                    "attributes": {
+                        "hasFixedLayout": false,
+                        "body": [ { "cells": [ { "content": "Auto", "tag": "td" } ] } ]
+                    },
                     "innerBlocks": []
                 }
             ]
@@ -1023,7 +1354,7 @@
         },
         {
             "name": "columns-hex-width",
-            "$comment": "L16 — a JS-only numeric literal (`0x1A`). `isNumeric` rejects it like PHP `is_numeric`, so it is treated as an opaque CSS string on both sides rather than read as the number 26.",
+            "$comment": "L16 — a JS-only numeric literal (`0x1A`). `isNumeric` rejects it like PHP `is_numeric`, so neither side reads it as the number 26. Since #925 it isn't a length either, so every renderer drops it (no flex-basis, no scope) instead of printing it as an opaque string.",
             "tree": [
                 {
                     "clientId": "columns-hex-width-w",
@@ -1577,6 +1908,85 @@
             ]
         },
         {
+            "$comment": "#977 — `collapseBreakpoint: 'tablet'` stamps `collapses-at-tablet` on the `<nav>` and emits the collapse rules for the registry's `tablet` max-width (1023px) once — a second tablet nav adds none — in `<style data-ve-navigation-collapse>`, compared as per-instance CSS. A `mobile` nav adds the 767px rules; an `always` overlay ignores the attribute.",
+            "name": "navigation-overlay-collapse-breakpoint",
+            "tree": [
+                {
+                    "clientId": "nav-collapse",
+                    "name": "core/navigation",
+                    "attributes": {
+                        "collapseBreakpoint": "tablet"
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "nav-collapse-l1",
+                            "name": "core/navigation-link",
+                            "attributes": {
+                                "label": "Home",
+                                "url": "/"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                },
+                {
+                    "clientId": "nav-collapse-2",
+                    "name": "core/navigation",
+                    "attributes": {
+                        "collapseBreakpoint": "tablet"
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "nav-collapse-2-l1",
+                            "name": "core/navigation-link",
+                            "attributes": {
+                                "label": "About",
+                                "url": "/about"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                },
+                {
+                    "clientId": "nav-collapse-3",
+                    "name": "core/navigation",
+                    "attributes": {
+                        "collapseBreakpoint": "mobile"
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "nav-collapse-3-l1",
+                            "name": "core/navigation-link",
+                            "attributes": {
+                                "label": "Blog",
+                                "url": "/blog"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                },
+                {
+                    "clientId": "nav-collapse-4",
+                    "name": "core/navigation",
+                    "attributes": {
+                        "collapseBreakpoint": "tablet",
+                        "overlayMenu": "always"
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "nav-collapse-4-l1",
+                            "name": "core/navigation-link",
+                            "attributes": {
+                                "label": "Contact",
+                                "url": "/contact"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
             "$comment": "RN-12 — safe custom overlay colors land in the container's inline style with `has-background` / `has-text-color`; an `ariaLabel` also labels the open button.",
             "name": "navigation-overlay-custom-colors",
             "tree": [
@@ -1688,6 +2098,69 @@
                             "attributes": {
                                 "label": "About",
                                 "url": "/about"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "$comment": "#973 — an overlay part runs the page's reference passes: a template part nested in it is inlined, and a navigation inside it (`overlayMenu: 'never'`) renders without an overlay of its own. The fixture has no theme or menu tables, so the nested navigation's `__unstableLocation` stays unresolved and its list is empty in every renderer.",
+            "name": "navigation-overlay-nested-part",
+            "templateParts": [
+                {
+                    "slug": "mobile-drawer-nested",
+                    "area": "navigation-overlay",
+                    "blocks": [
+                        {
+                            "clientId": "drawer-tp",
+                            "name": "core/template-part",
+                            "attributes": {
+                                "slug": "drawer-cta"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "drawer-nav",
+                            "name": "core/navigation",
+                            "attributes": {
+                                "__unstableLocation": "primary",
+                                "overlayMenu": "never"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                },
+                {
+                    "slug": "drawer-cta",
+                    "area": "uncategorized",
+                    "blocks": [
+                        {
+                            "clientId": "drawer-cta-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Drawer CTA"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ],
+            "tree": [
+                {
+                    "clientId": "nav-nested",
+                    "name": "core/navigation",
+                    "attributes": {
+                        "overlay": "mobile-drawer-nested"
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "nav-nested-l1",
+                            "name": "core/navigation-link",
+                            "attributes": {
+                                "label": "Home",
+                                "url": "/"
                             },
                             "innerBlocks": []
                         }
@@ -2235,6 +2708,161 @@
                         "alt": "A photo",
                         "aspectRatio": "16/9",
                         "scale": "cover"
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "name": "image-dimensions-auto-width-px-height",
+            "$comment": "#985 — WordPress 6.3+ string dimensions: `auto` width + px height print an inline style and `is-resized`; only the whole-px height also prints an HTML attribute.",
+            "tree": [
+                {
+                    "clientId": "i1",
+                    "name": "core/image",
+                    "attributes": {
+                        "url": "https://example.com/photo.jpg",
+                        "alt": "A photo",
+                        "width": "auto",
+                        "height": "30px",
+                        "sizeSlug": "full"
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "name": "image-dimensions-px-width",
+            "$comment": "#985 — a px width alone: style, `is-resized` and the integer `width` attribute; a fractional px or non-px length gets the style only.",
+            "tree": [
+                {
+                    "clientId": "i1",
+                    "name": "core/image",
+                    "attributes": {
+                        "url": "https://example.com/photo.jpg",
+                        "alt": "A photo",
+                        "width": "278px"
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "i2",
+                    "name": "core/image",
+                    "attributes": {
+                        "url": "https://example.com/photo.jpg",
+                        "alt": "A photo",
+                        "width": "50%",
+                        "height": "12.5rem"
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "i3",
+                    "name": "core/image",
+                    "attributes": {
+                        "url": "https://example.com/photo.jpg",
+                        "alt": "A photo",
+                        "width": "120.5px"
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "name": "image-dimensions-legacy-numeric",
+            "$comment": "#985 — legacy numeric dimensions (JSON numbers, unitless numeric strings) keep the old output: integer HTML attributes, no style, no `is-resized`.",
+            "tree": [
+                {
+                    "clientId": "i1",
+                    "name": "core/image",
+                    "attributes": {
+                        "url": "https://example.com/photo.jpg",
+                        "alt": "A photo",
+                        "width": 300,
+                        "height": 200
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "i2",
+                    "name": "core/image",
+                    "attributes": {
+                        "url": "https://example.com/photo.jpg",
+                        "alt": "A photo",
+                        "width": "640",
+                        "height": "480.7"
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "name": "image-dimensions-aspect-ratio-scale",
+            "$comment": "#985 — width / height follow aspect-ratio and object-fit in the editor's save() declaration order.",
+            "tree": [
+                {
+                    "clientId": "i1",
+                    "name": "core/image",
+                    "attributes": {
+                        "url": "https://example.com/photo.jpg",
+                        "alt": "A photo",
+                        "aspectRatio": "4/3",
+                        "scale": "cover",
+                        "width": "100%",
+                        "height": "auto",
+                        "sizeSlug": "large"
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "name": "image-dimensions-hostile",
+            "$comment": "#985 — a dimension that is not a CSS length or `auto` is dropped: no style, no attribute, no `is-resized`.",
+            "tree": [
+                {
+                    "clientId": "i1",
+                    "name": "core/image",
+                    "attributes": {
+                        "url": "https://example.com/photo.jpg",
+                        "alt": "A photo",
+                        "width": "300px;position:fixed",
+                        "height": "expression(alert(1))"
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "i2",
+                    "name": "core/image",
+                    "attributes": {
+                        "url": "https://example.com/photo.jpg",
+                        "alt": "A photo",
+                        "width": "",
+                        "height": "-5px"
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "i3",
+                    "name": "core/image",
+                    "attributes": {
+                        "url": "https://example.com/photo.jpg",
+                        "alt": "A photo",
+                        "width": "calc(100% - 1px)",
+                        "height": "30px\n"
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "i4",
+                    "name": "core/image",
+                    "attributes": {
+                        "url": "https://example.com/photo.jpg",
+                        "alt": "A photo",
+                        "width": true,
+                        "height": [
+                            "30px"
+                        ]
                     },
                     "innerBlocks": []
                 }
@@ -3265,7 +3893,7 @@
         },
         {
             "name": "comments-pagination-layout",
-            "$comment": "F-3 — comments pagination is always a flex layout: the layout pair, a `wp-container-*` scope for justification and wrap, and the layout modifier classes. Query pagination keeps its own grid layout (#599), so it gets none of them.",
+            "$comment": "F-3 — comments and query pagination are always a flex layout: the layout pair, a `wp-container-*` scope for justification and wrap, and the layout modifier classes. Query pagination keeps its grid (#599) only while no justification or orientation is saved (#956).",
             "tree": [
                 {
                     "clientId": "qp-lay",
@@ -3425,6 +4053,85 @@
             ]
         },
         {
+            "name": "responsive-overrides-columns-gap",
+            "$comment": "#914 — a Columns block's responsive gap also sets `--ap-columns-gap` (per-axis → its `left`, scalar `normal` → `0px`, keyword → none), so the Column width calc follows the breakpoint's gap; a per-axis gap prints `row-gap` / `column-gap`, never `gap-top`. A Group with a per-axis responsive gap gets the longhands but no var.",
+            "tree": [
+                {
+                    "clientId": "resp-cols",
+                    "name": "core/columns",
+                    "attributes": {
+                        "style": { "spacing": { "blockGap": { "top": "0", "left": "0" } } },
+                        "responsive": {
+                            "style.spacing.blockGap": {
+                                "tablet": { "top": "1rem", "left": "2rem" },
+                                "mobile": "normal"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        { "clientId": "resp-cols-a", "name": "core/column", "attributes": { "width": "50%" }, "innerBlocks": [] },
+                        { "clientId": "resp-cols-b", "name": "core/column", "attributes": { "width": "50%" }, "innerBlocks": [] }
+                    ]
+                },
+                {
+                    "clientId": "resp-cols-scalar",
+                    "name": "artisanpack/columns",
+                    "attributes": {
+                        "responsive": {
+                            "style.spacing.blockGap": { "md": "var:preset|spacing|40", "mobile": "inherit" }
+                        }
+                    },
+                    "innerBlocks": [
+                        { "clientId": "resp-cols-scalar-a", "name": "core/column", "attributes": {}, "innerBlocks": [] }
+                    ]
+                },
+                {
+                    "clientId": "resp-gap-group",
+                    "name": "core/group",
+                    "attributes": {
+                        "layout": { "type": "flex" },
+                        "responsive": {
+                            "style.spacing.blockGap": { "tablet": { "top": "1rem", "left": "2rem" } }
+                        }
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "name": "responsive-overrides-legacy-paths",
+            "$comment": "#918 — overrides older editor builds saved under legacy keys render: a Columns gap axis under `style.spacing.blockGap.left` (with `--ap-columns-gap`), a Group's per-side padding under `style.spacing.padding.top`, and a shallow `style.spacing` object split into its properties. The property path wins over a legacy key at the same breakpoint.",
+            "tree": [
+                {
+                    "clientId": "resp-legacy-cols",
+                    "name": "core/columns",
+                    "attributes": {
+                        "style": { "spacing": { "blockGap": { "top": "1em", "left": "2em" } } },
+                        "responsive": {
+                            "style.spacing.blockGap.left": { "tablet": "3em", "mobile": "1em" }
+                        }
+                    },
+                    "innerBlocks": [
+                        { "clientId": "resp-legacy-cols-a", "name": "core/column", "attributes": { "width": "50%" }, "innerBlocks": [] },
+                        { "clientId": "resp-legacy-cols-b", "name": "core/column", "attributes": { "width": "50%" }, "innerBlocks": [] }
+                    ]
+                },
+                {
+                    "clientId": "resp-legacy-group",
+                    "name": "core/group",
+                    "attributes": {
+                        "layout": { "type": "flex" },
+                        "responsive": {
+                            "style.spacing.padding.top": { "tablet": "2rem" },
+                            "style.spacing": { "mobile": { "margin": { "bottom": "0" }, "blockGap": "4px" } },
+                            "style.spacing.blockGap": { "mobile": "8px" }
+                        }
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
             "name": "responsive-overrides-tombstone",
             "$comment": "#887 — Tablet sets a custom font size; Mobile picks a preset and the editor tombstones (`false`) the custom half. The tombstone is stored after the preset, so it must not displace the Mobile preset rule.",
             "tree": [
@@ -3436,6 +4143,291 @@
                         "responsive": {
                             "fontSize": { "mobile": "small" },
                             "style.typography.fontSize": { "tablet": "20px", "mobile": false }
+                        }
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "name": "query-total",
+            "$comment": "#962 — Query Total prints the stamped count with the number in <strong>: the plural noun with a prefix and supports, the singular for one result (core alias), and the current page's range with a suffix.",
+            "tree": [
+                {
+                    "clientId": "qt-total",
+                    "name": "artisanpack/query-total",
+                    "attributes": { "_resolvedTotal": 25, "prefix": "Showing ", "plural": "packages", "fontSize": "small", "textColor": "primary" },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "qt-one",
+                    "name": "core/query-total",
+                    "attributes": { "_resolvedTotal": 1 },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "qt-range",
+                    "name": "artisanpack/query-total",
+                    "attributes": {
+                        "displayType": "range-display",
+                        "_resolvedTotal": 25,
+                        "_resolvedCurrentPage": 3,
+                        "_resolvedPerPage": 9,
+                        "_resolvedItems": 7,
+                        "suffix": "."
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "name": "social-share-content-linkedin-copy-link",
+            "$comment": "#963 — a LinkedIn share chip plus the copy-link chip, which links to the permalink and carries it in `data-ap-copy-link` for the front-end script to upgrade into a copy-to-clipboard button. `email` is resolved but not picked, so it is dropped.",
+            "tree": [
+                {
+                    "clientId": "ssc-li-copy",
+                    "name": "artisanpack/social-share-content",
+                    "attributes": {
+                        "socialIcons": ["twitter", "linkedin", "copyLink"],
+                        "iconStyle": "show-label-icon",
+                        "iconsDirection": "horizontal",
+                        "iconsStretch": "auto-width",
+                        "iconColor": "#112233",
+                        "_resolvedShareLinks": [
+                            { "slug": "twitter", "url": "https://twitter.com/share?url=https%3A%2F%2Fexample.test%2Fposts%2Fhello&text=Hello" },
+                            { "slug": "linkedin", "url": "https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fexample.test%2Fposts%2Fhello" },
+                            { "slug": "email", "url": "mailto:?subject=Hello&body=https%3A%2F%2Fexample.test%2Fposts%2Fhello" },
+                            { "slug": "copyLink", "url": "https://example.test/posts/hello" }
+                        ]
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "name": "related-posts-grid",
+            "$comment": "#964 — a grid `displayLayout` with the related items directly under the block makes the wrapper Post Template's grid (`is-layout-grid` + `columns-N`), with its own Block spacing gap; the synthetic post-template items are the grid items.",
+            "resolveQueries": false,
+            "tree": [
+                {
+                    "clientId": "rp-grid",
+                    "name": "artisanpack/related-posts",
+                    "attributes": {
+                        "numColumns": 3,
+                        "displayLayout": {
+                            "type": "grid",
+                            "columns": 3
+                        },
+                        "style": {
+                            "spacing": {
+                                "blockGap": "2rem"
+                            }
+                        },
+                        "_resolvedItems": 2,
+                        "_resolvedTotal": 2
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "rp-11",
+                            "name": "core/post-template-item",
+                            "attributes": {
+                                "postId": 11,
+                                "className": "related-post post-11"
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "rp-11-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "Related A"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        },
+                        {
+                            "clientId": "rp-12",
+                            "name": "core/post-template-item",
+                            "attributes": {
+                                "postId": 12,
+                                "className": "related-post post-12"
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "rp-12-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "Related B"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "related-posts-grid-nested-post-template",
+            "$comment": "#964 — with a nested Post Template the template owns the layout, so the Related Posts wrapper ignores its own grid `displayLayout`.",
+            "resolveQueries": false,
+            "tree": [
+                {
+                    "clientId": "rp-nested",
+                    "name": "artisanpack/related-posts",
+                    "attributes": {
+                        "displayLayout": {
+                            "type": "grid",
+                            "columns": 3
+                        },
+                        "_resolvedItems": 1,
+                        "_resolvedTotal": 1
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "rp-nested-pt",
+                            "name": "artisanpack/post-template",
+                            "attributes": {
+                                "layout": "grid",
+                                "columns": 2
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "rp-13",
+                                    "name": "core/post-template-item",
+                                    "attributes": {
+                                        "postId": 13,
+                                        "className": "related-post post-13"
+                                    },
+                                    "innerBlocks": [
+                                        {
+                                            "clientId": "rp-13-p",
+                                            "name": "core/paragraph",
+                                            "attributes": {
+                                                "content": "Related C"
+                                            },
+                                            "innerBlocks": []
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "$comment": "#975 — current page on `/services/design`: the Design link gets `current-menu-item` + `aria-current=\"page\"`, its submenu and the `/services/` parent-path link get `current-menu-ancestor`, Home (`/`) and the other-host link get nothing.",
+            "name": "navigation-current-page",
+            "currentUrl": "http://localhost/services/design?ref=nav#top",
+            "tree": [
+                {
+                    "clientId": "nav-current",
+                    "name": "core/navigation",
+                    "attributes": {
+                        "overlayMenu": "never"
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "nav-current-home",
+                            "name": "core/navigation-link",
+                            "attributes": {
+                                "label": "Home",
+                                "url": "/"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "nav-current-parent",
+                            "name": "core/navigation-link",
+                            "attributes": {
+                                "label": "All services",
+                                "url": "/services/"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "nav-current-sub",
+                            "name": "core/navigation-submenu",
+                            "attributes": {
+                                "label": "What we do",
+                                "url": "/what-we-do"
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "nav-current-design",
+                                    "name": "core/navigation-link",
+                                    "attributes": {
+                                        "label": "Design",
+                                        "url": "http://localhost/services/design/"
+                                    },
+                                    "innerBlocks": []
+                                },
+                                {
+                                    "clientId": "nav-current-build",
+                                    "name": "core/navigation-link",
+                                    "attributes": {
+                                        "label": "Build",
+                                        "url": "/services/build"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        },
+                        {
+                            "clientId": "nav-current-other",
+                            "name": "core/navigation-link",
+                            "attributes": {
+                                "label": "Partner",
+                                "url": "https://partner.test/services/design"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "$comment": "#976 — a template-part wrapper carries the author `className` and the Effects `ve-fx-<sha1>` scope (z-index, with its zero-specificity `position: relative`) in every renderer, so a theme can stack a sticky site header above the content. The Position support (`style.position`) is printed by Blade only and is pinned by SavedTemplatePartRenderingTest instead.",
+            "name": "template-part-effects-z-index",
+            "templateParts": [
+                {
+                    "slug": "header",
+                    "area": "header",
+                    "blocks": [
+                        {
+                            "clientId": "tp-header-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Site header"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ],
+            "tree": [
+                {
+                    "clientId": "tp-header",
+                    "name": "core/template-part",
+                    "attributes": {
+                        "slug": "header",
+                        "tagName": "header",
+                        "className": "site-header",
+                        "artisanpackEffects": {
+                            "zIndex": 50
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "tp-header-fork",
+                    "name": "artisanpack/template-part",
+                    "attributes": {
+                        "slug": "header",
+                        "tagName": "header",
+                        "artisanpackEffects": {
+                            "zIndex": 50
                         }
                     },
                     "innerBlocks": []

@@ -134,15 +134,21 @@ export function PostTermsBlock({ attributes }: BlockRendererProps): JSX.Element 
         const name = attrString(term.name);
         const url = safeUrl(attrString(term.url));
 
+        // Each term carries `wp-block-post-terms__term`, so a theme can
+        // style one term whether or not it links (#939).
         if (url === '') {
             // Upstream `get_the_term_list` always produces anchors; we
-            // degrade gracefully to plain text when the host can't
+            // degrade gracefully to a plain span when the host can't
             // resolve a permalink for the term — matches the Blade
-            // partial's bare-name path.
-            items.push(name);
+            // partial.
+            items.push(
+                <span key={`term-${index}`} className="wp-block-post-terms__term">
+                    {name}
+                </span>
+            );
         } else {
             items.push(
-                <a key={`term-${index}`} href={url}>
+                <a key={`term-${index}`} className="wp-block-post-terms__term" href={url}>
                     {name}
                 </a>
             );

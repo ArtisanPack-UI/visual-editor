@@ -18,13 +18,49 @@ import {
     layoutClass,
 } from '../../support/attributes';
 import { applyBlockGap } from '../../support/blockGap';
+import { dimensionsClassName } from '../../support/dimensions';
 import { cssNumber } from '../../support/cssNumber';
 import { layoutWrapperClasses } from '../../support/layoutContainer';
+import { coverImageUrl } from '../../support/coverImage';
+import { searchButtonClasses, searchButtonPosition, searchFormAction } from '../../support/searchForm';
 import { safeUrl } from '../../support/urlSanitizer';
 import type { BlockRendererProps } from '../../types';
 
 const ALLOWED_MIN_HEIGHT_UNITS = ['px', 'em', 'rem', 'vh', 'vw', '%'] as const;
 const ALLOWED_CELL_ALIGN = ['left', 'center', 'right', 'justify'] as const;
+const ALLOWED_CELL_SCOPE = ['row', 'col', 'rowgroup', 'colgroup'] as const;
+
+/** HTML's own ceilings for the span attributes, mirrored from `table.blade.php`. */
+const CELL_SPAN_LIMITS = { colspan: 1000, rowspan: 65534 } as const;
+
+/**
+ * Sanitise a table cell's `colspan` / `rowspan` to a positive integer, or
+ * undefined when the stored value is missing or not a plain integer (#971).
+ */
+function cellSpan(value: unknown, name: keyof typeof CELL_SPAN_LIMITS): number | undefined {
+    const raw = typeof value === 'number' && Number.isInteger(value) ? String(value) : value;
+
+    if (typeof raw !== 'string') {
+        return undefined;
+    }
+
+    const match = /^([0-9]+)$/.exec(raw);
+
+    if (match === null) {
+        return undefined;
+    }
+
+    const span = Number.parseInt(match[1], 10);
+
+    return span < 1 ? undefined : Math.min(span, CELL_SPAN_LIMITS[name]);
+}
+
+/** Allowlist a `<th>` scope; `<td>` never carries one (upstream save drops it). */
+function cellScope(value: unknown, tag: 'td' | 'th'): string | undefined {
+    const scope = typeof value === 'string' ? value.toLowerCase() : '';
+
+    return tag === 'th' && (ALLOWED_CELL_SCOPE as ReadonlyArray<string>).includes(scope) ? scope : undefined;
+}
 
 export function SeparatorBlock({ attributes }: BlockRendererProps): JSX.Element {
     const style = attrString(attributes.style, 'default');
@@ -62,10 +98,11 @@ export function SpacerBlock({ attributes }: BlockRendererProps): JSX.Element {
 }
 
 export function CoverBlock({ attributes, children }: BlockRendererProps): JSX.Element {
-    const url = safeUrl(attributes.url);
+    const url = coverImageUrl(attributes);
     const isDark = attributes.isDark === undefined ? true : attrBoolean(attributes.isDark);
 
-    const rawDim = attrInt(attributes.dimRatio, 50);
+    // block.json defaults dimRatio to 100 and the editor omits defaults (#906).
+    const rawDim = attrInt(attributes.dimRatio, 100);
     const dimRatio = Math.max(0, Math.min(100, rawDim));
 
     const align = attrString(attributes.align);
@@ -80,13 +117,17 @@ export function CoverBlock({ attributes, children }: BlockRendererProps): JSX.El
         // Duotone scope stamped by `stampDuotoneScopes()`.
         attrString(attributes._veDuotone) || null,
         align !== '' ? `align${align}` : null,
+        dimensionsClassName(attributes),
         className,
     ]);
 
     // The cover's own Block spacing rides first, in `cover.blade.php` order.
     let style: Record<string, string> = { ...applyBlockGap(attributes) };
 
-    if (attributes.minHeight !== undefined && attributes.minHeight !== null) {
+    // An aspect ratio replaces the cover's own min-height (#906).
+    const hasAspectRatio = attrString(attrRecord(attrRecord(attributes.style).dimensions).aspectRatio) !== '';
+
+    if (attributes.minHeight !== undefined && attributes.minHeight !== null && !hasAspectRatio) {
         const minHeight = Math.max(0, attrFloat(attributes.minHeight));
         const requestedUnit = attrString(attributes.minHeightUnit);
         const unit = (ALLOWED_MIN_HEIGHT_UNITS as ReadonlyArray<string>).includes(requestedUnit)
@@ -161,14 +202,12 @@ export function MediaTextBlock({ attributes, children }: BlockRendererProps): JS
 
 export function TableBlock({ attributes }: BlockRendererProps): JSX.Element {
     const className = attrString(attributes.className);
-    const hasFixedLayout = attrBoolean(attributes.hasFixedLayout);
+    // Defaults to true in block.json and is unsourced, so a saved block
+    // only carries it when false. The class belongs on `<table>` (#971).
+    const hasFixedLayout = attrBoolean(attributes.hasFixedLayout, true);
     const caption = attrString(attributes.caption);
 
-    const classes = classList([
-        'wp-block-table',
-        hasFixedLayout ? 'has-fixed-layout' : null,
-        className,
-    ]);
+    const classes = classList(['wp-block-table', className]);
 
     const sections = [
         { key: 'head' as const, Tag: 'thead' as const, defaultTag: 'th' as const },
@@ -178,7 +217,7 @@ export function TableBlock({ attributes }: BlockRendererProps): JSX.Element {
 
     return (
         <figure className={classes}>
-            <table>
+            <table className={hasFixedLayout ? 'has-fixed-layout' : undefined}>
                 {sections.map(({ key, Tag, defaultTag }) => {
                     const rows = attrArray(attributes[key]);
 
@@ -209,6 +248,9 @@ export function TableBlock({ attributes }: BlockRendererProps): JSX.Element {
                                             return (
                                                 <CellTag
                                                     key={cellIndex}
+                                                    scope={cellScope(cellRecord.scope, CellTag)}
+                                                    colSpan={cellSpan(cellRecord.colspan, 'colspan')}
+                                                    rowSpan={cellSpan(cellRecord.rowspan, 'rowspan')}
                                                     style={cellStyle}
                                                     dangerouslySetInnerHTML={{ __html: content }}
                                                 />
@@ -260,6 +302,9 @@ export function SearchBlock({ attributes }: BlockRendererProps): JSX.Element {
     const useIcon = attrBoolean(attributes.buttonUseIcon);
     const queryName = attrString(attrRecord(attributes.query).name, 's');
     const className = attrString(attributes.className);
+    // #961: the form's target and the term it shows (see support/searchForm).
+    const action = searchFormAction(attributes);
+    const searchValue = attrString(attributes._resolvedSearchValue);
 
     const ariaLabel =
         buttonText.trim() !== ''
@@ -268,9 +313,12 @@ export function SearchBlock({ attributes }: BlockRendererProps): JSX.Element {
             ? label
             : 'Search';
 
+    // #961: button position classes as WordPress prints them; `no-button`
+    // renders no button, so Enter submits.
+    const hasButton = searchButtonPosition(attributes) !== 'no-button';
     const classes = classList([
         'wp-block-search',
-        !showLabel ? 'wp-block-search__button-inside' : null,
+        ...searchButtonClasses(attributes, useIcon),
         className,
     ]);
 
@@ -282,21 +330,24 @@ export function SearchBlock({ attributes }: BlockRendererProps): JSX.Element {
     const inputId = `wp-block-search-input-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
 
     return (
-        <form role="search" method="get" action="/" className={classes}>
-            {showLabel ? (
-                <label className="wp-block-search__label" htmlFor={inputId}>
-                    {label}
-                </label>
-            ) : null}
+        <form role="search" method="get" action={action} className={classes}>
+            {/* A hidden label stays for screen readers: it is the input's only accessible name. */}
+            <label
+                className={showLabel ? 'wp-block-search__label' : 'wp-block-search__label screen-reader-text'}
+                htmlFor={inputId}
+            >
+                {label}
+            </label>
             <div className="wp-block-search__inside-wrapper">
                 <input
                     id={inputId}
                     type="search"
                     className="wp-block-search__input"
                     name={queryName}
+                    defaultValue={searchValue}
                     placeholder={placeholder === '' ? undefined : placeholder}
                 />
-                {useIcon ? (
+                {!hasButton ? null : useIcon ? (
                     <button type="submit" className={buttonClasses} aria-label={ariaLabel}>
                         <svg
                             className="wp-block-search__button-icon"

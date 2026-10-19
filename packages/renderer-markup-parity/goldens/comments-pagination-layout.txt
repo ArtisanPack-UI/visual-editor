@@ -1,6 +1,7 @@
-<nav aria-label="Pagination navigation" class="wp-block-query-pagination">
+<nav aria-label="Pagination navigation" class="wp-block-query-pagination is-layout-flex wp-block-query-pagination-is-layout-flex wp-container-1bad760392a6 is-content-justification-space-between">
 </nav>
 <nav aria-label="Comments pagination" class="wp-block-comments-pagination is-layout-flex wp-block-comments-pagination-is-layout-flex wp-container-15b43d6e8930 is-content-justification-center is-nowrap">
 </nav>
 @@ renderer-instance-css @@
 .wp-block-comments-pagination.wp-block-comments-pagination-is-layout-flex.wp-container-15b43d6e8930{flex-wrap:nowrap;justify-content:center;}
+.wp-block-query-pagination.wp-block-query-pagination-is-layout-flex.wp-container-1bad760392a6{justify-content:space-between;}

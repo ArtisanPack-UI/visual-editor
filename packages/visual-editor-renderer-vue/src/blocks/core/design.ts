@@ -19,13 +19,49 @@ import {
     layoutClass,
 } from '../../support/attributes';
 import { applyBlockGap } from '../../support/blockGap';
+import { dimensionsClassName } from '../../support/dimensions';
 import { cssNumber } from '../../support/cssNumber';
 import { layoutWrapperClasses } from '../../support/layoutContainer';
+import { coverImageUrl } from '../../support/coverImage';
+import { searchButtonClasses, searchButtonPosition, searchFormAction } from '../../support/searchForm';
 import { safeUrl } from '../../support/urlSanitizer';
 import { blockRendererProps } from '../shared';
 
 const ALLOWED_MIN_HEIGHT_UNITS = ['px', 'em', 'rem', 'vh', 'vw', '%'] as const;
 const ALLOWED_CELL_ALIGN = ['left', 'center', 'right', 'justify'] as const;
+const ALLOWED_CELL_SCOPE = ['row', 'col', 'rowgroup', 'colgroup'] as const;
+
+/** HTML's own ceilings for the span attributes, mirrored from `table.blade.php`. */
+const CELL_SPAN_LIMITS = { colspan: 1000, rowspan: 65534 } as const;
+
+/**
+ * Sanitise a table cell's `colspan` / `rowspan` to a positive integer, or
+ * undefined when the stored value is missing or not a plain integer (#971).
+ */
+function cellSpan(value: unknown, name: keyof typeof CELL_SPAN_LIMITS): number | undefined {
+    const raw = typeof value === 'number' && Number.isInteger(value) ? String(value) : value;
+
+    if (typeof raw !== 'string') {
+        return undefined;
+    }
+
+    const match = /^([0-9]+)$/.exec(raw);
+
+    if (match === null) {
+        return undefined;
+    }
+
+    const span = Number.parseInt(match[1], 10);
+
+    return span < 1 ? undefined : Math.min(span, CELL_SPAN_LIMITS[name]);
+}
+
+/** Allowlist a `<th>` scope; `<td>` never carries one (upstream save drops it). */
+function cellScope(value: unknown, tag: 'td' | 'th'): string | undefined {
+    const scope = typeof value === 'string' ? value.toLowerCase() : '';
+
+    return tag === 'th' && (ALLOWED_CELL_SCOPE as ReadonlyArray<string>).includes(scope) ? scope : undefined;
+}
 
 export const SeparatorBlock = defineComponent({
     name: 'SeparatorBlock',
@@ -84,10 +120,11 @@ export const CoverBlock = defineComponent({
     props: blockRendererProps,
     setup(props, { slots }) {
         return () => {
-            const url = safeUrl(props.attributes.url);
+            const url = coverImageUrl(props.attributes);
             const isDark = props.attributes.isDark === undefined ? true : attrBoolean(props.attributes.isDark);
 
-            const rawDim = attrInt(props.attributes.dimRatio, 50);
+            // block.json defaults dimRatio to 100 and the editor omits defaults (#906).
+            const rawDim = attrInt(props.attributes.dimRatio, 100);
             const dimRatio = Math.max(0, Math.min(100, rawDim));
 
             const align = attrString(props.attributes.align);
@@ -102,6 +139,7 @@ export const CoverBlock = defineComponent({
                 // Duotone scope stamped by `stampDuotoneScopes()`.
                 attrString(props.attributes._veDuotone) || null,
                 align !== '' ? `align${align}` : null,
+                dimensionsClassName(props.attributes),
                 className,
             ]);
 
@@ -109,7 +147,11 @@ export const CoverBlock = defineComponent({
             // `cover.blade.php` order.
             let outerStyle: Record<string, string> = { ...applyBlockGap(props.attributes) };
 
-            if (props.attributes.minHeight !== undefined && props.attributes.minHeight !== null) {
+            // An aspect ratio replaces the cover's own min-height (#906).
+            const hasAspectRatio =
+                attrString(attrRecord(attrRecord(props.attributes.style).dimensions).aspectRatio) !== '';
+
+            if (props.attributes.minHeight !== undefined && props.attributes.minHeight !== null && !hasAspectRatio) {
                 const minHeight = Math.max(0, attrFloat(props.attributes.minHeight));
                 const requestedUnit = attrString(props.attributes.minHeightUnit);
                 const unit = (ALLOWED_MIN_HEIGHT_UNITS as ReadonlyArray<string>).includes(requestedUnit)
@@ -230,14 +272,13 @@ export const TableBlock = defineComponent({
     setup(props) {
         return () => {
             const className = attrString(props.attributes.className);
-            const hasFixedLayout = attrBoolean(props.attributes.hasFixedLayout);
+            // Defaults to true in block.json and is unsourced, so a saved
+            // block only carries it when false. The class belongs on
+            // `<table>` (#971).
+            const hasFixedLayout = attrBoolean(props.attributes.hasFixedLayout, true);
             const caption = attrString(props.attributes.caption);
 
-            const classes = classList([
-                'wp-block-table',
-                hasFixedLayout ? 'has-fixed-layout' : null,
-                className,
-            ]);
+            const classes = classList(['wp-block-table', className]);
 
             const sections = [
                 { key: 'head' as const, Tag: 'thead' as const, defaultTag: 'th' as const },
@@ -267,11 +308,13 @@ export const TableBlock = defineComponent({
                         const cellTagRaw = attrString(cellRecord.tag);
                         const cellTag: 'td' | 'th' =
                             cellTagRaw === 'td' || cellTagRaw === 'th' ? cellTagRaw : defaultTag;
-                        const cellStyle = align === '' ? undefined : { 'text-align': align };
-
                         return h(cellTag, {
                             key: cellIndex,
-                            style: cellStyle,
+                            scope: cellScope(cellRecord.scope, cellTag),
+                            colspan: cellSpan(cellRecord.colspan, 'colspan'),
+                            rowspan: cellSpan(cellRecord.rowspan, 'rowspan'),
+                            // Vue SSR prints `style=""` for an undefined style, so only set it when aligned.
+                            ...(align === '' ? {} : { style: { 'text-align': align } }),
                             innerHTML: content,
                         });
                     });
@@ -282,7 +325,7 @@ export const TableBlock = defineComponent({
                 tableChildren.push(h(Tag, { key }, rowNodes));
             }
 
-            const figureChildren: VNode[] = [h('table', null, tableChildren)];
+            const figureChildren: VNode[] = [h('table', hasFixedLayout ? { class: 'has-fixed-layout' } : null, tableChildren)];
 
             if (caption.trim() !== '') {
                 figureChildren.push(h('figcaption', { innerHTML: caption }));
@@ -342,6 +385,9 @@ export const SearchBlock = defineComponent({
             const useIcon = attrBoolean(props.attributes.buttonUseIcon);
             const queryName = attrString(attrRecord(props.attributes.query).name, 's');
             const className = attrString(props.attributes.className);
+            // #961: the form's target and the term it shows (see support/searchForm).
+            const action = searchFormAction(props.attributes);
+            const searchValue = attrString(props.attributes._resolvedSearchValue);
 
             // #338: an icon-only button must still expose an accessible
             // name. Precedence matches the Blade + React renderers so all
@@ -358,23 +404,31 @@ export const SearchBlock = defineComponent({
                 useIcon ? 'has-icon' : null,
             ]);
 
+            // #961: button position classes as WordPress prints them;
+            // `no-button` renders no button, so Enter submits.
+            const hasButton = searchButtonPosition(props.attributes) !== 'no-button';
             const classes = classList([
                 'wp-block-search',
-                !showLabel ? 'wp-block-search__button-inside' : null,
+                ...searchButtonClasses(props.attributes, useIcon),
                 className,
             ]);
 
             const children: VNode[] = [];
 
-            if (showLabel) {
-                children.push(
-                    h(
-                        'label',
-                        { class: 'wp-block-search__label', for: inputId },
-                        label
-                    )
-                );
-            }
+            // A hidden label stays for screen readers: it is the input's
+            // only accessible name.
+            children.push(
+                h(
+                    'label',
+                    {
+                        class: showLabel
+                            ? 'wp-block-search__label'
+                            : 'wp-block-search__label screen-reader-text',
+                        for: inputId,
+                    },
+                    label
+                )
+            );
 
             children.push(
                 h('div', { class: 'wp-block-search__inside-wrapper' }, [
@@ -383,47 +437,51 @@ export const SearchBlock = defineComponent({
                         type: 'search',
                         class: 'wp-block-search__input',
                         name: queryName,
+                        value: searchValue,
                         placeholder: placeholder === '' ? undefined : placeholder,
                     }),
-                    useIcon
-                        ? h(
-                              'button',
-                              {
-                                  type: 'submit',
-                                  class: buttonClasses,
-                                  'aria-label': ariaLabel,
-                              },
-                              [
-                                  h(
-                                      'svg',
-                                      {
-                                          class: 'wp-block-search__button-icon',
-                                          xmlns: 'http://www.w3.org/2000/svg',
-                                          viewBox: '0 0 24 24',
-                                          width: '24',
-                                          height: '24',
-                                          'aria-hidden': 'true',
-                                          focusable: 'false',
-                                      },
-                                      [
-                                          h('path', {
-                                              d: 'M13.5 6C10.5 6 8 8.5 8 11.5c0 1.1.3 2.1.9 3l-3.4 3 1 1.1 3.4-3c1 .9 2.2 1.4 3.6 1.4 3 0 5.5-2.5 5.5-5.5C19 8.5 16.5 6 13.5 6zm0 9.5c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4z',
-                                          }),
-                                      ]
-                                  ),
-                              ]
-                          )
-                        : h(
-                              'button',
-                              { type: 'submit', class: buttonClasses },
-                              buttonText
-                          ),
+                    // `no-button`: no submit button, Enter submits.
+                    ...(!hasButton
+                        ? []
+                        : [useIcon
+                            ? h(
+                                  'button',
+                                  {
+                                      type: 'submit',
+                                      class: buttonClasses,
+                                      'aria-label': ariaLabel,
+                                  },
+                                  [
+                                      h(
+                                          'svg',
+                                          {
+                                              class: 'wp-block-search__button-icon',
+                                              xmlns: 'http://www.w3.org/2000/svg',
+                                              viewBox: '0 0 24 24',
+                                              width: '24',
+                                              height: '24',
+                                              'aria-hidden': 'true',
+                                              focusable: 'false',
+                                          },
+                                          [
+                                              h('path', {
+                                                  d: 'M13.5 6C10.5 6 8 8.5 8 11.5c0 1.1.3 2.1.9 3l-3.4 3 1 1.1 3.4-3c1 .9 2.2 1.4 3.6 1.4 3 0 5.5-2.5 5.5-5.5C19 8.5 16.5 6 13.5 6zm0 9.5c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4z',
+                                              }),
+                                          ]
+                                      ),
+                                  ]
+                              )
+                            : h(
+                                  'button',
+                                  { type: 'submit', class: buttonClasses },
+                                  buttonText
+                              )]),
                 ])
             );
 
             return h(
                 'form',
-                { role: 'search', method: 'get', action: '/', class: classes },
+                { role: 'search', method: 'get', action, class: classes },
                 children
             );
         };

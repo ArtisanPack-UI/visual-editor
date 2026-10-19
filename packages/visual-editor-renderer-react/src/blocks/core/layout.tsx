@@ -16,8 +16,8 @@ import { isNonEmptyWidth, normalizeBasis } from '../../support/columnWidth';
 import { flexClassNames } from '../../support/flex-serializer';
 import { safeCssValue } from '../../support/cssValue';
 import { applyBackground } from '../../support/background';
-import { applyBlockGap } from '../../support/blockGap';
-import { applyDimensions } from '../../support/dimensions';
+import { applyBlockGap, applyColumnsGap } from '../../support/blockGap';
+import { applyDimensions, dimensionsClassName } from '../../support/dimensions';
 import { layoutModifierClasses, panelLayoutClass } from '../../support/layoutContainer';
 import { safeUrl } from '../../support/urlSanitizer';
 import type { BlockRendererProps } from '../../types';
@@ -70,6 +70,7 @@ export function GroupBlock({ attributes, children }: BlockRendererProps): JSX.El
         ...layoutModifierClasses(attributes),
         ...flexClasses,
         photoGridScope !== '' ? photoGridScope : null,
+        dimensionsClassName(attributes),
         className,
     ]);
 
@@ -139,6 +140,14 @@ export function ColumnsBlock({ attributes, children }: BlockRendererProps): JSX.
         photoGridScope !== '' ? photoGridScope : null,
         className,
     ]);
+
+    // The Columns' own Block spacing, as `columns.blade.php` prints it.
+    // #914 — plus the per-axis left gap for the Column width calc, last.
+    const style = { ...applyBlockGap(attributes), ...applyColumnsGap(attributes) };
+
+    if (Object.keys(style).length > 0) {
+        return <div className={classes} style={style as React.CSSProperties}>{children}</div>;
+    }
 
     return <div className={classes}>{children}</div>;
 }
@@ -232,6 +241,38 @@ export function ButtonsBlock({ attributes, children }: BlockRendererProps): JSX.
     return <div className={classes}>{children}</div>;
 }
 
+/**
+ * Width classes and style for a button wrapper (#921). Mirrors the Blade
+ * view: 25/50/75/100% get the legacy class, another percentage sets
+ * `--wp--block-button--width`, and a plain length is set directly.
+ */
+function buttonWidth(attributes: Record<string, unknown>): { classes: string[]; style?: string; property?: string } {
+    const style = attributes.style as { dimensions?: { width?: unknown } } | undefined;
+    const raw = style?.dimensions?.width;
+
+    if ('string' !== typeof raw || '' === raw.trim()) {
+        return { classes: [] };
+    }
+
+    const width = raw.trim();
+
+    if (width.endsWith('%')) {
+        const amount = width.slice(0, -1);
+
+        if (['25', '50', '75', '100'].includes(amount)) {
+            return { classes: ['has-custom-width', 'wp-block-button__width', `wp-block-button__width-${amount}`] };
+        }
+
+        return '' !== amount && !Number.isNaN(Number(amount))
+            ? { classes: ['has-custom-width', 'wp-block-button__width'], property: '--wp--block-button--width', style: String(parseFloat(amount)) }
+            : { classes: ['has-custom-width', 'wp-block-button__width'] };
+    }
+
+    return /^\d*\.?\d+(px|rem|em|vw|ch)$/.test(width)
+        ? { classes: ['has-custom-width'], property: 'width', style: width }
+        : { classes: ['has-custom-width'] };
+}
+
 export function ButtonBlock({ attributes }: BlockRendererProps): JSX.Element {
     const text = attrString(attributes.text);
     const url = safeUrl(attributes.url);
@@ -239,7 +280,9 @@ export function ButtonBlock({ attributes }: BlockRendererProps): JSX.Element {
     const title = attrString(attributes.title);
     const className = attrString(attributes.className);
 
-    const wrapperClasses = classList(['wp-block-button', className]);
+    const width = buttonWidth(attributes);
+    const wrapperClasses = classList(['wp-block-button', ...width.classes, className]);
+    const wrapperStyle = width.property ? ({ [width.property]: width.style } as React.CSSProperties) : undefined;
     const linkClasses = 'wp-block-button__link wp-element-button';
 
     let rel = attrString(attributes.rel);
@@ -257,7 +300,7 @@ export function ButtonBlock({ attributes }: BlockRendererProps): JSX.Element {
     }
 
     return (
-        <div className={wrapperClasses}>
+        <div className={wrapperClasses} style={wrapperStyle}>
             {url === '' ? (
                 <span
                     className={linkClasses}

@@ -34,10 +34,11 @@ it( 'compiles every effect in a fixed order under a hashed scope', function (): 
 			'.' . $result['class'] . '{opacity:0.8;overflow-x:hidden;overflow-y:auto;'
 			. '-webkit-backdrop-filter:blur(12px) saturate(180%);backdrop-filter:blur(12px) saturate(180%);'
 			. 'mix-blend-mode:multiply;isolation:isolate;z-index:5;clip-path:circle(50% at 50% 50%);'
-			. '-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}'
+			. '-webkit-text-fill-color:transparent}'
+			. '.' . $result['class'] . '.' . $result['class'] . '{-webkit-background-clip:text!important;background-clip:text!important}'
 			. ':where(.' . $result['class'] . '){position:relative}'
-			. '@media (forced-colors:active){.' . $result['class'] . '{-webkit-text-fill-color:currentColor;'
-			. '-webkit-background-clip:border-box;background-clip:border-box}}',
+			. '@media (forced-colors:active){.' . $result['class'] . '.' . $result['class'] . '{-webkit-text-fill-color:currentColor;'
+			. '-webkit-background-clip:border-box!important;background-clip:border-box!important}}',
 		);
 } );
 
@@ -52,15 +53,27 @@ it( 'keeps text clip, with a forced-colors fallback, over a gradient or backgrou
 	$result = compileEffects( [ 'textClip' => true ], $attributes );
 
 	expect( $result['css'] )->toBe(
-		'.' . $result['class'] . '{-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}'
-		. '@media (forced-colors:active){.' . $result['class'] . '{-webkit-text-fill-color:currentColor;'
-		. '-webkit-background-clip:border-box;background-clip:border-box}}',
+		'.' . $result['class'] . '{-webkit-text-fill-color:transparent}'
+		. '.' . $result['class'] . '.' . $result['class'] . '{-webkit-background-clip:text!important;background-clip:text!important}'
+		. '@media (forced-colors:active){.' . $result['class'] . '.' . $result['class'] . '{-webkit-text-fill-color:currentColor;'
+		. '-webkit-background-clip:border-box!important;background-clip:border-box!important}}',
 	);
 } )->with( [
 	'preset gradient'  => [ [ 'gradient' => 'cool-to-warm' ] ],
 	'custom gradient'  => [ [ 'style' => [ 'color' => [ 'gradient' => 'linear-gradient(red, blue)' ] ] ] ],
 	'image object'     => [ [ 'style' => [ 'background' => [ 'backgroundImage' => [ 'url' => 'https://example.com/a.png' ] ] ] ] ],
 	'image string'     => [ [ 'style' => [ 'background' => [ 'backgroundImage' => 'https://example.com/a.png' ] ] ] ],
+] );
+
+it( 'prints the text clip !important at doubled-class specificity so the gradient shorthand cannot reset it (#904)', function ( array $attributes ): void {
+	$result = compileEffects( [ 'textClip' => true ], $attributes );
+	$scope  = '.' . $result['class'] . '.' . $result['class'];
+
+	expect( $result['css'] )->toContain( $scope . '{-webkit-background-clip:text!important;background-clip:text!important}' )
+		->and( $result['css'] )->toContain( '@media (forced-colors:active){' . $scope . '{' );
+} )->with( [
+	'preset gradient (has-*-gradient-background is !important)'   => [ [ 'gradient' => 'cool-to-warm' ] ],
+	'custom gradient (inline background shorthand)'               => [ [ 'style' => [ 'color' => [ 'gradient' => 'linear-gradient(red, blue)' ] ] ] ],
 ] );
 
 it( 'lets the caller say whether the block paints a background', function (): void {

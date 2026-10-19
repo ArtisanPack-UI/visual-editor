@@ -80,10 +80,18 @@
 			? $renderer->render( $child['innerBlocks'] )
 			: '';
 
+		// The panel carries the section's own supports (#922): class,
+		// block style, colour, spacing, border and shadow. `anchor` is
+		// not a tab-section support, and the panel id is fixed below.
+		$panelAttrs = $childAttrs;
+		unset( $panelAttrs['anchor'] );
+
 		$tabs[] = [
-			'label'   => $label,
-			'tabId'   => $tabId,
-			'content' => $childInner,
+			'label'     => $label,
+			'tabId'     => $tabId,
+			'content'   => $childInner,
+			'wrapper'   => BlockSupports::wrapperAttrs( $panelAttrs, [ 'wp-block-artisanpack-tab-section', 'ap-tab-section' ] ),
+			'ariaLabel' => trim( (string) ( $childAttrs['ariaLabel'] ?? '' ) ),
 		];
 	}
 
@@ -111,11 +119,11 @@
 	</div>
 	<div class="ap-tabs__container">
 		@foreach ( $tabs as $tab )
-			<div
-				class="wp-block-artisanpack-tab-section ap-tab-section"
+			{{-- An author's aria-label replaces aria-labelledby, which would otherwise win. --}}
+			<div{!! $tab['wrapper'] !!}
 				role="tabpanel"
 				id="tabs-panel-{{ $tab['tabId'] }}"
-				aria-labelledby="tabs-tab-{{ $tab['tabId'] }}"
+				@if ( '' !== $tab['ariaLabel'] ) aria-label="{{ $tab['ariaLabel'] }}" @else aria-labelledby="tabs-tab-{{ $tab['tabId'] }}" @endif
 			>{!! $tab['content'] !!}</div>
 		@endforeach
 	</div>

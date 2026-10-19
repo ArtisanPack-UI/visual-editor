@@ -16,7 +16,7 @@
         "added": "file unique to the fork (no upstream)"
     },
     "files": [
-        { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped to the artisanpack namespace; attribute schema + supports carried verbatim. editorStyle/style handles and the variations array dropped — the variation picker pulls getTaxonomies selectors the post editor's core-data shim does not implement (same reason the upstream taxonomy/archive override strips them)." },
+        { "fork": "block.json", "upstream": "block.json", "status": "extended", "notes": "name + textdomain swapped to the artisanpack namespace; upstream attribute schema + supports carried verbatim, plus the fork-only countStyle / showAll / allLabel attributes (#960). editorStyle/style handles and the variations array dropped — the variation picker pulls getTaxonomies selectors the post editor's core-data shim does not implement (same reason the upstream taxonomy/archive override strips them)." },
         { "fork": "edit.tsx", "upstream": "edit.js", "status": "rewritten", "notes": "Upstream queries the taxonomy entity via @wordpress/core-data; the shim exposes no taxonomy entity and terms are resolved server-side, so the fork previews through the package's <ServerSideRender> seam and ports the inspector controls to PanelBody. Mirrors the V1 taxonomy-archive override's CategoriesEdit." },
         { "fork": "save.tsx", "upstream": "n/a", "status": "added", "notes": "Dynamic block — returns null; markup produced by CategoriesBlock::render()." },
         { "fork": "transforms.ts", "upstream": "n/a", "status": "added", "notes": "Upstream has no transforms.js; the fork adds bidirectional core/categories ↔ artisanpack/categories block transforms for the rollout window." },
@@ -31,6 +31,7 @@
         "The categories variations array (Terms List / Categories List taxonomy picker) is not carried — the picker pulls getTaxonomies selectors the shim does not implement.",
         "displayAsDropdown falls back to the list rendering server-side (the upstream dropdown ships a JS handler that is not run server-side); the attribute is carried for round-trip parity.",
         "categories is a dynamic block, so (like core/tag-cloud, core/archives, artisanpack/latest-posts, artisanpack/form) it is handled by the Blade DynamicBlockRegistry and is not listed in packages/renderer-parity.json — the React/Vue static renderers do not register it.",
+        "Fork-only countStyle (inline | badge), showAll and allLabel attributes, current-term marking (current-cat + aria-current), published-only counts and host taxonomies through the ap.visualEditor.terms filter (#960). The inspector's taxonomy picker reads the editor's taxonomy registry instead of the upstream variations.",
         "transforms.ts adds bidirectional block transforms that don't exist upstream — required to coexist with core/categories during the V1 rollout."
     ],
     "triage": {

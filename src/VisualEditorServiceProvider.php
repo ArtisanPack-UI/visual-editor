@@ -2013,7 +2013,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 	 *
 	 * @since 1.1.0
 	 */
-	protected function humanizeIconName( string $name ): string
+	protected function humanizeIconName( string $name): string
 	{
 		$spaced = preg_replace( '/[-_]+/', ' ', $name ) ?? $name;
 

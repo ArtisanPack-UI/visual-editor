@@ -42,6 +42,7 @@ import queryPaginationNextMeta from '../query-pagination-next/block.json';
 import queryPaginationNumbersMeta from '../query-pagination-numbers/block.json';
 import queryPaginationPreviousMeta from '../query-pagination-previous/block.json';
 import queryTitleMeta from '../query-title/block.json';
+import queryTotalMeta from '../query-total/block.json';
 
 import queryNoResultsTransforms from '../query-no-results/transforms';
 import queryPaginationTransforms from '../query-pagination/transforms';
@@ -49,6 +50,7 @@ import queryPaginationNextTransforms from '../query-pagination-next/transforms';
 import queryPaginationNumbersTransforms from '../query-pagination-numbers/transforms';
 import queryPaginationPreviousTransforms from '../query-pagination-previous/transforms';
 import queryTitleTransforms from '../query-title/transforms';
+import queryTotalTransforms from '../query-total/transforms';
 
 import queryNoResultsSave from '../query-no-results/save';
 import queryPaginationSave from '../query-pagination/save';
@@ -56,6 +58,7 @@ import queryPaginationNextSave from '../query-pagination-next/save';
 import queryPaginationNumbersSave from '../query-pagination-numbers/save';
 import queryPaginationPreviousSave from '../query-pagination-previous/save';
 import queryTitleSave from '../query-title/save';
+import queryTotalSave from '../query-total/save';
 
 interface BlockTransform {
     type: string;
@@ -75,7 +78,8 @@ interface TransformsModule {
 }
 
 // Wrappers (query-no-results, query-pagination) return InnerBlocks.Content
-// — a React element. Leaves (the three pagination leaves + query-title)
+// — a React element. Leaves (the three pagination leaves, query-title
+// and query-total)
 // are dynamic blocks whose save returns null.
 const QUERY_FAMILY = [
     {
@@ -120,6 +124,13 @@ const QUERY_FAMILY = [
         save: queryTitleSave,
         savesNull: true,
     },
+    {
+        slug: 'query-total',
+        meta: queryTotalMeta,
+        transforms: queryTotalTransforms,
+        save: queryTotalSave,
+        savesNull: true,
+    },
 ] as const;
 
 describe('query family block.json', () => {
@@ -136,6 +147,14 @@ describe('query family block.json', () => {
         expect((queryNoResultsMeta as { ancestor?: string[] }).ancestor).toContain(
             'artisanpack/query'
         );
+    });
+
+    it('query-total is ancestor-locked to artisanpack/query and defaults to the total (#962)', () => {
+        expect((queryTotalMeta as { ancestor?: string[] }).ancestor).toContain('artisanpack/query');
+        expect(queryTotalMeta.attributes.displayType.default).toBe('total-results');
+        expect(queryTotalMeta.attributes.displayType.enum).toEqual(['total-results', 'range-display']);
+        expect(queryTotalMeta.attributes.singular.default).toBe('result');
+        expect(queryTotalMeta.attributes.plural.default).toBe('results');
     });
 
     it('query-pagination is ancestor-locked to artisanpack/query', () => {

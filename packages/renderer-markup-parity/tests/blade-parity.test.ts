@@ -49,6 +49,19 @@ interface Fixture {
      * (`markupParitySeedDuotonePresets()`).
      */
     duotonePresets?: DuotonePresets;
+    /**
+     * `false` when the tree is already expanded the way `QueryInliner`
+     * leaves it. Only the Pest suite reads it (`:resolve-queries`); the
+     * JS renderers take the tree as given.
+     */
+    resolveQueries?: boolean;
+    /**
+     * Optional URL of the page being viewed (#975), handed to
+     * `BlockTree`'s `currentUrl` prop. The Pest suite serves the fixture
+     * as a request for it (and, without one, for a path no fixture links
+     * to).
+     */
+    currentUrl?: string;
 }
 
 /**
@@ -260,16 +273,16 @@ function canonicalOutput(html: string, name: string): string {
         : `${canonicalMarkup}\n${CSS_SECTION_DELIMITER}\n${canonicalCss}`;
 }
 
-function renderReact({ name, tree, templateParts, duotonePresets }: Fixture): string {
+function renderReact({ name, tree, templateParts, duotonePresets, currentUrl }: Fixture): string {
     return canonicalOutput(
-        renderToStaticMarkup(createElement(ReactBlockTree, { tree, templateParts, duotonePresets })),
+        renderToStaticMarkup(createElement(ReactBlockTree, { tree, templateParts, duotonePresets, currentUrl })),
         name
     );
 }
 
-async function renderVue({ name, tree, templateParts, duotonePresets }: Fixture): Promise<string> {
+async function renderVue({ name, tree, templateParts, duotonePresets, currentUrl }: Fixture): Promise<string> {
     const app = createSSRApp({
-        render: () => vueH(VueBlockTree, { tree, templateParts, duotonePresets }),
+        render: () => vueH(VueBlockTree, { tree, templateParts, duotonePresets, currentUrl }),
     });
 
     return canonicalOutput(await vueRenderToString(app), name);

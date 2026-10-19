@@ -33,6 +33,7 @@ use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\LoginoutResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\SiteMetaResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Responsive\ResponsiveClassResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\BlockTreeReferenceResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\BoxShadowCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\DuotoneCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ElementsCssAccumulator;
@@ -146,6 +147,12 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 		$this->app->scoped( NavigationOverlayTracker::class, function () {
 			return new NavigationOverlayTracker();
 		} );
+
+		// Scoped so the theme recorded for the render in progress never
+		// outlives the request (Octane / queue). Shares the template-part,
+		// pattern and navigation passes between the components and the
+		// navigation overlay partial (#973).
+		$this->app->scoped( BlockTreeReferenceResolver::class );
 
 		// #487 — server-side responsive class / @media emitter. Scoped
 		// to match the lifetime of the registry it depends on.

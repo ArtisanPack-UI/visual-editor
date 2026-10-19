@@ -4,7 +4,8 @@
  * `POST /visual-editor/api/query/resolve` controller.
  *
  * Wraps {@see QueryResolverContract::resolve()} for the editor canvas
- * preview and the React/Vue front-end renderers' client-side fetcher.
+ * preview. The route requires the `visual-editor.edit-content` gate
+ * (`EnsureContentEditorAccess`); front-end renderers don't call it.
  * Returns paginated WP-shape results (the same envelope the G3 entity
  * adapters use under `data` + `meta` keys) so the same response shape
  * powers `useEntityRecord`-style consumers.

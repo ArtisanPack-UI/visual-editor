@@ -8,6 +8,8 @@
 	$rel        = isset( $attributes['rel'] ) && is_string( $attributes['rel'] ) ? $attributes['rel'] : '';
 	$aspect     = isset( $attributes['aspectRatio'] ) && is_string( $attributes['aspectRatio'] ) ? $attributes['aspectRatio'] : '';
 	$scale      = isset( $attributes['scale'] ) && is_string( $attributes['scale'] ) ? $attributes['scale'] : '';
+	$frameWidth  = isset( $attributes['width'] ) && is_string( $attributes['width'] ) ? ( BlockSupports::safeCssValue( $attributes['width'] ) ?? '' ) : '';
+	$frameHeight = isset( $attributes['height'] ) && is_string( $attributes['height'] ) ? ( BlockSupports::safeCssValue( $attributes['height'] ) ?? '' ) : '';
 	$sizeSlug   = isset( $attributes['sizeSlug'] ) && is_string( $attributes['sizeSlug'] ) ? $attributes['sizeSlug'] : '';
 
 	$imageUrl  = UrlSanitizer::safe( isset( $attributes['_resolvedImageUrl'] ) && is_string( $attributes['_resolvedImageUrl'] ) ? $attributes['_resolvedImageUrl'] : '' );
@@ -30,14 +32,36 @@
 		$baseClasses[] = $duotoneClass;
 	}
 
+	// #948 — as core's render: `height` sizes the figure and the image,
+	// `width` the figure, and a fixed frame (aspect ratio or height) crops
+	// with `scale`, whose block.json default `cover` the editor never
+	// saves — so an unsaved scale still covers instead of stretching.
+	// A post without an image keeps its empty figure unsized, so a query
+	// loop doesn't leave an image-sized gap where there's nothing to show.
+	$figureStyles = [];
+
+	if ( '' !== $imageUrl && '' !== $frameWidth ) {
+		$figureStyles[] = 'width:' . $frameWidth;
+	}
+
+	if ( '' !== $imageUrl && '' !== $frameHeight ) {
+		$figureStyles[] = 'height:' . $frameHeight;
+	}
+
 	$styleParts = [];
 
 	if ( '' !== $aspect ) {
 		$styleParts[] = 'aspect-ratio:' . $aspect;
 	}
 
+	if ( '' !== $frameHeight ) {
+		$styleParts[] = 'height:' . $frameHeight;
+	}
+
 	if ( '' !== $scale ) {
 		$styleParts[] = 'object-fit:' . $scale;
+	} elseif ( '' !== $aspect || '' !== $frameHeight ) {
+		$styleParts[] = 'object-fit:cover';
 	}
 
 	$imgStyle = '' !== implode( '', $styleParts ) ? sprintf( ' style="%s"', e( implode( ';', $styleParts ) ) ) : '';
@@ -54,7 +78,7 @@
 
 	$imgAttrs .= $imgStyle;
 @endphp
-<figure{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}>
+<figure{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses, $figureStyles ) !!}>
 	@if ( '' !== $imageUrl )
 		@if ( $isLink && '' !== $permalink )
 			@php

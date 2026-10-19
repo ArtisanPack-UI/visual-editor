@@ -22,7 +22,10 @@ export interface SocialIconDefinition {
 // Brand glyphs sourced from Simple Icons (https://simpleicons.org,
 // CC0 1.0). 24×24 viewBox so they slot into the existing chip SVG
 // markup without per-renderer tweaks. Email + Website are generic UI
-// glyphs hand-drawn to match — Simple Icons is brands-only.
+// glyphs hand-drawn to match — Simple Icons is brands-only. LinkedIn
+// (`linkedin-in`) and Copy link (`link`) come from Font Awesome Free
+// 7.2.0 (CC BY 4.0, see NOTICE.md), scaled and centred into the same
+// 24×24 viewBox (#963).
 const AUTHOR_PLATFORMS: ReadonlyArray<SocialIconDefinition> = [
     {
         slug: 'facebook',
@@ -64,6 +67,11 @@ const AUTHOR_PLATFORMS: ReadonlyArray<SocialIconDefinition> = [
 const SHARE_PLATFORMS: ReadonlyArray<SocialIconDefinition> = [
     AUTHOR_PLATFORMS[0], // facebook
     AUTHOR_PLATFORMS[1], // twitter / X
+    {
+        slug: 'linkedin',
+        label: 'LinkedIn',
+        path: 'M6.202 21l-4.355 0 0-14.02 4.355 0 0 14.02zM4.022 5.067C2.63 5.067 1.5 3.914 1.5 2.522 1.5 1.852 1.767 1.214 2.241 .741s1.116-.741 1.781-.741 1.308 .267 1.781 .741 .741 1.116 .741 1.781c0 1.392-1.13 2.545-2.522 2.545zM22.495 21l-4.345 0 0-6.825c0-1.627-.033-3.713-2.264-3.713-2.264 0-2.611 1.767-2.611 3.595l0 6.942-4.35 0 0-14.02 4.177 0 0 1.912 .061 0c.581-1.102 2.002-2.264 4.12-2.264 4.406 0 5.217 2.902 5.217 6.67l0 7.702-.005 0z',
+    },
     AUTHOR_PLATFORMS[2], // mastodon
     {
         slug: 'reddit',
@@ -76,6 +84,12 @@ const SHARE_PLATFORMS: ReadonlyArray<SocialIconDefinition> = [
         path: 'M12 0a12 12 0 0 0-4.373 23.178c-.105-.985-.2-2.499.041-3.574.218-.97 1.41-6.182 1.41-6.182s-.359-.722-.359-1.787c0-1.677.973-2.928 2.182-2.928 1.029 0 1.526.773 1.526 1.7 0 1.034-.66 2.583-1 4.018-.285 1.197.6 2.174 1.785 2.174 2.143 0 3.789-2.26 3.789-5.522 0-2.886-2.074-4.905-5.035-4.905-3.43 0-5.444 2.572-5.444 5.232 0 1.036.4 2.146.898 2.751.099.12.114.224.085.346-.09.371-.288 1.176-.327 1.341-.052.215-.172.261-.397.157-1.48-.69-2.404-2.851-2.404-4.587 0-3.732 2.71-7.156 7.815-7.156 4.106 0 7.296 2.927 7.296 6.836 0 4.078-2.572 7.358-6.142 7.358-1.198 0-2.324-.622-2.708-1.357l-.737 2.809c-.267 1.027-.989 2.314-1.474 3.097A12 12 0 1 0 12 0Z',
     },
     AUTHOR_PLATFORMS[5], // email
+    // Copy-to-clipboard chip rather than a share target (#963).
+    {
+        slug: 'copyLink',
+        label: 'Copy link',
+        path: 'M17.479 5.333c-.692 0-1.362 .188-1.95 .529-.658-.667-1.425-1.225-2.271-1.646 1.175-1 2.671-1.55 4.221-1.55 3.6 0 6.521 2.917 6.521 6.521 0 1.729-.687 3.387-1.908 4.608l-2.962 2.962c-1.221 1.221-2.879 1.908-4.608 1.908-3.6 0-6.521-2.917-6.521-6.521 0-.062 0-.125 .004-.187 .021-.737 .633-1.317 1.371-1.296s1.317 .633 1.296 1.371c0 .038 0 .075 0 .108 0 2.129 1.725 3.854 3.854 3.854 1.021 0 2-.404 2.725-1.129l2.962-2.962c.721-.721 1.129-1.704 1.129-2.725 0-2.129-1.725-3.854-3.854-3.854zM11.467 8.554c-.079-.033-.158-.079-.229-.129-.525-.271-1.125-.425-1.754-.425-1.021 0-2 .404-2.725 1.129L3.796 12.092c-.721 .721-1.129 1.704-1.129 2.725 0 2.129 1.725 3.854 3.854 3.854 .688 0 1.358-.183 1.946-.525 .658 .667 1.425 1.225 2.275 1.646-1.175 .996-2.667 1.55-4.221 1.55-3.6 0-6.521-2.917-6.521-6.521 0-1.729 .688-3.387 1.908-4.608l2.962-2.962c1.221-1.221 2.879-1.908 4.608-1.908 3.608 0 6.521 2.942 6.521 6.538 0 .054 0 .108 0 .162-.017 .737-.629 1.317-1.367 1.3s-1.317-.629-1.3-1.367c0-.033 0-.062 0-.096 0-1.404-.75-2.637-1.867-3.317z',
+    },
 ];
 
 export const AUTHOR_SOCIAL_PLATFORM_SLUGS = AUTHOR_PLATFORMS.map(
@@ -117,9 +131,10 @@ export function shareSocialPlatforms(): ReadonlyArray<SocialIconDefinition> {
 /**
  * Editor-facing label for a platform chip.
  *
- * Brand names stay as-is; the generic Email and Website entries are
- * translated here at render time (the `label` field above stays a
- * literal so module evaluation never runs before locale data loads).
+ * Brand names stay as-is; the generic Email, Website and Copy link
+ * entries are translated here at render time (the `label` field above
+ * stays a literal so module evaluation never runs before locale data
+ * loads).
  */
 export function socialIconLabel(platform: SocialIconDefinition): string {
     switch (platform.slug) {
@@ -127,6 +142,8 @@ export function socialIconLabel(platform: SocialIconDefinition): string {
             return __('Email', TEXT_DOMAIN);
         case 'website':
             return __('Website', TEXT_DOMAIN);
+        case 'copyLink':
+            return __('Copy link', TEXT_DOMAIN);
         default:
             return platform.label;
     }

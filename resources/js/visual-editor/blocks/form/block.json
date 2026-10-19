@@ -16,6 +16,14 @@
         "formId": {
             "type": "number",
             "default": 0
+        },
+        "layout": {
+            "type": "string",
+            "enum": [
+                "stacked",
+                "inline"
+            ],
+            "default": "stacked"
         }
     },
     "supports": {

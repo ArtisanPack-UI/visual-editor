@@ -1,0 +1,66 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/query-total",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/query-total",
+        "pinnedVersion": "9.43.0",
+        "subpath": "query-total"
+    },
+    "forkedAt": "2026-10-18",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        {
+            "fork": "block.json",
+            "upstream": "block.json",
+            "status": "extended",
+            "notes": "name, ancestor and textdomain swapped to the artisanpack namespace; adds prefix / singular / plural / suffix attributes, an enum on displayType, the artisanpack/queryPreview context, and the position + animation supports the query family carries. style handle dropped."
+        },
+        {
+            "fork": "edit.tsx",
+            "upstream": "edit.js",
+            "status": "rewritten",
+            "notes": "Upstream previews a hard-coded '12 results found' / 'Displaying 1 – 10 of 12'. The fork previews the surrounding query's resolved count from artisanpack/queryPreview (sample 25 results, 9 per page, before it settles) and adds text controls for the prefix, nouns and suffix."
+        },
+        {
+            "fork": "save.tsx",
+            "upstream": "n/a (dynamic block)",
+            "status": "added",
+            "notes": "Dynamic block — `save` returns null; markup produced server-side from the `_resolvedTotal` page snapshot stamped by QueryInliner."
+        },
+        {
+            "fork": "transforms.ts",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Bidirectional core/query-total ↔ artisanpack/query-total transforms, matching the rest of the query family."
+        },
+        {
+            "fork": "inserter-icon.tsx",
+            "upstream": "icons.js",
+            "status": "rewritten",
+            "notes": "Single inline SVG instead of upstream's per-display-type icon set."
+        },
+        {
+            "fork": "index.ts",
+            "upstream": "index.js",
+            "status": "rewritten",
+            "notes": "Adapted to the visual-editor auto-discovery contract."
+        }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "Output wraps the number(s) in <strong> and reads '{prefix}<strong>25</strong> results{suffix}' / '{prefix}<strong>1–9</strong> of <strong>25</strong> results{suffix}' instead of upstream's fixed '25 results found' / 'Displaying 1 – 9 of 25', so themes can emphasise and relabel the count.",
+        "The count comes from QueryInliner's paginator snapshot rather than a second WP_Query; inherit loops use whatever paginator the host resolver returns."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-10-18",
+        "reviewer": "Query Total block (#962)"
+    }
+}
