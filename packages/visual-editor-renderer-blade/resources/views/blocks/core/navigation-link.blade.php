@@ -1,5 +1,6 @@
 @php
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\NavigationCurrentState;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\UrlSanitizer;
 
 	$label      = isset( $attributes['label'] ) && is_string( $attributes['label'] ) ? $attributes['label'] : '';
@@ -20,7 +21,21 @@
 	if ( '' !== $title ) {
 		$linkAttrs .= sprintf( ' title="%s"', e( $title ) );
 	}
+
+	// #975 — WordPress parity: the link for the page being viewed gets
+	// `current-menu-item` + `aria-current="page"`; a link to one of its
+	// parent paths gets `current-menu-ancestor` only.
+	$currentState   = NavigationCurrentState::match( $url, NavigationCurrentState::requestUrl() );
+	$currentClasses = match ( $currentState ) {
+		NavigationCurrentState::CURRENT  => [ 'current-menu-item' ],
+		NavigationCurrentState::ANCESTOR => [ 'current-menu-ancestor' ],
+		default                          => [],
+	};
+
+	if ( NavigationCurrentState::CURRENT === $currentState ) {
+		$linkAttrs .= ' aria-current="page"';
+	}
 @endphp
-<li{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-navigation-item', 'wp-block-navigation-link' ] ) !!}>
+<li{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-navigation-item', 'wp-block-navigation-link', ...$currentClasses ] ) !!}>
 	<a class="wp-block-navigation-item__content"{!! $linkAttrs !!}><span class="wp-block-navigation-item__label">{{ $label }}</span>@if ( '' !== $description )<span class="wp-block-navigation-item__description">{{ $description }}</span>@endif</a>
 </li>

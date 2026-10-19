@@ -43,6 +43,10 @@
  * the attribute lands regardless of which of the two filters was added
  * first.
  *
+ * `core/navigation` also gains a `collapseBreakpoint` attribute (#977,
+ * `navigation-collapse-breakpoint.ts`), installed the same way before
+ * the block registers.
+ *
  * The forked-block inserter-suppression filter is installed FIRST so
  * that any block in this family which the cutover treats as forked
  * (currently none — nav's family is not on the forked list) still
@@ -62,6 +66,7 @@ import { getBlockType } from '@wordpress/blocks';
 import { addFilter, hasFilter } from '@wordpress/hooks';
 
 import { registerForkedBlockCutoverFilter } from './forked-block-cutover';
+import { registerNavigationCollapseBreakpointAttribute } from './navigation-collapse-breakpoint';
 
 /**
  * Upstream blocks registered here that opt into ArtisanPack block
@@ -159,6 +164,9 @@ export function registerForkedCoreBlocks(): void {
     // but other forks may register through the same boot path).
     registerForkedBlockCutoverFilter();
     registerForkedCoreAnimationsSupportFilter();
+    // #977 — `core/navigation`'s `collapseBreakpoint` attribute must be
+    // on the schema before the block registers.
+    registerNavigationCollapseBreakpointAttribute();
 
     for (const [name, init] of FORKED_CORE_INITS) {
         if (!getBlockType(name)) {

@@ -463,3 +463,24 @@ it( 'still applies the whole-content filter exactly once around a nested overlay
 		->and( substr_count( $html, '<!-- filtered -->' ) )->toBe( 1 )
 		->and( $html )->toContain( 'Overlay body' );
 } );
+
+// #984 ----------------------------------------------------------------
+
+it( 'scopes the overlay swap to the drawer content’s direct children, so a menu inside the overlay part stays visible (#984)', function (): void {
+	$tree = [
+		[
+			'clientId'    => 'nav-1',
+			'name'        => 'core/navigation',
+			'attributes'  => [],
+			'innerBlocks' => [],
+		],
+	];
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+	expect( $rendered )
+		->toContain( '.has-overlay-template > .wp-block-navigation__container{display:none;}' )
+		->and( $rendered )->toContain( '.has-overlay-template > .wp-block-navigation__overlay-content{display:none;}' )
+		->and( $rendered )->toContain( '.has-overlay-template > .wp-block-navigation__overlay-content{display:block;}' )
+		->and( $rendered )->not->toContain( '.has-overlay-template .wp-block-navigation__container' );
+} );

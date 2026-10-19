@@ -82,6 +82,54 @@ describe('rangeMediaQuery', () => {
         expect(rangeMediaQuery({ minWidthPx: 768, maxWidthPx: 1023 }))
             .toBe('(min-width:768px) and (max-width:1023px)');
         expect(rangeMediaQuery({ minWidthPx: 1536, maxWidthPx: null })).toBe('(min-width:1536px)');
+        expect(rangeMediaQuery({ minWidthPx: 0, maxWidthPx: 767 })).toBe('(max-width:767px)');
+    });
+});
+
+describe('device keys (#974)', () => {
+    const WITH_DEVICES = [
+        ...BREAKPOINTS,
+        { key: 'tablet', maxWidthPx: 1023 },
+        { key: 'mobile', maxWidthPx: 767 },
+    ];
+
+    it('hides mobile at max-width 767px', () => {
+        const ranges = screenSizeHiddenRanges({ direction: 'hide', breakpoints: ['mobile'] }, WITH_DEVICES);
+
+        expect(ranges).toEqual([{ minWidthPx: 0, maxWidthPx: 767 }]);
+        expect(rangeMediaQuery(ranges[0])).toBe('(max-width:767px)');
+    });
+
+    it('hides tablet at max-width 1023px', () => {
+        const ranges = screenSizeHiddenRanges({ direction: 'hide', breakpoints: ['tablet'] }, WITH_DEVICES);
+
+        expect(ranges).toEqual([{ minWidthPx: 0, maxWidthPx: 1023 }]);
+        expect(rangeMediaQuery(ranges[0])).toBe('(max-width:1023px)');
+    });
+
+    it('combines device keys with legacy ranges', () => {
+        expect(screenSizeHiddenRanges({ direction: 'hide', breakpoints: ['mobile', 'xl'] }, WITH_DEVICES))
+            .toEqual([{ minWidthPx: 1280, maxWidthPx: 1535 }, { minWidthPx: 0, maxWidthPx: 767 }]);
+    });
+
+    it('keeps legacy-only show unchanged', () => {
+        expect(screenSizeHiddenKeys({ direction: 'show', breakpoints: ['sm'] }, WITH_DEVICES))
+            .toEqual(['md', 'lg', 'xl', '2xl']);
+    });
+
+    it('shows only on mobile by hiding from 768px up', () => {
+        expect(screenSizeHiddenKeys({ direction: 'show', breakpoints: ['mobile'] }, WITH_DEVICES))
+            .toEqual(['md', 'lg', 'xl', '2xl']);
+    });
+
+    it('shows only up to tablet by hiding from 1024px up', () => {
+        expect(screenSizeHiddenKeys({ direction: 'show', breakpoints: ['tablet'] }, WITH_DEVICES))
+            .toEqual(['lg', 'xl', '2xl']);
+    });
+
+    it('shows on mobile plus a listed legacy range', () => {
+        expect(screenSizeHiddenKeys({ direction: 'show', breakpoints: ['mobile', 'xl'] }, WITH_DEVICES))
+            .toEqual(['md', 'lg', '2xl']);
     });
 });
 

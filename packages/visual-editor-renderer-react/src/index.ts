@@ -84,6 +84,8 @@ export type {
     DeviceBreakpointDefinition,
 } from './visibility';
 export { DUOTONE_TARGETS, compileDuotone, stampDuotoneScopes } from './support/duotone';
+export { matchNavigationUrl, stampNavigationCurrent } from './support/navigationCurrent';
+export type { NavigationCurrentState } from './support/navigationCurrent';
 export type { CompiledDuotone, DuotonePreset, DuotonePresets } from './support/duotone';
 export { applyBackground } from './support/background';
 export type { BackgroundStyle } from './support/background';

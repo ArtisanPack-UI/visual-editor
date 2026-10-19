@@ -17,11 +17,56 @@ import { blockRendererProps } from '../shared';
 const IMAGE_SCALES = ['cover', 'contain', 'fill', 'none', 'scale-down'];
 
 /**
+ * Unitless numeric string — a legacy image dimension (#985).
+ */
+const LEGACY_DIMENSION = /^\d+(\.\d+)?$/;
+
+/**
+ * The CSS lengths (plus `auto`) an image `width` / `height` may carry (#985).
+ */
+const CSS_DIMENSION =
+    /^(auto|(\d+(\.\d+)?|\.\d+)(px|em|rem|%|vw|vh|vmin|vmax|svw|svh|lvw|lvh|dvw|dvh|ch|ex|cm|mm|in|pt|pc))$/;
+
+/**
+ * Resolve an image `width` / `height` attribute (#985), mirroring
+ * `image.blade.php`: a legacy numeric value (a number or a unitless
+ * numeric string) keeps the integer HTML attribute and nothing else; a
+ * CSS length or `auto` becomes an inline style, plus the HTML attribute
+ * for a whole-px value; anything else is dropped.
+ */
+function imageDimension(value: unknown): { attr?: number; style?: string } {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return { attr: Math.trunc(value) };
+    }
+
+    if (typeof value !== 'string') {
+        return {};
+    }
+
+    if (LEGACY_DIMENSION.test(value)) {
+        return { attr: Number.parseInt(value, 10) };
+    }
+
+    if (!CSS_DIMENSION.test(value)) {
+        return {};
+    }
+
+    const px = /^(\d+)px$/.exec(value);
+
+    return px === null ? { style: value } : { attr: Number.parseInt(px[1], 10), style: value };
+}
+
+/**
  * The `<img>` style for the image block's `aspectRatio` + `scale`
  * attributes (#873), mirroring `image.blade.php`: the ratio must pass
- * `safeCssValue`, the scale must be a known object-fit keyword.
+ * `safeCssValue`, the scale must be a known object-fit keyword. The
+ * resolved width / height (#985) follow, in the editor `save()` order.
  */
-function imageStyle(attributes: Record<string, unknown>): Record<string, string> | undefined {
+function imageStyle(
+    attributes: Record<string, unknown>,
+    width: string | undefined,
+    height: string | undefined,
+): Record<string, string> | undefined {
     const style: Record<string, string> = {};
     const aspectRatio =
         typeof attributes.aspectRatio === 'string' ? safeCssValue(attributes.aspectRatio) : null;
@@ -33,6 +78,14 @@ function imageStyle(attributes: Record<string, unknown>): Record<string, string>
 
     if (typeof scale === 'string' && IMAGE_SCALES.includes(scale)) {
         style.objectFit = scale;
+    }
+
+    if (width !== undefined) {
+        style.width = width;
+    }
+
+    if (height !== undefined) {
+        style.height = height;
     }
 
     return Object.keys(style).length > 0 ? style : undefined;
@@ -48,22 +101,19 @@ export const ImageBlock = defineComponent({
             const caption = attrString(props.attributes.caption);
             const href = safeUrl(props.attributes.href);
             const id = attrInt(props.attributes.id);
-            const hasDimension = (key: 'width' | 'height'): boolean =>
-                props.attributes[key] !== undefined &&
-                props.attributes[key] !== null &&
-                props.attributes[key] !== '';
-            const width = hasDimension('width') ? attrInt(props.attributes.width) : undefined;
-            const height = hasDimension('height') ? attrInt(props.attributes.height) : undefined;
+            const width = imageDimension(props.attributes.width);
+            const height = imageDimension(props.attributes.height);
 
             const align = attrString(props.attributes.align);
             const sizeSlug = attrString(props.attributes.sizeSlug);
             const className = attrString(props.attributes.className);
 
-            // Blade order: base, size, duotone scope (stamped by
+            // Blade order: base, size, is-resized (#985), duotone scope (stamped by
             // `stampDuotoneScopes()`), then the supports' align and className.
             const figureClasses = classList([
                 'wp-block-image',
                 sizeSlug !== '' ? `size-${sizeSlug}` : null,
+                width.style !== undefined || height.style !== undefined ? 'is-resized' : null,
                 attrString(props.attributes._veDuotone) || null,
                 align !== '' ? `align${align}` : null,
                 className,
@@ -75,15 +125,15 @@ export const ImageBlock = defineComponent({
                 imgProps.class = `wp-image-${id}`;
             }
 
-            if (width !== undefined) {
-                imgProps.width = width;
+            if (width.attr !== undefined) {
+                imgProps.width = width.attr;
             }
 
-            if (height !== undefined) {
-                imgProps.height = height;
+            if (height.attr !== undefined) {
+                imgProps.height = height.attr;
             }
 
-            const style = imageStyle(props.attributes);
+            const style = imageStyle(props.attributes, width.style, height.style);
 
             if (style !== undefined) {
                 imgProps.style = style;

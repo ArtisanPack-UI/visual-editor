@@ -19,28 +19,52 @@ import { __ } from '@wordpress/i18n';
 import { isVisibilityActive, type ScreenSizeRuleAttrs, type VisibilityAttribute } from './types';
 
 /**
- * A legacy mobile-first breakpoint — the only kind screen-size
- * visibility builds its ranges from.
+ * A breakpoint screen-size visibility can reference: a legacy
+ * mobile-first entry (`minWidthPx`, a width range up to the next
+ * one) or a desktop-first device entry (`maxWidthPx`, everything at
+ * or below it — #974). Exactly one width is set.
  */
 export interface MinWidthBreakpoint {
     key: string;
-    minWidthPx: number;
+    minWidthPx?: number;
+    maxWidthPx?: number;
 }
 
 /**
  * An inclusive width range the block is hidden in. `maxWidthPx` is
- * `null` for the widest breakpoint, which has no upper bound.
+ * `null` for the widest breakpoint, which has no upper bound;
+ * `minWidthPx` is `0` for a device key, which has no lower bound.
  */
 export interface HiddenWidthRange {
     minWidthPx: number;
     maxWidthPx: number | null;
 }
 
+function legacyBreakpoints(breakpoints: readonly MinWidthBreakpoint[]): Array<{ key: string; minWidthPx: number }> {
+    return breakpoints.flatMap((bp) =>
+        typeof bp.minWidthPx === 'number' && Number.isInteger(bp.minWidthPx) && bp.minWidthPx > 0
+            ? [{ key: bp.key, minWidthPx: bp.minWidthPx }]
+            : [],
+    );
+}
+
+function deviceBreakpoints(breakpoints: readonly MinWidthBreakpoint[]): Array<{ key: string; maxWidthPx: number }> {
+    return breakpoints.flatMap((bp) =>
+        typeof bp.minWidthPx !== 'number'
+        && typeof bp.maxWidthPx === 'number'
+        && Number.isInteger(bp.maxWidthPx)
+        && bp.maxWidthPx > 0
+            ? [{ key: bp.key, maxWidthPx: bp.maxWidthPx }]
+            : [],
+    );
+}
+
 /**
  * Breakpoint keys the screen-size rule hides the block at. Mirrors
  * `ScreenSizeRule::evaluate()`: a missing direction means `hide`,
- * `show` hides every known breakpoint that isn't listed, and unknown
- * keys are ignored.
+ * unknown keys are ignored, and `show` hides every unlisted legacy
+ * range that starts above the widest listed device key (so
+ * `show: ['mobile']` hides from 768px up).
  */
 export function screenSizeHiddenKeys(
     rule: ScreenSizeRuleAttrs | null | undefined,
@@ -54,18 +78,28 @@ export function screenSizeHiddenKeys(
         return [];
     }
 
-    const known     = breakpoints.map((bp) => bp.key);
+    const legacy    = legacyBreakpoints(breakpoints);
+    const devices   = deviceBreakpoints(breakpoints);
     const direction = (rule?.direction ?? 'hide') === 'hide' ? 'hide' : 'show';
 
-    return direction === 'hide'
-        ? known.filter((key) => configured.includes(key))
-        : known.filter((key) => !configured.includes(key));
+    if (direction === 'hide') {
+        return [...legacy, ...devices].map((bp) => bp.key).filter((key) => configured.includes(key));
+    }
+
+    const deviceCeiling = devices
+        .filter((bp) => configured.includes(bp.key))
+        .reduce((ceiling, bp) => Math.max(ceiling, bp.maxWidthPx), 0);
+
+    return legacy
+        .filter((bp) => !configured.includes(bp.key) && bp.minWidthPx > deviceCeiling)
+        .map((bp) => bp.key);
 }
 
 /**
  * Width ranges the screen-size rule hides the block in. Mirrors
- * `BlockRenderer::wrapWithScreenSizeCss()`: each hidden breakpoint
- * spans from its min-width to one pixel below the next breakpoint's.
+ * `BlockRenderer::wrapWithScreenSizeCss()`: each hidden legacy
+ * breakpoint spans from its min-width to one pixel below the next
+ * breakpoint's, and each hidden device key spans 0 to its max-width.
  */
 export function screenSizeHiddenRanges(
     rule: ScreenSizeRuleAttrs | null | undefined,
@@ -77,14 +111,22 @@ export function screenSizeHiddenRanges(
         return [];
     }
 
-    const ordered = [...breakpoints].sort((a, b) => a.minWidthPx - b.minWidthPx);
+    const ordered = legacyBreakpoints(breakpoints).sort((a, b) => a.minWidthPx - b.minWidthPx);
+    const devices = deviceBreakpoints(breakpoints);
     const ranges: HiddenWidthRange[] = [];
 
     for (const key of hidden) {
+        const device = devices.find((bp) => bp.key === key);
+
+        if (device !== undefined) {
+            ranges.push({ minWidthPx: 0, maxWidthPx: device.maxWidthPx });
+            continue;
+        }
+
         const position = ordered.findIndex((bp) => bp.key === key);
         const min      = ordered[position]?.minWidthPx;
 
-        if (!Number.isInteger(min) || min <= 0) {
+        if (min === undefined) {
             continue;
         }
 
@@ -92,7 +134,7 @@ export function screenSizeHiddenRanges(
 
         ranges.push({
             minWidthPx: min,
-            maxWidthPx: Number.isInteger(nextMin) && nextMin > min ? nextMin - 1 : null,
+            maxWidthPx: nextMin !== undefined && nextMin > min ? nextMin - 1 : null,
         });
     }
 
@@ -103,8 +145,12 @@ export function screenSizeHiddenRanges(
  * `@media` condition for a hidden range, in the front end's format.
  */
 export function rangeMediaQuery(range: HiddenWidthRange): string {
-    return range.maxWidthPx === null
-        ? `(min-width:${range.minWidthPx}px)`
+    if (range.maxWidthPx === null) {
+        return `(min-width:${range.minWidthPx}px)`;
+    }
+
+    return range.minWidthPx <= 0
+        ? `(max-width:${range.maxWidthPx}px)`
         : `(min-width:${range.minWidthPx}px) and (max-width:${range.maxWidthPx}px)`;
 }
 

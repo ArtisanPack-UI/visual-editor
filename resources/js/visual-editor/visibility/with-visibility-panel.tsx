@@ -21,7 +21,7 @@ import type { ComponentType } from 'react';
 
 import { VisibilityPanel } from './VisibilityPanel';
 import { searchUsers } from './user-search';
-import type { VisibilityAttribute } from './types';
+import type { VisibilityAttribute, VisibilityBreakpointOption } from './types';
 
 const FILTER_HOOK      = 'editor.BlockEdit';
 const FILTER_NAMESPACE = 'artisanpack-ui/visual-editor/visibility-panel';
@@ -33,19 +33,20 @@ const REGISTERED_KEY = Symbol.for(
 interface GlobalSentinelHost {
     [REGISTERED_KEY]?: boolean;
     __artisanpackVisibilityRoles?: Array<{ slug: string; label: string }>;
-    __artisanpackVisibilityBreakpoints?: Array<{ key: string; label: string }>;
+    __artisanpackVisibilityBreakpoints?: VisibilityBreakpointOption[];
 }
 
 /**
  * Called by the editor bootstrap once the responsive `BreakpointRegistry`
  * has been hydrated from the server snapshot. Publishing the full list
- * of registered breakpoints into a global lets the panel render every
- * viewport option (sm / md / lg / xl / 2xl, plus any host overrides)
- * instead of falling back to the compact three-option default.
+ * of registered breakpoints (with their widths) into a global lets the
+ * panel group the device keys, the Desktop shortcut and any legacy
+ * ranges against the host's actual widths.
  *
  * @since 1.4.0
+ * @since 1.15.2 Options carry `minWidthPx` / `maxWidthPx` (#974).
  */
-export function setVisibilityBreakpoints(next: Array<{ key: string; label: string }>): void {
+export function setVisibilityBreakpoints(next: VisibilityBreakpointOption[]): void {
     const host = globalThis as unknown as GlobalSentinelHost;
     host.__artisanpackVisibilityBreakpoints = next.filter((bp) => typeof bp.key === 'string' && bp.key !== '');
 }
@@ -93,18 +94,19 @@ function readRoles(): Array<{ slug: string; label: string }> {
     return host.__artisanpackVisibilityRoles ?? [];
 }
 
-function readBreakpoints(): Array<{ key: string; label: string }> {
+function readBreakpoints(): VisibilityBreakpointOption[] {
     const host = globalThis as unknown as GlobalSentinelHost;
-    // Fallback covers the full Tailwind v4 default set — the previous
-    // three-entry fallback left xl / 2xl viewports uncovered, so a
-    // user checking every visible option still saw the block render
-    // on desktops ≥ 1280px.
+    // Fallback mirrors the package's default registry: the device keys
+    // the panel offers as Mobile / Tablet (#974) plus the legacy
+    // min-width keys, so saved content using them still shows checked.
     return host.__artisanpackVisibilityBreakpoints ?? [
-        { key: 'sm',  label: __('Small (≥640px)', 'artisanpack-visual-editor') },
-        { key: 'md',  label: __('Medium (≥768px)', 'artisanpack-visual-editor') },
-        { key: 'lg',  label: __('Large (≥1024px)', 'artisanpack-visual-editor') },
-        { key: 'xl',  label: __('X-Large (≥1280px)', 'artisanpack-visual-editor') },
-        { key: '2xl', label: __('2X-Large (≥1536px)', 'artisanpack-visual-editor') },
+        { key: 'tablet', label: __('Tablet', 'artisanpack-visual-editor'), maxWidthPx: 1023 },
+        { key: 'mobile', label: __('Mobile', 'artisanpack-visual-editor'), maxWidthPx: 767 },
+        { key: 'sm',  label: 'sm',  minWidthPx: 640 },
+        { key: 'md',  label: 'md',  minWidthPx: 768 },
+        { key: 'lg',  label: 'lg',  minWidthPx: 1024 },
+        { key: 'xl',  label: 'xl',  minWidthPx: 1280 },
+        { key: '2xl', label: '2xl', minWidthPx: 1536 },
     ];
 }
 
