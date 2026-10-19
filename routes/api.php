@@ -126,10 +126,13 @@ Route::delete( 'snippets/{snippet}', [ SnippetController::class, 'destroy' ] )
 
 // G4c-2 — `core/query` block resolution. Wraps cms-framework's
 // `QueryRuntime` (or any host-bound `QueryResolverContract`
-// implementation) and returns paginated WP-shape results so the editor
-// canvas + the React/Vue front-end renderers can consume the same
-// envelope.
+// implementation) and returns paginated WP-shape results in the same
+// envelope the entity adapters use. Only the editor canvas calls it
+// (the front-end renderers read results `QueryInliner` stamps on the
+// block server-side), so it's gated on the `visual-editor.edit-content`
+// ability like the other authoring endpoints. A denial is a JSON 403.
 Route::post( 'query/resolve', [ QueryResolveController::class, 'resolve' ] )
+	->middleware( EnsureContentEditorAccess::class )
 	->name( 'visual-editor.api.query.resolve' );
 
 Route::get( 'blocks', [ VisualEditorBlocksController::class, 'index' ] )

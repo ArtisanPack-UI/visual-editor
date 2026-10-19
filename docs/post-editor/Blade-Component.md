@@ -75,7 +75,9 @@ Always set `resource="…"` explicitly when:
 
 All routes run through the middleware stack in
 `config('artisanpack.visual-editor.api.middleware')` (default
-`['api', 'auth']`).
+`['api', 'auth']`). `query/resolve` also requires the
+`visual-editor.edit-content` gate (see `content_access.capability`), like
+the other content-authoring endpoints.
 
 ---
 

@@ -15,13 +15,28 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Http\Requests;
 
+use ArtisanPackUI\VisualEditor\Support\ContentAccess;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 
 class QueryResolveRequest extends FormRequest
 {
+	/**
+	 * Allow only users who pass the content-access gate.
+	 *
+	 * The route already runs `EnsureContentEditorAccess`, which answers
+	 * the JSON 403; this checks the same {@see ContentAccess::ABILITY}
+	 * gate so the request stays guarded if a host mounts the controller
+	 * on a route of its own.
+	 *
+	 * @since 1.0.0
+	 * @since 1.15.2 Checks the `visual-editor.edit-content` gate instead of allowing everyone.
+	 *
+	 * @return bool Whether the current user may resolve queries.
+	 */
 	public function authorize(): bool
 	{
-		return true;
+		return Gate::forUser( $this->user() )->allows( ContentAccess::ABILITY );
 	}
 
 	/**
