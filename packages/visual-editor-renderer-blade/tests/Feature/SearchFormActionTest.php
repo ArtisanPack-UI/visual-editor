@@ -52,6 +52,32 @@ it( 'submits to the current page without its query string or pagination', functi
 	'non-page tail kept'    => [ '/blog/pages/3', '/blog/pages/3' ],
 ] );
 
+it( 'keeps the current-page action same-site for a request path with leading slashes or backslashes', function ( string $blockName, string $requestUri, string $expected ): void {
+	// Request::create() would read `//host` as an authority; a server hands
+	// the raw path through REQUEST_URI, so build the request from that.
+	app()->instance( 'request', new Request( [], [], [], [], [], [
+		'REQUEST_URI' => $requestUri,
+		'HTTP_HOST'   => 'site.test',
+		'SERVER_NAME' => 'site.test',
+	] ) );
+
+	$html = renderSearchForm( $blockName, [ 'action' => 'current' ] );
+
+	expect( $html )->toContain( 'action="' . $expected . '"' )
+		->and( $html )->not->toContain( 'action="//' )
+		->and( $html )->not->toContain( 'action="/\\' );
+} )->with( 'search form blocks' )->with( [
+	'protocol-relative + page' => [ '//evil.com/page/2', '/evil.com' ],
+	'double slash'             => [ '//packages', '/packages' ],
+	'slash backslash'          => [ '/\\evil.com', '/evil.com' ],
+	'mixed leading run'        => [ '/\\/\\evil.com/x', '/evil.com/x' ],
+	'backslash later in path'  => [ '//blog\\evil', '/' ],
+	'normal path'              => [ '/blog', '/blog' ],
+	'nested path'              => [ '/blog/category/x', '/blog/category/x' ],
+	'nested path + page'       => [ '/blog/category/x/page/4', '/blog/category/x' ],
+	'site root'                => [ '/', '/' ],
+] );
+
 it( 'submits to a custom same-site path', function ( string $blockName ): void {
 	expect( renderSearchForm( $blockName, [ 'action' => '/blog' ] ) )->toContain( 'action="/blog"' );
 } )->with( 'search form blocks' );
