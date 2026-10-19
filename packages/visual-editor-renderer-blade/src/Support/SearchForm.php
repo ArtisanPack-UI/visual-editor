@@ -191,9 +191,14 @@ class SearchForm
 	 * `/page/N` pagination segment. `?page=N` style pagination lives in the
 	 * query string, so it is dropped with it.
 	 *
+	 * The request path is not trusted as-is: a request for `//host` or
+	 * `/\host` would otherwise print a protocol-relative action. Any leading
+	 * run of `/` and `\` collapses to a single `/`, and the result must then
+	 * pass {@see sameSitePath()}; a path that still fails falls back to `/`.
+	 *
 	 * @since 1.15.2
 	 *
-	 * @return string The path, or `/` outside a request.
+	 * @return string A same-site path, or `/` outside a request.
 	 */
 	public static function currentUrl(): string
 	{
@@ -204,6 +209,8 @@ class SearchForm
 		$path = parse_url( request()->url(), PHP_URL_PATH );
 		$path = is_string( $path ) && '' !== $path ? $path : '/';
 		$path = (string) preg_replace( '#/page/\d+/?$#', '', $path );
+		$path = (string) preg_replace( '#^[/\\\\]+#', '/', $path );
+		$path = self::sameSitePath( $path );
 
 		return '' !== $path ? $path : '/';
 	}
