@@ -10,6 +10,7 @@ declare( strict_types=1 );
  * @since 1.0.0
  */
 
+use ArtisanPackUI\VisualEditor\Http\Requests\QueryResolveRequest;
 use ArtisanPackUI\VisualEditor\Services\QueryResolverContract;
 use Illuminate\Support\Facades\Gate;
 use Tests\Fixtures\FakeQueryResolver;
@@ -42,6 +43,45 @@ it( 'rejects unauthenticated requests', function (): void {
 	$this->postJson( '/visual-editor/api/query/resolve', [ 'postType' => 'post' ] )
 		->assertUnauthorized();
 } );
+
+it( 'rejects users without content-editor access with a JSON 403', function (): void {
+	config()->set( 'artisanpack.visual-editor.content_access.capability', 'edit_content' );
+	Gate::define( 'edit_content', fn (): bool => false );
+
+	actingResolver();
+
+	$this->postJson( '/visual-editor/api/query/resolve', [ 'postType' => 'page' ] )
+		->assertForbidden()
+		->assertJsonPath( 'message', 'You are not allowed to edit content.' );
+
+	expect( test()->fake->lastAttributes )->toBeNull();
+} );
+
+it( 'resolves queries for users with content-editor access', function (): void {
+	config()->set( 'artisanpack.visual-editor.content_access.capability', 'edit_content' );
+	Gate::define( 'edit_content', fn (): bool => true );
+
+	actingResolver();
+
+	$this->postJson( '/visual-editor/api/query/resolve', [ 'postType' => 'page' ] )
+		->assertOk();
+
+	expect( test()->fake->lastAttributes )->toMatchArray( [ 'postType' => 'page' ] );
+} );
+
+it( 'authorizes the request through the content-access gate', function ( bool $granted ): void {
+	config()->set( 'artisanpack.visual-editor.content_access.capability', 'edit_content' );
+	Gate::define( 'edit_content', fn (): bool => $granted );
+
+	$user    = actingResolver();
+	$request = QueryResolveRequest::create( '/visual-editor/api/query/resolve', 'POST' );
+	$request->setUserResolver( fn () => $user );
+
+	expect( $request->authorize() )->toBe( $granted );
+} )->with( [
+	'granted' => [ true ],
+	'denied'  => [ false ],
+] );
 
 it( 'returns 503 when no resolver is bound', function (): void {
 	$this->app->forgetInstance( QueryResolverContract::class );
