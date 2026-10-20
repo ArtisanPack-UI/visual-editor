@@ -6,6 +6,10 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- **Icon vertical alignment.** The Icon block's toolbar has a vertical alignment control (`verticalAlignment`: `top`, `center` or `bottom`) that positions the icon inside a wrapper stretched taller than the icon, e.g. by a flex Row. The wrapper becomes a column flexbox with an `is-vertically-aligned-{value}` class, in the canvas and on the front end; icons without the attribute render as before, and any other value is dropped.
+
 ## [1.15.2] - 2026-10-18
 
 ### Added
