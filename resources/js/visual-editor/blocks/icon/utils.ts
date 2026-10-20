@@ -15,6 +15,7 @@ import type {
     NormalizedIconAttributes,
     Rotation,
     SizeUnit,
+    VerticalAlignment,
     WpStyleAttribute,
 } from './types';
 
@@ -50,6 +51,17 @@ function isSafeLinkUrl( raw: string ): boolean {
 }
 const ALLOWED_SIZE_UNITS: ReadonlySet< SizeUnit > = new Set( [ 'px', 'em', 'rem', '%', 'vw', 'vh' ] );
 const ALLOWED_ROTATIONS: ReadonlySet< Rotation > = new Set( [ 0, 90, 180, 270 ] );
+
+/**
+ * Flex `justify-content` value for each vertical alignment. The wrapper
+ * becomes a column flexbox, so the main axis is vertical. Mirrors
+ * `IconBlock::VERTICAL_ALIGNMENTS`.
+ */
+const VERTICAL_ALIGNMENT_JUSTIFY: Readonly< Record< VerticalAlignment, string > > = {
+    top: 'flex-start',
+    center: 'center',
+    bottom: 'flex-end',
+};
 
 /**
  * Author-supplied CSS values reach inline style attributes unquoted, so
@@ -110,6 +122,12 @@ function asRotation( value: unknown ): Rotation {
     return typeof value === 'number' && ALLOWED_ROTATIONS.has( value as Rotation )
         ? ( value as Rotation )
         : 0;
+}
+
+function asVerticalAlignment( value: unknown ): VerticalAlignment | null {
+    return typeof value === 'string' && Object.hasOwn( VERTICAL_ALIGNMENT_JUSTIFY, value )
+        ? ( value as VerticalAlignment )
+        : null;
 }
 
 function asStyleObject( value: unknown ): WpStyleAttribute {
@@ -203,6 +221,7 @@ export function normalizeAttributes( attributes: IconAttributes ): NormalizedIco
         titleAttr: asString( attributes.titleAttr ),
         ariaLabel: asString( attributes.ariaLabel ),
         isDecorative: asBoolean( attributes.isDecorative ),
+        verticalAlignment: asVerticalAlignment( attributes.verticalAlignment ),
         style: asStyleObject( attributes.style ),
     };
 }
@@ -263,14 +282,26 @@ export function computeIconStyle( attributes: NormalizedIconAttributes ): CSSPro
 /**
  * Compose the wrapper `<div>` style.
  *
- * The block now lets WordPress handle background, border, padding, and
- * margin via the standard `useBlockProps()` serialization path — those
- * styles are merged in by the editor itself rather than computed here.
- * This helper stays around (returning an empty object) so callers can
- * keep their merge points without conditionally including it.
+ * Background, border, padding, and margin are serialized by WordPress
+ * via `useBlockProps()`, so they never appear here. The one style this
+ * block owns on the wrapper is vertical alignment: when the author picks
+ * one, the wrapper becomes a column flexbox so the icon can sit at the
+ * top, middle, or bottom of a wrapper that's taller than the icon (e.g.
+ * stretched by a flex row). `align-items: flex-start` keeps the icon's
+ * horizontal position where plain block flow put it. Mirrors
+ * `IconBlock::wrapperStyle()`.
  */
-export function computeWrapperStyle( _attributes: NormalizedIconAttributes ): CSSProperties {
-    return {};
+export function computeWrapperStyle( attributes: NormalizedIconAttributes ): CSSProperties {
+    if ( attributes.verticalAlignment === null ) {
+        return {};
+    }
+
+    return {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        justifyContent: VERTICAL_ALIGNMENT_JUSTIFY[ attributes.verticalAlignment ],
+    };
 }
 
 /**

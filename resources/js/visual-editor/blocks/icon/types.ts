@@ -21,6 +21,7 @@ export interface IconRef {
 
 export type SizeUnit = 'px' | 'em' | 'rem' | '%' | 'vw' | 'vh';
 export type Rotation = 0 | 90 | 180 | 270;
+export type VerticalAlignment = 'top' | 'center' | 'bottom';
 
 /**
  * Subset of WordPress's `style` attribute that the icon block reads.
@@ -78,6 +79,7 @@ export interface IconAttributes {
     readonly titleAttr: string | null | undefined;
     readonly ariaLabel: string | null | undefined;
     readonly isDecorative: boolean | null | undefined;
+    readonly verticalAlignment?: VerticalAlignment | null;
     readonly style?: WpStyleAttribute | null;
 }
 
@@ -115,5 +117,7 @@ export interface NormalizedIconAttributes {
     readonly titleAttr: string;
     readonly ariaLabel: string;
     readonly isDecorative: boolean;
+    /** `null` leaves the wrapper in plain block flow. */
+    readonly verticalAlignment: VerticalAlignment | null;
     readonly style: WpStyleAttribute;
 }
