@@ -52,12 +52,22 @@ vi.mock('@wordpress/block-editor', () => ({
                 />
             );
         },
-        { isEmpty: (v?: string) => !v || v.length === 0 }
+        {
+            isEmpty: (v?: string) => !v || v.length === 0,
+            Content: (props: { value?: string; tagName?: string }) => (
+                <div
+                    data-testid="rich-text-content"
+                    data-tag={props.tagName}
+                    dangerouslySetInnerHTML={{ __html: props.value ?? '' }}
+                />
+            ),
+        }
     ),
     store: { name: 'core/block-editor' },
 }));
 
 import HeadingEdit from '../edit';
+import { BoundAttributesContext } from '../../../bindings/bound-attributes-context';
 
 describe('HeadingEdit', () => {
     it('renders a RichText with the correct heading tagName', () => {
@@ -123,5 +133,44 @@ describe('HeadingEdit', () => {
         );
         const textbox = screen.getByRole('textbox', { name: 'heading-rich-text' });
         expect(textbox.getAttribute('data-tag')).toBe('h6');
+    });
+
+    it('renders bound content read-only instead of an editable RichText (#995)', () => {
+        const setAttributes = vi.fn();
+        const { container } = render(
+            <BoundAttributesContext.Provider
+                value={{ content: { source: 'post_core', key: 'title' } }}
+            >
+                <HeadingEdit
+                    attributes={{ content: 'Bound <em>title</em>', level: 2 }}
+                    setAttributes={setAttributes}
+                    clientId="abc"
+                />
+            </BoundAttributesContext.Provider>
+        );
+
+        expect(screen.queryByRole('textbox', { name: 'heading-rich-text' })).toBeNull();
+        const heading = container.querySelector('h2');
+        expect(heading).not.toBeNull();
+        expect(heading?.getAttribute('aria-readonly')).toBe('true');
+        expect(heading?.innerHTML).toBe('Bound <em>title</em>');
+    });
+
+    it('keeps content editable when only another attribute is bound', () => {
+        const setAttributes = vi.fn();
+        render(
+            <BoundAttributesContext.Provider
+                value={{ anchor: { source: 'post_core', key: 'slug' } }}
+            >
+                <HeadingEdit
+                    attributes={{ content: 'hi', level: 2 }}
+                    setAttributes={setAttributes}
+                    clientId="abc"
+                />
+            </BoundAttributesContext.Provider>
+        );
+
+        fireEvent.click(screen.getByRole('textbox', { name: 'heading-rich-text' }));
+        expect(setAttributes).toHaveBeenCalledWith({ content: 'changed' });
     });
 });

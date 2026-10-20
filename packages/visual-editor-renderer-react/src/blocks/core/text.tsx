@@ -7,12 +7,10 @@
  */
 
 import { attrBoolean, attrInt, attrRecord, attrString, classList, layoutClass, phpTrim } from '../../support/attributes';
-import { applyBackground } from '../../support/background';
-import { applyBlockGap } from '../../support/blockGap';
-import { applyDimensions, dimensionsClassName, hasDimensionStyle } from '../../support/dimensions';
 import { layoutWrapperClasses } from '../../support/layoutContainer';
 import { resolveAnchor } from '../../support/headingAnchors';
-import { presetClasses } from '../../support/presetClasses';
+import { compileBlockSupports } from '../../support/blockSupports';
+import { styleProp } from '../../support/styleProp';
 import type { BlockRendererProps } from '../../types';
 
 export function ParagraphBlock({ attributes }: BlockRendererProps): JSX.Element {
@@ -32,15 +30,19 @@ export function ParagraphBlock({ attributes }: BlockRendererProps): JSX.Element 
     const isRtl = direction === 'rtl';
     const dropCapDisabled =
         align === 'center' || align === (isRtl ? 'left' : 'right');
+    // #920 — the `paragraph.blade.php` supports.
+    const supports = compileBlockSupports(attributes);
     const classes = classList([
         'wp-block-paragraph',
         align !== '' ? `has-text-align-${align}` : null,
         dropCap && !dropCapDisabled ? 'has-drop-cap' : null,
+        ...supports.classNames,
         className,
     ]);
 
     const props: Record<string, unknown> = {
         className: classes,
+        style: styleProp(supports.style),
         dangerouslySetInnerHTML: { __html: content },
     };
 
@@ -58,27 +60,36 @@ export function HeadingBlock({ attributes }: BlockRendererProps): JSX.Element {
     const className = attrString(attributes.className);
     const content = attrString(attributes.content);
 
-    // Preset colour / font-size classes and the anchor `id` match the
-    // Blade partial's `BlockSupports::wrapperAttrs()` output (#888).
+    // The supports (#888, #920) and the anchor `id` match the Blade
+    // partial's `BlockSupports::wrapperAttrs()` output.
+    const supports = compileBlockSupports(attributes);
     const classes = classList([
         'wp-block-heading',
         textAlign !== '' ? `has-text-align-${textAlign}` : null,
-        ...presetClasses(attributes),
+        ...supports.classNames,
         className,
     ]);
 
     const Tag = `h${level}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 
-    return <Tag className={classes} id={resolveAnchor(attributes.anchor)} dangerouslySetInnerHTML={{ __html: content }} />;
+    return (
+        <Tag
+            className={classes}
+            id={resolveAnchor(attributes.anchor)}
+            style={styleProp(supports.style)}
+            dangerouslySetInnerHTML={{ __html: content }}
+        />
+    );
 }
 
 export function ListBlock({ attributes, children }: BlockRendererProps): JSX.Element {
     const ordered = attrBoolean(attributes.ordered);
     const className = attrString(attributes.className);
     const legacyValues = attrString(attributes.values);
-    const classes = classList(['wp-block-list', className]);
+    const supports = compileBlockSupports(attributes);
+    const classes = classList(['wp-block-list', ...supports.classNames, className]);
 
-    const commonProps: Record<string, unknown> = { className: classes };
+    const commonProps: Record<string, unknown> = { className: classes, style: styleProp(supports.style) };
 
     if (ordered) {
         if (attributes.start !== undefined && attributes.start !== null) {
@@ -107,14 +118,16 @@ export function ListBlock({ attributes, children }: BlockRendererProps): JSX.Ele
 
 export function ListItemBlock({ attributes, children }: BlockRendererProps): JSX.Element {
     const content = attrString(attributes.content);
-    const className = classList([attrString(attributes.className)]) || undefined;
+    const supports = compileBlockSupports(attributes);
+    const className = classList([...supports.classNames, attrString(attributes.className)]) || undefined;
+    const style = styleProp(supports.style);
 
     if (children === null || children === undefined) {
-        return <li className={className} dangerouslySetInnerHTML={{ __html: content }} />;
+        return <li className={className} style={style} dangerouslySetInnerHTML={{ __html: content }} />;
     }
 
     return (
-        <li className={className}>
+        <li className={className} style={style}>
             <span dangerouslySetInnerHTML={{ __html: content }} />
             {children}
         </li>
@@ -124,17 +137,15 @@ export function ListItemBlock({ attributes, children }: BlockRendererProps): JSX
 export function QuoteBlock({ attributes, children }: BlockRendererProps): JSX.Element {
     const className = attrString(attributes.className);
     const citation = attrString(attributes.citation);
+    const supports = compileBlockSupports(attributes);
     // F-3 — layout pair, per-instance scope and modifiers, as in `quote.blade.php`.
     const classes = classList([
         'wp-block-quote',
         ...layoutWrapperClasses(attributes, 'quote', layoutClass(attributes)),
-        dimensionsClassName(attributes),
+        ...supports.classNames,
         className,
     ]);
-    // `BlockSupports::compile()` order: background image (F-4), then
-    // Block spacing, then dimensions.
-    const wrapperStyle = { ...applyBackground(attributes), ...applyBlockGap(attributes), ...applyDimensions(attributes) };
-    const style = Object.keys(wrapperStyle).length > 0 ? (wrapperStyle as React.CSSProperties) : undefined;
+    const style = styleProp(supports.style);
 
     return (
         <blockquote className={classes} style={style}>
@@ -148,11 +159,12 @@ export function QuoteBlock({ attributes, children }: BlockRendererProps): JSX.El
 
 export function CodeBlock({ attributes }: BlockRendererProps): JSX.Element {
     const content = attrString(attributes.content);
+    const supports = compileBlockSupports(attributes);
     // `className` carries the `ve-r-*` / `ve-fx-*` scopes too (M-7).
-    const classes = classList(['wp-block-code', attrString(attributes.className)]);
+    const classes = classList(['wp-block-code', ...supports.classNames, attrString(attributes.className)]);
 
     return (
-        <pre className={classes}>
+        <pre className={classes} style={styleProp(supports.style)}>
             <code dangerouslySetInnerHTML={{ __html: content }} />
         </pre>
     );
@@ -161,21 +173,23 @@ export function CodeBlock({ attributes }: BlockRendererProps): JSX.Element {
 export function PreformattedBlock({ attributes }: BlockRendererProps): JSX.Element {
     const content = attrString(attributes.content);
 
-    const classes = classList(['wp-block-preformatted', attrString(attributes.className)]);
+    const supports = compileBlockSupports(attributes);
+    const classes = classList(['wp-block-preformatted', ...supports.classNames, attrString(attributes.className)]);
 
-    return <pre className={classes} dangerouslySetInnerHTML={{ __html: content }} />;
+    return <pre className={classes} style={styleProp(supports.style)} dangerouslySetInnerHTML={{ __html: content }} />;
 }
 
 export function VerseBlock({ attributes }: BlockRendererProps): JSX.Element {
     const content = attrString(attributes.content);
     const textAlign = attrString(attributes.textAlign);
+    const supports = compileBlockSupports(attributes);
     const classes = classList([
         'wp-block-verse',
         textAlign !== '' ? `has-text-align-${textAlign}` : null,
-        dimensionsClassName(attributes),
+        ...supports.classNames,
         attrString(attributes.className),
     ]);
-    const style = backgroundAndDimensions(attributes);
+    const style = styleProp(supports.style);
 
     return <pre className={classes} style={style} dangerouslySetInnerHTML={{ __html: content }} />;
 }
@@ -184,8 +198,9 @@ export function PullquoteBlock({ attributes }: BlockRendererProps): JSX.Element 
     const className = attrString(attributes.className);
     const value = attrString(attributes.value);
     const citation = attrString(attributes.citation);
-    const classes = classList(['wp-block-pullquote', dimensionsClassName(attributes), className]);
-    const style = backgroundAndDimensions(attributes);
+    const supports = compileBlockSupports(attributes);
+    const classes = classList(['wp-block-pullquote', ...supports.classNames, className]);
+    const style = styleProp(supports.style);
 
     return (
         <figure className={classes} style={style}>
@@ -194,18 +209,6 @@ export function PullquoteBlock({ attributes }: BlockRendererProps): JSX.Element 
             <blockquote dangerouslySetInnerHTML={{ __html: pullquoteInnerHtml(value, citation) }} />
         </figure>
     );
-}
-
-/**
- * The wrapper style quote, pullquote and verse share: the background image
- * (F-4) and then the dimensions, in `BlockSupports::compile()` order.
- * `undefined` when neither is set.
- */
-function backgroundAndDimensions(attributes: Record<string, unknown>): React.CSSProperties | undefined {
-    const dimensionStyle = applyDimensions(attributes);
-    const style = { ...applyBackground(attributes), ...(hasDimensionStyle(dimensionStyle) ? dimensionStyle : {}) };
-
-    return Object.keys(style).length > 0 ? (style as React.CSSProperties) : undefined;
 }
 
 /**

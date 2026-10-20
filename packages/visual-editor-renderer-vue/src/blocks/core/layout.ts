@@ -16,12 +16,11 @@ import {
 import { isNonEmptyWidth, normalizeBasis } from '../../support/columnWidth';
 import { flexClassNames } from '../../support/flex-serializer';
 import { safeCssValue } from '../../support/cssValue';
-import { applyBackground } from '../../support/background';
-import { applyBlockGap, applyColumnsGap } from '../../support/blockGap';
-import { applyDimensions, dimensionsClassName } from '../../support/dimensions';
+import { applyColumnsGap } from '../../support/blockGap';
+import { compileBlockSupports } from '../../support/blockSupports';
 import { layoutModifierClasses, panelLayoutClass } from '../../support/layoutContainer';
 import { safeUrl } from '../../support/urlSanitizer';
-import { blockRendererProps } from '../shared';
+import { blockRendererProps, withStyle } from '../shared';
 
 const ALLOWED_GROUP_TAGS = ['div', 'section', 'article', 'aside', 'header', 'footer', 'main', 'nav'] as const;
 
@@ -70,6 +69,10 @@ export const GroupBlock = defineComponent({
             // (#871), right after the layout pair as in `group.blade.php`,
             // then the layout modifier classes (F-3).
             const layoutScope = attrString(props.attributes._veLayoutScope);
+            // #920 — colour, background, spacing, border, typography and
+            // dimensions supports, as `group.blade.php`'s `wrapperAttrs()`
+            // prints them.
+            const supports = compileBlockSupports(props.attributes);
 
             const classes = classList([
                 'wp-block-group',
@@ -78,30 +81,11 @@ export const GroupBlock = defineComponent({
                 ...layoutModifierClasses(props.attributes),
                 ...flexClasses,
                 photoGridScope !== '' ? photoGridScope : null,
-                dimensionsClassName(props.attributes),
+                ...supports.classNames,
                 className,
             ]);
 
-            // #776 — surface `style.dimensions.minHeight` / `.aspectRatio`
-            // on the wrapper so a Group opted into
-            // `supports.dimensions.minHeight` matches the Blade renderer.
-            // #883 — the block's own Block spacing rides first, in
-            // `BlockSupports` order, so the flex/grid baseline `gap`
-            // reads it.
-            // F-4 — the background image rides first, as
-            // `BlockSupports::compile()` emits it before spacing.
-            const wrapperStyle = {
-                ...applyBackground(props.attributes),
-                ...applyBlockGap(props.attributes),
-                ...applyDimensions(props.attributes),
-            };
-            const nodeProps: Record<string, unknown> = { class: classes };
-
-            if (Object.keys(wrapperStyle).length > 0) {
-                nodeProps.style = wrapperStyle;
-            }
-
-            return h(tag, nodeProps, slots.default ? slots.default() : []);
+            return h(tag, withStyle({ class: classes }, supports.style), slots.default ? slots.default() : []);
         };
     },
 });
@@ -114,14 +98,16 @@ export const RowBlock = defineComponent({
             const className = attrString(props.attributes.className);
             // Renders `wp-block-group` markup, so the per-block layout
             // compound is keyed on `group` rather than `row` (#702).
+            const supports = compileBlockSupports(props.attributes);
             const classes = classList([
                 'wp-block-group',
                 ...layoutPair('group', 'is-layout-flex'),
                 'is-horizontal',
+                ...supports.classNames,
                 className,
             ]);
 
-            return h('div', { class: classes }, slots.default ? slots.default() : []);
+            return h('div', withStyle({ class: classes }, supports.style), slots.default ? slots.default() : []);
         };
     },
 });
@@ -134,14 +120,16 @@ export const StackBlock = defineComponent({
             const className = attrString(props.attributes.className);
             // Renders `wp-block-group` markup, so the per-block layout
             // compound is keyed on `group` rather than `stack` (#702).
+            const supports = compileBlockSupports(props.attributes);
             const classes = classList([
                 'wp-block-group',
                 ...layoutPair('group', 'is-layout-flex'),
                 'is-vertical',
+                ...supports.classNames,
                 className,
             ]);
 
-            return h('div', { class: classes }, slots.default ? slots.default() : []);
+            return h('div', withStyle({ class: classes }, supports.style), slots.default ? slots.default() : []);
         };
     },
 });
@@ -163,6 +151,7 @@ export const ColumnsBlock = defineComponent({
             // (#714), emitted in the same position the columns Blade partial
             // merges it.
             const photoGridScope = attrString(props.attributes._vePhotoGridScope);
+            const supports = compileBlockSupports(props.attributes);
             // #702 — columns is a flex layout upstream and its wrapper
             // carries both the shared modifier and the per-block compound.
             // Neither was emitted here, so layout rules keyed on either
@@ -174,23 +163,19 @@ export const ColumnsBlock = defineComponent({
                 verticalAlignment !== '' ? `are-vertically-aligned-${verticalAlignment}` : null,
                 ...flexClasses,
                 photoGridScope !== '' ? photoGridScope : null,
+                ...supports.classNames,
                 className,
             ]);
 
-            // The Columns' own Block spacing, as `columns.blade.php` prints
-            // it. #914 — plus the per-axis left gap for the Column width
+            // The Columns' supports (#920), as `columns.blade.php` prints
+            // them. #914 — plus the per-axis left gap for the Column width
             // calc, last.
             const style: Record<string, string> = {
-                ...applyBlockGap(props.attributes),
+                ...supports.style,
                 ...applyColumnsGap(props.attributes),
             };
-            const divProps: Record<string, unknown> = { class: classes };
 
-            if (Object.keys(style).length > 0) {
-                divProps.style = style;
-            }
-
-            return h('div', divProps, slots.default ? slots.default() : []);
+            return h('div', withStyle({ class: classes }, style), slots.default ? slots.default() : []);
         };
     },
 });
@@ -212,6 +197,7 @@ export const ColumnBlock = defineComponent({
             // F-3 — the column's layout pair, per-instance scope and
             // modifiers, in `column.blade.php` order.
             const layoutScope = attrString(props.attributes._veLayoutScope);
+            const supports = compileBlockSupports(props.attributes);
 
             const classes = classList([
                 'wp-block-column',
@@ -220,14 +206,15 @@ export const ColumnBlock = defineComponent({
                 ...layoutModifierClasses(props.attributes),
                 verticalAlignment !== '' ? `is-vertically-aligned-${verticalAlignment}` : null,
                 ...flexClasses,
+                ...supports.classNames,
                 className,
                 widthScope !== '' ? widthScope : null,
             ]);
 
             const width = props.attributes.width;
-            // The column's own Block spacing rides first, in
-            // `BlockSupports` order.
-            let style: Record<string, string> = { ...applyBlockGap(props.attributes) };
+            // The column's supports (#920) ride first, as `column.blade.php`
+            // prints them.
+            let style: Record<string, string> = { ...supports.style };
 
             // Mirror the Blade partial's inline `flex-basis`: gate on PHP
             // `empty()` semantics (`isNonEmptyWidth` drops
@@ -242,13 +229,7 @@ export const ColumnBlock = defineComponent({
                 }
             }
 
-            const divProps: Record<string, unknown> = { class: classes };
-
-            if (Object.keys(style).length > 0) {
-                divProps.style = style;
-            }
-
-            return h('div', divProps, slots.default ? slots.default() : []);
+            return h('div', withStyle({ class: classes }, style), slots.default ? slots.default() : []);
         };
     },
 });
@@ -282,6 +263,7 @@ export const ButtonsBlock = defineComponent({
             // then the orientation / wrap modifiers, in `buttons.blade.php`
             // order.
             const layoutScope = attrString(props.attributes._veLayoutScope);
+            const supports = compileBlockSupports(props.attributes);
 
             const classes = classList([
                 'wp-block-buttons',
@@ -289,17 +271,11 @@ export const ButtonsBlock = defineComponent({
                 layoutScope !== '' ? layoutScope : null,
                 `is-content-justification-${justify}`,
                 ...layoutModifierClasses(props.attributes, true, false),
+                ...supports.classNames,
                 className,
             ]);
 
-            const gapStyle = applyBlockGap(props.attributes);
-            const divProps: Record<string, unknown> = { class: classes };
-
-            if (Object.keys(gapStyle).length > 0) {
-                divProps.style = gapStyle;
-            }
-
-            return h('div', divProps, slots.default ? slots.default() : []);
+            return h('div', withStyle({ class: classes }, supports.style), slots.default ? slots.default() : []);
         };
     },
 });
@@ -352,7 +328,11 @@ export const ButtonBlock = defineComponent({
             const wrapperProps = width.property
                 ? { class: wrapperClasses, style: `${width.property}:${width.style}` }
                 : { class: wrapperClasses };
-            const linkClasses = 'wp-block-button__link wp-element-button';
+            // #920 — the visual supports land on the inner link, which
+            // theme.json's `styles.elements.button` targets, as in
+            // `button.blade.php`.
+            const supports = compileBlockSupports(props.attributes);
+            const linkClasses = classList(['wp-block-button__link', 'wp-element-button', ...supports.classNames]);
 
             let rel = attrString(props.attributes.rel);
 
@@ -373,7 +353,7 @@ export const ButtonBlock = defineComponent({
                     'div',
                     wrapperProps,
                     h('span', {
-                        class: linkClasses,
+                        ...withStyle({ class: linkClasses }, supports.style),
                         title: title === '' ? undefined : title,
                         innerHTML: text,
                     })
@@ -384,7 +364,7 @@ export const ButtonBlock = defineComponent({
                 'div',
                 wrapperProps,
                 h('a', {
-                    class: linkClasses,
+                    ...withStyle({ class: linkClasses }, supports.style),
                     href: url,
                     target: linkTarget === '' ? undefined : linkTarget,
                     rel: rel === '' ? undefined : rel,

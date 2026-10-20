@@ -12,6 +12,8 @@
  */
 
 import { attrString, classList } from '../../support/attributes';
+import { compileBlockSupports } from '../../support/blockSupports';
+import { styleProp } from '../../support/styleProp';
 import { safeUrl } from '../../support/urlSanitizer';
 import type { BlockRendererProps } from '../../types';
 
@@ -62,10 +64,11 @@ export function PostNavigationLinkBlock({ attributes }: BlockRendererProps): JSX
     const url = safeUrl(attrString(attributes[urlKey]));
     const title = attrString(attributes[titleKey]);
 
-    const classes = classList(['wp-block-post-navigation-link', className]);
+    const supports = compileBlockSupports(attributes);
+    const classes = classList(['wp-block-post-navigation-link', ...supports.classNames, className]);
 
     if (url === '') {
-        return <div className={classes} />;
+        return <div className={classes} style={styleProp(supports.style)} />;
     }
 
     let visible: string;
@@ -86,7 +89,7 @@ export function PostNavigationLinkBlock({ attributes }: BlockRendererProps): JSX
     const ariaLabel = type === 'previous' ? 'Previous post' : 'Next post';
 
     return (
-        <div className={classes}>
+        <div className={classes} style={styleProp(supports.style)}>
             <a href={url} aria-label={ariaLabel}>
                 {visible}
             </a>
@@ -103,19 +106,21 @@ export function PostTermsBlock({ attributes }: BlockRendererProps): JSX.Element 
 
     const terms = readTerms(attributes._resolvedTermsByTaxonomy, taxonomy);
 
+    const supports = compileBlockSupports(attributes);
     const classes = classList([
         'wp-block-post-terms',
         // Only attach the `taxonomy-{slug}` class when a taxonomy has
         // actually been selected — a bare `taxonomy-` (with no slug) is
         // meaningless styling noise.
         taxonomy !== '' ? `taxonomy-${taxonomy}` : null,
+        ...supports.classNames,
         className,
     ]);
 
     const usableTerms = terms.filter((term) => attrString(term.name) !== '');
 
     if (usableTerms.length === 0) {
-        return <div className={classes} />;
+        return <div className={classes} style={styleProp(supports.style)} />;
     }
 
     const items: Array<JSX.Element | string> = [];
@@ -156,7 +161,7 @@ export function PostTermsBlock({ attributes }: BlockRendererProps): JSX.Element 
     });
 
     return (
-        <div className={classes}>
+        <div className={classes} style={styleProp(supports.style)}>
             {prefix !== '' ? <span className="wp-block-post-terms__prefix">{prefix}</span> : null}
             {items}
             {suffix !== '' ? <span className="wp-block-post-terms__suffix">{suffix}</span> : null}
@@ -170,16 +175,17 @@ export function ReadMoreBlock({ attributes }: BlockRendererProps): JSX.Element {
     const className = attrString(attributes.className);
     const permalink = safeUrl(attrString(attributes._resolvedPermalink));
 
-    const classes = classList(['wp-block-read-more', className]);
+    const supports = compileBlockSupports(attributes);
+    const classes = classList(['wp-block-read-more', ...supports.classNames, className]);
 
     // No resolved permalink — degrade to a non-interactive <span> so we
     // don't emit a focusable anchor with an empty `href` (keyboard /
     // screen-reader trap). Matches the Blade partial's fallback.
     if (permalink === '') {
-        return <span className={classes}>{content}</span>;
+        return <span className={classes} style={styleProp(supports.style)}>{content}</span>;
     }
 
-    const props: Record<string, string> = { className: classes, href: permalink };
+    const props: Record<string, unknown> = { className: classes, href: permalink, style: styleProp(supports.style) };
 
     if (linkTarget === '_blank') {
         props.target = '_blank';
@@ -193,14 +199,15 @@ export function TermDescriptionBlock({ attributes }: BlockRendererProps): JSX.El
     const description = attrString(attributes._resolvedTermDescription);
     const className = attrString(attributes.className);
 
-    const classes = classList(['wp-block-term-description', className]);
+    const supports = compileBlockSupports(attributes);
+    const classes = classList(['wp-block-term-description', ...supports.classNames, className]);
 
     if (description === '') {
-        return <div className={classes} />;
+        return <div className={classes} style={styleProp(supports.style)} />;
     }
 
     return (
-        <div className={classes}>
+        <div className={classes} style={styleProp(supports.style)}>
             <p dangerouslySetInnerHTML={{ __html: description }} />
         </div>
     );

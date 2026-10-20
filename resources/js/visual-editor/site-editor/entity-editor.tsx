@@ -27,6 +27,10 @@ import {
 } from './block-editor-boundary';
 import { EntityEditorCanvas } from './entity-editor-canvas';
 import { fallbackChainForSlug } from './fallback-chain';
+import {
+    TemplatePreviewEntryPicker,
+    useTemplatePreviewEntry,
+} from './template-preview-entry';
 import { useEntityEditor, type SaveStatus } from './use-entity-editor';
 import { InspectorSidebar } from '../editor/inspector-sidebar';
 import {
@@ -118,6 +122,22 @@ export function useEntityEditorViews<K extends EntityKind>(
 
     const entityTitle = useMemo(() => resolveTitle(entity), [entity]);
 
+    // #993 — single-entry templates preview their post-* blocks with a
+    // real entry of the template's post type (latest by default, or the
+    // one picked in the header). Template parts never map to an entry.
+    const previewEntry = useTemplatePreviewEntry(
+        apiConfig.apiBase,
+        kind === 'template' && entity !== null ? entity.slug : null
+    );
+    const previewEntryRecord = previewEntry.entry;
+    const canvasBlockContext = useMemo(
+        (): Record<string, unknown> | null =>
+            previewEntryRecord === null
+                ? null
+                : { 'artisanpack/postPreview': previewEntryRecord },
+        [previewEntryRecord]
+    );
+
     // Memoize the top-bar save dispatcher so `onStateChange` receives a
     // stable reference between renders — otherwise the shell's
     // `entityState` re-equality check sees a new `save` closure every
@@ -175,6 +195,12 @@ export function useEntityEditorViews<K extends EntityKind>(
                     ))}
                 </span>
             );
+
+            if (previewEntry.target !== null) {
+                rows.push(
+                    <TemplatePreviewEntryPicker key="preview-entry" state={previewEntry} />
+                );
+            }
         }
 
         if (isDirty) {
@@ -218,7 +244,7 @@ export function useEntityEditorViews<K extends EntityKind>(
         }
 
         return rows.length > 0 ? rows : null;
-    }, [entity, isDirty, kind, saveErrorMessage, saveStatus]);
+    }, [entity, isDirty, kind, previewEntry, saveErrorMessage, saveStatus]);
 
     const canvas = useMemo((): JSX.Element => {
         if (entityId === null) {
@@ -239,10 +265,12 @@ export function useEntityEditorViews<K extends EntityKind>(
                 isLoading={loadStatus === 'loading'}
                 errorMessage={loadStatus === 'error' ? loadErrorMessage : null}
                 apiBase={apiConfig.apiBase}
+                blockContext={canvasBlockContext}
             />
         );
     }, [
         apiConfig.apiBase,
+        canvasBlockContext,
         entityId,
         entityTitle,
         headerContent,

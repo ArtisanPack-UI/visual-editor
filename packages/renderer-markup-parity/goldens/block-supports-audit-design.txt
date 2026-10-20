@@ -1,0 +1,32 @@
+<hr class="wp-block-separator has-alpha-channel-opacity has-primary-background-color has-background has-text-color has-border-color has-contrast-border-color has-small-font-size has-defined-font-size is-audited" style="color: #222222; padding-top: 1rem; padding-left: 2rem; margin-bottom: var(--wp--preset--spacing--30); border-radius: 4px; border-width: 1px; border-style: solid; line-height: 1.5; letter-spacing: 1px; min-height: 80px" />
+<div aria-hidden="true" class="wp-block-spacer has-primary-background-color has-background has-text-color has-border-color has-contrast-border-color has-small-font-size has-defined-font-size is-audited" style="color: #222222; padding-top: 1rem; padding-left: 2rem; margin-bottom: var(--wp--preset--spacing--30); border-radius: 4px; border-width: 1px; border-style: solid; line-height: 1.5; letter-spacing: 1px; min-height: 80px; height: 40px">
+</div>
+<div class="wp-block-media-text has-primary-background-color has-background has-text-color has-border-color has-contrast-border-color has-small-font-size has-defined-font-size is-audited" style="color: #222222; padding-top: 1rem; padding-left: 2rem; margin-bottom: var(--wp--preset--spacing--30); border-radius: 4px; border-width: 1px; border-style: solid; line-height: 1.5; letter-spacing: 1px; min-height: 80px; grid-template-columns: 40% auto">
+  <figure class="wp-block-media-text__media">
+    <img alt="" src="https://example.com/a.jpg" />
+  </figure>
+  <div class="wp-block-media-text__content">
+    <p class="wp-block-paragraph">
+      "Copy"
+    </p>
+  </div>
+</div>
+<figure class="wp-block-table has-primary-background-color has-background has-text-color has-border-color has-contrast-border-color has-small-font-size has-defined-font-size is-audited" style="color: #222222; padding-top: 1rem; padding-left: 2rem; margin-bottom: var(--wp--preset--spacing--30); border-radius: 4px; border-width: 1px; border-style: solid; line-height: 1.5; letter-spacing: 1px; min-height: 80px">
+  <table class="has-fixed-layout">
+    <tbody>
+      <tr>
+        <td>
+          "A"
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</figure>
+<details class="wp-block-details is-layout-flow wp-block-details-is-layout-flow has-primary-background-color has-background has-text-color has-border-color has-contrast-border-color has-small-font-size has-defined-font-size is-audited" style="color: #222222; padding-top: 1rem; padding-left: 2rem; margin-bottom: var(--wp--preset--spacing--30); border-radius: 4px; border-width: 1px; border-style: solid; line-height: 1.5; letter-spacing: 1px; min-height: 80px">
+  <summary>
+    "More"
+  </summary>
+  <p class="wp-block-paragraph">
+    "Copy"
+  </p>
+</details>

@@ -19,6 +19,7 @@
  */
 
 import {
+    BlockContextProvider,
     BlockList,
     BlockToolbar,
     BlockTools,
@@ -59,10 +60,17 @@ export interface EntityEditorCanvasProps {
      * surface matches the public front-end (Keystone #47).
      */
     apiBase?: string;
+    /**
+     * Block context stamped above the block list. Templates use it to
+     * pipe the preview entry into the `post-*` blocks as
+     * `artisanpack/postPreview` (#993). `null` / omitted renders the
+     * blocks without extra context.
+     */
+    blockContext?: Record<string, unknown> | null;
 }
 
 export function EntityEditorCanvas(props: EntityEditorCanvasProps): JSX.Element {
-    const { entityTitle, header, isLoading, errorMessage, apiBase } = props;
+    const { entityTitle, header, isLoading, errorMessage, apiBase, blockContext } = props;
 
     const announcement = useMemo(
         () =>
@@ -167,7 +175,13 @@ export function EntityEditorCanvas(props: EntityEditorCanvasProps): JSX.Element 
                     <BlockTools>
                         <WritingFlow>
                             <ObserveTyping>
-                                <BlockList layout={ROOT_CANVAS_LAYOUT} />
+                                {blockContext !== null && blockContext !== undefined ? (
+                                    <BlockContextProvider value={blockContext}>
+                                        <BlockList layout={ROOT_CANVAS_LAYOUT} />
+                                    </BlockContextProvider>
+                                ) : (
+                                    <BlockList layout={ROOT_CANVAS_LAYOUT} />
+                                )}
                             </ObserveTyping>
                         </WritingFlow>
                     </BlockTools>

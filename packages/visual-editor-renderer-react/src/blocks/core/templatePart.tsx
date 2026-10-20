@@ -16,6 +16,8 @@
  */
 
 import { attrString, classList } from '../../support/attributes';
+import { compileBlockSupports } from '../../support/blockSupports';
+import { styleProp } from '../../support/styleProp';
 import type { BlockRendererProps } from '../../types';
 
 const ALLOWED_PART_TAGS = ['div', 'header', 'footer', 'aside', 'section', 'main', 'nav'] as const;
@@ -54,7 +56,8 @@ export function TemplatePartBlock({ attributes, children }: BlockRendererProps):
 
     const slugClass = slug === '' ? '' : `wp-block-template-part--${slug.replace(SLUG_CLASS_PATTERN, '-')}`;
     const className = attrString(attributes.className);
-    const classes = classList(['wp-block-template-part', slugClass, className]);
+    const supports = compileBlockSupports(attributes);
+    const classes = classList(['wp-block-template-part', slugClass, ...supports.classNames, className]);
 
     const dataAttributes: Record<string, string> = {
         'data-ve-template-part': slug,
@@ -69,11 +72,11 @@ export function TemplatePartBlock({ attributes, children }: BlockRendererProps):
     }
 
     if (resolutionError !== '') {
-        return <Tag className={classes} {...dataAttributes} />;
+        return <Tag className={classes} style={styleProp(supports.style)} {...dataAttributes} />;
     }
 
     return (
-        <Tag className={classes} {...dataAttributes}>
+        <Tag className={classes} style={styleProp(supports.style)} {...dataAttributes}>
             {children}
         </Tag>
     );

@@ -22,6 +22,8 @@ import {
 } from './attribute-controls';
 import { ServerSideRender } from './server-side-render';
 import { TEXT_DOMAIN } from '../vendor/i18n';
+import { useBoundAttributes } from '../bindings/bound-attributes-context';
+import { getBoundAttributeHelp } from '../bindings/bound-attribute-help';
 
 interface ServerBlockEditProps {
     readonly attributes: Record<string, unknown>;
@@ -47,22 +49,36 @@ export function createServerBlockEdit(
     }: ServerBlockEditProps): ReactElement {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const blockProps = (useBlockProps as any)();
+        // A bound attribute's value is overlaid from its binding source, so
+        // its control is locked and points at the Block bindings panel
+        // rather than silently discarding input (#995).
+        const bound = useBoundAttributes();
 
         return (
             <>
                 {descriptors.length > 0 && (
                     <InspectorControls>
                         <PanelBody title={__('Settings', TEXT_DOMAIN)}>
-                            {descriptors.map((descriptor) => (
-                                <AttributeControl
-                                    key={descriptor.name}
-                                    descriptor={descriptor}
-                                    value={values[descriptor.name]}
-                                    onChange={(next) =>
-                                        setAttributes({ [descriptor.name]: next })
-                                    }
-                                />
-                            ))}
+                            {descriptors.map((descriptor) => {
+                                const binding = bound[descriptor.name];
+
+                                return (
+                                    <AttributeControl
+                                        key={descriptor.name}
+                                        descriptor={descriptor}
+                                        value={values[descriptor.name]}
+                                        onChange={(next) =>
+                                            setAttributes({ [descriptor.name]: next })
+                                        }
+                                        disabled={binding !== undefined}
+                                        disabledHelp={
+                                            binding !== undefined
+                                                ? getBoundAttributeHelp(binding)
+                                                : undefined
+                                        }
+                                    />
+                                );
+                            })}
                         </PanelBody>
                     </InspectorControls>
                 )}

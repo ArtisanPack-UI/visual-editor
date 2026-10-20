@@ -5,6 +5,8 @@
  */
 
 import { attrBoolean, attrInt, attrString, classList } from '../../support/attributes';
+import { compileBlockSupports } from '../../support/blockSupports';
+import { styleProp } from '../../support/styleProp';
 import { safeCssValue } from '../../support/cssValue';
 import { safeUrl } from '../../support/urlSanitizer';
 import type { BlockRendererProps } from '../../types';
@@ -102,14 +104,17 @@ export function ImageBlock({ attributes }: BlockRendererProps): JSX.Element {
     const sizeSlug = attrString(attributes.sizeSlug);
     const className = attrString(attributes.className);
 
+    const supports = compileBlockSupports(attributes);
     // Blade order: base, size, is-resized (#985), duotone scope (stamped by
-    // `stampDuotoneScopes()`), then the supports' align and className.
+    // `stampDuotoneScopes()`), then the supports' align, the other
+    // supports (#920) and className.
     const figureClasses = classList([
         'wp-block-image',
         sizeSlug !== '' ? `size-${sizeSlug}` : null,
         width.style !== undefined || height.style !== undefined ? 'is-resized' : null,
         attrString(attributes._veDuotone) || null,
         align !== '' ? `align${align}` : null,
+        ...supports.classNames,
         className,
     ]);
 
@@ -127,7 +132,7 @@ export function ImageBlock({ attributes }: BlockRendererProps): JSX.Element {
         );
 
     return (
-        <figure className={figureClasses}>
+        <figure className={figureClasses} style={styleProp(supports.style)}>
             {img !== null && href !== '' ? <a href={href}>{img}</a> : img}
             {caption.trim() !== '' ? (
                 <figcaption dangerouslySetInnerHTML={{ __html: caption }} />
@@ -142,16 +147,18 @@ export function GalleryBlock({ attributes, children }: BlockRendererProps): JSX.
     const className = attrString(attributes.className);
     const caption = attrString(attributes.caption);
 
+    const supports = compileBlockSupports(attributes);
     const classes = classList([
         'wp-block-gallery',
         'has-nested-images',
         columns > 0 ? `columns-${columns}` : null,
         imageCrop ? 'is-cropped' : null,
+        ...supports.classNames,
         className,
     ]);
 
     return (
-        <figure className={classes}>
+        <figure className={classes} style={styleProp(supports.style)}>
             {children}
             {caption.trim() !== '' ? (
                 <figcaption
@@ -173,14 +180,16 @@ export function VideoBlock({ attributes }: BlockRendererProps): JSX.Element {
 
     const controls = attributes.controls === undefined ? true : attrBoolean(attributes.controls);
 
+    const supports = compileBlockSupports(attributes);
     const classes = classList([
         'wp-block-video',
         align !== '' ? `align${align}` : null,
+        ...supports.classNames,
         className,
     ]);
 
     return (
-        <figure className={classes}>
+        <figure className={classes} style={styleProp(supports.style)}>
             {src === '' ? null : (
                 <video
                     src={src}
@@ -207,14 +216,16 @@ export function AudioBlock({ attributes }: BlockRendererProps): JSX.Element {
     const className = attrString(attributes.className);
     const preload = attrString(attributes.preload, 'none');
 
+    const supports = compileBlockSupports(attributes);
     const classes = classList([
         'wp-block-audio',
         align !== '' ? `align${align}` : null,
+        ...supports.classNames,
         className,
     ]);
 
     return (
-        <figure className={classes}>
+        <figure className={classes} style={styleProp(supports.style)}>
             {src === '' ? null : (
                 <audio
                     controls
@@ -241,7 +252,9 @@ export function FileBlock({ attributes }: BlockRendererProps): JSX.Element {
         attributes.showDownloadButton === undefined ? true : attrBoolean(attributes.showDownloadButton);
     const className = attrString(attributes.className);
 
-    const classes = classList(['wp-block-file', className]);
+    const supports = compileBlockSupports(attributes);
+    const classes = classList(['wp-block-file', ...supports.classNames, className]);
+    const style = styleProp(supports.style);
     const linkLabel = fileName !== '' ? fileName : href;
     // Mirrors the editor save: the button points at the file-name link
     // for its accessible description, but only when that link has a name.
@@ -249,11 +262,11 @@ export function FileBlock({ attributes }: BlockRendererProps): JSX.Element {
     const describedById = fileName !== '' && fileId !== '' ? fileId : undefined;
 
     if (href === '') {
-        return <div className={classes} />;
+        return <div className={classes} style={style} />;
     }
 
     return (
-        <div className={classes}>
+        <div className={classes} style={style}>
             <a id={describedById} href={textLinkHref !== '' ? textLinkHref : href}>
                 {linkLabel}
             </a>
@@ -294,6 +307,7 @@ export function EmbedBlock({ attributes }: BlockRendererProps): JSX.Element {
     const type = attrString(attributes.type);
 
     const sanitizedProvider = embedProviderSlug(provider);
+    const supports = compileBlockSupports(attributes);
 
     const classes = classList([
         'wp-block-embed',
@@ -303,12 +317,13 @@ export function EmbedBlock({ attributes }: BlockRendererProps): JSX.Element {
         type !== '' && type !== '0' ? `is-type-${type}` : null,
         ratio !== '' ? `wp-embed-aspect-${ratio.replace(/\//g, '-')}` : null,
         ratio !== '' ? 'wp-has-aspect-ratio' : null,
+        ...supports.classNames,
         // `className` carries the `ve-r-*` / `ve-fx-*` scopes too (M-7).
         attrString(attributes.className),
     ]);
 
     return (
-        <figure className={classes}>
+        <figure className={classes} style={styleProp(supports.style)}>
             <div className="wp-block-embed__wrapper">{url === '' ? null : url}</div>
             {caption.trim() !== '' ? (
                 <figcaption dangerouslySetInnerHTML={{ __html: caption }} />

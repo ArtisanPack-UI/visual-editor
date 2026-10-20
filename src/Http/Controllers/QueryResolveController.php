@@ -23,15 +23,20 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditor\Http\Controllers;
 
 use ArtisanPackUI\VisualEditor\Http\Requests\QueryResolveRequest;
+use ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\ContentTypeResource;
 use ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\PageResource;
 use ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\PostResource;
 use ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\WpEntityResource;
+use ArtisanPackUI\VisualEditor\Resources\QueryPostTypeRegistry;
+use ArtisanPackUI\VisualEditor\Resources\ResourceResolver;
 use ArtisanPackUI\VisualEditor\Services\HostRelatedTermsResolver;
 use ArtisanPackUI\VisualEditor\Services\QueryResolverContract;
+use Closure;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Str;
 use Throwable;
 
 class QueryResolveController extends Controller
@@ -89,10 +94,11 @@ class QueryResolveController extends Controller
 			);
 		}
 
-		$resourceClass = $this->resourceClassFor( isset( $payload['postType'] ) && is_string( $payload['postType'] ) ? $payload['postType'] : 'post' );
+		$postType  = isset( $payload['postType'] ) && is_string( $payload['postType'] ) ? $payload['postType'] : 'post';
+		$transform = $this->transformerFor( $postType );
 
 		$data = collect( $paginator->items() )->map(
-			static fn ( object $item ): array => ( new $resourceClass( $item ) )->toArray( request() ),
+			static fn ( object $item ): array => $transform( $item )->toArray( request() ),
 		)->values()->all();
 
 		return new JsonResponse( [
@@ -190,6 +196,66 @@ class QueryResolveController extends Controller
 		$out[] = $hostId;
 
 		return array_values( array_unique( $out ) );
+	}
+
+	/**
+	 * Builds the WP-shape transformer for a post type, once per request.
+	 *
+	 * Registered custom content types get a {@see ContentTypeResource}
+	 * carrying their own `type` (#993); everything else goes through
+	 * {@see self::resourceClassFor()}.
+	 *
+	 * @since 1.15.3
+	 *
+	 * @param  string  $postType  The requested post type.
+	 *
+	 * @return Closure(object): WpEntityResource Wraps a resolved item.
+	 */
+	protected function transformerFor( string $postType ): Closure
+	{
+		if ( 'post' !== $postType && 'page' !== $postType && $this->isRegisteredContentType( $postType ) ) {
+			return static fn ( object $item ): WpEntityResource => new ContentTypeResource( $item, $postType );
+		}
+
+		$resourceClass = $this->resourceClassFor( $postType );
+
+		return static fn ( object $item ): WpEntityResource => new $resourceClass( $item );
+	}
+
+	/**
+	 * Whether a post type is a content type the host has registered —
+	 * listed in the Query Loop post-type picker
+	 * ({@see QueryPostTypeRegistry}) or backed by a resource in the
+	 * visual-editor resource map (under its own or its plural slug).
+	 * Unregistered types keep the {@see PostResource} fallback, so an
+	 * arbitrary `postType` value can't mint a new envelope `type`.
+	 *
+	 * @since 1.15.3
+	 *
+	 * @param  string  $postType  The requested post type.
+	 *
+	 * @return bool Whether the type is registered.
+	 */
+	protected function isRegisteredContentType( string $postType ): bool
+	{
+		if ( 1 !== preg_match( '/^[A-Za-z0-9_-]{1,64}$/', $postType ) ) {
+			return false;
+		}
+
+		foreach ( QueryPostTypeRegistry::resolve() as $option ) {
+			if ( $option['value'] === $postType ) {
+				return true;
+			}
+		}
+
+		if ( ! $this->container->bound( ResourceResolver::class ) ) {
+			return false;
+		}
+
+		/** @var ResourceResolver $resources */
+		$resources = $this->container->make( ResourceResolver::class );
+
+		return $resources->has( $postType ) || $resources->has( Str::plural( $postType ) );
 	}
 
 	/**

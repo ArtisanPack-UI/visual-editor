@@ -4433,6 +4433,2492 @@
                     "innerBlocks": []
                 }
             ]
+        },
+        {
+            "name": "block-supports-group-slugs",
+            "$comment": "#920 — every colour / spacing / border / typography / dimensions support, with palette slugs winning over the custom background and font size, matches Blade's `BlockSupports::compile()` output.",
+            "tree": [
+                {
+                    "clientId": "g-slugs",
+                    "name": "core/group",
+                    "attributes": {
+                        "layout": {
+                            "type": "constrained"
+                        },
+                        "backgroundColor": "primary",
+                        "textColor": "base",
+                        "fontSize": "large",
+                        "fontFamily": "heading",
+                        "borderColor": "contrast",
+                        "style": {
+                            "spacing": {
+                                "padding": "2rem",
+                                "margin": {
+                                    "top": "1rem",
+                                    "bottom": "var:preset|spacing|40"
+                                }
+                            },
+                            "color": {
+                                "background": "#123456"
+                            },
+                            "border": {
+                                "width": "2px",
+                                "radius": "8px"
+                            },
+                            "typography": {
+                                "fontSize": "3rem",
+                                "lineHeight": "1.4",
+                                "fontWeight": "700",
+                                "fontStyle": "italic",
+                                "letterSpacing": "0.05em",
+                                "textTransform": "uppercase",
+                                "textDecoration": "underline"
+                            },
+                            "dimensions": {
+                                "minHeight": "200px"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "g-slugs-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Copy"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "block-supports-paragraph-slugs",
+            "$comment": "#920 — every colour / spacing / border / typography / dimensions support, with palette slugs winning over the custom background and font size, matches Blade's `BlockSupports::compile()` output.",
+            "tree": [
+                {
+                    "clientId": "p-slugs",
+                    "name": "core/paragraph",
+                    "attributes": {
+                        "content": "Hi",
+                        "backgroundColor": "primary",
+                        "textColor": "base",
+                        "fontSize": "large",
+                        "fontFamily": "heading",
+                        "borderColor": "contrast",
+                        "style": {
+                            "spacing": {
+                                "padding": "2rem",
+                                "margin": {
+                                    "top": "1rem",
+                                    "bottom": "var:preset|spacing|40"
+                                }
+                            },
+                            "color": {
+                                "background": "#123456"
+                            },
+                            "border": {
+                                "width": "2px",
+                                "radius": "8px"
+                            },
+                            "typography": {
+                                "fontSize": "3rem",
+                                "lineHeight": "1.4",
+                                "fontWeight": "700",
+                                "fontStyle": "italic",
+                                "letterSpacing": "0.05em",
+                                "textTransform": "uppercase",
+                                "textDecoration": "underline"
+                            },
+                            "dimensions": {
+                                "minHeight": "200px"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "name": "block-supports-heading-slugs",
+            "$comment": "#920 — every colour / spacing / border / typography / dimensions support, with palette slugs winning over the custom background and font size, matches Blade's `BlockSupports::compile()` output.",
+            "tree": [
+                {
+                    "clientId": "h-slugs",
+                    "name": "core/heading",
+                    "attributes": {
+                        "content": "Title",
+                        "level": 3,
+                        "backgroundColor": "primary",
+                        "textColor": "base",
+                        "fontSize": "large",
+                        "fontFamily": "heading",
+                        "borderColor": "contrast",
+                        "style": {
+                            "spacing": {
+                                "padding": "2rem",
+                                "margin": {
+                                    "top": "1rem",
+                                    "bottom": "var:preset|spacing|40"
+                                }
+                            },
+                            "color": {
+                                "background": "#123456"
+                            },
+                            "border": {
+                                "width": "2px",
+                                "radius": "8px"
+                            },
+                            "typography": {
+                                "fontSize": "3rem",
+                                "lineHeight": "1.4",
+                                "fontWeight": "700",
+                                "fontStyle": "italic",
+                                "letterSpacing": "0.05em",
+                                "textTransform": "uppercase",
+                                "textDecoration": "underline"
+                            },
+                            "dimensions": {
+                                "minHeight": "200px"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "name": "block-supports-column-slugs",
+            "$comment": "#920 — every colour / spacing / border / typography / dimensions support, with palette slugs winning over the custom background and font size, matches Blade's `BlockSupports::compile()` output.",
+            "tree": [
+                {
+                    "clientId": "cols-slugs",
+                    "name": "core/columns",
+                    "attributes": {},
+                    "innerBlocks": [
+                        {
+                            "clientId": "col-slugs",
+                            "name": "core/column",
+                            "attributes": {
+                                "width": "60%",
+                                "backgroundColor": "primary",
+                                "textColor": "base",
+                                "fontSize": "large",
+                                "fontFamily": "heading",
+                                "borderColor": "contrast",
+                                "style": {
+                                    "spacing": {
+                                        "padding": "2rem",
+                                        "margin": {
+                                            "top": "1rem",
+                                            "bottom": "var:preset|spacing|40"
+                                        }
+                                    },
+                                    "color": {
+                                        "background": "#123456"
+                                    },
+                                    "border": {
+                                        "width": "2px",
+                                        "radius": "8px"
+                                    },
+                                    "typography": {
+                                        "fontSize": "3rem",
+                                        "lineHeight": "1.4",
+                                        "fontWeight": "700",
+                                        "fontStyle": "italic",
+                                        "letterSpacing": "0.05em",
+                                        "textTransform": "uppercase",
+                                        "textDecoration": "underline"
+                                    },
+                                    "dimensions": {
+                                        "minHeight": "200px"
+                                    }
+                                }
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "col-slugs-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "Copy"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        },
+                        {
+                            "clientId": "col-slugs-2",
+                            "name": "core/column",
+                            "attributes": {},
+                            "innerBlocks": [
+                                {
+                                    "clientId": "col-slugs-2-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "Copy"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "block-supports-cover-slugs",
+            "$comment": "#920 — every colour / spacing / border / typography / dimensions support, with palette slugs winning over the custom background and font size, matches Blade's `BlockSupports::compile()` output.",
+            "tree": [
+                {
+                    "clientId": "cv-slugs",
+                    "name": "core/cover",
+                    "attributes": {
+                        "minHeight": 300,
+                        "overlayColor": "contrast",
+                        "dimRatio": 50,
+                        "backgroundColor": "primary",
+                        "textColor": "base",
+                        "fontSize": "large",
+                        "fontFamily": "heading",
+                        "borderColor": "contrast",
+                        "style": {
+                            "spacing": {
+                                "padding": "2rem",
+                                "margin": {
+                                    "top": "1rem",
+                                    "bottom": "var:preset|spacing|40"
+                                }
+                            },
+                            "color": {
+                                "background": "#123456"
+                            },
+                            "border": {
+                                "width": "2px",
+                                "radius": "8px"
+                            },
+                            "typography": {
+                                "fontSize": "3rem",
+                                "lineHeight": "1.4",
+                                "fontWeight": "700",
+                                "fontStyle": "italic",
+                                "letterSpacing": "0.05em",
+                                "textTransform": "uppercase",
+                                "textDecoration": "underline"
+                            },
+                            "dimensions": {}
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "cv-slugs-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Copy"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "block-supports-button-slugs",
+            "$comment": "#920 — every colour / spacing / border / typography / dimensions support, with palette slugs winning over the custom background and font size, matches Blade's `BlockSupports::compile()` output.",
+            "tree": [
+                {
+                    "clientId": "btns-slugs",
+                    "name": "core/buttons",
+                    "attributes": {},
+                    "innerBlocks": [
+                        {
+                            "clientId": "btn-slugs",
+                            "name": "core/button",
+                            "attributes": {
+                                "text": "Go",
+                                "url": "#",
+                                "backgroundColor": "primary",
+                                "textColor": "base",
+                                "fontSize": "large",
+                                "fontFamily": "heading",
+                                "borderColor": "contrast",
+                                "style": {
+                                    "spacing": {
+                                        "padding": "2rem",
+                                        "margin": {
+                                            "top": "1rem",
+                                            "bottom": "var:preset|spacing|40"
+                                        }
+                                    },
+                                    "color": {
+                                        "background": "#123456"
+                                    },
+                                    "border": {
+                                        "width": "2px",
+                                        "radius": "8px"
+                                    },
+                                    "typography": {
+                                        "fontSize": "3rem",
+                                        "lineHeight": "1.4",
+                                        "fontWeight": "700",
+                                        "fontStyle": "italic",
+                                        "letterSpacing": "0.05em",
+                                        "textTransform": "uppercase",
+                                        "textDecoration": "underline"
+                                    },
+                                    "dimensions": {
+                                        "minHeight": "200px"
+                                    }
+                                }
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "btn-slugs-span",
+                            "name": "core/button",
+                            "attributes": {
+                                "text": "No link",
+                                "backgroundColor": "primary",
+                                "textColor": "base",
+                                "fontSize": "large",
+                                "fontFamily": "heading",
+                                "borderColor": "contrast",
+                                "style": {
+                                    "spacing": {
+                                        "padding": "2rem",
+                                        "margin": {
+                                            "top": "1rem",
+                                            "bottom": "var:preset|spacing|40"
+                                        }
+                                    },
+                                    "color": {
+                                        "background": "#123456"
+                                    },
+                                    "border": {
+                                        "width": "2px",
+                                        "radius": "8px"
+                                    },
+                                    "typography": {
+                                        "fontSize": "3rem",
+                                        "lineHeight": "1.4",
+                                        "fontWeight": "700",
+                                        "fontStyle": "italic",
+                                        "letterSpacing": "0.05em",
+                                        "textTransform": "uppercase",
+                                        "textDecoration": "underline"
+                                    },
+                                    "dimensions": {
+                                        "minHeight": "200px"
+                                    }
+                                }
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "block-supports-group-custom",
+            "$comment": "#920 — custom colour (preset reference, gradient), per-side spacing and border, per-corner radius, custom typography and an aspect ratio match Blade's `BlockSupports::compile()` output.",
+            "tree": [
+                {
+                    "clientId": "g-custom",
+                    "name": "core/group",
+                    "attributes": {
+                        "layout": {
+                            "type": "constrained"
+                        },
+                        "style": {
+                            "color": {
+                                "background": "var:preset|color|accent",
+                                "text": "#ff0000",
+                                "gradient": "linear-gradient(135deg, #000 0%, #fff 100%)"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "right": "2rem",
+                                    "bottom": "3rem",
+                                    "left": "4rem"
+                                },
+                                "margin": "0"
+                            },
+                            "border": {
+                                "radius": {
+                                    "topLeft": "4px",
+                                    "bottomRight": "12px"
+                                },
+                                "color": "#000000",
+                                "top": {
+                                    "width": "3px",
+                                    "color": "red"
+                                },
+                                "left": {
+                                    "width": "1px",
+                                    "style": "dashed"
+                                }
+                            },
+                            "typography": {
+                                "fontSize": "1.25rem",
+                                "fontFamily": "Georgia, serif",
+                                "lineHeight": "1.6"
+                            },
+                            "dimensions": {
+                                "aspectRatio": "16/9"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "g-custom-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Copy"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "block-supports-paragraph-custom",
+            "$comment": "#920 — custom colour (preset reference, gradient), per-side spacing and border, per-corner radius, custom typography and an aspect ratio match Blade's `BlockSupports::compile()` output.",
+            "tree": [
+                {
+                    "clientId": "p-custom",
+                    "name": "core/paragraph",
+                    "attributes": {
+                        "content": "Hi",
+                        "style": {
+                            "color": {
+                                "background": "var:preset|color|accent",
+                                "text": "#ff0000",
+                                "gradient": "linear-gradient(135deg, #000 0%, #fff 100%)"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "right": "2rem",
+                                    "bottom": "3rem",
+                                    "left": "4rem"
+                                },
+                                "margin": "0"
+                            },
+                            "border": {
+                                "radius": {
+                                    "topLeft": "4px",
+                                    "bottomRight": "12px"
+                                },
+                                "color": "#000000",
+                                "top": {
+                                    "width": "3px",
+                                    "color": "red"
+                                },
+                                "left": {
+                                    "width": "1px",
+                                    "style": "dashed"
+                                }
+                            },
+                            "typography": {
+                                "fontSize": "1.25rem",
+                                "fontFamily": "Georgia, serif",
+                                "lineHeight": "1.6"
+                            },
+                            "dimensions": {
+                                "aspectRatio": "16/9"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "name": "block-supports-heading-custom",
+            "$comment": "#920 — custom colour (preset reference, gradient), per-side spacing and border, per-corner radius, custom typography and an aspect ratio match Blade's `BlockSupports::compile()` output.",
+            "tree": [
+                {
+                    "clientId": "h-custom",
+                    "name": "core/heading",
+                    "attributes": {
+                        "content": "Title",
+                        "level": 3,
+                        "style": {
+                            "color": {
+                                "background": "var:preset|color|accent",
+                                "text": "#ff0000",
+                                "gradient": "linear-gradient(135deg, #000 0%, #fff 100%)"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "right": "2rem",
+                                    "bottom": "3rem",
+                                    "left": "4rem"
+                                },
+                                "margin": "0"
+                            },
+                            "border": {
+                                "radius": {
+                                    "topLeft": "4px",
+                                    "bottomRight": "12px"
+                                },
+                                "color": "#000000",
+                                "top": {
+                                    "width": "3px",
+                                    "color": "red"
+                                },
+                                "left": {
+                                    "width": "1px",
+                                    "style": "dashed"
+                                }
+                            },
+                            "typography": {
+                                "fontSize": "1.25rem",
+                                "fontFamily": "Georgia, serif",
+                                "lineHeight": "1.6"
+                            },
+                            "dimensions": {
+                                "aspectRatio": "16/9"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "name": "block-supports-column-custom",
+            "$comment": "#920 — custom colour (preset reference, gradient), per-side spacing and border, per-corner radius, custom typography and an aspect ratio match Blade's `BlockSupports::compile()` output.",
+            "tree": [
+                {
+                    "clientId": "cols-custom",
+                    "name": "core/columns",
+                    "attributes": {},
+                    "innerBlocks": [
+                        {
+                            "clientId": "col-custom",
+                            "name": "core/column",
+                            "attributes": {
+                                "width": "60%",
+                                "style": {
+                                    "color": {
+                                        "background": "var:preset|color|accent",
+                                        "text": "#ff0000",
+                                        "gradient": "linear-gradient(135deg, #000 0%, #fff 100%)"
+                                    },
+                                    "spacing": {
+                                        "padding": {
+                                            "top": "1rem",
+                                            "right": "2rem",
+                                            "bottom": "3rem",
+                                            "left": "4rem"
+                                        },
+                                        "margin": "0"
+                                    },
+                                    "border": {
+                                        "radius": {
+                                            "topLeft": "4px",
+                                            "bottomRight": "12px"
+                                        },
+                                        "color": "#000000",
+                                        "top": {
+                                            "width": "3px",
+                                            "color": "red"
+                                        },
+                                        "left": {
+                                            "width": "1px",
+                                            "style": "dashed"
+                                        }
+                                    },
+                                    "typography": {
+                                        "fontSize": "1.25rem",
+                                        "fontFamily": "Georgia, serif",
+                                        "lineHeight": "1.6"
+                                    },
+                                    "dimensions": {
+                                        "aspectRatio": "16/9"
+                                    }
+                                }
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "col-custom-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "Copy"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        },
+                        {
+                            "clientId": "col-custom-2",
+                            "name": "core/column",
+                            "attributes": {},
+                            "innerBlocks": [
+                                {
+                                    "clientId": "col-custom-2-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "Copy"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "block-supports-cover-custom",
+            "$comment": "#920 — custom colour (preset reference, gradient), per-side spacing and border, per-corner radius, custom typography and an aspect ratio match Blade's `BlockSupports::compile()` output.",
+            "tree": [
+                {
+                    "clientId": "cv-custom",
+                    "name": "core/cover",
+                    "attributes": {
+                        "minHeight": 300,
+                        "overlayColor": "contrast",
+                        "dimRatio": 50,
+                        "style": {
+                            "color": {
+                                "background": "var:preset|color|accent",
+                                "text": "#ff0000",
+                                "gradient": "linear-gradient(135deg, #000 0%, #fff 100%)"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "right": "2rem",
+                                    "bottom": "3rem",
+                                    "left": "4rem"
+                                },
+                                "margin": "0"
+                            },
+                            "border": {
+                                "radius": {
+                                    "topLeft": "4px",
+                                    "bottomRight": "12px"
+                                },
+                                "color": "#000000",
+                                "top": {
+                                    "width": "3px",
+                                    "color": "red"
+                                },
+                                "left": {
+                                    "width": "1px",
+                                    "style": "dashed"
+                                }
+                            },
+                            "typography": {
+                                "fontSize": "1.25rem",
+                                "fontFamily": "Georgia, serif",
+                                "lineHeight": "1.6"
+                            },
+                            "dimensions": {
+                                "aspectRatio": "16/9"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "cv-custom-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Copy"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "block-supports-button-custom",
+            "$comment": "#920 — custom colour (preset reference, gradient), per-side spacing and border, per-corner radius, custom typography and an aspect ratio match Blade's `BlockSupports::compile()` output.",
+            "tree": [
+                {
+                    "clientId": "btns-custom",
+                    "name": "core/buttons",
+                    "attributes": {},
+                    "innerBlocks": [
+                        {
+                            "clientId": "btn-custom",
+                            "name": "core/button",
+                            "attributes": {
+                                "text": "Go",
+                                "url": "#",
+                                "style": {
+                                    "color": {
+                                        "background": "var:preset|color|accent",
+                                        "text": "#ff0000",
+                                        "gradient": "linear-gradient(135deg, #000 0%, #fff 100%)"
+                                    },
+                                    "spacing": {
+                                        "padding": {
+                                            "top": "1rem",
+                                            "right": "2rem",
+                                            "bottom": "3rem",
+                                            "left": "4rem"
+                                        },
+                                        "margin": "0"
+                                    },
+                                    "border": {
+                                        "radius": {
+                                            "topLeft": "4px",
+                                            "bottomRight": "12px"
+                                        },
+                                        "color": "#000000",
+                                        "top": {
+                                            "width": "3px",
+                                            "color": "red"
+                                        },
+                                        "left": {
+                                            "width": "1px",
+                                            "style": "dashed"
+                                        }
+                                    },
+                                    "typography": {
+                                        "fontSize": "1.25rem",
+                                        "fontFamily": "Georgia, serif",
+                                        "lineHeight": "1.6"
+                                    },
+                                    "dimensions": {
+                                        "aspectRatio": "16/9"
+                                    }
+                                }
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "btn-custom-span",
+                            "name": "core/button",
+                            "attributes": {
+                                "text": "No link",
+                                "style": {
+                                    "color": {
+                                        "background": "var:preset|color|accent",
+                                        "text": "#ff0000",
+                                        "gradient": "linear-gradient(135deg, #000 0%, #fff 100%)"
+                                    },
+                                    "spacing": {
+                                        "padding": {
+                                            "top": "1rem",
+                                            "right": "2rem",
+                                            "bottom": "3rem",
+                                            "left": "4rem"
+                                        },
+                                        "margin": "0"
+                                    },
+                                    "border": {
+                                        "radius": {
+                                            "topLeft": "4px",
+                                            "bottomRight": "12px"
+                                        },
+                                        "color": "#000000",
+                                        "top": {
+                                            "width": "3px",
+                                            "color": "red"
+                                        },
+                                        "left": {
+                                            "width": "1px",
+                                            "style": "dashed"
+                                        }
+                                    },
+                                    "typography": {
+                                        "fontSize": "1.25rem",
+                                        "fontFamily": "Georgia, serif",
+                                        "lineHeight": "1.6"
+                                    },
+                                    "dimensions": {
+                                        "aspectRatio": "16/9"
+                                    }
+                                }
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "block-supports-audit-layout",
+            "$comment": "#920 — audit: every block whose Blade partial runs `BlockSupports::compile()` prints the same colour / spacing / border / typography / dimensions supports in React and Vue.",
+            "tree": [
+                {
+                    "clientId": "a-row",
+                    "name": "core/row",
+                    "attributes": {
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "a-row-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Copy"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                },
+                {
+                    "clientId": "a-stack",
+                    "name": "core/stack",
+                    "attributes": {
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "a-stack-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Copy"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                },
+                {
+                    "clientId": "a-cols",
+                    "name": "core/columns",
+                    "attributes": {
+                        "style": {
+                            "spacing": {
+                                "blockGap": {
+                                    "left": "2rem"
+                                },
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        },
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited"
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "a-col",
+                            "name": "core/column",
+                            "attributes": {},
+                            "innerBlocks": [
+                                {
+                                    "clientId": "a-col-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "Copy"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "clientId": "a-btns",
+                    "name": "core/buttons",
+                    "attributes": {
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "a-btn",
+                            "name": "core/button",
+                            "attributes": {
+                                "text": "Go",
+                                "url": "#",
+                                "className": "is-style-outline"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "block-supports-audit-text",
+            "$comment": "#920 — audit: every block whose Blade partial runs `BlockSupports::compile()` prints the same colour / spacing / border / typography / dimensions supports in React and Vue.",
+            "tree": [
+                {
+                    "clientId": "a-list",
+                    "name": "core/list",
+                    "attributes": {
+                        "ordered": true,
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "a-li",
+                            "name": "core/list-item",
+                            "attributes": {
+                                "content": "One",
+                                "backgroundColor": "primary",
+                                "fontSize": "small",
+                                "borderColor": "contrast",
+                                "className": "is-audited",
+                                "style": {
+                                    "color": {
+                                        "text": "#222222"
+                                    },
+                                    "spacing": {
+                                        "padding": {
+                                            "top": "1rem",
+                                            "left": "2rem"
+                                        },
+                                        "margin": {
+                                            "bottom": "var:preset|spacing|30"
+                                        }
+                                    },
+                                    "border": {
+                                        "width": "1px",
+                                        "radius": "4px"
+                                    },
+                                    "typography": {
+                                        "lineHeight": "1.5",
+                                        "letterSpacing": "1px"
+                                    },
+                                    "dimensions": {
+                                        "minHeight": "80px"
+                                    }
+                                }
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                },
+                {
+                    "clientId": "a-quote",
+                    "name": "core/quote",
+                    "attributes": {
+                        "citation": "Someone",
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "a-quote-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Copy"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                },
+                {
+                    "clientId": "a-code",
+                    "name": "core/code",
+                    "attributes": {
+                        "content": "x = 1",
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "a-pre",
+                    "name": "core/preformatted",
+                    "attributes": {
+                        "content": "pre",
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "a-verse",
+                    "name": "core/verse",
+                    "attributes": {
+                        "content": "verse",
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "a-pq",
+                    "name": "core/pullquote",
+                    "attributes": {
+                        "value": "<p>Quote</p>",
+                        "citation": "Cite",
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "name": "block-supports-audit-design",
+            "$comment": "#920 — audit: every block whose Blade partial runs `BlockSupports::compile()` prints the same colour / spacing / border / typography / dimensions supports in React and Vue.",
+            "tree": [
+                {
+                    "clientId": "a-sep",
+                    "name": "core/separator",
+                    "attributes": {
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "a-spacer",
+                    "name": "core/spacer",
+                    "attributes": {
+                        "height": "40px",
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "a-mt",
+                    "name": "core/media-text",
+                    "attributes": {
+                        "mediaUrl": "https://example.com/a.jpg",
+                        "mediaWidth": 40,
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "a-mt-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Copy"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                },
+                {
+                    "clientId": "a-table",
+                    "name": "core/table",
+                    "attributes": {
+                        "body": [
+                            {
+                                "cells": [
+                                    {
+                                        "content": "A",
+                                        "tag": "td"
+                                    }
+                                ]
+                            }
+                        ],
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "a-details",
+                    "name": "core/details",
+                    "attributes": {
+                        "summary": "More",
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "a-details-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Copy"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "block-supports-audit-media",
+            "$comment": "#920 — audit: every block whose Blade partial runs `BlockSupports::compile()` prints the same colour / spacing / border / typography / dimensions supports in React and Vue.",
+            "tree": [
+                {
+                    "clientId": "a-img",
+                    "name": "core/image",
+                    "attributes": {
+                        "url": "https://example.com/a.jpg",
+                        "alt": "A",
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "a-audio",
+                    "name": "core/audio",
+                    "attributes": {
+                        "src": "https://example.com/a.mp3",
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "a-file",
+                    "name": "core/file",
+                    "attributes": {
+                        "href": "https://example.com/a.pdf",
+                        "fileName": "a.pdf",
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "a-embed",
+                    "name": "core/embed",
+                    "attributes": {
+                        "url": "https://example.com/v",
+                        "providerNameSlug": "youtube",
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "name": "block-supports-audit-context",
+            "$comment": "#920 — audit: every block whose Blade partial runs `BlockSupports::compile()` prints the same colour / spacing / border / typography / dimensions supports in React and Vue.",
+            "tree": [
+                {
+                    "clientId": "a-site-title",
+                    "name": "core/site-title",
+                    "attributes": {
+                        "level": 2,
+                        "isLink": false,
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "a-site-tagline",
+                    "name": "core/site-tagline",
+                    "attributes": {
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "a-site-logo",
+                    "name": "core/site-logo",
+                    "attributes": {
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "a-read-more",
+                    "name": "core/read-more",
+                    "attributes": {
+                        "content": "More",
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "a-term-desc",
+                    "name": "core/term-description",
+                    "attributes": {
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "a-post-terms",
+                    "name": "core/post-terms",
+                    "attributes": {
+                        "term": "category",
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "a-post-nav",
+                    "name": "core/post-navigation-link",
+                    "attributes": {
+                        "type": "next",
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "a-nav",
+                    "name": "core/navigation",
+                    "attributes": {
+                        "overlayMenu": "never",
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "a-nav-link",
+                            "name": "core/navigation-link",
+                            "attributes": {
+                                "label": "Home",
+                                "url": "/",
+                                "backgroundColor": "primary",
+                                "fontSize": "small",
+                                "borderColor": "contrast",
+                                "className": "is-audited",
+                                "style": {
+                                    "color": {
+                                        "text": "#222222"
+                                    },
+                                    "spacing": {
+                                        "padding": {
+                                            "top": "1rem",
+                                            "left": "2rem"
+                                        },
+                                        "margin": {
+                                            "bottom": "var:preset|spacing|30"
+                                        }
+                                    },
+                                    "border": {
+                                        "width": "1px",
+                                        "radius": "4px"
+                                    },
+                                    "typography": {
+                                        "lineHeight": "1.5",
+                                        "letterSpacing": "1px"
+                                    },
+                                    "dimensions": {
+                                        "minHeight": "80px"
+                                    }
+                                }
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                },
+                {
+                    "clientId": "a-synced",
+                    "name": "core/block",
+                    "attributes": {
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "a-query",
+                    "name": "core/query",
+                    "attributes": {
+                        "layout": {
+                            "type": "constrained"
+                        },
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "name": "block-supports-audit-post-context",
+            "$comment": "#920 — audit: every block whose Blade partial runs `BlockSupports::compile()` prints the same colour / spacing / border / typography / dimensions supports in React and Vue. The avatar's border paints on its `<img>` (#952).",
+            "resolveQueries": false,
+            "tree": [
+                {
+                    "clientId": "a-pt",
+                    "name": "core/post-title",
+                    "attributes": {
+                        "level": 0,
+                        "_resolvedTitle": "Hello",
+                        "_resolvedPermalink": "https://example.com/hello",
+                        "isLink": true,
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "a-pt-h",
+                    "name": "core/post-title",
+                    "attributes": {
+                        "level": 9,
+                        "_resolvedTitle": "Clamped",
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "a-pc",
+                    "name": "core/post-content",
+                    "attributes": {
+                        "layout": {
+                            "type": "constrained"
+                        },
+                        "_resolvedContent": "<p>Body</p>",
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "a-pd",
+                    "name": "core/post-date",
+                    "attributes": {
+                        "_resolvedDate": "2026-01-02T00:00:00+00:00",
+                        "_resolvedDateFormatted": "January 2, 2026",
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "a-pa",
+                    "name": "core/post-author",
+                    "attributes": {
+                        "_resolvedAuthorName": "Jo",
+                        "_resolvedAuthorAvatar": "https://example.com/jo.png",
+                        "byline": "By",
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "a-pan",
+                    "name": "core/post-author-name",
+                    "attributes": {
+                        "_resolvedAuthorName": "Jo",
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "a-pab",
+                    "name": "core/post-author-biography",
+                    "attributes": {
+                        "_resolvedAuthorBio": "Bio",
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "a-av",
+                    "name": "core/avatar",
+                    "attributes": {
+                        "_resolvedAuthorAvatar": "https://example.com/jo.png",
+                        "_resolvedAuthorName": "Jo",
+                        "style": {
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        },
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited"
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "a-pfi",
+                    "name": "core/post-featured-image",
+                    "attributes": {
+                        "_resolvedImageUrl": "https://example.com/f.jpg",
+                        "_resolvedImageAlt": "F",
+                        "width": "300px",
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "name": "block-supports-audit-template-part",
+            "$comment": "#920 — audit: every block whose Blade partial runs `BlockSupports::compile()` prints the same colour / spacing / border / typography / dimensions supports in React and Vue.",
+            "templateParts": [
+                {
+                    "slug": "audit-header",
+                    "area": "header",
+                    "blocks": [
+                        {
+                            "clientId": "a-tp-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Header"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ],
+            "tree": [
+                {
+                    "clientId": "a-tp",
+                    "name": "core/template-part",
+                    "attributes": {
+                        "slug": "audit-header",
+                        "tagName": "header",
+                        "backgroundColor": "primary",
+                        "fontSize": "small",
+                        "borderColor": "contrast",
+                        "className": "is-audited",
+                        "style": {
+                            "color": {
+                                "text": "#222222"
+                            },
+                            "spacing": {
+                                "padding": {
+                                    "top": "1rem",
+                                    "left": "2rem"
+                                },
+                                "margin": {
+                                    "bottom": "var:preset|spacing|30"
+                                }
+                            },
+                            "border": {
+                                "width": "1px",
+                                "radius": "4px"
+                            },
+                            "typography": {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "1px"
+                            },
+                            "dimensions": {
+                                "minHeight": "80px"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                }
+            ]
         }
     ]
 }

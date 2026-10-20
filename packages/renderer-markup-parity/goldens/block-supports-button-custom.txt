@@ -1,0 +1,12 @@
+<div class="wp-block-buttons is-layout-flex wp-block-buttons-is-layout-flex is-content-justification-left">
+  <div class="wp-block-button">
+    <a class="wp-block-button__link wp-element-button has-background has-text-color has-aspect-ratio" href="#" style="background-color: var(--wp--preset--color--accent); background: linear-gradient(135deg, #000 0%, #fff 100%); color: #ff0000; padding-top: 1rem; padding-right: 2rem; padding-bottom: 3rem; padding-left: 4rem; margin: 0; border-top-left-radius: 4px; border-bottom-right-radius: 12px; border-color: #000000; border-top-color: red; border-top-width: 3px; border-left-style: dashed; border-left-width: 1px; border-top-style: solid; font-size: 1.25rem; font-family: Georgia, serif; line-height: 1.6; aspect-ratio: 16/9; min-height: unset">
+      "Go"
+    </a>
+  </div>
+  <div class="wp-block-button">
+    <span class="wp-block-button__link wp-element-button has-background has-text-color has-aspect-ratio" style="background-color: var(--wp--preset--color--accent); background: linear-gradient(135deg, #000 0%, #fff 100%); color: #ff0000; padding-top: 1rem; padding-right: 2rem; padding-bottom: 3rem; padding-left: 4rem; margin: 0; border-top-left-radius: 4px; border-bottom-right-radius: 12px; border-color: #000000; border-top-color: red; border-top-width: 3px; border-left-style: dashed; border-left-width: 1px; border-top-style: solid; font-size: 1.25rem; font-family: Georgia, serif; line-height: 1.6; aspect-ratio: 16/9; min-height: unset">
+      "No link"
+    </span>
+  </div>
+</div>

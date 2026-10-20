@@ -8,13 +8,10 @@
 
 import { defineComponent, h } from 'vue';
 import { attrBoolean, attrInt, attrRecord, attrString, classList, layoutClass, phpTrim } from '../../support/attributes';
-import { applyBackground } from '../../support/background';
-import { applyBlockGap } from '../../support/blockGap';
-import { applyDimensions, dimensionsClassName, hasDimensionStyle } from '../../support/dimensions';
+import { compileBlockSupports } from '../../support/blockSupports';
 import { layoutWrapperClasses } from '../../support/layoutContainer';
 import { resolveAnchor } from '../../support/headingAnchors';
-import { presetClasses } from '../../support/presetClasses';
-import { blockRendererProps } from '../shared';
+import { blockRendererProps, withStyle } from '../shared';
 
 export const ParagraphBlock = defineComponent({
     name: 'ParagraphBlock',
@@ -37,17 +34,19 @@ export const ParagraphBlock = defineComponent({
             const isRtl = direction === 'rtl';
             const dropCapDisabled =
                 align === 'center' || align === (isRtl ? 'left' : 'right');
+            // #920 — the `paragraph.blade.php` supports.
+            const supports = compileBlockSupports(props.attributes);
             const classes = classList([
                 'wp-block-paragraph',
                 align !== '' ? `has-text-align-${align}` : null,
                 dropCap && !dropCapDisabled ? 'has-drop-cap' : null,
+                ...supports.classNames,
                 className,
             ]);
 
-            const nodeProps: Record<string, unknown> = {
-                class: classes,
-                innerHTML: content,
-            };
+            const nodeProps = withStyle({ class: classes }, supports.style);
+
+            nodeProps.innerHTML = content;
 
             if (direction === 'ltr' || direction === 'rtl') {
                 nodeProps.dir = direction;
@@ -69,16 +68,18 @@ export const HeadingBlock = defineComponent({
             const className = attrString(props.attributes.className);
             const content = attrString(props.attributes.content);
 
-            // Preset colour / font-size classes and the anchor `id` match
-            // the Blade partial's `BlockSupports::wrapperAttrs()` output (#888).
+            // The supports (#888, #920) and the anchor `id` match the Blade
+            // partial's `BlockSupports::wrapperAttrs()` output.
+            const supports = compileBlockSupports(props.attributes);
             const classes = classList([
                 'wp-block-heading',
                 textAlign !== '' ? `has-text-align-${textAlign}` : null,
-                ...presetClasses(props.attributes),
+                ...supports.classNames,
                 className,
             ]);
+            const nodeProps = withStyle({ class: classes, id: resolveAnchor(props.attributes.anchor) }, supports.style);
 
-            return h(`h${level}`, { class: classes, id: resolveAnchor(props.attributes.anchor), innerHTML: content });
+            return h(`h${level}`, { ...nodeProps, innerHTML: content });
         };
     },
 });
@@ -91,10 +92,11 @@ export const ListBlock = defineComponent({
             const ordered = attrBoolean(props.attributes.ordered);
             const className = attrString(props.attributes.className);
             const legacyValues = attrString(props.attributes.values);
-            const classes = classList(['wp-block-list', className]);
+            const supports = compileBlockSupports(props.attributes);
+            const classes = classList(['wp-block-list', ...supports.classNames, className]);
 
             const tag = ordered ? 'ol' : 'ul';
-            const commonProps: Record<string, unknown> = { class: classes };
+            const commonProps = withStyle({ class: classes }, supports.style);
 
             if (ordered) {
                 if (props.attributes.start !== undefined && props.attributes.start !== null) {
@@ -127,8 +129,9 @@ export const ListItemBlock = defineComponent({
     setup(props, { slots }) {
         return () => {
             const content = attrString(props.attributes.content);
-            const className = classList([attrString(props.attributes.className)]);
-            const liProps = className === '' ? {} : { class: className };
+            const supports = compileBlockSupports(props.attributes);
+            const className = classList([...supports.classNames, attrString(props.attributes.className)]);
+            const liProps = withStyle(className === '' ? {} : { class: className }, supports.style);
             const children = slots.default ? slots.default() : [];
 
             if (children.length === 0) {
@@ -147,12 +150,13 @@ export const QuoteBlock = defineComponent({
         return () => {
             const className = attrString(props.attributes.className);
             const citation = attrString(props.attributes.citation);
+            const supports = compileBlockSupports(props.attributes);
             // F-3 — layout pair, per-instance scope and modifiers, as in
             // `quote.blade.php`.
             const classes = classList([
                 'wp-block-quote',
                 ...layoutWrapperClasses(props.attributes, 'quote', layoutClass(props.attributes)),
-                dimensionsClassName(props.attributes),
+                ...supports.classNames,
                 className,
             ]);
             const children = slots.default ? slots.default() : [];
@@ -162,20 +166,7 @@ export const QuoteBlock = defineComponent({
                 nodes.push(h('cite', { innerHTML: citation }));
             }
 
-            // `BlockSupports::compile()` order: background image (F-4),
-            // then Block spacing, then dimensions.
-            const wrapperStyle = {
-                ...applyBackground(props.attributes),
-                ...applyBlockGap(props.attributes),
-                ...applyDimensions(props.attributes),
-            };
-            const nodeProps: Record<string, unknown> = { class: classes };
-
-            if (Object.keys(wrapperStyle).length > 0) {
-                nodeProps.style = wrapperStyle;
-            }
-
-            return h('blockquote', nodeProps, nodes);
+            return h('blockquote', withStyle({ class: classes }, supports.style), nodes);
         };
     },
 });
@@ -186,10 +177,11 @@ export const CodeBlock = defineComponent({
     setup(props) {
         return () => {
             const content = attrString(props.attributes.content);
+            const supports = compileBlockSupports(props.attributes);
             // `className` carries the `ve-r-*` / `ve-fx-*` scopes too (M-7).
-            const classes = classList(['wp-block-code', attrString(props.attributes.className)]);
+            const classes = classList(['wp-block-code', ...supports.classNames, attrString(props.attributes.className)]);
 
-            return h('pre', { class: classes }, h('code', { innerHTML: content }));
+            return h('pre', withStyle({ class: classes }, supports.style), h('code', { innerHTML: content }));
         };
     },
 });
@@ -201,9 +193,10 @@ export const PreformattedBlock = defineComponent({
         return () => {
             const content = attrString(props.attributes.content);
 
-            const classes = classList(['wp-block-preformatted', attrString(props.attributes.className)]);
+            const supports = compileBlockSupports(props.attributes);
+            const classes = classList(['wp-block-preformatted', ...supports.classNames, attrString(props.attributes.className)]);
 
-            return h('pre', { class: classes, innerHTML: content });
+            return h('pre', { ...withStyle({ class: classes }, supports.style), innerHTML: content });
         };
     },
 });
@@ -215,21 +208,15 @@ export const VerseBlock = defineComponent({
         return () => {
             const content = attrString(props.attributes.content);
             const textAlign = attrString(props.attributes.textAlign);
+            const supports = compileBlockSupports(props.attributes);
             const classes = classList([
                 'wp-block-verse',
                 textAlign !== '' ? `has-text-align-${textAlign}` : null,
-                dimensionsClassName(props.attributes),
+                ...supports.classNames,
                 attrString(props.attributes.className),
             ]);
 
-            const wrapperStyle = backgroundAndDimensions(props.attributes);
-            const nodeProps: Record<string, unknown> = { class: classes, innerHTML: content };
-
-            if (wrapperStyle !== undefined) {
-                nodeProps.style = wrapperStyle;
-            }
-
-            return h('pre', nodeProps);
+            return h('pre', { ...withStyle({ class: classes }, supports.style), innerHTML: content });
         };
     },
 });
@@ -242,14 +229,9 @@ export const PullquoteBlock = defineComponent({
             const className = attrString(props.attributes.className);
             const value = attrString(props.attributes.value);
             const citation = attrString(props.attributes.citation);
-            const classes = classList(['wp-block-pullquote', dimensionsClassName(props.attributes), className]);
-
-            const wrapperStyle = backgroundAndDimensions(props.attributes);
-            const nodeProps: Record<string, unknown> = { class: classes };
-
-            if (wrapperStyle !== undefined) {
-                nodeProps.style = wrapperStyle;
-            }
+            const supports = compileBlockSupports(props.attributes);
+            const classes = classList(['wp-block-pullquote', ...supports.classNames, className]);
+            const nodeProps = withStyle({ class: classes }, supports.style);
 
             // The value's HTML goes straight into the blockquote, as in
             // `pullquote.blade.php` (no wrapping element).
@@ -257,21 +239,6 @@ export const PullquoteBlock = defineComponent({
         };
     },
 });
-
-/**
- * The wrapper style for blocks with background-image support (F-4): the
- * background image and then the dimensions, in `BlockSupports::compile()`
- * order. `undefined` when neither is set.
- */
-function backgroundAndDimensions(attributes: Record<string, unknown>): Record<string, string> | undefined {
-    const dimensionStyle = applyDimensions(attributes);
-    const style: Record<string, string> = {
-        ...(applyBackground(attributes) as Record<string, string>),
-        ...(hasDimensionStyle(dimensionStyle) ? (dimensionStyle as Record<string, string>) : {}),
-    };
-
-    return Object.keys(style).length > 0 ? style : undefined;
-}
 
 /**
  * The pullquote `<blockquote>` content, as `pullquote.blade.php` prints it:

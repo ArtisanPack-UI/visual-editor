@@ -18,14 +18,13 @@ import {
     classList,
     layoutClass,
 } from '../../support/attributes';
-import { applyBlockGap } from '../../support/blockGap';
-import { dimensionsClassName } from '../../support/dimensions';
+import { compileBlockSupports, compileCoverOverlay, splitBackgroundSupports } from '../../support/blockSupports';
 import { cssNumber } from '../../support/cssNumber';
 import { layoutWrapperClasses } from '../../support/layoutContainer';
 import { coverImageUrl } from '../../support/coverImage';
 import { searchButtonClasses, searchButtonPosition, searchFormAction } from '../../support/searchForm';
 import { safeUrl } from '../../support/urlSanitizer';
-import { blockRendererProps } from '../shared';
+import { blockRendererProps, withStyle } from '../shared';
 
 const ALLOWED_MIN_HEIGHT_UNITS = ['px', 'em', 'rem', 'vh', 'vw', '%'] as const;
 const ALLOWED_CELL_ALIGN = ['left', 'center', 'right', 'justify'] as const;
@@ -71,15 +70,19 @@ export const SeparatorBlock = defineComponent({
             const style = attrString(props.attributes.style, 'default');
             const className = attrString(props.attributes.className);
 
+            // #920 — the supports `separator.blade.php` prints; a legacy
+            // string `style` is a variant id, which the compiler skips.
+            const supports = compileBlockSupports(props.attributes);
             const classes = classList([
                 'wp-block-separator',
                 'has-alpha-channel-opacity',
                 style === 'wide' ? 'is-style-wide' : null,
                 style === 'dots' ? 'is-style-dots' : null,
+                ...supports.classNames,
                 className,
             ]);
 
-            return h('hr', { class: classes });
+            return h('hr', withStyle({ class: classes }, supports.style));
         };
     },
 });
@@ -100,8 +103,12 @@ export const SpacerBlock = defineComponent({
             // `_veSpacerWidthScope` is stamped by `stampResponsiveScopes()`
             // for per-breakpoint widths; Blade appends it after the
             // compiled classes.
+            // #920 — the supports ride ahead of the spacer's own height, as
+            // in `spacer.blade.php`.
+            const supports = compileBlockSupports(props.attributes);
             const classes = classList([
                 'wp-block-spacer',
+                ...supports.classNames,
                 attrString(props.attributes.className),
                 attrString(props.attributes._veSpacerWidthScope),
             ]);
@@ -109,7 +116,7 @@ export const SpacerBlock = defineComponent({
             return h('div', {
                 'aria-hidden': 'true',
                 class: classes,
-                style: { height },
+                style: { ...supports.style, height },
             });
         };
     },
@@ -130,6 +137,12 @@ export const CoverBlock = defineComponent({
             const align = attrString(props.attributes.align);
             const className = attrString(props.attributes.className);
 
+            // #583 / #920 — the background supports paint on the overlay
+            // span, with the cover's own overlay colour; everything else
+            // stays on the wrapper, as `cover.blade.php` routes them.
+            const supports = splitBackgroundSupports(compileBlockSupports(props.attributes));
+            const overlay = compileCoverOverlay(props.attributes);
+
             const classes = classList([
                 'wp-block-cover',
                 isDark ? 'is-dark' : 'is-light',
@@ -139,13 +152,12 @@ export const CoverBlock = defineComponent({
                 // Duotone scope stamped by `stampDuotoneScopes()`.
                 attrString(props.attributes._veDuotone) || null,
                 align !== '' ? `align${align}` : null,
-                dimensionsClassName(props.attributes),
+                ...supports.wrapper.classNames,
                 className,
             ]);
 
-            // The cover's own Block spacing rides first, in
-            // `cover.blade.php` order.
-            let outerStyle: Record<string, string> = { ...applyBlockGap(props.attributes) };
+            // The cover's supports ride first, in `cover.blade.php` order.
+            let outerStyle: Record<string, string> = { ...supports.wrapper.style };
 
             // An aspect ratio replaces the cover's own min-height (#906).
             const hasAspectRatio =
@@ -158,14 +170,22 @@ export const CoverBlock = defineComponent({
                     ? requestedUnit
                     : 'px';
 
+                // Blade appends the cover's own min-height after a
+                // dimensions one, so it wins; keep a single declaration,
+                // last, as the React twin does.
+                delete outerStyle.minHeight;
                 outerStyle = { ...outerStyle, 'min-height': `${cssNumber(minHeight)}${unit}` };
             }
 
             const children: VNode[] = [
                 h('span', {
                     'aria-hidden': 'true',
-                    class: 'wp-block-cover__background has-background-dim',
-                    style: { opacity: String(dimRatio / 100) },
+                    class: classList([
+                        'wp-block-cover__background',
+                        'has-background-dim',
+                        ...new Set([...supports.background.classNames, ...overlay.classNames]),
+                    ]),
+                    style: { opacity: String(dimRatio / 100), ...supports.background.style, ...overlay.style },
                 }),
             ];
 
@@ -195,13 +215,7 @@ export const CoverBlock = defineComponent({
                 )
             );
 
-            const coverProps: Record<string, unknown> = { class: classes };
-
-            if (Object.keys(outerStyle).length > 0) {
-                coverProps.style = outerStyle;
-            }
-
-            return h('div', coverProps, children);
+            return h('div', withStyle({ class: classes }, outerStyle), children);
         };
     },
 });
@@ -219,20 +233,24 @@ export const MediaTextBlock = defineComponent({
             const className = attrString(props.attributes.className);
             const isStackedOnMobile = attrBoolean(props.attributes.isStackedOnMobile);
 
+            // #920 — the supports ride ahead of the grid columns, as in
+            // `media-text.blade.php`.
+            const supports = compileBlockSupports(props.attributes);
             const classes = classList([
                 'wp-block-media-text',
                 mediaPosition === 'right' ? 'has-media-on-the-right' : null,
                 isStackedOnMobile ? 'is-stacked-on-mobile' : null,
+                ...supports.classNames,
                 className,
             ]);
 
-            let style: Record<string, string> | undefined;
+            const style: Record<string, string> = { ...supports.style };
 
             if (mediaWidth !== 50) {
                 const columns =
                     mediaPosition === 'left' ? `${mediaWidth}% auto` : `auto ${mediaWidth}%`;
 
-                style = { 'grid-template-columns': columns };
+                style['grid-template-columns'] = columns;
             }
 
             let mediaChild: VNode | null = null;
@@ -244,13 +262,7 @@ export const MediaTextBlock = defineComponent({
                         : h('img', { src: mediaUrl, alt: mediaAlt });
             }
 
-            const wrapperProps: Record<string, unknown> = { class: classes };
-
-            if (style !== undefined) {
-                wrapperProps.style = style;
-            }
-
-            return h('div', wrapperProps, [
+            return h('div', withStyle({ class: classes }, style), [
                 h(
                     'figure',
                     { class: 'wp-block-media-text__media' },
@@ -278,7 +290,8 @@ export const TableBlock = defineComponent({
             const hasFixedLayout = attrBoolean(props.attributes.hasFixedLayout, true);
             const caption = attrString(props.attributes.caption);
 
-            const classes = classList(['wp-block-table', className]);
+            const supports = compileBlockSupports(props.attributes);
+            const classes = classList(['wp-block-table', ...supports.classNames, className]);
 
             const sections = [
                 { key: 'head' as const, Tag: 'thead' as const, defaultTag: 'th' as const },
@@ -331,7 +344,7 @@ export const TableBlock = defineComponent({
                 figureChildren.push(h('figcaption', { innerHTML: caption }));
             }
 
-            return h('figure', { class: classes }, figureChildren);
+            return h('figure', withStyle({ class: classes }, supports.style), figureChildren);
         };
     },
 });
@@ -346,9 +359,11 @@ export const DetailsBlock = defineComponent({
             const className = attrString(props.attributes.className);
             // F-3 — layout pair, per-instance scope and modifiers, as in
             // `details.blade.php`.
+            const supports = compileBlockSupports(props.attributes);
             const classes = classList([
                 'wp-block-details',
                 ...layoutWrapperClasses(props.attributes, 'details', layoutClass(props.attributes)),
+                ...supports.classNames,
                 className,
             ]);
 
@@ -358,14 +373,7 @@ export const DetailsBlock = defineComponent({
                 children.push(...(slots.default() as VNode[]));
             }
 
-            const detailsProps: Record<string, unknown> = { class: classes, open: showContent };
-            const gapStyle = applyBlockGap(props.attributes);
-
-            if (Object.keys(gapStyle).length > 0) {
-                detailsProps.style = gapStyle;
-            }
-
-            return h('details', detailsProps, children);
+            return h('details', withStyle({ class: classes, open: showContent }, supports.style), children);
         };
     },
 });
@@ -407,9 +415,11 @@ export const SearchBlock = defineComponent({
             // #961: button position classes as WordPress prints them;
             // `no-button` renders no button, so Enter submits.
             const hasButton = searchButtonPosition(props.attributes) !== 'no-button';
+            const supports = compileBlockSupports(props.attributes);
             const classes = classList([
                 'wp-block-search',
                 ...searchButtonClasses(props.attributes, useIcon),
+                ...supports.classNames,
                 className,
             ]);
 
@@ -481,7 +491,7 @@ export const SearchBlock = defineComponent({
 
             return h(
                 'form',
-                { role: 'search', method: 'get', action, class: classes },
+                withStyle({ role: 'search', method: 'get', action, class: classes }, supports.style),
                 children
             );
         };

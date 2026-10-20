@@ -14,15 +14,15 @@
 import {
     attrBoolean,
     attrInt,
+    attrRecord,
     attrString,
     classList,
     layoutClass,
 } from '../../support/attributes';
-import { applyBackground } from '../../support/background';
+import { compileBlockSupports, type CompiledBlockSupports } from '../../support/blockSupports';
+import { styleProp } from '../../support/styleProp';
 import { layoutWrapperClasses } from '../../support/layoutContainer';
-import { applyDimensions, dimensionsClassName } from '../../support/dimensions';
 import { safeCssValue } from '../../support/cssValue';
-import { expandPresetReference } from '../../support/presetReference';
 import { safeUrl } from '../../support/urlSanitizer';
 import type { BlockRendererProps } from '../../types';
 
@@ -50,7 +50,6 @@ function buildLinkProps(
 
 export function PostTitleBlock({ attributes }: BlockRendererProps): JSX.Element {
     const rawLevel = attrInt(attributes.level, 2);
-    const level = Math.max(1, Math.min(6, rawLevel));
     const align = attrString(attributes.textAlign);
     const isLink = attrBoolean(attributes.isLink);
     const linkTarget = attrString(attributes.linkTarget);
@@ -61,11 +60,14 @@ export function PostTitleBlock({ attributes }: BlockRendererProps): JSX.Element 
     const title = attrString(attributes._resolvedTitle);
     const permalink = safeUrl(attrString(attributes._resolvedPermalink));
 
-    const Tag = `h${level}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+    // Level 0 is the "Paragraph" option of the heading-level dropdown (#994).
+    const Tag = (rawLevel === 0 ? 'p' : `h${Math.max(1, Math.min(6, rawLevel))}`) as 'p' | 'h1';
 
+    const supports = compileBlockSupports(attributes);
     const classes = classList([
         'wp-block-post-title',
         align !== '' ? `has-text-align-${align}` : null,
+        ...supports.classNames,
         className,
     ]);
 
@@ -73,13 +75,13 @@ export function PostTitleBlock({ attributes }: BlockRendererProps): JSX.Element 
         const linkProps = buildLinkProps(permalink, linkTarget, rel, linkClass);
 
         return (
-            <Tag className={classes}>
+            <Tag className={classes} style={styleProp(supports.style)}>
                 <a {...linkProps} dangerouslySetInnerHTML={{ __html: title }} />
             </Tag>
         );
     }
 
-    return <Tag className={classes} dangerouslySetInnerHTML={{ __html: title }} />;
+    return <Tag className={classes} style={styleProp(supports.style)} dangerouslySetInnerHTML={{ __html: title }} />;
 }
 
 export function PostContentBlock({ attributes }: BlockRendererProps): JSX.Element {
@@ -92,6 +94,7 @@ export function PostContentBlock({ attributes }: BlockRendererProps): JSX.Elemen
     // `is-layout-constrained` here the content-size containment rules the
     // theme-token compiler emits for `.wp-block-post-content` can never
     // match.
+    const supports = compileBlockSupports(attributes);
     const classes = classList([
         'entry-content',
         'wp-block-post-content',
@@ -99,15 +102,11 @@ export function PostContentBlock({ attributes }: BlockRendererProps): JSX.Elemen
         // then the layout modifier classes (F-3).
         ...layoutWrapperClasses(attributes, 'post-content', layoutClass(attributes)),
         align !== '' ? `has-text-align-${align}` : null,
-        dimensionsClassName(attributes),
+        ...supports.classNames,
         className,
     ]);
 
-    // Blade order: background image (F-4) before dimensions.
-    const wrapperStyle = { ...applyBackground(attributes), ...applyDimensions(attributes) };
-    const style = Object.keys(wrapperStyle).length > 0 ? (wrapperStyle as React.CSSProperties) : undefined;
-
-    return <div className={classes} style={style} dangerouslySetInnerHTML={{ __html: content }} />;
+    return <div className={classes} style={styleProp(supports.style)} dangerouslySetInnerHTML={{ __html: content }} />;
 }
 
 export function PostExcerptBlock({ attributes }: BlockRendererProps): JSX.Element {
@@ -119,9 +118,11 @@ export function PostExcerptBlock({ attributes }: BlockRendererProps): JSX.Elemen
     const excerpt = attrString(attributes._resolvedExcerpt);
     const permalink = safeUrl(attrString(attributes._resolvedPermalink));
 
+    const supports = compileBlockSupports(attributes);
     const classes = classList([
         'wp-block-post-excerpt',
         align !== '' ? `has-text-align-${align}` : null,
+        ...supports.classNames,
         className,
     ]);
 
@@ -142,7 +143,7 @@ export function PostExcerptBlock({ attributes }: BlockRendererProps): JSX.Elemen
     })();
 
     return (
-        <div className={classes}>
+        <div className={classes} style={styleProp(supports.style)}>
             <p className="wp-block-post-excerpt__excerpt">
                 <span dangerouslySetInnerHTML={{ __html: excerpt }} />
                 {moreNode !== null && !showMoreOnNewLine ? <> {moreNode}</> : null}
@@ -170,9 +171,11 @@ export function PostDateBlock({ attributes }: BlockRendererProps): JSX.Element {
             : attrString(attributes._resolvedDateFormatted, datetime);
     const permalink = safeUrl(attrString(attributes._resolvedPermalink));
 
+    const supports = compileBlockSupports(attributes);
     const classes = classList([
         'wp-block-post-date',
         align !== '' ? `has-text-align-${align}` : null,
+        ...supports.classNames,
         className,
     ]);
 
@@ -185,7 +188,7 @@ export function PostDateBlock({ attributes }: BlockRendererProps): JSX.Element {
     const timeNode = <time {...timeProps}>{formatted}</time>;
 
     return (
-        <div className={classes}>
+        <div className={classes} style={styleProp(supports.style)}>
             {isLink && permalink !== '' ? <a href={permalink}>{timeNode}</a> : timeNode}
         </div>
     );
@@ -205,16 +208,18 @@ export function PostAuthorBlock({ attributes }: BlockRendererProps): JSX.Element
     const authorUrl = safeUrl(attrString(attributes._resolvedAuthorUrl));
     const avatarUrl = safeUrl(attrString(attributes._resolvedAuthorAvatar));
 
+    const supports = compileBlockSupports(attributes);
     const classes = classList([
         'wp-block-post-author',
         // Duotone scope stamped by `stampDuotoneScopes()`.
         attrString(attributes._veDuotone) || null,
         align !== '' ? `has-text-align-${align}` : null,
+        ...supports.classNames,
         className,
     ]);
 
     return (
-        <div className={classes}>
+        <div className={classes} style={styleProp(supports.style)}>
             {showAvatar && avatarUrl !== '' ? (
                 <div className="wp-block-post-author__avatar">
                     <img alt={name} width={avatarSize} height={avatarSize} src={avatarUrl} />
@@ -245,9 +250,11 @@ export function PostAuthorNameBlock({ attributes }: BlockRendererProps): JSX.Ele
     const name = attrString(attributes._resolvedAuthorName);
     const authorUrl = safeUrl(attrString(attributes._resolvedAuthorUrl));
 
+    const supports = compileBlockSupports(attributes);
     const classes = classList([
         'wp-block-post-author-name',
         align !== '' ? `has-text-align-${align}` : null,
+        ...supports.classNames,
         className,
     ]);
 
@@ -255,13 +262,13 @@ export function PostAuthorNameBlock({ attributes }: BlockRendererProps): JSX.Ele
         const linkProps = buildLinkProps(authorUrl, linkTarget, '');
 
         return (
-            <div className={classes}>
+            <div className={classes} style={styleProp(supports.style)}>
                 <a {...linkProps}>{name}</a>
             </div>
         );
     }
 
-    return <div className={classes}>{name}</div>;
+    return <div className={classes} style={styleProp(supports.style)}>{name}</div>;
 }
 
 export function PostAuthorBiographyBlock({ attributes }: BlockRendererProps): JSX.Element {
@@ -269,48 +276,33 @@ export function PostAuthorBiographyBlock({ attributes }: BlockRendererProps): JS
     const className = attrString(attributes.className);
     const bio = attrString(attributes._resolvedAuthorBio);
 
+    const supports = compileBlockSupports(attributes);
     const classes = classList([
         'wp-block-post-author-biography',
         align !== '' ? `has-text-align-${align}` : null,
+        ...supports.classNames,
         className,
     ]);
 
-    return <p className={classes} dangerouslySetInnerHTML={{ __html: bio }} />;
+    return <p className={classes} style={styleProp(supports.style)} dangerouslySetInnerHTML={{ __html: bio }} />;
 }
 
 /**
- * The Avatar's root border, painted on its `<img>` as core does (#952):
- * block.json skips border serialization on the wrapper. Mirrors the
- * root-level part of the Blade `BlockSupports::borderAttrs()`.
+ * The Avatar's supports split as `avatar.blade.php` splits them (#952,
+ * #920): block.json skips border serialization on the wrapper, so the
+ * border is painted on the `<img>` (Blade's `BlockSupports::borderAttrs()`)
+ * and every other support lands on the wrapper.
  */
-function avatarImageBorder(attributes: Record<string, unknown>): { className: string; style: Record<string, string> } {
-    const classes = ['avatar', 'wp-block-avatar__image'];
-    const style: Record<string, string> = {};
-    const borderColor = attrString(attributes.borderColor);
+function avatarSupports(attributes: Record<string, unknown>): {
+    wrapper: CompiledBlockSupports;
+    image: CompiledBlockSupports;
+} {
+    const style = attrRecord(attributes.style);
 
-    if (borderColor !== '') {
-        classes.push('has-border-color', `has-${borderColor}-border-color`);
-    }
-
-    const styleAttr = attributes.style as Record<string, unknown> | undefined;
-    const border = styleAttr && typeof styleAttr.border === 'object' && styleAttr.border !== null
-        ? (styleAttr.border as Record<string, unknown>)
-        : {};
-    const declarations: Array<[string, string]> = [
-        ['borderRadius', attrString(border.radius)],
-        ['borderColor', attrString(border.color)],
-        ['borderStyle', attrString(border.style)],
-        ['borderWidth', attrString(border.width)],
-    ];
-
-    for (const [property, value] of declarations) {
-        const safe = value !== '' ? safeCssValue(expandPresetReference(value)) : null;
-        if (safe !== null) {
-            style[property] = safe;
-        }
-    }
-
-    return { className: classes.join(' '), style };
+    return {
+        wrapper: compileBlockSupports({ ...attributes, borderColor: undefined, style: { ...style, border: undefined } }),
+        image: compileBlockSupports({ borderColor: attributes.borderColor, style: { border: style.border } }),
+    };
 }
 
 export function AvatarBlock({ attributes }: BlockRendererProps): JSX.Element {
@@ -323,22 +315,28 @@ export function AvatarBlock({ attributes }: BlockRendererProps): JSX.Element {
     const alt = attrString(attributes._resolvedAuthorName);
     const authorUrl = safeUrl(attrString(attributes._resolvedAuthorUrl));
 
+    const supports = avatarSupports(attributes);
     // Duotone scope stamped by `stampDuotoneScopes()`.
-    const classes = classList(['wp-block-avatar', attrString(attributes._veDuotone) || null, className]);
+    const classes = classList([
+        'wp-block-avatar',
+        attrString(attributes._veDuotone) || null,
+        ...supports.wrapper.classNames,
+        className,
+    ]);
+    const style = styleProp(supports.wrapper.style);
 
     if (avatarUrl === '') {
-        return <div className={classes} />;
+        return <div className={classes} style={style} />;
     }
 
-    const border = avatarImageBorder(attributes);
     const img = (
         <img
             alt={alt}
             width={size}
             height={size}
             src={avatarUrl}
-            className={border.className}
-            style={Object.keys(border.style).length > 0 ? border.style : undefined}
+            className={classList(['avatar', 'wp-block-avatar__image', ...supports.image.classNames])}
+            style={styleProp(supports.image.style)}
         />
     );
 
@@ -346,13 +344,13 @@ export function AvatarBlock({ attributes }: BlockRendererProps): JSX.Element {
         const linkProps = buildLinkProps(authorUrl, linkTarget, '');
 
         return (
-            <div className={classes}>
+            <div className={classes} style={style}>
                 <a {...linkProps}>{img}</a>
             </div>
         );
     }
 
-    return <div className={classes}>{img}</div>;
+    return <div className={classes} style={style}>{img}</div>;
 }
 
 export function PostFeaturedImageBlock({ attributes }: BlockRendererProps): JSX.Element {
@@ -372,20 +370,23 @@ export function PostFeaturedImageBlock({ attributes }: BlockRendererProps): JSX.
     const height = Math.max(0, attrInt(attributes._resolvedImageHeight));
     const permalink = safeUrl(attrString(attributes._resolvedPermalink));
 
+    const supports = compileBlockSupports(attributes);
     const classes = classList([
         'wp-block-post-featured-image',
         sizeSlug !== '' ? `size-${sizeSlug}` : null,
         // Duotone scope stamped by `stampDuotoneScopes()`.
         attrString(attributes._veDuotone) || null,
+        ...supports.classNames,
         className,
     ]);
 
     if (imageUrl === '') {
-        return <figure className={classes} />;
+        return <figure className={classes} style={styleProp(supports.style)} />;
     }
 
-    // Frame sizing only applies once there is an image to frame.
-    const figureStyle: Record<string, string> = {};
+    // The supports (#920), then the frame sizing, which only applies once
+    // there is an image to frame.
+    const figureStyle: Record<string, string> = { ...supports.style };
 
     if (frameWidth !== '') {
         figureStyle.width = frameWidth;
@@ -395,7 +396,7 @@ export function PostFeaturedImageBlock({ attributes }: BlockRendererProps): JSX.
         figureStyle.height = frameHeight;
     }
 
-    const figureProps = Object.keys(figureStyle).length > 0 ? { style: figureStyle } : {};
+    const figureProps = { style: styleProp(figureStyle) };
 
     const style: Record<string, string> = {};
 

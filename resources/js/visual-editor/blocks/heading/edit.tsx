@@ -17,6 +17,7 @@ import {
     store as blockEditorStore,
 } from '@wordpress/block-editor';
 
+import { useBoundAttribute } from '../../bindings/bound-attributes-context';
 import { generateAnchor, setAnchor } from './autogenerate-anchors';
 
 interface HeadingAttributes {
@@ -57,6 +58,7 @@ export default function HeadingEdit(props: HeadingEditProps): ReactElement {
     const safeLevel = clampHeadingLevel(level);
     const tagName = `h${safeLevel}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
     const blockProps = useBlockProps({ style });
+    const contentBinding = useBoundAttribute('content');
 
     const { canGenerateAnchors } = useSelect((select) => {
         const store = select(blockEditorStore) as unknown as BlockEditorSelect;
@@ -101,6 +103,24 @@ export default function HeadingEdit(props: HeadingEditProps): ReactElement {
         }
         setAttributes(newAttrs);
     };
+
+    // Content bound to a data source is overlaid with the resolved value,
+    // so an editable RichText would discard every keystroke. Render it
+    // read-only instead; it unlocks once the binding is disconnected (#995).
+    // A bound heading renders its resolved value read-only (#995). The
+    // tag is rendered directly rather than through `RichText.Content`,
+    // a function component that would drop `blockProps.ref`.
+    if (contentBinding !== null) {
+        const BoundTag = tagName as 'h2';
+
+        return (
+            <BoundTag
+                {...blockProps}
+                aria-readonly="true"
+                dangerouslySetInnerHTML={{ __html: content ?? '' }}
+            />
+        );
+    }
 
     return (
         <RichText

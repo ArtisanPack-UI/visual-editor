@@ -22,9 +22,9 @@ import {
     layoutPair,
     postTemplateItemSpanClasses,
 } from '../../support/attributes';
-import { applyBlockGap } from '../../support/blockGap';
+import { compileBlockSupports } from '../../support/blockSupports';
 import { layoutWrapperClasses } from '../../support/layoutContainer';
-import { blockRendererProps } from '../shared';
+import { blockRendererProps, withStyle } from '../shared';
 
 /**
  * Coerce a host-supplied `columns` attribute into a safe integer in [1, 12].
@@ -93,20 +93,20 @@ export const QueryBlock = defineComponent({
             const resolutionError = attrString(props.attributes._resolutionError);
             const hasError = resolutionError !== '';
 
+            const supports = compileBlockSupports(props.attributes);
             // F-3 — layout pair, per-instance scope and modifiers, as in
             // `query.blade.php`.
-            const attrs: Record<string, unknown> = {
-                class: classList([
-                    'wp-block-query',
-                    ...layoutWrapperClasses(props.attributes, 'query', layoutClass(props.attributes)),
-                    className,
-                ]),
-            };
-            const gapStyle = applyBlockGap(props.attributes);
-
-            if (Object.keys(gapStyle).length > 0) {
-                attrs.style = gapStyle;
-            }
+            const attrs = withStyle(
+                {
+                    class: classList([
+                        'wp-block-query',
+                        ...layoutWrapperClasses(props.attributes, 'query', layoutClass(props.attributes)),
+                        ...supports.classNames,
+                        className,
+                    ]),
+                },
+                supports.style
+            );
 
             if (hasError && isDevelopment()) {
                 attrs['data-ve-resolution-error'] = resolutionError;
@@ -129,6 +129,7 @@ export const PostTemplateBlock = defineComponent({
             const isMasonry = layout === 'masonry';
             const usesColumns = isGrid || isMasonry;
             const columns = clampColumns(props.attributes.columns, 3);
+            const supports = compileBlockSupports(props.attributes);
 
             const attrs: Record<string, unknown> = {
                 class: classList([
@@ -148,9 +149,12 @@ export const PostTemplateBlock = defineComponent({
                     ...layoutPair('post-template', usesColumns ? 'is-layout-grid' : 'is-layout-flow'),
                     isMasonry ? 'is-layout-masonry' : '',
                     usesColumns ? `columns-${columns}` : '',
+                    ...supports.classNames,
                     className,
                 ]),
             };
+
+            withStyle(attrs, supports.style);
 
             if (isMasonry) {
                 attrs['data-ap-cols'] = columns;
