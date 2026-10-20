@@ -52,7 +52,7 @@
             "status": "adapted",
             "notes": "TypeScript port of the row/column subset: `createTable`, `getFirstRow`, `insertRow`, `deleteRow`, `insertColumn`, `deleteColumn`, `isEmptyTableSection`, `isEmptyRow`. Helpers return only the sections they change. `createTable` keeps the fork's positional signature and returns rows rather than `{ body }`. Cell-selection, alignment, and `toggleSection` helpers are not ported yet.",
             "result": "skipped-status",
-            "forkDigest": "c62a2ed51459"
+            "forkDigest": "0b5b1d77b37e"
         },
         {
             "fork": "utils.ts",

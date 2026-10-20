@@ -8,6 +8,8 @@
  *
  * Every helper returns a partial attributes object containing only the
  * sections it changed, ready to hand to `setAttributes`.
+ *
+ * @since 1.15.4
  */
 
 export interface TableCell {
