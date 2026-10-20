@@ -12,7 +12,7 @@
             "status": "adapted",
             "notes": "name + textdomain swapped.",
             "result": "skipped-status",
-            "forkDigest": "466f47c6524e"
+            "forkDigest": "3f260145ff30"
         },
         {
             "fork": "edit.tsx",
@@ -20,7 +20,7 @@
             "status": "adapted",
             "notes": "TypeScript port; semantics verbatim.",
             "result": "skipped-status",
-            "forkDigest": "1de53881dfa8"
+            "forkDigest": "15e659dba057"
         },
         {
             "fork": "save.tsx",

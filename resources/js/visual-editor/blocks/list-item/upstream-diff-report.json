@@ -12,7 +12,7 @@
             "status": "adapted",
             "notes": "name + textdomain + parent + allowedBlocks updated to artisanpack/* names.",
             "result": "skipped-status",
-            "forkDigest": "3c945bc637f2"
+            "forkDigest": "8e86ec1585b1"
         },
         {
             "fork": "edit.tsx",
@@ -20,7 +20,7 @@
             "status": "rewritten",
             "notes": "Simplified edit. Upstream's `hooks.js` ships `useEnter`, `useSpace`, `useIndentListItem`, `useOutdentListItem`, `useMerge` — all reach into block-editor private dispatch surface for nested-list keyboard navigation. Deferred to post-I7. RichText editing and inner-block nesting still work.",
             "result": "skipped-status",
-            "forkDigest": "3d1af5528bd3"
+            "forkDigest": "af5353b1d443"
         },
         {
             "fork": "save.tsx",

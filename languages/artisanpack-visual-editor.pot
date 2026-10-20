@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: artisanpack-ui-visual-editor\n"
-"POT-Creation-Date: 2026-10-16T15:20:32+0000\n"
+"POT-Creation-Date: 2026-10-20T17:48:35+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -30,7 +30,7 @@ msgstr ""
 msgid "— Select a collection —"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/form/edit.tsx:429
+#: resources/js/visual-editor/blocks/form/edit.tsx:479
 msgid "— Select a form —"
 msgstr ""
 
@@ -59,6 +59,10 @@ msgstr ""
 msgid "“%s” installed successfully."
 msgstr ""
 
+#: resources/js/visual-editor/blocks/categories/edit.tsx:186
+msgid "\"All\" label"
+msgstr ""
+
 #: resources/js/visual-editor/animations/AnimationPanel.tsx:303
 msgid "“infinite” or a positive integer."
 msgstr ""
@@ -75,8 +79,13 @@ msgstr ""
 msgid "(no label)"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/post-title/edit.tsx:256
+#: resources/js/visual-editor/blocks/post-title/edit.tsx:316
 msgid "(no title)"
+msgstr ""
+
+#. translators: %d: entry id.
+#: resources/js/visual-editor/site-editor/template-preview-entry.tsx:173
+msgid "(no title) #%d"
 msgstr ""
 
 #: resources/js/visual-editor/animations/AnimationPanel.tsx:58
@@ -96,7 +105,7 @@ msgid "(Untitled item)"
 msgstr ""
 
 #. translators: 1: entity title, 2: section save label (e.g. "Save template").
-#: resources/js/visual-editor/site-editor/site-editor-app.tsx:628
+#: resources/js/visual-editor/site-editor/site-editor-app.tsx:631
 msgid "%1$s — %2$s"
 msgstr ""
 
@@ -113,8 +122,13 @@ msgstr ""
 #. translators: 1: template label. 2: source (Theme, CMS, etc).
 #. translators: 1: block name shown in List View, 2: visibility state such as "Hidden".
 #: resources/js/visual-editor/editor/page-pattern-modal/page-pattern-modal.tsx:351
-#: resources/js/visual-editor/visibility/with-visibility-canvas.tsx:295
+#: resources/js/visual-editor/visibility/with-visibility-canvas.tsx:304
 msgid "%1$s (%2$s)"
+msgstr ""
+
+#. translators: 1: device name, e.g. "Mobile". 2: its maximum width in pixels.
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:315
+msgid "%1$s (≤%2$dpx)"
 msgstr ""
 
 #. translators: 1: section label, 2: phase identifier (e.g. "D2").
@@ -151,7 +165,7 @@ msgid "%d items"
 msgstr ""
 
 #. translators: %d: Percentage value.
-#: resources/js/visual-editor/blocks/search/edit.tsx:552
+#: resources/js/visual-editor/blocks/search/edit.tsx:556
 msgid "%d%%"
 msgstr ""
 
@@ -161,7 +175,7 @@ msgid "%d%% changed —"
 msgstr ""
 
 #. translators: %s: form name.
-#: resources/js/visual-editor/blocks/form/edit.tsx:434
+#: resources/js/visual-editor/blocks/form/edit.tsx:484
 msgid "%s (inactive)"
 msgstr ""
 
@@ -199,7 +213,7 @@ msgstr[1] ""
 msgid "%s URL"
 msgstr ""
 
-#: resources/js/visual-editor/site-editor/site-editor-app.tsx:656
+#: resources/js/visual-editor/site-editor/site-editor-app.tsx:659
 msgid "← Back"
 msgstr ""
 
@@ -265,10 +279,6 @@ msgstr ""
 msgid "2nd post"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/with-visibility-panel.tsx:107
-msgid "2X-Large (≥1536px)"
-msgstr ""
-
 #: resources/js/visual-editor/blocks/columns/variations.tsx:79
 msgid "33 / 33 / 33"
 msgstr ""
@@ -300,7 +310,7 @@ msgstr ""
 
 #: resources/js/visual-editor/blocks/latest-posts/edit.tsx:212
 #: resources/js/visual-editor/blocks/query/edit.tsx:173
-#: resources/js/visual-editor/blocks/related-posts/edit.tsx:262
+#: resources/js/visual-editor/blocks/related-posts/edit.tsx:316
 msgid "A → Z"
 msgstr ""
 
@@ -308,7 +318,7 @@ msgstr ""
 msgid "A copy of these blocks will be inserted each time. Changes only affect future insertions."
 msgstr ""
 
-#: resources/js/visual-editor/blocks/icon/edit.tsx:433
+#: resources/js/visual-editor/blocks/icon/edit.tsx:453
 msgid "A decorative icon inside a link needs an aria-label so screen readers can announce the destination."
 msgstr ""
 
@@ -318,6 +328,14 @@ msgstr ""
 
 #: resources/js/visual-editor/site-editor/patterns/convert-to-unsynced-dialog.tsx:149
 msgid "A new unsynced pattern will be created with this content. The original synced pattern is left as-is, and every place that already references it keeps doing so. Sync status is permanent: this new pattern cannot be flipped back to synced later."
+msgstr ""
+
+#: resources/js/visual-editor/blocks/_shared/search-form-action-control.tsx:112
+msgid "A path on this site, starting with /."
+msgstr ""
+
+#: resources/js/visual-editor/blocks/post-date/edit.tsx:175
+msgid "A PHP date format, such as \"M j, Y\"."
 msgstr ""
 
 #: resources/js/visual-editor/blocks/post-variant/edit.tsx:331
@@ -345,11 +363,11 @@ msgstr ""
 msgid "Accessible label"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/accordion/edit.tsx:84
+#: resources/js/visual-editor/blocks/accordion/edit.tsx:85
 msgid "Accordion settings"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/accordions/edit.tsx:52
+#: resources/js/visual-editor/blocks/accordions/edit.tsx:69
 msgid "Accordions settings"
 msgstr ""
 
@@ -370,18 +388,22 @@ msgstr ""
 msgid "Add a heading…"
 msgstr ""
 
+#: resources/js/visual-editor/blocks/post-excerpt/edit.tsx:76
+msgid "Add an excerpt…"
+msgstr ""
+
 #: resources/js/visual-editor/blocks/cover/variations.ts:15
 msgid "Add an image or video with a text overlay."
 msgstr ""
 
-#: resources/js/visual-editor/blocks/search/edit.tsx:383
+#: resources/js/visual-editor/blocks/search/edit.tsx:386
 msgid "Add button text…"
 msgstr ""
 
 #: resources/js/visual-editor/blocks/audio/edit.tsx:238
 #: resources/js/visual-editor/blocks/embed/edit.tsx:340
 #: resources/js/visual-editor/blocks/image/image-editor.tsx:361
-#: resources/js/visual-editor/blocks/table/edit.tsx:232
+#: resources/js/visual-editor/blocks/table/edit.tsx:332
 #: resources/js/visual-editor/blocks/video/edit.tsx:405
 msgid "Add caption"
 msgstr ""
@@ -400,7 +422,7 @@ msgstr ""
 msgid "Add citation"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:294
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:416
 msgid "Add clause"
 msgstr ""
 
@@ -416,7 +438,7 @@ msgstr ""
 msgid "Add gallery caption"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/search/edit.tsx:647
+#: resources/js/visual-editor/blocks/search/edit.tsx:670
 msgid "Add label…"
 msgstr ""
 
@@ -464,7 +486,7 @@ msgstr ""
 msgid "Add panel content…"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:342
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:464
 msgid "Add pattern"
 msgstr ""
 
@@ -496,7 +518,7 @@ msgstr ""
 msgid "Add text or blocks that will display when the query returns no results."
 msgstr ""
 
-#: resources/js/visual-editor/blocks/button/edit.tsx:125
+#: resources/js/visual-editor/blocks/button/edit.tsx:129
 #: resources/js/visual-editor/blocks/file/edit.tsx:327
 msgid "Add text…"
 msgstr ""
@@ -509,11 +531,15 @@ msgstr ""
 msgid "Add video"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:575
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:697
 msgid "Add window"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/accordions/edit.tsx:55
+#: resources/js/visual-editor/blocks/categories/edit.tsx:172
+msgid "Adds a first item that links to the unfiltered list."
+msgstr ""
+
+#: resources/js/visual-editor/blocks/accordions/edit.tsx:72
 msgid "Adds FAQPage JSON-LD built from each panel’s title (Question) and body (Answer). Leave off if the page already emits FAQ schema elsewhere — avoid double-emission."
 msgstr ""
 
@@ -555,9 +581,10 @@ msgstr ""
 msgid "Align Self"
 msgstr ""
 
+#: resources/js/visual-editor/blocks/categories/edit.tsx:187
 #: resources/js/visual-editor/blocks/icon/icon-picker.tsx:376
 #: resources/js/visual-editor/site-editor/templates-section.tsx:49
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:601
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:723
 msgid "All"
 msgstr ""
 
@@ -625,7 +652,7 @@ msgstr ""
 msgid "Answer…"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:600
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:722
 msgid "Any"
 msgstr ""
 
@@ -682,7 +709,7 @@ msgstr ""
 msgid "Arrow Right"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/accordion/edit.tsx:44
+#: resources/js/visual-editor/blocks/accordion/edit.tsx:45
 msgid "Arrows"
 msgstr ""
 
@@ -759,7 +786,7 @@ msgstr ""
 msgid "Auto-generated on insert; override if you need a stable URL anchor."
 msgstr ""
 
-#: resources/js/visual-editor/blocks/accordion/edit.tsx:87
+#: resources/js/visual-editor/blocks/accordion/edit.tsx:88
 msgid "Auto-generated on insert. Used for the panel id and the toggle aria-controls hookup."
 msgstr ""
 
@@ -813,8 +840,12 @@ msgstr ""
 msgid "Background color"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/cover/edit/index.tsx:852
+#: resources/js/visual-editor/blocks/cover/edit/index.tsx:890
 msgid "Background video"
+msgstr ""
+
+#: resources/js/visual-editor/blocks/categories/edit.tsx:129
+msgid "Badge"
 msgstr ""
 
 #: resources/js/visual-editor/blocks/skills-slider/edit.tsx:116
@@ -981,7 +1012,7 @@ msgstr ""
 msgid "Border width"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:94
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:95
 msgid "Bot"
 msgstr ""
 
@@ -1017,7 +1048,7 @@ msgstr ""
 msgid "Breadcrumbs settings"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:357
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:479
 msgid "Browser / OS / Device"
 msgstr ""
 
@@ -1025,7 +1056,7 @@ msgstr ""
 msgid "Browser default"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:365
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:487
 msgid "Browsers"
 msgstr ""
 
@@ -1057,7 +1088,7 @@ msgstr ""
 msgid "Button"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/search/edit.tsx:245
+#: resources/js/visual-editor/blocks/search/edit.tsx:248
 msgid "Button inside"
 msgstr ""
 
@@ -1065,21 +1096,21 @@ msgstr ""
 msgid "Button labels"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/search/edit.tsx:253
+#: resources/js/visual-editor/blocks/search/edit.tsx:256
 msgid "Button only"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/search/edit.tsx:241
+#: resources/js/visual-editor/blocks/search/edit.tsx:244
 msgid "Button outside"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/search/edit.tsx:435
-#: resources/js/visual-editor/blocks/search/edit.tsx:448
+#: resources/js/visual-editor/blocks/search/edit.tsx:439
+#: resources/js/visual-editor/blocks/search/edit.tsx:452
 msgid "Button position"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/button/edit.tsx:124
-#: resources/js/visual-editor/blocks/search/edit.tsx:382
+#: resources/js/visual-editor/blocks/button/edit.tsx:128
+#: resources/js/visual-editor/blocks/search/edit.tsx:385
 msgid "Button text"
 msgstr ""
 
@@ -1130,7 +1161,7 @@ msgstr ""
 msgid "Category, Updates"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/table/edit.tsx:144
+#: resources/js/visual-editor/blocks/table/edit.tsx:237
 msgid "Cell"
 msgstr ""
 
@@ -1159,7 +1190,7 @@ msgstr ""
 msgid "Change content position"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/icon/edit.tsx:349
+#: resources/js/visual-editor/blocks/icon/edit.tsx:369
 msgid "Change icon…"
 msgstr ""
 
@@ -1192,7 +1223,7 @@ msgstr ""
 msgid "Chip style"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/form/edit.tsx:534
+#: resources/js/visual-editor/blocks/form/edit.tsx:603
 msgid "Choose a form in the block sidebar."
 msgstr ""
 
@@ -1205,7 +1236,7 @@ msgstr ""
 msgid "Choose a sync type — this cannot be changed once the pattern is created."
 msgstr ""
 
-#: resources/js/visual-editor/blocks/icon/edit.tsx:259
+#: resources/js/visual-editor/blocks/icon/edit.tsx:272
 #: resources/js/visual-editor/blocks/icon/icon-picker.tsx:518
 msgid "Choose an icon"
 msgstr ""
@@ -1214,7 +1245,7 @@ msgstr ""
 msgid "Choose font files"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/icon/edit.tsx:350
+#: resources/js/visual-editor/blocks/icon/edit.tsx:370
 msgid "Choose icon…"
 msgstr ""
 
@@ -1264,7 +1295,7 @@ msgid "Close"
 msgstr ""
 
 #: resources/js/visual-editor/editor/top-bar.tsx:272
-#: resources/js/visual-editor/site-editor/site-editor-app.tsx:603
+#: resources/js/visual-editor/site-editor/site-editor-app.tsx:606
 msgid "Close block inserter"
 msgstr ""
 
@@ -1274,11 +1305,11 @@ msgid "Close dialog"
 msgstr ""
 
 #: resources/js/visual-editor/editor/top-bar.tsx:276
-#: resources/js/visual-editor/site-editor/site-editor-app.tsx:619
+#: resources/js/visual-editor/site-editor/site-editor-app.tsx:622
 msgid "Close inspector"
 msgstr ""
 
-#: resources/js/visual-editor/site-editor/site-editor-app.tsx:611
+#: resources/js/visual-editor/site-editor/site-editor-app.tsx:614
 msgid "Close navigator"
 msgstr ""
 
@@ -1304,11 +1335,15 @@ msgstr ""
 msgid "Col rev."
 msgstr ""
 
+#: resources/js/visual-editor/editor/with-navigation-collapse-breakpoint.tsx:135
+msgid "Collapse below"
+msgstr ""
+
 #: resources/js/visual-editor/blocks/dynamic-loop/edit.tsx:93
 msgid "Collection"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/icon/edit.tsx:361
+#: resources/js/visual-editor/blocks/icon/edit.tsx:381
 #: resources/js/visual-editor/blocks/skills-slider/edit.tsx:109
 #: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:402
 #: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:427
@@ -1362,7 +1397,7 @@ msgstr ""
 msgid "Column"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/table/edit.tsx:193
+#: resources/js/visual-editor/blocks/table/edit.tsx:293
 msgid "Column count"
 msgstr ""
 
@@ -1381,6 +1416,7 @@ msgstr ""
 #: resources/js/visual-editor/blocks/grid/edit.tsx:107
 #: resources/js/visual-editor/blocks/latest-posts/edit.tsx:247
 #: resources/js/visual-editor/blocks/post-template/edit.tsx:139
+#: resources/js/visual-editor/blocks/related-posts/edit.tsx:339
 msgid "Columns"
 msgstr ""
 
@@ -1445,7 +1481,7 @@ msgstr ""
 msgid "Composed-view controls"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/canvas-rules.ts:142
+#: resources/js/visual-editor/visibility/canvas-rules.ts:188
 msgid "Conditionally visible"
 msgstr ""
 
@@ -1456,6 +1492,16 @@ msgstr ""
 
 #: resources/js/visual-editor/site-editor/navigation/navigation-canvas.tsx:477
 msgid "Confirm delete"
+msgstr ""
+
+#. translators: 1: binding source name, 2: source field key.
+#: resources/js/visual-editor/bindings/bound-attribute-help.ts:23
+msgid "Connected to %1$s → %2$s. Disconnect it in the Block bindings panel to edit."
+msgstr ""
+
+#. translators: %s: binding source name.
+#: resources/js/visual-editor/bindings/bound-attribute-help.ts:31
+msgid "Connected to %s. Disconnect it in the Block bindings panel to edit."
 msgstr ""
 
 #: resources/js/visual-editor/blocks/_shared/photo-grid/controls.tsx:243
@@ -1499,6 +1545,10 @@ msgstr ""
 msgid "Convert to unsynced copy"
 msgstr ""
 
+#: resources/js/visual-editor/blocks/_shared/social-icons.ts:146
+msgid "Copy link"
+msgstr ""
+
 #. translators: %s: original pattern name.
 #: resources/js/visual-editor/site-editor/patterns/convert-to-unsynced-dialog.tsx:48
 msgid "Copy of %s"
@@ -1526,6 +1576,10 @@ msgstr ""
 
 #: resources/js/visual-editor/ai/AltTextSuggestionCard.tsx:81
 msgid "Could not suggest alt text."
+msgstr ""
+
+#: resources/js/visual-editor/blocks/categories/edit.tsx:121
+msgid "Count style"
 msgstr ""
 
 #: resources/js/visual-editor/site-editor/patterns/delete-pattern-dialog.tsx:209
@@ -1563,7 +1617,7 @@ msgstr ""
 msgid "Create menu"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/table/edit.tsx:214
+#: resources/js/visual-editor/blocks/table/edit.tsx:314
 msgid "Create table"
 msgstr ""
 
@@ -1603,6 +1657,7 @@ msgstr ""
 msgid "Current Page"
 msgstr ""
 
+#: resources/js/visual-editor/blocks/post-date/edit.tsx:142
 #: resources/js/visual-editor/site-editor/templates-section.tsx:224
 #: resources/js/visual-editor/site-editor/templates-section.tsx:71
 msgid "Custom"
@@ -1633,6 +1688,10 @@ msgstr ""
 msgid "Custom font size"
 msgstr ""
 
+#: resources/js/visual-editor/blocks/post-date/edit.tsx:174
+msgid "Custom format"
+msgstr ""
+
 #: resources/js/visual-editor/ai/RewriteToolbar.tsx:80
 msgid "Custom intent"
 msgstr ""
@@ -1644,6 +1703,10 @@ msgstr ""
 
 #: resources/js/visual-editor/blocks/post-variant/edit.tsx:295
 msgid "Custom matchers are resolved server-side by the apve_query_variant_match_<name> filter hook."
+msgstr ""
+
+#: resources/js/visual-editor/blocks/_shared/search-form-action-control.tsx:90
+msgid "Custom path"
 msgstr ""
 
 #: resources/js/visual-editor/blocks/_shared/photo-grid/controls.tsx:212
@@ -1707,11 +1770,15 @@ msgstr ""
 msgid "Dashed"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:476
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:598
 msgid "Date / time window"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:525
+#: resources/js/visual-editor/blocks/post-date/edit.tsx:154
+msgid "Date format"
+msgstr ""
+
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:647
 msgid "Day"
 msgstr ""
 
@@ -1724,7 +1791,12 @@ msgstr ""
 msgid "Default"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/button/edit.tsx:213
+#. translators: %s: today's date in the default format.
+#: resources/js/visual-editor/blocks/post-date/edit.tsx:135
+msgid "Default (%s)"
+msgstr ""
+
+#: resources/js/visual-editor/blocks/button/edit.tsx:217
 msgid "Default (<a>)"
 msgstr ""
 
@@ -1737,6 +1809,10 @@ msgstr ""
 msgid "Default (<hr>)"
 msgstr ""
 
+#: resources/js/visual-editor/editor/with-navigation-collapse-breakpoint.tsx:90
+msgid "Default (600px)"
+msgstr ""
+
 #: resources/js/visual-editor/site-editor/styles/panels/colors-panel.tsx:184
 msgid "Default link color"
 msgstr ""
@@ -1746,7 +1822,7 @@ msgid "Default styles — apply when no interactive state matches."
 msgstr ""
 
 #: resources/js/visual-editor/editor/composed-view/default-template.ts:34
-#: resources/js/visual-editor/editor/editor-app.tsx:1125
+#: resources/js/visual-editor/editor/editor-app.tsx:1245
 msgid "Default template"
 msgstr ""
 
@@ -1773,6 +1849,10 @@ msgstr ""
 msgid "Delete %s"
 msgstr ""
 
+#: resources/js/visual-editor/blocks/table/edit.tsx:191
+msgid "Delete column"
+msgstr ""
+
 #: resources/js/visual-editor/animations/CustomKeyframeEditor.tsx:201
 msgid "Delete keyframe"
 msgstr ""
@@ -1784,6 +1864,10 @@ msgstr ""
 #. translators: %s: pattern title.
 #: resources/js/visual-editor/site-editor/patterns/delete-pattern-dialog.tsx:178
 msgid "Delete pattern: %s"
+msgstr ""
+
+#: resources/js/visual-editor/blocks/table/edit.tsx:173
+msgid "Delete row"
 msgstr ""
 
 #: resources/js/visual-editor/blocks/query/post-variants-panel.tsx:315
@@ -1812,15 +1896,20 @@ msgid "Description (optional)"
 msgstr ""
 
 #: resources/js/visual-editor/responsive/registry.ts:40
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:93
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:94
 msgid "Desktop"
+msgstr ""
+
+#. translators: %d: the minimum desktop width in pixels.
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:330
+msgid "Desktop (≥%dpx)"
 msgstr ""
 
 #: resources/js/visual-editor/site-editor/template-parts-section.tsx:219
 msgid "Determines which template slots this part can fill."
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:367
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:489
 msgid "Device types"
 msgstr ""
 
@@ -1833,7 +1922,7 @@ msgctxt "blend mode"
 msgid "Difference"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/icon/edit.tsx:372
+#: resources/js/visual-editor/blocks/icon/edit.tsx:392
 msgid "Dimensions"
 msgstr ""
 
@@ -1890,6 +1979,10 @@ msgstr ""
 
 #: resources/js/visual-editor/blocks/post-navigation-link/edit.tsx:216
 msgid "Display the title as a link"
+msgstr ""
+
+#: resources/js/visual-editor/blocks/query-total/edit.tsx:111
+msgid "Display type"
 msgstr ""
 
 #: resources/js/visual-editor/blocks/columns/edit.tsx:348
@@ -1964,7 +2057,7 @@ msgstr ""
 msgid "Dynamic Loop"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:495
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:617
 msgid "e.g. America/Chicago. Falls back to the app's configured timezone."
 msgstr ""
 
@@ -1988,7 +2081,7 @@ msgstr ""
 msgid "e.g. site-header"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:323
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:445
 msgid "e.g. twitter.com, *.example.com, (direct)"
 msgstr ""
 
@@ -2017,6 +2110,10 @@ msgstr ""
 msgid "Edit snippet →"
 msgstr ""
 
+#: resources/js/visual-editor/blocks/table/edit.tsx:256
+msgid "Edit table"
+msgstr ""
+
 #: resources/js/visual-editor/editor/composed-view/composed-view-ribbon.tsx:90
 msgid "Edit template ↗"
 msgstr ""
@@ -2026,7 +2123,7 @@ msgid "Edit URL"
 msgstr ""
 
 #. translators: %s: entity title being edited.
-#: resources/js/visual-editor/site-editor/entity-editor-canvas.tsx:71
+#: resources/js/visual-editor/site-editor/entity-editor-canvas.tsx:82
 msgid "Editing %s"
 msgstr ""
 
@@ -2052,8 +2149,8 @@ msgstr ""
 
 #. translators: %s: post title or fallback.
 #. translators: %s: entity title being edited.
-#: resources/js/visual-editor/editor/editor-app.tsx:1546
-#: resources/js/visual-editor/site-editor/site-editor-app.tsx:711
+#: resources/js/visual-editor/editor/editor-app.tsx:1665
+#: resources/js/visual-editor/site-editor/site-editor-app.tsx:714
 msgid "Editing: %s"
 msgstr ""
 
@@ -2081,7 +2178,7 @@ msgstr ""
 msgid "Effects"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:381
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:503
 msgid "Either"
 msgstr ""
 
@@ -2099,7 +2196,7 @@ msgstr ""
 msgid "Ellipse"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/_shared/social-icons.ts:127
+#: resources/js/visual-editor/blocks/_shared/social-icons.ts:142
 #: resources/js/visual-editor/blocks/post-comments-form/edit.tsx:43
 msgid "Email"
 msgstr ""
@@ -2264,7 +2361,7 @@ msgstr ""
 msgid "Embedded content from %s can't be previewed in the editor."
 msgstr ""
 
-#: resources/js/visual-editor/blocks/accordions/edit.tsx:54
+#: resources/js/visual-editor/blocks/accordions/edit.tsx:71
 #: resources/js/visual-editor/blocks/faq/edit.tsx:134
 msgid "Emit FAQPage schema"
 msgstr ""
@@ -2305,8 +2402,8 @@ msgstr ""
 #: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:167
 #: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:181
 #: resources/js/visual-editor/blocks/_shared/flex-controls/item-controls.tsx:127
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:489
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:549
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:611
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:671
 msgid "End"
 msgstr ""
 
@@ -2459,8 +2556,8 @@ msgstr ""
 msgid "Failed to load binding sources."
 msgstr ""
 
-#: resources/js/visual-editor/editor/api-client.ts:125
-#: resources/js/visual-editor/editor/use-persistence.ts:264
+#: resources/js/visual-editor/editor/api-client.ts:132
+#: resources/js/visual-editor/editor/use-persistence.ts:326
 msgid "Failed to load content."
 msgstr ""
 
@@ -2491,20 +2588,20 @@ msgid "Failed to load fonts."
 msgstr ""
 
 #. translators: %d: HTTP status code.
-#: resources/js/visual-editor/blocks/form/edit.tsx:307
+#: resources/js/visual-editor/blocks/form/edit.tsx:351
 msgid "Failed to load form preview (status %d)."
 msgstr ""
 
-#: resources/js/visual-editor/blocks/form/edit.tsx:316
+#: resources/js/visual-editor/blocks/form/edit.tsx:360
 msgid "Failed to load form preview."
 msgstr ""
 
 #. translators: %d: HTTP status code.
-#: resources/js/visual-editor/blocks/form/edit.tsx:407
+#: resources/js/visual-editor/blocks/form/edit.tsx:457
 msgid "Failed to load forms (status %d)."
 msgstr ""
 
-#: resources/js/visual-editor/blocks/form/edit.tsx:416
+#: resources/js/visual-editor/blocks/form/edit.tsx:466
 msgid "Failed to load forms."
 msgstr ""
 
@@ -2554,7 +2651,7 @@ msgstr ""
 msgid "Failed to load pattern."
 msgstr ""
 
-#: resources/js/visual-editor/editor/editor-app.tsx:1092
+#: resources/js/visual-editor/editor/editor-app.tsx:1212
 #: resources/js/visual-editor/editor/inserter-patterns-panel.tsx:356
 #: resources/js/visual-editor/editor/inserter-patterns-panel.tsx:553
 #: resources/js/visual-editor/site-editor/patterns/api-client.ts:314
@@ -2597,7 +2694,7 @@ msgstr ""
 msgid "Failed to look up global styles."
 msgstr ""
 
-#: resources/js/visual-editor/editor/api-client.ts:250
+#: resources/js/visual-editor/editor/api-client.ts:266
 #: resources/js/visual-editor/editor/server-side-render.tsx:111
 msgid "Failed to preview block."
 msgstr ""
@@ -2610,12 +2707,12 @@ msgstr ""
 msgid "Failed to resolve bindings."
 msgstr ""
 
-#: resources/js/visual-editor/editor/use-query-preview.ts:233
+#: resources/js/visual-editor/editor/use-query-preview.ts:242
 msgid "Failed to resolve query."
 msgstr ""
 
-#: resources/js/visual-editor/editor/api-client.ts:154
-#: resources/js/visual-editor/editor/use-persistence.ts:373
+#: resources/js/visual-editor/editor/api-client.ts:161
+#: resources/js/visual-editor/editor/use-persistence.ts:438
 msgid "Failed to save content."
 msgstr ""
 
@@ -2624,7 +2721,7 @@ msgstr ""
 msgid "Failed to save global styles."
 msgstr ""
 
-#: resources/js/visual-editor/editor/api-client.ts:196
+#: resources/js/visual-editor/editor/api-client.ts:212
 msgid "Failed to save metadata."
 msgstr ""
 
@@ -2742,7 +2839,7 @@ msgstr ""
 msgid "Fixed background"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/table/edit.tsx:163
+#: resources/js/visual-editor/blocks/table/edit.tsx:263
 msgid "Fixed width table cells"
 msgstr ""
 
@@ -2831,15 +2928,15 @@ msgstr ""
 msgid "Force every image inside this container onto a uniform aspect ratio."
 msgstr ""
 
-#: resources/js/visual-editor/blocks/form/edit.tsx:332
-#: resources/js/visual-editor/blocks/form/edit.tsx:342
-#: resources/js/visual-editor/blocks/form/edit.tsx:497
-#: resources/js/visual-editor/blocks/form/edit.tsx:514
-#: resources/js/visual-editor/blocks/form/edit.tsx:532
+#: resources/js/visual-editor/blocks/form/edit.tsx:376
+#: resources/js/visual-editor/blocks/form/edit.tsx:386
+#: resources/js/visual-editor/blocks/form/edit.tsx:547
+#: resources/js/visual-editor/blocks/form/edit.tsx:583
+#: resources/js/visual-editor/blocks/form/edit.tsx:601
 msgid "Form"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/form/edit.tsx:492
+#: resources/js/visual-editor/blocks/form/edit.tsx:542
 msgid "Form settings"
 msgstr ""
 
@@ -2848,7 +2945,7 @@ msgid "Four."
 msgstr ""
 
 #: resources/js/visual-editor/blocks/business-hours/edit.tsx:55
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:105
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:106
 msgid "Friday"
 msgstr ""
 
@@ -2954,6 +3051,7 @@ msgid "Grid Spans"
 msgstr ""
 
 #: resources/js/visual-editor/blocks/post-template/edit.tsx:119
+#: resources/js/visual-editor/blocks/related-posts/edit.tsx:261
 msgid "Grid view"
 msgstr ""
 
@@ -2983,7 +3081,7 @@ msgstr ""
 msgid "Header"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/heading/edit.tsx:114
+#: resources/js/visual-editor/blocks/heading/edit.tsx:137
 msgid "Heading"
 msgstr ""
 
@@ -3028,7 +3126,7 @@ msgstr ""
 msgid "Headline sample"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/icon/edit.tsx:401
+#: resources/js/visual-editor/blocks/icon/edit.tsx:421
 #: resources/js/visual-editor/blocks/spacer/controls.tsx:170
 #: resources/js/visual-editor/blocks/spacer/controls.tsx:178
 msgid "Height"
@@ -3046,8 +3144,8 @@ msgstr ""
 msgid "Hexagon"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:538
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:550
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:660
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:672
 msgctxt "time input placeholder"
 msgid "HH:MM"
 msgstr ""
@@ -3057,11 +3155,11 @@ msgctxt "overflow value"
 msgid "Hidden"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/canvas-rules.ts:134
+#: resources/js/visual-editor/visibility/canvas-rules.ts:180
 msgid "Hidden"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/canvas-rules.ts:138
+#: resources/js/visual-editor/visibility/canvas-rules.ts:184
 msgid "Hidden at some screen sizes"
 msgstr ""
 
@@ -3069,19 +3167,20 @@ msgstr ""
 msgid "Hide (set to null)"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:199
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:200
 msgid "Hide block"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:223
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:308
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:350
 msgid "Hide on:"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:216
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:300
 msgid "Hide this block at specific viewport widths."
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:592
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:714
 msgid "Hide when"
 msgstr ""
 
@@ -3131,7 +3230,7 @@ msgstr ""
 msgid "HowTo title…"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/button/edit.tsx:210
+#: resources/js/visual-editor/blocks/button/edit.tsx:214
 #: resources/js/visual-editor/blocks/cover/edit/inspector-controls.tsx:594
 #: resources/js/visual-editor/blocks/group/edit.tsx:66
 #: resources/js/visual-editor/blocks/separator/edit.tsx:43
@@ -3158,8 +3257,8 @@ msgstr ""
 
 #: resources/js/visual-editor/blocks/callout/edit.tsx:81
 #: resources/js/visual-editor/blocks/gallery/edit.tsx:127
-#: resources/js/visual-editor/blocks/icon/edit.tsx:344
-#: resources/js/visual-editor/blocks/icon/edit.tsx:367
+#: resources/js/visual-editor/blocks/icon/edit.tsx:364
+#: resources/js/visual-editor/blocks/icon/edit.tsx:387
 msgid "Icon"
 msgstr ""
 
@@ -3228,6 +3327,10 @@ msgstr ""
 msgid "Include schema.org markup"
 msgstr ""
 
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:320
+msgid "Includes every smaller screen, phones too."
+msgstr ""
+
 #: resources/js/visual-editor/site-editor/fallback-chain.ts:125
 msgid "Index (fallback)"
 msgstr ""
@@ -3254,8 +3357,17 @@ msgstr ""
 msgid "Inherited from a smaller breakpoint. Change to override."
 msgstr ""
 
+#: resources/js/visual-editor/blocks/categories/edit.tsx:125
+#: resources/js/visual-editor/blocks/form/edit.tsx:573
+msgid "Inline"
+msgstr ""
+
 #: resources/js/visual-editor/formats/inline-icon/register.ts:42
 msgid "Inline icon"
+msgstr ""
+
+#: resources/js/visual-editor/blocks/form/edit.tsx:567
+msgid "Inline puts the submit button on the same row as the fields. Best for one-field forms such as a newsletter signup."
 msgstr ""
 
 #: resources/js/visual-editor/blocks/grid-item/edit.tsx:110
@@ -3266,8 +3378,16 @@ msgstr ""
 msgid "Insert"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/table/edit.tsx:178
+#: resources/js/visual-editor/blocks/table/edit.tsx:278
 msgid "Insert a table for sharing data."
+msgstr ""
+
+#: resources/js/visual-editor/blocks/table/edit.tsx:185
+msgid "Insert column after"
+msgstr ""
+
+#: resources/js/visual-editor/blocks/table/edit.tsx:179
+msgid "Insert column before"
 msgstr ""
 
 #: resources/js/visual-editor/dynamic-content/token-inserter-modal.tsx:216
@@ -3278,6 +3398,14 @@ msgstr ""
 #: resources/js/visual-editor/formats/inline-icon/edit.tsx:188
 #: resources/js/visual-editor/formats/inline-icon/edit.tsx:199
 msgid "Insert icon"
+msgstr ""
+
+#: resources/js/visual-editor/blocks/table/edit.tsx:167
+msgid "Insert row after"
+msgstr ""
+
+#: resources/js/visual-editor/blocks/table/edit.tsx:161
+msgid "Insert row before"
 msgstr ""
 
 #. translators: %s: pattern title.
@@ -3351,7 +3479,7 @@ msgstr ""
 msgid "Keep aspect ratio"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:266
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:388
 msgid "Key"
 msgstr ""
 
@@ -3376,17 +3504,13 @@ msgstr ""
 msgid "Label heading level"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/search/edit.tsx:646
+#: resources/js/visual-editor/blocks/search/edit.tsx:669
 msgid "Label text"
 msgstr ""
 
 #: resources/js/visual-editor/editor-settings.ts:59
 #: resources/js/visual-editor/editor-settings.ts:73
 msgid "Large"
-msgstr ""
-
-#: resources/js/visual-editor/visibility/with-visibility-panel.tsx:105
-msgid "Large (≥1024px)"
 msgstr ""
 
 #: resources/js/visual-editor/blocks/tag-cloud/edit.tsx:114
@@ -3402,8 +3526,10 @@ msgstr ""
 msgid "Last post"
 msgstr ""
 
+#: resources/js/visual-editor/blocks/form/edit.tsx:559
 #: resources/js/visual-editor/blocks/latest-posts/edit.tsx:232
 #: resources/js/visual-editor/blocks/post-template/edit.tsx:134
+#: resources/js/visual-editor/blocks/related-posts/edit.tsx:334
 #: resources/js/visual-editor/blocks/tabs/edit.tsx:135
 #: resources/js/visual-editor/site-editor/styles/panels/layout-panel.tsx:86
 #: resources/js/visual-editor/site-editor/styles/style-book-canvas.tsx:334
@@ -3449,6 +3575,10 @@ msgctxt "editor button"
 msgid "Left to right"
 msgstr ""
 
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:349
+msgid "Legacy width ranges:"
+msgstr ""
+
 #: resources/js/visual-editor/site-editor/styles/panels/blocks-panel.tsx:90
 #: resources/js/visual-editor/site-editor/styles/panels/typography-panel.tsx:205
 msgid "Letter spacing"
@@ -3480,7 +3610,7 @@ msgstr ""
 msgid "Line height"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/button/edit.tsx:150
+#: resources/js/visual-editor/blocks/button/edit.tsx:154
 #: resources/js/visual-editor/blocks/gallery/edit.tsx:967
 #: resources/js/visual-editor/dynamic-content/link-control.tsx:66
 #: resources/js/visual-editor/formats/dynamic-link/edit.tsx:114
@@ -3501,15 +3631,15 @@ msgstr ""
 msgid "Link images to media files"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/post-title/edit.tsx:167
+#: resources/js/visual-editor/blocks/post-title/edit.tsx:221
 msgid "Link rel"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/button/edit.tsx:226
+#: resources/js/visual-editor/blocks/button/edit.tsx:230
 msgid "Link relation"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/post-title/edit.tsx:144
+#: resources/js/visual-editor/blocks/post-title/edit.tsx:198
 msgid "Link settings"
 msgstr ""
 
@@ -3540,6 +3670,7 @@ msgid "List text"
 msgstr ""
 
 #: resources/js/visual-editor/blocks/post-template/edit.tsx:113
+#: resources/js/visual-editor/blocks/related-posts/edit.tsx:255
 msgid "List view"
 msgstr ""
 
@@ -3559,11 +3690,11 @@ msgstr ""
 msgid "Loading blocks…"
 msgstr ""
 
-#: resources/js/visual-editor/editor/editor-app.tsx:1391
+#: resources/js/visual-editor/editor/editor-app.tsx:1511
 msgid "Loading content…"
 msgstr ""
 
-#: resources/js/visual-editor/site-editor/entity-editor-canvas.tsx:85
+#: resources/js/visual-editor/site-editor/entity-editor-canvas.tsx:96
 msgid "Loading entity…"
 msgstr ""
 
@@ -3593,7 +3724,11 @@ msgstr ""
 msgid "Loading patterns…"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/form/edit.tsx:343
+#: resources/js/visual-editor/site-editor/template-preview-entry.tsx:138
+msgid "Loading preview content…"
+msgstr ""
+
+#: resources/js/visual-editor/blocks/form/edit.tsx:387
 #: resources/js/visual-editor/blocks/query/edit.tsx:221
 #: resources/js/visual-editor/editor/query-block-override.tsx:177
 #: resources/js/visual-editor/editor/server-side-render.tsx:147
@@ -3634,15 +3769,15 @@ msgstr ""
 msgid "Log out"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:382
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:504
 msgid "Logged in"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:383
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:505
 msgid "Logged out"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:378
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:500
 msgid "Login state"
 msgstr ""
 
@@ -3687,7 +3822,7 @@ msgstr ""
 msgid "Make shorter"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/post-title/edit.tsx:148
+#: resources/js/visual-editor/blocks/post-title/edit.tsx:202
 msgid "Make title a link to the post"
 msgstr ""
 
@@ -3790,10 +3925,6 @@ msgstr ""
 msgid "Medium · 500"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/with-visibility-panel.tsx:104
-msgid "Medium (≥768px)"
-msgstr ""
-
 #: resources/js/visual-editor/site-editor/navigation/navigation-inspector.tsx:103
 #: resources/js/visual-editor/site-editor/sidebars/menu-sidebar.tsx:34
 msgid "Menu"
@@ -3846,12 +3977,18 @@ msgid "Minimum height"
 msgstr ""
 
 #: resources/js/visual-editor/responsive/registry.ts:36
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:91
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:92
+#: resources/js/visual-editor/visibility/with-visibility-panel.tsx:104
 msgid "Mobile"
 msgstr ""
 
+#. translators: %d: the Mobile breakpoint's max-width in px.
+#: resources/js/visual-editor/editor/with-navigation-collapse-breakpoint.tsx:98
+msgid "Mobile (≤%dpx)"
+msgstr ""
+
 #: resources/js/visual-editor/blocks/business-hours/edit.tsx:51
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:101
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:102
 msgid "Monday"
 msgstr ""
 
@@ -3997,7 +4134,7 @@ msgstr ""
 
 #: resources/js/visual-editor/blocks/latest-posts/edit.tsx:204
 #: resources/js/visual-editor/blocks/query/edit.tsx:171
-#: resources/js/visual-editor/blocks/related-posts/edit.tsx:254
+#: resources/js/visual-editor/blocks/related-posts/edit.tsx:308
 msgid "Newest to oldest"
 msgstr ""
 
@@ -4023,7 +4160,7 @@ msgstr ""
 msgid "No blocks registered."
 msgstr ""
 
-#: resources/js/visual-editor/blocks/search/edit.tsx:249
+#: resources/js/visual-editor/blocks/search/edit.tsx:252
 msgid "No button"
 msgstr ""
 
@@ -4107,11 +4244,16 @@ msgstr ""
 msgid "No preview"
 msgstr ""
 
+#. translators: %s: post type slug, e.g. "post".
+#: resources/js/visual-editor/site-editor/template-preview-entry.tsx:151
+msgid "No published %s to preview — showing placeholders."
+msgstr ""
+
 #: resources/js/visual-editor/site-editor/sidebars/sidebar-frame.tsx:60
 msgid "No record found. The id may not exist or cms-framework may not be installed."
 msgstr ""
 
-#: resources/js/visual-editor/blocks/related-posts/edit.tsx:297
+#: resources/js/visual-editor/blocks/related-posts/edit.tsx:372
 msgid "No related posts matched the host entry’s primary taxonomy. The editable iteration below is shown so you can keep editing the template."
 msgstr ""
 
@@ -4123,7 +4265,7 @@ msgstr ""
 msgid "No results."
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:409
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:531
 msgid "No roles are registered. Add roles to your app to use this rule."
 msgstr ""
 
@@ -4190,7 +4332,7 @@ msgstr ""
 msgid "Number of items"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/related-posts/edit.tsx:222
+#: resources/js/visual-editor/blocks/related-posts/edit.tsx:276
 msgid "Number of related posts"
 msgstr ""
 
@@ -4231,8 +4373,12 @@ msgstr ""
 msgid "Odd posts"
 msgstr ""
 
+#: resources/js/visual-editor/blocks/query-total/edit.tsx:158
+msgid "of"
+msgstr ""
+
 #: resources/js/visual-editor/blocks/query/edit.tsx:158
-#: resources/js/visual-editor/blocks/related-posts/edit.tsx:237
+#: resources/js/visual-editor/blocks/related-posts/edit.tsx:291
 msgid "Offset"
 msgstr ""
 
@@ -4248,7 +4394,7 @@ msgstr ""
 
 #: resources/js/visual-editor/blocks/latest-posts/edit.tsx:208
 #: resources/js/visual-editor/blocks/query/edit.tsx:172
-#: resources/js/visual-editor/blocks/related-posts/edit.tsx:258
+#: resources/js/visual-editor/blocks/related-posts/edit.tsx:312
 msgid "Oldest to newest"
 msgstr ""
 
@@ -4262,6 +4408,10 @@ msgstr ""
 
 #: resources/js/visual-editor/blocks/image/edit.tsx:147
 msgid "Only image files can be uploaded here."
+msgstr ""
+
+#: resources/js/visual-editor/blocks/_shared/search-form-action-control.tsx:113
+msgid "Only paths on this site starting with / are used; anything else submits to the site search."
 msgstr ""
 
 #: resources/js/visual-editor/blocks/separator/edit.tsx:54
@@ -4302,10 +4452,11 @@ msgid "Open a template to edit its settings."
 msgstr ""
 
 #: resources/js/visual-editor/editor/top-bar.tsx:270
-#: resources/js/visual-editor/site-editor/site-editor-app.tsx:602
+#: resources/js/visual-editor/site-editor/site-editor-app.tsx:605
 msgid "Open block inserter"
 msgstr ""
 
+#: resources/js/visual-editor/blocks/accordion/edit.tsx:108
 #: resources/js/visual-editor/blocks/details/edit.tsx:119
 #: resources/js/visual-editor/blocks/details/edit.tsx:131
 msgid "Open by default"
@@ -4318,13 +4469,13 @@ msgstr ""
 
 #: resources/js/visual-editor/blocks/file/edit.tsx:262
 #: resources/js/visual-editor/blocks/file/edit.tsx:268
-#: resources/js/visual-editor/blocks/post-title/edit.tsx:157
+#: resources/js/visual-editor/blocks/post-title/edit.tsx:211
 #: resources/js/visual-editor/site-editor/navigation/navigation-inspector.tsx:380
 msgid "Open in new tab"
 msgstr ""
 
 #: resources/js/visual-editor/editor/top-bar.tsx:274
-#: resources/js/visual-editor/site-editor/site-editor-app.tsx:618
+#: resources/js/visual-editor/site-editor/site-editor-app.tsx:621
 msgid "Open inspector"
 msgstr ""
 
@@ -4333,7 +4484,7 @@ msgstr ""
 msgid "Open menu: %s"
 msgstr ""
 
-#: resources/js/visual-editor/site-editor/site-editor-app.tsx:610
+#: resources/js/visual-editor/site-editor/site-editor-app.tsx:613
 msgid "Open navigator"
 msgstr ""
 
@@ -4350,7 +4501,7 @@ msgstr ""
 msgid "OpenStreetMap"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:366
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:488
 msgid "Operating systems"
 msgstr ""
 
@@ -4358,11 +4509,11 @@ msgstr ""
 msgid "Optional label (e.g. \"On this page\")…"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/search/edit.tsx:300
+#: resources/js/visual-editor/blocks/search/edit.tsx:303
 msgid "Optional placeholder text"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/search/edit.tsx:305
+#: resources/js/visual-editor/blocks/search/edit.tsx:308
 msgid "Optional placeholder…"
 msgstr ""
 
@@ -4385,7 +4536,7 @@ msgstr ""
 
 #: resources/js/visual-editor/blocks/latest-posts/edit.tsx:200
 #: resources/js/visual-editor/blocks/query/edit.tsx:168
-#: resources/js/visual-editor/blocks/related-posts/edit.tsx:250
+#: resources/js/visual-editor/blocks/related-posts/edit.tsx:304
 msgid "Order by"
 msgstr ""
 
@@ -4398,8 +4549,8 @@ msgctxt "Aspect ratio option for dimensions control"
 msgid "Original"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:73
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:85
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:74
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:86
 msgid "Other"
 msgstr ""
 
@@ -4422,7 +4573,7 @@ msgctxt "blend mode"
 msgid "Overlay"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/cover/edit/index.tsx:753
+#: resources/js/visual-editor/blocks/cover/edit/index.tsx:791
 msgid "Overlay color"
 msgstr ""
 
@@ -4483,7 +4634,7 @@ msgstr ""
 msgid "Palette slugs must be unique."
 msgstr ""
 
-#: resources/js/visual-editor/blocks/accordion/edit.tsx:86
+#: resources/js/visual-editor/blocks/accordion/edit.tsx:87
 msgid "Panel id"
 msgstr ""
 
@@ -4512,11 +4663,12 @@ msgid "Paste SVG markup"
 msgstr ""
 
 #: resources/js/visual-editor/bindings/BindingsPanel.tsx:205
+#: resources/js/visual-editor/blocks/_shared/search-form-action-control.tsx:106
 msgid "Path"
 msgstr ""
 
 #: resources/js/visual-editor/site-editor/sidebars/pattern-sidebar.tsx:35
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:322
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:444
 msgid "Pattern"
 msgstr ""
 
@@ -4553,7 +4705,7 @@ msgstr ""
 msgid "Percentage of the container width."
 msgstr ""
 
-#: resources/js/visual-editor/blocks/search/edit.tsx:527
+#: resources/js/visual-editor/blocks/search/edit.tsx:531
 msgid "Percentage Width"
 msgstr ""
 
@@ -4573,7 +4725,7 @@ msgstr ""
 msgid "Pick a collection in the sidebar, then design one iteration below."
 msgstr ""
 
-#: resources/js/visual-editor/blocks/form/edit.tsx:503
+#: resources/js/visual-editor/blocks/form/edit.tsx:553
 msgid "Pick a form from the artisanpack-ui/forms package."
 msgstr ""
 
@@ -4622,10 +4774,11 @@ msgid "Please enter a URL."
 msgstr ""
 
 #: resources/js/visual-editor/blocks/comments-number/edit.tsx:56
+#: resources/js/visual-editor/blocks/query-total/edit.tsx:139
 msgid "Plural label"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/accordion/edit.tsx:43
+#: resources/js/visual-editor/blocks/accordion/edit.tsx:44
 msgid "Plus / Minus"
 msgstr ""
 
@@ -4668,15 +4821,15 @@ msgstr ""
 msgid "Post content"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/post-content/edit.tsx:20
+#: resources/js/visual-editor/blocks/post-content/edit.tsx:55
 msgid "Post Content"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/post-date/edit.tsx:26
+#: resources/js/visual-editor/blocks/post-date/edit.tsx:60
 msgid "Post Date"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/post-excerpt/edit.tsx:26
+#: resources/js/visual-editor/blocks/post-excerpt/edit.tsx:42
 msgid "Post Excerpt"
 msgstr ""
 
@@ -4692,12 +4845,12 @@ msgstr ""
 msgid "Post Terms"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/post-title/edit.tsx:274
+#: resources/js/visual-editor/blocks/post-title/edit.tsx:334
 msgid "Post Title"
 msgstr ""
 
 #: resources/js/visual-editor/blocks/query/edit.tsx:139
-#: resources/js/visual-editor/blocks/search-filters/edit.tsx:76
+#: resources/js/visual-editor/blocks/search-filters/edit.tsx:78
 #: resources/js/visual-editor/blocks/single-content/edit.tsx:242
 #: resources/js/visual-editor/blocks/single-post-types-search-results/edit.tsx:65
 msgid "Post type"
@@ -4716,7 +4869,7 @@ msgstr ""
 
 #: resources/js/visual-editor/blocks/query-title/edit.tsx:36
 #: resources/js/visual-editor/blocks/query/post-type-options.ts:46
-#: resources/js/visual-editor/blocks/search-filters/edit.tsx:68
+#: resources/js/visual-editor/blocks/search-filters/edit.tsx:70
 msgid "Posts"
 msgstr ""
 
@@ -4737,7 +4890,9 @@ msgstr ""
 msgid "Posts with a featured image"
 msgstr ""
 
+#: resources/js/visual-editor/blocks/post-reading-time/edit.tsx:101
 #: resources/js/visual-editor/blocks/post-terms/edit.tsx:229
+#: resources/js/visual-editor/blocks/query-total/edit.tsx:124
 msgid "Prefix"
 msgstr ""
 
@@ -4779,6 +4934,10 @@ msgstr ""
 msgid "Preview"
 msgstr ""
 
+#: resources/js/visual-editor/site-editor/template-preview-entry.tsx:164
+msgid "Preview content"
+msgstr ""
+
 #: resources/js/visual-editor/blocks/query/edit.tsx:227
 #: resources/js/visual-editor/editor/query-block-override.tsx:183
 msgid "Preview failed."
@@ -4801,7 +4960,7 @@ msgid "Preview:"
 msgstr ""
 
 #. translators: %s: template name.
-#: resources/js/visual-editor/editor/editor-app.tsx:979
+#: resources/js/visual-editor/editor/editor-app.tsx:1099
 msgid "Previewing the “%s” template. Only your content is editable here — the surrounding template areas are edited in the site editor."
 msgstr ""
 
@@ -4816,6 +4975,10 @@ msgstr ""
 
 #: resources/js/visual-editor/editor-settings.ts:47
 msgid "Primary"
+msgstr ""
+
+#: resources/js/visual-editor/blocks/post-reading-time/edit.tsx:110
+msgid "Printed after the minutes. Leave as is for \"min read\"."
 msgstr ""
 
 #: resources/js/visual-editor/blocks/post-variant/edit.tsx:284
@@ -4849,7 +5012,7 @@ msgstr ""
 msgid "Query preview"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:254
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:376
 msgid "Query string"
 msgstr ""
 
@@ -4870,6 +5033,10 @@ msgstr ""
 msgid "Randomize order"
 msgstr ""
 
+#: resources/js/visual-editor/blocks/query-total/edit.tsx:115
+msgid "Range display"
+msgstr ""
+
 #: resources/js/visual-editor/blocks/read-more/edit.tsx:32
 msgid "Read more"
 msgstr ""
@@ -4886,11 +5053,15 @@ msgstr ""
 msgid "Reading level 6"
 msgstr ""
 
+#: resources/js/visual-editor/blocks/post-reading-time/edit.tsx:64
+msgid "Reading Time"
+msgstr ""
+
 #: resources/js/visual-editor/blocks/icon/icon-picker.tsx:397
 msgid "Recent"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:513
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:635
 msgid "Recurring schedule"
 msgstr ""
 
@@ -4911,7 +5082,7 @@ msgstr ""
 msgid "Reference"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:310
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:432
 msgid "Referrer"
 msgstr ""
 
@@ -4927,7 +5098,7 @@ msgstr ""
 msgid "Rel"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/related-posts/edit.tsx:216
+#: resources/js/visual-editor/blocks/related-posts/edit.tsx:270
 msgid "Related posts settings"
 msgstr ""
 
@@ -4939,11 +5110,11 @@ msgstr ""
 #: resources/js/visual-editor/blocks/howto/edit.tsx:238
 #: resources/js/visual-editor/formats/inline-icon/edit.tsx:291
 #: resources/js/visual-editor/site-editor/styles/panels/colors-panel.tsx:498
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:457
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:579
 msgid "Remove"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:289
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:411
 msgid "Remove clause"
 msgstr ""
 
@@ -4951,7 +5122,7 @@ msgstr ""
 msgid "Remove image"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:337
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:459
 msgid "Remove pattern"
 msgstr ""
 
@@ -4959,11 +5130,11 @@ msgstr ""
 msgid "Remove stop"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:566
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:688
 msgid "Remove window"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:200
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:201
 msgid "Removes the block from rendered output. The editor canvas still shows a dimmed preview."
 msgstr ""
 
@@ -5035,7 +5206,7 @@ msgstr ""
 msgid "Reset label"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/form/edit.tsx:524
+#: resources/js/visual-editor/blocks/form/edit.tsx:593
 msgid "Reset selection"
 msgstr ""
 
@@ -5064,6 +5235,10 @@ msgstr ""
 
 #: resources/js/visual-editor/animations/AnimationPanel.tsx:199
 msgid "Respect reduced motion"
+msgstr ""
+
+#: resources/js/visual-editor/editor/with-navigation-collapse-breakpoint.tsx:131
+msgid "Responsive"
 msgstr ""
 
 #: resources/js/visual-editor/editor/inserter-patterns-panel.tsx:560
@@ -5099,7 +5274,7 @@ msgstr ""
 msgid "Right"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:413
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:535
 msgid "Roles"
 msgstr ""
 
@@ -5116,7 +5291,7 @@ msgctxt "single horizontal line"
 msgid "Row"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/table/edit.tsx:204
+#: resources/js/visual-editor/blocks/table/edit.tsx:304
 msgid "Row count"
 msgstr ""
 
@@ -5146,8 +5321,8 @@ msgctxt "image width preset: small"
 msgid "S"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/icon/edit.tsx:395
-#: resources/js/visual-editor/blocks/icon/edit.tsx:405
+#: resources/js/visual-editor/blocks/icon/edit.tsx:415
+#: resources/js/visual-editor/blocks/icon/edit.tsx:425
 msgid "Same as size"
 msgstr ""
 
@@ -5157,7 +5332,7 @@ msgid "Saturation"
 msgstr ""
 
 #: resources/js/visual-editor/blocks/business-hours/edit.tsx:56
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:106
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:107
 msgid "Saturday"
 msgstr ""
 
@@ -5191,13 +5366,13 @@ msgstr ""
 
 #: resources/js/visual-editor/editor/top-bar.tsx:170
 #: resources/js/visual-editor/editor/top-bar.tsx:174
-#: resources/js/visual-editor/site-editor/entity-editor.tsx:202
+#: resources/js/visual-editor/site-editor/entity-editor.tsx:228
 #: resources/js/visual-editor/site-editor/styles/styles-inspector.tsx:267
 msgid "Saved"
 msgstr ""
 
 #: resources/js/visual-editor/editor/top-bar.tsx:164
-#: resources/js/visual-editor/site-editor/site-editor-app.tsx:734
+#: resources/js/visual-editor/site-editor/site-editor-app.tsx:737
 msgid "Saving…"
 msgstr ""
 
@@ -5213,7 +5388,7 @@ msgstr ""
 msgid "Scheduled"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/search-filters/edit.tsx:80
+#: resources/js/visual-editor/blocks/search-filters/edit.tsx:82
 msgid "Scope the form to a single post type. Posted as a hidden `post_type` field so the host search route can filter results."
 msgstr ""
 
@@ -5222,7 +5397,7 @@ msgctxt "blend mode"
 msgid "Screen"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:215
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:299
 msgid "Screen size"
 msgstr ""
 
@@ -5233,7 +5408,7 @@ msgstr ""
 
 #: resources/js/visual-editor/blocks/icon/icon-picker.tsx:357
 #: resources/js/visual-editor/blocks/query/edit.tsx:195
-#: resources/js/visual-editor/blocks/search/edit.tsx:360
+#: resources/js/visual-editor/blocks/search/edit.tsx:363
 #: resources/js/visual-editor/blocks/search/variations.ts:16
 #: resources/js/visual-editor/editor/custom-blocks.ts:109
 #: resources/js/visual-editor/site-editor/navigation/link-picker.tsx:183
@@ -5257,7 +5432,7 @@ msgstr ""
 msgid "Search field settings"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/search-filters/edit.tsx:74
+#: resources/js/visual-editor/blocks/search-filters/edit.tsx:76
 msgid "Search filters settings"
 msgstr ""
 
@@ -5275,8 +5450,12 @@ msgstr ""
 msgid "Search tokens"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:677
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:799
 msgid "Search users"
+msgstr ""
+
+#: resources/js/visual-editor/blocks/_shared/search-form-action-control.tsx:95
+msgid "Searches reload the page the form is on, so an archive can filter its own results."
 msgstr ""
 
 #: resources/js/visual-editor/editor-settings.ts:48
@@ -5309,7 +5488,7 @@ msgstr ""
 msgid "Select a"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/related-posts/edit.tsx:289
+#: resources/js/visual-editor/blocks/related-posts/edit.tsx:364
 msgid "Select a preview post to see related-posts matches in the canvas. The published page resolves matches against each visitor’s host entry."
 msgstr ""
 
@@ -5317,7 +5496,7 @@ msgstr ""
 msgid "Select a taxonomy…"
 msgstr ""
 
-#: resources/js/visual-editor/site-editor/site-editor-app.tsx:922
+#: resources/js/visual-editor/site-editor/site-editor-app.tsx:925
 msgid "Select a template or template part to insert blocks"
 msgstr ""
 
@@ -5329,7 +5508,7 @@ msgstr ""
 msgid "Select an entity from the navigator to start editing."
 msgstr ""
 
-#: resources/js/visual-editor/site-editor/entity-editor.tsx:230
+#: resources/js/visual-editor/site-editor/entity-editor.tsx:256
 msgid "Select an entity to edit."
 msgstr ""
 
@@ -5373,13 +5552,13 @@ msgstr ""
 msgid "Set featured image"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/icon/edit.tsx:378
+#: resources/js/visual-editor/blocks/icon/edit.tsx:398
 msgid "Sets width and height together. Override either below."
 msgstr ""
 
 #: resources/js/visual-editor/blocks/archives/edit.tsx:49
 #: resources/js/visual-editor/blocks/audio/edit.tsx:166
-#: resources/js/visual-editor/blocks/categories/edit.tsx:50
+#: resources/js/visual-editor/blocks/categories/edit.tsx:95
 #: resources/js/visual-editor/blocks/column/edit.tsx:67
 #: resources/js/visual-editor/blocks/columns/edit.tsx:160
 #: resources/js/visual-editor/blocks/cover/edit/inspector-controls.tsx:324
@@ -5390,15 +5569,18 @@ msgstr ""
 #: resources/js/visual-editor/blocks/list/edit.tsx:97
 #: resources/js/visual-editor/blocks/loginout/edit.tsx:48
 #: resources/js/visual-editor/blocks/media-text/edit.tsx:446
+#: resources/js/visual-editor/blocks/post-date/edit.tsx:149
 #: resources/js/visual-editor/blocks/post-navigation-link/edit.tsx:191
+#: resources/js/visual-editor/blocks/post-reading-time/edit.tsx:96
 #: resources/js/visual-editor/blocks/post-terms/edit.tsx:203
+#: resources/js/visual-editor/blocks/query-total/edit.tsx:109
 #: resources/js/visual-editor/blocks/query/edit.tsx:134
-#: resources/js/visual-editor/blocks/search/edit.tsx:399
+#: resources/js/visual-editor/blocks/search/edit.tsx:402
 #: resources/js/visual-editor/blocks/spacer/controls.tsx:139
-#: resources/js/visual-editor/blocks/table/edit.tsx:161
+#: resources/js/visual-editor/blocks/table/edit.tsx:261
 #: resources/js/visual-editor/blocks/tag-cloud/edit.tsx:77
 #: resources/js/visual-editor/blocks/video/edit.tsx:232
-#: resources/js/visual-editor/editor/server-block-edit.tsx:55
+#: resources/js/visual-editor/editor/server-block-edit.tsx:61
 #: resources/js/visual-editor/editor/taxonomy-archive-block-overrides.tsx:140
 #: resources/js/visual-editor/editor/taxonomy-archive-block-overrides.tsx:183
 #: resources/js/visual-editor/editor/taxonomy-archive-block-overrides.tsx:93
@@ -5432,6 +5614,10 @@ msgstr ""
 msgid "Show"
 msgstr ""
 
+#: resources/js/visual-editor/blocks/categories/edit.tsx:171
+msgid "Show \"All\" item"
+msgstr ""
+
 #: resources/js/visual-editor/blocks/paragraph/edit.tsx:121
 msgid "Show a large initial letter."
 msgstr ""
@@ -5445,12 +5631,12 @@ msgstr ""
 msgid "Show email icon"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/categories/edit.tsx:81
+#: resources/js/visual-editor/blocks/categories/edit.tsx:162
 #: resources/js/visual-editor/editor/taxonomy-archive-block-overrides.tsx:110
 msgid "Show empty terms"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/categories/edit.tsx:63
+#: resources/js/visual-editor/blocks/categories/edit.tsx:144
 #: resources/js/visual-editor/editor/taxonomy-archive-block-overrides.tsx:100
 msgid "Show hierarchy"
 msgstr ""
@@ -5474,8 +5660,8 @@ msgid "Show incompatible types"
 msgstr ""
 
 #: resources/js/visual-editor/blocks/archives/edit.tsx:63
-#: resources/js/visual-editor/blocks/search/edit.tsx:413
-#: resources/js/visual-editor/blocks/search/edit.tsx:425
+#: resources/js/visual-editor/blocks/search/edit.tsx:417
+#: resources/js/visual-editor/blocks/search/edit.tsx:429
 msgid "Show label"
 msgstr ""
 
@@ -5496,7 +5682,7 @@ msgstr ""
 msgid "Show media on right"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/categories/edit.tsx:72
+#: resources/js/visual-editor/blocks/categories/edit.tsx:153
 #: resources/js/visual-editor/editor/taxonomy-archive-block-overrides.tsx:105
 msgid "Show only top level"
 msgstr ""
@@ -5510,7 +5696,7 @@ msgid "Show placeholder"
 msgstr ""
 
 #: resources/js/visual-editor/blocks/archives/edit.tsx:73
-#: resources/js/visual-editor/blocks/categories/edit.tsx:54
+#: resources/js/visual-editor/blocks/categories/edit.tsx:110
 #: resources/js/visual-editor/editor/taxonomy-archive-block-overrides.tsx:190
 #: resources/js/visual-editor/editor/taxonomy-archive-block-overrides.tsx:95
 msgid "Show post counts"
@@ -5529,7 +5715,7 @@ msgstr ""
 msgid "Show upcoming special hours"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:591
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:713
 msgid "Show when"
 msgstr ""
 
@@ -5608,16 +5794,17 @@ msgid "Single post type results settings"
 msgstr ""
 
 #: resources/js/visual-editor/blocks/comments-number/edit.tsx:47
+#: resources/js/visual-editor/blocks/query-total/edit.tsx:132
 msgid "Singular label"
 msgstr ""
 
 #. translators: %s: active site editor section.
-#: resources/js/visual-editor/site-editor/site-editor-app.tsx:940
+#: resources/js/visual-editor/site-editor/site-editor-app.tsx:943
 msgid "Site Editor — %s"
 msgstr ""
 
 #. translators: %s: active site-editor section label.
-#: resources/js/visual-editor/site-editor/site-editor-app.tsx:502
+#: resources/js/visual-editor/site-editor/site-editor-app.tsx:505
 msgid "Site Editor · %s"
 msgstr ""
 
@@ -5627,6 +5814,10 @@ msgstr ""
 
 #: resources/js/visual-editor/blocks/site-logo/edit.tsx:27
 msgid "Site Logo"
+msgstr ""
+
+#: resources/js/visual-editor/blocks/_shared/search-form-action-control.tsx:88
+msgid "Site search"
 msgstr ""
 
 #: resources/js/visual-editor/blocks/site-tagline/edit.tsx:26
@@ -5646,7 +5837,7 @@ msgstr ""
 msgid "Six."
 msgstr ""
 
-#: resources/js/visual-editor/blocks/icon/edit.tsx:377
+#: resources/js/visual-editor/blocks/icon/edit.tsx:397
 #: resources/js/visual-editor/formats/inline-icon/edit.tsx:239
 msgid "Size"
 msgstr ""
@@ -5707,10 +5898,6 @@ msgstr ""
 #: resources/js/visual-editor/editor-settings.ts:56
 #: resources/js/visual-editor/editor-settings.ts:71
 msgid "Small"
-msgstr ""
-
-#: resources/js/visual-editor/visibility/with-visibility-panel.tsx:103
-msgid "Small (≥640px)"
 msgstr ""
 
 #: resources/js/visual-editor/blocks/tag-cloud/edit.tsx:103
@@ -5775,7 +5962,7 @@ msgstr ""
 msgid "Special hours window (days)"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:432
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:554
 msgid "Specific user"
 msgstr ""
 
@@ -5806,6 +5993,10 @@ msgstr ""
 msgid "Stack on mobile"
 msgstr ""
 
+#: resources/js/visual-editor/blocks/form/edit.tsx:572
+msgid "Stacked"
+msgstr ""
+
 #: resources/js/visual-editor/effects/with-effects.tsx:374
 msgid "Stacks the block above or below its neighbors. A block that isn’t positioned becomes position: relative."
 msgstr ""
@@ -5814,8 +6005,8 @@ msgstr ""
 #: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:165
 #: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:179
 #: resources/js/visual-editor/blocks/_shared/flex-controls/item-controls.tsx:125
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:484
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:537
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:606
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:659
 msgid "Start"
 msgstr ""
 
@@ -5917,7 +6108,7 @@ msgstr ""
 msgid "Styles scopes"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/form/edit.tsx:379
+#: resources/js/visual-editor/blocks/form/edit.tsx:428
 msgid "Submit"
 msgstr ""
 
@@ -5925,12 +6116,19 @@ msgstr ""
 msgid "Submit label"
 msgstr ""
 
+#: resources/js/visual-editor/blocks/_shared/search-form-action-control.tsx:85
+#: resources/js/visual-editor/blocks/search/edit.tsx:567
+msgid "Submit to"
+msgstr ""
+
 #: resources/js/visual-editor/blocks/callout/edit.tsx:40
 #: resources/js/visual-editor/editor-settings.ts:50
 msgid "Success"
 msgstr ""
 
+#: resources/js/visual-editor/blocks/post-reading-time/edit.tsx:109
 #: resources/js/visual-editor/blocks/post-terms/edit.tsx:239
+#: resources/js/visual-editor/blocks/query-total/edit.tsx:146
 msgid "Suffix"
 msgstr ""
 
@@ -5947,7 +6145,7 @@ msgid "Suite 100"
 msgstr ""
 
 #: resources/js/visual-editor/blocks/business-hours/edit.tsx:57
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:100
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:101
 msgid "Sunday"
 msgstr ""
 
@@ -6042,11 +6240,11 @@ msgstr ""
 msgid "Tab section"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/table/edit.tsx:177
+#: resources/js/visual-editor/blocks/table/edit.tsx:277
 msgid "Table"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/table/edit.tsx:231
+#: resources/js/visual-editor/blocks/table/edit.tsx:331
 msgid "Table caption text"
 msgstr ""
 
@@ -6056,8 +6254,14 @@ msgid "Table of contents"
 msgstr ""
 
 #: resources/js/visual-editor/responsive/registry.ts:38
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:92
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:93
+#: resources/js/visual-editor/visibility/with-visibility-panel.tsx:103
 msgid "Tablet"
+msgstr ""
+
+#. translators: %d: the Tablet breakpoint's max-width in px.
+#: resources/js/visual-editor/editor/with-navigation-collapse-breakpoint.tsx:106
+msgid "Tablet (≤%dpx)"
 msgstr ""
 
 #: resources/js/visual-editor/editor/taxonomy-registry.ts:46
@@ -6069,6 +6273,7 @@ msgstr ""
 msgid "Tags"
 msgstr ""
 
+#: resources/js/visual-editor/blocks/categories/edit.tsx:100
 #: resources/js/visual-editor/blocks/post-terms/edit.tsx:208
 #: resources/js/visual-editor/site-editor/navigation/navigation-canvas.tsx:507
 msgid "Taxonomy"
@@ -6144,6 +6349,10 @@ msgstr ""
 msgid "Text"
 msgstr ""
 
+#: resources/js/visual-editor/blocks/query-total/edit.tsx:125
+msgid "Text before the number, e.g. \"Showing \"."
+msgstr ""
+
 #: resources/js/visual-editor/site-editor/styles/panels/blocks-panel.tsx:54
 #: resources/js/visual-editor/site-editor/styles/panels/colors-panel.tsx:179
 #: resources/js/visual-editor/site-editor/styles/panels/elements-panel.tsx:49
@@ -6183,6 +6392,10 @@ msgstr ""
 msgid "The last-resort fallback used when no other template matches."
 msgstr ""
 
+#: resources/js/visual-editor/blocks/accordion/edit.tsx:109
+msgid "The panel starts expanded on the front end."
+msgstr ""
+
 #: resources/js/visual-editor/site-editor/fallback-chain.ts:96
 msgid "The posts archive when not used as the front page."
 msgstr ""
@@ -6199,7 +6412,7 @@ msgstr ""
 msgid "The search results page."
 msgstr ""
 
-#: resources/js/visual-editor/blocks/form/edit.tsx:515
+#: resources/js/visual-editor/blocks/form/edit.tsx:584
 msgid "The selected form is no longer available. It may have been deleted. Reset the selection to pick a different form."
 msgstr ""
 
@@ -6212,7 +6425,7 @@ msgid "The SVG is sanitized server-side before it’s saved."
 msgstr ""
 
 #. translators: %s: template name.
-#: resources/js/visual-editor/editor/editor-app.tsx:958
+#: resources/js/visual-editor/editor/editor-app.tsx:1078
 msgid "The template “%s” has no content area, so your content is shown below the whole template."
 msgstr ""
 
@@ -6230,7 +6443,11 @@ msgstr ""
 msgid "The template could not be loaded — previewing on the default template."
 msgstr ""
 
-#: resources/js/visual-editor/editor/editor-app.tsx:1136
+#: resources/js/visual-editor/editor/with-navigation-collapse-breakpoint.tsx:136
+msgid "The width at and below which the menu collapses behind the open button."
+msgstr ""
+
+#: resources/js/visual-editor/editor/editor-app.tsx:1256
 #: resources/js/visual-editor/site-editor/sidebars/global-styles-sidebar.tsx:45
 #: resources/js/visual-editor/site-editor/sidebars/menu-sidebar.tsx:44
 #: resources/js/visual-editor/site-editor/sidebars/template-part-sidebar.tsx:43
@@ -6293,11 +6510,11 @@ msgstr ""
 msgid "This embed will preserve its aspect ratio when the browser is resized."
 msgstr ""
 
-#: resources/js/visual-editor/blocks/form/edit.tsx:356
+#: resources/js/visual-editor/blocks/form/edit.tsx:404
 msgid "This form has no fields yet. Add some from the Forms admin."
 msgstr ""
 
-#: resources/js/visual-editor/blocks/form/edit.tsx:298
+#: resources/js/visual-editor/blocks/form/edit.tsx:342
 msgid "This form is unavailable — it may have been deleted or deactivated. Pick a different form in the block sidebar."
 msgstr ""
 
@@ -6319,6 +6536,10 @@ msgstr ""
 
 #: resources/js/visual-editor/blocks/navigation/edit.tsx:179
 msgid "This navigation block uses a legacy format and could not be updated automatically. Update it to the current Navigation block to edit it."
+msgstr ""
+
+#: resources/js/visual-editor/blocks/_shared/search-form-action-control.tsx:89
+msgid "This page"
 msgstr ""
 
 #: resources/js/visual-editor/effects/with-effects.tsx:219
@@ -6365,7 +6586,7 @@ msgid "Three."
 msgstr ""
 
 #: resources/js/visual-editor/blocks/business-hours/edit.tsx:54
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:104
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:105
 msgid "Thursday"
 msgstr ""
 
@@ -6373,8 +6594,8 @@ msgstr ""
 msgid "Tight"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:494
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:578
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:616
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:700
 msgid "Timezone override (optional)"
 msgstr ""
 
@@ -6394,7 +6615,7 @@ msgstr ""
 msgid "Title attribute"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/accordion/edit.tsx:96
+#: resources/js/visual-editor/blocks/accordion/edit.tsx:97
 msgid "Toggle icon"
 msgstr ""
 
@@ -6422,6 +6643,10 @@ msgstr ""
 msgid "Top right"
 msgstr ""
 
+#: resources/js/visual-editor/blocks/query-total/edit.tsx:114
+msgid "Total results"
+msgstr ""
+
 #: resources/js/visual-editor/blocks/skills-slider/edit.tsx:122
 msgid "Track color"
 msgstr ""
@@ -6436,7 +6661,7 @@ msgid "Try again"
 msgstr ""
 
 #: resources/js/visual-editor/blocks/business-hours/edit.tsx:52
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:102
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:103
 msgid "Tuesday"
 msgstr ""
 
@@ -6486,7 +6711,7 @@ msgctxt "unordered list toolbar button"
 msgid "UL"
 msgstr ""
 
-#: resources/js/visual-editor/editor/editor-app.tsx:1416
+#: resources/js/visual-editor/editor/editor-app.tsx:1536
 msgid "Unable to load content."
 msgstr ""
 
@@ -6527,7 +6752,7 @@ msgstr ""
 msgid "Unknown error."
 msgstr ""
 
-#: resources/js/visual-editor/blocks/button/edit.tsx:160
+#: resources/js/visual-editor/blocks/button/edit.tsx:164
 #: resources/js/visual-editor/formats/dynamic-link/edit.tsx:125
 msgid "Unlink"
 msgstr ""
@@ -6536,12 +6761,12 @@ msgstr ""
 msgid "Unordered"
 msgstr ""
 
-#: resources/js/visual-editor/site-editor/site-editor-app.tsx:722
+#: resources/js/visual-editor/site-editor/site-editor-app.tsx:725
 msgid "Unsaved"
 msgstr ""
 
 #: resources/js/visual-editor/editor/top-bar.tsx:179
-#: resources/js/visual-editor/site-editor/entity-editor.tsx:189
+#: resources/js/visual-editor/site-editor/entity-editor.tsx:215
 #: resources/js/visual-editor/site-editor/styles/styles-inspector.tsx:258
 msgid "Unsaved changes"
 msgstr ""
@@ -6568,7 +6793,7 @@ msgstr ""
 msgid "Unsynced patterns are inserted as a copy of the block tree. Future edits to the pattern only affect new insertions."
 msgstr ""
 
-#: resources/js/visual-editor/editor/editor-app.tsx:1547
+#: resources/js/visual-editor/editor/editor-app.tsx:1666
 msgid "Untitled"
 msgstr ""
 
@@ -6629,8 +6854,8 @@ msgstr ""
 msgid "Use a percentage from 0 to 100 (e.g. 50 or 50%)."
 msgstr ""
 
-#: resources/js/visual-editor/blocks/search/edit.tsx:461
-#: resources/js/visual-editor/blocks/search/edit.tsx:473
+#: resources/js/visual-editor/blocks/search/edit.tsx:465
+#: resources/js/visual-editor/blocks/search/edit.tsx:477
 msgid "Use button with icon"
 msgstr ""
 
@@ -6657,7 +6882,7 @@ msgstr[1] ""
 msgid "Used in 0 places"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:398
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:520
 msgid "User role"
 msgstr ""
 
@@ -6665,7 +6890,7 @@ msgstr ""
 msgid "User-customized."
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:275
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:397
 msgid "Value (\"*\" = any)"
 msgstr ""
 
@@ -6712,7 +6937,7 @@ msgstr ""
 msgid "Viewport threshold (0–1)"
 msgstr ""
 
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:150
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:151
 msgid "Visibility"
 msgstr ""
 
@@ -6722,7 +6947,7 @@ msgid "Visible"
 msgstr ""
 
 #. translators: %d: HTTP status code.
-#: resources/js/visual-editor/editor/api-client.ts:88
+#: resources/js/visual-editor/editor/api-client.ts:95
 msgid "Visual editor request failed with status %d"
 msgstr ""
 
@@ -6732,13 +6957,13 @@ msgstr ""
 msgid "Warning"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/_shared/social-icons.ts:129
+#: resources/js/visual-editor/blocks/_shared/social-icons.ts:144
 #: resources/js/visual-editor/blocks/post-comments-form/edit.tsx:49
 msgid "Website"
 msgstr ""
 
 #: resources/js/visual-editor/blocks/business-hours/edit.tsx:53
-#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:103
+#: resources/js/visual-editor/visibility/VisibilityPanel.tsx:104
 msgid "Wednesday"
 msgstr ""
 
@@ -6774,6 +6999,10 @@ msgstr ""
 msgid "When the template above is empty, the next slug in the chain is rendered."
 msgstr ""
 
+#: resources/js/visual-editor/blocks/_shared/search-form-action-control.tsx:99
+msgid "Where the search form sends visitors."
+msgstr ""
+
 #: resources/js/visual-editor/site-editor/styles/panels/layout-panel.tsx:46
 msgid "Wide size"
 msgstr ""
@@ -6786,10 +7015,10 @@ msgstr ""
 #: resources/js/visual-editor/blocks/author-social-icons/edit.tsx:219
 #: resources/js/visual-editor/blocks/column/edit.tsx:72
 #: resources/js/visual-editor/blocks/column/edit.tsx:77
-#: resources/js/visual-editor/blocks/icon/edit.tsx:391
+#: resources/js/visual-editor/blocks/icon/edit.tsx:411
 #: resources/js/visual-editor/blocks/marquee/edit.tsx:61
-#: resources/js/visual-editor/blocks/search/edit.tsx:484
-#: resources/js/visual-editor/blocks/search/edit.tsx:497
+#: resources/js/visual-editor/blocks/search/edit.tsx:488
+#: resources/js/visual-editor/blocks/search/edit.tsx:501
 #: resources/js/visual-editor/blocks/social-share-content/edit.tsx:219
 #: resources/js/visual-editor/blocks/spacer/controls.tsx:150
 #: resources/js/visual-editor/blocks/spacer/controls.tsx:158
@@ -6841,7 +7070,7 @@ msgstr ""
 msgid "Write summary…"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/cover/edit/index.tsx:117
+#: resources/js/visual-editor/blocks/cover/edit/index.tsx:145
 msgid "Write title…"
 msgstr ""
 
@@ -6851,10 +7080,6 @@ msgstr ""
 
 #: resources/js/visual-editor/editor-settings.ts:74
 msgid "X-Large"
-msgstr ""
-
-#: resources/js/visual-editor/visibility/with-visibility-panel.tsx:106
-msgid "X-Large (≥1280px)"
 msgstr ""
 
 #: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:375
@@ -6884,7 +7109,7 @@ msgstr ""
 
 #: resources/js/visual-editor/blocks/latest-posts/edit.tsx:216
 #: resources/js/visual-editor/blocks/query/edit.tsx:174
-#: resources/js/visual-editor/blocks/related-posts/edit.tsx:266
+#: resources/js/visual-editor/blocks/related-posts/edit.tsx:320
 msgid "Z → A"
 msgstr ""
 

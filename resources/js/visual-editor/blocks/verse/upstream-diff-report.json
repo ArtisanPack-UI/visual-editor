@@ -12,7 +12,7 @@
             "status": "adapted",
             "notes": "name + textdomain swapped.",
             "result": "skipped-status",
-            "forkDigest": "84a267f33923"
+            "forkDigest": "b79da48a1064"
         },
         {
             "fork": "edit.tsx",
@@ -20,7 +20,7 @@
             "status": "adapted",
             "notes": "TypeScript port. `useDeprecatedTextAlign` not vendored; deprecation chain handles legacy `textAlign`.",
             "result": "skipped-status",
-            "forkDigest": "c7982858f0dd"
+            "forkDigest": "7dfe3892a607"
         },
         {
             "fork": "save.tsx",

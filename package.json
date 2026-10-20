@@ -1,6 +1,6 @@
 {
     "name": "@artisanpack-ui/visual-editor",
-    "version": "1.15.3",
+    "version": "1.15.4",
     "private": true,
     "type": "module",
     "exports": {
@@ -83,6 +83,7 @@
         "@wordpress/format-library": "5.43.0",
         "@wordpress/hooks": "4.43.0",
         "@wordpress/i18n": "6.17.0",
+        "@wordpress/icons": "12.2.0",
         "@wordpress/patterns": "2.43.0",
         "@wordpress/reusable-blocks": "5.43.0",
         "react": "18.3.1",

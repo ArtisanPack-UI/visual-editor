@@ -6,6 +6,12 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.15.4] - 2026-10-20
+
+### Fixed
+
+- **Table rows and columns can be added and removed** ([#999](https://github.com/ArtisanPack-UI/visual-editor/issues/999)). A table's size was fixed once it was created, so removing a row or column meant rebuilding the block. The Table block's toolbar now has an **Edit table** menu with Insert row before / after, Delete row, Insert column before / after and Delete column, which act on the focused cell and are disabled until a cell has focus. Column changes apply to the header, body and footer together so they stay the same width; new header cells are `th` and new rows keep their column's alignment. Deleting the last row or column brings back the Create table placeholder. Saved markup is unchanged. `@wordpress/icons` is now a direct dependency (pinned to 12.2.0, the version already installed).
+
 ## [1.15.3] - 2026-10-19
 
 ### Added
