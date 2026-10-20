@@ -5,11 +5,11 @@
  *
  * Upstream's 650-line edit ships a full toolbar (row/col add/delete, cell
  * tag switch, scope picker, alignment, header/footer toggles, …) and a
- * `state.js` of table-mutation helpers. This fork ships the core editing
- * surface — the empty-table placeholder, cell RichText editing, a caption,
- * and a fixed-layout toggle — and defers the heavier toolbar work to a
- * post-I7 customization phase, alongside the indent/outdent work for the
- * list/list-item forks.
+ * `state.js` of table-mutation helpers. This fork ships the empty-table
+ * placeholder, cell RichText editing, a caption, the fixed-layout toggle,
+ * and upstream's "Edit table" dropdown (insert/delete row and column,
+ * backed by `./state.ts`). Column alignment, header/footer section
+ * toggles, and cell tag/scope switching are still deferred.
  *
  * Layout note: the `<figure>` is a single stable element across the
  * placeholder → populated transition. The block-editor's internal ref
@@ -25,7 +25,7 @@
  */
 
 import type { ReactElement } from 'react';
-import { useState } from '@wordpress/element';
+import { useEffect, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { TEXT_DOMAIN } from '../../vendor/i18n';
 import {
@@ -40,41 +40,40 @@ import {
     Placeholder,
     TextControl,
     ToggleControl,
+    ToolbarDropdownMenu,
 } from '@wordpress/components';
+import {
+    table as tableIcon,
+    tableColumnAfter,
+    tableColumnBefore,
+    tableColumnDelete,
+    tableRowAfter,
+    tableRowBefore,
+    tableRowDelete,
+} from '@wordpress/icons';
+import {
+    createTable,
+    deleteColumn,
+    deleteRow,
+    insertColumn,
+    insertRow,
+    isEmptyTableSection,
+    type TableCell,
+    type TableCellLocation,
+    type TableRow,
+    type TableSectionName,
+    type TableState,
+} from './state';
 
-interface TableCell {
-    content: string;
-    tag: string;
-    scope?: string;
-    align?: string;
-    colspan?: string;
-    rowspan?: string;
-}
-
-interface TableRow {
-    cells: TableCell[];
-}
-
-interface TableAttributes {
+interface TableAttributes extends TableState {
     hasFixedLayout: boolean;
     caption?: string;
-    head: TableRow[];
-    body: TableRow[];
-    foot: TableRow[];
 }
 
 interface TableEditProps {
     readonly attributes: TableAttributes;
     readonly setAttributes: (next: Partial<TableAttributes>) => void;
-}
-
-function createTable(rowCount: number, columnCount: number): TableRow[] {
-    return Array.from({ length: rowCount }).map(() => ({
-        cells: Array.from({ length: columnCount }).map(() => ({
-            content: '',
-            tag: 'td',
-        })),
-    }));
+    readonly isSelected?: boolean;
 }
 
 function updateCell(
@@ -98,18 +97,105 @@ function updateCell(
 export default function TableEdit({
     attributes,
     setAttributes,
+    isSelected,
 }: TableEditProps): ReactElement {
     const { hasFixedLayout, caption, head, body, foot } = attributes;
-    const isEmpty = head.length === 0 && body.length === 0 && foot.length === 0;
+    const isEmpty =
+        isEmptyTableSection(head) &&
+        isEmptyTableSection(body) &&
+        isEmptyTableSection(foot);
     const [initialRowCount, setInitialRowCount] = useState(2);
     const [initialColumnCount, setInitialColumnCount] = useState(2);
+    const [selectedCell, setSelectedCell] = useState<TableCellLocation>();
     const blockProps = useBlockProps();
 
-    const renderSection = (
-        section: 'head' | 'body' | 'foot',
-        rows: TableRow[]
-    ) => {
-        if (!rows.length) {
+    useEffect(() => {
+        if (!isSelected) {
+            setSelectedCell(undefined);
+        }
+    }, [isSelected]);
+
+    const onInsertRow = (delta: number) => {
+        if (!selectedCell) {
+            return;
+        }
+        const { sectionName, rowIndex } = selectedCell;
+        const newRowIndex = rowIndex + delta;
+        setAttributes(
+            insertRow(attributes, { sectionName, rowIndex: newRowIndex })
+        );
+        setSelectedCell({ sectionName, rowIndex: newRowIndex, columnIndex: 0 });
+    };
+
+    const onDeleteRow = () => {
+        if (!selectedCell) {
+            return;
+        }
+        const { sectionName, rowIndex } = selectedCell;
+        setSelectedCell(undefined);
+        setAttributes(deleteRow(attributes, { sectionName, rowIndex }));
+    };
+
+    const onInsertColumn = (delta: number) => {
+        if (!selectedCell) {
+            return;
+        }
+        const { sectionName, columnIndex } = selectedCell;
+        const newColumnIndex = columnIndex + delta;
+        setAttributes(insertColumn(attributes, { columnIndex: newColumnIndex }));
+        setSelectedCell({ sectionName, rowIndex: 0, columnIndex: newColumnIndex });
+    };
+
+    const onDeleteColumn = () => {
+        if (!selectedCell) {
+            return;
+        }
+        const { columnIndex } = selectedCell;
+        setSelectedCell(undefined);
+        setAttributes(deleteColumn(attributes, { columnIndex }));
+    };
+
+    const tableControls = [
+        {
+            icon: tableRowBefore,
+            title: __('Insert row before', TEXT_DOMAIN),
+            isDisabled: !selectedCell,
+            onClick: () => onInsertRow(0),
+        },
+        {
+            icon: tableRowAfter,
+            title: __('Insert row after', TEXT_DOMAIN),
+            isDisabled: !selectedCell,
+            onClick: () => onInsertRow(1),
+        },
+        {
+            icon: tableRowDelete,
+            title: __('Delete row', TEXT_DOMAIN),
+            isDisabled: !selectedCell,
+            onClick: onDeleteRow,
+        },
+        {
+            icon: tableColumnBefore,
+            title: __('Insert column before', TEXT_DOMAIN),
+            isDisabled: !selectedCell,
+            onClick: () => onInsertColumn(0),
+        },
+        {
+            icon: tableColumnAfter,
+            title: __('Insert column after', TEXT_DOMAIN),
+            isDisabled: !selectedCell,
+            onClick: () => onInsertColumn(1),
+        },
+        {
+            icon: tableColumnDelete,
+            title: __('Delete column', TEXT_DOMAIN),
+            isDisabled: !selectedCell,
+            onClick: onDeleteColumn,
+        },
+    ];
+
+    const renderSection = (section: TableSectionName, rows: TableRow[]) => {
+        if (isEmptyTableSection(rows)) {
             return null;
         }
         const Tag = `t${section}` as 'thead' | 'tbody' | 'tfoot';
@@ -141,6 +227,13 @@ export default function TableEdit({
                                                 ),
                                             });
                                         }}
+                                        onFocus={() =>
+                                            setSelectedCell({
+                                                sectionName: section,
+                                                rowIndex,
+                                                columnIndex,
+                                            })
+                                        }
                                         aria-label={__('Cell', TEXT_DOMAIN)}
                                     />
                                 </CellTag>
@@ -157,6 +250,13 @@ export default function TableEdit({
             {!isEmpty && (
                 <>
                     <BlockControls group="block" />
+                    <BlockControls group="other">
+                        <ToolbarDropdownMenu
+                            icon={tableIcon}
+                            label={__('Edit table', TEXT_DOMAIN)}
+                            controls={tableControls}
+                        />
+                    </BlockControls>
                     <InspectorControls>
                         <PanelBody title={__('Settings', TEXT_DOMAIN)}>
                             <ToggleControl
