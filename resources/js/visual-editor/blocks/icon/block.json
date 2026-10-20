@@ -133,6 +133,14 @@
         "isDecorative": {
             "type": "boolean",
             "default": false
+        },
+        "verticalAlignment": {
+            "type": "string",
+            "enum": [
+                "top",
+                "center",
+                "bottom"
+            ]
         }
     },
     "supports": {

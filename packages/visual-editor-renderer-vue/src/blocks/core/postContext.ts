@@ -12,17 +12,16 @@ import type { VNode } from 'vue';
 import {
     attrBoolean,
     attrInt,
+    attrRecord,
     attrString,
     classList,
     layoutClass,
 } from '../../support/attributes';
-import { applyBackground } from '../../support/background';
+import { compileBlockSupports, type CompiledBlockSupports } from '../../support/blockSupports';
 import { layoutWrapperClasses } from '../../support/layoutContainer';
-import { applyDimensions, dimensionsClassName, hasDimensionStyle } from '../../support/dimensions';
 import { safeCssValue } from '../../support/cssValue';
-import { expandPresetReference } from '../../support/presetReference';
 import { safeUrl } from '../../support/urlSanitizer';
-import { blockRendererProps } from '../shared';
+import { blockRendererProps, withStyle } from '../shared';
 
 function buildLinkProps(
     href: string,
@@ -52,7 +51,6 @@ export const PostTitleBlock = defineComponent({
     setup(props) {
         return () => {
             const rawLevel = attrInt(props.attributes.level, 2);
-            const level = Math.max(1, Math.min(6, rawLevel));
             const align = attrString(props.attributes.textAlign);
             const isLink = attrBoolean(props.attributes.isLink);
             const linkTarget = attrString(props.attributes.linkTarget);
@@ -63,21 +61,24 @@ export const PostTitleBlock = defineComponent({
             const title = attrString(props.attributes._resolvedTitle);
             const permalink = safeUrl(props.attributes._resolvedPermalink);
 
-            const tag = `h${level}`;
+            // Level 0 is the "Paragraph" option of the heading-level dropdown (#994).
+            const tag = rawLevel === 0 ? 'p' : `h${Math.max(1, Math.min(6, rawLevel))}`;
 
+            const supports = compileBlockSupports(props.attributes);
             const classes = classList([
                 'wp-block-post-title',
                 align !== '' ? `has-text-align-${align}` : null,
+                ...supports.classNames,
                 className,
             ]);
 
             if (isLink && permalink !== '') {
                 const linkProps = buildLinkProps(permalink, linkTarget, rel, linkClass);
 
-                return h(tag, { class: classes }, [h('a', { ...linkProps, innerHTML: title })]);
+                return h(tag, withStyle({ class: classes }, supports.style), [h('a', { ...linkProps, innerHTML: title })]);
             }
 
-            return h(tag, { class: classes, innerHTML: title });
+            return h(tag, { ...withStyle({ class: classes }, supports.style), innerHTML: title });
         };
     },
 });
@@ -96,6 +97,7 @@ export const PostContentBlock = defineComponent({
             // Without `is-layout-constrained` here the content-size
             // containment rules the theme-token compiler emits for
             // `.wp-block-post-content` can never match.
+            const supports = compileBlockSupports(props.attributes);
             const classes = classList([
                 'entry-content',
                 'wp-block-post-content',
@@ -103,18 +105,11 @@ export const PostContentBlock = defineComponent({
                 // (#871), then the layout modifier classes (F-3).
                 ...layoutWrapperClasses(props.attributes, 'post-content', layoutClass(props.attributes)),
                 align !== '' ? `has-text-align-${align}` : null,
-                dimensionsClassName(props.attributes),
+                ...supports.classNames,
                 className,
             ]);
 
-            const wrapperStyle = backgroundAndDimensions(props.attributes);
-            const nodeProps: Record<string, unknown> = { class: classes, innerHTML: content };
-
-            if (wrapperStyle !== undefined) {
-                nodeProps.style = wrapperStyle;
-            }
-
-            return h('div', nodeProps);
+            return h('div', { ...withStyle({ class: classes }, supports.style), innerHTML: content });
         };
     },
 });
@@ -132,9 +127,11 @@ export const PostExcerptBlock = defineComponent({
             const excerpt = attrString(props.attributes._resolvedExcerpt);
             const permalink = safeUrl(props.attributes._resolvedPermalink);
 
+            const supports = compileBlockSupports(props.attributes);
             const classes = classList([
                 'wp-block-post-excerpt',
                 align !== '' ? `has-text-align-${align}` : null,
+                ...supports.classNames,
                 className,
             ]);
 
@@ -170,7 +167,7 @@ export const PostExcerptBlock = defineComponent({
                 children.push(h('p', { class: 'wp-block-post-excerpt__more-text' }, [moreNode]));
             }
 
-            return h('div', { class: classes }, children);
+            return h('div', withStyle({ class: classes }, supports.style), children);
         };
     },
 });
@@ -198,9 +195,11 @@ export const PostDateBlock = defineComponent({
                     : attrString(props.attributes._resolvedDateFormatted, datetime);
             const permalink = safeUrl(props.attributes._resolvedPermalink);
 
+            const supports = compileBlockSupports(props.attributes);
             const classes = classList([
                 'wp-block-post-date',
                 align !== '' ? `has-text-align-${align}` : null,
+                ...supports.classNames,
                 className,
             ]);
 
@@ -215,7 +214,7 @@ export const PostDateBlock = defineComponent({
             const inner =
                 isLink && permalink !== '' ? h('a', { href: permalink }, [timeNode]) : timeNode;
 
-            return h('div', { class: classes }, [inner]);
+            return h('div', withStyle({ class: classes }, supports.style), [inner]);
         };
     },
 });
@@ -238,11 +237,13 @@ export const PostAuthorBlock = defineComponent({
             const authorUrl = safeUrl(props.attributes._resolvedAuthorUrl);
             const avatarUrl = safeUrl(props.attributes._resolvedAuthorAvatar);
 
+            const supports = compileBlockSupports(props.attributes);
             const classes = classList([
                 'wp-block-post-author',
                 // Duotone scope stamped by `stampDuotoneScopes()`.
                 attrString(props.attributes._veDuotone) || null,
                 align !== '' ? `has-text-align-${align}` : null,
+                ...supports.classNames,
                 className,
             ]);
 
@@ -284,7 +285,7 @@ export const PostAuthorBlock = defineComponent({
 
             children.push(h('div', { class: 'wp-block-post-author__content' }, contentChildren));
 
-            return h('div', { class: classes }, children);
+            return h('div', withStyle({ class: classes }, supports.style), children);
         };
     },
 });
@@ -302,19 +303,21 @@ export const PostAuthorNameBlock = defineComponent({
             const name = attrString(props.attributes._resolvedAuthorName);
             const authorUrl = safeUrl(props.attributes._resolvedAuthorUrl);
 
+            const supports = compileBlockSupports(props.attributes);
             const classes = classList([
                 'wp-block-post-author-name',
                 align !== '' ? `has-text-align-${align}` : null,
+                ...supports.classNames,
                 className,
             ]);
 
             if (isLink && authorUrl !== '') {
                 const linkProps = buildLinkProps(authorUrl, linkTarget, '');
 
-                return h('div', { class: classes }, [h('a', linkProps, name)]);
+                return h('div', withStyle({ class: classes }, supports.style), [h('a', linkProps, name)]);
             }
 
-            return h('div', { class: classes }, name);
+            return h('div', withStyle({ class: classes }, supports.style), name);
         };
     },
 });
@@ -328,50 +331,35 @@ export const PostAuthorBiographyBlock = defineComponent({
             const className = attrString(props.attributes.className);
             const bio = attrString(props.attributes._resolvedAuthorBio);
 
+            const supports = compileBlockSupports(props.attributes);
             const classes = classList([
                 'wp-block-post-author-biography',
                 align !== '' ? `has-text-align-${align}` : null,
+                ...supports.classNames,
                 className,
             ]);
 
-            return h('p', { class: classes, innerHTML: bio });
+            return h('p', { ...withStyle({ class: classes }, supports.style), innerHTML: bio });
         };
     },
 });
 
 /**
- * The Avatar's root border, painted on its `<img>` as core does (#952):
- * block.json skips border serialization on the wrapper. Mirrors the
- * root-level part of the Blade `BlockSupports::borderAttrs()`.
+ * The Avatar's supports split as `avatar.blade.php` splits them (#952,
+ * #920): block.json skips border serialization on the wrapper, so the
+ * border is painted on the `<img>` (Blade's `BlockSupports::borderAttrs()`)
+ * and every other support lands on the wrapper.
  */
-function avatarImageBorder(attributes: Record<string, unknown>): { className: string; style: Record<string, string> } {
-    const classes = ['avatar', 'wp-block-avatar__image'];
-    const style: Record<string, string> = {};
-    const borderColor = attrString(attributes.borderColor);
+function avatarSupports(attributes: Record<string, unknown>): {
+    wrapper: CompiledBlockSupports;
+    image: CompiledBlockSupports;
+} {
+    const style = attrRecord(attributes.style);
 
-    if (borderColor !== '') {
-        classes.push('has-border-color', `has-${borderColor}-border-color`);
-    }
-
-    const styleAttr = attributes.style as Record<string, unknown> | undefined;
-    const border = styleAttr && typeof styleAttr.border === 'object' && styleAttr.border !== null
-        ? (styleAttr.border as Record<string, unknown>)
-        : {};
-    const declarations: Array<[string, string]> = [
-        ['borderRadius', attrString(border.radius)],
-        ['borderColor', attrString(border.color)],
-        ['borderStyle', attrString(border.style)],
-        ['borderWidth', attrString(border.width)],
-    ];
-
-    for (const [property, value] of declarations) {
-        const safe = value !== '' ? safeCssValue(expandPresetReference(value)) : null;
-        if (safe !== null) {
-            style[property] = safe;
-        }
-    }
-
-    return { className: classes.join(' '), style };
+    return {
+        wrapper: compileBlockSupports({ ...attributes, borderColor: undefined, style: { ...style, border: undefined } }),
+        image: compileBlockSupports({ borderColor: attributes.borderColor, style: { border: style.border } }),
+    };
 }
 
 export const AvatarBlock = defineComponent({
@@ -388,30 +376,41 @@ export const AvatarBlock = defineComponent({
             const alt = attrString(props.attributes._resolvedAuthorName);
             const authorUrl = safeUrl(props.attributes._resolvedAuthorUrl);
 
+            const supports = avatarSupports(props.attributes);
             // Duotone scope stamped by `stampDuotoneScopes()`.
-            const classes = classList(['wp-block-avatar', attrString(props.attributes._veDuotone) || null, className]);
+            const classes = classList([
+                'wp-block-avatar',
+                attrString(props.attributes._veDuotone) || null,
+                ...supports.wrapper.classNames,
+                className,
+            ]);
+            const wrapperProps = withStyle({ class: classes }, supports.wrapper.style);
 
             if (avatarUrl === '') {
-                return h('div', { class: classes });
+                return h('div', wrapperProps);
             }
 
-            const border = avatarImageBorder(props.attributes);
-            const img = h('img', {
-                alt,
-                width: size,
-                height: size,
-                src: avatarUrl,
-                class: border.className,
-                ...(Object.keys(border.style).length > 0 ? { style: border.style } : {}),
-            });
+            const img = h(
+                'img',
+                withStyle(
+                    {
+                        alt,
+                        width: size,
+                        height: size,
+                        src: avatarUrl,
+                        class: classList(['avatar', 'wp-block-avatar__image', ...supports.image.classNames]),
+                    },
+                    supports.image.style
+                )
+            );
 
             if (isLink && authorUrl !== '') {
                 const linkProps = buildLinkProps(authorUrl, linkTarget, '');
 
-                return h('div', { class: classes }, [h('a', linkProps, [img])]);
+                return h('div', wrapperProps, [h('a', linkProps, [img])]);
             }
 
-            return h('div', { class: classes }, [img]);
+            return h('div', wrapperProps, [img]);
         };
     },
 });
@@ -437,20 +436,23 @@ export const PostFeaturedImageBlock = defineComponent({
             const height = Math.max(0, attrInt(props.attributes._resolvedImageHeight));
             const permalink = safeUrl(props.attributes._resolvedPermalink);
 
+            const supports = compileBlockSupports(props.attributes);
             const classes = classList([
                 'wp-block-post-featured-image',
                 sizeSlug !== '' ? `size-${sizeSlug}` : null,
                 // Duotone scope stamped by `stampDuotoneScopes()`.
                 attrString(props.attributes._veDuotone) || null,
+                ...supports.classNames,
                 className,
             ]);
 
             if (imageUrl === '') {
-                return h('figure', { class: classes });
+                return h('figure', withStyle({ class: classes }, supports.style));
             }
 
-            // Frame sizing only applies once there is an image to frame.
-            const figureStyle: Record<string, string> = {};
+            // The supports (#920), then the frame sizing, which only
+            // applies once there is an image to frame.
+            const figureStyle: Record<string, string> = { ...supports.style };
 
             if (frameWidth !== '') {
                 figureStyle.width = frameWidth;
@@ -460,7 +462,7 @@ export const PostFeaturedImageBlock = defineComponent({
                 figureStyle.height = frameHeight;
             }
 
-            const figureProps = Object.keys(figureStyle).length > 0 ? { style: figureStyle } : {};
+            const figureProps = withStyle({}, figureStyle);
 
             const style: Record<string, string> = {};
 
@@ -506,18 +508,3 @@ export const PostFeaturedImageBlock = defineComponent({
         };
     },
 });
-
-/**
- * The wrapper style for blocks with background-image support (F-4): the
- * background image and then the dimensions, in `BlockSupports::compile()`
- * order. `undefined` when neither is set.
- */
-function backgroundAndDimensions(attributes: Record<string, unknown>): Record<string, string> | undefined {
-    const dimensionStyle = applyDimensions(attributes);
-    const style: Record<string, string> = {
-        ...(applyBackground(attributes) as Record<string, string>),
-        ...(hasDimensionStyle(dimensionStyle) ? (dimensionStyle as Record<string, string>) : {}),
-    };
-
-    return Object.keys(style).length > 0 ? style : undefined;
-}

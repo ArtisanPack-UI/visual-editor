@@ -1,0 +1,43 @@
+<p class="wp-block-post-title has-primary-background-color has-background has-text-color has-border-color has-contrast-border-color has-small-font-size has-defined-font-size is-audited" style="color: #222222; padding-top: 1rem; padding-left: 2rem; margin-bottom: var(--wp--preset--spacing--30); border-radius: 4px; border-width: 1px; border-style: solid; line-height: 1.5; letter-spacing: 1px; min-height: 80px">
+  <a href="https://example.com/hello">
+    "Hello"
+  </a>
+</p>
+<h6 class="wp-block-post-title has-primary-background-color has-background has-text-color has-border-color has-contrast-border-color has-small-font-size has-defined-font-size is-audited" style="color: #222222; padding-top: 1rem; padding-left: 2rem; margin-bottom: var(--wp--preset--spacing--30); border-radius: 4px; border-width: 1px; border-style: solid; line-height: 1.5; letter-spacing: 1px; min-height: 80px">
+  "Clamped"
+</h6>
+<div class="entry-content wp-block-post-content is-layout-constrained wp-block-post-content-is-layout-constrained has-primary-background-color has-background has-text-color has-border-color has-contrast-border-color has-small-font-size has-defined-font-size is-audited" style="color: #222222; padding-top: 1rem; padding-left: 2rem; margin-bottom: var(--wp--preset--spacing--30); border-radius: 4px; border-width: 1px; border-style: solid; line-height: 1.5; letter-spacing: 1px; min-height: 80px">
+  <p>
+    "Body"
+  </p>
+</div>
+<div class="wp-block-post-date has-primary-background-color has-background has-text-color has-border-color has-contrast-border-color has-small-font-size has-defined-font-size is-audited" style="color: #222222; padding-top: 1rem; padding-left: 2rem; margin-bottom: var(--wp--preset--spacing--30); border-radius: 4px; border-width: 1px; border-style: solid; line-height: 1.5; letter-spacing: 1px; min-height: 80px">
+  <time datetime="2026-01-02T00:00:00+00:00">
+    "January 2, 2026"
+  </time>
+</div>
+<div class="wp-block-post-author has-primary-background-color has-background has-text-color has-border-color has-contrast-border-color has-small-font-size has-defined-font-size is-audited" style="color: #222222; padding-top: 1rem; padding-left: 2rem; margin-bottom: var(--wp--preset--spacing--30); border-radius: 4px; border-width: 1px; border-style: solid; line-height: 1.5; letter-spacing: 1px; min-height: 80px">
+  <div class="wp-block-post-author__avatar">
+    <img alt="Jo" height="24" src="https://example.com/jo.png" width="24" />
+  </div>
+  <div class="wp-block-post-author__content">
+    <p class="wp-block-post-author__byline">
+      "By"
+    </p>
+    <p class="wp-block-post-author__name">
+      "Jo"
+    </p>
+  </div>
+</div>
+<div class="wp-block-post-author-name has-primary-background-color has-background has-text-color has-border-color has-contrast-border-color has-small-font-size has-defined-font-size is-audited" style="color: #222222; padding-top: 1rem; padding-left: 2rem; margin-bottom: var(--wp--preset--spacing--30); border-radius: 4px; border-width: 1px; border-style: solid; line-height: 1.5; letter-spacing: 1px; min-height: 80px">
+  "Jo"
+</div>
+<p class="wp-block-post-author-biography has-primary-background-color has-background has-text-color has-border-color has-contrast-border-color has-small-font-size has-defined-font-size is-audited" style="color: #222222; padding-top: 1rem; padding-left: 2rem; margin-bottom: var(--wp--preset--spacing--30); border-radius: 4px; border-width: 1px; border-style: solid; line-height: 1.5; letter-spacing: 1px; min-height: 80px">
+  "Bio"
+</p>
+<div class="wp-block-avatar has-primary-background-color has-background has-text-color has-small-font-size has-defined-font-size is-audited" style="color: #222222; padding-top: 1rem; padding-left: 2rem; margin-bottom: var(--wp--preset--spacing--30); line-height: 1.5; letter-spacing: 1px; min-height: 80px">
+  <img alt="Jo" class="avatar wp-block-avatar__image has-border-color has-contrast-border-color" height="96" src="https://example.com/jo.png" style="border-radius: 4px; border-width: 1px; border-style: solid" width="96" />
+</div>
+<figure class="wp-block-post-featured-image has-primary-background-color has-background has-text-color has-border-color has-contrast-border-color has-small-font-size has-defined-font-size is-audited" style="color: #222222; padding-top: 1rem; padding-left: 2rem; margin-bottom: var(--wp--preset--spacing--30); border-radius: 4px; border-width: 1px; border-style: solid; line-height: 1.5; letter-spacing: 1px; min-height: 80px; width: 300px">
+  <img alt="F" src="https://example.com/f.jpg" />
+</figure>

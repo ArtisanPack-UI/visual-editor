@@ -208,8 +208,10 @@ function asString( value: unknown ): string {
  * HTML as text (rather than via `dangerouslySetInnerHTML`) keeps the
  * preview dependency-free and removes any HTML-injection surface from the
  * editor. Falls back to a tag-strip when `DOMParser` is unavailable.
+ *
+ * @since 1.15.3 Exported for the Post Content current-entry preview (#992).
  */
-function htmlToText( html: string ): string {
+export function htmlToText( html: string ): string {
     if ( typeof DOMParser === 'undefined' ) {
         return html.replace( /<[^>]*>/g, '' );
     }
@@ -220,7 +222,27 @@ function htmlToText( html: string ): string {
     );
 }
 
-function readQueryPreviewPost( context: unknown ): QueryPreviewPost | null {
+/**
+ * Whether the block sits inside an `artisanpack/query` loop — the loop
+ * stamps a numeric `queryId` into block context.
+ *
+ * @since 1.15.3
+ */
+export function isInQueryLoop( context: unknown ): boolean {
+    if ( context === null || typeof context !== 'object' ) {
+        return false;
+    }
+
+    return Number.isFinite( ( context as Record<string, unknown> ).queryId );
+}
+
+/**
+ * Reads the `artisanpack/postPreview` record the query loop (or the
+ * site editor's template preview, #993) pipes into block context.
+ *
+ * @since 1.15.3 Exported.
+ */
+export function readQueryPreviewPost( context: unknown ): QueryPreviewPost | null {
     if ( context === null || typeof context !== 'object' ) {
         return null;
     }
@@ -234,7 +256,7 @@ function readQueryPreviewPost( context: unknown ): QueryPreviewPost | null {
     return value as QueryPreviewPost;
 }
 
-interface PostEntityIdentity {
+export interface PostEntityIdentity {
     readonly postType: string;
     readonly postId: number;
 }
@@ -244,8 +266,10 @@ interface PostEntityIdentity {
  * payload. Returns null unless both are present and well-formed —
  * post-* blocks placed outside any entity context (e.g. on a non-
  * cms-framework resource) skip the entity-fetch path entirely.
+ *
+ * @since 1.15.3 Exported for the inline-editable post-* edits (#992).
  */
-function readPostEntityIdentity( context: unknown ): PostEntityIdentity | null {
+export function readPostEntityIdentity( context: unknown ): PostEntityIdentity | null {
     if ( context === null || typeof context !== 'object' ) {
         return null;
     }

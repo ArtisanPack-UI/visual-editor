@@ -126,6 +126,26 @@
     color: var(--ap-site-editor-muted, #4b5563);
 }
 
+/* #993 — template preview-entry picker. Label and select sit inline
+   so the header keeps its single-row height. */
+.ap-site-editor__preview-entry {
+    display: inline-flex;
+    align-items: center;
+    font-size: 12px;
+    color: var(--ap-site-editor-muted, #4b5563);
+}
+
+.ap-site-editor__preview-entry .components-base-control__field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 0;
+}
+
+.ap-site-editor__preview-entry .components-base-control__label {
+    margin-bottom: 0;
+}
+
 .ap-site-editor__dirty-indicator {
     display: inline-flex;
     align-items: center;

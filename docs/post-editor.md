@@ -160,6 +160,15 @@ to opt fields in or out — see [Blade component reference](post-editor/Blade-Co
 Document-field changes write back to the model via the same content
 endpoint, batched with block changes.
 
+*Since v1.15.3 (#992)*, Post Title, Post Excerpt and Post Content blocks
+in the canvas show the entry being edited, for posts, pages and custom
+content types. Title and excerpt are editable inline and stay in sync
+with the Title and Excerpt fields above; Post Content shows a read-only
+preview of the canvas. For custom content types without
+`onMetadataChange`, title and excerpt are saved through
+`PUT /visual-editor/api/{resource}/{id}/entry` (see
+[Content model](content-model.md#2-the-resource-map)).
+
 ---
 
 ## 7. Autosave + save flow

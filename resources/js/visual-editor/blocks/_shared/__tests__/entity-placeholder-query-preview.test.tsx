@@ -17,6 +17,26 @@ vi.mock('@wordpress/block-editor', () => ({
     InspectorControls: ({ children }: { children: React.ReactNode }) => (
         <>{children}</>
     ),
+    // #994 — the post-title toolbar level dropdown. Stubbed as a
+    // pass-through slot plus a marker so the dropdown's presence and
+    // options can be asserted without the real toolbar.
+    BlockControls: ({ children }: { children: React.ReactNode }) => (
+        <>{children}</>
+    ),
+    HeadingLevelDropdown: ({
+        options,
+        value,
+    }: {
+        options?: number[];
+        value: number;
+    }) => (
+        <span
+            data-testid="heading-level-dropdown"
+            data-value={value}
+            data-options={options === undefined ? '' : options.join(',')}
+        />
+    ),
+    store: 'core/block-editor',
     // Minimal PlainText stub; the query-preview tests never reach the
     // editable post-title path, but the import has to resolve when the
     // edit module loads.

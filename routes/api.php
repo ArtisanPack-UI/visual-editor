@@ -39,6 +39,7 @@ use ArtisanPackUI\VisualEditor\Http\Controllers\MenuLocationsController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\QueryResolveController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\ResourceAppliedTemplateController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\ResourceContentController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\ResourceEntryController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\GlobalStylesController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\MenuController;
@@ -63,6 +64,12 @@ Route::get( '{resource}/{id}/content', [ ResourceContentController::class, 'show
 Route::put( '{resource}/{id}/content', [ ResourceContentController::class, 'update' ] )
 	->where( 'resource', '[A-Za-z0-9_-]+' )
 	->name( 'visual-editor.api.resources.content.update' );
+
+// #992 — title/excerpt saves for resources without a dedicated entity
+// adapter (custom content types). Posts/pages keep the G3 routes below.
+Route::put( '{resource}/{id}/entry', [ ResourceEntryController::class, 'update' ] )
+	->where( 'resource', '[A-Za-z0-9_-]+' )
+	->name( 'visual-editor.api.resources.entry.update' );
 
 // #619 — resolve the *applied* template for a content item. Feeds the
 // post-editor's composed-view mode, which wraps the raw block list in the

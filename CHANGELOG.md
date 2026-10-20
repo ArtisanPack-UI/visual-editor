@@ -6,6 +6,22 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.15.3] - 2026-10-19
+
+### Added
+
+- **Icon vertical alignment.** The Icon block's toolbar has a vertical alignment control (`verticalAlignment`: `top`, `center` or `bottom`) that positions the icon inside a wrapper stretched taller than the icon, e.g. by a flex Row. The wrapper becomes a column flexbox with an `is-vertically-aligned-{value}` class, in the canvas and on the front end; icons without the attribute render as before, and any other value is dropped.
+- **Post Title heading level** ([#994](https://github.com/ArtisanPack-UI/visual-editor/issues/994)). Post Title has a toolbar level dropdown offering Paragraph and H1–H6, limited by `levelOptions` when set. `level: 0` renders a `<p>` in the Blade, React and Vue renderers.
+- **Template previews use real entries** ([#993](https://github.com/ArtisanPack-UI/visual-editor/issues/993)). In the site editor, single-entry templates (`single`, `single-post`, `single-post-{slug}`, `single-{type}`, `single-{type}-{slug}`, `page`, `page-{slug}`) preview their Post Title, Post Excerpt and Post Content blocks with the latest matching entry, preferring the one whose slug the template names. A **Preview content** picker in the canvas switches entries. The blocks stay read-only, and templates with no matching entry (or that don't render a single entry) keep their placeholders. `POST /query/resolve` now returns registered custom content types in their own shape through a new `ContentTypeResource`.
+- **Title and excerpt saves for custom content types** ([#992](https://github.com/ArtisanPack-UI/visual-editor/issues/992)). New `PUT /visual-editor/api/{resource}/{id}/entry` endpoint (`ResourceEntryController`, `UpdateResourceEntryRequest`) saves `title` and `excerpt` for any resource in the resource map. It is gated by the record's `update` policy and answers 422 when a sent field has no column on the record. The editor uses it for custom entries only when the host doesn't pass `onMetadataChange`, so hosts that persist metadata themselves don't write twice.
+
+### Fixed
+
+- **React and Vue renderers print block supports** ([#920](https://github.com/ArtisanPack-UI/visual-editor/issues/920)). The React and Vue renderers dropped colour, background, spacing, border, typography and dimensions supports on most core blocks. A shared `compileBlockSupports()`, ported from Blade's `BlockSupports::compile()`, now builds them for every core block wrapper (the Cover overlay included), with 19 new parity fixtures locked to Blade's goldens. Every support value is validated before it reaches an inline style in all three renderers, so a stored value can't append extra declarations, and every `background-*` declaration goes to the Cover overlay with its image.
+- **Post blocks show the entry being edited** ([#992](https://github.com/ArtisanPack-UI/visual-editor/issues/992)). Post Title, Post Excerpt and Post Content showed placeholder chips for custom content types, and Post Content did for every entry. They now show the edited entry's real values for posts, pages and custom content types. Title and excerpt are editable inline and stay in sync with the document fields in both directions; Post Content shows a read-only preview of the canvas, skipping nested Post Content blocks.
+- **Saved titles stick** ([#992](https://github.com/ArtisanPack-UI/visual-editor/issues/992)). A saved title could snap back to its old value after autosave, edits made while a save was in flight were lost, and a rejected metadata save retried in a tight loop. Saved edits are now folded into the stored record, in-flight edits wait for the next save, and a rejected save no longer retries.
+- **Bound attributes are locked in the editor** ([#995](https://github.com/ArtisanPack-UI/visual-editor/issues/995)). Controls for an attribute connected to a binding looked editable but every keystroke was replaced by the bound value. Server-block inspector controls for a bound attribute now render disabled with help text naming the source ("Connected to … Disconnect it in the Block bindings panel to edit."), and a Heading whose content is bound renders it read-only, with scripts and event handlers stripped from the bound value.
+
 ## [1.15.2] - 2026-10-18
 
 ### Added

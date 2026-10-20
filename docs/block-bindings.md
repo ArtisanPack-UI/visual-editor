@@ -249,6 +249,26 @@ Both endpoints are first-party controllers (`BindingSourcesController`,
 `DynamicContentResolveController`) and respect the package's standard
 authorization gates.
 
+### Bound attributes are locked
+
+*Since v1.15.3 (#995).* The editor overlays a bound attribute's resolved
+value on the block, so typing into its control would be overwritten.
+Controls for a bound attribute are disabled instead:
+
+- In server-rendered blocks' inspectors, the control renders disabled
+  with help text naming the source: "Connected to {source} → {field}.
+  Disconnect it in the Block bindings panel to edit."
+- A Heading whose `content` is bound renders it read-only
+  (`aria-readonly="true"`).
+
+Remove the binding in the Bindings panel to edit the attribute again.
+Other hand-written blocks (Paragraph, Button, Image, Quote and others)
+don't lock their bound fields yet.
+
+Custom server-rendered blocks get this automatically: their inspector
+controls are generated from the block's attributes, so a bound attribute's
+control is disabled the same way.
+
 ### Record access check
 
 *Since v1.15.0.* `POST /visual-editor/api/bindings/resolve` and

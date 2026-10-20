@@ -1,0 +1,18 @@
+<div class="wp-block-cover is-dark is-layout-flex wp-block-cover-is-layout-flex" style="padding: 2rem">
+  <span aria-hidden="true" class="wp-block-cover__background has-background-dim" style="opacity: 0.4; background-image: url('https://example.com/hero.jpg'); background-size: contain; background-position: 25% 75%; background-repeat: no-repeat; background-attachment: fixed">
+  </span>
+  <div class="wp-block-cover__inner-container is-layout-flow wp-block-cover-is-layout-flow">
+    <p class="wp-block-paragraph">
+      "Copy"
+    </p>
+  </div>
+</div>
+<div class="wp-block-cover is-dark is-layout-flex wp-block-cover-is-layout-flex">
+  <span aria-hidden="true" class="wp-block-cover__background has-background-dim" style="opacity: 1; background-image: url('https://example.com/default.jpg'); background-size: cover">
+  </span>
+  <div class="wp-block-cover__inner-container is-layout-flow wp-block-cover-is-layout-flow">
+    <p class="wp-block-paragraph">
+      "Default size"
+    </p>
+  </div>
+</div>

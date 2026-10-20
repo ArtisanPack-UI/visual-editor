@@ -7,9 +7,10 @@
 import { defineComponent, h } from 'vue';
 import type { VNode } from 'vue';
 import { attrBoolean, attrInt, attrString, classList } from '../../support/attributes';
+import { compileBlockSupports } from '../../support/blockSupports';
 import { safeCssValue } from '../../support/cssValue';
 import { safeUrl } from '../../support/urlSanitizer';
-import { blockRendererProps } from '../shared';
+import { blockRendererProps, withStyle } from '../shared';
 
 /**
  * Object-fit keywords the image block's Scale control writes (#873).
@@ -108,14 +109,17 @@ export const ImageBlock = defineComponent({
             const sizeSlug = attrString(props.attributes.sizeSlug);
             const className = attrString(props.attributes.className);
 
+            const supports = compileBlockSupports(props.attributes);
             // Blade order: base, size, is-resized (#985), duotone scope (stamped by
-            // `stampDuotoneScopes()`), then the supports' align and className.
+            // `stampDuotoneScopes()`), then the supports' align, the other
+            // supports (#920) and className.
             const figureClasses = classList([
                 'wp-block-image',
                 sizeSlug !== '' ? `size-${sizeSlug}` : null,
                 width.style !== undefined || height.style !== undefined ? 'is-resized' : null,
                 attrString(props.attributes._veDuotone) || null,
                 align !== '' ? `align${align}` : null,
+                ...supports.classNames,
                 className,
             ]);
 
@@ -151,7 +155,7 @@ export const ImageBlock = defineComponent({
                 children.push(h('figcaption', { innerHTML: caption }));
             }
 
-            return h('figure', { class: figureClasses }, children);
+            return h('figure', withStyle({ class: figureClasses }, supports.style), children);
         };
     },
 });
@@ -166,11 +170,13 @@ export const GalleryBlock = defineComponent({
             const className = attrString(props.attributes.className);
             const caption = attrString(props.attributes.caption);
 
+            const supports = compileBlockSupports(props.attributes);
             const classes = classList([
                 'wp-block-gallery',
                 'has-nested-images',
                 columns > 0 ? `columns-${columns}` : null,
                 imageCrop ? 'is-cropped' : null,
+                ...supports.classNames,
                 className,
             ]);
 
@@ -188,7 +194,7 @@ export const GalleryBlock = defineComponent({
                 );
             }
 
-            return h('figure', { class: classes }, children);
+            return h('figure', withStyle({ class: classes }, supports.style), children);
         };
     },
 });
@@ -208,9 +214,11 @@ export const VideoBlock = defineComponent({
             const controls =
                 props.attributes.controls === undefined ? true : attrBoolean(props.attributes.controls);
 
+            const supports = compileBlockSupports(props.attributes);
             const classes = classList([
                 'wp-block-video',
                 align !== '' ? `align${align}` : null,
+                ...supports.classNames,
                 className,
             ]);
 
@@ -235,7 +243,7 @@ export const VideoBlock = defineComponent({
                 children.push(h('figcaption', { innerHTML: caption }));
             }
 
-            return h('figure', { class: classes }, children);
+            return h('figure', withStyle({ class: classes }, supports.style), children);
         };
     },
 });
@@ -251,9 +259,11 @@ export const AudioBlock = defineComponent({
             const className = attrString(props.attributes.className);
             const preload = attrString(props.attributes.preload, 'none');
 
+            const supports = compileBlockSupports(props.attributes);
             const classes = classList([
                 'wp-block-audio',
                 align !== '' ? `align${align}` : null,
+                ...supports.classNames,
                 className,
             ]);
 
@@ -275,7 +285,7 @@ export const AudioBlock = defineComponent({
                 children.push(h('figcaption', { innerHTML: caption }));
             }
 
-            return h('figure', { class: classes }, children);
+            return h('figure', withStyle({ class: classes }, supports.style), children);
         };
     },
 });
@@ -296,7 +306,8 @@ export const FileBlock = defineComponent({
                     : attrBoolean(props.attributes.showDownloadButton);
             const className = attrString(props.attributes.className);
 
-            const classes = classList(['wp-block-file', className]);
+            const supports = compileBlockSupports(props.attributes);
+            const classes = classList(['wp-block-file', ...supports.classNames, className]);
             const linkLabel = fileName !== '' ? fileName : href;
             // Mirrors the editor save: the button points at the file-name
             // link for its accessible description, but only when that link
@@ -305,7 +316,7 @@ export const FileBlock = defineComponent({
             const describedById = fileName !== '' && fileId !== '' ? fileId : undefined;
 
             if (href === '') {
-                return h('div', { class: classes });
+                return h('div', withStyle({ class: classes }, supports.style));
             }
 
             const children: VNode[] = [
@@ -327,7 +338,7 @@ export const FileBlock = defineComponent({
                 );
             }
 
-            return h('div', { class: classes }, children);
+            return h('div', withStyle({ class: classes }, supports.style), children);
         };
     },
 });
@@ -360,6 +371,7 @@ export const EmbedBlock = defineComponent({
 
             const sanitizedProvider = embedProviderSlug(provider);
 
+            const supports = compileBlockSupports(props.attributes);
             const classes = classList([
                 'wp-block-embed',
                 sanitizedProvider !== '' ? `is-provider-${sanitizedProvider}` : null,
@@ -368,6 +380,7 @@ export const EmbedBlock = defineComponent({
                 type !== '' && type !== '0' ? `is-type-${type}` : null,
                 ratio !== '' ? `wp-embed-aspect-${ratio.replace(/\//g, '-')}` : null,
                 ratio !== '' ? 'wp-has-aspect-ratio' : null,
+                ...supports.classNames,
                 // `className` carries the `ve-r-*` / `ve-fx-*` scopes too (M-7).
                 attrString(props.attributes.className),
             ]);
@@ -380,7 +393,7 @@ export const EmbedBlock = defineComponent({
                 children.push(h('figcaption', { innerHTML: caption }));
             }
 
-            return h('figure', { class: classes }, children);
+            return h('figure', withStyle({ class: classes }, supports.style), children);
         };
     },
 });

@@ -36,6 +36,16 @@ class IconBlock extends DynamicBlock
 	private const ALLOWED_LINK_TARGETS  = [ '_blank', '_self', '_parent', '_top' ];
 	private const ALLOWED_BORDER_STYLES = [ 'none', 'hidden', 'dotted', 'dashed', 'solid', 'double', 'groove', 'ridge', 'inset', 'outset' ];
 
+	/**
+	 * Vertical alignment → `justify-content` on the column-flex wrapper.
+	 * Mirrors `VERTICAL_ALIGNMENT_JUSTIFY` in the editor's `utils.ts`.
+	 */
+	private const VERTICAL_ALIGNMENTS = [
+		'top'    => 'flex-start',
+		'center' => 'center',
+		'bottom' => 'flex-end',
+	];
+
 	public function __construct(
 		private readonly SvgSanitizer $sanitizer,
 		private readonly ?IconSvgResolver $resolver = null,
@@ -106,6 +116,9 @@ class IconBlock extends DynamicBlock
 			'titleAttr'           => is_string( $attrs['titleAttr'] ?? null ) ? (string) $attrs['titleAttr'] : '',
 			'ariaLabel'           => is_string( $attrs['ariaLabel'] ?? null ) ? (string) $attrs['ariaLabel'] : '',
 			'isDecorative'        => (bool) ( $attrs['isDecorative'] ?? false ),
+			'verticalAlignment'   => is_string( $attrs['verticalAlignment'] ?? null ) && isset( self::VERTICAL_ALIGNMENTS[ $attrs['verticalAlignment'] ] )
+				? $attrs['verticalAlignment']
+				: null,
 			'className'           => is_string( $attrs['className'] ?? null ) ? (string) $attrs['className'] : '',
 			'style'               => is_array( $attrs['style'] ?? null ) ? $attrs['style'] : [],
 		];
@@ -278,6 +291,9 @@ class IconBlock extends DynamicBlock
 		if ( '' !== $attrs['className'] ) {
 			$classes[] = $attrs['className'];
 		}
+		if ( null !== $attrs['verticalAlignment'] ) {
+			$classes[] = 'is-vertically-aligned-' . $attrs['verticalAlignment'];
+		}
 
 		$style = is_array( $attrs['style'] ?? null ) ? $attrs['style'] : [];
 
@@ -367,7 +383,11 @@ class IconBlock extends DynamicBlock
 	 *
 	 * Carries the WP-managed background/border/padding/margin from the
 	 * `attributes.style` envelope plus the legacy top-level
-	 * `backgroundColor` for pre-fix blocks. The icon's foreground color
+	 * `backgroundColor` for pre-fix blocks. A `verticalAlignment` turns the
+	 * wrapper into a column flexbox so the icon can sit at the top,
+	 * middle, or bottom of a wrapper stretched taller than the icon (e.g.
+	 * by a flex row); `align-items: flex-start` keeps the icon's
+	 * horizontal position where block flow put it. The icon's foreground color
 	 * stays on the body span via `bodyStyle()` so the SVG's
 	 * `fill: currentcolor` picks it up without spilling onto the wrapper.
 	 * Returns an empty string (not `style=""`) when nothing applies so
@@ -377,6 +397,13 @@ class IconBlock extends DynamicBlock
 	{
 		$style = is_array( $attrs['style'] ?? null ) ? $attrs['style'] : [];
 		$parts = [];
+
+		if ( null !== $attrs['verticalAlignment'] ) {
+			$parts[] = 'display: flex';
+			$parts[] = 'flex-direction: column';
+			$parts[] = 'align-items: flex-start';
+			$parts[] = 'justify-content: ' . self::VERTICAL_ALIGNMENTS[ $attrs['verticalAlignment'] ];
+		}
 
 		// Custom hex background (style.color.background); the palette
 		// slug case is handled via `has-{slug}-background-color` in

@@ -214,6 +214,41 @@ class BlockSupports
 	private const CSS_VALUE_DISALLOWED = '/[^a-zA-Z0-9_+\-*\/.,()%#\t\n\r\f ]/';
 
 	/**
+	 * The CSS functions a custom gradient may call: the gradient
+	 * functions themselves plus the colour, custom-property and math
+	 * functions their colour stops and lengths use. None of them fetches
+	 * a resource, so a gradient built only from these can never load a
+	 * `url()` / `image-set()`. Mirrored by `GRADIENT_FUNCTIONS` in the
+	 * React and Vue `cssValue.ts`.
+	 *
+	 * @since 1.15.3
+	 */
+	private const GRADIENT_FUNCTIONS = [
+		'linear-gradient',
+		'radial-gradient',
+		'conic-gradient',
+		'repeating-linear-gradient',
+		'repeating-radial-gradient',
+		'repeating-conic-gradient',
+		'rgb',
+		'rgba',
+		'hsl',
+		'hsla',
+		'hwb',
+		'lab',
+		'lch',
+		'oklab',
+		'oklch',
+		'color',
+		'color-mix',
+		'var',
+		'calc',
+		'min',
+		'max',
+		'clamp',
+	];
+
+	/**
 	 * Per-request cache for the position payload produced at the top of
 	 * {@see compile()} so {@see compilePosition()} can reuse it without
 	 * walking the resolver a second time (#640). Not a permanent cache
@@ -475,14 +510,18 @@ class BlockSupports
 	 * - `has-{slug}-gradient-background` (palette gradient slug).
 	 *
 	 * Inline declarations routed to the `background` bucket:
-	 * - `background-color: ...`
-	 * - `background-image: ...`
 	 * - `background: ...` (shorthand / custom gradient).
+	 * - every `background-*` longhand — `background-color` and the
+	 *   background image with its `background-size`,
+	 *   `background-position`, `background-repeat` and
+	 *   `background-attachment`, so the image keeps its sizing on the
+	 *   element it paints on.
 	 *
 	 * Every other class / declaration is kept in the `wrapper` bucket
 	 * untouched.
 	 *
 	 * @since 1.1.0
+	 * @since 1.15.3 Routes every `background-*` longhand with the image.
 	 *
 	 * @param  array<int, string>  $classes  `compile`'s `classes` return.
 	 * @param  string              $style    `compile`'s `style` return
@@ -550,6 +589,7 @@ class BlockSupports
 	 * different cascade slots on the overlay span.
 	 *
 	 * @since 1.1.0
+	 * @since 1.15.3 Drops values {@see self::supportValue()} rejects (#920 review).
 	 *
 	 * @param  array<string, mixed>  $attributes
 	 *
@@ -561,19 +601,19 @@ class BlockSupports
 		$style   = [];
 
 		$overlaySlug      = self::stringAttr( $attributes['overlayColor'] ?? null );
-		$customOverlay    = self::stringAttr( $attributes['customOverlayColor'] ?? null );
-		$customGradient   = self::stringAttr( $attributes['customGradient'] ?? null );
+		$customOverlay    = self::supportValue( 'background-color', self::stringAttr( $attributes['customOverlayColor'] ?? null ) );
+		$customGradient   = self::supportValue( 'background', self::stringAttr( $attributes['customGradient'] ?? null ) );
 
 		if ( '' !== $overlaySlug ) {
 			$classes[] = 'has-' . self::slugify( $overlaySlug ) . '-background-color';
 			$classes[] = 'has-background';
-		} elseif ( '' !== $customOverlay ) {
-			$style[]   = 'background-color: ' . self::expandPresetReference( $customOverlay );
+		} elseif ( null !== $customOverlay ) {
+			$style[]   = 'background-color: ' . $customOverlay;
 			$classes[] = 'has-background';
 		}
 
-		if ( '' !== $customGradient ) {
-			$style[]   = 'background: ' . self::expandPresetReference( $customGradient );
+		if ( null !== $customGradient ) {
+			$style[]   = 'background: ' . $customGradient;
 			$classes[] = 'has-background';
 		}
 
@@ -963,6 +1003,103 @@ class BlockSupports
 	}
 
 	/**
+	 * Validate a custom gradient bound for a `background` declaration
+	 * (`style.color.gradient`, the cover's `customGradient`). Returns the
+	 * value unchanged when it is safe, or `null` to drop the declaration.
+	 *
+	 * `background` is a fetching property, so {@see self::safeCssValue()}
+	 * alone is not enough: a `url(…)` with a relative path passes its
+	 * character whitelist. On top of that whitelist (which still rejects
+	 * `;`, `{`, `}`, `:`, quotes and the comment digraphs), a gradient
+	 * must be either one `var(--…)` reference (an expanded
+	 * `var:preset|gradient|…`) or one
+	 * `(repeating-)?(linear|radial|conic)-gradient(…)` call whose
+	 * parentheses balance and close at the end of the value, and every
+	 * function it calls must be in {@see self::GRADIENT_FUNCTIONS}.
+	 * Commas, parentheses, `%` and `#` stay legal for the colour stops.
+	 * Mirrored by `safeGradientValue()` in the React and Vue renderers.
+	 *
+	 * @since 1.15.3
+	 *
+	 * @param  string  $value  The expanded gradient value.
+	 *
+	 * @return string|null The value, or `null` when it is rejected.
+	 */
+	public static function safeGradientValue( string $value ): ?string
+	{
+		if ( null === self::safeCssValue( $value ) ) {
+			return null;
+		}
+
+		if ( 1 === preg_match( '/^var\(--[a-zA-Z0-9_-]+\)$/D', $value ) ) {
+			return $value;
+		}
+
+		if ( 1 !== preg_match( '/^(?:repeating-)?(?:linear|radial|conic)-gradient\(/i', $value ) ) {
+			return null;
+		}
+
+		preg_match_all( '/([a-zA-Z_-][a-zA-Z0-9_-]*)\(/', $value, $matches );
+
+		foreach ( $matches[1] as $function ) {
+			if ( ! in_array( strtolower( $function ), self::GRADIENT_FUNCTIONS, true ) ) {
+				return null;
+			}
+		}
+
+		$depth  = 0;
+		$length = strlen( $value );
+
+		for ( $index = 0; $index < $length; $index++ ) {
+			if ( '(' === $value[ $index ] ) {
+				$depth++;
+
+				continue;
+			}
+
+			if ( ')' !== $value[ $index ] ) {
+				continue;
+			}
+
+			$depth--;
+
+			// A close before the end that returns to depth 0 means a
+			// second top-level layer follows the gradient.
+			if ( $depth < 0 || ( 0 === $depth && $index !== $length - 1 ) ) {
+				return null;
+			}
+		}
+
+		return 0 === $depth ? $value : null;
+	}
+
+	/**
+	 * Validate a custom `font-family` value. Returns the value unchanged
+	 * when it is safe, or `null` to drop the declaration.
+	 *
+	 * A font stack legitimately quotes family names
+	 * (`"Times New Roman", serif`), which {@see self::safeCssValue()}
+	 * rejects. Each complete quoted name made of letters, digits, spaces,
+	 * `_`, `.` and `-` is set aside, and the rest of the value must then
+	 * pass {@see self::safeCssValue()} — so an unbalanced quote, or one
+	 * wrapping `;`, `{`, `}` or another structural character, still
+	 * rejects the whole value. Mirrored by `safeFontFamilyValue()` in the
+	 * React and Vue renderers.
+	 *
+	 * @since 1.15.3
+	 *
+	 * @param  string  $value  The expanded font-family value.
+	 *
+	 * @return string|null The value, or `null` when it is rejected.
+	 */
+	public static function safeFontFamilyValue( string $value ): ?string
+	{
+		$unquoted = (string) preg_replace( '/"[a-zA-Z0-9 _.\-]*"|\'[a-zA-Z0-9 _.\-]*\'/', 'x', $value );
+
+		return null === self::safeCssValue( $unquoted ) ? null : $value;
+	}
+
+	/**
 	 * Back-compat shim. Previously emitted a per-block `<style>` tag
 	 * before the wrapper; now a no-op because compile() pushes the
 	 * rules into the per-request accumulator and
@@ -1141,6 +1278,34 @@ class BlockSupports
 			'classes' => $classes,
 			'style'   => [] !== $style ? implode( '; ', $style ) . ';' : '',
 		];
+	}
+
+	/**
+	 * Validate an expanded block-support value for the CSS property it
+	 * lands on (#920 review): a gradient `background` goes through
+	 * {@see self::safeGradientValue()}, a `font-family` through
+	 * {@see self::safeFontFamilyValue()}, and everything else through
+	 * {@see self::safeCssValue()}. A stored value carrying `;`, `{`, `}`
+	 * or a comment can therefore never append declarations to the inline
+	 * style — which would otherwise sidestep the Custom CSS ability gate
+	 * (#881). Callers treat `null` as "value unset".
+	 *
+	 * @since 1.15.3
+	 *
+	 * @param  string  $property  The CSS property the value is bound for.
+	 * @param  string  $value     The raw (pre-expansion) attribute value.
+	 *
+	 * @return string|null The expanded value, or `null` when it is rejected.
+	 */
+	protected static function supportValue( string $property, string $value ): ?string
+	{
+		$expanded = self::expandPresetReference( $value );
+
+		return match ( $property ) {
+			'background'  => self::safeGradientValue( $expanded ),
+			'font-family' => self::safeFontFamilyValue( $expanded ),
+			default       => self::safeCssValue( $expanded ),
+		};
 	}
 
 	/**
@@ -1613,8 +1778,8 @@ class BlockSupports
 	}
 
 	/**
-	 * Carve `background-color`, `background-image`, and shorthand
-	 * `background` declarations out of a semicolon-separated style
+	 * Carve the shorthand `background` and every `background-*`
+	 * longhand declaration out of a semicolon-separated style
 	 * string, returning `[backgroundStyle, wrapperStyle]`. Each output
 	 * string is `;`-suffixed iff non-empty so callers can splice them
 	 * back into a wrapper attribute without re-checking emptiness.
@@ -1659,13 +1824,14 @@ class BlockSupports
 	}
 
 	/**
-	 * Check a single trimmed CSS declaration for a `background-color`,
-	 * `background-image`, or shorthand `background` property name. The
+	 * Check a single trimmed CSS declaration for the shorthand
+	 * `background` or a `background-*` longhand property name. The
 	 * match is anchored to the property — declarations with a value
 	 * containing the literal `background` keyword (e.g.
 	 * `transition: background 200ms`) are left on the wrapper.
 	 *
 	 * @since 1.1.0
+	 * @since 1.15.3 Matches every `background-*` longhand, not just colour and image.
 	 */
 	protected static function isBackgroundDeclaration( string $declaration ): bool
 	{
@@ -1677,9 +1843,7 @@ class BlockSupports
 
 		$property = strtolower( rtrim( substr( $declaration, 0, $colonPosition ) ) );
 
-		return 'background' === $property
-			|| 'background-color' === $property
-			|| 'background-image' === $property;
+		return 'background' === $property || str_starts_with( $property, 'background-' );
 	}
 
 	/**
@@ -2793,6 +2957,7 @@ class BlockSupports
 	 *
 	 * @since 1.0.0
 	 * @since 1.14.1 Adds `has-{slug}-color-preset` for the `text` / `link` / `border` text-color slugs.
+	 * @since 1.15.3 Drops values {@see self::supportValue()} rejects (#920 review).
 	 *
 	 * @param  array<string, mixed>  $attributes
 	 * @param  array<int, string>   &$classes
@@ -2804,9 +2969,11 @@ class BlockSupports
 		$textSlug       = self::stringAttr( $attributes['textColor'] ?? null );
 		$gradientSlug   = self::stringAttr( $attributes['gradient'] ?? null );
 
-		$customBackground = self::stringAttr( $attributes['style']['color']['background'] ?? null );
-		$customText       = self::stringAttr( $attributes['style']['color']['text'] ?? null );
-		$customGradient   = self::stringAttr( $attributes['style']['color']['gradient'] ?? null );
+		// #920 review — a custom value is validated for its property and
+		// treated as unset (no declaration, no marker class) when rejected.
+		$customBackground = self::supportValue( 'background-color', self::stringAttr( $attributes['style']['color']['background'] ?? null ) );
+		$customText       = self::supportValue( 'color', self::stringAttr( $attributes['style']['color']['text'] ?? null ) );
+		$customGradient   = self::supportValue( 'background', self::stringAttr( $attributes['style']['color']['gradient'] ?? null ) );
 
 		// Background — slug wins over custom when both are set (mirrors
 		// WP core, which serializes slug first and uses the custom
@@ -2814,8 +2981,8 @@ class BlockSupports
 		if ( '' !== $backgroundSlug ) {
 			$classes[] = 'has-' . self::slugify( $backgroundSlug ) . '-background-color';
 			$classes[] = 'has-background';
-		} elseif ( '' !== $customBackground ) {
-			$style[]   = 'background-color: ' . self::expandPresetReference( $customBackground );
+		} elseif ( null !== $customBackground ) {
+			$style[]   = 'background-color: ' . $customBackground;
 			$classes[] = 'has-background';
 		}
 
@@ -2824,8 +2991,8 @@ class BlockSupports
 		if ( '' !== $gradientSlug ) {
 			$classes[] = 'has-' . self::slugify( $gradientSlug ) . '-gradient-background';
 			$classes[] = 'has-background';
-		} elseif ( '' !== $customGradient ) {
-			$style[]   = 'background: ' . self::expandPresetReference( $customGradient );
+		} elseif ( null !== $customGradient ) {
+			$style[]   = 'background: ' . $customGradient;
 			$classes[] = 'has-background';
 		}
 
@@ -2841,8 +3008,8 @@ class BlockSupports
 			if ( null !== $pickClass ) {
 				$classes[] = $pickClass;
 			}
-		} elseif ( '' !== $customText ) {
-			$style[]   = 'color: ' . self::expandPresetReference( $customText );
+		} elseif ( null !== $customText ) {
+			$style[]   = 'color: ' . $customText;
 			$classes[] = 'has-text-color';
 		}
 	}
@@ -2971,13 +3138,18 @@ class BlockSupports
 	 * array.
 	 *
 	 * @since 1.0.0
+	 * @since 1.15.3 Drops values {@see self::supportValue()} rejects (#920 review).
 	 *
 	 * @param  array<int, string>  &$style
 	 */
 	protected static function applyBoxModel( string $box, mixed $value, array &$style ): void
 	{
 		if ( is_string( $value ) && '' !== $value ) {
-			$style[] = $box . ': ' . self::expandPresetReference( $value );
+			$safe = self::supportValue( $box, $value );
+
+			if ( null !== $safe ) {
+				$style[] = $box . ': ' . $safe;
+			}
 
 			return;
 		}
@@ -2988,12 +3160,13 @@ class BlockSupports
 
 		foreach ( [ 'top', 'right', 'bottom', 'left' ] as $side ) {
 			$side_value = self::stringAttr( $value[ $side ] ?? null );
+			$safe       = self::supportValue( $box . '-' . $side, $side_value );
 
-			if ( '' === $side_value ) {
+			if ( null === $safe ) {
 				continue;
 			}
 
-			$style[] = sprintf( '%s-%s: %s', $box, $side, self::expandPresetReference( $side_value ) );
+			$style[] = sprintf( '%s-%s: %s', $box, $side, $safe );
 		}
 	}
 
@@ -3008,6 +3181,7 @@ class BlockSupports
 	 * matching WP core which adds the same fallback when serializing.
 	 *
 	 * @since 1.0.0
+	 * @since 1.15.3 Drops values {@see self::supportValue()} rejects (#920 review).
 	 *
 	 * @param  array<string, mixed>  $attributes
 	 * @param  array<int, string>   &$classes
@@ -3033,16 +3207,22 @@ class BlockSupports
 		$radius = $border['radius'] ?? null;
 
 		if ( is_string( $radius ) && '' !== $radius ) {
-			$style[] = 'border-radius: ' . self::expandPresetReference( $radius );
+			$safe = self::supportValue( 'border-radius', $radius );
+
+			if ( null !== $safe ) {
+				$style[] = 'border-radius: ' . $safe;
+			}
 		} elseif ( is_array( $radius ) ) {
 			foreach ( [ 'topLeft', 'topRight', 'bottomLeft', 'bottomRight' ] as $corner ) {
-				$value = self::stringAttr( $radius[ $corner ] ?? null );
+				$value    = self::stringAttr( $radius[ $corner ] ?? null );
+				$property = sprintf( 'border-%s-radius', self::kebabCase( $corner ) );
+				$safe     = self::supportValue( $property, $value );
 
-				if ( '' === $value ) {
+				if ( null === $safe ) {
 					continue;
 				}
 
-				$style[] = sprintf( 'border-%s-radius: %s', self::kebabCase( $corner ), self::expandPresetReference( $value ) );
+				$style[] = $property . ': ' . $safe;
 			}
 		}
 
@@ -3050,12 +3230,13 @@ class BlockSupports
 
 		foreach ( [ 'color', 'style', 'width' ] as $property ) {
 			$value = self::stringAttr( $border[ $property ] ?? null );
+			$safe  = self::supportValue( 'border-' . $property, $value );
 
-			if ( '' === $value ) {
+			if ( null === $safe ) {
 				continue;
 			}
 
-			$style[] = 'border-' . $property . ': ' . self::expandPresetReference( $value );
+			$style[] = 'border-' . $property . ': ' . $safe;
 
 			if ( 'width' === $property || 'style' === $property ) {
 				$hasRootWidthOrStyle = true;
@@ -3082,12 +3263,13 @@ class BlockSupports
 
 			foreach ( [ 'color', 'style', 'width' ] as $property ) {
 				$value = self::stringAttr( $sideValues[ $property ] ?? null );
+				$safe  = self::supportValue( sprintf( 'border-%s-%s', $side, $property ), $value );
 
-				if ( '' === $value ) {
+				if ( null === $safe ) {
 					continue;
 				}
 
-				$style[] = sprintf( 'border-%s-%s: %s', $side, $property, self::expandPresetReference( $value ) );
+				$style[] = sprintf( 'border-%s-%s: %s', $side, $property, $safe );
 
 				if ( 'width' === $property ) {
 					$sideHasWidth = true;
@@ -3130,6 +3312,7 @@ class BlockSupports
 	 * decoration.
 	 *
 	 * @since 1.0.0
+	 * @since 1.15.3 Drops values {@see self::supportValue()} rejects (#920 review).
 	 *
 	 * @param  array<string, mixed>  $attributes
 	 * @param  array<int, string>   &$classes
@@ -3184,12 +3367,13 @@ class BlockSupports
 			}
 
 			$value = self::stringAttr( $typography[ $attrKey ] ?? null );
+			$safe  = self::supportValue( $cssProperty, $value );
 
-			if ( '' === $value ) {
+			if ( null === $safe ) {
 				continue;
 			}
 
-			$style[] = $cssProperty . ': ' . self::expandPresetReference( $value );
+			$style[] = $cssProperty . ': ' . $safe;
 		}
 	}
 
@@ -3214,6 +3398,7 @@ class BlockSupports
 	 * scoped rule instead of a base declaration.
 	 *
 	 * @since 1.9.0
+	 * @since 1.15.3 Drops values {@see self::supportValue()} rejects (#920 review).
 	 *
 	 * @param  array<string, mixed>  $attributes
 	 * @param  array<int, string>   &$classes
@@ -3228,22 +3413,25 @@ class BlockSupports
 		}
 
 		$aspectRatio = self::stringAttr( $dimensions['aspectRatio'] ?? null );
+		$aspectRatio = self::supportValue( 'aspect-ratio', $aspectRatio );
 
 		// An aspect ratio wins over min-height, as in WordPress's
 		// dimensions support: `min-height: unset` keeps a block's default
 		// min-height (cover's 430px) from overriding the ratio (#906).
-		if ( '' !== $aspectRatio ) {
+		// A rejected ratio counts as unset.
+		if ( null !== $aspectRatio ) {
 			$classes[] = 'has-aspect-ratio';
-			$style[]   = 'aspect-ratio: ' . self::expandPresetReference( $aspectRatio );
+			$style[]   = 'aspect-ratio: ' . $aspectRatio;
 			$style[]   = 'min-height: unset';
 
 			return;
 		}
 
 		$minHeight = self::stringAttr( $dimensions['minHeight'] ?? null );
+		$minHeight = self::supportValue( 'min-height', $minHeight );
 
-		if ( '' !== $minHeight ) {
-			$style[] = 'min-height: ' . self::expandPresetReference( $minHeight );
+		if ( null !== $minHeight ) {
+			$style[] = 'min-height: ' . $minHeight;
 		}
 	}
 

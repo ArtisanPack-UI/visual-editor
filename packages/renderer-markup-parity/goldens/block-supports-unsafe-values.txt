@@ -1,0 +1,17 @@
+<div class="wp-block-group is-layout-flow wp-block-group-is-layout-flow" style="margin-bottom: 2rem; border-bottom-right-radius: 12px; border-color: blue; border-top-style: dashed; line-height: 1.5; min-height: 200px">
+  <p class="wp-block-paragraph has-background has-text-color" style="background-color: rgb(0 0 0 / 50%); background: var(--wp--preset--gradient--vivid-cyan); color: var(--wp--preset--color--contrast); padding: calc(1rem + 2vw) clamp(1rem, 2vw, 3rem); margin: 0 auto; border-radius: 8px 4px; border-width: 1px 2px; border-style: solid; font-size: clamp(1rem, 2.5vw, 2rem); font-family: \"Times New Roman\", 'Open Sans', serif">
+    "Legit"
+  </p>
+</div>
+<div class="wp-block-cover is-dark is-layout-flex wp-block-cover-is-layout-flex" style="min-height: 300px">
+  <span aria-hidden="true" class="wp-block-cover__background has-background-dim" style="opacity: 0.5">
+  </span>
+  <div class="wp-block-cover__inner-container is-layout-flow wp-block-cover-is-layout-flow">
+    <p class="wp-block-paragraph">
+      "Copy"
+    </p>
+  </div>
+</div>
+<div class="wp-block-avatar">
+  <img alt="Ada" class="avatar wp-block-avatar__image" height="96" src="https://example.com/ada.png" style="border-width: 2px; border-style: solid" width="96" />
+</div>

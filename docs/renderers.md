@@ -805,7 +805,17 @@ page:
   Verse, Embed and Accordion title/body carry their `className` in React
   and Vue too, so `ve-r-*` and `ve-fx-*` styling applies to them. On
   those blocks the JS renderers apply `className`, preset classes and
-  dimensions, not every block support Blade applies.
+  dimensions.
+- **Block supports.** *Since v1.15.3 (#920)*, the React and Vue
+  renderers build colour, background, spacing, border, typography and
+  dimensions supports for core block wrappers (the Cover overlay
+  included) with `compileBlockSupports()`, a port of Blade's
+  `BlockSupports::compile()`, and validate every value before it
+  reaches an inline style. Known remaining gaps: alignment classes
+  (`alignwide`, `has-text-align-*`) on most blocks, supports on
+  artisanpack dynamic blocks, and Gallery layout classes.
+- **Post Title level 0.** *Since v1.15.3 (#994)*, a Post Title with
+  `level: 0` renders a `<p>` in all three renderers.
 - **Dynamic blocks rendered through `/blocks/preview`** get only what the
   block's own `render()` outputs. The Blade renderer merges block supports
   into a dynamic block's wrapper (see

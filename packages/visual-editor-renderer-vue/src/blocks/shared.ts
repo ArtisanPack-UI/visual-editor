@@ -23,3 +23,16 @@ export const blockRendererProps = {
         required: true as const,
     },
 };
+
+/**
+ * Set `style` on a node's props only when it carries declarations: Vue's
+ * server renderer prints `style=""` for an empty style object, which the
+ * Blade partials never emit.
+ */
+export function withStyle(nodeProps: Record<string, unknown>, style: Record<string, string>): Record<string, unknown> {
+    if (Object.keys(style).length > 0) {
+        nodeProps.style = style;
+    }
+
+    return nodeProps;
+}

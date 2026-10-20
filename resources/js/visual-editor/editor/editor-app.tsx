@@ -96,6 +96,13 @@ import {
     type PostStatus,
 } from './document-panels';
 import { entityTypeForResource, patternPostTypeForResource } from './entity-type';
+import {
+    customEntryPostTypeForResource,
+    seedCurrentEntryRecord,
+    useEntryFieldMirror,
+    type CurrentEntryIdentity,
+    type MirroredEntryField,
+} from './current-entry';
 import { InspectorSidebar } from './inspector-sidebar';
 import { KeyboardShortcutsModal } from './keyboard-shortcuts-modal';
 import { useSaveNotifications } from './save-notifications';
@@ -108,7 +115,7 @@ import {
     useAppliedTemplate,
     useComposedFallbackToast,
 } from './composed-view';
-import { usePersistence } from './use-persistence';
+import { usePersistence, type EntityIdentity } from './use-persistence';
 
 // Side-effect imports for the editor *chrome* — the top bar, block
 // toolbar, and inspector sidebar that render in the parent document,
@@ -425,6 +432,63 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
         [documentType, numericId]
     );
 
+    // #992 — custom content types have no G3 entity endpoint, so the
+    // canvas gets a client-only entity seeded from the dataset props
+    // instead. `canvasEntity` is what the post-* blocks read and edit;
+    // `entityIdentity` above stays posts/pages-only. Custom entries
+    // save their title/excerpt through the generic `entry` endpoint
+    // instead — see `persistenceEntity` below.
+    const customEntryPostType =
+        documentType === null
+            ? customEntryPostTypeForResource(props.resource, props.patternPostType)
+            : null;
+    const customEntryIdentity = useMemo<CurrentEntryIdentity | null>(() => {
+        if (customEntryPostType === null || numericId === null) {
+            return null;
+        }
+
+        const identity: CurrentEntryIdentity = {
+            kind: 'postType',
+            name: customEntryPostType,
+            id: numericId,
+        };
+
+        // Seeded during render, before any block reads the record — see
+        // `seedCurrentEntryRecord`. Idempotent across re-renders; the
+        // dataset props only seed the first record, later changes flow
+        // through entity edits.
+        seedCurrentEntryRecord(identity, {
+            title: initialTitle,
+            excerpt: initialExcerpt,
+        });
+
+        return identity;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [customEntryPostType, numericId]);
+    const canvasEntity = useMemo<CurrentEntryIdentity | null>(
+        () =>
+            entityIdentity !== null
+                ? { kind: 'postType', name: entityIdentity.name, id: entityIdentity.id }
+                : customEntryIdentity,
+        [entityIdentity, customEntryIdentity]
+    );
+
+    // The entity whose staged edits the persistence loop flushes: the
+    // G3 entity for posts/pages, or the custom entry routed to the
+    // title/excerpt `entry` endpoint (#992). Hosts that pass
+    // `onMetadataChange` already persist metadata themselves, so their
+    // custom entries skip the endpoint rather than writing twice.
+    const savesCustomEntry = onMetadataChange === undefined;
+    const persistenceEntity = useMemo<EntityIdentity | null>(
+        () =>
+            entityIdentity !== null
+                ? entityIdentity
+                : customEntryIdentity !== null && savesCustomEntry
+                    ? { ...customEntryIdentity, endpoint: 'entry' }
+                    : null,
+        [entityIdentity, customEntryIdentity, savesCustomEntry]
+    );
+
     // Memoized block context value. Stable reference across editor-app
     // re-renders (e.g. on entity-edit dispatches) so `BlockContextProvider`
     // doesn't fan out a new context object to every block on every render
@@ -433,10 +497,10 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
     // stuck on its empty placeholder mid-edit.
     const blockContextValue = useMemo(
         () =>
-            documentType !== null && numericId !== null
-                ? { postType: documentType, postId: numericId }
+            canvasEntity !== null
+                ? { postType: canvasEntity.name, postId: canvasEntity.id }
                 : null,
-        [documentType, numericId]
+        [canvasEntity]
     );
 
     const {
@@ -450,7 +514,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
         queueBlocksForSave,
         queueMetadataForSave,
         flush,
-    } = usePersistence({ ...props, entity: entityIdentity });
+    } = usePersistence({ ...props, entity: persistenceEntity });
 
     const { editEntityRecord } = useDispatch('core') as {
         editEntityRecord?: (
@@ -471,19 +535,30 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
      */
     const stageEntityEdit = useCallback(
         (field: string, value: unknown): void => {
-            if (entityIdentity === null || editEntityRecord === undefined) {
+            if (canvasEntity === null || editEntityRecord === undefined) {
+                return;
+            }
+
+            // #992 — a custom entry's record only carries title and
+            // excerpt, the two fields its `entry` endpoint saves. Its
+            // other metadata still reaches the host through
+            // `onMetadataChange`.
+            if (entityIdentity === null && field !== 'title' && field !== 'excerpt') {
                 return;
             }
 
             editEntityRecord(
-                entityIdentity.kind,
-                entityIdentity.name,
-                entityIdentity.id,
+                canvasEntity.kind,
+                canvasEntity.name,
+                canvasEntity.id,
                 { [field]: value }
             );
-            queueMetadataForSave();
+
+            if (persistenceEntity !== null) {
+                queueMetadataForSave();
+            }
         },
-        [entityIdentity, editEntityRecord, queueMetadataForSave]
+        [canvasEntity, entityIdentity, persistenceEntity, editEntityRecord, queueMetadataForSave]
     );
 
     // Watches the entity edits bag. Blocks rendered inside the canvas
@@ -494,7 +569,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
     // metadata edits round-trip on the same cycle as sidebar edits.
     const stagedEntityEdits = useSelect(
         (select) => {
-            if (entityIdentity === null) {
+            if (persistenceEntity === null) {
                 return null;
             }
 
@@ -510,13 +585,13 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
 
             return (
                 store?.getEntityRecordEdits?.(
-                    entityIdentity.kind,
-                    entityIdentity.name,
-                    entityIdentity.id
+                    persistenceEntity.kind,
+                    persistenceEntity.name,
+                    persistenceEntity.id
                 ) ?? null
             );
         },
-        [entityIdentity]
+        [persistenceEntity]
     );
 
     useEffect(() => {
@@ -676,13 +751,42 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
         [currentMetadata, onMetadataChange]
     );
 
+    // #992 — two-way title / excerpt sync. The Post Title / Post Excerpt
+    // blocks stage edits on the entity record through `useEntityProp`;
+    // mirror them into the document fields (and out to the host). The
+    // record edit is already staged, so nothing is re-staged here and
+    // the metadata save still fires once, from the watcher above. The
+    // field handlers below stage onto the same record (the block reads
+    // it) and note the value so the mirror doesn't echo it back.
+    const mirrorEntryFields = useCallback(
+        (changes: Partial<Record<MirroredEntryField, string>>): void => {
+            if (changes.title !== undefined) {
+                setTitle(changes.title);
+            }
+
+            if (changes.excerpt !== undefined) {
+                setExcerpt(changes.excerpt);
+            }
+
+            emitMetadata(changes);
+        },
+        [emitMetadata]
+    );
+
+    const noteFieldEdit = useEntryFieldMirror(
+        canvasEntity,
+        { title, excerpt },
+        mirrorEntryFields
+    );
+
     const handleTitleChange = useCallback(
         (value: string): void => {
             setTitle(value);
             emitMetadata({ title: value });
+            noteFieldEdit('title', value);
             stageEntityEdit('title', value);
         },
-        [emitMetadata, stageEntityEdit]
+        [emitMetadata, noteFieldEdit, stageEntityEdit]
     );
 
     const handleSlugChange = useCallback(
@@ -707,10 +811,14 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
         (value: string): void => {
             setExcerpt(value);
             emitMetadata({ excerpt: value });
+            noteFieldEdit('excerpt', value);
             stageEntityEdit('excerpt', value);
         },
-        [emitMetadata, stageEntityEdit]
+        [emitMetadata, noteFieldEdit, stageEntityEdit]
     );
+
+
+
 
     const handleFeaturedImageChange = useCallback(
         (value: FeaturedImageValue | null): void => {
@@ -1451,7 +1559,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
             {/*
              * #347: the block list renders inside `EditorCanvas`'s
              * `BlockCanvas` iframe. `blockContextValue` is non-null
-             * exactly for cms-framework Post/Page edits — it stamps
+             * for Post/Page and custom content entries (#992) — it stamps
              * `postType`/`postId` into block context so `core/post-*`
              * blocks (which declare `usesContext: ["postId",
              * "postType", "queryId"]`) see the active entity. Outside
@@ -1536,16 +1644,15 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
     // G3: when the editor mounts for a cms-framework Post or Page, wrap
     // the canvas in `EntityProvider` so `core/post-*` blocks pick up
     // their entity context (kind, name, id) and resolve through the
-    // core-data shim's `useEntityRecord` / `useEntityProp` hooks. Other
-    // resources (custom HasBlockContent models, legacy fixtures) skip
-    // the wrap and the blocks render the placeholder shell — same
-    // behavior as before this phase.
+    // core-data shim's `useEntityRecord` / `useEntityProp` hooks. Custom
+    // content types wrap with their seeded client-only entity (#992);
+    // resources without a numeric id skip the wrap.
     const wrappedBody =
-        documentType !== null && numericId !== null ? (
+        canvasEntity !== null ? (
             <EntityProvider
                 kind="postType"
-                name={documentType}
-                id={numericId}
+                name={canvasEntity.name}
+                id={canvasEntity.id}
             >
                 {editorBody}
             </EntityProvider>

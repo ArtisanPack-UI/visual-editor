@@ -17,8 +17,8 @@ import {
     classList,
     layoutClass,
 } from '../../support/attributes';
-import { applyBlockGap } from '../../support/blockGap';
-import { dimensionsClassName } from '../../support/dimensions';
+import { compileBlockSupports, compileCoverOverlay, splitBackgroundSupports } from '../../support/blockSupports';
+import { styleProp } from '../../support/styleProp';
 import { cssNumber } from '../../support/cssNumber';
 import { layoutWrapperClasses } from '../../support/layoutContainer';
 import { coverImageUrl } from '../../support/coverImage';
@@ -66,15 +66,19 @@ export function SeparatorBlock({ attributes }: BlockRendererProps): JSX.Element 
     const style = attrString(attributes.style, 'default');
     const className = attrString(attributes.className);
 
+    // #920 — the supports `separator.blade.php` prints; a legacy string
+    // `style` is a variant id, which the compiler skips.
+    const supports = compileBlockSupports(attributes);
     const classes = classList([
         'wp-block-separator',
         'has-alpha-channel-opacity',
         style === 'wide' ? 'is-style-wide' : null,
         style === 'dots' ? 'is-style-dots' : null,
+        ...supports.classNames,
         className,
     ]);
 
-    return <hr className={classes} />;
+    return <hr className={classes} style={styleProp(supports.style)} />;
 }
 
 export function SpacerBlock({ attributes }: BlockRendererProps): JSX.Element {
@@ -88,13 +92,17 @@ export function SpacerBlock({ attributes }: BlockRendererProps): JSX.Element {
 
     // `_veSpacerWidthScope` is stamped by `stampResponsiveScopes()` for
     // per-breakpoint widths; Blade appends it after the compiled classes.
+    // #920 — the supports ride ahead of the spacer's own height, as in
+    // `spacer.blade.php`.
+    const supports = compileBlockSupports(attributes);
     const classes = classList([
         'wp-block-spacer',
+        ...supports.classNames,
         attrString(attributes.className),
         attrString(attributes._veSpacerWidthScope),
     ]);
 
-    return <div aria-hidden="true" className={classes} style={{ height }} />;
+    return <div aria-hidden="true" className={classes} style={{ ...supports.style, height }} />;
 }
 
 export function CoverBlock({ attributes, children }: BlockRendererProps): JSX.Element {
@@ -108,6 +116,12 @@ export function CoverBlock({ attributes, children }: BlockRendererProps): JSX.El
     const align = attrString(attributes.align);
     const className = attrString(attributes.className);
 
+    // #583 / #920 — the background supports paint on the overlay span,
+    // with the cover's own overlay colour; everything else stays on the
+    // wrapper, as `cover.blade.php` routes them.
+    const supports = splitBackgroundSupports(compileBlockSupports(attributes));
+    const overlay = compileCoverOverlay(attributes);
+
     const classes = classList([
         'wp-block-cover',
         isDark ? 'is-dark' : 'is-light',
@@ -117,12 +131,12 @@ export function CoverBlock({ attributes, children }: BlockRendererProps): JSX.El
         // Duotone scope stamped by `stampDuotoneScopes()`.
         attrString(attributes._veDuotone) || null,
         align !== '' ? `align${align}` : null,
-        dimensionsClassName(attributes),
+        ...supports.wrapper.classNames,
         className,
     ]);
 
-    // The cover's own Block spacing rides first, in `cover.blade.php` order.
-    let style: Record<string, string> = { ...applyBlockGap(attributes) };
+    // The cover's supports ride first, in `cover.blade.php` order.
+    let style: Record<string, string> = { ...supports.wrapper.style };
 
     // An aspect ratio replaces the cover's own min-height (#906).
     const hasAspectRatio = attrString(attrRecord(attrRecord(attributes.style).dimensions).aspectRatio) !== '';
@@ -134,8 +148,17 @@ export function CoverBlock({ attributes, children }: BlockRendererProps): JSX.El
             ? requestedUnit
             : 'px';
 
+        // Blade appends the cover's own min-height after a dimensions
+        // one, so it wins; a style object holds one key, so move it last.
+        delete style.minHeight;
         style = { ...style, minHeight: `${cssNumber(minHeight)}${unit}` };
     }
+
+    const overlayClasses = classList([
+        'wp-block-cover__background',
+        'has-background-dim',
+        ...new Set([...supports.background.classNames, ...overlay.classNames]),
+    ]);
 
     // F-3 — cover's layout applies to its inner container, as in
     // `cover.blade.php`; cover doesn't allow justification.
@@ -148,8 +171,8 @@ export function CoverBlock({ attributes, children }: BlockRendererProps): JSX.El
         <div className={classes} style={Object.keys(style).length > 0 ? (style as React.CSSProperties) : undefined}>
             <span
                 aria-hidden="true"
-                className="wp-block-cover__background has-background-dim"
-                style={{ opacity: dimRatio / 100 }}
+                className={overlayClasses}
+                style={{ opacity: dimRatio / 100, ...supports.background.style, ...overlay.style }}
             />
             {url === '' ? null : (
                 <img className="wp-block-cover__image-background" alt="" src={url} />
@@ -168,14 +191,18 @@ export function MediaTextBlock({ attributes, children }: BlockRendererProps): JS
     const className = attrString(attributes.className);
     const isStackedOnMobile = attrBoolean(attributes.isStackedOnMobile);
 
+    // #920 — the supports ride ahead of the grid columns, as in
+    // `media-text.blade.php`.
+    const supports = compileBlockSupports(attributes);
     const classes = classList([
         'wp-block-media-text',
         mediaPosition === 'right' ? 'has-media-on-the-right' : null,
         isStackedOnMobile ? 'is-stacked-on-mobile' : null,
+        ...supports.classNames,
         className,
     ]);
 
-    let style: React.CSSProperties | undefined;
+    const wrapperStyle: Record<string, string> = { ...supports.style };
 
     if (mediaWidth !== 50) {
         const columns =
@@ -183,8 +210,10 @@ export function MediaTextBlock({ attributes, children }: BlockRendererProps): JS
                 ? `${mediaWidth}% auto`
                 : `auto ${mediaWidth}%`;
 
-        style = { gridTemplateColumns: columns };
+        wrapperStyle.gridTemplateColumns = columns;
     }
+
+    const style = styleProp(wrapperStyle);
 
     return (
         <div className={classes} style={style}>
@@ -207,7 +236,8 @@ export function TableBlock({ attributes }: BlockRendererProps): JSX.Element {
     const hasFixedLayout = attrBoolean(attributes.hasFixedLayout, true);
     const caption = attrString(attributes.caption);
 
-    const classes = classList(['wp-block-table', className]);
+    const supports = compileBlockSupports(attributes);
+    const classes = classList(['wp-block-table', ...supports.classNames, className]);
 
     const sections = [
         { key: 'head' as const, Tag: 'thead' as const, defaultTag: 'th' as const },
@@ -216,7 +246,7 @@ export function TableBlock({ attributes }: BlockRendererProps): JSX.Element {
     ];
 
     return (
-        <figure className={classes}>
+        <figure className={classes} style={styleProp(supports.style)}>
             <table className={hasFixedLayout ? 'has-fixed-layout' : undefined}>
                 {sections.map(({ key, Tag, defaultTag }) => {
                     const rows = attrArray(attributes[key]);
@@ -275,19 +305,16 @@ export function DetailsBlock({ attributes, children }: BlockRendererProps): JSX.
     const showContent = attrBoolean(attributes.showContent);
     const className = attrString(attributes.className);
     // F-3 — layout pair, per-instance scope and modifiers, as in `details.blade.php`.
+    const supports = compileBlockSupports(attributes);
     const classes = classList([
         'wp-block-details',
         ...layoutWrapperClasses(attributes, 'details', layoutClass(attributes)),
+        ...supports.classNames,
         className,
     ]);
-    const gapStyle = applyBlockGap(attributes);
 
     return (
-        <details
-            className={classes}
-            open={showContent}
-            style={Object.keys(gapStyle).length > 0 ? (gapStyle as React.CSSProperties) : undefined}
-        >
+        <details className={classes} open={showContent} style={styleProp(supports.style)}>
             <summary dangerouslySetInnerHTML={{ __html: summary }} />
             {children}
         </details>
@@ -316,9 +343,11 @@ export function SearchBlock({ attributes }: BlockRendererProps): JSX.Element {
     // #961: button position classes as WordPress prints them; `no-button`
     // renders no button, so Enter submits.
     const hasButton = searchButtonPosition(attributes) !== 'no-button';
+    const supports = compileBlockSupports(attributes);
     const classes = classList([
         'wp-block-search',
         ...searchButtonClasses(attributes, useIcon),
+        ...supports.classNames,
         className,
     ]);
 
@@ -330,7 +359,7 @@ export function SearchBlock({ attributes }: BlockRendererProps): JSX.Element {
     const inputId = `wp-block-search-input-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
 
     return (
-        <form role="search" method="get" action={action} className={classes}>
+        <form role="search" method="get" action={action} className={classes} style={styleProp(supports.style)}>
             {/* A hidden label stays for screen readers: it is the input's only accessible name. */}
             <label
                 className={showLabel ? 'wp-block-search__label' : 'wp-block-search__label screen-reader-text'}
@@ -370,4 +399,3 @@ export function SearchBlock({ attributes }: BlockRendererProps): JSX.Element {
         </form>
     );
 }
-
