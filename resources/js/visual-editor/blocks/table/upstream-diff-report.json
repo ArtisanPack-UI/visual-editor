@@ -12,15 +12,15 @@
             "status": "adapted",
             "notes": "name + textdomain swapped.",
             "result": "skipped-status",
-            "forkDigest": "f6e534e0f0ca"
+            "forkDigest": "4723c42bbcdd"
         },
         {
             "fork": "edit.tsx",
             "upstream": "edit.js",
             "status": "rewritten",
-            "notes": "Simplified edit owned by the fork. Ships the empty-table placeholder, RichText cell editing, caption, and the fixed-layout toggle. The heavier toolbar surface (row/col add/delete, cell tag switching, scope/alignment per cell, header/footer toggles) is intentionally deferred to a post-I7 customization phase. The fork keeps a single `<figure>` element across the placeholder → populated transition — swapping it leaves dangling refs in gutenberg's post-insert focus handler. CSS parity comes from the `_shared/fork-class-name-alias.ts` filter that remaps the I1 fork class names back to their `wp-block-{slug}` upstream forms.",
+            "notes": "Simplified edit owned by the fork. Ships the empty-table placeholder, RichText cell editing, caption, the fixed-layout toggle, and upstream's \"Edit table\" toolbar dropdown (insert row before/after, delete row, insert column before/after, delete column) driven by focused-cell tracking. Column alignment, cell tag/scope switching, and header/footer section toggles are still deferred. The fork keeps a single `<figure>` element across the placeholder → populated transition — swapping it leaves dangling refs in gutenberg's post-insert focus handler. CSS parity comes from the `_shared/fork-class-name-alias.ts` filter that remaps the I1 fork class names back to their `wp-block-{slug}` upstream forms.",
             "result": "skipped-status",
-            "forkDigest": "a1fe42e92daa"
+            "forkDigest": "cef1d11a26a4"
         },
         {
             "fork": "save.tsx",
@@ -45,6 +45,14 @@
             "notes": "Upstream raw HTML paste schema preserved; added bidirectional core/table ↔ artisanpack/table.",
             "result": "skipped-status",
             "forkDigest": "4259de94d9c6"
+        },
+        {
+            "fork": "state.ts",
+            "upstream": "state.js",
+            "status": "adapted",
+            "notes": "TypeScript port of the row/column subset: `createTable`, `getFirstRow`, `insertRow`, `deleteRow`, `insertColumn`, `deleteColumn`, `isEmptyTableSection`, `isEmptyRow`. Helpers return only the sections they change. `createTable` keeps the fork's positional signature and returns rows rather than `{ body }`. Cell-selection, alignment, and `toggleSection` helpers are not ported yet.",
+            "result": "skipped-status",
+            "forkDigest": "c62a2ed51459"
         },
         {
             "fork": "utils.ts",
