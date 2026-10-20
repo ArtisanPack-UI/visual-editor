@@ -14,7 +14,7 @@
  * The mirror lives at the matching path in the Vue renderer.
  *
  * @package @artisanpack-ui/visual-editor-renderer-react
- * @since 1.15.2
+ * @since 1.15.3
  */
 
 import { attrRecord, phpTrim } from './attributes';

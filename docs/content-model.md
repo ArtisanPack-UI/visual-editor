@@ -78,6 +78,26 @@ content-bearing API endpoint:
 ```
 GET  /visual-editor/api/{resource}/{id}/content
 PUT  /visual-editor/api/{resource}/{id}/content
+PUT  /visual-editor/api/{resource}/{id}/entry
+```
+
+*Since v1.15.3 (#992)*, `PUT {resource}/{id}/entry` saves an entry's
+`title` and `excerpt` (both optional; `title` at most 255 characters).
+Posts and pages keep their own entity routes; the editor uses this
+endpoint for custom content types, and only when the host doesn't pass
+`onMetadataChange` (a host that persists metadata itself would otherwise
+write twice). The request needs the record's `update` policy ability,
+and a field the record has no column for is rejected with a `422`
+rather than skipped. The response mirrors the editor's entity records:
+
+```json
+{
+  "id": 12,
+  "resource": "case-studies",
+  "title": { "raw": "Acme", "rendered": "Acme" },
+  "excerpt": { "raw": "…", "rendered": "…" },
+  "updated_at": "2026-10-19T14:02:11+00:00"
+}
 ```
 
 `{resource}` is the slug. The map is read from two places, merged at boot:

@@ -207,6 +207,27 @@ Clicking a template loads it into the canvas. The save endpoint always
 writes a user record; the theme version remains available via
 "reset to theme default".
 
+### Previewing real content
+
+*Since v1.15.3 (#993)*, templates that render a single entry preview
+their Post Title, Post Excerpt and Post Content blocks with a real
+entry instead of placeholders. The template slug picks the post type:
+
+| Template slug | Previews |
+|---------------|----------|
+| `single`, `singular`, `single-post` | The latest post |
+| `single-post-{slug}` | The post with that slug, else the latest post |
+| `single-{type}` | The latest entry of the custom content type `{type}` |
+| `single-{type}-{slug}` | That entry of `{type}`, when `{type}` is a registered content type |
+| `page` | The latest page |
+| `page-{slug}` | The page with that slug, else the latest page |
+
+A **Preview content** picker switches to another
+entry. The previewed values are read-only; edit the entry itself in the
+post editor. Other templates (`index`, `archive`, `home`, `404`, custom
+templates) and types with no published entry keep the placeholders. A
+`page-{slug}` template finds its page only among the 20 newest pages.
+
 ---
 
 ## 8. Where templates live

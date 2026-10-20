@@ -2,7 +2,7 @@
  * Help text for a control whose attribute is locked by a binding (#995).
  *
  * @package @artisanpack-ui/visual-editor
- * @since 1.1.0
+ * @since 1.15.3
  */
 
 import { __, sprintf } from '@wordpress/i18n';
@@ -10,6 +10,12 @@ import { __, sprintf } from '@wordpress/i18n';
 import { TEXT_DOMAIN } from '../vendor/i18n';
 import type { BoundAttributeInfo } from './bound-attributes-context';
 
+/**
+ * Builds the help text naming the source (and field, when set) a locked
+ * control is connected to.
+ *
+ * @since 1.15.3
+ */
 export function getBoundAttributeHelp( info: BoundAttributeInfo ): string {
 	if ( info.key !== null ) {
 		return sprintf(

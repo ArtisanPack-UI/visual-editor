@@ -13,7 +13,7 @@
  * in {@link ./bound-attribute-help}.
  *
  * @package @artisanpack-ui/visual-editor
- * @since 1.1.0
+ * @since 1.15.3
  */
 
 import { createContext, useContext } from 'react';
@@ -39,6 +39,7 @@ const EMPTY: BoundAttributesMap = Object.freeze( {} );
  */
 export const NO_BOUND_ATTRIBUTES: BoundAttributesMap = EMPTY;
 
+/** Carries the bound-attribute map from the bindings HOC to block edits. */
 export const BoundAttributesContext = createContext<BoundAttributesMap>( EMPTY );
 
 BoundAttributesContext.displayName = 'BoundAttributesContext';
