@@ -33,7 +33,7 @@ class UpdateResourceEntryRequest extends FormRequest
 	public function rules(): array
 	{
 		return [
-			'title'   => [ 'sometimes', 'string', 'max:255' ],
+			'title'   => [ 'sometimes', 'nullable', 'string', 'max:255' ],
 			'excerpt' => [ 'sometimes', 'nullable', 'string' ],
 		];
 	}

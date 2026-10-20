@@ -8,6 +8,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { compileBlockSupports, compileCoverOverlay, splitBackgroundSupports } from '../src/support/blockSupports';
+import { safeFontFamilyValue, safeGradientValue } from '../src/support/cssValue';
 
 describe('compileBlockSupports', () => {
     it('emits nothing for a block without supports', () => {
@@ -217,12 +218,157 @@ describe('splitBackgroundSupports', () => {
 
         expect(split.background).toEqual({
             classNames: ['has-primary-background-color', 'has-background'],
-            style: { background: 'linear-gradient(red, blue)', backgroundImage: "url('https://example.com/a.jpg')" },
+            style: {
+                background: 'linear-gradient(red, blue)',
+                backgroundImage: "url('https://example.com/a.jpg')",
+                backgroundSize: 'cover',
+            },
         });
         expect(split.wrapper).toEqual({
             classNames: ['has-base-color', 'has-text-color'],
-            style: { backgroundSize: 'cover', padding: '1rem' },
+            style: { padding: '1rem' },
         });
+    });
+
+    it('keeps every background longhand with the image', () => {
+        const split = splitBackgroundSupports(
+            compileBlockSupports({
+                style: {
+                    background: {
+                        backgroundImage: { url: 'https://example.com/a.jpg' },
+                        backgroundSize: 'contain',
+                        backgroundRepeat: 'no-repeat',
+                        backgroundAttachment: 'fixed',
+                    },
+                    dimensions: { minHeight: '10rem' },
+                },
+            })
+        );
+
+        expect(Object.entries(split.background.style)).toEqual([
+            ['backgroundImage', "url('https://example.com/a.jpg')"],
+            ['backgroundSize', 'contain'],
+            ['backgroundPosition', '50% 50%'],
+            ['backgroundRepeat', 'no-repeat'],
+            ['backgroundAttachment', 'fixed'],
+        ]);
+        expect(split.wrapper.style).toEqual({ minHeight: '10rem' });
+    });
+});
+
+describe('compileBlockSupports (unsafe values)', () => {
+    it('drops colour, spacing, border, typography and dimensions values that could add declarations', () => {
+        const compiled = compileBlockSupports({
+            style: {
+                color: { background: 'red;position:fixed', text: 'red}body{color:red', gradient: 'linear-gradient(red, blue);top:0' },
+                spacing: {
+                    padding: '1rem; position:fixed; inset:0',
+                    margin: { top: '1rem/* x', bottom: '2rem' },
+                },
+                border: {
+                    radius: { topLeft: '4px{', bottomRight: '12px' },
+                    width: '2px;color:red',
+                    color: 'blue',
+                    top: { width: '3px;', style: 'dashed' },
+                },
+                typography: {
+                    fontSize: '1rem;color:red',
+                    fontFamily: '"Inter";color:red',
+                    lineHeight: '1.5',
+                    letterSpacing: 'url(javascript:alert(1))',
+                },
+                dimensions: { aspectRatio: '16/9;position:fixed', minHeight: '200px' },
+            },
+        });
+
+        expect(compiled.classNames).toEqual([]);
+        expect(Object.entries(compiled.style)).toEqual([
+            ['marginBottom', '2rem'],
+            ['borderBottomRightRadius', '12px'],
+            ['borderColor', 'blue'],
+            ['borderTopStyle', 'dashed'],
+            ['lineHeight', '1.5'],
+            ['minHeight', '200px'],
+        ]);
+    });
+
+    it('keeps legitimate preset, calc, clamp, shorthand and quoted font values', () => {
+        const compiled = compileBlockSupports({
+            style: {
+                color: {
+                    background: 'rgb(0 0 0 / 50%)',
+                    text: 'var:preset|color|contrast',
+                    gradient: 'var:preset|gradient|vivid-cyan',
+                },
+                spacing: { padding: 'calc(1rem + 2vw) clamp(1rem, 2vw, 3rem)', margin: '0 auto' },
+                border: { radius: '8px 4px', width: '1px 2px' },
+                typography: { fontFamily: '"Times New Roman", \'Open Sans\', serif', fontSize: 'clamp(1rem, 2.5vw, 2rem)' },
+                dimensions: { aspectRatio: '16/9' },
+            },
+        });
+
+        expect(Object.entries(compiled.style)).toEqual([
+            ['backgroundColor', 'rgb(0 0 0 / 50%)'],
+            ['background', 'var(--wp--preset--gradient--vivid-cyan)'],
+            ['color', 'var(--wp--preset--color--contrast)'],
+            ['padding', 'calc(1rem + 2vw) clamp(1rem, 2vw, 3rem)'],
+            ['margin', '0 auto'],
+            ['borderRadius', '8px 4px'],
+            ['borderWidth', '1px 2px'],
+            ['borderStyle', 'solid'],
+            ['fontSize', 'clamp(1rem, 2.5vw, 2rem)'],
+            ['fontFamily', '"Times New Roman", \'Open Sans\', serif'],
+            ['aspectRatio', '16/9'],
+            ['minHeight', 'unset'],
+        ]);
+        expect(compiled.classNames).toEqual(['has-background', 'has-text-color', 'has-aspect-ratio']);
+    });
+
+    it('drops a rejected root border width without forcing a solid style', () => {
+        expect(compileBlockSupports({ style: { border: { width: '2px;color:red' } } }).style).toEqual({});
+    });
+});
+
+describe('safeGradientValue', () => {
+    it.each([
+        'linear-gradient(135deg, #000 0%, #fff 100%)',
+        'radial-gradient(circle at 50% 50%, rgba(6, 147, 227, 1) 0%, rgb(155, 81, 224) 100%)',
+        'repeating-conic-gradient(from 0deg, color-mix(in srgb, red 50%, blue) 0 10%, var(--x) 10% 20%)',
+        'Linear-Gradient(to right, hsl(0 0% 0%), calc(50% + 1px))',
+        'var(--wp--preset--gradient--vivid-cyan)',
+    ])('keeps %s', (value) => {
+        expect(safeGradientValue(value)).toBe(value);
+    });
+
+    it.each([
+        'linear-gradient(red, blue);position:fixed',
+        'linear-gradient(red, blue)}body{color:red',
+        'linear-gradient(red, blue), url(evil.png)',
+        'linear-gradient(red, url(evil.png))',
+        'url(javascript:alert(1))',
+        'url(evil.png)',
+        'image-set(evil.png 1x)',
+        'linear-gradient(red, blue',
+        'linear-gradient(red, blue))',
+        'linear-gradient(red /* x */, blue)',
+        'red',
+        'var(--x) url(a)',
+        '',
+    ])('rejects %s', (value) => {
+        expect(safeGradientValue(value)).toBeNull();
+    });
+});
+
+describe('safeFontFamilyValue', () => {
+    it.each(['Georgia, serif', '"Times New Roman", Times, serif', "'Open Sans', sans-serif", 'var(--wp--preset--font-family--body)'])(
+        'keeps %s',
+        (value) => {
+            expect(safeFontFamilyValue(value)).toBe(value);
+        }
+    );
+
+    it.each(['"Inter";color:red', '"Open Sans, serif', '"a;b", serif', 'Inter}body{color:red', '"x" /* y', ''])('rejects %s', (value) => {
+        expect(safeFontFamilyValue(value)).toBeNull();
     });
 });
 
@@ -237,5 +383,11 @@ describe('compileCoverOverlay', () => {
             style: { backgroundColor: 'var(--wp--preset--color--primary)' },
         });
         expect(compileCoverOverlay({})).toEqual({ classNames: [], style: {} });
+    });
+
+    it('drops an unsafe custom overlay colour or gradient', () => {
+        expect(
+            compileCoverOverlay({ customOverlayColor: '#000;position:fixed', customGradient: 'linear-gradient(red, blue), url(evil.png)' })
+        ).toEqual({ classNames: [], style: {} });
     });
 });

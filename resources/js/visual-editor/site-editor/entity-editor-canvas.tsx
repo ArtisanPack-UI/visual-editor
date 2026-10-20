@@ -41,6 +41,9 @@ import { SpacingPresetStyles } from '../editor/spacing-preset-styles';
 
 import './entity-editor-canvas.css';
 
+/** Stable empty block context for templates with no preview entry. */
+const NO_BLOCK_CONTEXT: Record<string, unknown> = Object.freeze({});
+
 export interface EntityEditorCanvasProps {
     /** Identifier for the active entity (used in a11y announcements). */
     entityTitle: string;
@@ -175,13 +178,16 @@ export function EntityEditorCanvas(props: EntityEditorCanvasProps): JSX.Element 
                     <BlockTools>
                         <WritingFlow>
                             <ObserveTyping>
-                                {blockContext !== null && blockContext !== undefined ? (
-                                    <BlockContextProvider value={blockContext}>
-                                        <BlockList layout={ROOT_CANVAS_LAYOUT} />
-                                    </BlockContextProvider>
-                                ) : (
+                                {/*
+                                 * Always mounted, even with no preview entry:
+                                 * swapping the parent element type would
+                                 * remount `BlockList` (losing selection and
+                                 * in-progress edits) when the preview entry
+                                 * resolves. An empty value merges as a no-op.
+                                 */}
+                                <BlockContextProvider value={blockContext ?? NO_BLOCK_CONTEXT}>
                                     <BlockList layout={ROOT_CANVAS_LAYOUT} />
-                                )}
+                                </BlockContextProvider>
                             </ObserveTyping>
                         </WritingFlow>
                     </BlockTools>

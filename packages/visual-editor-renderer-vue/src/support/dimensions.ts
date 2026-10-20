@@ -16,6 +16,7 @@
  */
 
 import { attrRecord } from './attributes';
+import { safeCssValue } from './cssValue';
 import { expandPresetReference } from './presetReference';
 
 function stringAttr(value: unknown): string {
@@ -43,19 +44,20 @@ export function applyDimensions(attributes: Record<string, unknown>): DimensionS
     // An aspect ratio wins over min-height, as in WordPress's dimensions
     // support: `min-height: unset` keeps a block's default min-height
     // (cover's 430px) from overriding the ratio (#906).
-    const aspectRatio = stringAttr(dimensions.aspectRatio);
+    // A rejected ratio counts as unset (#920 review).
+    const aspectRatio = safeDimension(dimensions.aspectRatio);
 
-    if (aspectRatio !== '') {
-        out.aspectRatio = expandPresetReference(aspectRatio);
+    if (aspectRatio !== null) {
+        out.aspectRatio = aspectRatio;
         out.minHeight = 'unset';
 
         return out;
     }
 
-    const minHeight = stringAttr(dimensions.minHeight);
+    const minHeight = safeDimension(dimensions.minHeight);
 
-    if (minHeight !== '') {
-        out.minHeight = expandPresetReference(minHeight);
+    if (minHeight !== null) {
+        out.minHeight = minHeight;
     }
 
     return out;
@@ -73,5 +75,17 @@ export function hasDimensionStyle(style: DimensionStyle): boolean {
 export function dimensionsClassName(attributes: Record<string, unknown>): string | null {
     const dimensions = attrRecord(attrRecord(attributes.style).dimensions);
 
-    return stringAttr(dimensions.aspectRatio) !== '' ? 'has-aspect-ratio' : null;
+    return safeDimension(dimensions.aspectRatio) !== null ? 'has-aspect-ratio' : null;
+}
+
+/**
+ * A dimensions value with its preset reference expanded, or `null` when it
+ * is unset or fails `safeCssValue()` — as `BlockSupports::supportValue()`
+ * drops it in the Blade renderer (#920 review), so a stored `;` can't
+ * append declarations.
+ *
+ * @since 1.15.3
+ */
+function safeDimension(value: unknown): string | null {
+    return safeCssValue(expandPresetReference(stringAttr(value)));
 }

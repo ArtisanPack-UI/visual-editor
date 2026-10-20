@@ -73,6 +73,18 @@ it( 'saves the title and excerpt of a custom resource entry', function (): void 
 		->and( $model->excerpt )->toBe( 'New excerpt' );
 } );
 
+it( 'accepts a cleared title', function (): void {
+	makeEntryActor();
+
+	$model = TestBlockContentModel::create( [ 'title' => 'Old title', 'status' => 'published' ] );
+
+	$this->putJson( "/visual-editor/api/packages/{$model->id}/entry", [ 'title' => '' ] )
+		->assertOk()
+		->assertJsonPath( 'title.raw', '' );
+
+	expect( $model->refresh()->title )->toBe( '' );
+} );
+
 it( 'leaves fields that were not sent untouched', function (): void {
 	makeEntryActor();
 

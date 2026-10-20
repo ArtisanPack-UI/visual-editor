@@ -6919,6 +6919,188 @@
                     "innerBlocks": []
                 }
             ]
+        },
+        {
+            "name": "block-supports-unsafe-values",
+            "$comment": "#920 review — support values that could append declarations to the inline style (`;`, `{`, `}`, `/*`, `url(javascript:…)`, a gradient with a second `url()` layer) are dropped identically in every renderer, on the wrapper, the cover overlay and the avatar `<img>`; legitimate preset, `calc()`, `clamp()`, shorthand and quoted font-family values survive.",
+            "tree": [
+                {
+                    "clientId": "uv-group",
+                    "name": "core/group",
+                    "attributes": {
+                        "layout": {
+                            "type": "flow"
+                        },
+                        "style": {
+                            "color": {
+                                "background": "red;position:fixed;inset:0",
+                                "text": "red}body{color:red",
+                                "gradient": "linear-gradient(red, blue), url(evil.png)"
+                            },
+                            "spacing": {
+                                "padding": "1rem; position:fixed; inset:0",
+                                "margin": {
+                                    "top": "1rem/* x",
+                                    "bottom": "2rem"
+                                }
+                            },
+                            "border": {
+                                "radius": {
+                                    "topLeft": "4px{",
+                                    "bottomRight": "12px"
+                                },
+                                "width": "2px;color:red",
+                                "color": "blue",
+                                "top": {
+                                    "width": "3px;",
+                                    "style": "dashed"
+                                }
+                            },
+                            "typography": {
+                                "fontSize": "1rem;color:red",
+                                "fontFamily": "\"Inter\";color:red",
+                                "lineHeight": "1.5",
+                                "letterSpacing": "url(javascript:alert(1))"
+                            },
+                            "dimensions": {
+                                "aspectRatio": "16/9;position:fixed",
+                                "minHeight": "200px"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "uv-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Legit",
+                                "style": {
+                                    "color": {
+                                        "background": "rgb(0 0 0 / 50%)",
+                                        "text": "var:preset|color|contrast",
+                                        "gradient": "var:preset|gradient|vivid-cyan"
+                                    },
+                                    "spacing": {
+                                        "padding": "calc(1rem + 2vw) clamp(1rem, 2vw, 3rem)",
+                                        "margin": "0 auto"
+                                    },
+                                    "border": {
+                                        "radius": "8px 4px",
+                                        "width": "1px 2px"
+                                    },
+                                    "typography": {
+                                        "fontFamily": "\"Times New Roman\", 'Open Sans', serif",
+                                        "fontSize": "clamp(1rem, 2.5vw, 2rem)"
+                                    }
+                                }
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                },
+                {
+                    "clientId": "uv-cover",
+                    "name": "core/cover",
+                    "attributes": {
+                        "minHeight": 300,
+                        "dimRatio": 50,
+                        "customOverlayColor": "#000;position:fixed",
+                        "customGradient": "linear-gradient(red, blue);top:0",
+                        "style": {
+                            "color": {
+                                "gradient": "linear-gradient(red, url(evil.png))"
+                            },
+                            "typography": {
+                                "fontFamily": "'Open Sans, serif"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "uv-cover-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Copy"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                },
+                {
+                    "clientId": "uv-avatar",
+                    "name": "core/avatar",
+                    "attributes": {
+                        "_resolvedAuthorAvatar": "https://example.com/ada.png",
+                        "_resolvedAuthorName": "Ada",
+                        "style": {
+                            "border": {
+                                "radius": "50%;position:fixed",
+                                "width": "2px",
+                                "color": "red}x{"
+                            }
+                        }
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "name": "block-supports-cover-background",
+            "$comment": "#920 review — a cover's `style.background` image paints on the overlay span together with its size, position, repeat and attachment, so the overlay never falls back to `auto` / repeated painting; the other supports stay on the wrapper.",
+            "tree": [
+                {
+                    "clientId": "cbg-cover",
+                    "name": "core/cover",
+                    "attributes": {
+                        "dimRatio": 40,
+                        "style": {
+                            "background": {
+                                "backgroundImage": {
+                                    "url": "https://example.com/hero.jpg"
+                                },
+                                "backgroundSize": "contain",
+                                "backgroundPosition": "25% 75%",
+                                "backgroundRepeat": "no-repeat",
+                                "backgroundAttachment": "fixed"
+                            },
+                            "spacing": {
+                                "padding": "2rem"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "cbg-cover-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Copy"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                },
+                {
+                    "clientId": "cbg-cover-default",
+                    "name": "core/cover",
+                    "attributes": {
+                        "style": {
+                            "background": {
+                                "backgroundImage": "https://example.com/default.jpg"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "cbg-cover-default-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Default size"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
         }
     ]
 }

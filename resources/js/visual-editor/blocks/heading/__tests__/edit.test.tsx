@@ -156,6 +156,28 @@ describe('HeadingEdit', () => {
         expect(heading?.innerHTML).toBe('Bound <em>title</em>');
     });
 
+    it('strips scripts and event handlers from bound content', () => {
+        const { container } = render(
+            <BoundAttributesContext.Provider
+                value={{ content: { source: 'post_core', key: 'title' } }}
+            >
+                <HeadingEdit
+                    attributes={{
+                        content: 'Hi<script>alert(1)</script><img src="x" onerror="alert(2)">',
+                        level: 2,
+                    }}
+                    setAttributes={vi.fn()}
+                    clientId="abc"
+                />
+            </BoundAttributesContext.Provider>
+        );
+
+        const heading = container.querySelector('h2');
+        expect(heading?.querySelector('script')).toBeNull();
+        expect(heading?.querySelector('img')?.hasAttribute('onerror')).toBe(false);
+        expect(heading?.textContent).toBe('Hi');
+    });
+
     it('keeps content editable when only another attribute is bound', () => {
         const setAttributes = vi.fn();
         render(

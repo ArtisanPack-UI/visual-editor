@@ -20,6 +20,7 @@
 import { attrRecord, phpTrim } from './attributes';
 import { applyBackground } from './background';
 import { applyBlockGap } from './blockGap';
+import { safeCssValue, safeFontFamilyValue, safeGradientValue } from './cssValue';
 import { applyDimensions, dimensionsClassName } from './dimensions';
 import { presetPickClass } from './layoutBaselineCss';
 import { expandPresetReference } from './presetReference';
@@ -81,6 +82,8 @@ export function compileBlockSupports(attributes: Record<string, unknown>): Compi
  * Split compiled supports into the background output and the rest, as
  * `BlockSupports::splitBackgroundOutput()` does for the cover block (#583),
  * whose background paints on the overlay span rather than the wrapper.
+ * The shorthand and every `background*` longhand go together, so the image
+ * keeps its size, position, repeat and attachment (#920 review).
  */
 export function splitBackgroundSupports(compiled: CompiledBlockSupports): {
     background: CompiledBlockSupports;
@@ -94,7 +97,7 @@ export function splitBackgroundSupports(compiled: CompiledBlockSupports): {
     }
 
     for (const [property, value] of Object.entries(compiled.style)) {
-        const isBackground = property === 'background' || property === 'backgroundColor' || property === 'backgroundImage';
+        const isBackground = property === 'background' || /^background[A-Z]/.test(property);
 
         (isBackground ? background : wrapper).style[property] = value;
     }
@@ -111,18 +114,18 @@ export function compileCoverOverlay(attributes: Record<string, unknown>): Compil
     const classNames: string[] = [];
     const style: Record<string, string> = {};
     const overlaySlug = stringAttr(attributes.overlayColor);
-    const customOverlay = stringAttr(attributes.customOverlayColor);
-    const customGradient = stringAttr(attributes.customGradient);
+    const customOverlay = supportValue('background-color', stringAttr(attributes.customOverlayColor));
+    const customGradient = supportValue('background', stringAttr(attributes.customGradient));
 
     if (overlaySlug !== '') {
         classNames.push(`has-${slugify(overlaySlug)}-background-color`, 'has-background');
-    } else if (customOverlay !== '') {
-        style.backgroundColor = expandPresetReference(customOverlay);
+    } else if (customOverlay !== null) {
+        style.backgroundColor = customOverlay;
         classNames.push('has-background');
     }
 
-    if (customGradient !== '') {
-        style.background = expandPresetReference(customGradient);
+    if (customGradient !== null) {
+        style.background = customGradient;
         classNames.push('has-background');
     }
 
@@ -135,21 +138,22 @@ function applyColor(attributes: Record<string, unknown>, classNames: string[], s
     const backgroundSlug = stringAttr(attributes.backgroundColor);
     const textSlug = stringAttr(attributes.textColor);
     const gradientSlug = stringAttr(attributes.gradient);
-    const customBackground = stringAttr(color.background);
-    const customText = stringAttr(color.text);
-    const customGradient = stringAttr(color.gradient);
+    // A rejected custom value counts as unset: no declaration, no marker.
+    const customBackground = supportValue('background-color', stringAttr(color.background));
+    const customText = supportValue('color', stringAttr(color.text));
+    const customGradient = supportValue('background', stringAttr(color.gradient));
 
     if (backgroundSlug !== '') {
         classNames.push(`has-${slugify(backgroundSlug)}-background-color`, 'has-background');
-    } else if (customBackground !== '') {
-        style.backgroundColor = expandPresetReference(customBackground);
+    } else if (customBackground !== null) {
+        style.backgroundColor = customBackground;
         classNames.push('has-background');
     }
 
     if (gradientSlug !== '') {
         classNames.push(`has-${slugify(gradientSlug)}-gradient-background`, 'has-background');
-    } else if (customGradient !== '') {
-        style.background = expandPresetReference(customGradient);
+    } else if (customGradient !== null) {
+        style.background = customGradient;
         classNames.push('has-background');
     }
 
@@ -161,8 +165,8 @@ function applyColor(attributes: Record<string, unknown>, classNames: string[], s
         if (pickClass !== null) {
             classNames.push(pickClass);
         }
-    } else if (customText !== '') {
-        style.color = expandPresetReference(customText);
+    } else if (customText !== null) {
+        style.color = customText;
         classNames.push('has-text-color');
     }
 }
@@ -175,8 +179,10 @@ function applySpacing(attributes: Record<string, unknown>, style: Record<string,
         const value = spacing[box];
 
         if (typeof value === 'string') {
-            if (value !== '') {
-                style[box] = expandPresetReference(value);
+            const safe = supportValue(box, value);
+
+            if (safe !== null) {
+                style[box] = safe;
             }
 
             continue;
@@ -185,10 +191,10 @@ function applySpacing(attributes: Record<string, unknown>, style: Record<string,
         const sides = attrRecord(value);
 
         for (const side of BOX_SIDES) {
-            const sideValue = stringAttr(sides[side]);
+            const safe = supportValue(`${box}-${side}`, stringAttr(sides[side]));
 
-            if (sideValue !== '') {
-                style[camelCase(`${box}-${side}`)] = expandPresetReference(sideValue);
+            if (safe !== null) {
+                style[camelCase(`${box}-${side}`)] = safe;
             }
         }
     }
@@ -218,17 +224,19 @@ function applyBorder(attributes: Record<string, unknown>, classNames: string[], 
     const radius = border.radius;
 
     if (typeof radius === 'string') {
-        if (radius !== '') {
-            style.borderRadius = expandPresetReference(radius);
+        const safe = supportValue('border-radius', radius);
+
+        if (safe !== null) {
+            style.borderRadius = safe;
         }
     } else {
         const corners = attrRecord(radius);
 
         for (const corner of BORDER_CORNERS) {
-            const value = stringAttr(corners[corner]);
+            const safe = supportValue('border-radius', stringAttr(corners[corner]));
 
-            if (value !== '') {
-                style[`border${corner[0].toUpperCase()}${corner.slice(1)}Radius`] = expandPresetReference(value);
+            if (safe !== null) {
+                style[`border${corner[0].toUpperCase()}${corner.slice(1)}Radius`] = safe;
             }
         }
     }
@@ -236,13 +244,13 @@ function applyBorder(attributes: Record<string, unknown>, classNames: string[], 
     let hasRootWidthOrStyle = false;
 
     for (const property of BORDER_PROPERTIES) {
-        const value = stringAttr(border[property]);
+        const safe = supportValue(`border-${property}`, stringAttr(border[property]));
 
-        if (value === '') {
+        if (safe === null) {
             continue;
         }
 
-        style[camelCase(`border-${property}`)] = expandPresetReference(value);
+        style[camelCase(`border-${property}`)] = safe;
 
         if (property !== 'color') {
             hasRootWidthOrStyle = true;
@@ -264,13 +272,13 @@ function applyBorder(attributes: Record<string, unknown>, classNames: string[], 
         let sideHasExplicitStyle = false;
 
         for (const property of BORDER_PROPERTIES) {
-            const value = stringAttr(attrRecord(sideValues)[property]);
+            const safe = supportValue(`border-${side}-${property}`, stringAttr(attrRecord(sideValues)[property]));
 
-            if (value === '') {
+            if (safe === null) {
                 continue;
             }
 
-            style[camelCase(`border-${side}-${property}`)] = expandPresetReference(value);
+            style[camelCase(`border-${side}-${property}`)] = safe;
             sideHasWidth ||= property === 'width';
             sideHasExplicitStyle ||= property === 'style';
         }
@@ -323,12 +331,32 @@ function applyTypography(attributes: Record<string, unknown>, classNames: string
             continue;
         }
 
-        const value = stringAttr(typography[key]);
+        const safe = supportValue(property, stringAttr(typography[key]));
 
-        if (value !== '') {
-            style[camelCase(property)] = expandPresetReference(value);
+        if (safe !== null) {
+            style[camelCase(property)] = safe;
         }
     }
+}
+
+/**
+ * Mirrors `BlockSupports::supportValue()` (#920 review): expand a preset
+ * reference, then validate the value for the property it lands on — a
+ * gradient `background` through `safeGradientValue()`, a `font-family`
+ * through `safeFontFamilyValue()`, anything else through `safeCssValue()`
+ * — so a stored `;` / `{` / `}` / comment can't append declarations.
+ * `null` (also for an empty value) means "unset".
+ *
+ * @since 1.15.3
+ */
+function supportValue(property: string, value: string): string | null {
+    const expanded = expandPresetReference(value);
+
+    if (property === 'background') {
+        return safeGradientValue(expanded);
+    }
+
+    return property === 'font-family' ? safeFontFamilyValue(expanded) : safeCssValue(expanded);
 }
 
 /**
