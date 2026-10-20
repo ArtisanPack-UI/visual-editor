@@ -227,7 +227,7 @@ describe('Cover with "Use featured image" (#942)', () => {
         ]);
 
         expect(html).toContain('<div class="wp-block-avatar">');
-        expect(html).toMatch(/<img[^>]*class="avatar wp-block-avatar__image has-border-color has-primary-border-color"[^>]*style="border-radius:\s*50%;\s*border-width:\s*2px;?"/);
+        expect(html).toMatch(/<img[^>]*class="avatar wp-block-avatar__image has-border-color has-primary-border-color"[^>]*style="border-radius:\s*50%;\s*border-width:\s*2px;\s*border-style:\s*solid;?"/);
     });
 
     it('drops javascript: hrefs from post-featured-image', () => {

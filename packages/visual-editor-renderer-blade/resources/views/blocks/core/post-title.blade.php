@@ -2,9 +2,9 @@
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\UrlSanitizer;
 
+	// Level 0 is the "Paragraph" option of the heading-level dropdown (#994).
 	$rawLevel = isset( $attributes['level'] ) ? (int) $attributes['level'] : 2;
-	$level    = max( 1, min( 6, $rawLevel ) );
-	$tag      = 'h' . $level;
+	$tag      = 0 === $rawLevel ? 'p' : 'h' . max( 1, min( 6, $rawLevel ) );
 	$isLink   = ! empty( $attributes['isLink'] );
 	$linkTarget = isset( $attributes['linkTarget'] ) && is_string( $attributes['linkTarget'] ) ? $attributes['linkTarget'] : '';
 	$rel        = isset( $attributes['rel'] ) && is_string( $attributes['rel'] ) ? $attributes['rel'] : '';

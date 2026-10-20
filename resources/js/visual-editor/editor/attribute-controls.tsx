@@ -267,6 +267,14 @@ interface AttributeControlProps {
     readonly descriptor: AttributeControlDescriptor;
     readonly value: unknown;
     readonly onChange: (value: unknown) => void;
+    /**
+     * Render the control read-only — used when the attribute is connected
+     * to a binding source, whose resolved value would overwrite any edit
+     * (#995).
+     */
+    readonly disabled?: boolean;
+    /** Help text shown instead of the descriptor's own while disabled. */
+    readonly disabledHelp?: string;
 }
 
 /**
@@ -278,8 +286,17 @@ interface AttributeControlProps {
 export function AttributeControl({
     descriptor,
     value,
-    onChange,
+    onChange: onChangeProp,
+    disabled = false,
+    disabledHelp,
 }: AttributeControlProps): ReactElement {
+    const help = disabled && disabledHelp ? disabledHelp : descriptor.help;
+    const onChange = (next: unknown): void => {
+        if (!disabled) {
+            onChangeProp(next);
+        }
+    };
+
     switch (descriptor.kind) {
         case 'toggle':
             return (
@@ -287,7 +304,8 @@ export function AttributeControl({
                     // @ts-expect-error - upstream prop
                     __nextHasNoMarginBottom
                     label={descriptor.label}
-                    help={descriptor.help}
+                    help={help}
+                    disabled={disabled}
                     checked={Boolean(value)}
                     onChange={(next: boolean) => onChange(next)}
                 />
@@ -298,7 +316,8 @@ export function AttributeControl({
                     // @ts-expect-error - upstream prop
                     __nextHasNoMarginBottom
                     label={descriptor.label}
-                    help={descriptor.help}
+                    help={help}
+                    disabled={disabled}
                     value={typeof value === 'string' ? value : ''}
                     onChange={(next: string) => onChange(next)}
                 />
@@ -311,7 +330,8 @@ export function AttributeControl({
                     __next40pxDefaultSize
                     type="number"
                     label={descriptor.label}
-                    help={descriptor.help}
+                    help={help}
+                    disabled={disabled}
                     min={descriptor.min}
                     max={descriptor.max}
                     step={descriptor.step}
@@ -333,7 +353,8 @@ export function AttributeControl({
                     __nextHasNoMarginBottom
                     __next40pxDefaultSize
                     label={descriptor.label}
-                    help={descriptor.help}
+                    help={help}
+                    disabled={disabled}
                     min={descriptor.min}
                     max={descriptor.max}
                     step={descriptor.step}
@@ -348,7 +369,8 @@ export function AttributeControl({
                     __nextHasNoMarginBottom
                     __next40pxDefaultSize
                     label={descriptor.label}
-                    help={descriptor.help}
+                    help={help}
+                    disabled={disabled}
                     value={typeof value === 'string' ? value : value === undefined ? '' : String(value)}
                     options={descriptor.options as Array<{ label: string; value: string }>}
                     onChange={(next: string) =>
@@ -364,7 +386,8 @@ export function AttributeControl({
                     __nextHasNoMarginBottom
                     __next40pxDefaultSize
                     label={descriptor.label}
-                    help={descriptor.help}
+                    help={help}
+                    disabled={disabled}
                     value={typeof value === 'string' ? value : value === undefined ? '' : String(value)}
                     onChange={(next: string) => onChange(next)}
                 />

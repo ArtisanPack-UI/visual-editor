@@ -1,0 +1,20 @@
+<figure class="wp-block-image has-primary-background-color has-background has-text-color has-border-color has-contrast-border-color has-small-font-size has-defined-font-size is-audited" style="color: #222222; padding-top: 1rem; padding-left: 2rem; margin-bottom: var(--wp--preset--spacing--30); border-radius: 4px; border-width: 1px; border-style: solid; line-height: 1.5; letter-spacing: 1px; min-height: 80px">
+  <img alt="A" src="https://example.com/a.jpg" />
+</figure>
+<figure class="wp-block-audio has-primary-background-color has-background has-text-color has-border-color has-contrast-border-color has-small-font-size has-defined-font-size is-audited" style="color: #222222; padding-top: 1rem; padding-left: 2rem; margin-bottom: var(--wp--preset--spacing--30); border-radius: 4px; border-width: 1px; border-style: solid; line-height: 1.5; letter-spacing: 1px; min-height: 80px">
+  <audio controls="" preload="none" src="https://example.com/a.mp3">
+  </audio>
+</figure>
+<div class="wp-block-file has-primary-background-color has-background has-text-color has-border-color has-contrast-border-color has-small-font-size has-defined-font-size is-audited" style="color: #222222; padding-top: 1rem; padding-left: 2rem; margin-bottom: var(--wp--preset--spacing--30); border-radius: 4px; border-width: 1px; border-style: solid; line-height: 1.5; letter-spacing: 1px; min-height: 80px">
+  <a href="https://example.com/a.pdf">
+    "a.pdf"
+  </a>
+  <a class="wp-block-file__button wp-element-button" download="" href="https://example.com/a.pdf">
+    "Download"
+  </a>
+</div>
+<figure class="wp-block-embed is-provider-youtube wp-block-embed-youtube has-primary-background-color has-background has-text-color has-border-color has-contrast-border-color has-small-font-size has-defined-font-size is-audited" style="color: #222222; padding-top: 1rem; padding-left: 2rem; margin-bottom: var(--wp--preset--spacing--30); border-radius: 4px; border-width: 1px; border-style: solid; line-height: 1.5; letter-spacing: 1px; min-height: 80px">
+  <div class="wp-block-embed__wrapper">
+    "https://example.com/v"
+  </div>
+</figure>

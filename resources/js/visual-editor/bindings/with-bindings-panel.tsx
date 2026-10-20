@@ -16,9 +16,14 @@ import { InspectorControls } from '@wordpress/block-editor';
 import { getBlockType } from '@wordpress/blocks';
 import { createHigherOrderComponent } from '@wordpress/compose';
 import { addFilter } from '@wordpress/hooks';
-import type { ComponentType } from 'react';
+import { useMemo, type ComponentType } from 'react';
 
 import { BindingsPanel, type BindableAttribute } from './BindingsPanel';
+import {
+	BoundAttributesContext,
+	NO_BOUND_ATTRIBUTES,
+	collectBoundAttributes,
+} from './bound-attributes-context';
 import { setBindingsApiConfig } from './config';
 import type { BindingsMap } from './types';
 import { useResolvedBindings } from './use-resolved-bindings';
@@ -163,8 +168,27 @@ export const withBindingsPanel = createHigherOrderComponent(
 				recordId,
 			);
 
+			// Publish which attributes are locked by a binding so edit
+			// components render their controls disabled instead of
+			// letting the overlay below silently eat every keystroke
+			// (#995). Keyed on the serialized map so consumers see a
+			// stable reference across unrelated re-renders.
+			const bindingsKey = JSON.stringify( current );
+			const bound       = useMemo(
+				() => collectBoundAttributes( current ),
+				// eslint-disable-next-line react-hooks/exhaustive-deps
+				[ bindingsKey ],
+			);
+
+			// Still provide a context: InnerBlocks render inside the
+			// parent's BlockEdit tree, so without a Provider a block with
+			// no bindable attributes would inherit its parent's map.
 			if ( attributes.length === 0 ) {
-				return <BlockEdit { ...props } />;
+				return (
+					<BoundAttributesContext.Provider value={ NO_BOUND_ATTRIBUTES }>
+						<BlockEdit { ...props } />
+					</BoundAttributesContext.Provider>
+				);
 			}
 
 			const onChange = ( next: BindingsMap ): void => {
@@ -185,7 +209,9 @@ export const withBindingsPanel = createHigherOrderComponent(
 
 			return (
 				<>
-					<BlockEdit { ...props } attributes={ overlaid } />
+					<BoundAttributesContext.Provider value={ bound }>
+						<BlockEdit { ...props } attributes={ overlaid } />
+					</BoundAttributesContext.Provider>
 					<InspectorControls>
 						<BindingsPanel
 							attributes={ attributes }

@@ -53,3 +53,110 @@ export function safeCssValue( value: string ): string | null {
 
 	return value;
 }
+
+/**
+ * The CSS functions a custom gradient may call — the gradient functions
+ * plus the colour, custom-property and math functions their stops use.
+ * None fetches a resource. Mirrors Blade's
+ * `BlockSupports::GRADIENT_FUNCTIONS` and the Vue renderer's copy.
+ *
+ * @since 1.15.3
+ */
+const GRADIENT_FUNCTIONS: ReadonlyArray<string> = [
+	'linear-gradient',
+	'radial-gradient',
+	'conic-gradient',
+	'repeating-linear-gradient',
+	'repeating-radial-gradient',
+	'repeating-conic-gradient',
+	'rgb',
+	'rgba',
+	'hsl',
+	'hsla',
+	'hwb',
+	'lab',
+	'lch',
+	'oklab',
+	'oklch',
+	'color',
+	'color-mix',
+	'var',
+	'calc',
+	'min',
+	'max',
+	'clamp',
+];
+
+/**
+ * Validate a custom gradient bound for a `background` declaration — the
+ * twin of Blade's `BlockSupports::safeGradientValue()` (#920 review).
+ *
+ * `background` fetches, so the {@link safeCssValue} whitelist (which
+ * still rejects `;`, `{`, `}`, `:`, quotes and comment digraphs) is not
+ * enough on its own: the value must also be one `var(--…)` reference or
+ * one `(repeating-)?(linear|radial|conic)-gradient(…)` call whose
+ * parentheses balance and close at the end, calling only
+ * `GRADIENT_FUNCTIONS`. Returns the value, or `null` to drop it.
+ *
+ * @since 1.15.3
+ */
+export function safeGradientValue( value: string ): string | null {
+	if ( safeCssValue( value ) === null ) {
+		return null;
+	}
+
+	if ( /^var\(--[a-zA-Z0-9_-]+\)$/.test( value ) ) {
+		return value;
+	}
+
+	if ( ! /^(?:repeating-)?(?:linear|radial|conic)-gradient\(/i.test( value ) ) {
+		return null;
+	}
+
+	for ( const match of value.matchAll( /([a-zA-Z_-][a-zA-Z0-9_-]*)\(/g ) ) {
+		if ( ! GRADIENT_FUNCTIONS.includes( match[ 1 ].toLowerCase() ) ) {
+			return null;
+		}
+	}
+
+	let depth = 0;
+
+	for ( let index = 0; index < value.length; index++ ) {
+		if ( value[ index ] === '(' ) {
+			depth++;
+
+			continue;
+		}
+
+		if ( value[ index ] !== ')' ) {
+			continue;
+		}
+
+		depth--;
+
+		// A close before the end that returns to depth 0 means a second
+		// top-level layer follows the gradient.
+		if ( depth < 0 || ( depth === 0 && index !== value.length - 1 ) ) {
+			return null;
+		}
+	}
+
+	return depth === 0 ? value : null;
+}
+
+/**
+ * Validate a custom `font-family` value — the twin of Blade's
+ * `BlockSupports::safeFontFamilyValue()` (#920 review). Each complete
+ * quoted family name of letters, digits, spaces, `_`, `.` and `-` is set
+ * aside (`"Times New Roman", serif`); the rest must pass
+ * {@link safeCssValue}, so an unbalanced quote or one wrapping a
+ * structural character still rejects the value. Returns the value, or
+ * `null` to drop it.
+ *
+ * @since 1.15.3
+ */
+export function safeFontFamilyValue( value: string ): string | null {
+	const unquoted = value.replace( /"[a-zA-Z0-9 _.-]*"|'[a-zA-Z0-9 _.-]*'/g, 'x' );
+
+	return safeCssValue( unquoted ) === null ? null : value;
+}

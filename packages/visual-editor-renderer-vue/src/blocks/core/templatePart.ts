@@ -17,7 +17,8 @@
 
 import { defineComponent, h } from 'vue';
 import { attrString, classList } from '../../support/attributes';
-import { blockRendererProps } from '../shared';
+import { compileBlockSupports } from '../../support/blockSupports';
+import { blockRendererProps, withStyle } from '../shared';
 
 const ALLOWED_PART_TAGS = ['div', 'header', 'footer', 'aside', 'section', 'main', 'nav'] as const;
 
@@ -59,12 +60,10 @@ export const TemplatePartBlock = defineComponent({
 
             const slugClass = slug === '' ? '' : `wp-block-template-part--${slug.replace(SLUG_CLASS_PATTERN, '-')}`;
             const className = attrString(props.attributes.className);
-            const classes = classList(['wp-block-template-part', slugClass, className]);
+            const supports = compileBlockSupports(props.attributes);
+            const classes = classList(['wp-block-template-part', slugClass, ...supports.classNames, className]);
 
-            const elementProps: Record<string, string> = {
-                class: classes,
-                'data-ve-template-part': slug,
-            };
+            const elementProps = withStyle({ class: classes, 'data-ve-template-part': slug }, supports.style);
 
             if (theme !== '') {
                 elementProps['data-ve-theme'] = theme;

@@ -22,8 +22,11 @@ import { TEXT_DOMAIN } from '../vendor/i18n';
 
 export interface QueryPreviewPost {
     id: number;
+    /** Entry slug — lets the site editor match `page-{slug}` templates (#993). */
+    slug?: string;
     title?: string;
     excerpt?: string;
+    /** Server-rendered body (`content.rendered`) for the Post Content preview. */
     content?: string;
     permalink?: string;
     publishedAt?: string;
@@ -371,6 +374,11 @@ function mapWpEntityToPost(entity: Record<string, unknown>): QueryPreviewPost {
             ? String((entity.excerpt as Record<string, unknown>).rendered ?? '')
             : '';
 
+    const contentRendered =
+        typeof entity.content === 'object' && entity.content !== null
+            ? String((entity.content as Record<string, unknown>).rendered ?? '')
+            : '';
+
     const preview =
         typeof entity._preview === 'object' && entity._preview !== null
             ? (entity._preview as Record<string, unknown>)
@@ -378,8 +386,10 @@ function mapWpEntityToPost(entity: Record<string, unknown>): QueryPreviewPost {
 
     return {
         id,
+        slug: typeof entity.slug === 'string' ? entity.slug : undefined,
         title: titleRendered,
         excerpt: excerptRendered,
+        content: contentRendered,
         publishedAt: typeof entity.date === 'string' ? entity.date : undefined,
         modifiedAt: typeof entity.modified === 'string' ? entity.modified : undefined,
         permalink: typeof entity.link === 'string' ? entity.link : undefined,

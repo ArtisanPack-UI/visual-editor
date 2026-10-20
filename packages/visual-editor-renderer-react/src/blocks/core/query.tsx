@@ -23,7 +23,8 @@ import {
     layoutPair,
     postTemplateItemSpanClasses,
 } from '../../support/attributes';
-import { applyBlockGap } from '../../support/blockGap';
+import { compileBlockSupports } from '../../support/blockSupports';
+import { styleProp } from '../../support/styleProp';
 import { layoutWrapperClasses } from '../../support/layoutContainer';
 import type { BlockRendererProps } from '../../types';
 
@@ -97,9 +98,11 @@ export function QueryBlock({ attributes, children }: BlockRendererProps): JSX.El
     const resolutionError = attrString(attributes._resolutionError);
     const hasError = resolutionError !== '';
     // F-3 — layout pair, per-instance scope and modifiers, as in `query.blade.php`.
+    const supports = compileBlockSupports(attributes);
     const baseClasses = classList([
         'wp-block-query',
         ...layoutWrapperClasses(attributes, 'query', layoutClass(attributes)),
+        ...supports.classNames,
         className,
     ]);
 
@@ -107,11 +110,7 @@ export function QueryBlock({ attributes, children }: BlockRendererProps): JSX.El
         children: hasError ? null : children,
         className: baseClasses,
     };
-    const gapStyle = applyBlockGap(attributes);
-
-    if (Object.keys(gapStyle).length > 0) {
-        wrapperProps.style = gapStyle as React.CSSProperties;
-    }
+    wrapperProps.style = styleProp(supports.style);
 
     if (hasError && isDevelopment()) {
         wrapperProps['data-ve-resolution-error'] = resolutionError;
@@ -129,6 +128,7 @@ export function PostTemplateBlock({ attributes, children }: BlockRendererProps):
     const usesColumns = isGrid || isMasonry;
     const columns = clampColumns(attributes.columns, 3);
 
+    const supports = compileBlockSupports(attributes);
     const classes = classList([
         'wp-block-post-template',
         // Masonry layers `is-layout-grid` underneath `is-layout-masonry`
@@ -145,10 +145,11 @@ export function PostTemplateBlock({ attributes, children }: BlockRendererProps):
         ...layoutPair('post-template', usesColumns ? 'is-layout-grid' : 'is-layout-flow'),
         isMasonry ? 'is-layout-masonry' : '',
         usesColumns ? `columns-${columns}` : '',
+        ...supports.classNames,
         className,
     ]);
 
-    const props: Record<string, unknown> = { className: classes };
+    const props: Record<string, unknown> = { className: classes, style: styleProp(supports.style) };
     if (isMasonry) {
         props['data-ap-cols'] = columns;
     }

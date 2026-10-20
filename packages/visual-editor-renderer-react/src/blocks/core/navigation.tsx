@@ -16,7 +16,8 @@ import { useEffect, useId, useRef, useState } from 'react';
 import type { CSSProperties, MouseEvent } from 'react';
 
 import { attrBoolean, attrString, classList, phpTrim } from '../../support/attributes';
-import { applyBlockGap, hasBlockGapStyle } from '../../support/blockGap';
+import { compileBlockSupports } from '../../support/blockSupports';
+import { styleProp } from '../../support/styleProp';
 import { safeCssValue } from '../../support/cssValue';
 import { navigationCollapseClass } from '../../support/navigationCollapseCss';
 import { presetPickClass } from '../../support/layoutBaselineCss';
@@ -217,6 +218,7 @@ export function NavigationBlock({ attributes, children, slots }: BlockRendererPr
     // per-instance scope right after the block class, the justification /
     // wrap modifiers after `items-justified-*`, as in `navigation.blade.php`.
     const layoutScope = attrString(attributes._veLayoutScope);
+    const supports = compileBlockSupports(attributes);
     const classes = classList([
         'wp-block-navigation',
         'is-layout-flex',
@@ -228,6 +230,7 @@ export function NavigationBlock({ attributes, children, slots }: BlockRendererPr
         ...layoutModifierClasses(attributes, false),
         wantsOverlay ? 'is-responsive' : null,
         navigationCollapseClass(attributes),
+        ...supports.classNames,
         className,
     ]);
 
@@ -237,13 +240,9 @@ export function NavigationBlock({ attributes, children, slots }: BlockRendererPr
         navProps['aria-label'] = ariaLabel;
     }
 
-    // #814 — Block spacing. The stylesheet turns the custom property
-    // into the items' `gap`; mirrors `BlockSupports::applySpacing()`.
-    const blockGapStyle = applyBlockGap(attributes);
-
-    if (hasBlockGapStyle(blockGapStyle)) {
-        navProps.style = blockGapStyle;
-    }
+    // #814 / #920 — the supports, Block spacing among them (the
+    // stylesheet turns its custom property into the items' `gap`).
+    navProps.style = styleProp(supports.style);
 
     const menu = <ul className="wp-block-navigation__container">{children}</ul>;
 
@@ -379,10 +378,12 @@ export function NavigationLinkBlock({ attributes }: BlockRendererProps): JSX.Ele
     const description = attrString(attributes.description);
     const className = attrString(attributes.className);
 
+    const supports = compileBlockSupports(attributes);
     const classes = classList([
         'wp-block-navigation-item',
         'wp-block-navigation-link',
         ...navigationCurrentClasses(attributes, false),
+        ...supports.classNames,
         className,
     ]);
 
@@ -393,7 +394,7 @@ export function NavigationLinkBlock({ attributes }: BlockRendererProps): JSX.Ele
     }
 
     return (
-        <li className={classes}>
+        <li className={classes} style={styleProp(supports.style)}>
             <a {...linkProps}>
                 <span className="wp-block-navigation-item__label">{label}</span>
                 {description !== '' ? (
@@ -411,18 +412,20 @@ export function NavigationSubmenuBlock({ attributes, children }: BlockRendererPr
     const rel = attrString(attributes.rel);
     const className = attrString(attributes.className);
 
+    const supports = compileBlockSupports(attributes);
     const classes = classList([
         'wp-block-navigation-item',
         'wp-block-navigation-submenu',
         'has-child',
         ...navigationCurrentClasses(attributes, true),
+        ...supports.classNames,
         className,
     ]);
 
     const linkProps = buildNavLinkProps(url, opensInNewTab, rel, attributes._veNavCurrent === 'current');
 
     return (
-        <li className={classes}>
+        <li className={classes} style={styleProp(supports.style)}>
             <a {...linkProps}>
                 <span className="wp-block-navigation-item__label">{label}</span>
             </a>

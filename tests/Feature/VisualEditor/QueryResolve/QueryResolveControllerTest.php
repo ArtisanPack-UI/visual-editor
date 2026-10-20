@@ -324,3 +324,63 @@ it( 'expands relatedTo into a taxonomy query against the host post (#601)', func
 		->and( $smartFake->callLog[1]['exclude'] )->toBe( [ 5 ] )
 		->and( $smartFake->callLog[1] )->not->toHaveKey( 'relatedTo' );
 } );
+
+describe( 'custom content type envelopes (#993)', function (): void {
+	beforeEach( function (): void {
+		removeAllFilters( ArtisanPackUI\VisualEditor\Resources\QueryPostTypeRegistry::FILTER );
+	} );
+
+	afterEach( function (): void {
+		removeAllFilters( ArtisanPackUI\VisualEditor\Resources\QueryPostTypeRegistry::FILTER );
+	} );
+
+	function resolveOneEntry( string $postType ): Illuminate\Testing\TestResponse
+	{
+		actingResolver();
+
+		$entry = TestBlockContentModel::create( [
+			'title'   => 'Widget Pro',
+			'excerpt' => 'Small and fast.',
+			'status'  => 'published',
+			'content' => [],
+		] );
+
+		test()->fake->setItems( [ $entry ] );
+
+		return test()->postJson( '/visual-editor/api/query/resolve', [
+			'postType' => $postType,
+			'perPage'  => 1,
+		] )->assertOk();
+	}
+
+	it( 'types entries of a type registered in the query post-type picker', function (): void {
+		addFilter( ArtisanPackUI\VisualEditor\Resources\QueryPostTypeRegistry::FILTER, function ( array $options ): array {
+			$options[] = [ 'value' => 'package', 'label' => 'Packages' ];
+
+			return $options;
+		} );
+
+		resolveOneEntry( 'package' )
+			->assertJsonPath( 'data.0.type', 'package' )
+			->assertJsonPath( 'data.0.title.rendered', 'Widget Pro' )
+			->assertJsonPath( 'data.0.excerpt.rendered', 'Small and fast.' )
+			->assertJsonStructure( [ 'data' => [ [ 'content' => [ 'rendered' ], '_preview' ] ] ] );
+	} );
+
+	it( 'types entries of a type backed by a registered editor resource', function (): void {
+		$this->app->instance(
+			ArtisanPackUI\VisualEditor\Resources\ResourceResolver::class,
+			new ArtisanPackUI\VisualEditor\Resources\ResourceResolver( [ 'packages' => TestBlockContentModel::class ] ),
+		);
+
+		resolveOneEntry( 'package' )->assertJsonPath( 'data.0.type', 'package' );
+	} );
+
+	it( 'keeps the post envelope for unregistered types', function (): void {
+		resolveOneEntry( 'not-registered' )->assertJsonPath( 'data.0.type', 'post' );
+	} );
+
+	it( 'keeps the built-in post and page envelopes', function ( string $postType ): void {
+		resolveOneEntry( $postType )->assertJsonPath( 'data.0.type', $postType );
+	} )->with( [ 'post', 'page' ] );
+} );
