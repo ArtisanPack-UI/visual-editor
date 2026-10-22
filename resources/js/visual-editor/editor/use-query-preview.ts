@@ -251,7 +251,7 @@ export function useQueryPreview(
     return state;
 }
 
-function readCsrfToken(): string | null {
+export function readCsrfToken(): string | null {
     if (typeof document === 'undefined') {
         return null;
     }
@@ -354,7 +354,7 @@ function normalizePosts(items: unknown[]): QueryPreviewPost[] {
         .map((item) => mapWpEntityToPost(item));
 }
 
-function mapWpEntityToPost(entity: Record<string, unknown>): QueryPreviewPost {
+export function mapWpEntityToPost(entity: Record<string, unknown>): QueryPreviewPost {
     const id = typeof entity.id === 'number' ? entity.id : Number(entity.id ?? 0);
     const titleRendered =
         typeof entity.title === 'object' && entity.title !== null
@@ -363,6 +363,10 @@ function mapWpEntityToPost(entity: Record<string, unknown>): QueryPreviewPost {
     const excerptRendered =
         typeof entity.excerpt === 'object' && entity.excerpt !== null
             ? String((entity.excerpt as Record<string, unknown>).rendered ?? '')
+            : '';
+    const contentRendered =
+        typeof entity.content === 'object' && entity.content !== null
+            ? String((entity.content as Record<string, unknown>).rendered ?? '')
             : '';
 
     const preview =
@@ -374,6 +378,7 @@ function mapWpEntityToPost(entity: Record<string, unknown>): QueryPreviewPost {
         id,
         title: titleRendered,
         excerpt: excerptRendered,
+        content: contentRendered,
         publishedAt: typeof entity.date === 'string' ? entity.date : undefined,
         modifiedAt: typeof entity.modified === 'string' ? entity.modified : undefined,
         permalink: typeof entity.link === 'string' ? entity.link : undefined,

@@ -5,6 +5,7 @@ declare( strict_types=1 );
 namespace Tests;
 
 use ArtisanPackUI\Hooks\Providers\HooksServiceProvider;
+use ArtisanPackUI\Security\Security;
 use ArtisanPackUI\VisualEditor\VisualEditorServiceProvider;
 use Orchestra\Testbench\TestCase as BaseTestCase;
 
@@ -39,6 +40,14 @@ abstract class TestCase extends BaseTestCase
 		] );
 
 		$app['config']->set( 'auth.providers.users.model', TestUser::class );
+
+		// cms-framework's settings reads sanitize through artisanpack-ui/security's
+		// helpers, which resolve the `security` binding. Security is only a
+		// transitive dependency, so bind that one service instead of booting its
+		// provider (which also loads migrations and CSP routes).
+		if ( class_exists( Security::class ) && ! $app->bound( 'security' ) ) {
+			$app->singleton( 'security', fn (): Security => new Security() );
+		}
 	}
 
 	protected function defineDatabaseMigrations(): void

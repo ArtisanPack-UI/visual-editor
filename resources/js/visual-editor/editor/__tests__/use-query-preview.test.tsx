@@ -204,6 +204,7 @@ describe('useQueryPreview', () => {
                             id: 1,
                             title: { rendered: 'Hello' },
                             excerpt: { rendered: 'World' },
+                            content: { rendered: '<p>Body</p>', raw: '' },
                             link: '/posts/1',
                             date: '2026-04-30T12:00:00+00:00',
                         },
@@ -225,6 +226,7 @@ describe('useQueryPreview', () => {
             id: 1,
             title: 'Hello',
             excerpt: 'World',
+            content: '<p>Body</p>',
             permalink: '/posts/1',
             publishedAt: '2026-04-30T12:00:00+00:00',
         });

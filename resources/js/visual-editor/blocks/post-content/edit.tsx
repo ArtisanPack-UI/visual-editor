@@ -9,6 +9,10 @@
  * present, otherwise a clearly-labelled placeholder) rather than
  * delegating to upstream's entity-querying edit. Phase I5 entity cluster
  * (#413).
+ *
+ * Inside a query loop or a single-content block, the rendered content
+ * from the `artisanpack/postPreview` context previews in place of the
+ * placeholder (#1003).
  */
 
 import { __ } from '@wordpress/i18n';
@@ -20,4 +24,8 @@ export default createEntityPlaceholderEdit( {
     label: () => __( 'Post Content', TEXT_DOMAIN ),
     resolvedKey: '_resolvedContent',
     kind: 'html',
+    fromQueryPreview: ( post ) =>
+        typeof post.content === 'string' && post.content !== ''
+            ? { text: post.content }
+            : null,
 } );
