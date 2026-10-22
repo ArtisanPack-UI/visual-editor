@@ -335,6 +335,16 @@ describe('records cache', () => {
         expect(fetchMock).toHaveBeenCalledTimes(2);
     });
 
+    it('evicts a transient non-OK response so a later call can retry', async () => {
+        fetchMock.mockImplementationOnce(() =>
+            Promise.resolve(jsonResponse({ message: 'Query runtime is not available.' }, 503))
+        );
+
+        await expect(fetchRecordPreview('package', 11)).rejects.toThrow('HTTP 503');
+        expect((await fetchRecordPreview('package', 11))?.title).toBe('Hooks');
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
     it('evicts a failed request so a later call can retry', async () => {
         fetchMock.mockRejectedValueOnce(new Error('offline'));
 

@@ -131,6 +131,19 @@ it( 'limits the post list to the include ids', function (): void {
 	expect( array_column( $response->json( 'data' ), 'id' ) )->toEqualCanonicalizing( [ $a->id, $c->id ] );
 } );
 
+it( 'returns every include id even past the default page size', function (): void {
+	actor();
+
+	$ids = [];
+	foreach ( range( 1, 30 ) as $i ) {
+		$ids[] = TestBlockContentModel::create( [ 'title' => "Post {$i}", 'status' => 'published', 'content' => [] ] )->id;
+	}
+
+	$this->getJson( '/visual-editor/api/posts?include=' . implode( ',', $ids ) )
+		->assertOk()
+		->assertJsonCount( 30, 'data' );
+} );
+
 it( 'creates a post via POST and returns 201', function (): void {
 	actor();
 

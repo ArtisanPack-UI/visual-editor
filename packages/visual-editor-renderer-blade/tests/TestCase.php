@@ -5,6 +5,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditorRendererBlade\Tests;
 
 use ArtisanPackUI\Hooks\Providers\HooksServiceProvider;
+use ArtisanPackUI\Security\Security;
 use ArtisanPackUI\VisualEditor\VisualEditorServiceProvider;
 use ArtisanPackUI\VisualEditorRendererBlade\VisualEditorRendererBladeServiceProvider;
 use Orchestra\Testbench\TestCase as BaseTestCase;
@@ -47,6 +48,14 @@ abstract class TestCase extends BaseTestCase
 			'prefix'                  => '',
 			'foreign_key_constraints' => true,
 		] );
+
+		// cms-framework's settings reads sanitize through artisanpack-ui/security's
+		// helpers, which resolve the `security` binding. Security is only a
+		// transitive dependency, so bind that one service instead of booting its
+		// provider (which also loads migrations and CSP routes).
+		if ( class_exists( Security::class ) && ! $app->bound( 'security' ) ) {
+			$app->singleton( 'security', fn (): Security => new Security() );
+		}
 	}
 
 	/**

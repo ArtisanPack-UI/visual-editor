@@ -16,9 +16,11 @@
  *    `?include=` request per collection. Records returned by a list
  *    prime the title cache, so a listed record never needs a lookup.
  *
- * Non-OK responses resolve to an empty result and stay cached, so an
- * endpoint the host doesn't serve isn't re-requested on every render.
- * Network failures are evicted so a later call can retry.
+ * `403` and `404` responses resolve to an empty result and stay cached,
+ * so an endpoint the host doesn't serve (or the user can't read) isn't
+ * re-requested on every render. Any other non-OK status (a `503` from a
+ * missing query runtime, a `5xx`, an expired session) and network
+ * failures reject, which evicts the entry so a later call can retry.
  */
 
 import {
@@ -39,6 +41,14 @@ export const API_BASE = '/visual-editor/api';
  * batch never exceeds them.
  */
 const MAX_BATCH = 100;
+
+/**
+ * Whether a non-OK response is a deterministic "nothing here" answer that
+ * is safe to cache for the session.
+ */
+function isCacheableMiss(response: Response): boolean {
+    return response.status === 403 || response.status === 404;
+}
 
 export function clampPostId(value: number | string | undefined | null): number {
     const parsed = typeof value === 'number' ? value : Number(value);
@@ -187,7 +197,10 @@ async function fetchSummaries(url: string): Promise<ReadonlyArray<PostSummary>> 
     });
 
     if (!response.ok) {
-        return [];
+        if (isCacheableMiss(response)) {
+            return [];
+        }
+        throw new Error(`HTTP ${response.status}`);
     }
 
     const summaries: PostSummary[] = [];
@@ -225,7 +238,10 @@ const previews = createBatcher<QueryPreviewPost>(async (postType, ids) => {
     });
 
     if (!response.ok) {
-        return new Map();
+        if (isCacheableMiss(response)) {
+            return new Map();
+        }
+        throw new Error(`HTTP ${response.status}`);
     }
 
     const posts = readRecords(await response.json()).map(mapWpEntityToPost);

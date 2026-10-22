@@ -95,6 +95,7 @@ abstract class WpEntityController extends Controller
 		$include = RecordIdList::parse( $request->query( 'include' ), self::MAX_PER_PAGE );
 		if ( [] !== $include ) {
 			$query->whereIn( $model->getKeyName(), $include );
+			$perPage = max( $perPage, count( $include ) );
 		}
 
 		$resourceClass = $this->resourceClass();
