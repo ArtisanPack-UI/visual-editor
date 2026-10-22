@@ -18,6 +18,8 @@ const svgCache = new Map< string, Promise< string > >();
 
 /**
  * Drop every memoized SVG lookup. Exposed for tests.
+ *
+ * @since 1.16.0
  */
 export function clearIconSvgCache(): void {
     svgCache.clear();

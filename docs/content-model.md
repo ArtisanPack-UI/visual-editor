@@ -76,10 +76,49 @@ The resource map is a slug → model class array consulted by every
 content-bearing API endpoint:
 
 ```
+GET  /visual-editor/api/{resource}
+GET  /visual-editor/api/{resource}/{id}
 GET  /visual-editor/api/{resource}/{id}/content
 PUT  /visual-editor/api/{resource}/{id}/content
 PUT  /visual-editor/api/{resource}/{id}/entry
 ```
+
+*Since v1.16.0 (#1003)*, `GET {resource}` and `GET {resource}/{id}`
+list and read records of any registered resource in the minimal shape
+record pickers need (the single-content block's entry dropdown, for one):
+
+```json
+{ "data": [ { "id": 12, "title": "Acme", "slug": "acme" } ] }
+```
+
+`GET {resource}/{id}` returns one record object without the `data`
+wrapper. `title` is `""` and `slug` is `null` when the model has no such
+value. The list accepts:
+
+- `search` — matched against the `title` column with `LIKE`, when the
+  table has one; ignored otherwise.
+- `per_page` — default 25, capped at 100.
+- `include` — a comma-separated id list (`?include=11,12,21`) that limits
+  the result to those records, for batched title lookups. Duplicates and
+  ids with characters outside `[A-Za-z0-9_-]` are dropped, and the list is
+  capped at 100.
+
+Records come newest-first by primary key, scoped with `forVisualEditor()`
+as `ResourceResolver::resolve()` scopes single lookups (both now go
+through the new `ResourceResolver::query()`). Each record is checked
+against the model's `view` policy ability: the list leaves out records
+the user can't view, and `GET {resource}/{id}` answers `403`. An
+unregistered slug is a `404`.
+
+`posts` and `pages` keep their WordPress-shape adapter routes, which are
+registered first; those now accept the same `search` and `include`
+filters. The generic routes are registered after every other package
+route, so they never shadow a static path such as `templates` or
+`blocks`. Two side effects: a `GET` to a POST-only path (e.g.
+`blocks/preview`) now answers `404` instead of `405`, and a host route
+added under `/visual-editor/api` *after* the package routes is shadowed
+by the generic `GET` routes, so register host routes on that prefix
+before the package's routes load.
 
 *Since v1.15.3 (#992)*, `PUT {resource}/{id}/entry` saves an entry's
 `title` and `excerpt` (both optional; `title` at most 255 characters).

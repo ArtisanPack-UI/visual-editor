@@ -5,6 +5,8 @@
  * block is selected, so opening the editor on a page full of
  * single-content blocks sends no record requests. Lists and titles come
  * from the shared cache in `records-cache.ts`.
+ *
+ * @since 1.16.0
  */
 
 import type { ReactElement } from 'react';

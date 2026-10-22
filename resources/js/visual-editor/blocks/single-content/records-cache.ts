@@ -21,6 +21,8 @@
  * re-requested on every render. Any other non-OK status (a `503` from a
  * missing query runtime, a `5xx`, an expired session) and network
  * failures reject, which evicts the entry so a later call can retry.
+ *
+ * @since 1.16.0
  */
 
 import {
