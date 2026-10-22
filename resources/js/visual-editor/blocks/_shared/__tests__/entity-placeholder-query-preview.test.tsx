@@ -49,6 +49,7 @@ import { createEntityPlaceholderEdit } from '../entity-placeholder-edit';
 import PostTitleEdit from '../../post-title/edit';
 import PostDateEdit from '../../post-date/edit';
 import PostExcerptEdit from '../../post-excerpt/edit';
+import PostContentEdit from '../../post-content/edit';
 import PostAuthorEdit from '../../post-author/edit';
 import PostAuthorNameEdit from '../../post-author-name/edit';
 import PostAuthorBiographyEdit from '../../post-author-biography/edit';
@@ -58,6 +59,7 @@ import PostFeaturedImageEdit from '../../post-featured-image/edit';
 import postTitleMeta from '../../post-title/block.json';
 import postDateMeta from '../../post-date/block.json';
 import postExcerptMeta from '../../post-excerpt/block.json';
+import postContentMeta from '../../post-content/block.json';
 import postAuthorMeta from '../../post-author/block.json';
 import postAuthorNameMeta from '../../post-author-name/block.json';
 import postAuthorBiographyMeta from '../../post-author-biography/block.json';
@@ -254,6 +256,25 @@ describe('post-* edit components — query-preview integration', () => {
         expect(getByText('A short summary.')).not.toBeNull();
     });
 
+    it('post-content shows the rendered content from context as text (#1003)', () => {
+        const { getByText } = render(
+            <PostContentEdit
+                attributes={{}}
+                context={{
+                    [previewKey]: { id: 1, content: '<p>Featured <strong>body</strong></p>' },
+                }}
+            />
+        );
+        expect(getByText('Featured body')).not.toBeNull();
+    });
+
+    it('post-content falls back to placeholder when context has no content (#1003)', () => {
+        const { getByText } = render(
+            <PostContentEdit attributes={{}} context={{ [previewKey]: { id: 1, content: '' } }} />
+        );
+        expect(getByText('Post Content')).not.toBeNull();
+    });
+
     it('post-author shows the author name from context', () => {
         const { getByText } = render(
             <PostAuthorEdit
@@ -406,6 +427,7 @@ describe('post-* edit components — query-preview integration', () => {
             postTitleMeta,
             postDateMeta,
             postExcerptMeta,
+            postContentMeta,
             postAuthorMeta,
             postAuthorNameMeta,
             postAuthorBiographyMeta,

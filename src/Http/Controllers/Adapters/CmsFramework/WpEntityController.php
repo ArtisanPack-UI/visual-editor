@@ -32,6 +32,7 @@ namespace ArtisanPackUI\VisualEditor\Http\Controllers\Adapters\CmsFramework;
 use ArtisanPackUI\VisualEditor\Effects\CustomCssGuard;
 use ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\WpEntityResource;
 use ArtisanPackUI\VisualEditor\Resources\ResourceResolver;
+use ArtisanPackUI\VisualEditor\Support\RecordIdList;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -57,6 +58,9 @@ abstract class WpEntityController extends Controller
 	/**
 	 * Lists records with a paginated `{ data, meta, links }` envelope.
 	 *
+	 * Filters: `status`, `search` (matched against `title`), and
+	 * `include` (a comma-separated id list, since 1.16.0).
+	 *
 	 * @since 1.0.0
 	 */
 	public function index( Request $request ): AnonymousResourceCollection
@@ -80,6 +84,17 @@ abstract class WpEntityController extends Controller
 		$status = $request->string( 'status' )->toString();
 		if ( '' !== $status ) {
 			$query->where( 'status', $status );
+		}
+
+		$search = trim( $request->string( 'search' )->toString() );
+		if ( '' !== $search && $model->getConnection()->getSchemaBuilder()->hasColumn( $model->getTable(), 'title' ) ) {
+			$query->where( 'title', 'like', '%' . $search . '%' );
+		}
+
+		// #1003 — batched title lookups from record pickers.
+		$include = RecordIdList::parse( $request->query( 'include' ), self::MAX_PER_PAGE );
+		if ( [] !== $include ) {
+			$query->whereIn( $model->getKeyName(), $include );
 		}
 
 		$resourceClass = $this->resourceClass();

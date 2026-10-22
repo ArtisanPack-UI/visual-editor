@@ -20,6 +20,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditor\Resources;
 
 use ArtisanPackUI\VisualEditor\Concerns\HasBlockContent;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use InvalidArgumentException;
@@ -63,19 +64,41 @@ class ResourceResolver
 	 */
 	public function resolve( string $resource, int|string $id ): Model
 	{
-		$modelClass = $this->modelClassFor( $resource );
-		$model      = $this->newModel( $resource, $modelClass );
+		$query = $this->query( $resource );
 
 		try {
-			return $model->newQuery()
-				->forVisualEditor()
-				->findOrFail( $id );
+			return $query->findOrFail( $id );
 		} catch ( ModelNotFoundException $exception ) {
 			throw new NotFoundHttpException(
 				sprintf( 'No %s with id %s.', $resource, (string) $id ),
 				$exception,
 			);
 		}
+	}
+
+	/**
+	 * Returns a query builder for a resource slug, scoped the same way
+	 * {@see self::resolve()} scopes single-record lookups.
+	 *
+	 * The model is built through {@see self::newModel()}, so host
+	 * subclasses that bind a shared model to a per-type table at that
+	 * seam get list queries against the right table too.
+	 *
+	 * @since 1.16.0
+	 *
+	 * @param  string  $resource  The resource slug from the URL.
+	 *
+	 * @throws NotFoundHttpException    When the slug is unknown.
+	 * @throws InvalidArgumentException When the configured model doesn't use HasBlockContent.
+	 * @throws RuntimeException         When the configured class is missing or not an Eloquent model.
+	 *
+	 * @return Builder<Model>
+	 */
+	public function query( string $resource ): Builder
+	{
+		$model = $this->newModel( $resource, $this->modelClassFor( $resource ) );
+
+		return $model->newQuery()->forVisualEditor();
 	}
 
 	/**
