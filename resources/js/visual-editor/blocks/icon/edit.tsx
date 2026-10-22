@@ -29,6 +29,7 @@ import { __ } from '@wordpress/i18n';
 
 import { sanitizeOnServer } from './custom-svg';
 import CustomSvgControl from './custom-svg-control';
+import { fetchIconSvg } from './fetch-svg';
 import IconPicker from './icon-picker';
 import type { IconAttributes, IconRef, SizeUnit, VerticalAlignment } from './types';
 import {
@@ -220,33 +221,15 @@ export default function IconEdit( { attributes, setAttributes }: IconEditProps )
         }
 
         let cancelled = false;
-        const params = new URLSearchParams( {
-            set: normalized.iconRef.set,
-            name: normalized.iconRef.name,
-        } );
 
-        ( async () => {
-            try {
-                const response = await fetch(
-                    `/visual-editor/api/icons/svg?${ params.toString() }`,
-                    { headers: { Accept: 'application/json' }, credentials: 'include' }
-                );
-                if ( ! response.ok ) {
-                    if ( ! cancelled ) {
-                        setResolvedSvg( null );
-                    }
-                    return;
-                }
-                const json = ( await response.json() ) as { svg: string | null };
-                if ( ! cancelled ) {
-                    setResolvedSvg( json.svg ?? null );
-                }
-            } catch {
-                if ( ! cancelled ) {
-                    setResolvedSvg( null );
-                }
+        // Shared, de-duplicated lookup (#1004) — every instance showing
+        // the same icon awaits one request. It never rejects; an empty
+        // string means the lookup failed and the placeholder stays.
+        fetchIconSvg( normalized.iconRef.set, normalized.iconRef.name ).then( ( svg ) => {
+            if ( ! cancelled ) {
+                setResolvedSvg( '' === svg ? null : svg );
             }
-        } )();
+        } );
 
         return () => {
             cancelled = true;
