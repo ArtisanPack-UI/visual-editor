@@ -39,6 +39,7 @@ const baseAttrs: NormalizedIconAttributes = {
     titleAttr: '',
     ariaLabel: '',
     isDecorative: false,
+    verticalAlignment: null,
     style: {},
 };
 
@@ -238,7 +239,7 @@ describe( 'computeIconStyle', () => {
 } );
 
 describe( 'computeWrapperStyle', () => {
-    it( 'returns an empty object — WP serializes wrapper styles via useBlockProps()', () => {
+    it( 'returns an empty object when no vertical alignment is set — WP serializes wrapper styles via useBlockProps()', () => {
         expect( computeWrapperStyle( baseAttrs ) ).toEqual( {} );
         expect(
             computeWrapperStyle( {
@@ -246,6 +247,52 @@ describe( 'computeWrapperStyle', () => {
                 style: { spacing: { margin: '8px' } },
             } ),
         ).toEqual( {} );
+    } );
+
+    it.each( [
+        [ 'top', 'flex-start' ],
+        [ 'center', 'center' ],
+        [ 'bottom', 'flex-end' ],
+    ] as const )( 'turns the wrapper into a column flexbox for %s alignment', ( verticalAlignment, justifyContent ) => {
+        expect( computeWrapperStyle( { ...baseAttrs, verticalAlignment } ) ).toEqual( {
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            justifyContent,
+        } );
+    } );
+} );
+
+describe( 'normalizeAttributes verticalAlignment', () => {
+    const raw = {
+        iconRef: null,
+        customSvg: '',
+        size: 32,
+        sizeUnit: 'px',
+        rotation: 0,
+        flipH: false,
+        flipV: false,
+        link: '',
+        linkTarget: '',
+        linkRel: '',
+        titleAttr: '',
+        ariaLabel: '',
+        isDecorative: false,
+    } as const;
+
+    it( 'keeps a valid alignment', () => {
+        expect( normalizeAttributes( { ...raw, verticalAlignment: 'center' } ).verticalAlignment ).toBe( 'center' );
+    } );
+
+    it( 'normalizes missing or unknown alignments to null', () => {
+        expect( normalizeAttributes( raw ).verticalAlignment ).toBeNull();
+        expect( normalizeAttributes( { ...raw, verticalAlignment: null } ).verticalAlignment ).toBeNull();
+        expect(
+            normalizeAttributes( { ...raw, verticalAlignment: 'stretch' as never } ).verticalAlignment,
+        ).toBeNull();
+        expect(
+            normalizeAttributes( { ...raw, verticalAlignment: 'toString' as never } ).verticalAlignment,
+        ).toBeNull();
     } );
 } );
 

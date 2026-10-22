@@ -7,13 +7,39 @@
 	$alt     = (string) ( $attributes['alt'] ?? '' );
 	$caption = (string) ( $attributes['caption'] ?? '' );
 	$href    = UrlSanitizer::safe( (string) ( $attributes['href'] ?? '' ) );
-	$width   = isset( $attributes['width'] ) ? (int) $attributes['width'] : null;
-	$height  = isset( $attributes['height'] ) ? (int) $attributes['height'] : null;
+
+	// #985 — `width` / `height` are string attributes (WordPress 6.3+:
+	// `"auto"`, `"30px"`, `"50%"`), saved by the editor as an inline
+	// `style` on the `<img>` plus `is-resized` on the figure. Legacy
+	// numeric values (a JSON number or a unitless numeric string) keep
+	// the old output: an integer HTML attribute and nothing else. A
+	// string length prints the style; a whole-px one also prints the
+	// HTML attribute. Anything else (hostile or unknown) is dropped.
+	$resolveDimension = static function ( $value ): array {
+		if ( is_int( $value ) || is_float( $value ) || ( is_string( $value ) && 1 === preg_match( '/^\d+(\.\d+)?$/D', $value ) ) ) {
+			return [ 'attr' => (int) $value, 'style' => null ];
+		}
+
+		if ( ! is_string( $value ) || 1 !== preg_match( '/^(auto|(\d+(\.\d+)?|\.\d+)(px|em|rem|%|vw|vh|vmin|vmax|svw|svh|lvw|lvh|dvw|dvh|ch|ex|cm|mm|in|pt|pc))$/D', $value ) ) {
+			return [ 'attr' => null, 'style' => null ];
+		}
+
+		$attr = 1 === preg_match( '/^(\d+)px$/D', $value, $matches ) ? (int) $matches[1] : null;
+
+		return [ 'attr' => $attr, 'style' => $value ];
+	};
+
+	$width  = $resolveDimension( $attributes['width'] ?? null );
+	$height = $resolveDimension( $attributes['height'] ?? null );
 
 	$baseClasses = [ 'wp-block-image' ];
 
 	if ( ! empty( $attributes['sizeSlug'] ) ) {
 		$baseClasses[] = 'size-' . $attributes['sizeSlug'];
+	}
+
+	if ( null !== $width['style'] || null !== $height['style'] ) {
+		$baseClasses[] = 'is-resized';
 	}
 
 	// #873 — duotone filter (`supports.filter.duotone`): the scope
@@ -43,6 +69,16 @@
 		$imgStyle[] = 'object-fit:' . $scale;
 	}
 
+	// Declaration order matches the editor's `save()`: aspect-ratio,
+	// object-fit, then width and height.
+	if ( null !== $width['style'] ) {
+		$imgStyle[] = 'width:' . $width['style'];
+	}
+
+	if ( null !== $height['style'] ) {
+		$imgStyle[] = 'height:' . $height['style'];
+	}
+
 	$imgAttrs = sprintf( ' src="%s"', e( $url ) );
 	$imgAttrs .= sprintf( ' alt="%s"', e( $alt ) );
 
@@ -50,12 +86,12 @@
 		$imgAttrs .= sprintf( ' class="%s"', e( $imgClass ) );
 	}
 
-	if ( null !== $width ) {
-		$imgAttrs .= sprintf( ' width="%d"', $width );
+	if ( null !== $width['attr'] ) {
+		$imgAttrs .= sprintf( ' width="%d"', $width['attr'] );
 	}
 
-	if ( null !== $height ) {
-		$imgAttrs .= sprintf( ' height="%d"', $height );
+	if ( null !== $height['attr'] ) {
+		$imgAttrs .= sprintf( ' height="%d"', $height['attr'] );
 	}
 
 	if ( [] !== $imgStyle ) {

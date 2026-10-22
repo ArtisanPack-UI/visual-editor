@@ -1,0 +1,28 @@
+<div class="wp-block-artisanpack-tabs ap-tabs align-tabs-horizontal space-tabs-center" data-ap-tabs="">
+  <div class="ap-tabs__list">
+    <ul role="tablist">
+      <li>
+        <a aria-controls="tabs-panel-monthly" aria-selected="true" href="#tabs-panel-monthly" id="tabs-tab-monthly" role="tab" tabindex="0">
+          "Monthly"
+        </a>
+      </li>
+      <li>
+        <a aria-controls="tabs-panel-annual" aria-selected="false" href="#tabs-panel-annual" id="tabs-tab-annual" role="tab" tabindex="-1">
+          "Annual"
+        </a>
+      </li>
+    </ul>
+  </div>
+  <div class="ap-tabs__container">
+    <div aria-labelledby="tabs-tab-monthly" class="wp-block-artisanpack-tab-section ap-tab-section is-style-repro" id="tabs-panel-monthly" role="tabpanel">
+      <p class="wp-block-paragraph">
+        "One"
+      </p>
+    </div>
+    <div aria-label="Annual plans" class="wp-block-artisanpack-tab-section ap-tab-section" id="tabs-panel-annual" role="tabpanel">
+      <p class="wp-block-paragraph">
+        "Two"
+      </p>
+    </div>
+  </div>
+</div>

@@ -153,6 +153,25 @@ it( 'stamps share URLs for artisanpack/social-share-content from the post permal
 		->and( $bySlug['email'] )->toStartWith( 'mailto:' );
 } );
 
+it( 'stamps a LinkedIn share URL and the bare permalink for the copy-link chip', function (): void {
+	$resolved = ( new PostResolver() )->stampBlock(
+		[
+			'name'        => 'artisanpack/social-share-content',
+			'attributes'  => [ 'socialIcons' => [ 'twitter', 'linkedin', 'copyLink' ] ],
+			'innerBlocks' => [],
+		],
+		fakeSocialPost(),
+	);
+
+	$bySlug = [];
+	foreach ( $resolved['attributes']['_resolvedShareLinks'] as $link ) {
+		$bySlug[ $link['slug'] ] = $link['url'];
+	}
+
+	expect( $bySlug['linkedin'] )->toBe( 'https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fexample.test%2Fposts%2Fhello' )
+		->and( $bySlug['copyLink'] )->toBe( 'https://example.test/posts/hello' );
+} );
+
 it( 'returns an empty share-link list when the post has no permalink', function (): void {
 	$post                    = new stdClass();
 	$post->id                = 1;

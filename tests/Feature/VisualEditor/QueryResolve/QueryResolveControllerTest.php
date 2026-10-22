@@ -10,6 +10,7 @@ declare( strict_types=1 );
  * @since 1.0.0
  */
 
+use ArtisanPackUI\VisualEditor\Http\Requests\QueryResolveRequest;
 use ArtisanPackUI\VisualEditor\Services\QueryResolverContract;
 use Illuminate\Support\Facades\Gate;
 use Tests\Fixtures\FakeQueryResolver;
@@ -42,6 +43,45 @@ it( 'rejects unauthenticated requests', function (): void {
 	$this->postJson( '/visual-editor/api/query/resolve', [ 'postType' => 'post' ] )
 		->assertUnauthorized();
 } );
+
+it( 'rejects users without content-editor access with a JSON 403', function (): void {
+	config()->set( 'artisanpack.visual-editor.content_access.capability', 'edit_content' );
+	Gate::define( 'edit_content', fn (): bool => false );
+
+	actingResolver();
+
+	$this->postJson( '/visual-editor/api/query/resolve', [ 'postType' => 'page' ] )
+		->assertForbidden()
+		->assertJsonPath( 'message', 'You are not allowed to edit content.' );
+
+	expect( test()->fake->lastAttributes )->toBeNull();
+} );
+
+it( 'resolves queries for users with content-editor access', function (): void {
+	config()->set( 'artisanpack.visual-editor.content_access.capability', 'edit_content' );
+	Gate::define( 'edit_content', fn (): bool => true );
+
+	actingResolver();
+
+	$this->postJson( '/visual-editor/api/query/resolve', [ 'postType' => 'page' ] )
+		->assertOk();
+
+	expect( test()->fake->lastAttributes )->toMatchArray( [ 'postType' => 'page' ] );
+} );
+
+it( 'authorizes the request through the content-access gate', function ( bool $granted ): void {
+	config()->set( 'artisanpack.visual-editor.content_access.capability', 'edit_content' );
+	Gate::define( 'edit_content', fn (): bool => $granted );
+
+	$user    = actingResolver();
+	$request = QueryResolveRequest::create( '/visual-editor/api/query/resolve', 'POST' );
+	$request->setUserResolver( fn () => $user );
+
+	expect( $request->authorize() )->toBe( $granted );
+} )->with( [
+	'granted' => [ true ],
+	'denied'  => [ false ],
+] );
 
 it( 'returns 503 when no resolver is bound', function (): void {
 	$this->app->forgetInstance( QueryResolverContract::class );
@@ -283,4 +323,64 @@ it( 'expands relatedTo into a taxonomy query against the host post (#601)', func
 		->and( $smartFake->callLog[1]['taxQuery']['terms'] )->toBe( [ 7 ] )
 		->and( $smartFake->callLog[1]['exclude'] )->toBe( [ 5 ] )
 		->and( $smartFake->callLog[1] )->not->toHaveKey( 'relatedTo' );
+} );
+
+describe( 'custom content type envelopes (#993)', function (): void {
+	beforeEach( function (): void {
+		removeAllFilters( ArtisanPackUI\VisualEditor\Resources\QueryPostTypeRegistry::FILTER );
+	} );
+
+	afterEach( function (): void {
+		removeAllFilters( ArtisanPackUI\VisualEditor\Resources\QueryPostTypeRegistry::FILTER );
+	} );
+
+	function resolveOneEntry( string $postType ): Illuminate\Testing\TestResponse
+	{
+		actingResolver();
+
+		$entry = TestBlockContentModel::create( [
+			'title'   => 'Widget Pro',
+			'excerpt' => 'Small and fast.',
+			'status'  => 'published',
+			'content' => [],
+		] );
+
+		test()->fake->setItems( [ $entry ] );
+
+		return test()->postJson( '/visual-editor/api/query/resolve', [
+			'postType' => $postType,
+			'perPage'  => 1,
+		] )->assertOk();
+	}
+
+	it( 'types entries of a type registered in the query post-type picker', function (): void {
+		addFilter( ArtisanPackUI\VisualEditor\Resources\QueryPostTypeRegistry::FILTER, function ( array $options ): array {
+			$options[] = [ 'value' => 'package', 'label' => 'Packages' ];
+
+			return $options;
+		} );
+
+		resolveOneEntry( 'package' )
+			->assertJsonPath( 'data.0.type', 'package' )
+			->assertJsonPath( 'data.0.title.rendered', 'Widget Pro' )
+			->assertJsonPath( 'data.0.excerpt.rendered', 'Small and fast.' )
+			->assertJsonStructure( [ 'data' => [ [ 'content' => [ 'rendered' ], '_preview' ] ] ] );
+	} );
+
+	it( 'types entries of a type backed by a registered editor resource', function (): void {
+		$this->app->instance(
+			ArtisanPackUI\VisualEditor\Resources\ResourceResolver::class,
+			new ArtisanPackUI\VisualEditor\Resources\ResourceResolver( [ 'packages' => TestBlockContentModel::class ] ),
+		);
+
+		resolveOneEntry( 'package' )->assertJsonPath( 'data.0.type', 'package' );
+	} );
+
+	it( 'keeps the post envelope for unregistered types', function (): void {
+		resolveOneEntry( 'not-registered' )->assertJsonPath( 'data.0.type', 'post' );
+	} );
+
+	it( 'keeps the built-in post and page envelopes', function ( string $postType ): void {
+		resolveOneEntry( $postType )->assertJsonPath( 'data.0.type', $postType );
+	} )->with( [ 'post', 'page' ] );
 } );

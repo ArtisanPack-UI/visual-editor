@@ -1,0 +1,9 @@
+<div class="ap-related-posts">
+  <ul class="wp-block-post-template is-layout-grid wp-block-post-template-is-layout-grid columns-2">
+    <li class="wp-block-post-template-item related-post post-13" id="post-13">
+      <p class="wp-block-paragraph">
+        "Related C"
+      </p>
+    </li>
+  </ul>
+</div>

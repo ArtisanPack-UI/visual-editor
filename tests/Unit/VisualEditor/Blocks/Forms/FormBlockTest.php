@@ -207,3 +207,49 @@ it( 'drops non-array `style` and non-string supports attrs through validateAttrs
 		->and( $attrs )->not->toHaveKey( 'style' )
 		->and( $attrs )->not->toHaveKey( 'backgroundColor' );
 } );
+
+/* ---- layout attribute (#916) ---- */
+
+it( 'keeps a valid layout value through validateAttrs', function (): void {
+	expect( test()->block->validateAttrs( [ 'formId' => 1, 'layout' => 'inline' ] )['layout'] )->toBe( 'inline' )
+		->and( test()->block->validateAttrs( [ 'formId' => 1, 'layout' => 'stacked' ] )['layout'] )->toBe( 'stacked' );
+} );
+
+it( 'drops an invalid layout value through validateAttrs', function (): void {
+	expect( test()->block->validateAttrs( [ 'formId' => 1, 'layout' => 'grid' ] ) )->not->toHaveKey( 'layout' )
+		->and( test()->block->validateAttrs( [ 'formId' => 1, 'layout' => 'INLINE' ] ) )->not->toHaveKey( 'layout' )
+		->and( test()->block->validateAttrs( [ 'formId' => 1, 'layout' => [ 'inline' ] ] ) )->not->toHaveKey( 'layout' );
+} );
+
+it( 'renders stacked output byte-identical to the default', function () use ( $fakeForm ): void {
+	$block = new FormBlock( fn ( int $id ): ?object => $fakeForm( $id, 'contact', true ) );
+
+	$expected = '<div class="wp-block-artisanpack-form" data-keystone-form="contact" data-form-id="7"></div>';
+
+	expect( $block->render( $block->validateAttrs( [ 'formId' => 7 ] ) ) )->toBe( $expected )
+		->and( $block->render( $block->validateAttrs( [ 'formId' => 7, 'layout' => 'stacked' ] ) ) )->toBe( $expected );
+} );
+
+it( 'adds the inline class and data-layout attribute for the inline layout', function () use ( $fakeForm ): void {
+	$block = new FormBlock( fn ( int $id ): ?object => $fakeForm( $id, 'newsletter', true ) );
+
+	$html = $block->render( $block->validateAttrs( [ 'formId' => 3, 'layout' => 'inline' ] ) );
+
+	expect( $html )->toBe( '<div class="wp-block-artisanpack-form is-layout-inline" data-keystone-form="newsletter" data-form-id="3" data-layout="inline"></div>' );
+} );
+
+it( 'renders an invalid layout as stacked', function () use ( $fakeForm ): void {
+	$block = new FormBlock( fn ( int $id ): ?object => $fakeForm( $id, 'contact', true ) );
+
+	$html = $block->render( $block->validateAttrs( [ 'formId' => 7, 'layout' => 'grid' ] ) );
+
+	expect( $html )->toBe( '<div class="wp-block-artisanpack-form" data-keystone-form="contact" data-form-id="7"></div>' );
+} );
+
+it( 'leaves the placeholder output unchanged for the inline layout', function (): void {
+	$html = test()->block->render( test()->block->validateAttrs( [ 'layout' => 'inline' ] ) );
+
+	expect( $html )->toContain( 'class="wp-block-artisanpack-form wp-block-artisanpack-form--placeholder"' )
+		->and( $html )->not->toContain( 'is-layout-inline' )
+		->and( $html )->not->toContain( 'data-layout' );
+} );

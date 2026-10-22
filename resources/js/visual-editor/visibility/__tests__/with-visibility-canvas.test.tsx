@@ -70,13 +70,15 @@ afterEach(() => {
 });
 
 describe('visibilityBreakpoints', () => {
-    it('lists the legacy min-width breakpoints from the registry', () => {
+    it('lists the legacy min-width and device max-width breakpoints from the registry', () => {
         expect(visibilityBreakpoints()).toEqual([
             { key: 'sm', minWidthPx: 640 },
             { key: 'md', minWidthPx: 768 },
             { key: 'lg', minWidthPx: 1024 },
             { key: 'xl', minWidthPx: 1280 },
             { key: '2xl', minWidthPx: 1536 },
+            { key: 'tablet', maxWidthPx: 1023 },
+            { key: 'mobile', maxWidthPx: 767 },
         ]);
     });
 });
@@ -106,6 +108,18 @@ describe('buildVisibilityCanvasCss', () => {
 
     it('shows the block when the previewed width is outside every range', () => {
         expect(buildVisibilityCanvasCss('id', mdHidden, breakpoints, 375)).toBe('');
+    });
+
+    it('hides a mobile-hidden block at the mobile preview width (#974)', () => {
+        const mobileHidden = { screenSize: { direction: 'hide' as const, breakpoints: ['mobile'] } };
+
+        expect(buildVisibilityCanvasCss('id', mobileHidden, breakpoints, null)).toBe(
+            '@media (max-width:767px){'
+            + '.ap-vis-id:not(.is-ap-vis-revealed){display:none !important;}'
+            + '.ap-vis-id.is-ap-vis-revealed{opacity:0.4;}}',
+        );
+        expect(buildVisibilityCanvasCss('id', mobileHidden, breakpoints, 375)).not.toBe('');
+        expect(buildVisibilityCanvasCss('id', mobileHidden, breakpoints, 768)).toBe('');
     });
 
     it('dims blocks with rules the canvas cannot evaluate', () => {

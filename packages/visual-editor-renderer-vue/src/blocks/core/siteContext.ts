@@ -8,8 +8,9 @@
 
 import { defineComponent, h } from 'vue';
 import { attrBoolean, attrInt, attrString, classList } from '../../support/attributes';
+import { compileBlockSupports } from '../../support/blockSupports';
 import { safeUrl } from '../../support/urlSanitizer';
-import { blockRendererProps } from '../shared';
+import { blockRendererProps, withStyle } from '../shared';
 
 const SITE_TITLE_LINK_REL = 'home';
 
@@ -38,19 +39,21 @@ export const SiteTitleBlock = defineComponent({
 
             const tag = level === 0 ? 'p' : `h${level}`;
 
+            const supports = compileBlockSupports(props.attributes);
             const classes = classList([
                 'wp-block-site-title',
                 align !== '' ? `has-text-align-${align}` : null,
+                ...supports.classNames,
                 className,
             ]);
 
             if (isLink && siteUrl !== '') {
                 const linkProps = siteLinkProps(siteUrl, linkTarget);
 
-                return h(tag, { class: classes }, [h('a', linkProps, title)]);
+                return h(tag, withStyle({ class: classes }, supports.style), [h('a', linkProps, title)]);
             }
 
-            return h(tag, { class: classes }, title);
+            return h(tag, withStyle({ class: classes }, supports.style), title);
         };
     },
 });
@@ -65,13 +68,15 @@ export const SiteTaglineBlock = defineComponent({
 
             const tagline = attrString(props.attributes._resolvedSiteTagline);
 
+            const supports = compileBlockSupports(props.attributes);
             const classes = classList([
                 'wp-block-site-tagline',
                 align !== '' ? `has-text-align-${align}` : null,
+                ...supports.classNames,
                 className,
             ]);
 
-            return h('p', { class: classes }, tagline);
+            return h('p', withStyle({ class: classes }, supports.style), tagline);
         };
     },
 });
@@ -90,16 +95,18 @@ export const SiteLogoBlock = defineComponent({
             const siteUrl = safeUrl(props.attributes._resolvedSiteUrl);
             const alt = attrString(props.attributes._resolvedSiteTitle);
 
+            const supports = compileBlockSupports(props.attributes);
             const classes = classList([
                 'wp-block-site-logo',
                 width <= 0 ? 'is-default-size' : null,
                 // Duotone scope stamped by `stampDuotoneScopes()`.
                 attrString(props.attributes._veDuotone) || null,
+                ...supports.classNames,
                 className,
             ]);
 
             if (logoUrl === '') {
-                return h('div', { class: classes });
+                return h('div', withStyle({ class: classes }, supports.style));
             }
 
             const imgProps: Record<string, unknown> = {
@@ -117,12 +124,12 @@ export const SiteLogoBlock = defineComponent({
             if (isLink && siteUrl !== '') {
                 const linkProps = siteLinkProps(siteUrl, linkTarget);
 
-                return h('div', { class: classes }, [
+                return h('div', withStyle({ class: classes }, supports.style), [
                     h('a', { ...linkProps, class: 'custom-logo-link' }, [img]),
                 ]);
             }
 
-            return h('div', { class: classes }, [img]);
+            return h('div', withStyle({ class: classes }, supports.style), [img]);
         };
     },
 });

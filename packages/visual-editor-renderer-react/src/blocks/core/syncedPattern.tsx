@@ -15,6 +15,8 @@
  */
 
 import { attrString, classList } from '../../support/attributes';
+import { compileBlockSupports } from '../../support/blockSupports';
+import { styleProp } from '../../support/styleProp';
 import type { BlockRendererProps } from '../../types';
 
 /**
@@ -51,7 +53,8 @@ export function SyncedPatternBlock({ attributes, children }: BlockRendererProps)
     const ref = refString(attributes.ref);
     const resolutionError = attrString(attributes._resolutionError);
     const className = attrString(attributes.className);
-    const classes = classList(['wp-block-block', className]);
+    const supports = compileBlockSupports(attributes);
+    const classes = classList(['wp-block-block', ...supports.classNames, className]);
 
     const dataAttributes: Record<string, string> = {};
 
@@ -64,11 +67,11 @@ export function SyncedPatternBlock({ attributes, children }: BlockRendererProps)
     }
 
     if (resolutionError !== '') {
-        return <div className={classes} {...dataAttributes} />;
+        return <div className={classes} style={styleProp(supports.style)} {...dataAttributes} />;
     }
 
     return (
-        <div className={classes} {...dataAttributes}>
+        <div className={classes} style={styleProp(supports.style)} {...dataAttributes}>
             {children}
         </div>
     );

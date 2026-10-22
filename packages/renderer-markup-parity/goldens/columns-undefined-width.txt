@@ -1,0 +1,15 @@
+<div class="wp-block-columns is-layout-flex wp-block-columns-is-layout-flex is-stacked-on-mobile">
+  <div class="wp-block-column is-layout-flow wp-block-column-is-layout-flow">
+    <p class="wp-block-paragraph">
+      "No width"
+    </p>
+  </div>
+  <div class="wp-block-column is-layout-flow wp-block-column-is-layout-flow ve-w-a1c5bbeca8" style="flex-basis: 40%">
+    <p class="wp-block-paragraph">
+      "Forty"
+    </p>
+  </div>
+</div>
+@@ renderer-instance-css @@
+.wp-block-columns.is-not-stacked-on-mobile .ve-w-a1c5bbeca8.ve-w-a1c5bbeca8.ve-w-a1c5bbeca8{flex-basis:calc(40% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.6)!important;flex-grow:0!important}
+@media (min-width: 782px){.ve-w-a1c5bbeca8.ve-w-a1c5bbeca8.ve-w-a1c5bbeca8{flex-basis:calc(40% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.6)!important;flex-grow:0!important}}

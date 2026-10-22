@@ -156,6 +156,20 @@ container's height exactly matches the sticky block's height, there's
 nowhere to scroll and no sticky travel. Check that the parent column
 has enough content below the sticky block to trigger scrolling.
 
+**A sticky header inside a template part scrolls away.** A template
+part renders as a wrapper (`<header class="wp-block-template-part">`)
+that is exactly as tall as its contents, so a sticky Group *inside* the
+part has no room to travel. Put the position on the template-part block
+itself — it is root-level in the template, and its wrapper prints the
+Position (and Effects z-index) output like any other block:
+
+```html
+<!-- wp:template-part {"slug":"header","tagName":"header","style":{"position":{"value":"sticky","offsets":{"top":{"value":0,"unit":"px"}},"zIndex":50}}} /-->
+```
+
+The Position support is printed by the Blade renderer; the React and
+Vue renderers don't implement it yet for any block.
+
 **Absolute block sits in the wrong place.** The warning notice above
 covers the common cause. If the parent is positioned but the offsets
 still look wrong, check for a Gutenberg layout wrapper (e.g. `.wp-block-group__inner-container`)

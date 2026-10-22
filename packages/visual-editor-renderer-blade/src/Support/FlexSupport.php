@@ -138,7 +138,10 @@ class FlexSupport
 
 		$result = $support->serialize( $flex );
 
-		$css = $support->buildArbitraryStyles( $result[ 'arbitraryRules' ] );
+		$css = $support->buildArbitraryStyles( [
+			...$result[ 'arbitraryRules' ],
+			...$support->keywordOverrideRules( $result ),
+		] );
 		if ( '' !== $css ) {
 			try {
 				// Per-block scope keyed by the CSS content so identical
@@ -329,6 +332,63 @@ class FlexSupport
 	}
 
 	/**
+	 * Inline rules for a block's breakpoint keyword classes that compete
+	 * with one of its own arbitrary values (#949).
+	 *
+	 * `mobile:ap-basis-auto` is styled by the static stylesheet, which
+	 * loads before the accumulator's inline `<style>`; an arbitrary
+	 * `ap-basis-[280px]` on the same block has the same specificity and
+	 * comes later, so it won at every width. For each non-base keyword
+	 * class whose property also has an arbitrary rule on the block, this
+	 * returns that class's declaration as a rule in its breakpoint's
+	 * bucket, so {@see self::buildArbitraryStyles()} prints it after the
+	 * arbitrary ones in breakpoint order and the cascade matches the
+	 * attribute. It also styles keyword tokens the static breakpoint
+	 * section doesn't ship (`mobile:ap-grow-5`, `mobile:ap-basis-0`).
+	 *
+	 * @since 1.15.2
+	 *
+	 * @param  array{classes: array<int, string>, arbitraryRules: array<int, array<string, string>>}  $result  A {@see self::serialize()} result.
+	 *
+	 * @return array<int, array<string, string>>
+	 */
+	public function keywordOverrideRules( array $result ): array
+	{
+		$arbitraryProperties = array_column( $result[ 'arbitraryRules' ], 'property' );
+
+		if ( [] === $arbitraryProperties ) {
+			return [];
+		}
+
+		$declarations = self::keywordDeclarations();
+		$rules        = [];
+
+		foreach ( $result[ 'classes' ] as $className ) {
+			$separator = strpos( $className, ':' );
+
+			if ( false === $separator || str_contains( $className, '[' ) ) {
+				continue;
+			}
+
+			$breakpoint  = substr( $className, 0, $separator );
+			$declaration = $declarations[ substr( $className, $separator + 1 ) ] ?? null;
+
+			if ( null === $declaration || ! in_array( $declaration[ 'property' ], $arbitraryProperties, true ) ) {
+				continue;
+			}
+
+			$rules[] = [
+				'className'  => $className,
+				'property'   => $declaration[ 'property' ],
+				'value'      => $declaration[ 'value' ],
+				'breakpoint' => $breakpoint,
+			];
+		}
+
+		return $rules;
+	}
+
+	/**
 	 * Build a scoped `<style>` snippet for arbitrary-value rules.
 	 *
 	 * @param  array<int, array<string, string>>  $rules
@@ -386,6 +446,31 @@ class FlexSupport
 		}
 
 		return trim( $out );
+	}
+
+	/**
+	 * Single-declaration token rules from {@see FlexLayoutStyles::BASE_RULES},
+	 * keyed by class name.
+	 *
+	 * @return array<string, array{property: string, value: string}>
+	 */
+	private static function keywordDeclarations(): array
+	{
+		static $declarations = null;
+
+		if ( null !== $declarations ) {
+			return $declarations;
+		}
+
+		$declarations = [];
+
+		foreach ( FlexLayoutStyles::BASE_RULES as $rule ) {
+			if ( 1 === preg_match( '/^\.([a-z0-9-]+) \{ ([a-z-]+): ([^;{}]+); \}$/', $rule, $match ) ) {
+				$declarations[ $match[1] ] = [ 'property' => $match[2], 'value' => $match[3] ];
+			}
+		}
+
+		return $declarations;
 	}
 
 	private function emitForEachBreakpoint( $attribute, callable $cb ): void

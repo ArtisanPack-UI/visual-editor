@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { applyBlockGap } from '../src/support/blockGap';
+import { applyBlockGap, applyColumnsGap } from '../src/support/blockGap';
 import { blockGapValue, layoutContainer, layoutModifierClasses, stampLayoutScopes } from '../src/support/layoutContainer';
 import type { Block } from '../src/types';
 
@@ -179,6 +179,38 @@ describe('blockGapValue (F-10)', () => {
     });
 });
 
+describe('applyColumnsGap (#914)', () => {
+    it('hands a per-axis left gap to the Column width calc', () => {
+        expect(applyColumnsGap({ style: { spacing: { blockGap: { top: '0', left: '0' } } } })).toEqual({
+            '--ap-columns-gap': '0px',
+        });
+        expect(applyColumnsGap({ style: { spacing: { blockGap: { left: '4rem' } } } })).toEqual({
+            '--ap-columns-gap': '4rem',
+        });
+        expect(applyColumnsGap({ style: { spacing: { blockGap: { left: 'var:preset|spacing|40' } } } })).toEqual({
+            '--ap-columns-gap': 'var(--wp--preset--spacing--40)',
+        });
+    });
+
+    it('stays unset without a usable per-axis left gap', () => {
+        expect(applyColumnsGap({ style: { spacing: { blockGap: { top: '1rem' } } } })).toEqual({});
+        expect(applyColumnsGap({ style: { spacing: { blockGap: { top: '1rem', left: '1rem;position:fixed' } } } })).toEqual({});
+        expect(applyColumnsGap({ style: { spacing: { blockGap: '2rem' } } })).toEqual({});
+        expect(applyColumnsGap({ style: { spacing: { blockGap: { left: '12' } } } })).toEqual({});
+        expect(applyColumnsGap({})).toEqual({});
+    });
+
+    it('pins normal to 0px and drops other keywords, since the width calc needs a length', () => {
+        for (const blockGap of [{ top: '1rem', left: 'normal' }, { left: 'NORMAL' }, 'Normal']) {
+            expect(applyColumnsGap({ style: { spacing: { blockGap } } })).toEqual({ '--ap-columns-gap': '0px' });
+        }
+
+        for (const blockGap of [{ left: 'inherit' }, { left: 'auto' }, 'unset']) {
+            expect(applyColumnsGap({ style: { spacing: { blockGap } } })).toEqual({});
+        }
+    });
+});
+
 describe('layoutModifierClasses (F-3)', () => {
     it('adds the orientation, justification and wrap classes WordPress adds', () => {
         expect(
@@ -198,7 +230,7 @@ describe('layoutModifierClasses (F-3)', () => {
 describe('stampLayoutScopes for every layout block (F-3)', () => {
     const scopeOf = (node: Block): unknown => (node as { attributes: Record<string, unknown> }).attributes._veLayoutScope;
 
-    it('stamps buttons, column, cover, navigation, query, quote, details and comments pagination', () => {
+    it('stamps buttons, column, cover, navigation, query, quote, details, comments and query pagination', () => {
         const gap = { style: { spacing: { blockGap: '1rem' } } };
         const names = [
             'core/buttons',
@@ -209,6 +241,7 @@ describe('stampLayoutScopes for every layout block (F-3)', () => {
             'core/quote',
             'artisanpack/details',
             'artisanpack/comments-pagination',
+            'artisanpack/query-pagination',
         ];
         const { tree, css } = stampLayoutScopes(names.map((name) => block(name, gap)));
 
@@ -220,15 +253,26 @@ describe('stampLayoutScopes for every layout block (F-3)', () => {
         expect(css).toContain('.wp-block-cover__inner-container.wp-block-cover-is-layout-flow.');
         expect(css).toContain('.wp-block-navigation.wp-block-navigation-is-layout-flex.');
         expect(css).toContain('.wp-block-comments-pagination.wp-block-comments-pagination-is-layout-flex.');
+        expect(css).toContain('.wp-block-query-pagination.wp-block-query-pagination-is-layout-flex.');
     });
 
-    it('leaves columns, gallery, post-template and query pagination to their own layout handling', () => {
+    it('scopes a saved query pagination justification, so it places the links (#956)', () => {
+        const { tree, css } = stampLayoutScopes([
+            block('core/query-pagination', { layout: { type: 'flex', justifyContent: 'center' } }),
+        ]);
+
+        expect(scopeOf(tree[0])).toMatch(/^wp-container-[0-9a-f]{12}$/);
+        expect(css).toMatch(
+            /\.wp-block-query-pagination\.wp-block-query-pagination-is-layout-flex\.wp-container-[0-9a-f]{12}\{justify-content:center;\}/
+        );
+    });
+
+    it('leaves columns, gallery and post-template to their own layout handling', () => {
         const gap = { style: { spacing: { blockGap: '1rem' }, layout: { justifyContent: 'center' } } };
         const { tree, css } = stampLayoutScopes([
             block('core/columns', gap),
             block('core/gallery', gap),
             block('core/post-template', gap),
-            block('core/query-pagination', { ...gap, layout: { type: 'flex', justifyContent: 'center' } }),
         ]);
 
         for (const node of tree) {

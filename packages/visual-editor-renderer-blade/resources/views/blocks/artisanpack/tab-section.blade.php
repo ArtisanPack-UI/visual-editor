@@ -16,6 +16,14 @@
 
 	$idAttr        = '' === $tabIdSlug ? '' : ' id="tabs-panel-' . $tabIdSlug . '"';
 	$labelledByAttr = '' === $tabIdSlug ? '' : ' aria-labelledby="tabs-tab-' . $tabIdSlug . '"';
+
+	// An author's aria-label replaces aria-labelledby, which would
+	// otherwise win (#922).
+	$ariaLabel = trim( (string) ( $attributes['ariaLabel'] ?? '' ) );
+
+	if ( '' !== $ariaLabel ) {
+		$labelledByAttr = ' aria-label="' . e( $ariaLabel ) . '"';
+	}
 @endphp
 <div{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-artisanpack-tab-section', 'ap-tab-section' ] ) !!}{!! $idAttr !!} role="tabpanel"{!! $labelledByAttr !!}>
 	{!! $innerBlocksHtml !!}

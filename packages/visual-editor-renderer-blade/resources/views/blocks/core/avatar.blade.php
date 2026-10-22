@@ -14,17 +14,27 @@
 	// F-2 — duotone filter on the avatar `<img>`, only when one renders.
 	$duotoneClass = '' !== $avatarUrl ? DuotoneSupport::apply( $attributes, DuotoneSupport::TARGETS['core/avatar'] ) : '';
 
+	// #952 — block.json skips border serialization: as in core, the
+	// border (and so the radius) is painted on the `<img>`, which the
+	// block-level wrapper wouldn't clip.
+	$border       = BlockSupports::borderAttrs( $attributes );
+	$imageClasses = implode( ' ', array_merge( [ 'avatar', 'wp-block-avatar__image' ], $border['classes'] ) );
+	$imageAttrs   = sprintf( ' class="%s"', e( $imageClasses ) ) . ( '' !== $border['style'] ? sprintf( ' style="%s"', e( $border['style'] ) ) : '' );
+
+	$wrapperAttributes = $attributes;
+	unset( $wrapperAttributes['borderColor'], $wrapperAttributes['style']['border'] );
+
 	$linkAttrs = 'href="' . e( $authorUrl ) . '"';
 	if ( '_blank' === $linkTarget ) {
 		$linkAttrs .= ' target="_blank" rel="noopener noreferrer"';
 	}
 @endphp
-<div{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-avatar', $duotoneClass ] ) !!}>
+<div{!! BlockSupports::wrapperAttrs( $wrapperAttributes, [ 'wp-block-avatar', $duotoneClass ] ) !!}>
 	@if ( '' !== $avatarUrl )
 		@if ( $isLink && '' !== $authorUrl )
-			<a {!! $linkAttrs !!}><img alt="{{ $alt }}" width="{{ $size }}" height="{{ $size }}" src="{{ $avatarUrl }}"/></a>
+			<a {!! $linkAttrs !!}><img alt="{{ $alt }}" width="{{ $size }}" height="{{ $size }}" src="{{ $avatarUrl }}"{!! $imageAttrs !!}/></a>
 		@else
-			<img alt="{{ $alt }}" width="{{ $size }}" height="{{ $size }}" src="{{ $avatarUrl }}"/>
+			<img alt="{{ $alt }}" width="{{ $size }}" height="{{ $size }}" src="{{ $avatarUrl }}"{!! $imageAttrs !!}/>
 		@endif
 	@endif
 </div>

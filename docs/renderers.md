@@ -94,9 +94,11 @@ the site editor:
 | `core/query-pagination-next` | `artisanpack/query-pagination-next` |
 | `core/query-no-results` | `artisanpack/query-no-results` |
 | `core/query-title` | `artisanpack/query-title` |
+| `core/query-total` | `artisanpack/query-total` |
 
 *Since v1.14.0 (#856).* Earlier versions rendered these names through the
-unknown-block wrapper. The Blade, React and Vue renderers all follow this
+unknown-block wrapper. `core/query-total` (WordPress 6.8's Query Total) is
+rendered since v1.15.2 (#962). The Blade, React and Vue renderers all follow this
 mapping.
 
 ### Tree shapes
@@ -527,12 +529,13 @@ prints one tag per kind inside the rendered fragment:
   `supports.layout`, with the same inline Block spacing
   (`--wp--style--block-gap`, `row-gap`, `column-gap`) Blade prints.
 
-Two `<BlockTree>` props control the parts that depend on server config:
+Three `<BlockTree>` props control the parts that depend on server config or the request:
 
 | Prop | Type | Default | Notes |
 |------|------|---------|-------|
 | `duotonePresets` | `DuotonePresets` | — | The theme's `settings.color.duotone`, as a flat list or keyed by origin (`{ theme, custom, default }`). Without it, `var:preset\|duotone\|…` picks render no filter; custom stops still work. Also accepted by `<Template>`. |
 | `customCssAllowUrls` | `boolean` | `true` | Pass the host's [`effects.custom_css_allow_urls`](Configuration.md#effects). When `false`, Custom CSS that loads a resource (`url(`, `image-set(`, `image(`, `src(`) is dropped, as Blade drops it. `<Template>` takes the same prop and forwards it. |
+| `currentUrl` | `string \| null` | — | Absolute URL of the page being rendered (#975). Navigation links / submenus pointing at it get `current-menu-item` + `aria-current="page"`, ones to a parent path and submenus leading to it get `current-menu-ancestor` — what Blade derives from the request. Under Inertia: `new URL(usePage().url, window.location.origin).href` (or the site URL during SSR). Omitted, nothing is marked. Also accepted by `<Template>`. |
 
 Resolve both on the server and pass them in the page props:
 
@@ -650,6 +653,17 @@ The overlay part is resolved wherever the navigation ends up, including
 inside template parts, synced patterns (when you pass `patterns`) and
 query loops. A part that references itself, directly or through
 another part, is skipped instead of recursing.
+
+*Since v1.15.2 (#973)*, the Blade renderer runs the overlay part
+through the same passes as the page: nested template parts and synced
+patterns are inlined, and a `core/navigation` inside the part that uses
+a menu location (`__unstableLocation`) or `ref` renders its menu items,
+resolved against the theme the page renders with (`<x-ve-blocks
+default-theme>`, `<x-ve-template theme>`). Give such a navigation
+`overlayMenu: 'never'` so it doesn't open a drawer of its own. The React
+and Vue renderers don't look menus up: pass the overlay part's
+navigation blocks with their items already resolved, as you do for the
+page.
 
 **Custom navigation renderers.** The renderer resolves the part into an
 internal overlay-content block and hands its rendered blocks to the
@@ -791,7 +805,17 @@ page:
   Verse, Embed and Accordion title/body carry their `className` in React
   and Vue too, so `ve-r-*` and `ve-fx-*` styling applies to them. On
   those blocks the JS renderers apply `className`, preset classes and
-  dimensions, not every block support Blade applies.
+  dimensions.
+- **Block supports.** *Since v1.15.3 (#920)*, the React and Vue
+  renderers build colour, background, spacing, border, typography and
+  dimensions supports for core block wrappers (the Cover overlay
+  included) with `compileBlockSupports()`, a port of Blade's
+  `BlockSupports::compile()`, and validate every value before it
+  reaches an inline style. Known remaining gaps: alignment classes
+  (`alignwide`, `has-text-align-*`) on most blocks, supports on
+  artisanpack dynamic blocks, and Gallery layout classes.
+- **Post Title level 0.** *Since v1.15.3 (#994)*, a Post Title with
+  `level: 0` renders a `<p>` in all three renderers.
 - **Dynamic blocks rendered through `/blocks/preview`** get only what the
   block's own `render()` outputs. The Blade renderer merges block supports
   into a dynamic block's wrapper (see

@@ -16,15 +16,28 @@ import {
     InspectorControls,
     useBlockProps,
 } from '@wordpress/block-editor';
-import { Button, Placeholder, PanelBody, SelectControl, Spinner } from '@wordpress/components';
+import {
+    Button,
+    Placeholder,
+    PanelBody,
+    SelectControl,
+    Spinner,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    __experimentalToggleGroupControl as ToggleGroupControl,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    __experimentalToggleGroupControlOption as ToggleGroupControlOption,
+} from '@wordpress/components';
 import { __, sprintf } from '@wordpress/i18n';
 
 import { TEXT_DOMAIN } from '../../vendor/i18n';
 
 import FormInserterIcon from './inserter-icon';
 
+export type FormLayout = 'stacked' | 'inline';
+
 interface FormAttributes {
     readonly formId: number;
+    readonly layout?: FormLayout;
 }
 
 interface FormEditProps {
@@ -131,7 +144,32 @@ const PREVIEW_TOKENS = {
     submitFontSize: '0.9375rem',
 } as const;
 
-function FieldPreview({ field }: { readonly field: FormField }): ReactElement {
+/*
+ * Inline layout (#916): fields share one wrapping row with the submit
+ * button. Each field grows from a 12rem basis (capped to the container
+ * on narrow canvases) and the button sits at the bottom without growing,
+ * so it lines up with the inputs rather than the labels.
+ */
+const INLINE_ROW_STYLE: React.CSSProperties = {
+    display: 'flex',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'flex-end',
+    gap: '0.75rem',
+};
+
+const INLINE_FIELD_STYLE: React.CSSProperties = {
+    flex: '1 1 12rem',
+    minWidth: 'min(12rem, 100%)',
+};
+
+function FieldPreview({
+    field,
+    isInline = false,
+}: {
+    readonly field: FormField;
+    readonly isInline?: boolean;
+}): ReactElement {
     const label = field.label ?? field.name;
     const inputId = `form-block-preview-${field.id}`;
     const options = field.field_config?.options ?? field.options ?? [];
@@ -259,7 +297,7 @@ function FieldPreview({ field }: { readonly field: FormField }): ReactElement {
     }
 
     return (
-        <div style={{ marginBottom: '1.25rem' }}>
+        <div style={isInline ? INLINE_FIELD_STYLE : { marginBottom: '1.25rem' }}>
             {labelEl}
             {control}
             {field.help_text && (
@@ -271,7 +309,13 @@ function FieldPreview({ field }: { readonly field: FormField }): ReactElement {
     );
 }
 
-function FormPreview({ formId }: { readonly formId: number }): ReactElement {
+function FormPreview({
+    formId,
+    layout = 'stacked',
+}: {
+    readonly formId: number;
+    readonly layout?: FormLayout;
+}): ReactElement {
     const [detail, setDetail] = useState<FormDetailResponse['data'] | null>(null);
     const [error, setError] = useState<string | null>(null);
 
@@ -348,9 +392,13 @@ function FormPreview({ formId }: { readonly formId: number }): ReactElement {
     }
 
     const fields = detail.fields ?? [];
+    const isInline = 'inline' === layout;
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <div
+            data-layout={isInline ? 'inline' : undefined}
+            style={isInline ? INLINE_ROW_STYLE : { display: 'flex', flexDirection: 'column' }}
+        >
             {0 === fields.length ? (
                 <p style={{ margin: 0, fontSize: PREVIEW_TOKENS.helpFontSize, color: PREVIEW_TOKENS.helpColor }}>
                     {__('This form has no fields yet. Add some from the Forms admin.', TEXT_DOMAIN)}
@@ -358,14 +406,15 @@ function FormPreview({ formId }: { readonly formId: number }): ReactElement {
             ) : (
                 <>
                     {fields.map((field) => (
-                        <FieldPreview key={field.id} field={field} />
+                        <FieldPreview key={field.id} field={field} isInline={isInline} />
                     ))}
                     <button
                         type="button"
                         disabled
                         style={{
-                            alignSelf: 'flex-start',
-                            marginTop: '0.5rem',
+                            ...(isInline
+                                ? { flex: '0 0 auto', alignSelf: 'flex-end' }
+                                : { alignSelf: 'flex-start', marginTop: '0.5rem' }),
                             padding: PREVIEW_TOKENS.submitPadding,
                             background: PREVIEW_TOKENS.submitBackground,
                             color: PREVIEW_TOKENS.submitColor,
@@ -389,6 +438,7 @@ export default function FormEdit({
     setAttributes,
 }: FormEditProps): ReactElement {
     const { formId } = attributes;
+    const layout: FormLayout = 'inline' === attributes.layout ? 'inline' : 'stacked';
     const [forms, setForms] = useState<ApiForm[] | null>(null);
     const [error, setError] = useState<string | null>(null);
 
@@ -504,6 +554,25 @@ export default function FormEdit({
                             __nextHasNoMarginBottom
                         />
                     )}
+                    <div style={{ marginTop: '16px' }}>
+                        <ToggleGroupControl
+                            label={__('Layout', TEXT_DOMAIN)}
+                            value={layout}
+                            onChange={(value: string | number | undefined) =>
+                                setAttributes({ layout: 'inline' === value ? 'inline' : 'stacked' })
+                            }
+                            isBlock
+                            __next40pxDefaultSize
+                            __nextHasNoMarginBottom
+                            help={__(
+                                'Inline puts the submit button on the same row as the fields. Best for one-field forms such as a newsletter signup.',
+                                TEXT_DOMAIN,
+                            )}
+                        >
+                            <ToggleGroupControlOption value="stacked" label={__('Stacked', TEXT_DOMAIN)} />
+                            <ToggleGroupControlOption value="inline" label={__('Inline', TEXT_DOMAIN)} />
+                        </ToggleGroupControl>
+                    </div>
                 </PanelBody>
             </InspectorControls>
 
@@ -525,7 +594,7 @@ export default function FormEdit({
                         </Button>
                     </Placeholder>
                 ) : formId > 0 ? (
-                    <FormPreview formId={formId} />
+                    <FormPreview formId={formId} layout={layout} />
                 ) : (
                     <Placeholder
                         icon={<FormInserterIcon />}

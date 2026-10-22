@@ -34,3 +34,25 @@ export function getWidthClasses(width: unknown): Record<string, boolean> {
         'has-custom-width': true,
     };
 }
+
+const LEGACY_WIDTHS = ['25%', '50%', '75%', '100%'];
+
+/**
+ * Inline style for a width that has no legacy class.
+ *
+ * block-library's `[class*=wp-block-button__width]` rule sizes the button
+ * from `--wp--block-button--width`, so an arbitrary percentage (e.g. 60%)
+ * sets that variable. A non-percentage width (e.g. 240px) is set directly;
+ * `.has-custom-width .wp-block-button__link` then fills it (#921).
+ */
+export function getWidthStyle(width: unknown): Record<string, string> | undefined {
+    if ('string' !== typeof width || '' === width || LEGACY_WIDTHS.includes(width)) {
+        return undefined;
+    }
+
+    if (isPercentageWidth(width)) {
+        return { '--wp--block-button--width': String(parseFloat(width)) };
+    }
+
+    return { width };
+}

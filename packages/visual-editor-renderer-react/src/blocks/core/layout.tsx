@@ -15,9 +15,9 @@ import {
 import { isNonEmptyWidth, normalizeBasis } from '../../support/columnWidth';
 import { flexClassNames } from '../../support/flex-serializer';
 import { safeCssValue } from '../../support/cssValue';
-import { applyBackground } from '../../support/background';
-import { applyBlockGap } from '../../support/blockGap';
-import { applyDimensions } from '../../support/dimensions';
+import { applyColumnsGap } from '../../support/blockGap';
+import { compileBlockSupports } from '../../support/blockSupports';
+import { styleProp } from '../../support/styleProp';
 import { layoutModifierClasses, panelLayoutClass } from '../../support/layoutContainer';
 import { safeUrl } from '../../support/urlSanitizer';
 import type { BlockRendererProps } from '../../types';
@@ -62,6 +62,9 @@ export function GroupBlock({ attributes, children }: BlockRendererProps): JSX.El
     // right after the layout pair as in `group.blade.php`, then the
     // layout modifier classes (F-3).
     const layoutScope = attrString(attributes._veLayoutScope);
+    // #920 — colour, background, spacing, border, typography and
+    // dimensions supports, as `group.blade.php`'s `wrapperAttrs()` prints them.
+    const supports = compileBlockSupports(attributes);
 
     const classes = classList([
         'wp-block-group',
@@ -70,17 +73,11 @@ export function GroupBlock({ attributes, children }: BlockRendererProps): JSX.El
         ...layoutModifierClasses(attributes),
         ...flexClasses,
         photoGridScope !== '' ? photoGridScope : null,
+        ...supports.classNames,
         className,
     ]);
 
-    // #776 — surface `style.dimensions.minHeight` / `.aspectRatio` on
-    // the wrapper so a Group opted into `supports.dimensions.minHeight`
-    // matches the Blade renderer's inline style output. #883 — the
-    // block's own Block spacing rides first, in `BlockSupports` order,
-    // so the flex/grid baseline `gap` reads it.
-    // F-4 — the background image rides first, as `BlockSupports::compile()`
-    // emits it before spacing.
-    const wrapperStyle = { ...applyBackground(attributes), ...applyBlockGap(attributes), ...applyDimensions(attributes) };
+    const wrapperStyle = supports.style;
 
     if (Object.keys(wrapperStyle).length > 0) {
         return <Tag className={classes} style={wrapperStyle as React.CSSProperties}>{children}</Tag>;
@@ -93,28 +90,32 @@ export function RowBlock({ attributes, children }: BlockRendererProps): JSX.Elem
     const className = attrString(attributes.className);
     // Renders `wp-block-group` markup, so the per-block layout compound
     // is keyed on `group` rather than `row` (#702).
+    const supports = compileBlockSupports(attributes);
     const classes = classList([
         'wp-block-group',
         ...layoutPair('group', 'is-layout-flex'),
         'is-horizontal',
+        ...supports.classNames,
         className,
     ]);
 
-    return <div className={classes}>{children}</div>;
+    return <div className={classes} style={styleProp(supports.style)}>{children}</div>;
 }
 
 export function StackBlock({ attributes, children }: BlockRendererProps): JSX.Element {
     const className = attrString(attributes.className);
     // Renders `wp-block-group` markup, so the per-block layout compound
     // is keyed on `group` rather than `stack` (#702).
+    const supports = compileBlockSupports(attributes);
     const classes = classList([
         'wp-block-group',
         ...layoutPair('group', 'is-layout-flex'),
         'is-vertical',
+        ...supports.classNames,
         className,
     ]);
 
-    return <div className={classes}>{children}</div>;
+    return <div className={classes} style={styleProp(supports.style)}>{children}</div>;
 }
 
 export function ColumnsBlock({ attributes, children }: BlockRendererProps): JSX.Element {
@@ -127,6 +128,7 @@ export function ColumnsBlock({ attributes, children }: BlockRendererProps): JSX.
     // Photo Grid wrapper scope stamped by `stampPhotoGridScopes()` (#714),
     // emitted in the same position the columns Blade partial merges it.
     const photoGridScope = attrString(attributes._vePhotoGridScope);
+    const supports = compileBlockSupports(attributes);
     // #702 — columns is a flex layout upstream and its wrapper carries
     // both the shared modifier and the per-block compound. Neither was
     // emitted here, so layout rules keyed on either never applied.
@@ -137,8 +139,17 @@ export function ColumnsBlock({ attributes, children }: BlockRendererProps): JSX.
         verticalAlignment !== '' ? `are-vertically-aligned-${verticalAlignment}` : null,
         ...flexClasses,
         photoGridScope !== '' ? photoGridScope : null,
+        ...supports.classNames,
         className,
     ]);
+
+    // The Columns' supports (#920), as `columns.blade.php` prints them.
+    // #914 — plus the per-axis left gap for the Column width calc, last.
+    const style = { ...supports.style, ...applyColumnsGap(attributes) };
+
+    if (Object.keys(style).length > 0) {
+        return <div className={classes} style={style as React.CSSProperties}>{children}</div>;
+    }
 
     return <div className={classes}>{children}</div>;
 }
@@ -155,6 +166,7 @@ export function ColumnBlock({ attributes, children }: BlockRendererProps): JSX.E
     // F-3 — the column's layout pair, per-instance scope and modifiers,
     // in `column.blade.php` order.
     const layoutScope = attrString(attributes._veLayoutScope);
+    const supports = compileBlockSupports(attributes);
 
     const classes = classList([
         'wp-block-column',
@@ -163,13 +175,14 @@ export function ColumnBlock({ attributes, children }: BlockRendererProps): JSX.E
         ...layoutModifierClasses(attributes),
         verticalAlignment !== '' ? `is-vertically-aligned-${verticalAlignment}` : null,
         ...flexClasses,
+        ...supports.classNames,
         className,
         widthScope !== '' ? widthScope : null,
     ]);
 
     const width = attributes.width;
-    // The column's own Block spacing rides first, in `BlockSupports` order.
-    let style: Record<string, string> = { ...applyBlockGap(attributes) };
+    // The column's supports (#920) ride first, as `column.blade.php` prints them.
+    let style: Record<string, string> = { ...supports.style };
 
     // Mirror the Blade partial's inline `flex-basis`: gate on PHP `empty()`
     // semantics (`isNonEmptyWidth` drops `0`/`'0'`/`''`/booleans/non-scalars)
@@ -213,6 +226,7 @@ export function ButtonsBlock({ attributes, children }: BlockRendererProps): JSX.
     // F-3 — per-instance scope stamped by `stampLayoutScopes()`, then the
     // orientation / wrap modifiers, in `buttons.blade.php` order.
     const layoutScope = attrString(attributes._veLayoutScope);
+    const supports = compileBlockSupports(attributes);
 
     const classes = classList([
         'wp-block-buttons',
@@ -220,16 +234,43 @@ export function ButtonsBlock({ attributes, children }: BlockRendererProps): JSX.
         layoutScope !== '' ? layoutScope : null,
         `is-content-justification-${justify}`,
         ...layoutModifierClasses(attributes, true, false),
+        ...supports.classNames,
         className,
     ]);
 
-    const gapStyle = applyBlockGap(attributes);
+    return <div className={classes} style={styleProp(supports.style)}>{children}</div>;
+}
 
-    if (Object.keys(gapStyle).length > 0) {
-        return <div className={classes} style={gapStyle as React.CSSProperties}>{children}</div>;
+/**
+ * Width classes and style for a button wrapper (#921). Mirrors the Blade
+ * view: 25/50/75/100% get the legacy class, another percentage sets
+ * `--wp--block-button--width`, and a plain length is set directly.
+ */
+function buttonWidth(attributes: Record<string, unknown>): { classes: string[]; style?: string; property?: string } {
+    const style = attributes.style as { dimensions?: { width?: unknown } } | undefined;
+    const raw = style?.dimensions?.width;
+
+    if ('string' !== typeof raw || '' === raw.trim()) {
+        return { classes: [] };
     }
 
-    return <div className={classes}>{children}</div>;
+    const width = raw.trim();
+
+    if (width.endsWith('%')) {
+        const amount = width.slice(0, -1);
+
+        if (['25', '50', '75', '100'].includes(amount)) {
+            return { classes: ['has-custom-width', 'wp-block-button__width', `wp-block-button__width-${amount}`] };
+        }
+
+        return '' !== amount && !Number.isNaN(Number(amount))
+            ? { classes: ['has-custom-width', 'wp-block-button__width'], property: '--wp--block-button--width', style: String(parseFloat(amount)) }
+            : { classes: ['has-custom-width', 'wp-block-button__width'] };
+    }
+
+    return /^\d*\.?\d+(px|rem|em|vw|ch)$/.test(width)
+        ? { classes: ['has-custom-width'], property: 'width', style: width }
+        : { classes: ['has-custom-width'] };
 }
 
 export function ButtonBlock({ attributes }: BlockRendererProps): JSX.Element {
@@ -239,8 +280,14 @@ export function ButtonBlock({ attributes }: BlockRendererProps): JSX.Element {
     const title = attrString(attributes.title);
     const className = attrString(attributes.className);
 
-    const wrapperClasses = classList(['wp-block-button', className]);
-    const linkClasses = 'wp-block-button__link wp-element-button';
+    const width = buttonWidth(attributes);
+    const wrapperClasses = classList(['wp-block-button', ...width.classes, className]);
+    const wrapperStyle = width.property ? ({ [width.property]: width.style } as React.CSSProperties) : undefined;
+    // #920 — the visual supports land on the inner link, which theme.json's
+    // `styles.elements.button` targets, as in `button.blade.php`.
+    const supports = compileBlockSupports(attributes);
+    const linkClasses = classList(['wp-block-button__link', 'wp-element-button', ...supports.classNames]);
+    const linkStyle = styleProp(supports.style);
 
     let rel = attrString(attributes.rel);
 
@@ -257,16 +304,18 @@ export function ButtonBlock({ attributes }: BlockRendererProps): JSX.Element {
     }
 
     return (
-        <div className={wrapperClasses}>
+        <div className={wrapperClasses} style={wrapperStyle}>
             {url === '' ? (
                 <span
                     className={linkClasses}
+                    style={linkStyle}
                     title={title === '' ? undefined : title}
                     dangerouslySetInnerHTML={{ __html: text }}
                 />
             ) : (
                 <a
                     className={linkClasses}
+                    style={linkStyle}
                     href={url}
                     target={linkTarget === '' ? undefined : linkTarget}
                     rel={rel === '' ? undefined : rel}

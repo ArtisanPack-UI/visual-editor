@@ -37,13 +37,43 @@ Rule shape at a glance:
 | Date/time window     | Start and/or end datetime. Per-rule timezone override.            |
 | Recurring schedule   | Up to 14 weekly windows (day + `HH:MM` start/end).                |
 
-The screen-size rule still uses the legacy mobile-first breakpoint
-keys (`sm` ≥640px, `md` ≥768px, `lg` ≥1024px, `xl` ≥1280px, `2xl`
-≥1536px) and builds its hide ranges from their min-widths. The
-desktop-first **Tablet** / **Mobile** overrides the viewport switcher
-offers since 1.12.1 (see
-[Responsive Design Tools](blocks/Responsive-Design-Tools.md)) are not
-screen-size visibility options.
+### Screen size
+
+*Since v1.15.2 (#974).* The Screen size subsection offers:
+
+| Option              | Stored key(s)          | Hides the block at                 |
+|---------------------|------------------------|------------------------------------|
+| Mobile (≤767px)     | `mobile`               | `@media (max-width:767px)`         |
+| Tablet (≤1023px)    | `tablet`               | `@media (max-width:1023px)` — phones too |
+| Desktop (≥1024px)   | `lg`, `xl`, `2xl`      | 1024px and up                      |
+
+`mobile` and `tablet` are the desktop-first device keys of the
+[breakpoint registry](blocks/Responsive-Design-Tools.md), so a host
+that narrows them (e.g. `'mobile' => '599px'`) moves the query with
+them. Desktop is offered only when a legacy key starts one pixel above
+the widest device key.
+
+The legacy mobile-first keys (`sm`, `md`, `lg`, `xl`, `2xl`) still
+work for saved content: each is a width **range** from its min-width
+to one pixel below the next (`sm` = 640–767px, `md` = 768–1023px,
+`2xl` = 1536px and up). The panel lists them under "Legacy width
+ranges" only when a block's saved rule uses one the options above
+don't cover. Keys of both families can be mixed:
+
+```json
+{"artisanpackVisibility":{"screenSize":{"direction":"hide","breakpoints":["mobile"]}}}
+```
+
+`direction: "show"` (not offered in the panel, but honoured when
+saved) makes the block visible in the union of the listed ranges and
+hides it at every unlisted legacy range that starts above the widest
+listed device key. So `"show"` + `["mobile"]` hides from 768px up
+(visible on phones only), `["tablet"]` hides from 1024px up, and
+`["mobile", "xl"]` is visible ≤767px and 1280–1535px. With only legacy
+keys listed, widths below 640px stay visible, as before. If a host
+narrows a device key off a legacy boundary, `show` rounds to the
+legacy boundaries: a legacy range starting inside the device's width
+stays visible in full.
 
 ### In the editor
 

@@ -108,18 +108,27 @@ interface BlockSettingsLike {
 }
 
 /**
- * The hydrated registry's legacy breakpoints — the set screen-size
- * visibility builds its ranges from, matching the server's
- * `BreakpointRegistry::all()`.
+ * The hydrated registry's breakpoints screen-size visibility can
+ * reference: the legacy min-width entries (the server's
+ * `BreakpointRegistry::all()`) plus the desktop-first device entries
+ * (`mobile`, `tablet`), which hide at their max-width and below (#974).
  */
 export function visibilityBreakpoints(): MinWidthBreakpoint[] {
     const registry = getResponsiveRegistry();
 
-    return registry.legacyPrefixes().flatMap((key) => {
+    const legacy = registry.legacyPrefixes().flatMap((key) => {
         const minWidthPx = registry.get(key);
 
         return typeof minWidthPx === 'number' ? [{ key, minWidthPx }] : [];
     });
+
+    const devices = registry.devicePrefixes().flatMap((key) => {
+        const maxWidthPx = registry.maxWidth(key);
+
+        return typeof maxWidthPx === 'number' ? [{ key, maxWidthPx }] : [];
+    });
+
+    return [...legacy, ...devices];
 }
 
 function readNoPreviewWidth(): null {

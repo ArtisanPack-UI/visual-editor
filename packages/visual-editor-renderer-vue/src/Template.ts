@@ -77,6 +77,13 @@ export interface TemplateProps {
      * @since 1.15.0
      */
     duotonePresets?: DuotonePresets;
+    /**
+     * URL of the page being rendered, forwarded to {@link BlockTree} so
+     * navigation links mark the current page.
+     *
+     * @since 1.15.2
+     */
+    currentUrl?: string | null;
 }
 
 export const Template = defineComponent({
@@ -130,6 +137,10 @@ export const Template = defineComponent({
             type: [Array, Object] as PropType<DuotonePresets>,
             default: undefined,
         },
+        currentUrl: {
+            type: String as PropType<string | null | undefined>,
+            default: undefined,
+        },
     },
     setup(props) {
         const matched = computed(() => resolveTemplate(props.templates, props.slug, props.theme));
@@ -178,6 +189,7 @@ export const Template = defineComponent({
                         maxPatternDepth: props.maxPatternDepth,
                         customCssAllowUrls: props.customCssAllowUrls,
                         duotonePresets: props.duotonePresets,
+                        currentUrl: props.currentUrl,
                     }),
                 ]),
             ]);

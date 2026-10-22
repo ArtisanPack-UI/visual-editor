@@ -35,6 +35,10 @@ vi.mock( '@wordpress/components', async () => {
     return {
         PanelBody: ( { children }: { children: React.ReactNode } ) =>
             createElement( 'div', { 'data-testid': 'panel-body' }, children ),
+        SelectControl: ( { label }: { label: string } ) =>
+            createElement( 'span', { 'data-testid': 'select-control' }, label ),
+        TextControl: ( { label }: { label: string } ) =>
+            createElement( 'span', { 'data-testid': 'text-control' }, label ),
         ToggleControl: ( {
             label,
             checked,
@@ -68,6 +72,7 @@ import QueryPaginationNextEdit from '../query-pagination-next/edit';
 import QueryPaginationPreviousEdit from '../query-pagination-previous/edit';
 import QueryPaginationNumbersEdit from '../query-pagination-numbers/edit';
 import QueryNoResultsEdit from '../query-no-results/edit';
+import QueryTotalEdit from '../query-total/edit';
 
 import { QUERY_PREVIEW_CONTEXT_KEY } from '../../editor/query-preview-context';
 import type { QueryPreviewContextValue } from '../../editor/query-preview-context';
@@ -278,5 +283,60 @@ describe( 'QueryNoResultsEdit', () => {
         );
 
         expect( getByTestId( 'toggle-show-in-editor' ) ).not.toBeNull();
+    } );
+} );
+
+describe( 'QueryTotalEdit (#962)', () => {
+    const line = ( container: HTMLElement ): string =>
+        container.querySelector( '.wp-block' )?.innerHTML ?? '';
+
+    it( 'previews a sample count before the query preview resolves', () => {
+        const { container } = render( <QueryTotalEdit attributes={ {} } setAttributes={ () => {} } /> );
+
+        expect( line( container ) ).toBe( '<strong>25</strong> results' );
+    } );
+
+    it( 'previews the sample range for the range display', () => {
+        const { container } = render(
+            <QueryTotalEdit attributes={ { displayType: 'range-display', prefix: 'Showing ' } } setAttributes={ () => {} } />
+        );
+
+        expect( line( container ) ).toBe( 'Showing <strong>1–9</strong> of <strong>25</strong> results' );
+    } );
+
+    it( 'previews the resolved total from the query preview context, singular for one', () => {
+        const { container } = render(
+            <QueryTotalEdit
+                attributes={ { singular: 'package', plural: 'packages' } }
+                setAttributes={ () => {} }
+                context={ previewContext( { total: 1, perPage: 9 } ) }
+            />
+        );
+
+        expect( line( container ) ).toBe( '<strong>1</strong> package' );
+    } );
+
+    it( 'previews zero results without a range', () => {
+        const { container } = render(
+            <QueryTotalEdit
+                attributes={ { displayType: 'range-display' } }
+                setAttributes={ () => {} }
+                context={ previewContext( { total: 0 } ) }
+            />
+        );
+
+        expect( line( container ) ).toBe( '<strong>0</strong> results' );
+    } );
+
+    it( 'exposes the display type and text controls in the inspector', () => {
+        const { getAllByTestId } = render( <QueryTotalEdit attributes={ {} } setAttributes={ () => {} } /> );
+
+        expect( getAllByTestId( 'select-control' ).map( ( el ) => el.textContent ) ).toEqual( [ 'Display type' ] );
+        expect( getAllByTestId( 'text-control' ).map( ( el ) => el.textContent ) ).toEqual( [
+            'Prefix',
+            'Singular label',
+            'Plural label',
+            'Suffix',
+        ] );
     } );
 } );

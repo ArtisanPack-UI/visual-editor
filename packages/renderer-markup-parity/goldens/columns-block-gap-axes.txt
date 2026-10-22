@@ -1,0 +1,65 @@
+<div class="wp-block-columns is-layout-flex wp-block-columns-is-layout-flex is-stacked-on-mobile" style="row-gap: 0; column-gap: 0; --ap-columns-gap: 0px">
+  <div class="wp-block-column is-layout-flow wp-block-column-is-layout-flow ve-w-188c1570fa" style="flex-basis: 52.5%">
+    <p class="wp-block-paragraph">
+      "A"
+    </p>
+  </div>
+  <div class="wp-block-column is-layout-flow wp-block-column-is-layout-flow ve-w-dc613189f5" style="flex-basis: 47.5%">
+    <p class="wp-block-paragraph">
+      "B"
+    </p>
+  </div>
+</div>
+<div class="wp-block-columns is-layout-flex wp-block-columns-is-layout-flex is-stacked-on-mobile" style="row-gap: 1rem; column-gap: var(--wp--preset--spacing--40); --ap-columns-gap: var(--wp--preset--spacing--40)">
+  <div class="wp-block-column is-layout-flow wp-block-column-is-layout-flow ve-w-188c1570fa" style="flex-basis: 52.5%">
+    <p class="wp-block-paragraph">
+      "A"
+    </p>
+  </div>
+  <div class="wp-block-column is-layout-flow wp-block-column-is-layout-flow ve-w-dc613189f5" style="flex-basis: 47.5%">
+    <p class="wp-block-paragraph">
+      "B"
+    </p>
+  </div>
+</div>
+<div class="wp-block-columns is-layout-flex wp-block-columns-is-layout-flex is-stacked-on-mobile" style="row-gap: 2rem">
+  <div class="wp-block-column is-layout-flow wp-block-column-is-layout-flow ve-w-188c1570fa" style="flex-basis: 52.5%">
+    <p class="wp-block-paragraph">
+      "A"
+    </p>
+  </div>
+  <div class="wp-block-column is-layout-flow wp-block-column-is-layout-flow ve-w-dc613189f5" style="flex-basis: 47.5%">
+    <p class="wp-block-paragraph">
+      "B"
+    </p>
+  </div>
+</div>
+<div class="wp-block-columns is-layout-flex wp-block-columns-is-layout-flex is-stacked-on-mobile" style="row-gap: 1rem">
+  <div class="wp-block-column is-layout-flow wp-block-column-is-layout-flow ve-w-188c1570fa" style="flex-basis: 52.5%">
+    <p class="wp-block-paragraph">
+      "A"
+    </p>
+  </div>
+  <div class="wp-block-column is-layout-flow wp-block-column-is-layout-flow ve-w-dc613189f5" style="flex-basis: 47.5%">
+    <p class="wp-block-paragraph">
+      "B"
+    </p>
+  </div>
+</div>
+<div class="wp-block-columns is-layout-flex wp-block-columns-is-layout-flex is-stacked-on-mobile" style="--wp--style--block-gap: 4rem">
+  <div class="wp-block-column is-layout-flow wp-block-column-is-layout-flow ve-w-188c1570fa" style="flex-basis: 52.5%">
+    <p class="wp-block-paragraph">
+      "A"
+    </p>
+  </div>
+  <div class="wp-block-column is-layout-flow wp-block-column-is-layout-flow ve-w-dc613189f5" style="flex-basis: 47.5%">
+    <p class="wp-block-paragraph">
+      "B"
+    </p>
+  </div>
+</div>
+@@ renderer-instance-css @@
+.wp-block-columns.is-not-stacked-on-mobile .ve-w-188c1570fa.ve-w-188c1570fa.ve-w-188c1570fa{flex-basis:calc(52.5% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.475)!important;flex-grow:0!important}
+.wp-block-columns.is-not-stacked-on-mobile .ve-w-dc613189f5.ve-w-dc613189f5.ve-w-dc613189f5{flex-basis:calc(47.5% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.525)!important;flex-grow:0!important}
+@media (min-width: 782px){.ve-w-188c1570fa.ve-w-188c1570fa.ve-w-188c1570fa{flex-basis:calc(52.5% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.475)!important;flex-grow:0!important}}
+@media (min-width: 782px){.ve-w-dc613189f5.ve-w-dc613189f5.ve-w-dc613189f5{flex-basis:calc(47.5% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.525)!important;flex-grow:0!important}}

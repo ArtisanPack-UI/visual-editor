@@ -534,6 +534,25 @@ const FIXTURES: Array<{ name: string; tree: Block[] }> = [
         ],
     },
     {
+        name: 'artisanpack/related-posts grid layout with a block gap (#964)',
+        tree: [
+            makeBlock(
+                'artisanpack/related-posts',
+                {
+                    _resolvedItems: 2,
+                    numColumns: 3,
+                    displayLayout: { type: 'grid', columns: '4' },
+                    style: { spacing: { blockGap: 'var:preset|spacing|40' } },
+                },
+                [
+                    makeBlock('core/paragraph', { content: 'Related A' }, [], 'pg-a'),
+                    makeBlock('core/paragraph', { content: 'Related B' }, [], 'pg-b'),
+                ],
+                'rp-3'
+            ),
+        ],
+    },
+    {
         name: 'artisanpack/author-social-icons icon + label chips',
         tree: [
             makeBlock(
@@ -623,6 +642,30 @@ const FIXTURES: Array<{ name: string; tree: Block[] }> = [
                 },
                 [],
                 'ssc-2'
+            ),
+        ],
+    },
+    {
+        name: 'artisanpack/social-share-content LinkedIn + copy-link chips (#963)',
+        tree: [
+            makeBlock(
+                'artisanpack/social-share-content',
+                {
+                    socialIcons: ['linkedin', 'copyLink'],
+                    iconStyle: 'show-icon',
+                    iconsDirection: 'horizontal',
+                    iconsStretch: 'auto-width',
+                    iconsBorderRadius: 8,
+                    _resolvedShareLinks: [
+                        {
+                            slug: 'linkedin',
+                            url: 'https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fexample.test%2Fpost',
+                        },
+                        { slug: 'copyLink', url: 'https://example.test/post' },
+                    ],
+                },
+                [],
+                'ssc-3'
             ),
         ],
     },

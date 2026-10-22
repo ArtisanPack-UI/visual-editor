@@ -1,0 +1,15 @@
+<div class="wp-block-columns is-layout-flex wp-block-columns-is-layout-flex is-stacked-on-mobile">
+  <div class="wp-block-column is-layout-flow wp-block-column-is-layout-flow has-primary-background-color has-background has-base-color has-text-color has-border-color has-contrast-border-color has-large-font-size has-defined-font-size has-heading-font-family ve-w-a6d9e84108" style="padding: 2rem; margin-top: 1rem; margin-bottom: var(--wp--preset--spacing--40); border-radius: 8px; border-width: 2px; border-style: solid; font-weight: 700; font-style: italic; line-height: 1.4; letter-spacing: 0.05em; text-transform: uppercase; text-decoration: underline; min-height: 200px; flex-basis: 60%">
+    <p class="wp-block-paragraph">
+      "Copy"
+    </p>
+  </div>
+  <div class="wp-block-column is-layout-flow wp-block-column-is-layout-flow">
+    <p class="wp-block-paragraph">
+      "Copy"
+    </p>
+  </div>
+</div>
+@@ renderer-instance-css @@
+.wp-block-columns.is-not-stacked-on-mobile .ve-w-a6d9e84108.ve-w-a6d9e84108.ve-w-a6d9e84108{flex-basis:calc(60% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.4)!important;flex-grow:0!important}
+@media (min-width: 782px){.ve-w-a6d9e84108.ve-w-a6d9e84108.ve-w-a6d9e84108{flex-basis:calc(60% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.4)!important;flex-grow:0!important}}

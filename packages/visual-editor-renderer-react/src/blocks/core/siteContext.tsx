@@ -9,6 +9,8 @@
  */
 
 import { attrBoolean, attrInt, attrString, classList } from '../../support/attributes';
+import { compileBlockSupports } from '../../support/blockSupports';
+import { styleProp } from '../../support/styleProp';
 import { safeUrl } from '../../support/urlSanitizer';
 import type { BlockRendererProps } from '../../types';
 
@@ -42,23 +44,27 @@ export function SiteTitleBlock({ attributes }: BlockRendererProps): JSX.Element 
         | 'h5'
         | 'h6';
 
+    // #920 — the supports `site-title.blade.php` prints.
+    const supports = compileBlockSupports(attributes);
     const classes = classList([
         'wp-block-site-title',
         align !== '' ? `has-text-align-${align}` : null,
+        ...supports.classNames,
         className,
     ]);
+    const style = styleProp(supports.style);
 
     if (isLink && siteUrl !== '') {
         const linkProps = siteLinkProps(siteUrl, linkTarget);
 
         return (
-            <Tag className={classes}>
+            <Tag className={classes} style={style}>
                 <a {...linkProps}>{title}</a>
             </Tag>
         );
     }
 
-    return <Tag className={classes}>{title}</Tag>;
+    return <Tag className={classes} style={style}>{title}</Tag>;
 }
 
 export function SiteTaglineBlock({ attributes }: BlockRendererProps): JSX.Element {
@@ -67,13 +73,15 @@ export function SiteTaglineBlock({ attributes }: BlockRendererProps): JSX.Elemen
 
     const tagline = attrString(attributes._resolvedSiteTagline);
 
+    const supports = compileBlockSupports(attributes);
     const classes = classList([
         'wp-block-site-tagline',
         align !== '' ? `has-text-align-${align}` : null,
+        ...supports.classNames,
         className,
     ]);
 
-    return <p className={classes}>{tagline}</p>;
+    return <p className={classes} style={styleProp(supports.style)}>{tagline}</p>;
 }
 
 export function SiteLogoBlock({ attributes }: BlockRendererProps): JSX.Element {
@@ -86,16 +94,19 @@ export function SiteLogoBlock({ attributes }: BlockRendererProps): JSX.Element {
     const siteUrl = safeUrl(attrString(attributes._resolvedSiteUrl));
     const alt = attrString(attributes._resolvedSiteTitle);
 
+    const supports = compileBlockSupports(attributes);
     const classes = classList([
         'wp-block-site-logo',
         width <= 0 ? 'is-default-size' : null,
         // Duotone scope stamped by `stampDuotoneScopes()`.
         attrString(attributes._veDuotone) || null,
+        ...supports.classNames,
         className,
     ]);
+    const style = styleProp(supports.style);
 
     if (logoUrl === '') {
-        return <div className={classes} />;
+        return <div className={classes} style={style} />;
     }
 
     const imgProps: Record<string, unknown> = {
@@ -114,7 +125,7 @@ export function SiteLogoBlock({ attributes }: BlockRendererProps): JSX.Element {
         const linkProps = siteLinkProps(siteUrl, linkTarget);
 
         return (
-            <div className={classes}>
+            <div className={classes} style={style}>
                 <a {...linkProps} className="custom-logo-link">
                     {img}
                 </a>
@@ -122,5 +133,5 @@ export function SiteLogoBlock({ attributes }: BlockRendererProps): JSX.Element {
         );
     }
 
-    return <div className={classes}>{img}</div>;
+    return <div className={classes} style={style}>{img}</div>;
 }

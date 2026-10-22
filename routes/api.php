@@ -39,6 +39,7 @@ use ArtisanPackUI\VisualEditor\Http\Controllers\MenuLocationsController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\QueryResolveController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\ResourceAppliedTemplateController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\ResourceContentController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\ResourceEntryController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\ResourceRecordController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\GlobalStylesController;
@@ -64,6 +65,12 @@ Route::get( '{resource}/{id}/content', [ ResourceContentController::class, 'show
 Route::put( '{resource}/{id}/content', [ ResourceContentController::class, 'update' ] )
 	->where( 'resource', '[A-Za-z0-9_-]+' )
 	->name( 'visual-editor.api.resources.content.update' );
+
+// #992 — title/excerpt saves for resources without a dedicated entity
+// adapter (custom content types). Posts/pages keep the G3 routes below.
+Route::put( '{resource}/{id}/entry', [ ResourceEntryController::class, 'update' ] )
+	->where( 'resource', '[A-Za-z0-9_-]+' )
+	->name( 'visual-editor.api.resources.entry.update' );
 
 // #619 — resolve the *applied* template for a content item. Feeds the
 // post-editor's composed-view mode, which wraps the raw block list in the
@@ -127,10 +134,13 @@ Route::delete( 'snippets/{snippet}', [ SnippetController::class, 'destroy' ] )
 
 // G4c-2 — `core/query` block resolution. Wraps cms-framework's
 // `QueryRuntime` (or any host-bound `QueryResolverContract`
-// implementation) and returns paginated WP-shape results so the editor
-// canvas + the React/Vue front-end renderers can consume the same
-// envelope.
+// implementation) and returns paginated WP-shape results in the same
+// envelope the entity adapters use. Only the editor canvas calls it
+// (the front-end renderers read results `QueryInliner` stamps on the
+// block server-side), so it's gated on the `visual-editor.edit-content`
+// ability like the other authoring endpoints. A denial is a JSON 403.
 Route::post( 'query/resolve', [ QueryResolveController::class, 'resolve' ] )
+	->middleware( EnsureContentEditorAccess::class )
 	->name( 'visual-editor.api.query.resolve' );
 
 Route::get( 'blocks', [ VisualEditorBlocksController::class, 'index' ] )

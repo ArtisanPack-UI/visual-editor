@@ -12,7 +12,8 @@
  * case where previous or next is absent* (inactive prev/next render
  * nothing on the front end per issue #599). CSS Grid with
  * `1fr auto 1fr` columns reserves the side slots so the middle column
- * stays centered even when its sibling slots are empty.
+ * stays centered even when its sibling slots are empty. A saved
+ * Justification or Orientation switches to the flex layout (#956).
  *
  * All visual choices a theme is likely to want to override are
  * exposed as CSS custom properties.
@@ -26,13 +27,20 @@
     --ap-query-pagination-current-weight: 700;
     --ap-query-pagination-link-decoration: none;
 
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
     align-items: center;
     gap: var( --ap-query-pagination-gap );
     width: 100%;
     padding-block: var( --ap-query-pagination-padding-block );
     margin: 0;
+}
+
+/* The previous / numbers / next grid is the default. A saved
+   Justification or Orientation hands the row to the block's flex layout
+   (`is-layout-flex` plus its `wp-container-*` rules), as in WordPress
+   (#956). The `:not()`s also outrank the baseline `.is-layout-flex`. */
+.wp-block-query-pagination:not([class*="is-content-justification-"]):not(.is-vertical) {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
 }
 
 /* Previous: column 1, justified to the start. */

@@ -12,7 +12,7 @@
             "status": "adapted",
             "notes": "name + textdomain swapped.",
             "result": "skipped-status",
-            "forkDigest": "ef5a94f1fa23"
+            "forkDigest": "3c1751705bb8"
         },
         {
             "fork": "edit.tsx",
@@ -20,7 +20,7 @@
             "status": "adapted",
             "notes": "TypeScript port. Figure/BlockQuote string aliases inlined (no separate files).",
             "result": "skipped-status",
-            "forkDigest": "f6c359ed6493"
+            "forkDigest": "67d0aec87b8a"
         },
         {
             "fork": "save.tsx",

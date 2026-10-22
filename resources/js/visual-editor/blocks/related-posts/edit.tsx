@@ -16,12 +16,19 @@
  * wrapper) is handled server-side by the QueryInliner's legacy
  * expansion branch — see `expandRelatedPosts()` for the
  * backward-compat path.
+ *
+ * #964 — in that flat shape the block lays its related items out
+ * itself, so it offers List / Grid toolbar toggles and a Columns
+ * control writing `displayLayout` (+ the legacy `numColumns`). With a
+ * nested post-template the template owns the layout and these controls
+ * stay hidden.
  */
 
 import type { ReactElement } from 'react';
 import { useEffect, useMemo } from '@wordpress/element';
 import {
     BlockContextProvider,
+    BlockControls,
     InnerBlocks,
     InspectorControls,
     useBlockProps,
@@ -31,8 +38,12 @@ import {
     PanelBody,
     RangeControl,
     SelectControl,
+    ToolbarButton,
+    ToolbarGroup,
 } from '@wordpress/components';
+import { useSelect } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
+import { grid, list } from '@wordpress/icons';
 
 import {
     QUERY_PREVIEW_CONTEXT_KEY,
@@ -41,6 +52,15 @@ import {
 import { useQueryPreview } from '../../editor/use-query-preview';
 import { TEXT_DOMAIN } from '../../vendor/i18n';
 import PostVariantsPanel from '../query/post-variants-panel';
+
+import {
+    hasNestedPostTemplate,
+    readRelatedPostsLayout,
+    relatedPostsLayoutChanges,
+    RELATED_POSTS_MAX_COLUMNS,
+    RELATED_POSTS_MIN_COLUMNS,
+    type RelatedPostsLayoutType,
+} from './layout';
 
 interface RelatedPostsQuery {
     readonly perPage?: number;
@@ -53,7 +73,7 @@ interface RelatedPostsQuery {
 
 interface RelatedPostsDisplayLayout {
     readonly type?: 'list' | 'grid' | 'masonry' | string;
-    readonly columns?: number;
+    readonly columns?: number | string;
 }
 
 interface RelatedPostsAttributes {
@@ -183,6 +203,22 @@ export default function RelatedPostsEdit({
 
     const preview = useQueryPreview(previewQuery);
 
+    const ownsLayout = useSelect(
+        (select) => {
+            const store = select('core/block-editor') as unknown as {
+                getBlocks: (id: string) => ReadonlyArray<{ name?: string }>;
+            };
+            return !hasNestedPostTemplate(store.getBlocks(clientId) ?? []);
+        },
+        [clientId]
+    );
+
+    const layout = readRelatedPostsLayout(attributes);
+
+    const setLayoutType = (type: RelatedPostsLayoutType): void => {
+        setAttributes(relatedPostsLayoutChanges({ ...layout, type }));
+    };
+
     const queryPreviewContext: QueryPreviewContextValue = {
         posts: preview.status === 'ready' ? preview.posts : [],
         total: preview.total,
@@ -211,6 +247,24 @@ export default function RelatedPostsEdit({
 
     return (
         <>
+            {ownsLayout && (
+                <BlockControls>
+                    <ToolbarGroup>
+                        <ToolbarButton
+                            icon={list}
+                            label={__('List view', TEXT_DOMAIN)}
+                            isPressed={layout.type === 'list'}
+                            onClick={() => setLayoutType('list')}
+                        />
+                        <ToolbarButton
+                            icon={grid}
+                            label={__('Grid view', TEXT_DOMAIN)}
+                            isPressed={layout.type === 'grid'}
+                            onClick={() => setLayoutType('grid')}
+                        />
+                    </ToolbarGroup>
+                </BlockControls>
+            )}
             <InspectorControls>
                 <PanelBody
                     title={__('Related posts settings', TEXT_DOMAIN)}
@@ -276,6 +330,27 @@ export default function RelatedPostsEdit({
                         }}
                     />
                 </PanelBody>
+                {ownsLayout && layout.type === 'grid' && (
+                    <PanelBody title={__('Layout', TEXT_DOMAIN)}>
+                        <RangeControl
+                            // @ts-expect-error - upstream prop
+                            __nextHasNoMarginBottom
+                            __next40pxDefaultSize
+                            label={__('Columns', TEXT_DOMAIN)}
+                            value={layout.columns}
+                            onChange={(value) =>
+                                setAttributes(
+                                    relatedPostsLayoutChanges({
+                                        type: 'grid',
+                                        columns: value ?? 3,
+                                    })
+                                )
+                            }
+                            min={RELATED_POSTS_MIN_COLUMNS}
+                            max={RELATED_POSTS_MAX_COLUMNS}
+                        />
+                    </PanelBody>
+                )}
                 <PostVariantsPanel
                     queryClientId={clientId}
                     previewTotal={

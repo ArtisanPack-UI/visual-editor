@@ -29,6 +29,17 @@ export {
 } from './api';
 export { useResolvedBindings } from './use-resolved-bindings';
 export {
+	BoundAttributesContext,
+	collectBoundAttributes,
+	useBoundAttribute,
+	useBoundAttributes,
+} from './bound-attributes-context';
+export type {
+	BoundAttributeInfo,
+	BoundAttributesMap,
+} from './bound-attributes-context';
+export { getBoundAttributeHelp } from './bound-attribute-help';
+export {
 	resetBindingSourcesCache,
 	useBindingFields,
 	useBindingSources,

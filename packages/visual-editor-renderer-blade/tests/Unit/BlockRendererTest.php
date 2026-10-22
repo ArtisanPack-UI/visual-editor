@@ -438,6 +438,53 @@ it( 'drops unsafe URL schemes from image hrefs and src', function (): void {
 		->not->toContain( '<a ' );
 } );
 
+it( 'renders string image dimensions as an inline style with is-resized (#985)', function (): void {
+	$tree = [
+		makeBlock( 'artisanpack/image', [
+			'url'      => 'https://example.test/logo.png',
+			'width'    => 'auto',
+			'height'   => '30px',
+			'sizeSlug' => 'full',
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( '<figure class="wp-block-image size-full is-resized">' )
+		->toContain( 'height="30"' )
+		->toContain( 'style="width:auto;height:30px"' )
+		->not->toContain( 'width="' );
+} );
+
+it( 'keeps legacy numeric image dimensions as HTML attributes only (#985)', function (): void {
+	$tree = [ makeBlock( 'core/image', [ 'url' => 'https://example.test/a.png', 'width' => 300, 'height' => '200' ] ) ];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'width="300"' )
+		->toContain( 'height="200"' )
+		->not->toContain( 'style=' )
+		->not->toContain( 'is-resized' );
+} );
+
+it( 'drops image dimensions that are not a CSS length or auto (#985)', function (): void {
+	$tree = [
+		makeBlock( 'core/image', [
+			'url'    => 'https://example.test/a.png',
+			'width'  => '10px;position:fixed',
+			'height' => "30px\n",
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->not->toContain( 'position' )
+		->not->toContain( 'style=' )
+		->not->toContain( 'width="' )
+		->not->toContain( 'height="' )
+		->not->toContain( 'is-resized' );
+} );
+
 it( 'places media-text width on the right column when mediaPosition is right', function (): void {
 	$tree = [
 		makeBlock( 'core/media-text', [
@@ -466,6 +513,27 @@ it( 'clamps cover dimRatio to 0-100 and whitelists minHeightUnit', function (): 
 	expect( $html )->toContain( 'opacity: 1;' )
 		->toContain( 'min-height: 40px;' )
 		->not->toContain( 'javascript:' );
+} );
+
+it( 'defaults a cover without dimRatio to a full overlay, as block.json does (#906)', function (): void {
+	$html = makeRenderer()->render( [ makeBlock( 'core/cover', [ 'customGradient' => 'linear-gradient(red, blue)' ] ) ] );
+
+	expect( $html )->toContain( 'style="opacity: 1;' )
+		->not->toContain( 'opacity: 0.5' );
+} );
+
+it( 'lets a cover aspect ratio replace min-height, as WordPress does (#906)', function (): void {
+	$html = makeRenderer()->render( [
+		makeBlock( 'core/cover', [
+			'minHeight' => 600,
+			'style'     => [ 'dimensions' => [ 'aspectRatio' => '16/11', 'minHeight' => '300px' ] ],
+		] ),
+	] );
+
+	expect( $html )->toContain( 'aspect-ratio: 16/11; min-height: unset' )
+		->toMatch( '/<div class="[^"]*\\bhas-aspect-ratio\\b[^"]*"/' )
+		->not->toContain( 'min-height: 600px' )
+		->not->toContain( 'min-height: 300px' );
 } );
 
 it( 'routes cover palette gradient class to the overlay span, not the wrapper', function (): void {
@@ -625,6 +693,45 @@ it( 'validates table cell alignment against an allowlist', function (): void {
 		->not->toContain( 'expression' );
 } );
 
+it( 'prints sanitised table cell colspan, rowspan and scope', function (): void {
+	$tree = [
+		makeBlock( 'core/table', [
+			'head' => [ [ 'cells' => [
+				[ 'content' => 'Name', 'tag' => 'th', 'scope' => 'col' ],
+				[ 'content' => 'Bad', 'tag' => 'th', 'scope' => 'col" onclick="x' ],
+			] ] ],
+			'body' => [ [ 'cells' => [
+				[ 'content' => 'Ada', 'tag' => 'td', 'scope' => 'row', 'rowspan' => '2' ],
+				[ 'content' => 'Zero', 'tag' => 'td', 'colspan' => '0' ],
+				[ 'content' => 'Junk', 'tag' => 'td', 'colspan' => '2" onclick="x' ],
+			] ] ],
+			'foot' => [ [ 'cells' => [ [ 'content' => 'Note', 'tag' => 'td', 'colspan' => '3' ] ] ] ],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( '<th scope="col">Name</th>' )
+		->toContain( '<th>Bad</th>' )
+		->toContain( '<td rowspan="2">Ada</td>' )
+		->toContain( '<td>Zero</td>' )
+		->toContain( '<td>Junk</td>' )
+		->toContain( '<td colspan="3">Note</td>' )
+		->not->toContain( 'onclick' );
+} );
+
+it( 'puts has-fixed-layout on the table, defaulting to on', function (): void {
+	$cells = [ [ 'cells' => [ [ 'content' => 'A', 'tag' => 'td' ] ] ] ];
+
+	$defaulted = makeRenderer()->render( [ makeBlock( 'core/table', [ 'body' => $cells ] ) ] );
+	$auto      = makeRenderer()->render( [ makeBlock( 'core/table', [ 'body' => $cells, 'hasFixedLayout' => false ] ) ] );
+
+	expect( $defaulted )->toContain( '<table class="has-fixed-layout">' )
+		->toContain( '<figure class="wp-block-table">' );
+	expect( $auto )->toContain( '<table>' )
+		->not->toContain( 'has-fixed-layout' );
+} );
+
 it( 'generates stable unique ids for multiple search blocks on the same page', function (): void {
 	$tree = [
 		makeBlock( 'core/search', [ 'label' => 'First', 'buttonText' => 'Go' ], [], 's-1' ),
@@ -681,6 +788,42 @@ it( 'preserves fractional column widths', function (): void {
 	$html = makeRenderer()->render( $tree );
 
 	expect( $html )->toContain( 'flex-basis: 33.33%;' );
+} );
+
+it( 'scopes a per-axis left gap to the Columns wrapper as --ap-columns-gap (#914)', function ( string $name ): void {
+	$tree = [
+		makeBlock( $name, [ 'style' => [ 'spacing' => [ 'blockGap' => [ 'top' => '0', 'left' => '0' ] ] ] ], [
+			makeBlock( 'core/column', [ 'width' => '52.5%' ], [], 'col-a' ),
+			makeBlock( 'core/column', [ 'width' => '47.5%' ], [], 'col-b' ),
+		] ),
+	];
+
+	expect( makeRenderer()->render( $tree ) )->toContain( 'style="row-gap: 0; column-gap: 0; --ap-columns-gap: 0px;"' );
+} )->with( [ 'core/columns', 'artisanpack/columns' ] );
+
+it( 'leaves --ap-columns-gap unset without a usable per-axis left gap (#914)', function ( array $blockGap ): void {
+	$tree = [
+		makeBlock( 'core/columns', [ 'style' => [ 'spacing' => [ 'blockGap' => $blockGap ] ] ], [
+			makeBlock( 'core/column', [ 'width' => 50 ], [], 'col-a' ),
+		] ),
+	];
+
+	expect( makeRenderer()->render( $tree ) )->not->toContain( '--ap-columns-gap:' );
+} )->with( [
+	'top only'    => [ [ 'top' => '1rem' ] ],
+	'unsafe left' => [ [ 'top' => '1rem', 'left' => '1rem;position:fixed' ] ],
+] );
+
+it( 'keeps --ap-columns-gap off other blocks with a per-axis gap (#914)', function (): void {
+	$tree = [
+		makeBlock( 'core/group', [
+			'layout' => [ 'type' => 'flex' ],
+			'style'  => [ 'spacing' => [ 'blockGap' => [ 'top' => '0', 'left' => '2rem' ] ] ],
+		], [] ),
+	];
+
+	expect( makeRenderer()->render( $tree ) )->toContain( 'column-gap: 2rem;' )
+		->not->toContain( '--ap-columns-gap:' );
 } );
 
 it( 'renders the artisanpack/callout reference block with severity and icon', function (): void {
@@ -984,6 +1127,31 @@ it( 'omits accordion-title aria wiring when the parent panel id is empty', funct
 	expect( $html )->not->toContain( 'aria-controls=' )
 		->and( $html )->not->toContain( 'aria-labelledby=' )
 		->and( $html )->not->toContain( 'id="-control"' );
+} );
+
+it( 'starts an accordion panel open when defaultOpen is set', function (): void {
+	$panel = fn ( mixed $defaultOpen ): array => makeBlock( 'artisanpack/accordion', [ 'panelId' => 'faq-1', 'defaultOpen' => $defaultOpen ], [
+		makeBlock( 'artisanpack/accordion-title', [], [], 'title-1' ),
+		makeBlock( 'artisanpack/accordion-body', [], [], 'body-1' ),
+	] );
+
+	$open   = makeRenderer()->render( [ $panel( true ) ] );
+	$closed = makeRenderer()->render( [ $panel( false ) ] );
+
+	expect( $open )->toContain( 'aria-expanded="true"' )
+		->and( $open )->not->toMatch( '/<div class="wp-block-artisanpack-accordion-body ap-accordion__body"[^>]*hidden/' )
+		->and( $closed )->toContain( 'aria-expanded="false"' )
+		->and( $closed )->toMatch( '/<div class="wp-block-artisanpack-accordion-body ap-accordion__body"[^>]*hidden>/' )
+		->and( makeRenderer()->render( [ $panel( 'false' ) ] ) )->toContain( 'aria-expanded="false"' );
+} );
+
+it( 'prints the accordions block spacing as the gap between panels (#933)', function (): void {
+	$render = fn ( array $attributes ): string => makeRenderer()->render( [ makeBlock( 'artisanpack/accordions', $attributes ) ] );
+
+	expect( $render( [ 'style' => [ 'spacing' => [ 'blockGap' => '1rem' ] ] ] ) )->toContain( 'gap: 1rem;' )
+		->and( $render( [ 'style' => [ 'spacing' => [ 'blockGap' => 'var:preset|spacing|40' ] ] ] ) )->toContain( 'gap: var(--wp--preset--spacing--40);' )
+		->and( $render( [] ) )->not->toContain( 'gap:' )
+		->and( $render( [ 'style' => [ 'spacing' => [ 'blockGap' => '1rem;position:fixed' ] ] ] ) )->not->toContain( 'position' );
 } );
 
 it( 'emits FAQPage JSON-LD from accordion panels when the accordions faqSchema toggle is on (#757)', function (): void {

@@ -1,0 +1,3 @@
+<figure class="wp-block-image size-full is-resized">
+  <img alt="A photo" height="30" src="https://example.com/photo.jpg" style="width: auto; height: 30px" />
+</figure>

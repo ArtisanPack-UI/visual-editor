@@ -86,6 +86,15 @@ export function layerDeclarations( layer: ResolvedPositionLayer | null ): string
 }
 
 /**
+ * Whether a layer sets a position other than `static`.
+ *
+ * @since 1.15.2
+ */
+function isPositioned( layer: ResolvedPositionLayer | null | undefined ): boolean {
+	return !! layer && null !== layer.value && 'static' !== layer.value
+}
+
+/**
  * Emit scoped CSS for a block. Uses media queries for breakpoint
  * overrides. Returns an empty string when nothing meaningful renders.
  *
@@ -113,6 +122,12 @@ export function emitPositionCss(
 		rules.push( `${ trimmedScope }{${ baseDecls }}` )
 	}
 
+	// #929 — a breakpoint that resolves to `static` must still emit, or
+	// nothing undoes a positioned base (or a positioned breakpoint it
+	// would otherwise inherit).
+	const hasPositionedLayer = [ payload.base, ...Object.values( mergedBreakpointLayers ) ]
+		.some( isPositioned )
+
 	// Registry emission order: legacy min-width rules ascending, then
 	// desktop-first max-width rules largest to smallest, so the narrower
 	// override wins at the same specificity (#820).
@@ -123,7 +138,9 @@ export function emitPositionCss(
 			continue
 		}
 
-		const decls = layerDeclarations( layer )
+		const decls = hasPositionedLayer && 'static' === layer.value
+			? 'position:static !important'
+			: layerDeclarations( layer )
 		if ( '' === decls ) {
 			continue
 		}

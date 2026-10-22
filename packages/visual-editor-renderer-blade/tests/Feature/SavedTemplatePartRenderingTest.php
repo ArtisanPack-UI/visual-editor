@@ -141,3 +141,77 @@ it( 'renders fork-named template parts from a saved template through x-ve-templa
 		->toContain( '<p class="wp-block-paragraph">Live footer</p>' )
 		->not->toContain( 'Stale header snapshot' );
 } );
+
+/**
+ * #976 — a sticky site header has to be sticky on the template-part
+ * wrapper itself: a sticky block inside the part is held by a wrapper
+ * exactly its own height, so it never sticks. Theme-file templates name
+ * the block `core/template-part`, templates saved in the site editor the
+ * `artisanpack/template-part` fork; both must keep the attributes through
+ * inlining and print them on the wrapper.
+ */
+it( 'prints a sticky position with offsets and z-index on the template-part wrapper (#976)', function ( string $name ): void {
+	$tree = [
+		[
+			'name'        => $name,
+			'attributes'  => [
+				'slug'    => 'header',
+				'tagName' => 'header',
+				'style'   => [
+					'position' => [
+						'value'   => 'sticky',
+						'offsets' => [ 'top' => [ 'value' => 0, 'unit' => 'px' ] ],
+						'zIndex'  => 50,
+					],
+				],
+			],
+			'innerBlocks' => [ savedPartParagraph( 'Stale header snapshot' ) ],
+		],
+	];
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" default-theme="artisanpack-ui" />', [ 'tree' => $tree ] );
+
+	expect( $rendered )
+		->toMatch( '/<header class="wp-block-template-part wp-block-template-part--header ve-pos-[a-f0-9]+" style="position: sticky !important; top: 0px !important; z-index: 50 !important;" data-ve-template-part="header"[^>]*>\s*<p class="wp-block-paragraph">Live header<\/p>\s*<\/header>/' )
+		->toMatch( '/<style data-ve-position>\.ve-pos-[a-f0-9]+\{position:sticky !important;top:0px !important;z-index:50 !important\}<\/style>/' )
+		->not->toContain( 'Stale header snapshot' );
+} )->with( [ 'core/template-part', 'artisanpack/template-part' ] );
+
+it( 'prints an Effects z-index on the template-part wrapper (#976)', function (): void {
+	$tree = [
+		[
+			'name'        => 'core/template-part',
+			'attributes'  => [
+				'slug'               => 'header',
+				'tagName'            => 'header',
+				'style'              => [ 'position' => [ 'value' => 'sticky', 'offsets' => [ 'top' => [ 'value' => 0, 'unit' => 'px' ] ] ] ],
+				'artisanpackEffects' => [ 'zIndex' => 40 ],
+			],
+			'innerBlocks' => [],
+		],
+	];
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" default-theme="artisanpack-ui" />', [ 'tree' => $tree ] );
+
+	expect( $rendered )
+		->toMatch( '/<header class="wp-block-template-part wp-block-template-part--header ve-pos-[a-f0-9]+ ve-fx-[a-f0-9]+" style="position: sticky !important; top: 0px !important;"/' )
+		->toMatch( '/\.ve-fx-[a-f0-9]+\{z-index:40\}/' );
+} );
+
+it( 'keeps the position on a template part that fails to resolve (#976)', function (): void {
+	$tree = [
+		[
+			'name'        => 'core/template-part',
+			'attributes'  => [
+				'slug'    => 'sidebar',
+				'tagName' => 'aside',
+				'style'   => [ 'position' => [ 'value' => 'sticky', 'offsets' => [ 'top' => [ 'value' => 2, 'unit' => 'rem' ] ] ] ],
+			],
+			'innerBlocks' => [],
+		],
+	];
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" default-theme="artisanpack-ui" />', [ 'tree' => $tree ] );
+
+	expect( $rendered )->toContain( 'style="position: sticky !important; top: 2rem !important;"' );
+} );

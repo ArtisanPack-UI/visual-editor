@@ -111,6 +111,39 @@ class BlockSupports
 	];
 
 	/**
+	 * Per-side longhands for a responsive property whose object value is
+	 * not keyed by box side. A per-axis `blockGap` is `{top, left}`, and
+	 * `gap-top` / `gap-left` aren't CSS properties, so it maps to
+	 * `row-gap` / `column-gap` the way the base style does (#914). A
+	 * per-corner radius uses the Gutenberg corner names (#918).
+	 */
+	protected const RESPONSIVE_AXIS_PROPERTIES = [
+		'gap'           => [ 'top' => 'row-gap', 'left' => 'column-gap' ],
+		'border-radius' => [
+			'topLeft'     => 'border-top-left-radius',
+			'topRight'    => 'border-top-right-radius',
+			'bottomRight' => 'border-bottom-right-radius',
+			'bottomLeft'  => 'border-bottom-left-radius',
+		],
+	];
+
+	/**
+	 * The keys of a responsive path whose value may be a per-side object
+	 * (#918). Older editor builds stored one side of such a value under a
+	 * deeper key (`style.spacing.blockGap.left`), which
+	 * {@see self::foldLegacyResponsivePaths()} folds back in; a scalar
+	 * value is spread over these keys when one side is laid over it.
+	 *
+	 * @since 1.15.2
+	 */
+	protected const RESPONSIVE_OBJECT_SIDES = [
+		'style.spacing.padding'  => [ 'top', 'right', 'bottom', 'left' ],
+		'style.spacing.margin'   => [ 'top', 'right', 'bottom', 'left' ],
+		'style.spacing.blockGap' => [ 'top', 'left' ],
+		'style.border.radius'    => [ 'topLeft', 'topRight', 'bottomRight', 'bottomLeft' ],
+	];
+
+	/**
 	 * Responsive paths whose value is a preset slug, mapped to the
 	 * preset category it expands under (#877): a `fontSize` override of
 	 * `small` emits `font-size: var(--wp--preset--font-size--small)`.
@@ -181,6 +214,41 @@ class BlockSupports
 	private const CSS_VALUE_DISALLOWED = '/[^a-zA-Z0-9_+\-*\/.,()%#\t\n\r\f ]/';
 
 	/**
+	 * The CSS functions a custom gradient may call: the gradient
+	 * functions themselves plus the colour, custom-property and math
+	 * functions their colour stops and lengths use. None of them fetches
+	 * a resource, so a gradient built only from these can never load a
+	 * `url()` / `image-set()`. Mirrored by `GRADIENT_FUNCTIONS` in the
+	 * React and Vue `cssValue.ts`.
+	 *
+	 * @since 1.15.3
+	 */
+	private const GRADIENT_FUNCTIONS = [
+		'linear-gradient',
+		'radial-gradient',
+		'conic-gradient',
+		'repeating-linear-gradient',
+		'repeating-radial-gradient',
+		'repeating-conic-gradient',
+		'rgb',
+		'rgba',
+		'hsl',
+		'hsla',
+		'hwb',
+		'lab',
+		'lch',
+		'oklab',
+		'oklch',
+		'color',
+		'color-mix',
+		'var',
+		'calc',
+		'min',
+		'max',
+		'clamp',
+	];
+
+	/**
 	 * Per-request cache for the position payload produced at the top of
 	 * {@see compile()} so {@see compilePosition()} can reuse it without
 	 * walking the resolver a second time (#640). Not a permanent cache
@@ -197,9 +265,13 @@ class BlockSupports
 	 * classes.
 	 *
 	 * @since 1.0.0
+	 * @since 1.15.2 Accepts `$columnsGap` (#914).
 	 *
 	 * @param  array<string, mixed>  $attributes  Raw block attributes from
 	 *                                            the persisted block tree.
+	 * @param  bool                  $columnsGap  Whether the block is a Columns
+	 *                                            block, whose responsive gap
+	 *                                            rules also set `--ap-columns-gap`.
 	 *
 	 * @return array{classes: array<int, string>, style: string, id: ?string}
 	 *         `classes` is deduped + ordered. `style` is a
@@ -208,7 +280,7 @@ class BlockSupports
 	 *         was emitted). `id` is `null` when no `anchor` attribute is
 	 *         set.
 	 */
-	public static function compile( array $attributes ): array
+	public static function compile( array $attributes, bool $columnsGap = false ): array
 	{
 		$classes = [];
 		$style   = [];
@@ -231,7 +303,7 @@ class BlockSupports
 		self::applySpacing( $attributes, $style );
 		self::applyBorder( $attributes, $classes, $style );
 		self::applyTypography( $attributes, $classes, $style );
-		self::applyDimensions( $attributes, $style );
+		self::applyDimensions( $attributes, $classes, $style );
 		self::applyClassName( $attributes, $classes );
 
 		$id = self::resolveAnchor( $attributes );
@@ -252,7 +324,12 @@ class BlockSupports
 		// has no position attributes (the default path).
 		$positionPayload            = PositionResolver::resolve( $attributes );
 		self::$positionPayloadCache = $positionPayload;
-		$positionInlineBase         = self::baseInlinePositionStyle( $positionPayload['base'] ?? null );
+		// #929 — the inline stamp is `!important`, which no `@media` rule
+		// can beat, so a block with breakpoint overrides relies on the
+		// scoped rules alone.
+		$positionInlineBase = [] === ( $positionPayload['breakpoints'] ?? [] )
+			? self::baseInlinePositionStyle( $positionPayload['base'] ?? null )
+			: '';
 
 		if ( '' !== $positionInlineBase ) {
 			$style[] = $positionInlineBase;
@@ -260,7 +337,7 @@ class BlockSupports
 
 		$styleString = '' === implode( '', $style ) ? '' : implode( '; ', $style ) . ';';
 
-		$responsive = self::compileResponsive( $attributes );
+		$responsive = self::compileResponsive( $attributes, null, $columnsGap );
 
 		if ( '' !== $responsive['class'] ) {
 			$classes[] = $responsive['class'];
@@ -433,14 +510,18 @@ class BlockSupports
 	 * - `has-{slug}-gradient-background` (palette gradient slug).
 	 *
 	 * Inline declarations routed to the `background` bucket:
-	 * - `background-color: ...`
-	 * - `background-image: ...`
 	 * - `background: ...` (shorthand / custom gradient).
+	 * - every `background-*` longhand — `background-color` and the
+	 *   background image with its `background-size`,
+	 *   `background-position`, `background-repeat` and
+	 *   `background-attachment`, so the image keeps its sizing on the
+	 *   element it paints on.
 	 *
 	 * Every other class / declaration is kept in the `wrapper` bucket
 	 * untouched.
 	 *
 	 * @since 1.1.0
+	 * @since 1.15.3 Routes every `background-*` longhand with the image.
 	 *
 	 * @param  array<int, string>  $classes  `compile`'s `classes` return.
 	 * @param  string              $style    `compile`'s `style` return
@@ -508,6 +589,7 @@ class BlockSupports
 	 * different cascade slots on the overlay span.
 	 *
 	 * @since 1.1.0
+	 * @since 1.15.3 Drops values {@see self::supportValue()} rejects (#920 review).
 	 *
 	 * @param  array<string, mixed>  $attributes
 	 *
@@ -519,19 +601,19 @@ class BlockSupports
 		$style   = [];
 
 		$overlaySlug      = self::stringAttr( $attributes['overlayColor'] ?? null );
-		$customOverlay    = self::stringAttr( $attributes['customOverlayColor'] ?? null );
-		$customGradient   = self::stringAttr( $attributes['customGradient'] ?? null );
+		$customOverlay    = self::supportValue( 'background-color', self::stringAttr( $attributes['customOverlayColor'] ?? null ) );
+		$customGradient   = self::supportValue( 'background', self::stringAttr( $attributes['customGradient'] ?? null ) );
 
 		if ( '' !== $overlaySlug ) {
 			$classes[] = 'has-' . self::slugify( $overlaySlug ) . '-background-color';
 			$classes[] = 'has-background';
-		} elseif ( '' !== $customOverlay ) {
-			$style[]   = 'background-color: ' . self::expandPresetReference( $customOverlay );
+		} elseif ( null !== $customOverlay ) {
+			$style[]   = 'background-color: ' . $customOverlay;
 			$classes[] = 'has-background';
 		}
 
-		if ( '' !== $customGradient ) {
-			$style[]   = 'background: ' . self::expandPresetReference( $customGradient );
+		if ( null !== $customGradient ) {
+			$style[]   = 'background: ' . $customGradient;
 			$classes[] = 'has-background';
 		}
 
@@ -722,15 +804,23 @@ class BlockSupports
 	 * @since 1.0.0
 	 * @since 1.15.0 Accepts a `$propertyMap` so a partial can emit its
 	 *               own paths (spacer `width`) through the same emitter.
+	 * @since 1.15.2 Accepts `$columnsGap`: a Columns block's gap rules
+	 *               also set `--ap-columns-gap`, so the Column width calc
+	 *               follows the breakpoint's gap instead of the base (#914).
+	 * @since 1.15.2 Reads overrides older editor builds saved under a
+	 *               legacy path ({@see self::foldLegacyResponsivePaths()},
+	 *               #918).
 	 *
 	 * @param  array<string, mixed>         $attributes
 	 * @param  array<string, string>|null  $propertyMap  Path → CSS property;
 	 *                                                   `null` uses
 	 *                                                   {@see self::RESPONSIVE_CSS_PROPERTY_MAP}.
+	 * @param  bool                        $columnsGap   Whether the block is a
+	 *                                                   Columns block.
 	 *
 	 * @return array{class: string, rules: string}
 	 */
-	public static function compileResponsive( array $attributes, ?array $propertyMap = null ): array
+	public static function compileResponsive( array $attributes, ?array $propertyMap = null, bool $columnsGap = false ): array
 	{
 		$responsive = $attributes['responsive'] ?? null;
 
@@ -739,6 +829,12 @@ class BlockSupports
 		}
 
 		$propertyMap ??= self::RESPONSIVE_CSS_PROPERTY_MAP;
+
+		// The scope hashes the payload as stored, so content that only
+		// uses the property paths keeps its class (#918).
+		$stored     = $responsive;
+		$responsive = self::foldLegacyResponsivePaths( $responsive, $propertyMap );
+		$columnsGap = $columnsGap && isset( $propertyMap['style.spacing.blockGap'], $responsive['style.spacing.blockGap'] );
 
 		// Pull the request-scoped registry from the container so
 		// host-configured breakpoints (theme.json → config) are
@@ -752,7 +848,7 @@ class BlockSupports
 			? self::resolveRegistry()
 			: BreakpointRegistry::fromLayers();
 		$rules    = [];
-		$scope    = self::generateResponsiveScopeClass( self::responsiveHashInput( $responsive, $attributes, $propertyMap ) );
+		$scope    = self::generateResponsiveScopeClass( self::responsiveHashInput( $stored, $attributes, $propertyMap, $columnsGap ) );
 
 		// Tripled scope class boosts the rule's specificity to
 		// (0,0,3,0), matching WP core's own
@@ -818,6 +914,15 @@ class BlockSupports
 				}
 
 				$declarations = self::responsiveDeclarations( $property, $value );
+
+				// #914 — keep the Column width calc on this breakpoint's gap.
+				if ( $columnsGap && 'style.spacing.blockGap' === $path ) {
+					$columnsGapValue = LayoutSupport::columnsGapValue( $value );
+
+					if ( null !== $columnsGapValue ) {
+						$declarations .= ( '' === $declarations ? '' : ';' ) . '--ap-columns-gap:' . $columnsGapValue . '!important';
+					}
+				}
 
 				if ( '' === $declarations ) {
 					continue;
@@ -898,6 +1003,103 @@ class BlockSupports
 	}
 
 	/**
+	 * Validate a custom gradient bound for a `background` declaration
+	 * (`style.color.gradient`, the cover's `customGradient`). Returns the
+	 * value unchanged when it is safe, or `null` to drop the declaration.
+	 *
+	 * `background` is a fetching property, so {@see self::safeCssValue()}
+	 * alone is not enough: a `url(…)` with a relative path passes its
+	 * character whitelist. On top of that whitelist (which still rejects
+	 * `;`, `{`, `}`, `:`, quotes and the comment digraphs), a gradient
+	 * must be either one `var(--…)` reference (an expanded
+	 * `var:preset|gradient|…`) or one
+	 * `(repeating-)?(linear|radial|conic)-gradient(…)` call whose
+	 * parentheses balance and close at the end of the value, and every
+	 * function it calls must be in {@see self::GRADIENT_FUNCTIONS}.
+	 * Commas, parentheses, `%` and `#` stay legal for the colour stops.
+	 * Mirrored by `safeGradientValue()` in the React and Vue renderers.
+	 *
+	 * @since 1.15.3
+	 *
+	 * @param  string  $value  The expanded gradient value.
+	 *
+	 * @return string|null The value, or `null` when it is rejected.
+	 */
+	public static function safeGradientValue( string $value ): ?string
+	{
+		if ( null === self::safeCssValue( $value ) ) {
+			return null;
+		}
+
+		if ( 1 === preg_match( '/^var\(--[a-zA-Z0-9_-]+\)$/D', $value ) ) {
+			return $value;
+		}
+
+		if ( 1 !== preg_match( '/^(?:repeating-)?(?:linear|radial|conic)-gradient\(/i', $value ) ) {
+			return null;
+		}
+
+		preg_match_all( '/([a-zA-Z_-][a-zA-Z0-9_-]*)\(/', $value, $matches );
+
+		foreach ( $matches[1] as $function ) {
+			if ( ! in_array( strtolower( $function ), self::GRADIENT_FUNCTIONS, true ) ) {
+				return null;
+			}
+		}
+
+		$depth  = 0;
+		$length = strlen( $value );
+
+		for ( $index = 0; $index < $length; $index++ ) {
+			if ( '(' === $value[ $index ] ) {
+				$depth++;
+
+				continue;
+			}
+
+			if ( ')' !== $value[ $index ] ) {
+				continue;
+			}
+
+			$depth--;
+
+			// A close before the end that returns to depth 0 means a
+			// second top-level layer follows the gradient.
+			if ( $depth < 0 || ( 0 === $depth && $index !== $length - 1 ) ) {
+				return null;
+			}
+		}
+
+		return 0 === $depth ? $value : null;
+	}
+
+	/**
+	 * Validate a custom `font-family` value. Returns the value unchanged
+	 * when it is safe, or `null` to drop the declaration.
+	 *
+	 * A font stack legitimately quotes family names
+	 * (`"Times New Roman", serif`), which {@see self::safeCssValue()}
+	 * rejects. Each complete quoted name made of letters, digits, spaces,
+	 * `_`, `.` and `-` is set aside, and the rest of the value must then
+	 * pass {@see self::safeCssValue()} — so an unbalanced quote, or one
+	 * wrapping `;`, `{`, `}` or another structural character, still
+	 * rejects the whole value. Mirrored by `safeFontFamilyValue()` in the
+	 * React and Vue renderers.
+	 *
+	 * @since 1.15.3
+	 *
+	 * @param  string  $value  The expanded font-family value.
+	 *
+	 * @return string|null The value, or `null` when it is rejected.
+	 */
+	public static function safeFontFamilyValue( string $value ): ?string
+	{
+		$unquoted = (string) preg_replace( '/"[a-zA-Z0-9 _.\-]*"|\'[a-zA-Z0-9 _.\-]*\'/', 'x', $value );
+
+		return null === self::safeCssValue( $unquoted ) ? null : $value;
+	}
+
+	/**
 	 * Back-compat shim. Previously emitted a per-block `<style>` tag
 	 * before the wrapper; now a no-op because compile() pushes the
 	 * rules into the per-request accumulator and
@@ -941,16 +1143,29 @@ class BlockSupports
 	 * style="…" id="…"`), or an empty string when none are. `$baseClasses`
 	 * are prepended verbatim before the compiled support classes so each
 	 * block partial can declare its own `wp-block-{name}` / layout class
-	 * list without the compiler knowing about them.
+	 * list without the compiler knowing about them. `$extraStyles` are
+	 * block-specific declarations appended after the compiled support
+	 * style, so a partial never needs a second `style` attribute.
 	 *
 	 * @since 1.0.0
+	 * @since 1.15.2 Accepts `$extraStyles` and `$columnsGap` (#914).
 	 *
 	 * @param  array<string, mixed>  $attributes
 	 * @param  array<int, string>    $baseClasses
+	 * @param  array<int, string>    $extraStyles  Already-sanitised declarations, without a trailing `;`.
+	 * @param  bool                  $columnsGap   Whether the block is a Columns block
+	 *                                             ({@see self::compileResponsive()}).
 	 */
-	public static function wrapperAttrs( array $attributes, array $baseClasses = [] ): string
+	public static function wrapperAttrs( array $attributes, array $baseClasses = [], array $extraStyles = [], bool $columnsGap = false ): string
 	{
-		$compiled = self::compile( $attributes );
+		$compiled = self::compile( $attributes, $columnsGap );
+
+		// #914 — block-specific declarations ride after the support ones.
+		$extraStyles = array_values( array_filter( $extraStyles, static fn ( string $declaration ): bool => '' !== trim( $declaration ) ) );
+
+		if ( [] !== $extraStyles ) {
+			$compiled['style'] = ( '' !== $compiled['style'] ? $compiled['style'] . ' ' : '' ) . implode( '; ', $extraStyles ) . ';';
+		}
 
 		$classes = array_values( array_unique( array_filter(
 			array_merge( $baseClasses, $compiled['classes'] ),
@@ -1041,6 +1256,59 @@ class BlockSupports
 	}
 
 	/**
+	 * The border support's classes and declarations on their own, for a
+	 * block whose `block.json` skips border serialization on the wrapper
+	 * and paints it on an inner element instead, as core's Avatar does
+	 * on its `<img>` (#952).
+	 *
+	 * @since 1.15.2
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 *
+	 * @return array{classes: array<int, string>, style: string}
+	 */
+	public static function borderAttrs( array $attributes ): array
+	{
+		$classes = [];
+		$style   = [];
+
+		self::applyBorder( $attributes, $classes, $style );
+
+		return [
+			'classes' => $classes,
+			'style'   => [] !== $style ? implode( '; ', $style ) . ';' : '',
+		];
+	}
+
+	/**
+	 * Validate an expanded block-support value for the CSS property it
+	 * lands on (#920 review): a gradient `background` goes through
+	 * {@see self::safeGradientValue()}, a `font-family` through
+	 * {@see self::safeFontFamilyValue()}, and everything else through
+	 * {@see self::safeCssValue()}. A stored value carrying `;`, `{`, `}`
+	 * or a comment can therefore never append declarations to the inline
+	 * style — which would otherwise sidestep the Custom CSS ability gate
+	 * (#881). Callers treat `null` as "value unset".
+	 *
+	 * @since 1.15.3
+	 *
+	 * @param  string  $property  The CSS property the value is bound for.
+	 * @param  string  $value     The raw (pre-expansion) attribute value.
+	 *
+	 * @return string|null The expanded value, or `null` when it is rejected.
+	 */
+	protected static function supportValue( string $property, string $value ): ?string
+	{
+		$expanded = self::expandPresetReference( $value );
+
+		return match ( $property ) {
+			'background'  => self::safeGradientValue( $expanded ),
+			'font-family' => self::safeFontFamilyValue( $expanded ),
+			default       => self::safeCssValue( $expanded ),
+		};
+	}
+
+	/**
 	 * Turn a stored responsive override into the CSS value the generic
 	 * emitter writes (#877). Preset paths expand their slug into the
 	 * `var:preset|…` shorthand {@see self::responsiveDeclarations()}
@@ -1088,6 +1356,212 @@ class BlockSupports
 	}
 
 	/**
+	 * Fold overrides saved under a legacy path into the path this map
+	 * reads (#918). Before 1.15.2 the editor stored a breakpoint edit
+	 * under whichever leaf changed, so the key depended on the block's
+	 * base value:
+	 *
+	 * - one side deeper than a per-side path, when the base value was
+	 *   already per-side (`style.spacing.blockGap.left`,
+	 *   `style.spacing.padding.top`);
+	 * - a shallower object, when the block had no value yet
+	 *   (`style.spacing` holding `{padding, blockGap}`).
+	 *
+	 * Both contribute to the mapped path's per-breakpoint value, later
+	 * keys over earlier ones. A breakpoint the mapped path already sets
+	 * keeps its own value. The payload comes back untouched when it has
+	 * no legacy key.
+	 *
+	 * @since 1.15.2
+	 *
+	 * @param  array<mixed>           $responsive
+	 * @param  array<string, string>  $propertyMap
+	 *
+	 * @return array<mixed>
+	 */
+	protected static function foldLegacyResponsivePaths( array $responsive, array $propertyMap ): array
+	{
+		$out    = [];
+		$legacy = [];
+		$folded = false;
+
+		foreach ( $responsive as $key => $overrides ) {
+			$key = (string) $key;
+
+			if ( isset( $propertyMap[ $key ] ) || ! is_array( $overrides ) ) {
+				$out[ $key ] = $overrides;
+
+				continue;
+			}
+
+			$side = self::responsiveSideOf( $key, $propertyMap );
+
+			if ( null !== $side ) {
+				[ $path, $sideKey ] = $side;
+				$folded             = true;
+
+				foreach ( $overrides as $breakpoint => $value ) {
+					if ( ! is_scalar( $value ) || '' === $value ) {
+						continue;
+					}
+
+					$legacy[ $path ][ $breakpoint ] = self::withResponsiveSide( $path, $legacy[ $path ][ $breakpoint ] ?? null, $sideKey, $value );
+				}
+
+				continue;
+			}
+
+			$nested = array_values( array_filter(
+				array_map( 'strval', array_keys( $propertyMap ) ),
+				static fn ( string $path ): bool => str_starts_with( $path, $key . '.' ),
+			) );
+
+			if ( [] === $nested ) {
+				$out[ $key ] = $overrides;
+
+				continue;
+			}
+
+			$folded = true;
+
+			foreach ( $overrides as $breakpoint => $value ) {
+				if ( ! is_array( $value ) ) {
+					continue;
+				}
+
+				foreach ( $nested as $path ) {
+					$nestedValue = self::readResponsivePath( $value, substr( $path, strlen( $key ) + 1 ) );
+
+					if ( null === $nestedValue ) {
+						continue;
+					}
+
+					$legacy[ $path ][ $breakpoint ] = self::mergeResponsiveValue( $path, $legacy[ $path ][ $breakpoint ] ?? null, $nestedValue );
+				}
+			}
+		}
+
+		if ( ! $folded ) {
+			return $responsive;
+		}
+
+		foreach ( $legacy as $path => $byBreakpoint ) {
+			$canonical = isset( $out[ $path ] ) && is_array( $out[ $path ] ) ? $out[ $path ] : [];
+
+			foreach ( $byBreakpoint as $breakpoint => $value ) {
+				if ( ! isset( $canonical[ $breakpoint ] ) ) {
+					$canonical[ $breakpoint ] = $value;
+				}
+			}
+
+			$out[ $path ] = $canonical;
+		}
+
+		return $out;
+	}
+
+	/**
+	 * The mapped per-side path and side a key one side deeper names
+	 * (`style.spacing.blockGap.left` → `[style.spacing.blockGap, left]`),
+	 * or null (#918).
+	 *
+	 * @since 1.15.2
+	 *
+	 * @param  array<string, string>  $propertyMap
+	 *
+	 * @return array{0: string, 1: string}|null
+	 */
+	protected static function responsiveSideOf( string $key, array $propertyMap ): ?array
+	{
+		foreach ( self::RESPONSIVE_OBJECT_SIDES as $path => $sides ) {
+			if ( ! isset( $propertyMap[ $path ] ) || ! str_starts_with( $key, $path . '.' ) ) {
+				continue;
+			}
+
+			$side = substr( $key, strlen( $path ) + 1 );
+
+			return in_array( $side, $sides, true ) ? [ $path, $side ] : null;
+		}
+
+		return null;
+	}
+
+	/**
+	 * `$existing` with one side set; a scalar is spread over every side
+	 * first so the others survive (#918).
+	 *
+	 * @since 1.15.2
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected static function withResponsiveSide( string $path, mixed $existing, string $side, mixed $value ): array
+	{
+		$next          = is_array( $existing ) ? $existing : self::spreadResponsiveScalar( $path, $existing );
+		$next[ $side ] = $value;
+
+		return $next;
+	}
+
+	/**
+	 * Lay a later legacy value over an earlier one for the same path:
+	 * objects merge side by side, a scalar replaces (#918).
+	 *
+	 * @since 1.15.2
+	 */
+	protected static function mergeResponsiveValue( string $path, mixed $existing, mixed $value ): mixed
+	{
+		if ( ! is_array( $value ) ) {
+			return $value;
+		}
+
+		$base = is_array( $existing ) ? $existing : self::spreadResponsiveScalar( $path, $existing );
+
+		foreach ( $value as $side => $sideValue ) {
+			$base[ $side ] = $sideValue;
+		}
+
+		return $base;
+	}
+
+	/**
+	 * A scalar spread over every side of a per-side path, or `[]` (#918).
+	 *
+	 * @since 1.15.2
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected static function spreadResponsiveScalar( string $path, mixed $value ): array
+	{
+		if ( ! isset( self::RESPONSIVE_OBJECT_SIDES[ $path ] ) || '' === $value || ( ! is_string( $value ) && ! is_int( $value ) && ! is_float( $value ) ) ) {
+			return [];
+		}
+
+		return array_fill_keys( self::RESPONSIVE_OBJECT_SIDES[ $path ], $value );
+	}
+
+	/**
+	 * The value at a dotted path inside a legacy override, or null.
+	 *
+	 * @since 1.15.2
+	 *
+	 * @param  array<mixed>  $value
+	 */
+	protected static function readResponsivePath( array $value, string $path ): mixed
+	{
+		$cursor = $value;
+
+		foreach ( explode( '.', $path ) as $segment ) {
+			if ( ! is_array( $cursor ) || ! array_key_exists( $segment, $cursor ) ) {
+				return null;
+			}
+
+			$cursor = $cursor[ $segment ];
+		}
+
+		return $cursor;
+	}
+
+	/**
 	 * The payload the responsive scope class is hashed from. Normally
 	 * just `attributes.responsive`, but a unit path's rules also read the
 	 * block's base value and unit (#877), so those join the hash
@@ -1096,6 +1570,9 @@ class BlockSupports
 	 * the accumulator would keep only the first one's rules.
 	 *
 	 * @since 1.15.0
+	 * @since 1.15.2 A Columns block's gap overrides also mark the hash
+	 *               (#914): they add `--ap-columns-gap`, so a Group with
+	 *               the same overrides must not share the scope.
 	 *
 	 * @param  array<mixed>           $responsive
 	 * @param  array<string, mixed>   $attributes
@@ -1103,7 +1580,7 @@ class BlockSupports
 	 *
 	 * @return array<mixed>
 	 */
-	protected static function responsiveHashInput( array $responsive, array $attributes, array $propertyMap ): array
+	protected static function responsiveHashInput( array $responsive, array $attributes, array $propertyMap, bool $columnsGap = false ): array
 	{
 		$base = [];
 
@@ -1120,7 +1597,9 @@ class BlockSupports
 			$base[ $unitPath ] = $attributes[ $unitPath ] ?? null;
 		}
 
-		return [] === $base ? $responsive : [ 'responsive' => $responsive, 'base' => $base ];
+		$input = [] === $base ? $responsive : [ 'responsive' => $responsive, 'base' => $base ];
+
+		return $columnsGap ? [ 'responsive' => $input, 'columnsGap' => true ] : $input;
 	}
 
 	/**
@@ -1299,8 +1778,8 @@ class BlockSupports
 	}
 
 	/**
-	 * Carve `background-color`, `background-image`, and shorthand
-	 * `background` declarations out of a semicolon-separated style
+	 * Carve the shorthand `background` and every `background-*`
+	 * longhand declaration out of a semicolon-separated style
 	 * string, returning `[backgroundStyle, wrapperStyle]`. Each output
 	 * string is `;`-suffixed iff non-empty so callers can splice them
 	 * back into a wrapper attribute without re-checking emptiness.
@@ -1345,13 +1824,14 @@ class BlockSupports
 	}
 
 	/**
-	 * Check a single trimmed CSS declaration for a `background-color`,
-	 * `background-image`, or shorthand `background` property name. The
+	 * Check a single trimmed CSS declaration for the shorthand
+	 * `background` or a `background-*` longhand property name. The
 	 * match is anchored to the property — declarations with a value
 	 * containing the literal `background` keyword (e.g.
 	 * `transition: background 200ms`) are left on the wrapper.
 	 *
 	 * @since 1.1.0
+	 * @since 1.15.3 Matches every `background-*` longhand, not just colour and image.
 	 */
 	protected static function isBackgroundDeclaration( string $declaration ): bool
 	{
@@ -1363,9 +1843,7 @@ class BlockSupports
 
 		$property = strtolower( rtrim( substr( $declaration, 0, $colonPosition ) ) );
 
-		return 'background' === $property
-			|| 'background-color' === $property
-			|| 'background-image' === $property;
+		return 'background' === $property || str_starts_with( $property, 'background-' );
 	}
 
 	/**
@@ -2232,8 +2710,9 @@ class BlockSupports
 	 * Turn a single override value into one or more CSS declarations.
 	 * Scalars become `property: value`. Per-side objects (the shape
 	 * Gutenberg uses for spacing/border: `{top, right, bottom, left}`)
-	 * become per-side declarations (`padding-top: ...`, etc.). The
-	 * resulting declaration list is `;`-joined with no trailing
+	 * become per-side declarations (`padding-top: ...`, etc.); a per-axis
+	 * `gap` object becomes `row-gap` / `column-gap`
+	 * ({@see self::RESPONSIVE_AXIS_PROPERTIES}). The resulting declaration list is `;`-joined with no trailing
 	 * semicolon — callers add the wrapping `{}` and any trailing `;`
 	 * they need.
 	 *
@@ -2266,8 +2745,14 @@ class BlockSupports
 		}
 
 		$pieces = [];
+		$sides  = self::RESPONSIVE_AXIS_PROPERTIES[ $property ] ?? [
+			'top'    => $property . '-top',
+			'right'  => $property . '-right',
+			'bottom' => $property . '-bottom',
+			'left'   => $property . '-left',
+		];
 
-		foreach ( [ 'top', 'right', 'bottom', 'left' ] as $side ) {
+		foreach ( $sides as $side => $longhand ) {
 			if ( ! isset( $value[ $side ] ) || null === $value[ $side ] || '' === $value[ $side ] ) {
 				continue;
 			}
@@ -2278,12 +2763,7 @@ class BlockSupports
 				continue;
 			}
 
-			$pieces[] = sprintf(
-				'%s-%s:%s!important',
-				$property,
-				$side,
-				$resolved,
-			);
+			$pieces[] = sprintf( '%s:%s!important', $longhand, $resolved );
 		}
 
 		return implode( ';', $pieces );
@@ -2477,6 +2957,7 @@ class BlockSupports
 	 *
 	 * @since 1.0.0
 	 * @since 1.14.1 Adds `has-{slug}-color-preset` for the `text` / `link` / `border` text-color slugs.
+	 * @since 1.15.3 Drops values {@see self::supportValue()} rejects (#920 review).
 	 *
 	 * @param  array<string, mixed>  $attributes
 	 * @param  array<int, string>   &$classes
@@ -2488,9 +2969,11 @@ class BlockSupports
 		$textSlug       = self::stringAttr( $attributes['textColor'] ?? null );
 		$gradientSlug   = self::stringAttr( $attributes['gradient'] ?? null );
 
-		$customBackground = self::stringAttr( $attributes['style']['color']['background'] ?? null );
-		$customText       = self::stringAttr( $attributes['style']['color']['text'] ?? null );
-		$customGradient   = self::stringAttr( $attributes['style']['color']['gradient'] ?? null );
+		// #920 review — a custom value is validated for its property and
+		// treated as unset (no declaration, no marker class) when rejected.
+		$customBackground = self::supportValue( 'background-color', self::stringAttr( $attributes['style']['color']['background'] ?? null ) );
+		$customText       = self::supportValue( 'color', self::stringAttr( $attributes['style']['color']['text'] ?? null ) );
+		$customGradient   = self::supportValue( 'background', self::stringAttr( $attributes['style']['color']['gradient'] ?? null ) );
 
 		// Background — slug wins over custom when both are set (mirrors
 		// WP core, which serializes slug first and uses the custom
@@ -2498,8 +2981,8 @@ class BlockSupports
 		if ( '' !== $backgroundSlug ) {
 			$classes[] = 'has-' . self::slugify( $backgroundSlug ) . '-background-color';
 			$classes[] = 'has-background';
-		} elseif ( '' !== $customBackground ) {
-			$style[]   = 'background-color: ' . self::expandPresetReference( $customBackground );
+		} elseif ( null !== $customBackground ) {
+			$style[]   = 'background-color: ' . $customBackground;
 			$classes[] = 'has-background';
 		}
 
@@ -2508,8 +2991,8 @@ class BlockSupports
 		if ( '' !== $gradientSlug ) {
 			$classes[] = 'has-' . self::slugify( $gradientSlug ) . '-gradient-background';
 			$classes[] = 'has-background';
-		} elseif ( '' !== $customGradient ) {
-			$style[]   = 'background: ' . self::expandPresetReference( $customGradient );
+		} elseif ( null !== $customGradient ) {
+			$style[]   = 'background: ' . $customGradient;
 			$classes[] = 'has-background';
 		}
 
@@ -2525,8 +3008,8 @@ class BlockSupports
 			if ( null !== $pickClass ) {
 				$classes[] = $pickClass;
 			}
-		} elseif ( '' !== $customText ) {
-			$style[]   = 'color: ' . self::expandPresetReference( $customText );
+		} elseif ( null !== $customText ) {
+			$style[]   = 'color: ' . $customText;
 			$classes[] = 'has-text-color';
 		}
 	}
@@ -2655,13 +3138,18 @@ class BlockSupports
 	 * array.
 	 *
 	 * @since 1.0.0
+	 * @since 1.15.3 Drops values {@see self::supportValue()} rejects (#920 review).
 	 *
 	 * @param  array<int, string>  &$style
 	 */
 	protected static function applyBoxModel( string $box, mixed $value, array &$style ): void
 	{
 		if ( is_string( $value ) && '' !== $value ) {
-			$style[] = $box . ': ' . self::expandPresetReference( $value );
+			$safe = self::supportValue( $box, $value );
+
+			if ( null !== $safe ) {
+				$style[] = $box . ': ' . $safe;
+			}
 
 			return;
 		}
@@ -2672,12 +3160,13 @@ class BlockSupports
 
 		foreach ( [ 'top', 'right', 'bottom', 'left' ] as $side ) {
 			$side_value = self::stringAttr( $value[ $side ] ?? null );
+			$safe       = self::supportValue( $box . '-' . $side, $side_value );
 
-			if ( '' === $side_value ) {
+			if ( null === $safe ) {
 				continue;
 			}
 
-			$style[] = sprintf( '%s-%s: %s', $box, $side, self::expandPresetReference( $side_value ) );
+			$style[] = sprintf( '%s-%s: %s', $box, $side, $safe );
 		}
 	}
 
@@ -2692,6 +3181,7 @@ class BlockSupports
 	 * matching WP core which adds the same fallback when serializing.
 	 *
 	 * @since 1.0.0
+	 * @since 1.15.3 Drops values {@see self::supportValue()} rejects (#920 review).
 	 *
 	 * @param  array<string, mixed>  $attributes
 	 * @param  array<int, string>   &$classes
@@ -2717,16 +3207,22 @@ class BlockSupports
 		$radius = $border['radius'] ?? null;
 
 		if ( is_string( $radius ) && '' !== $radius ) {
-			$style[] = 'border-radius: ' . self::expandPresetReference( $radius );
+			$safe = self::supportValue( 'border-radius', $radius );
+
+			if ( null !== $safe ) {
+				$style[] = 'border-radius: ' . $safe;
+			}
 		} elseif ( is_array( $radius ) ) {
 			foreach ( [ 'topLeft', 'topRight', 'bottomLeft', 'bottomRight' ] as $corner ) {
-				$value = self::stringAttr( $radius[ $corner ] ?? null );
+				$value    = self::stringAttr( $radius[ $corner ] ?? null );
+				$property = sprintf( 'border-%s-radius', self::kebabCase( $corner ) );
+				$safe     = self::supportValue( $property, $value );
 
-				if ( '' === $value ) {
+				if ( null === $safe ) {
 					continue;
 				}
 
-				$style[] = sprintf( 'border-%s-radius: %s', self::kebabCase( $corner ), self::expandPresetReference( $value ) );
+				$style[] = $property . ': ' . $safe;
 			}
 		}
 
@@ -2734,12 +3230,13 @@ class BlockSupports
 
 		foreach ( [ 'color', 'style', 'width' ] as $property ) {
 			$value = self::stringAttr( $border[ $property ] ?? null );
+			$safe  = self::supportValue( 'border-' . $property, $value );
 
-			if ( '' === $value ) {
+			if ( null === $safe ) {
 				continue;
 			}
 
-			$style[] = 'border-' . $property . ': ' . self::expandPresetReference( $value );
+			$style[] = 'border-' . $property . ': ' . $safe;
 
 			if ( 'width' === $property || 'style' === $property ) {
 				$hasRootWidthOrStyle = true;
@@ -2766,12 +3263,13 @@ class BlockSupports
 
 			foreach ( [ 'color', 'style', 'width' ] as $property ) {
 				$value = self::stringAttr( $sideValues[ $property ] ?? null );
+				$safe  = self::supportValue( sprintf( 'border-%s-%s', $side, $property ), $value );
 
-				if ( '' === $value ) {
+				if ( null === $safe ) {
 					continue;
 				}
 
-				$style[] = sprintf( 'border-%s-%s: %s', $side, $property, self::expandPresetReference( $value ) );
+				$style[] = sprintf( 'border-%s-%s: %s', $side, $property, $safe );
 
 				if ( 'width' === $property ) {
 					$sideHasWidth = true;
@@ -2814,6 +3312,7 @@ class BlockSupports
 	 * decoration.
 	 *
 	 * @since 1.0.0
+	 * @since 1.15.3 Drops values {@see self::supportValue()} rejects (#920 review).
 	 *
 	 * @param  array<string, mixed>  $attributes
 	 * @param  array<int, string>   &$classes
@@ -2868,12 +3367,13 @@ class BlockSupports
 			}
 
 			$value = self::stringAttr( $typography[ $attrKey ] ?? null );
+			$safe  = self::supportValue( $cssProperty, $value );
 
-			if ( '' === $value ) {
+			if ( null === $safe ) {
 				continue;
 			}
 
-			$style[] = $cssProperty . ': ' . self::expandPresetReference( $value );
+			$style[] = $cssProperty . ': ' . $safe;
 		}
 	}
 
@@ -2884,7 +3384,9 @@ class BlockSupports
 	 * Covers the standard WP core dimensions block-support keys that map
 	 * cleanly to a single inline CSS property:
 	 * - `minHeight`   → `min-height`
-	 * - `aspectRatio` → `aspect-ratio`
+	 * - `aspectRatio` → `aspect-ratio`, plus `min-height: unset` (it wins
+	 *   over `minHeight`) and the `has-aspect-ratio` class, as WordPress's
+	 *   dimensions support does (#906)
 	 *
 	 * A block only opts into a given key via its `block.json`
 	 * (`supports.dimensions.minHeight: true` etc.). The compiler runs
@@ -2896,11 +3398,13 @@ class BlockSupports
 	 * scoped rule instead of a base declaration.
 	 *
 	 * @since 1.9.0
+	 * @since 1.15.3 Drops values {@see self::supportValue()} rejects (#920 review).
 	 *
 	 * @param  array<string, mixed>  $attributes
+	 * @param  array<int, string>   &$classes
 	 * @param  array<int, string>   &$style
 	 */
-	protected static function applyDimensions( array $attributes, array &$style ): void
+	protected static function applyDimensions( array $attributes, array &$classes, array &$style ): void
 	{
 		$dimensions = $attributes['style']['dimensions'] ?? null;
 
@@ -2908,19 +3412,26 @@ class BlockSupports
 			return;
 		}
 
-		$mappings = [
-			'minHeight'   => 'min-height',
-			'aspectRatio' => 'aspect-ratio',
-		];
+		$aspectRatio = self::stringAttr( $dimensions['aspectRatio'] ?? null );
+		$aspectRatio = self::supportValue( 'aspect-ratio', $aspectRatio );
 
-		foreach ( $mappings as $attrKey => $cssProperty ) {
-			$value = self::stringAttr( $dimensions[ $attrKey ] ?? null );
+		// An aspect ratio wins over min-height, as in WordPress's
+		// dimensions support: `min-height: unset` keeps a block's default
+		// min-height (cover's 430px) from overriding the ratio (#906).
+		// A rejected ratio counts as unset.
+		if ( null !== $aspectRatio ) {
+			$classes[] = 'has-aspect-ratio';
+			$style[]   = 'aspect-ratio: ' . $aspectRatio;
+			$style[]   = 'min-height: unset';
 
-			if ( '' === $value ) {
-				continue;
-			}
+			return;
+		}
 
-			$style[] = $cssProperty . ': ' . self::expandPresetReference( $value );
+		$minHeight = self::stringAttr( $dimensions['minHeight'] ?? null );
+		$minHeight = self::supportValue( 'min-height', $minHeight );
+
+		if ( null !== $minHeight ) {
+			$style[] = 'min-height: ' . $minHeight;
 		}
 	}
 
@@ -3018,7 +3529,7 @@ class BlockSupports
 
 	/**
 	 * Normalise one `var:preset|…` segment into its custom-property form.
-	 * Mirrors {@see \ArtisanPackUI\VisualEditor\Resources\PresetRegistry::presetSlug()}:
+	 * Mirrors {@see PresetRegistry::presetSlug()}:
 	 * split camelCase boundaries, lowercase, then every character outside
 	 * `[a-z0-9-]` becomes `-` (`big_gap` → `big-gap`). Runs of `-` are kept
 	 * and nothing is trimmed, so the result matches the declaration sites
@@ -3057,7 +3568,7 @@ class BlockSupports
 	 *
 	 * @param  array<int, string>  $style
 	 */
-	protected static function styleListContains( array $style, string $prefix ): bool
+	protected static function styleListContains( array $style, string $prefix): bool
 	{
 		foreach ( $style as $declaration ) {
 			if ( str_starts_with( $declaration, $prefix ) ) {

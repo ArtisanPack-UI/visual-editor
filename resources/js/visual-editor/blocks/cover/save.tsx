@@ -139,12 +139,19 @@ export default function save({ attributes }: CoverSaveProps): ReactElement {
 
     const gradientValue = gradient || customGradient;
 
+    // The wrapper props must be read before the inner blocks' (#908):
+    // `useInnerBlocksProps.save()` serializes the inner blocks on the spot,
+    // and each child's save repoints the block-props provider that
+    // `useBlockProps.save()` reads, so reading the wrapper second gave the
+    // cover its last child's classes and styles. Upstream calls them in
+    // this order inline.
+    const blockProps = useBlockProps.save({ className: classes, style });
     const innerBlocksSaveProps = useInnerBlocksProps.save({
         className: 'wp-block-cover__inner-container',
     });
 
     return (
-        <Tag {...useBlockProps.save({ className: classes, style })}>
+        <Tag {...blockProps}>
             {!useFeaturedImage &&
                 isImageBackground &&
                 url &&

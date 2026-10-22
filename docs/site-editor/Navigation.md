@@ -105,6 +105,7 @@ Attributes:
 | `location` | string | Menu-location slug. |
 | `ref` | number | Pattern reference id for synced nav patterns. |
 | `overlayMenu` | string | `'always'` \| `'mobile'` \| `'never'`. |
+| `collapseBreakpoint` | string | Where a `mobile` overlay collapses: empty / absent = below 600px (the default), `'mobile'` = at the registry's Mobile max-width and below (767px by default), `'tablet'` = at the Tablet max-width and below (1023px). Adds `collapses-at-{key}` to the `<nav>`. |
 | `overlay` | string | Slug of a `navigation-overlay` template part rendered inside the open overlay. Empty = default overlay. |
 | `submenuVisibility` | string | `'hover'` \| `'click'` \| `'always'` (vertical only). |
 | `showSubmenuIcon` | boolean | Render the chevron icon. |
@@ -114,6 +115,27 @@ Attributes:
 The block stores no inner blocks — the items come from the resolved
 menu at render time. Editing the menu in the site editor updates every
 page using this block.
+
+### Collapse breakpoint
+
+A `mobile` overlay collapses behind its open button below 600px — the
+block-library default, which matches none of the registry's
+breakpoints. The **Responsive** panel's **Collapse below** select
+(Default / Mobile / Tablet, with the widths read from the breakpoint
+registry) sets `collapseBreakpoint`. With `tablet`, the `<nav>` gains
+`collapses-at-tablet`, and the renderer emits, once per breakpoint per
+page, rules that keep the drawer collapsed up to the Tablet max-width
+and show the inline menu above it, in both directions overriding the
+600px rules. Blade prints them as `<style data-ve-navigation-collapse="tablet">`
+after the first such nav; React and Vue print one
+`<style data-ve-navigation-collapse>` from `BlockTree`. The keys match
+the screen-size visibility keys, so a block hidden on `tablet` hides at
+exactly the width the menu collapses. The canvas preview uses the same
+rules. `always` and `never` overlays ignore the attribute.
+
+```html
+<!-- wp:navigation {"collapseBreakpoint":"tablet"} /-->
+```
 
 ### Overlay controls
 
@@ -252,6 +274,30 @@ import { Navigation } from '@artisanpack-ui/visual-editor-renderer-react';
 <Navigation location="primary" />
 ```
 
+### Current page (#975)
+
+As in WordPress, the menu item for the page being viewed is marked so
+screen readers announce it and themes can style it:
+
+| Item | `<li>` class | `<a>` attribute |
+|------|--------------|-----------------|
+| Link / submenu whose URL is the current page | `current-menu-item` | `aria-current="page"` |
+| Link / submenu whose URL is a parent path (`/blog` on `/blog/hello`) | `current-menu-ancestor` | — |
+| Submenu with a current or parent-path link anywhere below it | `current-menu-ancestor` | — |
+
+Matching compares paths, ignoring a trailing slash, the query string and
+the fragment. Relative links (`/blog`) match on path alone; absolute or
+protocol-relative links must also name the request's host and port (the
+scheme is ignored), so a link to another site is never current. `/` is
+only ever current on the home page, never an ancestor. `#anchor`,
+`mailto:` and other non-`http(s)` URLs never match.
+
+Blade reads the request (`request()->url()`); the React and Vue renderers
+take the page URL through `<BlockTree currentUrl>` / `<Template
+currentUrl>` (see [Renderers](../renderers.md)). The matcher is
+`ArtisanPackUI\VisualEditorRendererBlade\Support\NavigationCurrentState`
+and its TypeScript twin `matchNavigationUrl()`.
+
 ---
 
 ## 8. Per-viewport visibility (mobile-overlay-only content)
@@ -270,30 +316,29 @@ render to specific breakpoints. Every block ships opted-in to block
 visibility, so the Screen Size subsection is already available in the
 Inspector for these blocks.
 
-To render a CTA only inside the mobile overlay:
+To render a CTA only inside the mobile overlay of a nav that collapses
+below 1024px:
 
 1. Select the nested `core/buttons` (or a `core/navigation-link`) inside
    the nav.
 2. Open the **Visibility** panel in the Inspector.
-3. Under **Screen Size**, pick `Show` at these sizes and check only
-   `Small (≥640px)`.
+3. Turn on **Screen size** and check **Desktop (≥1024px)**.
 
-The renderer emits a scoped `@media (min-width:...)` `display:none`
-rule for every breakpoint you didn't check, so the CTA disappears from
-the desktop / tablet bar while staying visible inside the drawer on
-mobile. There's no runtime JavaScript for the gate — the CSS is scoped
-per block so two blocks hidden at different breakpoints don't share
-rules.
+The renderer emits a scoped `display:none` rule for 1024px and up, so
+the CTA disappears from the desktop bar while staying visible inside
+the drawer. There's no runtime JavaScript for the gate — the CSS is
+scoped per block so two blocks hidden at different breakpoints don't
+share rules.
 
-The inverse workflow — a "Book a demo" button visible only on desktop
-— uses the same rule with `Show at → Large` + larger breakpoints, or
-`Hide at → Small` + `Medium`.
-
-The Screen Size options are the legacy mobile-first breakpoint keys
-(`sm`, `md`, `lg`, `xl`, `2xl`), not the desktop-first **Tablet** /
-**Mobile** overrides the viewport switcher uses for styles since
-1.12.1. The two systems are independent: style overrides set at
-Tablet or Mobile don't change which screen sizes a block renders at.
+The inverse — a "Book a demo" button visible only in the desktop bar —
+checks **Tablet (≤1023px)**, which stores
+`{"direction":"hide","breakpoints":["tablet"]}` and emits
+`@media (max-width:1023px)`. **Mobile (≤767px)** (`"mobile"`) hides at
+767px and below. These are the same named keys as the desktop-first
+breakpoint registry, so a host that changes the Tablet / Mobile widths
+moves the visibility queries with them. See
+[Block Visibility](../visibility.md#screen-size) for the legacy
+`sm`–`2xl` ranges and `direction: "show"`.
 
 Links and submenus live in the menu, not in the page's block tree, so
 their visibility settings are saved with the menu item. Menu items

@@ -78,6 +78,7 @@ describe('registerBlockRenderer', () => {
             'query-pagination-numbers',
             'query-pagination-previous',
             'query-title',
+            'query-total',
         ]) {
             expect(hasBlockRenderer(`core/${slug}`)).toBe(true);
             expect(getBlockRenderer(`core/${slug}`)).toBe(getBlockRenderer(`artisanpack/${slug}`));

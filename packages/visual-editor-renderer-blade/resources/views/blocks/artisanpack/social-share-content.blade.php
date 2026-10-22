@@ -70,11 +70,18 @@
 				continue;
 			}
 
+			// `copyLink` (#963) carries the bare permalink: the chip is a
+			// plain link to the post until the front-end interactivity
+			// script upgrades it to a copy-to-clipboard button.
+			$isCopyLink = 'copyLink' === $slug;
+
 			$chips[] = [
-				'slug'  => $slug,
-				'url'   => $safeUrl,
-				'label' => $definition['label'],
-				'path'  => $definition['path'],
+				'slug'      => $slug,
+				'url'       => $safeUrl,
+				'label'     => $definition['label'],
+				'ariaLabel' => $isCopyLink ? $definition['label'] : 'Share on ' . $definition['label'],
+				'path'      => $definition['path'],
+				'copy'      => $isCopyLink,
 			];
 		}
 	}
@@ -122,7 +129,7 @@
 <div{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}>
 	@foreach ( $chips as $chip )
 		<div class="ap-social-share-content__item">
-			<a class="ap-social-share-content__chip {{ $chip['slug'] }}" href="{{ $chip['url'] }}" aria-label="{{ 'Share on ' . $chip['label'] }}"{!! $styleAttr !!}>
+			<a class="ap-social-share-content__chip {{ $chip['slug'] }}" href="{{ $chip['url'] }}" aria-label="{{ $chip['ariaLabel'] }}"@if ( $chip['copy'] ) data-ap-copy-link="{{ $chip['url'] }}"@endif{!! $styleAttr !!}>
 				@if ( $showIcon )
 					<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true" focusable="false" class="ap-social-share-content__icon" fill="currentColor"><path d="{{ $chip['path'] }}"></path></svg>
 				@endif

@@ -17,28 +17,68 @@ import {
     classList,
     layoutClass,
 } from '../../support/attributes';
-import { applyBlockGap } from '../../support/blockGap';
+import { compileBlockSupports, compileCoverOverlay, splitBackgroundSupports } from '../../support/blockSupports';
+import { styleProp } from '../../support/styleProp';
 import { cssNumber } from '../../support/cssNumber';
 import { layoutWrapperClasses } from '../../support/layoutContainer';
+import { coverImageUrl } from '../../support/coverImage';
+import { searchButtonClasses, searchButtonPosition, searchFormAction } from '../../support/searchForm';
 import { safeUrl } from '../../support/urlSanitizer';
 import type { BlockRendererProps } from '../../types';
 
 const ALLOWED_MIN_HEIGHT_UNITS = ['px', 'em', 'rem', 'vh', 'vw', '%'] as const;
 const ALLOWED_CELL_ALIGN = ['left', 'center', 'right', 'justify'] as const;
+const ALLOWED_CELL_SCOPE = ['row', 'col', 'rowgroup', 'colgroup'] as const;
+
+/** HTML's own ceilings for the span attributes, mirrored from `table.blade.php`. */
+const CELL_SPAN_LIMITS = { colspan: 1000, rowspan: 65534 } as const;
+
+/**
+ * Sanitise a table cell's `colspan` / `rowspan` to a positive integer, or
+ * undefined when the stored value is missing or not a plain integer (#971).
+ */
+function cellSpan(value: unknown, name: keyof typeof CELL_SPAN_LIMITS): number | undefined {
+    const raw = typeof value === 'number' && Number.isInteger(value) ? String(value) : value;
+
+    if (typeof raw !== 'string') {
+        return undefined;
+    }
+
+    const match = /^([0-9]+)$/.exec(raw);
+
+    if (match === null) {
+        return undefined;
+    }
+
+    const span = Number.parseInt(match[1], 10);
+
+    return span < 1 ? undefined : Math.min(span, CELL_SPAN_LIMITS[name]);
+}
+
+/** Allowlist a `<th>` scope; `<td>` never carries one (upstream save drops it). */
+function cellScope(value: unknown, tag: 'td' | 'th'): string | undefined {
+    const scope = typeof value === 'string' ? value.toLowerCase() : '';
+
+    return tag === 'th' && (ALLOWED_CELL_SCOPE as ReadonlyArray<string>).includes(scope) ? scope : undefined;
+}
 
 export function SeparatorBlock({ attributes }: BlockRendererProps): JSX.Element {
     const style = attrString(attributes.style, 'default');
     const className = attrString(attributes.className);
 
+    // #920 — the supports `separator.blade.php` prints; a legacy string
+    // `style` is a variant id, which the compiler skips.
+    const supports = compileBlockSupports(attributes);
     const classes = classList([
         'wp-block-separator',
         'has-alpha-channel-opacity',
         style === 'wide' ? 'is-style-wide' : null,
         style === 'dots' ? 'is-style-dots' : null,
+        ...supports.classNames,
         className,
     ]);
 
-    return <hr className={classes} />;
+    return <hr className={classes} style={styleProp(supports.style)} />;
 }
 
 export function SpacerBlock({ attributes }: BlockRendererProps): JSX.Element {
@@ -52,24 +92,35 @@ export function SpacerBlock({ attributes }: BlockRendererProps): JSX.Element {
 
     // `_veSpacerWidthScope` is stamped by `stampResponsiveScopes()` for
     // per-breakpoint widths; Blade appends it after the compiled classes.
+    // #920 — the supports ride ahead of the spacer's own height, as in
+    // `spacer.blade.php`.
+    const supports = compileBlockSupports(attributes);
     const classes = classList([
         'wp-block-spacer',
+        ...supports.classNames,
         attrString(attributes.className),
         attrString(attributes._veSpacerWidthScope),
     ]);
 
-    return <div aria-hidden="true" className={classes} style={{ height }} />;
+    return <div aria-hidden="true" className={classes} style={{ ...supports.style, height }} />;
 }
 
 export function CoverBlock({ attributes, children }: BlockRendererProps): JSX.Element {
-    const url = safeUrl(attributes.url);
+    const url = coverImageUrl(attributes);
     const isDark = attributes.isDark === undefined ? true : attrBoolean(attributes.isDark);
 
-    const rawDim = attrInt(attributes.dimRatio, 50);
+    // block.json defaults dimRatio to 100 and the editor omits defaults (#906).
+    const rawDim = attrInt(attributes.dimRatio, 100);
     const dimRatio = Math.max(0, Math.min(100, rawDim));
 
     const align = attrString(attributes.align);
     const className = attrString(attributes.className);
+
+    // #583 / #920 — the background supports paint on the overlay span,
+    // with the cover's own overlay colour; everything else stays on the
+    // wrapper, as `cover.blade.php` routes them.
+    const supports = splitBackgroundSupports(compileBlockSupports(attributes));
+    const overlay = compileCoverOverlay(attributes);
 
     const classes = classList([
         'wp-block-cover',
@@ -80,21 +131,34 @@ export function CoverBlock({ attributes, children }: BlockRendererProps): JSX.El
         // Duotone scope stamped by `stampDuotoneScopes()`.
         attrString(attributes._veDuotone) || null,
         align !== '' ? `align${align}` : null,
+        ...supports.wrapper.classNames,
         className,
     ]);
 
-    // The cover's own Block spacing rides first, in `cover.blade.php` order.
-    let style: Record<string, string> = { ...applyBlockGap(attributes) };
+    // The cover's supports ride first, in `cover.blade.php` order.
+    let style: Record<string, string> = { ...supports.wrapper.style };
 
-    if (attributes.minHeight !== undefined && attributes.minHeight !== null) {
+    // An aspect ratio replaces the cover's own min-height (#906).
+    const hasAspectRatio = attrString(attrRecord(attrRecord(attributes.style).dimensions).aspectRatio) !== '';
+
+    if (attributes.minHeight !== undefined && attributes.minHeight !== null && !hasAspectRatio) {
         const minHeight = Math.max(0, attrFloat(attributes.minHeight));
         const requestedUnit = attrString(attributes.minHeightUnit);
         const unit = (ALLOWED_MIN_HEIGHT_UNITS as ReadonlyArray<string>).includes(requestedUnit)
             ? requestedUnit
             : 'px';
 
+        // Blade appends the cover's own min-height after a dimensions
+        // one, so it wins; a style object holds one key, so move it last.
+        delete style.minHeight;
         style = { ...style, minHeight: `${cssNumber(minHeight)}${unit}` };
     }
+
+    const overlayClasses = classList([
+        'wp-block-cover__background',
+        'has-background-dim',
+        ...new Set([...supports.background.classNames, ...overlay.classNames]),
+    ]);
 
     // F-3 — cover's layout applies to its inner container, as in
     // `cover.blade.php`; cover doesn't allow justification.
@@ -107,8 +171,8 @@ export function CoverBlock({ attributes, children }: BlockRendererProps): JSX.El
         <div className={classes} style={Object.keys(style).length > 0 ? (style as React.CSSProperties) : undefined}>
             <span
                 aria-hidden="true"
-                className="wp-block-cover__background has-background-dim"
-                style={{ opacity: dimRatio / 100 }}
+                className={overlayClasses}
+                style={{ opacity: dimRatio / 100, ...supports.background.style, ...overlay.style }}
             />
             {url === '' ? null : (
                 <img className="wp-block-cover__image-background" alt="" src={url} />
@@ -127,14 +191,18 @@ export function MediaTextBlock({ attributes, children }: BlockRendererProps): JS
     const className = attrString(attributes.className);
     const isStackedOnMobile = attrBoolean(attributes.isStackedOnMobile);
 
+    // #920 — the supports ride ahead of the grid columns, as in
+    // `media-text.blade.php`.
+    const supports = compileBlockSupports(attributes);
     const classes = classList([
         'wp-block-media-text',
         mediaPosition === 'right' ? 'has-media-on-the-right' : null,
         isStackedOnMobile ? 'is-stacked-on-mobile' : null,
+        ...supports.classNames,
         className,
     ]);
 
-    let style: React.CSSProperties | undefined;
+    const wrapperStyle: Record<string, string> = { ...supports.style };
 
     if (mediaWidth !== 50) {
         const columns =
@@ -142,8 +210,10 @@ export function MediaTextBlock({ attributes, children }: BlockRendererProps): JS
                 ? `${mediaWidth}% auto`
                 : `auto ${mediaWidth}%`;
 
-        style = { gridTemplateColumns: columns };
+        wrapperStyle.gridTemplateColumns = columns;
     }
+
+    const style = styleProp(wrapperStyle);
 
     return (
         <div className={classes} style={style}>
@@ -161,14 +231,13 @@ export function MediaTextBlock({ attributes, children }: BlockRendererProps): JS
 
 export function TableBlock({ attributes }: BlockRendererProps): JSX.Element {
     const className = attrString(attributes.className);
-    const hasFixedLayout = attrBoolean(attributes.hasFixedLayout);
+    // Defaults to true in block.json and is unsourced, so a saved block
+    // only carries it when false. The class belongs on `<table>` (#971).
+    const hasFixedLayout = attrBoolean(attributes.hasFixedLayout, true);
     const caption = attrString(attributes.caption);
 
-    const classes = classList([
-        'wp-block-table',
-        hasFixedLayout ? 'has-fixed-layout' : null,
-        className,
-    ]);
+    const supports = compileBlockSupports(attributes);
+    const classes = classList(['wp-block-table', ...supports.classNames, className]);
 
     const sections = [
         { key: 'head' as const, Tag: 'thead' as const, defaultTag: 'th' as const },
@@ -177,8 +246,8 @@ export function TableBlock({ attributes }: BlockRendererProps): JSX.Element {
     ];
 
     return (
-        <figure className={classes}>
-            <table>
+        <figure className={classes} style={styleProp(supports.style)}>
+            <table className={hasFixedLayout ? 'has-fixed-layout' : undefined}>
                 {sections.map(({ key, Tag, defaultTag }) => {
                     const rows = attrArray(attributes[key]);
 
@@ -209,6 +278,9 @@ export function TableBlock({ attributes }: BlockRendererProps): JSX.Element {
                                             return (
                                                 <CellTag
                                                     key={cellIndex}
+                                                    scope={cellScope(cellRecord.scope, CellTag)}
+                                                    colSpan={cellSpan(cellRecord.colspan, 'colspan')}
+                                                    rowSpan={cellSpan(cellRecord.rowspan, 'rowspan')}
                                                     style={cellStyle}
                                                     dangerouslySetInnerHTML={{ __html: content }}
                                                 />
@@ -233,19 +305,16 @@ export function DetailsBlock({ attributes, children }: BlockRendererProps): JSX.
     const showContent = attrBoolean(attributes.showContent);
     const className = attrString(attributes.className);
     // F-3 — layout pair, per-instance scope and modifiers, as in `details.blade.php`.
+    const supports = compileBlockSupports(attributes);
     const classes = classList([
         'wp-block-details',
         ...layoutWrapperClasses(attributes, 'details', layoutClass(attributes)),
+        ...supports.classNames,
         className,
     ]);
-    const gapStyle = applyBlockGap(attributes);
 
     return (
-        <details
-            className={classes}
-            open={showContent}
-            style={Object.keys(gapStyle).length > 0 ? (gapStyle as React.CSSProperties) : undefined}
-        >
+        <details className={classes} open={showContent} style={styleProp(supports.style)}>
             <summary dangerouslySetInnerHTML={{ __html: summary }} />
             {children}
         </details>
@@ -260,6 +329,9 @@ export function SearchBlock({ attributes }: BlockRendererProps): JSX.Element {
     const useIcon = attrBoolean(attributes.buttonUseIcon);
     const queryName = attrString(attrRecord(attributes.query).name, 's');
     const className = attrString(attributes.className);
+    // #961: the form's target and the term it shows (see support/searchForm).
+    const action = searchFormAction(attributes);
+    const searchValue = attrString(attributes._resolvedSearchValue);
 
     const ariaLabel =
         buttonText.trim() !== ''
@@ -268,9 +340,14 @@ export function SearchBlock({ attributes }: BlockRendererProps): JSX.Element {
             ? label
             : 'Search';
 
+    // #961: button position classes as WordPress prints them; `no-button`
+    // renders no button, so Enter submits.
+    const hasButton = searchButtonPosition(attributes) !== 'no-button';
+    const supports = compileBlockSupports(attributes);
     const classes = classList([
         'wp-block-search',
-        !showLabel ? 'wp-block-search__button-inside' : null,
+        ...searchButtonClasses(attributes, useIcon),
+        ...supports.classNames,
         className,
     ]);
 
@@ -282,21 +359,24 @@ export function SearchBlock({ attributes }: BlockRendererProps): JSX.Element {
     const inputId = `wp-block-search-input-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
 
     return (
-        <form role="search" method="get" action="/" className={classes}>
-            {showLabel ? (
-                <label className="wp-block-search__label" htmlFor={inputId}>
-                    {label}
-                </label>
-            ) : null}
+        <form role="search" method="get" action={action} className={classes} style={styleProp(supports.style)}>
+            {/* A hidden label stays for screen readers: it is the input's only accessible name. */}
+            <label
+                className={showLabel ? 'wp-block-search__label' : 'wp-block-search__label screen-reader-text'}
+                htmlFor={inputId}
+            >
+                {label}
+            </label>
             <div className="wp-block-search__inside-wrapper">
                 <input
                     id={inputId}
                     type="search"
                     className="wp-block-search__input"
                     name={queryName}
+                    defaultValue={searchValue}
                     placeholder={placeholder === '' ? undefined : placeholder}
                 />
-                {useIcon ? (
+                {!hasButton ? null : useIcon ? (
                     <button type="submit" className={buttonClasses} aria-label={ariaLabel}>
                         <svg
                             className="wp-block-search__button-icon"
@@ -319,4 +399,3 @@ export function SearchBlock({ attributes }: BlockRendererProps): JSX.Element {
         </form>
     );
 }
-

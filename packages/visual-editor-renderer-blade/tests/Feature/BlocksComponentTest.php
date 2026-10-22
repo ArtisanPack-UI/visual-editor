@@ -182,7 +182,9 @@ it( 'renders the overlay template-part contents inside the responsive container 
 		// for the inline desktop / closed-drawer view — the overlay
 		// adds to the DOM, it doesn't erase the navigation.
 		->and( $rendered )->toContain( '<ul class="wp-block-navigation__container">' )
-		->and( $rendered )->toContain( '<a class="wp-block-navigation-item__content" href="/">' )
+		// No closing `>`: the test request is for `/`, so the Home link
+		// also carries `aria-current="page"` (#975).
+		->and( $rendered )->toContain( '<a class="wp-block-navigation-item__content" href="/"' )
 		// The content container is marked so the emitted toggle CSS can
 		// swap menu ↔ overlay based on `is-menu-open`.
 		->and( $rendered )->toContain( 'wp-block-navigation__responsive-container-content has-overlay-template' );

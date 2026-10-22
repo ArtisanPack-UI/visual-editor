@@ -19,6 +19,7 @@
  */
 
 import {
+    BlockContextProvider,
     BlockList,
     BlockToolbar,
     BlockTools,
@@ -40,6 +41,9 @@ import { SpacingPresetStyles } from '../editor/spacing-preset-styles';
 
 import './entity-editor-canvas.css';
 
+/** Stable empty block context for templates with no preview entry. */
+const NO_BLOCK_CONTEXT: Record<string, unknown> = Object.freeze({});
+
 export interface EntityEditorCanvasProps {
     /** Identifier for the active entity (used in a11y announcements). */
     entityTitle: string;
@@ -59,10 +63,17 @@ export interface EntityEditorCanvasProps {
      * surface matches the public front-end (Keystone #47).
      */
     apiBase?: string;
+    /**
+     * Block context stamped above the block list. Templates use it to
+     * pipe the preview entry into the `post-*` blocks as
+     * `artisanpack/postPreview` (#993). `null` / omitted renders the
+     * blocks without extra context.
+     */
+    blockContext?: Record<string, unknown> | null;
 }
 
 export function EntityEditorCanvas(props: EntityEditorCanvasProps): JSX.Element {
-    const { entityTitle, header, isLoading, errorMessage, apiBase } = props;
+    const { entityTitle, header, isLoading, errorMessage, apiBase, blockContext } = props;
 
     const announcement = useMemo(
         () =>
@@ -167,7 +178,16 @@ export function EntityEditorCanvas(props: EntityEditorCanvasProps): JSX.Element 
                     <BlockTools>
                         <WritingFlow>
                             <ObserveTyping>
-                                <BlockList layout={ROOT_CANVAS_LAYOUT} />
+                                {/*
+                                 * Always mounted, even with no preview entry:
+                                 * swapping the parent element type would
+                                 * remount `BlockList` (losing selection and
+                                 * in-progress edits) when the preview entry
+                                 * resolves. An empty value merges as a no-op.
+                                 */}
+                                <BlockContextProvider value={blockContext ?? NO_BLOCK_CONTEXT}>
+                                    <BlockList layout={ROOT_CANVAS_LAYOUT} />
+                                </BlockContextProvider>
                             </ObserveTyping>
                         </WritingFlow>
                     </BlockTools>

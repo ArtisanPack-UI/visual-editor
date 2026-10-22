@@ -289,6 +289,33 @@ describe('CoverEdit', () => {
         expect(img?.getAttribute('src')).toBe('https://example.com/photo.jpg');
     });
 
+    it('previews the query loop post featured image when useFeaturedImage is on (#942)', () => {
+        const { container } = render(
+            <CoverEdit
+                attributes={{
+                    tagName: 'div',
+                    useFeaturedImage: true,
+                    url: 'https://example.com/saved.jpg',
+                    dimRatio: 50,
+                }}
+                clientId="abc"
+                isSelected
+                overlayColor={{ color: '#fff', class: undefined }}
+                setAttributes={vi.fn()}
+                setOverlayColor={() => {}}
+                toggleSelection={() => {}}
+                context={{
+                    'artisanpack/postPreview': {
+                        id: 1,
+                        featuredImage: { url: 'https://example.com/featured.jpg' },
+                    },
+                }}
+            />
+        );
+        const img = container.querySelector('img.wp-block-cover__image-background');
+        expect(img?.getAttribute('src')).toBe('https://example.com/featured.jpg');
+    });
+
     // #578 — regression: the picker click must apply the overlay color
     // synchronously. Awaiting `getMediaColor` here piles RAF callbacks
     // from the upstream contrast checker faster than React can flush,

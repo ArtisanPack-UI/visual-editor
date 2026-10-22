@@ -127,6 +127,11 @@ A fixture may also carry `duotonePresets` (a theme's
 to `BlockTree`'s `duotonePresets` prop, and the Pest suite seeds them as the
 request's resolved presets through `DuotoneCssAccumulator::presets()`.
 
+A fixture may also set `resolveQueries: false` when its tree is already
+expanded the way `QueryInliner` leaves it (Related Posts items, for
+example, only resolve against a host post). The Pest suite then renders it
+with `:resolve-queries="false"`; the JS renderers take the tree as given.
+
 Currently declared (RN-12, navigation):
 
 - **Overlay (`^navigation-overlay-`).** Element `id`s (Blade tracker ids,
@@ -179,6 +184,15 @@ that layer is deliberately excluded, not accidentally:
 
 ### Resolved
 
+- **Colour, spacing, border, typography and dimensions supports
+  (#920).** Only Blade ran every block through
+  `BlockSupports::compile()`; React and Vue now port it as
+  `compileBlockSupports()` (`support/blockSupports.ts`), including the
+  cover's overlay routing. The `block-supports-*` fixtures pin every
+  support on Group, Paragraph, Heading, Column, Cover and Button, and the
+  `block-supports-audit-*` fixtures the other core blocks. A cover with
+  both a dimensions min-height and its own `minHeight` is left out: Blade
+  prints both declarations, a style object holds one (the cover's, last).
 - **Generic responsive overrides (#886).** Only Blade used to compile
   `attributes.responsive` (spacing, border, font size, colours, spacer
   height/width, cover min-height) into a `ve-r-<hash>` scope class plus

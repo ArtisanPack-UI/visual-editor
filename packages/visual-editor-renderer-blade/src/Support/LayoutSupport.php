@@ -378,6 +378,87 @@ class LayoutSupport
 	}
 
 	/**
+	 * The `--ap-columns-gap` declaration for a Columns block's base
+	 * `style.spacing.blockGap`, or null (#914).
+	 *
+	 * A per-axis gap only prints `row-gap` / `column-gap`, so without
+	 * this the Column width calc read the baseline's
+	 * `--ap-columns-gap: var(--wp--style--block-gap)`, i.e. the global
+	 * gap rather than the Columns block's own horizontal gap. Its `left`
+	 * value goes through {@see self::columnsGapValue()}. A string
+	 * `blockGap` normally needs nothing: it sets `--wp--style--block-gap`
+	 * on the wrapper, which the baseline already reads. The exception is
+	 * `normal`, which the calc can't multiply, so it is pinned to `0px`.
+	 *
+	 * @since 1.15.2
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 */
+	public static function columnsGapDeclaration( array $attributes ): ?string
+	{
+		$style   = is_array( $attributes['style'] ?? null ) ? $attributes['style'] : [];
+		$spacing = is_array( $style['spacing'] ?? null ) ? $style['spacing'] : [];
+		$gap     = $spacing['blockGap'] ?? null;
+
+		if ( ! is_array( $gap ) && ! self::isNormalGap( self::blockGapValue( $gap ) ) ) {
+			return null;
+		}
+
+		$left = self::columnsGapValue( $gap );
+
+		return null === $left ? null : '--ap-columns-gap: ' . $left;
+	}
+
+	/**
+	 * The length a Columns `blockGap` hands the Column width calc
+	 * (`--ap-columns-gap`), or null when it has none (#914).
+	 *
+	 * A scalar is used as-is; a per-axis object contributes its `left`
+	 * (horizontal) value. Either goes through {@see self::blockGapValue()},
+	 * so presets expand the same way as `gap` / `column-gap` and unsafe
+	 * values are dropped (F-10).
+	 *
+	 * The calc multiplies the gap (`calc(50% - var(--ap-columns-gap) * 0.5)`),
+	 * so it must be a length:
+	 *
+	 * - a unitless zero (what the inspector stores for "no gap") and
+	 *   `normal` (which is zero for flex) become `0px`;
+	 * - any other bare number, and any other keyword (`auto`, `inherit`,
+	 *   `initial`, `unset`, …), is no length, so nothing is returned and
+	 *   the calc keeps its fallback rather than becoming invalid and
+	 *   leaving the Column with no basis at all.
+	 *
+	 * @since 1.15.2
+	 */
+	public static function columnsGapValue( mixed $gap ): ?string
+	{
+		if ( is_array( $gap ) ) {
+			$gap = $gap['left'] ?? null;
+		}
+
+		$value = self::blockGapValue( $gap );
+
+		if ( null === $value ) {
+			return null;
+		}
+
+		if ( 1 === preg_match( '/^[+-]?(?:\d+\.?\d*|\.\d+)$/', $value ) ) {
+			return 0.0 === (float) $value ? '0px' : null;
+		}
+
+		if ( self::isNormalGap( $value ) ) {
+			return '0px';
+		}
+
+		// A bare identifier is a keyword, never a length.
+		if ( 1 === preg_match( '/^-?[a-z_][a-z0-9_-]*$/i', $value ) ) {
+			return null;
+		}
+
+		return $value;
+	}
+
+	/**
 	 * A stored length (`contentSize`, `wideSize`, `minimumColumnWidth`)
 	 * that is safe to splice into a `<style>` block, or null. Values
 	 * that fail {@see BlockSupports::safeCssValue()} or leave a
@@ -408,6 +489,16 @@ class LayoutSupport
 		}
 
 		return 0 === $depth ? $value : null;
+	}
+
+	/**
+	 * Whether a sanitised gap value is the `normal` keyword, in any case.
+	 *
+	 * @since 1.15.2
+	 */
+	protected static function isNormalGap( ?string $value ): bool
+	{
+		return null !== $value && 'normal' === strtolower( $value );
 	}
 
 	/**

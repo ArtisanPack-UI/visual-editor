@@ -24,6 +24,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework;
 
+use ArtisanPackUI\VisualEditor\Resources\ReadingTime;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -125,6 +126,9 @@ abstract class WpEntityResource extends JsonResource
 			'terms'           => $this->termsEnvelope( $model ),
 			'adjacent'        => $this->adjacentEnvelope( $model ),
 			'term'            => $this->primaryTermEnvelope( $model ),
+			// Whole minutes for the `artisanpack/post-reading-time`
+			// preview (#943), counted as `PostResolver` counts them.
+			'readingTime'     => ( new ReadingTime() )->minutes( $model ),
 		];
 	}
 

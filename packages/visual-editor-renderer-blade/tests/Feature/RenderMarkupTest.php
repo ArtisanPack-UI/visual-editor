@@ -145,3 +145,39 @@ it( 'still renders an editor-shape tree passed straight to render()', function (
 
 	expect( $html )->toContain( 'HELLO' );
 } );
+
+it( 'keeps a theme-file template-part position through markup parsing and inlining (#976)', function (): void {
+	$resolver = new class extends TemplatePartResolver {
+		public function __construct()
+		{
+		}
+
+		public function resolve( string $slug ): ?ResolvedEntity
+		{
+			return new ResolvedEntity(
+				slug: $slug,
+				theme: 'dev-sample',
+				source: 'theme',
+				raw: '<!-- wp:artisanpack/paragraph --><p>Header content</p><!-- /wp:artisanpack/paragraph -->',
+				blocks: [],
+				title: 'Header',
+				description: '',
+				status: 'publish',
+				hasThemeFile: true,
+				isCustom: false,
+				isBlade: false,
+				area: 'header',
+				model: null,
+			);
+		}
+	};
+
+	app()->instance( TemplatePartResolver::class, $resolver );
+
+	$html = app( BlockRenderer::class )->renderMarkup(
+		'<!-- wp:template-part {"slug":"header","tagName":"header","style":{"position":{"value":"sticky","offsets":{"top":{"value":0,"unit":"px"}},"zIndex":50}}} /-->',
+		'dev-sample',
+	);
+
+	expect( $html )->toMatch( '/<header class="wp-block-template-part wp-block-template-part--header ve-pos-[a-f0-9]+" style="position: sticky !important; top: 0px !important; z-index: 50 !important;"[^>]*>\s*<p class="wp-block-paragraph">Header content<\/p>/' );
+} )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );

@@ -800,3 +800,34 @@ it( 'kebab-cases a camelCase preset gradient slug (R-2)', function (): void {
 
 	expect( html_entity_decode( $html ) )->toContain( 'background: var(--wp--preset--gradient--sunset-glow)' );
 } );
+
+it( 'leaves the wrapper in block flow when no vertical alignment is set', function (): void {
+	$html = test()->block->render( [] );
+
+	expect( $html )->not->toContain( 'is-vertically-aligned-' )
+		->and( $html )->not->toMatch( '/<div class="wp-block-artisanpack-icon"[^>]*display: flex/' );
+} );
+
+it( 'vertically aligns the icon inside the wrapper', function ( string $alignment, string $justify ): void {
+	$html = test()->block->render( [ 'verticalAlignment' => $alignment ] );
+
+	expect( $html )->toContain( 'class="wp-block-artisanpack-icon is-vertically-aligned-' . $alignment . '"' )
+		->and( $html )->toContain( 'style="display: flex; flex-direction: column; align-items: flex-start; justify-content: ' . $justify . ';"' );
+} )->with( [
+	'top'    => [ 'top', 'flex-start' ],
+	'center' => [ 'center', 'center' ],
+	'bottom' => [ 'bottom', 'flex-end' ],
+] );
+
+it( 'keeps vertical alignment alongside other wrapper styles', function (): void {
+	$html = test()->block->render( [
+		'verticalAlignment' => 'center',
+		'style'             => [ 'spacing' => [ 'padding' => '12px' ] ],
+	] );
+
+	expect( $html )->toContain( 'justify-content: center; padding: 12px;' );
+} );
+
+it( 'rejects unknown vertical alignments', function ( mixed $alignment ): void {
+	expect( test()->block->validateAttrs( [ 'verticalAlignment' => $alignment ] )['verticalAlignment'] )->toBeNull();
+} )->with( [ 'stretch', '" onload="x', 1, [ [ 'center' ] ] ] );

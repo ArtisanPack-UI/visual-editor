@@ -33,6 +33,7 @@ const SOURCE_DIR = fileURLToPath( new URL( '../..', import.meta.url ) );
 const ALLOWED: Record<string, string> = {
 	'blocks/howto/edit.tsx|placeholder|https://…': 'URL format hint, not prose.',
 	'blocks/image/width-control.tsx|label|px': 'CSS unit suffix, the same in every locale.',
+	'blocks/_shared/search-form-action-control.tsx|placeholder|/blog': 'Example path, not prose.',
 	'site-editor/navigation/link-picker.tsx|placeholder|https://example.com': 'Example URL, not prose.',
 	'site-editor/styles/panels/font-family-picker.tsx|placeholder|system-ui, sans-serif': 'Example CSS font-family value.',
 };

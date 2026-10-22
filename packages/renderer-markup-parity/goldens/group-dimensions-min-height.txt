@@ -1,4 +1,4 @@
-<div class="wp-block-group is-layout-flow wp-block-group-is-layout-flow" style="min-height: 200px; aspect-ratio: 16/9">
+<div class="wp-block-group is-layout-flow wp-block-group-is-layout-flow has-aspect-ratio" style="aspect-ratio: 16/9; min-height: unset">
   <p class="wp-block-paragraph">
     "Dim"
   </p>
