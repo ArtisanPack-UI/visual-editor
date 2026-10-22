@@ -1,0 +1,30 @@
+<h2 class="wp-block-site-title has-primary-background-color has-background has-text-color has-border-color has-contrast-border-color has-small-font-size has-defined-font-size is-audited" style="color: #222222; padding-top: 1rem; padding-left: 2rem; margin-bottom: var(--wp--preset--spacing--30); border-radius: 4px; border-width: 1px; border-style: solid; line-height: 1.5; letter-spacing: 1px; min-height: 80px">
+</h2>
+<p class="wp-block-site-tagline has-primary-background-color has-background has-text-color has-border-color has-contrast-border-color has-small-font-size has-defined-font-size is-audited" style="color: #222222; padding-top: 1rem; padding-left: 2rem; margin-bottom: var(--wp--preset--spacing--30); border-radius: 4px; border-width: 1px; border-style: solid; line-height: 1.5; letter-spacing: 1px; min-height: 80px">
+</p>
+<div class="wp-block-site-logo is-default-size has-primary-background-color has-background has-text-color has-border-color has-contrast-border-color has-small-font-size has-defined-font-size is-audited" style="color: #222222; padding-top: 1rem; padding-left: 2rem; margin-bottom: var(--wp--preset--spacing--30); border-radius: 4px; border-width: 1px; border-style: solid; line-height: 1.5; letter-spacing: 1px; min-height: 80px">
+</div>
+<span class="wp-block-read-more has-primary-background-color has-background has-text-color has-border-color has-contrast-border-color has-small-font-size has-defined-font-size is-audited" style="color: #222222; padding-top: 1rem; padding-left: 2rem; margin-bottom: var(--wp--preset--spacing--30); border-radius: 4px; border-width: 1px; border-style: solid; line-height: 1.5; letter-spacing: 1px; min-height: 80px">
+  "More"
+</span>
+<div class="wp-block-term-description has-primary-background-color has-background has-text-color has-border-color has-contrast-border-color has-small-font-size has-defined-font-size is-audited" style="color: #222222; padding-top: 1rem; padding-left: 2rem; margin-bottom: var(--wp--preset--spacing--30); border-radius: 4px; border-width: 1px; border-style: solid; line-height: 1.5; letter-spacing: 1px; min-height: 80px">
+</div>
+<div class="wp-block-post-terms taxonomy-category has-primary-background-color has-background has-text-color has-border-color has-contrast-border-color has-small-font-size has-defined-font-size is-audited" style="color: #222222; padding-top: 1rem; padding-left: 2rem; margin-bottom: var(--wp--preset--spacing--30); border-radius: 4px; border-width: 1px; border-style: solid; line-height: 1.5; letter-spacing: 1px; min-height: 80px">
+</div>
+<div class="wp-block-post-navigation-link has-primary-background-color has-background has-text-color has-border-color has-contrast-border-color has-small-font-size has-defined-font-size is-audited" style="color: #222222; padding-top: 1rem; padding-left: 2rem; margin-bottom: var(--wp--preset--spacing--30); border-radius: 4px; border-width: 1px; border-style: solid; line-height: 1.5; letter-spacing: 1px; min-height: 80px">
+</div>
+<nav class="wp-block-navigation is-layout-flex wp-block-navigation-is-layout-flex is-horizontal has-primary-background-color has-background has-text-color has-border-color has-contrast-border-color has-small-font-size has-defined-font-size is-audited" style="color: #222222; padding-top: 1rem; padding-left: 2rem; margin-bottom: var(--wp--preset--spacing--30); border-radius: 4px; border-width: 1px; border-style: solid; line-height: 1.5; letter-spacing: 1px; min-height: 80px">
+  <ul class="wp-block-navigation__container">
+    <li class="wp-block-navigation-item wp-block-navigation-link has-primary-background-color has-background has-text-color has-border-color has-contrast-border-color has-small-font-size has-defined-font-size is-audited" style="color: #222222; padding-top: 1rem; padding-left: 2rem; margin-bottom: var(--wp--preset--spacing--30); border-radius: 4px; border-width: 1px; border-style: solid; line-height: 1.5; letter-spacing: 1px; min-height: 80px">
+      <a class="wp-block-navigation-item__content" href="/">
+        <span class="wp-block-navigation-item__label">
+          "Home"
+        </span>
+      </a>
+    </li>
+  </ul>
+</nav>
+<div class="wp-block-block has-primary-background-color has-background has-text-color has-border-color has-contrast-border-color has-small-font-size has-defined-font-size is-audited" style="color: #222222; padding-top: 1rem; padding-left: 2rem; margin-bottom: var(--wp--preset--spacing--30); border-radius: 4px; border-width: 1px; border-style: solid; line-height: 1.5; letter-spacing: 1px; min-height: 80px">
+</div>
+<div class="wp-block-query is-layout-constrained wp-block-query-is-layout-constrained has-primary-background-color has-background has-text-color has-border-color has-contrast-border-color has-small-font-size has-defined-font-size is-audited" style="color: #222222; padding-top: 1rem; padding-left: 2rem; margin-bottom: var(--wp--preset--spacing--30); border-radius: 4px; border-width: 1px; border-style: solid; line-height: 1.5; letter-spacing: 1px; min-height: 80px">
+</div>

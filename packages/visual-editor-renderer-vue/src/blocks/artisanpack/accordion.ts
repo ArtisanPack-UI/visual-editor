@@ -94,6 +94,7 @@ export const AccordionBlock = defineComponent({
         return () => {
             const panelId = attrString(props.attributes.panelId);
             const panelIcon = normalizePanelIcon(props.attributes.panelIcon);
+            const defaultOpen = props.attributes.defaultOpen === true;
             const className = attrString(props.attributes.className);
             const classes = classList(['wp-block-artisanpack-accordion', 'ap-accordion', className]);
 
@@ -121,7 +122,7 @@ export const AccordionBlock = defineComponent({
                 class: 'ap-accordion__title-content',
                 role: 'button',
                 tabindex: '0',
-                'aria-expanded': 'false',
+                'aria-expanded': defaultOpen ? 'true' : 'false',
             };
             if (panelId !== '') {
                 triggerAttrs.id = `${panelId}-control`;
@@ -131,8 +132,10 @@ export const AccordionBlock = defineComponent({
             const bodyAttrs: Record<string, unknown> = {
                 class: classList(['wp-block-artisanpack-accordion-body', 'ap-accordion__body', childClassName(props.innerBlocks, 'artisanpack/accordion-body')]),
                 role: 'region',
-                hidden: '',
             };
+            if (!defaultOpen) {
+                bodyAttrs.hidden = '';
+            }
             if (panelId !== '') {
                 bodyAttrs.id = panelId;
                 bodyAttrs['aria-labelledby'] = `${panelId}-control`;

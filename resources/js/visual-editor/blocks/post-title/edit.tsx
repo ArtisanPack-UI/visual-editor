@@ -24,6 +24,8 @@
 
 import type { CSSProperties, ReactElement } from 'react';
 import {
+    BlockControls,
+    HeadingLevelDropdown,
     InspectorControls,
     useBlockProps,
     PlainText,
@@ -39,6 +41,8 @@ import { useEntityProp } from '../../vendor/core-data-shim';
 import { TEXT_DOMAIN } from '../../vendor/i18n';
 import {
     PREVIEW_CONTEXT_KEY,
+    hasPreviewContext,
+    isInQueryLoop,
     readEntityString,
 } from '../_shared/entity-placeholder-edit';
 
@@ -109,14 +113,6 @@ function readQueryPreviewTitle( context: unknown ): string | null {
     return typeof title === 'string' && title !== '' ? title : null;
 }
 
-function isInQueryLoop( context: unknown ): boolean {
-    if ( context === null || typeof context !== 'object' ) {
-        return false;
-    }
-
-    return Number.isFinite( ( context as Record<string, unknown> ).queryId );
-}
-
 function tagNameForLevel( level: unknown ): string {
     if ( typeof level === 'number' && level >= 1 && level <= 6 ) {
         return `h${ level }`;
@@ -127,6 +123,65 @@ function tagNameForLevel( level: unknown ): string {
     }
 
     return 'h2';
+}
+
+/**
+ * Normalises the block's `level` attribute to the value the toolbar
+ * dropdown marks active: 0 (paragraph) or 1-6, falling back to the
+ * block.json default of 2.
+ */
+function normalizeLevel( level: unknown ): number {
+    if ( typeof level === 'number' && Number.isInteger( level ) && level >= 0 && level <= 6 ) {
+        return level;
+    }
+
+    return 2;
+}
+
+/**
+ * Levels offered when the block sets no `levelOptions`: Paragraph (0)
+ * plus H1-H6. Passed explicitly because the dropdown's own default
+ * omits Paragraph.
+ */
+const DEFAULT_LEVEL_OPTIONS: number[] = [ 0, 1, 2, 3, 4, 5, 6 ];
+
+/**
+ * Reads `levelOptions` into the dropdown's `options` prop, falling
+ * back to {@link DEFAULT_LEVEL_OPTIONS} when unset or empty;
+ * non-numeric entries are dropped.
+ */
+function readLevelOptions( levelOptions: unknown ): number[] {
+    if ( ! Array.isArray( levelOptions ) ) {
+        return DEFAULT_LEVEL_OPTIONS;
+    }
+
+    const options = levelOptions.filter(
+        ( option ): option is number => typeof option === 'number' && Number.isInteger( option )
+    );
+
+    return options.length > 0 ? options : DEFAULT_LEVEL_OPTIONS;
+}
+
+interface BlockSettingsProps {
+    readonly attributes: AnyProps;
+    readonly setAttributes: ( next: AnyProps ) => void;
+}
+
+/**
+ * Toolbar heading-level dropdown (#994): H1-H6 plus Paragraph (level
+ * 0), restricted to `levelOptions` when the block sets it — the same
+ * control upstream's post-title edit renders.
+ */
+function LevelControl( { attributes, setAttributes }: BlockSettingsProps ): ReactElement {
+    return (
+        <BlockControls group="block">
+            <HeadingLevelDropdown
+                options={ readLevelOptions( attributes.levelOptions ) }
+                value={ normalizeLevel( attributes.level ) }
+                onChange={ ( next: number ) => setAttributes( { level: next } ) }
+            />
+        </BlockControls>
+    );
 }
 
 interface LinkSettingsProps {
@@ -185,7 +240,12 @@ export default function PostTitleEdit( props: AnyProps ): ReactElement {
     const identity = readPostEntityIdentity( context );
     const inQueryLoop = isInQueryLoop( context );
     const TagName = tagNameForLevel( attributes.level );
-    const hasLiveEntity = identity !== null && ! inQueryLoop;
+    // Readonly previews render the chosen level's tag too (#994), so the
+    // canvas matches the front-end `<hN>` / `<p>` markup.
+    const ReadonlyTag = TagName as 'h2';
+    // A claimed preview context (#1003) means `postId` / `postType` name
+    // the previewed entry, not the one being edited.
+    const hasLiveEntity = identity !== null && ! inQueryLoop && ! hasPreviewContext( context );
 
     // Hooks must fire unconditionally. The shim returns `[undefined,
     // noop, undefined]` when any of the args are missing, so the
@@ -200,7 +260,10 @@ export default function PostTitleEdit( props: AnyProps ): ReactElement {
     );
 
     const settings = (
-        <LinkSettings attributes={ attributes } setAttributes={ setAttributes } />
+        <>
+            <LevelControl attributes={ attributes } setAttributes={ setAttributes } />
+            <LinkSettings attributes={ attributes } setAttributes={ setAttributes } />
+        </>
     );
 
     // 1. Stamped `_resolvedTitle` — server-rendered preview.
@@ -209,7 +272,7 @@ export default function PostTitleEdit( props: AnyProps ): ReactElement {
         return (
             <>
                 { settings }
-                <div { ...blockProps }>{ stamped }</div>
+                <ReadonlyTag { ...blockProps }>{ stamped }</ReadonlyTag>
             </>
         );
     }
@@ -220,7 +283,7 @@ export default function PostTitleEdit( props: AnyProps ): ReactElement {
         return (
             <>
                 { settings }
-                <div { ...blockProps }>{ queryPreviewTitle }</div>
+                <ReadonlyTag { ...blockProps }>{ queryPreviewTitle }</ReadonlyTag>
             </>
         );
     }
@@ -269,11 +332,11 @@ export default function PostTitleEdit( props: AnyProps ): ReactElement {
     return (
         <>
             { settings }
-            <div { ...blockProps }>
+            <ReadonlyTag { ...blockProps }>
                 <span style={ placeholderStyle } contentEditable={ false }>
                     { __( 'Post Title', TEXT_DOMAIN ) }
                 </span>
-            </div>
+            </ReadonlyTag>
         </>
     );
 }

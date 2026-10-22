@@ -22,6 +22,9 @@
  *     being rendered so a cycle (or nesting deeper than
  *     {@see MAX_OVERLAY_DEPTH}) falls back to the inline menu instead
  *     of recursing until PHP dies.
+ *   - Once-per-breakpoint emission of the collapse rules for navs with
+ *     a `collapseBreakpoint` (#977). {@see hasEmittedCollapseCss()} /
+ *     {@see markCollapseCssEmitted()} gate one `<style>` per key.
  *
  * Bound via `$this->app->scoped()` in the renderer-blade service
  * provider so the tracker is rebuilt at the start of every request
@@ -56,6 +59,16 @@ class NavigationOverlayTracker
 	protected bool $scriptEmitted = false;
 
 	/**
+	 * Collapse breakpoint keys whose rules were already emitted in this
+	 * response, keyed by breakpoint key (#977).
+	 *
+	 * @since 1.15.2
+	 *
+	 * @var array<string, true>
+	 */
+	protected array $collapseCssEmitted = [];
+
+	/**
 	 * Slugs of the overlay template parts currently being rendered,
 	 * outermost first.
 	 *
@@ -87,6 +100,31 @@ class NavigationOverlayTracker
 	public function markScriptEmitted(): void
 	{
 		$this->scriptEmitted = true;
+	}
+
+	/**
+	 * Whether the collapse rules for a breakpoint key were already
+	 * emitted in this response (#977).
+	 *
+	 * @since 1.15.2
+	 *
+	 * @param  string  $key  The collapse breakpoint key.
+	 */
+	public function hasEmittedCollapseCss( string $key ): bool
+	{
+		return isset( $this->collapseCssEmitted[ $key ] );
+	}
+
+	/**
+	 * Record that the collapse rules for a breakpoint key were emitted.
+	 *
+	 * @since 1.15.2
+	 *
+	 * @param  string  $key  The collapse breakpoint key.
+	 */
+	public function markCollapseCssEmitted( string $key ): void
+	{
+		$this->collapseCssEmitted[ $key ] = true;
 	}
 
 	/**
@@ -128,18 +166,21 @@ class NavigationOverlayTracker
 
 	/**
 	 * Resets all per-response state: the id counter, the script-emitted
-	 * flag, and the overlay render stack. Used by tests that exercise
-	 * multiple renders inside a single process, and by callers that
+	 * flag, the emitted collapse breakpoints, and the overlay render
+	 * stack. Used by tests that exercise multiple renders inside a
+	 * single process, and by callers that
 	 * render several independent documents in one request (e.g. pattern
 	 * previews, each shown in its own iframe).
 	 *
 	 * @since 1.0.0
 	 * @since 1.13.0 Also clears the overlay render stack.
+	 * @since 1.15.2 Also clears the emitted collapse breakpoints.
 	 */
 	public function reset(): void
 	{
-		$this->counter       = 0;
-		$this->scriptEmitted = false;
-		$this->overlayStack  = [];
+		$this->counter            = 0;
+		$this->scriptEmitted      = false;
+		$this->collapseCssEmitted = [];
+		$this->overlayStack       = [];
 	}
 }

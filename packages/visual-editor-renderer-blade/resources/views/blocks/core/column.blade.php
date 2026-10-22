@@ -109,8 +109,23 @@
 	// so a malformed width never reaches `flex-basis`. Mirrors the React /
 	// Vue `isNonEmptyWidth` + the scalar guard in `normalizeBasis`, so a
 	// `width` of `true` / `[]` / `{}` emits nothing on either side.
-	$widthIsUsable = static function ( $value ): bool {
-		return ( is_string( $value ) || is_int( $value ) || is_float( $value ) ) && ! empty( $value );
+	//
+	// #925 — a string width must also look like a length: a number with an
+	// optional unit, or a CSS function (`calc()`, `var()`, …). The column's
+	// legacy deprecation used to store `"undefined%"` for a column with no
+	// width; it passes the CSS whitelist but isn't a length, so treat it as
+	// no width and let the column grow.
+	$isWidthValue = static function ( $value ): bool {
+		if ( is_int( $value ) || is_float( $value ) ) {
+			return true;
+		}
+
+		return is_string( $value )
+			&& ( 1 === preg_match( '/^\s*[-+]?(?:\d+(?:\.\d+)?|\.\d+)\s*[a-z%]*\s*$/i', $value ) || str_contains( $value, '(' ) );
+	};
+
+	$widthIsUsable = static function ( $value ) use ( $isWidthValue ): bool {
+		return ( is_string( $value ) || is_int( $value ) || is_float( $value ) ) && ! empty( $value ) && $isWidthValue( $value );
 	};
 
 	// Only emit the inline `flex-basis` when the stored width is usable and
@@ -202,7 +217,7 @@
 			// raw `<style>` rule. The scope hash above is taken over the
 			// full width map, so skipping the value here never changes the
 			// `ve-w-<hash>` token (mirrors the React/Vue columnWidth guard).
-			if ( null === BlockSupports::safeCssValue( (string) $value ) ) {
+			if ( null === BlockSupports::safeCssValue( (string) $value ) || ! $isWidthValue( $value ) ) {
 				continue;
 			}
 
@@ -211,8 +226,16 @@
 				$basisExpr( $normalizeBasis( $value ) )
 			);
 
+			// The "All sizes" width applies everywhere only when the
+			// parent doesn't stack on mobile. Otherwise it starts at
+			// WordPress's stacking breakpoint, so the `flex-basis: 100%`
+			// stacking rule wins on phones, as in WordPress (#910).
+			// Explicit per-breakpoint widths still win in their ranges. A
+			// descendant combinator, because the React and Vue renderers
+			// escape `>` in their <style> text.
 			if ( BreakpointRegistry::BASE_KEY === $bp ) {
-				$widthRules[] = sprintf( '%s{%s}', $widthSelector, $declaration );
+				$widthRules[] = sprintf( '.wp-block-columns.is-not-stacked-on-mobile %s{%s}', $widthSelector, $declaration );
+				$widthRules[] = sprintf( '@media (min-width: 782px){%s{%s}}', $widthSelector, $declaration );
 				continue;
 			}
 

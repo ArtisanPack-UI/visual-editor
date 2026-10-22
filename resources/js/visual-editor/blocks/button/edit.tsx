@@ -44,7 +44,7 @@ import { ArtisanPackLinkControl } from '../../dynamic-content/link-control';
 
 import { getUpdatedLinkAttributes } from './get-updated-link-attributes';
 
-import { getWidthClasses } from './utils';
+import { getWidthClasses, getWidthStyle } from './utils';
 
 interface ButtonAttributes {
     readonly tagName?: 'a' | 'button';
@@ -118,7 +118,11 @@ export default function ButtonEdit({
 
     return (
         <>
-            <div {...blockProps} className={classes}>
+            <div
+                {...blockProps}
+                className={classes}
+                style={{ ...blockProps.style, ...getWidthStyle(width) }}
+            >
                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 <RichText
                     aria-label={__('Button text', TEXT_DOMAIN)}

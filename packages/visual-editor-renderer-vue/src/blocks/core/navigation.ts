@@ -15,13 +15,15 @@
 import { defineComponent, h, onBeforeUnmount, ref, watch } from 'vue';
 import type { VNode } from 'vue';
 import { attrBoolean, attrString, classList, phpTrim } from '../../support/attributes';
-import { applyBlockGap, hasBlockGapStyle } from '../../support/blockGap';
+import { compileBlockSupports } from '../../support/blockSupports';
 import { safeCssValue } from '../../support/cssValue';
+import { navigationCollapseClass } from '../../support/navigationCollapseCss';
 import { presetPickClass } from '../../support/layoutBaselineCss';
 import { layoutModifierClasses } from '../../support/layoutContainer';
+import { navigationCurrentClasses } from '../../support/navigationCurrent';
 import { safeUrl } from '../../support/urlSanitizer';
 import { NAVIGATION_OVERLAY_SLOT } from '../../templateParts';
-import { blockRendererProps } from '../shared';
+import { blockRendererProps, withStyle } from '../shared';
 
 /** Open-button / dialog label. Mirrors the Blade partial's default. */
 const OPEN_LABEL = 'Menu';
@@ -230,6 +232,7 @@ export const NavigationBlock = defineComponent({
             // justification / wrap modifiers after `items-justified-*`, as
             // in `navigation.blade.php`.
             const layoutScope = attrString(props.attributes._veLayoutScope);
+            const supports = compileBlockSupports(props.attributes);
             const classes = classList([
                 'wp-block-navigation',
                 'is-layout-flex',
@@ -240,6 +243,8 @@ export const NavigationBlock = defineComponent({
                 itemsJustify !== '' ? `items-justified-${itemsJustify}` : null,
                 ...layoutModifierClasses(props.attributes, false),
                 wantsOverlay ? 'is-responsive' : null,
+                navigationCollapseClass(props.attributes),
+                ...supports.classNames,
                 className,
             ]);
 
@@ -249,14 +254,9 @@ export const NavigationBlock = defineComponent({
                 navProps['aria-label'] = ariaLabel;
             }
 
-            // #814 — Block spacing. The stylesheet turns the custom
-            // property into the items' `gap`; mirrors
-            // `BlockSupports::applySpacing()`.
-            const blockGapStyle = applyBlockGap(props.attributes);
-
-            if (hasBlockGapStyle(blockGapStyle)) {
-                navProps.style = blockGapStyle;
-            }
+            // #814 / #920 — the supports, Block spacing among them (the
+            // stylesheet turns its custom property into the items' `gap`).
+            withStyle(navProps, supports.style);
 
             const children: VNode[] = slots.default ? (slots.default() as VNode[]) : [];
             const menu = h('ul', { class: 'wp-block-navigation__container' }, children);
@@ -392,7 +392,8 @@ export const NavigationBlock = defineComponent({
 function buildNavLinkProps(
     url: string,
     opensInNewTab: boolean,
-    rel: string
+    rel: string,
+    isCurrent: boolean
 ): Record<string, string> {
     const props: Record<string, string> = { class: 'wp-block-navigation-item__content' };
 
@@ -405,6 +406,11 @@ function buildNavLinkProps(
         props.rel = `noopener noreferrer${rel === '' ? '' : ` ${rel}`}`.trim();
     } else if (rel !== '') {
         props.rel = rel;
+    }
+
+    // #975 — the link for the page being viewed, as Blade marks it.
+    if (isCurrent) {
+        props['aria-current'] = 'page';
     }
 
     return props;
@@ -423,13 +429,16 @@ export const NavigationLinkBlock = defineComponent({
             const description = attrString(props.attributes.description);
             const className = attrString(props.attributes.className);
 
+            const supports = compileBlockSupports(props.attributes);
             const classes = classList([
                 'wp-block-navigation-item',
                 'wp-block-navigation-link',
+                ...navigationCurrentClasses(props.attributes, false),
+                ...supports.classNames,
                 className,
             ]);
 
-            const linkProps = buildNavLinkProps(url, opensInNewTab, rel);
+            const linkProps = buildNavLinkProps(url, opensInNewTab, rel, props.attributes._veNavCurrent === 'current');
 
             if (title !== '') {
                 linkProps.title = title;
@@ -445,7 +454,7 @@ export const NavigationLinkBlock = defineComponent({
                 );
             }
 
-            return h('li', { class: classes }, [h('a', linkProps, linkChildren)]);
+            return h('li', withStyle({ class: classes }, supports.style), [h('a', linkProps, linkChildren)]);
         };
     },
 });
@@ -461,17 +470,20 @@ export const NavigationSubmenuBlock = defineComponent({
             const rel = attrString(props.attributes.rel);
             const className = attrString(props.attributes.className);
 
+            const supports = compileBlockSupports(props.attributes);
             const classes = classList([
                 'wp-block-navigation-item',
                 'wp-block-navigation-submenu',
                 'has-child',
+                ...navigationCurrentClasses(props.attributes, true),
+                ...supports.classNames,
                 className,
             ]);
 
-            const linkProps = buildNavLinkProps(url, opensInNewTab, rel);
+            const linkProps = buildNavLinkProps(url, opensInNewTab, rel, props.attributes._veNavCurrent === 'current');
             const children: VNode[] = slots.default ? (slots.default() as VNode[]) : [];
 
-            return h('li', { class: classes }, [
+            return h('li', withStyle({ class: classes }, supports.style), [
                 h('a', linkProps, [
                     h('span', { class: 'wp-block-navigation-item__label' }, label),
                 ]),

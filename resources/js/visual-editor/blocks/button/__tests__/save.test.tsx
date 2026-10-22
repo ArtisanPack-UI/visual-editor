@@ -105,6 +105,38 @@ describe('ButtonSave', () => {
         expect(html).toContain('wp-block-button');
     });
 
+    it('adds the legacy width classes for a preset width (#921)', () => {
+        const html = renderToStaticMarkup(
+            <ButtonSave
+                attributes={{ text: 'X', style: { dimensions: { width: '100%' } } }}
+            />
+        );
+        expect(html).toContain(
+            'class="wp-block-button has-custom-width wp-block-button__width wp-block-button__width-100"'
+        );
+        expect(html).not.toContain('--wp--block-button--width');
+    });
+
+    it('sets the width variable for an arbitrary percentage (#921)', () => {
+        const html = renderToStaticMarkup(
+            <ButtonSave
+                attributes={{ text: 'X', style: { dimensions: { width: '60%' } } }}
+            />
+        );
+        expect(html).toContain('has-custom-width wp-block-button__width"');
+        expect(html).toContain('style="--wp--block-button--width:60"');
+    });
+
+    it('sets a non-percentage width directly (#921)', () => {
+        const html = renderToStaticMarkup(
+            <ButtonSave
+                attributes={{ text: 'X', style: { dimensions: { width: '240px' } } }}
+            />
+        );
+        expect(html).toContain('class="wp-block-button has-custom-width"');
+        expect(html).toContain('style="width:240px"');
+    });
+
     it('emits the wp-block-button__link class on the link', () => {
         const html = renderToStaticMarkup(
             <ButtonSave attributes={{ text: 'X', url: '/y' }} />

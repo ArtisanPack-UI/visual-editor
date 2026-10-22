@@ -20,6 +20,26 @@ vi.mock('@wordpress/block-editor', () => ({
     InspectorControls: ({ children }: { children: React.ReactNode }) => (
         <>{children}</>
     ),
+    // #994 — the post-title toolbar level dropdown. Stubbed as a
+    // pass-through slot plus a marker so the dropdown's presence and
+    // options can be asserted without the real toolbar.
+    BlockControls: ({ children }: { children: React.ReactNode }) => (
+        <>{children}</>
+    ),
+    HeadingLevelDropdown: ({
+        options,
+        value,
+    }: {
+        options?: number[];
+        value: number;
+    }) => (
+        <span
+            data-testid="heading-level-dropdown"
+            data-value={value}
+            data-options={options === undefined ? '' : options.join(',')}
+        />
+    ),
+    store: 'core/block-editor',
     // Minimal PlainText stub: renders a controlled textarea so the
     // editable post-title path can be asserted with RTL queries.
     PlainText: ({
@@ -173,17 +193,17 @@ describe('post-* live entity preview (#481)', () => {
         expect(getByDisplayValue('Raw title')).not.toBeNull();
     });
 
-    it('post-excerpt reads the live entity excerpt', () => {
+    it('post-excerpt renders an editable input bound to the live entity excerpt (#992)', () => {
         seedPostEntity('post', 7, { excerpt: 'A brief blurb.' });
 
-        const { getByText } = render(
+        const { getByDisplayValue } = render(
             <PostExcerptEdit
                 attributes={{}}
                 context={{ postId: 7, postType: 'post' }}
             />
         );
 
-        expect(getByText('A brief blurb.')).not.toBeNull();
+        expect(getByDisplayValue('A brief blurb.')).not.toBeNull();
     });
 
     it('post-date reads `_preview.dateFormatted` from the live entity', () => {

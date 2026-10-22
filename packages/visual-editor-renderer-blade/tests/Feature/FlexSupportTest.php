@@ -92,3 +92,31 @@ it( 'skips a breakpoint whose only rule is hostile, emitting no @media block', f
 		->and( $css )->not->toContain( '@media' )
 		->and( $css )->not->toContain( 'opacity' );
 } );
+
+/**
+ * #949 — a breakpoint keyword (`mobile:ap-basis-auto`) lives in the static
+ * stylesheet, ahead of the inline arbitrary rules, so an arbitrary base on
+ * the same property beat it at every width. It is re-emitted in its own
+ * breakpoint bucket after the arbitrary rules.
+ */
+it( 'emits a breakpoint keyword after a competing arbitrary base value', function (): void {
+	$support = app( FlexSupport::class );
+	$result  = $support->serialize( [ 'item' => [ 'basis' => [ 'base' => '280px', 'mobile' => 'auto' ] ] ] );
+
+	$css = $support->buildArbitraryStyles( [ ...$result[ 'arbitraryRules' ], ...$support->keywordOverrideRules( $result ) ] );
+
+	expect( $support->keywordOverrideRules( $result ) )->toEqual( [
+		[ 'className' => 'mobile:ap-basis-auto', 'property' => 'flex-basis', 'value' => 'auto', 'breakpoint' => 'mobile' ],
+	] )
+		->and( $css )->toMatch( '/\.ap-basis-\\\\\[280px\\\\\] \{ flex-basis: 280px; \} @media [^{]+\{ \.mobile\\\\:ap-basis-auto \{ flex-basis: auto; \} \}/' );
+} );
+
+it( 'leaves keyword classes alone when no arbitrary value competes on their property', function (): void {
+	$support = app( FlexSupport::class );
+	$result  = $support->serialize( [
+		'container' => [ 'gap' => [ 'column' => [ 'base' => '1rem' ] ] ],
+		'item'      => [ 'basis' => [ 'base' => 'full', 'mobile' => 'auto' ] ],
+	] );
+
+	expect( $support->keywordOverrideRules( $result ) )->toEqual( [] );
+} );

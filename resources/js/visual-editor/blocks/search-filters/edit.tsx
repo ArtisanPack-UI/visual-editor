@@ -21,9 +21,11 @@ import { __ } from '@wordpress/i18n';
 
 import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { getContentTypes } from '../../editor/content-type-registry';
+import SearchFormActionControl from '../_shared/search-form-action-control';
 
 interface SearchFiltersAttributes {
     readonly postType: string;
+    readonly action?: string;
 }
 
 interface SearchFiltersEditProps {
@@ -46,7 +48,7 @@ export default function SearchFiltersEdit({
     attributes,
     setAttributes,
 }: SearchFiltersEditProps): ReactElement {
-    const { postType } = attributes;
+    const { postType, action } = attributes;
 
     const blockProps = useBlockProps({ className: 'ap-search-filters' });
     // Wrap inner blocks in a `<div>` for the editor — not a `<form>` —
@@ -82,6 +84,10 @@ export default function SearchFiltersEdit({
                             TEXT_DOMAIN
                         )}
                         __nextHasNoMarginBottom
+                    />
+                    <SearchFormActionControl
+                        action={action}
+                        onChange={(value) => setAttributes({ action: value })}
                     />
                 </PanelBody>
             </InspectorControls>

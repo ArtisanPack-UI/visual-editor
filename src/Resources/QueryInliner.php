@@ -63,10 +63,12 @@ class QueryInliner
 	 */
 	protected const QUERY_CONTROL_RESOLVERS = [
 		'query-no-results'           => 'stampNoResults',
+		'query-pagination'           => 'stampPagination',
 		'query-pagination-next'      => 'stampPaginationNext',
 		'query-pagination-previous'  => 'stampPaginationPrevious',
 		'query-pagination-numbers'   => 'stampPaginationNumbers',
 		'query-title'                => 'stampQueryTitle',
+		'query-total'                => 'stampQueryTotal',
 	];
 
 	/**
@@ -373,6 +375,17 @@ class QueryInliner
 				'terms'    => $termIds,
 			];
 
+			// The resolver filters on `taxQuery`, as the REST path sends it
+			// (`QueryResolveController::applyRelatedTo()`); the flat keys stay
+			// for resolvers that read them (cms-framework #403).
+			if ( '' !== (string) $taxonomy && [] !== $termIds ) {
+				$queryAttrs['taxQuery'] = [
+					'taxonomy' => $taxonomy,
+					'terms'    => $termIds,
+					'operator' => 'IN',
+				];
+			}
+
 			$paginator = $resolver->resolve( $queryAttrs );
 		} catch ( Throwable $e ) {
 			report( $e );
@@ -638,6 +651,18 @@ class QueryInliner
 		$queryAttrs = isset( $attributes['query'] ) && is_array( $attributes['query'] )
 			? $attributes['query']
 			: $attributes;
+
+		// A saved loop never chooses which statuses the public sees: a
+		// block attribute of `"status":"draft"` would otherwise list drafts
+		// on the front end (cms-framework #403). The resolver's default is
+		// the published scope.
+		unset( $queryAttrs['status'] );
+
+		// Pass the loop's `queryId` so the resolver can page it on its own
+		// query-string variable (cms-framework #403).
+		if ( ! isset( $queryAttrs['queryId'] ) && isset( $attributes['queryId'] ) && ( is_string( $attributes['queryId'] ) || is_int( $attributes['queryId'] ) ) ) {
+			$queryAttrs['queryId'] = $attributes['queryId'];
+		}
 
 		if ( ! $this->container->bound( QueryResolverContract::class ) ) {
 			return $this->markFailed( $block, self::ERROR_NO_RUNTIME );
@@ -968,6 +993,25 @@ class QueryInliner
 	}
 
 	/**
+	 * Stamp the page count on the pagination wrapper, so the renderers
+	 * can skip it when the results fit on one page. WordPress renders
+	 * nothing there too: `paginate_links()` returns nothing for one page
+	 * and the wrapper is skipped when its content is empty (#955).
+	 *
+	 * @param  array<string, mixed>  $queryAttrs
+	 * @param  array<string, mixed>  $attributes
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function stampPagination( LengthAwarePaginator $paginator, array $queryAttrs, array $attributes ): array
+	{
+		return [
+			'_resolvedCurrentPage' => $paginator->currentPage(),
+			'_resolvedTotalPages'  => $paginator->lastPage(),
+		];
+	}
+
+	/**
 	 * @param  array<string, mixed>  $queryAttrs
 	 * @param  array<string, mixed>  $attributes
 	 *
@@ -1029,6 +1073,32 @@ class QueryInliner
 			'_resolvedPageNumbers'  => $pages,
 			'_resolvedCurrentPage'  => $current,
 			'_resolvedTotalPages'   => $lastPage,
+		];
+	}
+
+	/**
+	 * Stamp the result count and the current page's position in it, so
+	 * `query-total` can print "25 results" or "Showing 1–9 of 25"
+	 * without re-running the query (#962).
+	 *
+	 * `_resolvedItems` is the number of rows on the current page, which
+	 * the range display needs for a short last page.
+	 *
+	 * @since 1.15.2
+	 *
+	 * @param  array<string, mixed>  $queryAttrs
+	 * @param  array<string, mixed>  $attributes
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function stampQueryTotal( LengthAwarePaginator $paginator, array $queryAttrs, array $attributes ): array
+	{
+		return [
+			'_resolvedTotal'       => (int) $paginator->total(),
+			'_resolvedItems'       => count( $paginator->items() ),
+			'_resolvedCurrentPage' => max( 1, (int) $paginator->currentPage() ),
+			'_resolvedPerPage'     => max( 0, (int) $paginator->perPage() ),
+			'_resolvedTotalPages'  => max( 1, (int) $paginator->lastPage() ),
 		];
 	}
 

@@ -138,9 +138,11 @@ export interface EntityPlaceholderConfig {
      * `artisanpack/postPreview` block context the query block pipes
      * down (#483). When the block is inside an `artisanpack/query`
      * loop, the resolved first post is available here; otherwise the
-     * extractor is skipped and the next strategy is tried.
+     * extractor is skipped and the next strategy is tried. The block's
+     * own attributes are passed too, so an extractor can honour a
+     * display setting such as Post Date's `format` (#941).
      */
-    readonly fromQueryPreview?: ( post: QueryPreviewPost ) => EntityPreviewValue | null;
+    readonly fromQueryPreview?: ( post: QueryPreviewPost, attributes: AnyProps ) => EntityPreviewValue | null;
     /**
      * Optional extractor that pulls the block's value from a live
      * post entity record fetched through the core-data shim. Triggered
@@ -149,8 +151,9 @@ export interface EntityPlaceholderConfig {
      * active page's id/type — see `editor-app.tsx`). Used by the
      * `artisanpack/post-*` previews so a block placed at the page
      * level (outside a query loop) reads the live page entity (#481).
+     * Receives the block's attributes like `fromQueryPreview`.
      */
-    readonly fromPostEntity?: ( entity: PostEntityRecord ) => EntityPreviewValue | null;
+    readonly fromPostEntity?: ( entity: PostEntityRecord, attributes: AnyProps ) => EntityPreviewValue | null;
     /**
      * Optional extractor that pulls the block's value from the live
      * singleton site-meta entity (`root/__unstableBase`). Used by the
@@ -205,8 +208,10 @@ function asString( value: unknown ): string {
  * HTML as text (rather than via `dangerouslySetInnerHTML`) keeps the
  * preview dependency-free and removes any HTML-injection surface from the
  * editor. Falls back to a tag-strip when `DOMParser` is unavailable.
+ *
+ * @since 1.15.3 Exported for the Post Content current-entry preview (#992).
  */
-function htmlToText( html: string ): string {
+export function htmlToText( html: string ): string {
     if ( typeof DOMParser === 'undefined' ) {
         return html.replace( /<[^>]*>/g, '' );
     }
@@ -217,7 +222,27 @@ function htmlToText( html: string ): string {
     );
 }
 
-function readQueryPreviewPost( context: unknown ): QueryPreviewPost | null {
+/**
+ * Whether the block sits inside an `artisanpack/query` loop — the loop
+ * stamps a numeric `queryId` into block context.
+ *
+ * @since 1.15.3
+ */
+export function isInQueryLoop( context: unknown ): boolean {
+    if ( context === null || typeof context !== 'object' ) {
+        return false;
+    }
+
+    return Number.isFinite( ( context as Record<string, unknown> ).queryId );
+}
+
+/**
+ * Reads the `artisanpack/postPreview` record the query loop (or the
+ * site editor's template preview, #993) pipes into block context.
+ *
+ * @since 1.15.3 Exported.
+ */
+export function readQueryPreviewPost( context: unknown ): QueryPreviewPost | null {
     if ( context === null || typeof context !== 'object' ) {
         return null;
     }
@@ -231,7 +256,24 @@ function readQueryPreviewPost( context: unknown ): QueryPreviewPost | null {
     return value as QueryPreviewPost;
 }
 
-interface PostEntityIdentity {
+/**
+ * Whether a preview provider has claimed the `artisanpack/postPreview`
+ * context — a record, or `null` while a single-content block's picked
+ * entry is still resolving (#1003). Blocks use it to tell a preview of
+ * another entry from the entry being edited, whose `postId` / `postType`
+ * context looks the same.
+ *
+ * @since 1.16.0
+ */
+export function hasPreviewContext( context: unknown ): boolean {
+    if ( context === null || typeof context !== 'object' ) {
+        return false;
+    }
+
+    return ( context as Record<string, unknown> )[ PREVIEW_CONTEXT_KEY ] !== undefined;
+}
+
+export interface PostEntityIdentity {
     readonly postType: string;
     readonly postId: number;
 }
@@ -241,8 +283,10 @@ interface PostEntityIdentity {
  * payload. Returns null unless both are present and well-formed —
  * post-* blocks placed outside any entity context (e.g. on a non-
  * cms-framework resource) skip the entity-fetch path entirely.
+ *
+ * @since 1.15.3 Exported for the inline-editable post-* edits (#992).
  */
-function readPostEntityIdentity( context: unknown ): PostEntityIdentity | null {
+export function readPostEntityIdentity( context: unknown ): PostEntityIdentity | null {
     if ( context === null || typeof context !== 'object' ) {
         return null;
     }
@@ -279,6 +323,7 @@ function readPostEntityIdentity( context: unknown ): PostEntityIdentity | null {
 function useLivePostEntityValue(
     extractor: EntityPlaceholderConfig['fromPostEntity'] | null | undefined,
     blockContext: unknown,
+    attributes: AnyProps,
 ): EntityPreviewValue | null {
     const identity = readPostEntityIdentity( blockContext );
 
@@ -296,7 +341,7 @@ function useLivePostEntityValue(
         return null;
     }
 
-    return extractor( record );
+    return extractor( record, attributes );
 }
 
 /**
@@ -348,6 +393,7 @@ export function createEntityPlaceholderEdit(
         const livePostEntityValue = useLivePostEntityValue(
             config.fromPostEntity,
             props.context,
+            attributes,
         );
         const liveSiteEntityValue = useLiveSiteEntityValue( config.fromSiteEntity );
 
@@ -367,7 +413,7 @@ export function createEntityPlaceholderEdit(
             const post = readQueryPreviewPost( props.context );
 
             if ( post !== null ) {
-                const fromContext = config.fromQueryPreview( post );
+                const fromContext = config.fromQueryPreview( post, attributes );
 
                 if ( fromContext !== null && hasPreviewValue( config.kind, fromContext ) ) {
                     return renderResolved( config.kind, fromContext, blockProps );

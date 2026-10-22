@@ -12,7 +12,7 @@
             "status": "adapted",
             "notes": "name + textdomain swapped to artisanpack namespace; supports/attributes verbatim.",
             "result": "skipped-status",
-            "forkDigest": "ab631609a536"
+            "forkDigest": "1b578b64421e"
         },
         {
             "fork": "edit.tsx",
@@ -20,7 +20,7 @@
             "status": "adapted",
             "notes": "TypeScript port. Adds explicit 'wp-block-paragraph' class to useBlockProps so the editor canvas matches frontend without depending on __experimentalSelector internals.",
             "result": "skipped-status",
-            "forkDigest": "4027ad8ac9d4"
+            "forkDigest": "860d71f280de"
         },
         {
             "fork": "save.tsx",

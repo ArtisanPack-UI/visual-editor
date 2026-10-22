@@ -16,7 +16,8 @@
 
 import { defineComponent, h } from 'vue';
 import { attrString, classList } from '../../support/attributes';
-import { blockRendererProps } from '../shared';
+import { compileBlockSupports } from '../../support/blockSupports';
+import { blockRendererProps, withStyle } from '../shared';
 
 /**
  * Minimal, module-scoped typing for the Node-style `process` global a
@@ -56,11 +57,10 @@ export const SyncedPatternBlock = defineComponent({
             const ref = refString(props.attributes.ref);
             const resolutionError = attrString(props.attributes._resolutionError);
             const className = attrString(props.attributes.className);
-            const classes = classList(['wp-block-block', className]);
+            const supports = compileBlockSupports(props.attributes);
+            const classes = classList(['wp-block-block', ...supports.classNames, className]);
 
-            const elementProps: Record<string, string> = {
-                class: classes,
-            };
+            const elementProps = withStyle({ class: classes }, supports.style);
 
             if (ref !== '') {
                 elementProps['data-ve-pattern-ref'] = ref;

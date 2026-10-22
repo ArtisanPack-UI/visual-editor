@@ -1,0 +1,5 @@
+<header class="wp-block-template-part wp-block-template-part--audit-header has-primary-background-color has-background has-text-color has-border-color has-contrast-border-color has-small-font-size has-defined-font-size is-audited" data-ve-template-part="audit-header" style="color: #222222; padding-top: 1rem; padding-left: 2rem; margin-bottom: var(--wp--preset--spacing--30); border-radius: 4px; border-width: 1px; border-style: solid; line-height: 1.5; letter-spacing: 1px; min-height: 80px">
+  <p class="wp-block-paragraph">
+    "Header"
+  </p>
+</header>

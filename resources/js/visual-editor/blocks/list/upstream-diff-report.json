@@ -12,7 +12,7 @@
             "status": "adapted",
             "notes": "name + textdomain swapped; allowedBlocks updated to artisanpack/list-item.",
             "result": "skipped-status",
-            "forkDigest": "be992d451934"
+            "forkDigest": "53d1079fbfd5"
         },
         {
             "fork": "edit.tsx",
@@ -20,7 +20,7 @@
             "status": "rewritten",
             "notes": "Simplified edit. Upstream's indent/outdent toolbar reaches into private block-editor dispatch surface (replaceBlocks via useOutdentList hook) — deferred to post-I7 customization. The Unordered/Ordered toggle and ordered-list settings panel are preserved. Inner-block template uses artisanpack/list-item.",
             "result": "skipped-status",
-            "forkDigest": "d759cb75e642"
+            "forkDigest": "552cb28337f6"
         },
         {
             "fork": "save.tsx",

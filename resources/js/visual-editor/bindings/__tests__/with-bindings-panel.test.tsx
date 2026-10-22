@@ -1,4 +1,5 @@
-import { render } from '@testing-library/react'
+import { act, fireEvent, render } from '@testing-library/react'
+import { useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const blockTypes = new Map<string, { attributes?: Record<string, unknown> }>()
@@ -71,6 +72,7 @@ vi.mock( '../api', () => ( {
 
 import { __setBlockType, __clearBlockTypes } from '@wordpress/blocks'
 
+import { BoundAttributesContext, useBoundAttributes } from '../bound-attributes-context'
 import { resetBindingSourcesCache } from '../use-binding-sources'
 import { withBindingsPanel } from '../with-bindings-panel'
 
@@ -195,5 +197,98 @@ describe( 'withBindingsPanel', () => {
 		expect( getByTestId( 'toggle:iconRef (object)' ) ).toBeTruthy()
 		expect( getByTestId( 'toggle:customSvg (string)' ) ).toBeTruthy()
 		expect( getByTestId( 'toggle:size (number)' ) ).toBeTruthy()
+	} )
+
+	describe( 'bound attribute lock (#995)', () => {
+		function LockProbe(): JSX.Element {
+			return <pre data-testid="bound">{ JSON.stringify( useBoundAttributes() ) }</pre>
+		}
+
+		const ProbeWrapped = withBindingsPanel( LockProbe as never ) as React.ComponentType<CapturedProps>
+
+		function Harness( { initial }: { initial: Record<string, unknown> } ): JSX.Element {
+			const [ attributes, setAttrs ] = useState( initial )
+
+			return (
+				<ProbeWrapped
+					name="artisanpack/terminal"
+					attributes={ attributes }
+					setAttributes={ ( updates ) => setAttrs( ( prev ) => ( { ...prev, ...updates } ) ) }
+				/>
+			)
+		}
+
+		beforeEach( () => {
+			__setBlockType( 'artisanpack/terminal', {
+				lines: { type: 'string' },
+				title: { type: 'string' },
+			} )
+		} )
+
+		it( 'reports bound attributes (source + key) to the inner edit', () => {
+			const { getByTestId } = render(
+				<Harness
+					initial={ {
+						lines:    'static',
+						bindings: { lines: { source: 'package', args: { key: 'terminal' } } },
+					} }
+				/>,
+			)
+
+			expect( JSON.parse( getByTestId( 'bound' ).textContent ?? '' ) ).toEqual( {
+				lines: { source: 'package', key: 'terminal' },
+			} )
+		} )
+
+		it( 'falls back to the free-form path when the binding has no key', () => {
+			const { getByTestId } = render(
+				<Harness
+					initial={ { bindings: { title: { source: 'post_core', args: { path: 'author.name' } } } } }
+				/>,
+			)
+
+			expect( JSON.parse( getByTestId( 'bound' ).textContent ?? '' ) ).toEqual( {
+				title: { source: 'post_core', key: 'author.name' },
+			} )
+		} )
+
+		it( 'does not leak a parent block\'s bound map into a nested block with no bindable attributes', () => {
+			__setBlockType( 'demo/empty', {} )
+
+			const { getByTestId } = render(
+				<BoundAttributesContext.Provider value={ { lines: { source: 'package', key: 'terminal' } } }>
+					<ProbeWrapped name="demo/empty" attributes={ {} } setAttributes={ vi.fn() } />
+				</BoundAttributesContext.Provider>,
+			)
+
+			expect( JSON.parse( getByTestId( 'bound' ).textContent ?? '' ) ).toEqual( {} )
+		} )
+
+		it( 'does not lock a binding with no source picked yet', () => {
+			const { getByTestId } = render(
+				<Harness initial={ { bindings: { lines: { source: '', args: {} } } } } />,
+			)
+
+			expect( JSON.parse( getByTestId( 'bound' ).textContent ?? '' ) ).toEqual( {} )
+		} )
+
+		it( 'unlocks the attribute once it is disconnected in the Bindings panel', () => {
+			const { getByTestId } = render(
+				<Harness
+					initial={ {
+						lines:    'static',
+						bindings: { lines: { source: 'package', args: { key: 'terminal' } } },
+					} }
+				/>,
+			)
+
+			expect( JSON.parse( getByTestId( 'bound' ).textContent ?? '' ) ).toHaveProperty( 'lines' )
+
+			act( () => {
+				fireEvent.click( getByTestId( 'toggle:lines (string)' ) )
+			} )
+
+			expect( JSON.parse( getByTestId( 'bound' ).textContent ?? '' ) ).toEqual( {} )
+		} )
 	} )
 } )

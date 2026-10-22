@@ -110,9 +110,14 @@ const blockStylesheets: readonly CanvasStyle[] = blockStylesheetPaths.map(
  * baseline: Gutenberg writes a per-container `gap` only when the block
  * sets its own Block spacing, so without them a Row or Grid with no
  * Block spacing renders flush in the canvas but not on the site.
+ *
+ * The flex defaults (`flex-wrap`, `align-items`) are zero specificity
+ * (#927), so the Flex panel's `ap-flex-nowrap` / `ap-items-*` utilities
+ * win wherever they load.
  */
 const LAYOUT_BASELINE_STYLES = `
-.is-layout-flex { display: flex; flex-wrap: wrap; align-items: center; }
+.is-layout-flex { display: flex; }
+:where(.is-layout-flex) { flex-wrap: wrap; align-items: center; }
 .is-layout-flex > :is(*, div) { margin: 0; }
 .is-layout-grid { display: grid; }
 .is-layout-grid > :is(*, div) { margin: 0; }

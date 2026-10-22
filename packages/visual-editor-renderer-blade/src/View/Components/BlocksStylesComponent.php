@@ -157,7 +157,9 @@ class BlocksStylesComponent extends Component
 	 * @param  bool  $bundle  Set to false to skip the block-library `<link>` tags (consumers who
 	 *                        already load Gutenberg's CSS from elsewhere).
 	 * @param  bool  $interactive  Set to false to skip the accordion + tabs front-end stylesheets
-	 *                             and interactivity script. Defaults to on.
+	 *                             and interactivity script. The script also upgrades the Social
+	 *                             Share Content copy-link chip (#963), which stays a plain link
+	 *                             to the post without it. Defaults to on.
 	 * @param  bool  $blockStyleVariations  Set to false to skip compiling the theme.json
 	 *                                      `styles.blocks.*.variations` into the tokens
 	 *                                      `<style>` (#876). They are skipped anyway once the

@@ -487,6 +487,53 @@ describe('Core design blocks', () => {
         expect(html).not.toContain('javascript:');
     });
 
+    it('prints sanitised table cell colspan, rowspan and scope', () => {
+        const tree = [
+            makeBlock('core/table', {
+                head: [
+                    {
+                        cells: [
+                            { content: 'Name', tag: 'th', scope: 'col' },
+                            { content: 'Bad', tag: 'th', scope: 'col" onclick="x' },
+                        ],
+                    },
+                ],
+                body: [
+                    {
+                        cells: [
+                            { content: 'Ada', tag: 'td', scope: 'row', rowspan: '2' },
+                            { content: 'Zero', tag: 'td', colspan: '0' },
+                            { content: 'Junk', tag: 'td', colspan: '2" onclick="x' },
+                        ],
+                    },
+                ],
+                foot: [{ cells: [{ content: 'Note', tag: 'td', colspan: '3' }] }],
+            }),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('<th scope="col">Name</th>');
+        expect(html).toContain('<th>Bad</th>');
+        expect(html).toContain('<td rowspan="2">Ada</td>');
+        expect(html).toContain('<td>Zero</td>');
+        expect(html).toContain('<td>Junk</td>');
+        expect(html).toContain('<td colspan="3">Note</td>');
+        expect(html).not.toContain('onclick');
+    });
+
+    it('puts has-fixed-layout on the table, defaulting to on', () => {
+        const body = [{ cells: [{ content: 'A', tag: 'td' }] }];
+
+        const defaulted = renderTree([makeBlock('core/table', { body })]);
+        const auto = renderTree([makeBlock('core/table', { body, hasFixedLayout: false })]);
+
+        expect(defaulted).toContain('<table class="has-fixed-layout">');
+        expect(defaulted).toContain('<figure class="wp-block-table">');
+        expect(auto).toContain('<table>');
+        expect(auto).not.toContain('has-fixed-layout');
+    });
+
     it('validates table cell alignment against an allowlist', () => {
         const tree = [
             makeBlock('core/table', {
@@ -1105,6 +1152,22 @@ describe('Core design blocks', () => {
         expect(html).not.toContain('aria-controls=');
         expect(html).not.toContain('aria-labelledby=');
         expect(html).not.toContain('id="-control"');
+    });
+
+    it('starts an accordion panel open when defaultOpen is set', () => {
+        const panel = (defaultOpen: boolean) =>
+            makeBlock('artisanpack/accordion', { panelId: 'faq-1', defaultOpen }, [
+                makeBlock('artisanpack/accordion-title', {}),
+                makeBlock('artisanpack/accordion-body', {}),
+            ]);
+
+        const open = renderTree([panel(true)]);
+        const closed = renderTree([panel(false)]);
+
+        expect(open).toContain('aria-expanded="true"');
+        expect(open).toMatch(/<div class="wp-block-artisanpack-accordion-body ap-accordion__body"[^>]*role="region"(?![^>]*hidden)[^>]*>/);
+        expect(closed).toContain('aria-expanded="false"');
+        expect(closed).toMatch(/<div class="wp-block-artisanpack-accordion-body ap-accordion__body"[^>]*hidden[^>]*>/);
     });
 
     it('renders the artisanpack/tabs family with triggers derived from tab-section children', () => {

@@ -1,8 +1,8 @@
 <div class="wp-block-group is-layout-flow wp-block-group-is-layout-flow glass ve-fx-e17f20b8497b">
-  <h2 class="wp-block-heading has-vivid-cyan-blue-to-vivid-purple-gradient-background has-background ve-fx-90ed6d07871a" id="gradient">
+  <h2 class="wp-block-heading has-vivid-cyan-blue-to-vivid-purple-gradient-background has-background ve-fx-3d7e7dc5a978" id="gradient">
     "Gradient"
   </h2>
-  <h2 class="wp-block-heading has-vivid-cyan-blue-to-vivid-purple-gradient-background has-background ve-fx-90ed6d07871a" id="gradient-two">
+  <h2 class="wp-block-heading has-vivid-cyan-blue-to-vivid-purple-gradient-background has-background ve-fx-3d7e7dc5a978" id="gradient-two">
     "Gradient two"
   </h2>
   <p class="wp-block-paragraph ve-fx-7095ff5b568a">
@@ -16,10 +16,11 @@
   </p>
 </div>
 @@ renderer-instance-css @@
+.ve-fx-3d7e7dc5a978.ve-fx-3d7e7dc5a978{-webkit-background-clip:text!important;background-clip:text!important}
+.ve-fx-3d7e7dc5a978{mix-blend-mode:screen;-webkit-text-fill-color:transparent}
 .ve-fx-5b9f61f6b238{mix-blend-mode:screen}
 .ve-fx-7095ff5b568a{opacity:0.5;clip-path:polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)}
-.ve-fx-90ed6d07871a{mix-blend-mode:screen;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .ve-fx-ad1482697f96{opacity:0.6}
 .ve-fx-e17f20b8497b{opacity:0.9;overflow-x:hidden;-webkit-backdrop-filter:blur(12px) saturate(180%);backdrop-filter:blur(12px) saturate(180%);z-index:2;border: 1px solid rgba(255, 255, 255, 0.2); background-image: url("https://example.com/glass.png"); & > p { margin: 0; }}
 :where(.ve-fx-e17f20b8497b){position:relative}
-@media (forced-colors:active){.ve-fx-90ed6d07871a{-webkit-text-fill-color:currentColor;-webkit-background-clip:border-box;background-clip:border-box}}
+@media (forced-colors:active){.ve-fx-3d7e7dc5a978.ve-fx-3d7e7dc5a978{-webkit-text-fill-color:currentColor;-webkit-background-clip:border-box!important;background-clip:border-box!important}}

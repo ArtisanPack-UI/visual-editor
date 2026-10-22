@@ -1,0 +1,17 @@
+<div class="wp-block-buttons is-layout-flex wp-block-buttons-is-layout-flex is-content-justification-left">
+  <div class="wp-block-button has-custom-width wp-block-button__width wp-block-button__width-100 is-style-outline">
+    <a class="wp-block-button__link wp-element-button" href="#">
+      "Full"
+    </a>
+  </div>
+  <div class="wp-block-button has-custom-width wp-block-button__width" style="--wp--block-button--width: 60">
+    <a class="wp-block-button__link wp-element-button" href="#">
+      "Sixty"
+    </a>
+  </div>
+  <div class="wp-block-button has-custom-width" style="width: 240px">
+    <a class="wp-block-button__link wp-element-button" href="#">
+      "Fixed"
+    </a>
+  </div>
+</div>

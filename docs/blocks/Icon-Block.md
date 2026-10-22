@@ -36,6 +36,10 @@ The block mirrors the WordPress reference Icon Block split: a dedicated **Icon c
 
 Palette colors (`Primary` / `Accent` / etc. picked from theme.json) and custom hex values are both supported. Palette picks resolve through the standard `has-{slug}-background-color` / `has-{slug}-border-color` classes against theme.json's CSS variables.
 
+### Vertical alignment
+
+The block toolbar has a **vertical alignment** control (top, center, bottom), stored as `verticalAlignment`. It positions the icon inside a wrapper that's taller than the icon — typically a block stretched by a flex Row. Picking an alignment makes the wrapper a column flexbox (`display: flex; flex-direction: column; justify-content: …`) with an `is-vertically-aligned-{top|center|bottom}` class; `align-items: flex-start` keeps the icon's horizontal position. With no alignment set the wrapper stays a plain block element, as before. Any other value is dropped.
+
 ### Dimensions
 
 The **Dimensions** panel ships three controls that update the canvas as you type — no blur required:

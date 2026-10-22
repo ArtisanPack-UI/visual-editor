@@ -12,7 +12,7 @@
             "status": "adapted",
             "notes": "name + textdomain swapped to artisanpack namespace.",
             "result": "skipped-status",
-            "forkDigest": "77137856d4c1"
+            "forkDigest": "037b10f0ea61"
         },
         {
             "fork": "edit.tsx",
@@ -20,7 +20,7 @@
             "status": "adapted",
             "notes": "TypeScript port. Inlines a minimal citation editor using RichText; the upstream Caption utility is not vendored (single-use, post-V2 enhancement target).",
             "result": "skipped-status",
-            "forkDigest": "0347c7ebe9a7"
+            "forkDigest": "9139e916ebd0"
         },
         {
             "fork": "save.tsx",

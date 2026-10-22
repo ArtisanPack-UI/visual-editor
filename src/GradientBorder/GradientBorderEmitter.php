@@ -67,6 +67,13 @@ class GradientBorderEmitter
 	 */
 	public const DEFAULT_TRANSITION = 'background 200ms ease, opacity 200ms ease';
 
+	/**
+	 * Cover's background layers, all `inset: 0` inside the padding box.
+	 * They take the inner radius in the Safari fallback (#912).
+	 */
+	protected const COVER_BACKGROUND_LAYERS = '.wp-block-cover__background,.wp-block-cover__gradient-background,'
+		. '.wp-block-cover__image-background,.wp-block-cover__video-background';
+
 	public function __construct(
 		protected StateRegistry $states,
 		protected BreakpointRegistry $breakpoints,
@@ -141,7 +148,15 @@ class GradientBorderEmitter
 		// two stacked borders. `!important` matches the inline
 		// `style="border-color:…"` specificity the supports compiler
 		// emits.
-		$rules[] = sprintf( '%s{position:relative;border-color:transparent !important}', $scope );
+		//
+		// `overflow-clip-margin: border-box` keeps the ring visible on
+		// blocks that clip their overflow (Cover sets `overflow: clip`,
+		// which clips to the padding box by default and would cut the
+		// ::before away entirely, #912). It only applies with
+		// `overflow: clip`, so other blocks are unaffected.
+		$rules[] = sprintf( '%s{position:relative;border-color:transparent !important;overflow-clip-margin:border-box}', $scope );
+
+		$rules[] = self::coverClipFallback( $scope, $payload['radius'] ?? null, $width );
 
 		// Idle ::before rule. Always emitted when *any* gradient value
 		// exists at any state/breakpoint so the cascade has a base to
@@ -313,6 +328,93 @@ class GradientBorderEmitter
 		}
 
 		return implode( ', ', $mapped );
+	}
+
+	/**
+	 * Fallback for browsers without `overflow-clip-margin` (Safari, #912).
+	 *
+	 * There Cover's `overflow: clip` still cuts the ring away, so a
+	 * gradient-bordered Cover stops clipping and its background layers
+	 * (all `inset: 0` in the padding box) take the inner radius instead.
+	 *
+	 * @param string $scope  The block's scope selector.
+	 * @param mixed  $radius The authored radius (string or per-corner array).
+	 * @param string $width  The ring width.
+	 *
+	 * @return string An `@supports not (…)` block.
+	 */
+	protected static function coverClipFallback( string $scope, mixed $radius, string $width ): string
+	{
+		$innerRadius = self::innerRadiusDeclaration( $radius, $width );
+		$rules       = sprintf( '%s{overflow:visible}', self::appendPseudoToList( $scope, '.wp-block-cover' ) );
+
+		if ( '' !== $innerRadius ) {
+			$rules .= sprintf(
+				'%s{%s}',
+				self::appendPseudoToList( $scope, '.wp-block-cover>:is(' . self::COVER_BACKGROUND_LAYERS . ')' ),
+				$innerRadius,
+			);
+		}
+
+		return '@supports not (overflow-clip-margin:border-box){' . $rules . '}';
+	}
+
+	/**
+	 * `border-radius` for Cover's background layers in the fallback: the
+	 * wrapper's radius minus the ring width, per value, so the layers keep
+	 * the curve `overflow: clip` would have given them.
+	 *
+	 * Empty when no radius is authored (the layers stay square, as the
+	 * wrapper is) or for the elliptical `/` syntax, which has no per-value
+	 * inset.
+	 *
+	 * @param mixed  $radius The authored radius (string or per-corner array).
+	 * @param string $width  The ring width.
+	 *
+	 * @return string The declaration(s), or an empty string.
+	 */
+	protected static function innerRadiusDeclaration( mixed $radius, string $width ): string
+	{
+		$safeWidth = self::sanitizeCss( $width );
+		$inset     = static function ( string $value ) use ( $safeWidth ): string {
+			$parts = preg_split( '/\s+/', trim( $value ) ) ?: [];
+
+			return implode( ' ', array_map(
+				static fn ( string $part ): string => sprintf( 'max(0px, calc(%s - %s))', self::sanitizeCss( $part ), $safeWidth ),
+				$parts,
+			) );
+		};
+
+		if ( is_string( $radius ) && '' !== trim( $radius ) ) {
+			return str_contains( $radius, '/' ) ? '' : 'border-radius:' . $inset( $radius ) . ';';
+		}
+
+		if ( is_array( $radius ) ) {
+			$pieces = [];
+
+			$corners = [
+				'topLeft'     => 'top-left',
+				'topRight'    => 'top-right',
+				'bottomLeft'  => 'bottom-left',
+				'bottomRight' => 'bottom-right',
+			];
+
+			foreach ( $corners as $key => $cssKey ) {
+				$value = $radius[ $key ] ?? null;
+
+				if ( ! is_string( $value ) || '' === trim( $value ) || str_contains( $value, '/' ) ) {
+					continue;
+				}
+
+				$pieces[] = sprintf( 'border-%s-radius:%s', $cssKey, $inset( $value ) );
+			}
+
+			if ( [] !== $pieces ) {
+				return implode( ';', $pieces ) . ';';
+			}
+		}
+
+		return '';
 	}
 
 	/**

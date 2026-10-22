@@ -1,8 +1,10 @@
 @php
 	use ArtisanPackUI\VisualEditor\Resources\PresetRegistry;
+	use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 	use ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\LayoutSupport;
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\NavigationCollapseStyles;
 
 	$overlayMenu = isset( $attributes['overlayMenu'] ) && is_string( $attributes['overlayMenu'] ) ? $attributes['overlayMenu'] : 'mobile';
 
@@ -72,6 +74,17 @@
 
 	if ( 'never' !== $overlayMenu ) {
 		$baseClasses[] = 'is-responsive';
+	}
+
+	// Collapse breakpoint (#977). A `mobile` overlay collapses below the
+	// bundled stylesheet's fixed 600px unless `collapseBreakpoint` names a
+	// registry device key (`mobile` / `tablet`); then the nav carries
+	// `collapses-at-{key}` and the rules for that key are emitted once per
+	// response after it. An empty / unknown value keeps the 600px default.
+	$collapse = NavigationCollapseStyles::resolve( $attributes, app( BreakpointRegistry::class ) );
+
+	if ( null !== $collapse ) {
+		$baseClasses[] = NavigationCollapseStyles::className( $collapse['key'] );
 	}
 
 	// Nav-block-specific color attributes (Keystone #53). The shared
@@ -145,6 +158,13 @@
 
 	if ( $emitScript ) {
 		$overlayTracker->markScriptEmitted();
+	}
+
+	$collapseCss = '';
+
+	if ( null !== $collapse && ! $overlayTracker->hasEmittedCollapseCss( $collapse['key'] ) ) {
+		$overlayTracker->markCollapseCssEmitted( $collapse['key'] );
+		$collapseCss = NavigationCollapseStyles::css( $collapse['key'], $collapse['maxWidth'] );
 	}
 
 	$overlayClasses = [ 'wp-block-navigation__responsive-container' ];
@@ -231,6 +251,10 @@
 	// inline-menu duplicate the bundled style.css's mobile rules
 	// were already styled against.
 	//
+	// The part's blocks go through the same template-part, pattern and
+	// navigation passes as the page tree (#973), so a navigation inside
+	// the overlay that uses a menu location or `ref` renders its items.
+	//
 	// The tracker's overlay stack guards against recursion: an overlay
 	// part whose own nav points back at itself (or an A → B → A cycle)
 	// is skipped at the repeat, and nesting stops at
@@ -255,6 +279,13 @@
 						$overlayBlocks = is_array( $resolved->blocks ?? null ) ? $resolved->blocks : [];
 
 						if ( [] !== $overlayBlocks ) {
+							// Run the page's reference passes on the part
+							// (#973): nested template parts and synced
+							// patterns inline, and a navigation's menu
+							// location resolves against the page's theme.
+							$overlayBlocks = app( \ArtisanPackUI\VisualEditorRendererBlade\Services\BlockTreeReferenceResolver::class )
+								->resolveStandalone( $overlayBlocks );
+
 							$overlayHtml = app( \ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer::class )
 								->render( $overlayBlocks );
 
@@ -322,6 +353,9 @@
 	<ul class="wp-block-navigation__container">{!! $innerBlocksHtml !!}</ul>
 @endif
 </nav>
+@if ( '' !== $collapseCss )
+<style data-ve-navigation-collapse="{{ $collapse['key'] }}">{!! $collapseCss !!}</style>
+@endif
 @if ( $emitScript )
 <style>
 /*! Keystone #54 — nav overlay layout fix-ups. Emitted once per response. */
@@ -345,10 +379,11 @@
  * default (the inline desktop view shows the menu); once the drawer
  * opens (`is-menu-open`) the menu is swapped out for the overlay's
  * content. Scoped to `.has-overlay-template` so navs without an
- * overlay keep showing their menu in the open drawer. */
-.wp-block-navigation__responsive-container-content.has-overlay-template .wp-block-navigation__overlay-content{display:none;}
-.wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-content.has-overlay-template .wp-block-navigation__container{display:none;}
-.wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-content.has-overlay-template .wp-block-navigation__overlay-content{display:block;}
+ * overlay keep showing their menu in the open drawer, and to its direct
+ * children so a menu inside the overlay part isn't swapped out too (#984). */
+.wp-block-navigation__responsive-container-content.has-overlay-template > .wp-block-navigation__overlay-content{display:none;}
+.wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-content.has-overlay-template > .wp-block-navigation__container{display:none;}
+.wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-content.has-overlay-template > .wp-block-navigation__overlay-content{display:block;}
 </style>
 <script>
 /*! Keystone #54 — nav overlay toggle. Tiny inline controller; emitted once per response. */

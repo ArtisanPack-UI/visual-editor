@@ -6,7 +6,7 @@ apply to those assets and do not extend to the rest of the package
 
 ## Font Awesome Free
 
-The 25 first-party block inserter icons under
+The 28 first-party block inserter icons under
 `resources/js/visual-editor/blocks/*/inserter-icon.tsx` embed SVG path
 data copied verbatim from [Font Awesome Free Solid][fa-free] v7.2.0 by
 Fonticons, Inc., licensed under [CC BY 4.0][cc-by-4].
@@ -30,6 +30,7 @@ The bundled `.svg` source assets live under
 | grid-item | [`square`](https://fontawesome.com/icons/square) |
 | howto | [`list-check`](https://fontawesome.com/icons/list-check) |
 | marquee | [`bullhorn`](https://fontawesome.com/icons/bullhorn) |
+| post-reading-time | [`clock`](https://fontawesome.com/icons/clock) |
 | post-types-search-results | [`magnifying-glass-arrow-right`](https://fontawesome.com/icons/magnifying-glass-arrow-right) |
 | related-posts | [`newspaper`](https://fontawesome.com/icons/newspaper) |
 | search-field | [`magnifying-glass`](https://fontawesome.com/icons/magnifying-glass) |
@@ -43,6 +44,16 @@ The bundled `.svg` source assets live under
 | tab-section | [`window-maximize`](https://fontawesome.com/icons/window-maximize) |
 | tabs | [`window-restore`](https://fontawesome.com/icons/window-restore) |
 | toc | [`list-ol`](https://fontawesome.com/icons/list-ol) |
+
+The Social Share Content block's LinkedIn and Copy link chip glyphs embed
+path data from Font Awesome Free v7.2.0 (Brands
+[`linkedin-in`](https://fontawesome.com/icons/linkedin-in) and Solid
+[`link`](https://fontawesome.com/icons/link)), licensed under
+[CC BY 4.0][cc-by-4]. The paths are scaled and centred into a 24×24
+viewBox and repeated in the share-icon registries
+(`resources/js/visual-editor/blocks/_shared/social-icons.ts`,
+`packages/visual-editor-renderer-blade/src/Support/SocialIconRegistry.php`
+and the React / Vue `src/blocks/artisanpack/socialIcons.ts`).
 
 [fa-free]: https://fontawesome.com/license/free
 [cc-by-4]: https://creativecommons.org/licenses/by/4.0/

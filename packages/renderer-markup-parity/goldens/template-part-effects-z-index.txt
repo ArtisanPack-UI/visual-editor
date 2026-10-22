@@ -1,0 +1,13 @@
+<header class="wp-block-template-part wp-block-template-part--header site-header ve-fx-cc4ce763f703" data-ve-template-part="header">
+  <p class="wp-block-paragraph">
+    "Site header"
+  </p>
+</header>
+<header class="wp-block-template-part wp-block-template-part--header ve-fx-cc4ce763f703" data-ve-template-part="header">
+  <p class="wp-block-paragraph">
+    "Site header"
+  </p>
+</header>
+@@ renderer-instance-css @@
+.ve-fx-cc4ce763f703{z-index:50}
+:where(.ve-fx-cc4ce763f703){position:relative}

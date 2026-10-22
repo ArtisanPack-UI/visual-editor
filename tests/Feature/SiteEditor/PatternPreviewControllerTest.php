@@ -419,7 +419,7 @@ describe( 'pattern preview resilience', function (): void {
 			'patterns' => [ 'header-one', 'header-two' ],
 		] )->assertOk();
 
-		$rule = '.has-overlay-template .wp-block-navigation__overlay-content{display:none;}';
+		$rule = '.has-overlay-template > .wp-block-navigation__overlay-content{display:none;}';
 		$one  = (string) $response->json( 'patterns.header-one.html' );
 		$two  = (string) $response->json( 'patterns.header-two.html' );
 

@@ -25,6 +25,7 @@ import { BusinessHoursBlock } from './artisanpack/businessHours';
 import { BusinessPhoneBlock } from './artisanpack/businessPhone';
 import { CalloutBlock } from './artisanpack/callout';
 import { CommentsNumberBlock } from './artisanpack/commentsNumber';
+import { PostReadingTimeBlock } from './artisanpack/postReadingTime';
 import { CopyrightBlock } from './artisanpack/copyright';
 import { FaqBlock } from './artisanpack/faq';
 import { GridBlock, GridItemBlock } from './artisanpack/grid';
@@ -75,6 +76,7 @@ import {
     QueryPaginationNumbersBlock,
     QueryPaginationPreviousBlock,
     QueryTitleBlock,
+    QueryTotalBlock,
 } from './artisanpack/queryContext';
 import {
     CoverBlock,
@@ -321,6 +323,8 @@ const CORE_BLOCKS: Record<string, BlockRenderer> = {
     'artisanpack/query-pagination-previous': QueryPaginationPreviousBlock,
     'core/query-title': QueryTitleBlock,
     'artisanpack/query-title': QueryTitleBlock,
+    'core/query-total': QueryTotalBlock,
+    'artisanpack/query-total': QueryTotalBlock,
     // Auth family (#522) — registered under the artisanpack/* namespace
     // only; loginout never shipped as `core/*` in v1 so there is no
     // core counterpart to mirror here.
@@ -332,6 +336,8 @@ const CORE_BLOCKS: Record<string, BlockRenderer> = {
     'artisanpack/copyright': CopyrightBlock,
     'artisanpack/marquee': MarqueeBlock,
     'artisanpack/comments-number': CommentsNumberBlock,
+    // Estimated reading time (#943), stamped by PostResolver.
+    'artisanpack/post-reading-time': PostReadingTimeBlock,
     // Single-post content cluster (#501) — registered under the
     // artisanpack/* namespace only. `single-content` + `related-posts`
     // resolve through `QueryInliner` via `QueryResolverContract`; the

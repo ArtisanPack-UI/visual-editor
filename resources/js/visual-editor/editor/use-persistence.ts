@@ -18,6 +18,7 @@ import {
     saveContent,
     saveEntityRecord,
     type ApiClientConfig,
+    type EntityEndpoint,
 } from './api-client';
 import {
     VE_EDITOR_AUTOSAVE,
@@ -82,6 +83,12 @@ export interface EntityIdentity {
     kind: string;
     name: string;
     id: number;
+    /**
+     * Endpoint the staged edits flush to. Defaults to the G3 entity
+     * adapter; custom content types use the generic `entry` endpoint
+     * (#992).
+     */
+    endpoint?: EntityEndpoint;
 }
 
 export interface PersistenceState {
@@ -180,18 +187,73 @@ function readEntityEdits(
     return store?.getEntityRecordEdits?.(kind, name, id) ?? null;
 }
 
-function clearEntityEdits(kind: string, name: string, id: number): void {
-    const dispatcher = wpDispatch('core') as
+/**
+ * Folds saved edits into the entity's base record, then drops them from
+ * the edits bag. Without the fold, clearing the edits would leave
+ * `getEditedEntityRecord` reading the pre-save base, so a just-saved
+ * title or excerpt would snap back on the canvas (#992). `{raw,
+ * rendered}` fields keep their shape. Only the saved values are
+ * cleared, so edits staged while the request was in flight survive for
+ * the next save.
+ */
+function commitEntityEdits(
+    kind: string,
+    name: string,
+    id: number,
+    saved: Record<string, unknown>
+): void {
+    const store = wpSelect('core') as
         | {
-              clearEntityRecordEdits?: (
+              getEntityRecord?: (
                   kind: string,
                   name: string,
                   id: number
+              ) => Record<string, unknown> | null;
+          }
+        | undefined;
+    const dispatcher = wpDispatch('core') as
+        | {
+              receiveEntityRecords?: (
+                  kind: string,
+                  name: string,
+                  records: readonly Record<string, unknown>[],
+                  query?: Record<string, unknown> | null,
+                  totalItems?: number,
+                  totalPages?: number,
+                  invalidateQueries?: boolean
+              ) => void;
+              clearEntityRecordEdits?: (
+                  kind: string,
+                  name: string,
+                  id: number,
+                  acknowledged?: Record<string, unknown>
               ) => void;
           }
         | undefined;
 
-    dispatcher?.clearEntityRecordEdits?.(kind, name, id);
+    const base = store?.getEntityRecord?.(kind, name, id) ?? null;
+
+    if (base !== null && dispatcher?.receiveEntityRecords !== undefined) {
+        const next: Record<string, unknown> = { ...base };
+
+        for (const [field, value] of Object.entries(saved)) {
+            const current = base[field];
+
+            next[field] = typeof value === 'string'
+                && current !== null
+                && typeof current === 'object'
+                && 'raw' in current
+                ? { ...current, raw: value, rendered: value }
+                : value;
+        }
+
+        // `invalidateQueries: false` — this updates a known record, so
+        // cached list queries for the entity must survive (as the shim's
+        // own save path does).
+        dispatcher.receiveEntityRecords(kind, name, [next], undefined, undefined, undefined, false);
+    }
+
+    dispatcher?.clearEntityRecordEdits?.(kind, name, id, saved);
 }
 
 export function usePersistence(
@@ -299,6 +361,7 @@ export function usePersistence(
             setSaveError(null);
 
             let savedAt: string | null = null;
+            let failed = false;
 
             try {
                 if (nextBlocks !== null) {
@@ -346,7 +409,8 @@ export function usePersistence(
                         // when `nextBlocks` was non-null).
                         await saveEntityRecord(
                             { apiBase, resource, id },
-                            edits
+                            edits,
+                            ent.endpoint
                         );
 
                         if (
@@ -356,7 +420,7 @@ export function usePersistence(
                             return;
                         }
 
-                        clearEntityEdits(ent.kind, ent.name, ent.id);
+                        commitEntityEdits(ent.kind, ent.name, ent.id, edits);
                     }
                 }
 
@@ -370,6 +434,7 @@ export function usePersistence(
                     return;
                 }
 
+                failed = true;
                 setSaveError(toApiError(error, __('Failed to save content.', TEXT_DOMAIN)));
                 setSaveStatus('error');
             } finally {
@@ -380,10 +445,14 @@ export function usePersistence(
             // trailing edit now so we don't lose it. Trailing drains always
             // count as autosaves: they're reacting to buffered edits, not a
             // fresh explicit Save press. Skip if the target changed during
-            // the save.
+            // the save. After a failed save the metadata it tried to send
+            // is still staged, so only a fresh block edit re-arms the
+            // drain — otherwise a rejected PUT (403/422) would retry in a
+            // tight loop.
             const trailingEnt = entityRef.current;
             const hasTrailingMetadata =
-                trailingEnt !== null
+                !failed
+                && trailingEnt !== null
                 && hasEntityEdits(
                     trailingEnt.kind,
                     trailingEnt.name,

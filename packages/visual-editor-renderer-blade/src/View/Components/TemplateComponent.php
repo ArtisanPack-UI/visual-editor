@@ -35,6 +35,7 @@ use ArtisanPackUI\VisualEditor\Services\GlobalStylesEmissionTracker;
 use ArtisanPackUI\VisualEditor\SiteEditor\NavigationBlockRefResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\BlockTreeReferenceResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\BoxShadowCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\DuotoneCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ElementsCssAccumulator;
@@ -115,16 +116,17 @@ class TemplateComponent extends Component
 		$this->matchedSlug     = $matchedSlug;
 		$this->resolutionError = null;
 
-		$inlinedParts    = $this->inliner->inline( $blocks, $theme );
-		$inlinedPatterns = $this->patternInliner->inline( $inlinedParts );
+		// Template parts, synced patterns and navigation menus resolve
+		// through the same passes `BlocksComponent` runs. The render
+		// runs with the theme recorded so a navigation overlay part
+		// resolves its own menus against it too (#973).
+		$references = $this->app->make( BlockTreeReferenceResolver::class );
+		$resolved   = $references->resolveNavigation(
+			$references->inlineReferences( $blocks, $theme ),
+			$theme,
+		);
 
-		// Navigation resolution — see `BlocksComponent` for the
-		// full rationale. Keystone #51 (the front-end pair to #48).
-		$resolvedNav = null !== $theme
-			? $this->navigationResolver->resolve( $inlinedPatterns, $theme )
-			: $inlinedPatterns;
-
-		$this->html = $renderer->render( $resolvedNav );
+		$this->html = $references->withTheme( $theme, fn (): string => $renderer->render( $resolved ) );
 	}
 
 	public function render(): View

@@ -21,7 +21,8 @@ describe('columnWidthScope', () => {
 
         expect(scope?.className).toBe('ve-w-971ccacfaf');
         expect(scope?.css).toBe(
-            '.ve-w-971ccacfaf.ve-w-971ccacfaf.ve-w-971ccacfaf{flex-basis:calc(60% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.4)!important;flex-grow:0!important}'
+            '.wp-block-columns.is-not-stacked-on-mobile .ve-w-971ccacfaf.ve-w-971ccacfaf.ve-w-971ccacfaf{flex-basis:calc(60% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.4)!important;flex-grow:0!important}' +
+                '@media (min-width: 782px){.ve-w-971ccacfaf.ve-w-971ccacfaf.ve-w-971ccacfaf{flex-basis:calc(60% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.4)!important;flex-grow:0!important}}'
         );
     });
 
@@ -86,7 +87,7 @@ describe('columnWidthScope', () => {
         expect(mixed).not.toBeNull();
         expect(mixed?.css).toContain('flex-basis:calc(60% -');
         expect(mixed?.css).not.toContain('opacity');
-        expect(mixed?.css).not.toContain('@media');
+        expect(mixed?.css).not.toMatch(/@media (?!\(min-width: 782px\))/);
     });
 });
 
@@ -108,7 +109,7 @@ describe('stampColumnWidthScopes', () => {
         expect((columns[2].attributes as Record<string, unknown>)._veColumnWidthScope).toBeUndefined();
 
         // Identical width maps share one scope, so the rule is emitted once.
-        const occurrences = css.split('.ve-w-971ccacfaf.ve-w-971ccacfaf.ve-w-971ccacfaf{').length - 1;
+        const occurrences = css.split('@media (min-width: 782px){.ve-w-971ccacfaf.ve-w-971ccacfaf.ve-w-971ccacfaf{').length - 1;
         expect(occurrences).toBe(1);
     });
 
@@ -158,6 +159,7 @@ describe('desktop-first column widths (#820)', () => {
         expect(scope).not.toBeNull();
         expect(scope!.css).toContain('@media (max-width:767px)');
         expect(scope!.css.indexOf('@media (max-width:1023px)')).toBeLessThan(scope!.css.indexOf('@media (max-width:767px)'));
-        expect(scope!.css).not.toContain('min-width');
+        // Only the base rule's stacking-aware query (#910) uses min-width.
+        expect(scope!.css).not.toMatch(/min-width:(?! 782px)/);
     });
 });

@@ -1,0 +1,9 @@
+<figure class="wp-block-image is-resized">
+  <img alt="A photo" src="https://example.com/photo.jpg" style="width: 278px" width="278" />
+</figure>
+<figure class="wp-block-image is-resized">
+  <img alt="A photo" src="https://example.com/photo.jpg" style="width: 50%; height: 12.5rem" />
+</figure>
+<figure class="wp-block-image is-resized">
+  <img alt="A photo" src="https://example.com/photo.jpg" style="width: 120.5px" />
+</figure>

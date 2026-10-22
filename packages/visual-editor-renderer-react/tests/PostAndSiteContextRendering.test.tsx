@@ -28,6 +28,52 @@ describe('Core post-context blocks', () => {
 
         expect(renderTree(tree)).toContain('<h3 class="wp-block-post-title">Hello World</h3>');
     });
+});
+
+describe('Post Reading Time (#943)', () => {
+    it('renders the minutes with the default suffix, or a custom prefix and suffix', () => {
+        expect(renderTree([makeBlock('artisanpack/post-reading-time', { _resolvedReadingTime: 6 })])).toContain(
+            '<div class="wp-block-artisanpack-post-reading-time">6 min read</div>'
+        );
+        expect(
+            renderTree([
+                makeBlock('artisanpack/post-reading-time', {
+                    prefix: 'Reading time: ',
+                    suffix: 'minutes',
+                    _resolvedReadingTime: 6,
+                }),
+            ])
+        ).toContain('>Reading time: 6 minutes</div>');
+    });
+
+    it('renders nothing without minutes', () => {
+        expect(renderTree([makeBlock('artisanpack/post-reading-time', {})])).not.toContain(
+            'wp-block-artisanpack-post-reading-time'
+        );
+    });
+});
+
+describe('Cover with "Use featured image" (#942)', () => {
+    it('renders the stamped featured image instead of the saved url', () => {
+        const html = renderTree([
+            makeBlock('core/cover', {
+                useFeaturedImage: true,
+                url: 'https://example.test/saved.jpg',
+                _resolvedImageUrl: 'https://example.test/featured.jpg',
+            }),
+        ]);
+
+        expect(html).toContain('src="https://example.test/featured.jpg"');
+        expect(html).not.toContain('saved.jpg');
+    });
+
+    it('renders no image when the post has none', () => {
+        const html = renderTree([
+            makeBlock('core/cover', { useFeaturedImage: true, url: 'https://example.test/saved.jpg' }),
+        ]);
+
+        expect(html).not.toContain('wp-block-cover__image-background');
+    });
 
     it('wraps post-title in a permalink when isLink is true', () => {
         const tree = [
@@ -140,6 +186,50 @@ describe('Core post-context blocks', () => {
         expect(html).toContain('alt="Featured photo"');
     });
 
+    it('covers a post-featured-image frame by default when scale is unsaved (#948)', () => {
+        const html = renderTree([
+            makeBlock('core/post-featured-image', {
+                aspectRatio: '16/10',
+                _resolvedImageUrl: 'https://example.test/wide.jpg',
+            }),
+        ]);
+
+        expect(html).toMatch(/aspect-ratio:\s*16\/10;\s*object-fit:\s*cover/);
+    });
+
+    it('sizes the post-featured-image figure and image from width and height (#948)', () => {
+        const html = renderTree([
+            makeBlock('core/post-featured-image', {
+                width: '130px',
+                height: '100%',
+                scale: 'contain',
+                _resolvedImageUrl: 'https://example.test/wide.jpg',
+            }),
+        ]);
+
+        expect(html).toMatch(/<figure[^>]*style="width:\s*130px;\s*height:\s*100%;?"/);
+        expect(html).toMatch(/<img[^>]*style="height:\s*100%;\s*object-fit:\s*contain;?"/);
+    });
+
+    it('leaves an image-less post-featured-image figure unsized (#948)', () => {
+        expect(renderTree([makeBlock('core/post-featured-image', { width: '130px', height: '100%' })]))
+            .toBe('<figure class="wp-block-post-featured-image"></figure>');
+    });
+
+    it('paints the avatar border and radius on the image, not the wrapper (#952)', () => {
+        const html = renderTree([
+            makeBlock('core/avatar', {
+                size: 28,
+                borderColor: 'primary',
+                style: { border: { radius: '50%', width: '2px' } },
+                _resolvedAuthorAvatar: 'https://example.test/me.jpg',
+            }),
+        ]);
+
+        expect(html).toContain('<div class="wp-block-avatar">');
+        expect(html).toMatch(/<img[^>]*class="avatar wp-block-avatar__image has-border-color has-primary-border-color"[^>]*style="border-radius:\s*50%;\s*border-width:\s*2px;\s*border-style:\s*solid;?"/);
+    });
+
     it('drops javascript: hrefs from post-featured-image', () => {
         const tree = [
             makeBlock('core/post-featured-image', {
@@ -159,6 +249,45 @@ describe('Core post-context blocks', () => {
         const tree = [makeBlock('core/post-featured-image', {})];
 
         expect(renderTree(tree)).toBe('<figure class="wp-block-post-featured-image"></figure>');
+    });
+});
+
+describe('Query Pagination on a single page (#955)', () => {
+    const pages = (count: number) =>
+        Array.from({ length: count }, (_, i) => ({ number: i + 1, url: `/blog?page=${i + 1}` }));
+    const pagination = (totalPages: number) =>
+        makeBlock('artisanpack/query-pagination', { _resolvedTotalPages: totalPages }, [
+            makeBlock('artisanpack/query-pagination-numbers', {
+                _resolvedCurrentPage: 1,
+                _resolvedPageNumbers: pages(totalPages),
+                _resolvedTotalPages: totalPages,
+            }),
+        ]);
+
+    it('renders nothing when the results fit on one page', () => {
+        expect(renderTree([pagination(1)])).not.toContain('wp-block-query-pagination');
+        expect(
+            renderTree([makeBlock('artisanpack/query-pagination-numbers', { _resolvedPageNumbers: pages(1) })])
+        ).not.toContain('page-numbers');
+    });
+
+    it('renders the wrapper and numbers for two or more pages, and an unstamped wrapper', () => {
+        const html = renderTree([pagination(2)]);
+
+        expect(html).toContain('<nav class="wp-block-query-pagination');
+        expect(html).toContain('<a class="page-numbers" href="/blog?page=2">2</a>');
+        expect(renderTree([makeBlock('artisanpack/query-pagination')])).toContain('<nav class="wp-block-query-pagination');
+    });
+
+    it('keeps a one-page wrapper that holds other content', () => {
+        const html = renderTree([
+            makeBlock('artisanpack/query-pagination', { _resolvedTotalPages: 1 }, [
+                makeBlock('core/paragraph', { content: 'Page one of one' }),
+            ]),
+        ]);
+
+        expect(html).toContain('<nav class="wp-block-query-pagination');
+        expect(html).toContain('Page one of one');
     });
 });
 
@@ -378,5 +507,69 @@ describe('Core navigation blocks', () => {
 
         expect(html).not.toContain('javascript:');
         expect(html).not.toContain('href=');
+    });
+
+    it('wraps each post term in its own element, linked or not (#939)', () => {
+        const tree = [
+            makeBlock('core/post-terms', {
+                term: 'package-tag',
+                _resolvedTermsByTaxonomy: {
+                    'package-tag': [
+                        { name: 'a11y', slug: 'a11y', url: '' },
+                        { name: 'Core', slug: 'core', url: 'https://example.test/tag/core' },
+                    ],
+                },
+            }),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('<span class="wp-block-post-terms__term">a11y</span><span class="wp-block-post-terms__separator">, </span>');
+        expect(html).toMatch(/<a (class="wp-block-post-terms__term" href="https:\/\/example\.test\/tag\/core"|href="https:\/\/example\.test\/tag\/core" class="wp-block-post-terms__term")>Core<\/a>/);
+    });
+});
+
+describe('Query Total (#962)', () => {
+    const total = (attributes: Record<string, unknown>, name = 'artisanpack/query-total') =>
+        renderTree([makeBlock(name, attributes)]);
+
+    it('renders the total with the plural noun, and the singular for one result', () => {
+        expect(total({ _resolvedTotal: 25 })).toContain(
+            '<div class="wp-block-query-total"><strong>25</strong> results</div>'
+        );
+        expect(total({ _resolvedTotal: 1, singular: 'package', plural: 'packages' })).toContain(
+            '<strong>1</strong> package</div>'
+        );
+    });
+
+    it('renders zero results with the plural noun in either display type', () => {
+        expect(total({ _resolvedTotal: 0, displayType: 'range-display' })).toContain(
+            '<div class="wp-block-query-total"><strong>0</strong> results</div>'
+        );
+    });
+
+    it('wraps the count in the prefix and suffix', () => {
+        expect(total({ _resolvedTotal: 25, prefix: 'Showing ', plural: 'packages', suffix: '.' })).toContain(
+            'Showing <strong>25</strong> packages.</div>'
+        );
+    });
+
+    it('renders the current page range', () => {
+        const range = (page: number, items: number) =>
+            total({
+                _resolvedTotal: 25,
+                _resolvedCurrentPage: page,
+                _resolvedPerPage: 9,
+                _resolvedItems: items,
+                displayType: 'range-display',
+            });
+
+        expect(range(1, 9)).toContain('<strong>1–9</strong> of <strong>25</strong> results</div>');
+        expect(range(3, 7)).toContain('<strong>19–25</strong> of <strong>25</strong> results</div>');
+    });
+
+    it('renders nothing outside a resolved query, and the core alias like the fork', () => {
+        expect(total({})).not.toContain('wp-block-query-total');
+        expect(total({ _resolvedTotal: 4 }, 'core/query-total')).toBe(total({ _resolvedTotal: 4 }));
     });
 });

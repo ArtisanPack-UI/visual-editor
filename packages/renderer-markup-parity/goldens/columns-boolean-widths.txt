@@ -11,5 +11,7 @@
   </div>
 </div>
 @@ renderer-instance-css @@
-.ve-w-6fb188d159.ve-w-6fb188d159.ve-w-6fb188d159{flex-basis:calc(50% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.5)!important;flex-grow:0!important}
-.ve-w-742f95e596.ve-w-742f95e596.ve-w-742f95e596{flex-basis:calc(50% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.5)!important;flex-grow:0!important}
+.wp-block-columns.is-not-stacked-on-mobile .ve-w-6fb188d159.ve-w-6fb188d159.ve-w-6fb188d159{flex-basis:calc(50% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.5)!important;flex-grow:0!important}
+.wp-block-columns.is-not-stacked-on-mobile .ve-w-742f95e596.ve-w-742f95e596.ve-w-742f95e596{flex-basis:calc(50% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.5)!important;flex-grow:0!important}
+@media (min-width: 782px){.ve-w-6fb188d159.ve-w-6fb188d159.ve-w-6fb188d159{flex-basis:calc(50% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.5)!important;flex-grow:0!important}}
+@media (min-width: 782px){.ve-w-742f95e596.ve-w-742f95e596.ve-w-742f95e596{flex-basis:calc(50% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.5)!important;flex-grow:0!important}}

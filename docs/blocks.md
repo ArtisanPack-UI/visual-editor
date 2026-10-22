@@ -27,7 +27,7 @@ The forked allow-list covers the following clusters:
 
 | Cluster | Blocks |
 |---------|--------|
-| **Content** | paragraph, heading (with h1–h6 level variations, v1.12.1), list, quote, code, preformatted, pullquote, verse, table |
+| **Content** | paragraph, heading (with h1–h6 level variations, v1.12.1), list, quote, code, preformatted, pullquote, verse, table (row/column editing, v1.15.4) |
 | **Media** | image, gallery, video, audio, file, embed, cover, media-text |
 | **Layout** | group (with row/stack variations), columns, column, buttons, button, separator, spacer, details |
 | **Widgets** | search, latest-posts |

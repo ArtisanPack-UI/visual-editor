@@ -7,7 +7,7 @@
 
 import { describe, expect, it } from 'vitest'
 
-import { serializeFlex } from '../src/support/flex-serializer'
+import { buildArbitraryStyles, keywordOverrideRules, serializeFlex } from '../src/support/flex-serializer'
 import fixtures from '../../../resources/js/visual-editor/blocks/_shared/flex-controls/fixtures.json'
 
 interface Fixture {
@@ -33,5 +33,26 @@ describe( 'flex-serializer (React renderer)', () => {
 
 		expect( result.classes ).toEqual( expectedClasses )
 		expect( result.arbitraryRules ).toEqual( fixture.expected.arbitraryRules )
+	} )
+} )
+
+describe( 'keywordOverrideRules (#949)', () => {
+	it( 'emits a breakpoint keyword after a competing arbitrary base value', () => {
+		const result = serializeFlex( { item: { basis: { base: '280px', mobile: 'auto' } } } )
+
+		expect( keywordOverrideRules( result ) ).toEqual( [
+			{ className: 'mobile:ap-basis-auto', property: 'flex-basis', value: 'auto', breakpoint: 'mobile' },
+		] )
+		expect( buildArbitraryStyles( [ ...result.arbitraryRules, ...keywordOverrideRules( result ) ] ) )
+			.toMatch( /\.ap-basis-\\\[280px\\\] \{ flex-basis: 280px; \} @media [^{]+\{ \.mobile\\:ap-basis-auto \{ flex-basis: auto; \} \}/ )
+	} )
+
+	it( 'leaves keyword classes alone when no arbitrary value competes on their property', () => {
+		const result = serializeFlex( {
+			container: { gap: { column: { base: '1rem' } } },
+			item: { basis: { base: 'full', mobile: 'auto' } },
+		} )
+
+		expect( keywordOverrideRules( result ) ).toEqual( [] )
 	} )
 } )

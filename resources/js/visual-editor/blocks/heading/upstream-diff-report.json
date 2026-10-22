@@ -12,7 +12,7 @@
             "status": "adapted",
             "notes": "name + textdomain swapped to artisanpack namespace; supports/attributes verbatim.",
             "result": "skipped-status",
-            "forkDigest": "7e0b20188277"
+            "forkDigest": "060adc13d499"
         },
         {
             "fork": "edit.tsx",
@@ -20,7 +20,7 @@
             "status": "adapted",
             "notes": "TypeScript port; upstream `useDeprecatedTextAlign` hook is replaced by the inline migrate-text-align deprecation path so the heading edit doesn't reach into block-library private utilities.",
             "result": "skipped-status",
-            "forkDigest": "b474675f0a2c"
+            "forkDigest": "73be9ee925f5"
         },
         {
             "fork": "save.tsx",
@@ -52,15 +52,15 @@
             "status": "adapted",
             "notes": "TypeScript port; the h1–h6 variations are the toolbar's level picker (#825).",
             "result": "skipped-status",
-            "forkDigest": "673ec9ab1147"
+            "forkDigest": "dd05c04949a9"
         },
         {
             "fork": "autogenerate-anchors.ts",
             "upstream": "autogenerate-anchors.js",
-            "status": "adapted",
-            "notes": "TypeScript port; behavior unchanged.",
+            "status": "extended",
+            "notes": "TypeScript port. The slug is reduced to the id-safe characters the renderers keep (`[A-Za-z0-9_:.-]`, runs of `-` collapsed) before the uniqueness check, falling back to `heading`, so saved anchors match the rendered ids and TocResolver (1.15.0). Reads `textContent` instead of `innerText` (identical on the detached element).",
             "result": "skipped-status",
-            "forkDigest": "030b7dc4a62d"
+            "forkDigest": "bd0743a51ad5"
         },
         {
             "fork": "heading.css",
@@ -84,7 +84,7 @@
             "status": "rewritten",
             "notes": "Adapted to the visual-editor auto-discovery contract (custom-blocks.ts glob). Upstream index.js wires `init` and PHP server-side init; we don't need either.",
             "result": "skipped-status",
-            "forkDigest": "7fba9f5dfc20"
+            "forkDigest": "f35d5b0f23c1"
         }
     ]
 }

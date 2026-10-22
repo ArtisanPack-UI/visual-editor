@@ -15,8 +15,9 @@ import { defineComponent, h } from 'vue';
 import type { VNode } from 'vue';
 
 import { attrString, classList } from '../../support/attributes';
+import { compileBlockSupports } from '../../support/blockSupports';
 import { safeUrl } from '../../support/urlSanitizer';
-import { blockRendererProps } from '../shared';
+import { blockRendererProps, withStyle } from '../shared';
 
 interface TermRecord {
     name?: string;
@@ -72,10 +73,11 @@ export const PostNavigationLinkBlock = defineComponent({
             const url = safeUrl(attrString(props.attributes[urlKey]));
             const title = attrString(props.attributes[titleKey]);
 
-            const classes = classList(['wp-block-post-navigation-link', className]);
+            const supports = compileBlockSupports(props.attributes);
+            const classes = classList(['wp-block-post-navigation-link', ...supports.classNames, className]);
 
             if (url === '') {
-                return h('div', { class: classes });
+                return h('div', withStyle({ class: classes }, supports.style));
             }
 
             let visible: string;
@@ -95,7 +97,7 @@ export const PostNavigationLinkBlock = defineComponent({
 
             const ariaLabel = type === 'previous' ? 'Previous post' : 'Next post';
 
-            return h('div', { class: classes }, [
+            return h('div', withStyle({ class: classes }, supports.style), [
                 h('a', { href: url, 'aria-label': ariaLabel }, visible),
             ]);
         };
@@ -115,19 +117,21 @@ export const PostTermsBlock = defineComponent({
 
             const terms = readTerms(props.attributes._resolvedTermsByTaxonomy, taxonomy);
 
+            const supports = compileBlockSupports(props.attributes);
             const classes = classList([
                 'wp-block-post-terms',
                 // Only attach the `taxonomy-{slug}` class when a taxonomy
                 // has actually been selected — a bare `taxonomy-` (with
                 // no slug) is meaningless styling noise.
                 taxonomy !== '' ? `taxonomy-${taxonomy}` : null,
+                ...supports.classNames,
                 className,
             ]);
 
             const usableTerms = terms.filter((term) => attrString(term.name) !== '');
 
             if (usableTerms.length === 0) {
-                return h('div', { class: classes });
+                return h('div', withStyle({ class: classes }, supports.style));
             }
 
             const children: Array<VNode | string> = [];
@@ -148,13 +152,15 @@ export const PostTermsBlock = defineComponent({
                 const name = attrString(term.name);
                 const url = safeUrl(attrString(term.url));
 
+                // Each term carries `wp-block-post-terms__term`, so a theme
+                // can style one term whether or not it links (#939).
                 if (url === '') {
                     // Upstream `get_the_term_list` always produces anchors;
-                    // we degrade gracefully to plain text when the host
+                    // we degrade gracefully to a plain span when the host
                     // can't resolve a permalink for the term.
-                    children.push(name);
+                    children.push(h('span', { class: 'wp-block-post-terms__term' }, name));
                 } else {
-                    children.push(h('a', { href: url }, name));
+                    children.push(h('a', { class: 'wp-block-post-terms__term', href: url }, name));
                 }
             });
 
@@ -162,7 +168,7 @@ export const PostTermsBlock = defineComponent({
                 children.push(h('span', { class: 'wp-block-post-terms__suffix' }, suffix));
             }
 
-            return h('div', { class: classes }, children);
+            return h('div', withStyle({ class: classes }, supports.style), children);
         };
     },
 });
@@ -179,16 +185,17 @@ export const ReadMoreBlock = defineComponent({
             const className = attrString(props.attributes.className);
             const permalink = safeUrl(attrString(props.attributes._resolvedPermalink));
 
-            const classes = classList(['wp-block-read-more', className]);
+            const supports = compileBlockSupports(props.attributes);
+            const classes = classList(['wp-block-read-more', ...supports.classNames, className]);
 
             // No resolved permalink — degrade to a non-interactive <span>
             // so we don't emit a focusable anchor with an empty `href`
             // (keyboard / screen-reader trap). Matches Blade + React.
             if (permalink === '') {
-                return h('span', { class: classes }, content);
+                return h('span', withStyle({ class: classes }, supports.style), content);
             }
 
-            const anchorProps: Record<string, string> = { class: classes, href: permalink };
+            const anchorProps = withStyle({ class: classes, href: permalink }, supports.style);
 
             if (linkTarget === '_blank') {
                 anchorProps.target = '_blank';
@@ -208,13 +215,14 @@ export const TermDescriptionBlock = defineComponent({
             const description = attrString(props.attributes._resolvedTermDescription);
             const className = attrString(props.attributes.className);
 
-            const classes = classList(['wp-block-term-description', className]);
+            const supports = compileBlockSupports(props.attributes);
+            const classes = classList(['wp-block-term-description', ...supports.classNames, className]);
 
             if (description === '') {
-                return h('div', { class: classes });
+                return h('div', withStyle({ class: classes }, supports.style));
             }
 
-            return h('div', { class: classes }, [h('p', { innerHTML: description })]);
+            return h('div', withStyle({ class: classes }, supports.style), [h('p', { innerHTML: description })]);
         };
     },
 });

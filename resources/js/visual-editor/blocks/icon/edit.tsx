@@ -10,6 +10,8 @@
 import { useEffect, useState } from 'react';
 import type { ReactElement } from 'react';
 import {
+    BlockControls,
+    BlockVerticalAlignmentToolbar,
     InspectorControls,
     PanelColorSettings,
     useBlockProps,
@@ -28,11 +30,12 @@ import { __ } from '@wordpress/i18n';
 import { sanitizeOnServer } from './custom-svg';
 import CustomSvgControl from './custom-svg-control';
 import IconPicker from './icon-picker';
-import type { IconAttributes, IconRef, SizeUnit } from './types';
+import type { IconAttributes, IconRef, SizeUnit, VerticalAlignment } from './types';
 import {
     composeRel,
     computeIconStyle,
     computeTransform,
+    computeWrapperStyle,
     hasDecorativeLinkConflict,
     normalizeAttributes,
     normalizeLinkTarget,
@@ -96,10 +99,16 @@ interface IconEditProps {
 
 export default function IconEdit( { attributes, setAttributes }: IconEditProps ): ReactElement {
     const normalized = normalizeAttributes( attributes );
-    // No wrapper style is computed here — `useBlockProps()` already
-    // injects WP-managed background/border/padding/margin onto the
-    // wrapper div via the block.json `supports` map. See utils.ts.
-    const blockProps = useBlockProps();
+    // `useBlockProps()` injects WP-managed background/border/padding/
+    // margin onto the wrapper div via the block.json `supports` map;
+    // `computeWrapperStyle` only adds the vertical-alignment flexbox.
+    // See utils.ts.
+    const blockProps = useBlockProps( {
+        className: normalized.verticalAlignment
+            ? `is-vertically-aligned-${ normalized.verticalAlignment }`
+            : undefined,
+        style: computeWrapperStyle( normalized ),
+    } );
     const [ pickerOpen, setPickerOpen ] = useState( false );
 
     const widthDisplay  = normalized.widthExplicit  ? `${ normalized.width }${ normalized.widthUnit }`   : '';
@@ -141,6 +150,10 @@ export default function IconEdit( { attributes, setAttributes }: IconEditProps )
             return;
         }
         setAttributes( { height: parsed.value, heightUnit: parsed.unit ?? 'px' } );
+    };
+
+    const onVerticalAlignmentChange = ( next: VerticalAlignment | undefined ): void => {
+        setAttributes( { verticalAlignment: next ?? null } );
     };
 
     const onIconColorChange = ( next: string | undefined ): void => {
@@ -339,6 +352,13 @@ export default function IconEdit( { attributes, setAttributes }: IconEditProps )
 
     return (
         <>
+            <BlockControls>
+                <BlockVerticalAlignmentToolbar
+                    onChange={ onVerticalAlignmentChange }
+                    value={ normalized.verticalAlignment ?? undefined }
+                    controls={ [ 'top', 'center', 'bottom' ] }
+                />
+            </BlockControls>
             <InspectorControls>
                 <PanelBody
                     title={ __( 'Icon', 'artisanpack-visual-editor' ) }

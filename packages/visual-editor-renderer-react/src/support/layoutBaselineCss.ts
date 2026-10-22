@@ -190,7 +190,11 @@ export const LAYOUT_BASELINE_CSS =
     ':where(.is-layout-constrained) > :last-child { margin-block-end: 0; }\n' +
     ':where(.is-layout-constrained) > * { margin-block-start: 0; margin-block-end: 0; }\n' +
     ':where(.is-layout-constrained) > * + * { margin-block-start: var(--wp--style--block-gap, 24px); margin-block-end: 0; }\n' +
-    '.is-layout-flex { display: flex; flex-wrap: wrap; align-items: center; }\n' +
+    '.is-layout-flex { display: flex; }\n' +
+    // #927 — flex defaults at zero specificity, so the Flex panel's
+    // `ap-flex-nowrap` / `ap-items-*` utilities win; mirrors the Blade
+    // baseline.
+    ':where(.is-layout-flex) { flex-wrap: wrap; align-items: center; }\n' +
     '.is-layout-flex > :is(*, div) { margin: 0; }\n' +
     '.is-layout-grid { display: grid; }\n' +
     '.is-layout-grid > :is(*, div) { margin: 0; }\n' +

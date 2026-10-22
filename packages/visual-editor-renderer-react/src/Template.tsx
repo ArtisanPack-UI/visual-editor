@@ -77,6 +77,13 @@ export interface TemplateProps {
      * @since 1.15.0
      */
     duotonePresets?: DuotonePresets;
+    /**
+     * URL of the page being rendered, forwarded to {@link BlockTree} so
+     * navigation links mark the current page.
+     *
+     * @since 1.15.2
+     */
+    currentUrl?: string | null;
 }
 
 export function Template({
@@ -92,6 +99,7 @@ export function Template({
     globalStylesCss,
     customCssAllowUrls = true,
     duotonePresets,
+    currentUrl,
 }: TemplateProps): ReactElement {
     const matched = useMemo(() => resolveTemplate(templates, slug, theme), [templates, slug, theme]);
     const fallbackChain = useMemo(() => templateFallbackChain(slug), [slug]);
@@ -139,6 +147,7 @@ export function Template({
                     maxPatternDepth={maxPatternDepth}
                     customCssAllowUrls={customCssAllowUrls}
                     duotonePresets={duotonePresets}
+                    currentUrl={currentUrl}
                 />
             </div>
         </>

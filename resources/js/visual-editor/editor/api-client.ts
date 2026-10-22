@@ -38,6 +38,13 @@ export interface ApiClientConfig {
     id: string;
 }
 
+/**
+ * Which metadata endpoint an entity's edits flush to: the G3 entity
+ * adapter (`{resource}/{id}`, posts/pages) or the generic title/excerpt
+ * endpoint (`{resource}/{id}/entry`, custom content types).
+ */
+export type EntityEndpoint = 'entity' | 'entry';
+
 function contentUrl(config: ApiClientConfig): string {
     const base = config.apiBase.replace(/\/$/, '');
 
@@ -166,11 +173,16 @@ export async function saveContent(
  * gate every field with `sometimes`, so a partial payload is the
  * canonical shape.
  *
+ * Resources without a dedicated entity adapter (custom content types)
+ * pass `endpoint: 'entry'` to target `{apiBase}/{resource}/{id}/entry`,
+ * which accepts title and excerpt only (#992).
+ *
  * @since 1.0.0
  */
 export async function saveEntityRecord(
     config: ApiClientConfig,
-    edits: Record<string, unknown>
+    edits: Record<string, unknown>,
+    endpoint: EntityEndpoint = 'entity'
 ): Promise<unknown> {
     const csrfToken = readCsrfToken();
     const headers: Record<string, string> = {
@@ -184,7 +196,11 @@ export async function saveEntityRecord(
     }
 
     try {
-        const response = await fetch(entityRecordUrl(config), {
+        const url = endpoint === 'entry'
+            ? `${entityRecordUrl(config)}/entry`
+            : entityRecordUrl(config);
+
+        const response = await fetch(url, {
             method: 'PUT',
             credentials: 'same-origin',
             headers,
