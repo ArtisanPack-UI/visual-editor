@@ -6,6 +6,22 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.16.0] - 2026-10-22
+
+### Added
+
+- **Record list and lookup endpoints for any resource** ([#1003](https://github.com/ArtisanPack-UI/visual-editor/issues/1003)). New `GET /visual-editor/api/{resource}` and `GET /visual-editor/api/{resource}/{id}` (`ResourceRecordController`) serve records of any resource in the resource map in a minimal `{ id, title, slug }` shape for record pickers. The list takes `search` (matched against `title` when the table has one), `per_page` (default 25, capped at 100) and `include` (a comma-separated id list for batched lookups, parsed by the new `Support\RecordIdList`; non-numeric ids are dropped for integer keys, and an `include` with no valid ids returns no records rather than the unfiltered list). Every record is checked against the model's `view` policy: the list leaves out records the user can't view and the single lookup answers 403. `ResourceResolver::query()` returns the scoped query both endpoints use. The `posts` and `pages` adapters keep their own routes, which now accept `search` and `include` too. See [The resource map](docs/content-model.md#2-the-resource-map).
+
+### Changed
+
+- **Single-content blocks preview the picked entry** ([#1003](https://github.com/ArtisanPack-UI/visual-editor/issues/1003)). The canvas now shows the picked entry's real title and content for every registered content type, not just posts and pages, using one batched `POST /query/resolve` request per content type on the page however many blocks it has. The entry picker is mounted, and lists records, only while the block is selected. Inside single-content the entry's title is now a read-only preview (posts and pages were editable inline), and an entry the resolver doesn't return (a draft, a non-public type, or a page with no query runtime bound) falls back to the inner blocks' placeholders, as on the front end.
+- **Generic `GET` routes are registered last.** The new record routes sit after every other package route, so static paths still win, but a `GET` to a POST-only path (e.g. `blocks/preview`) now answers 404 instead of 405, and a host route added under `/visual-editor/api` after the package routes is shadowed by them.
+
+### Fixed
+
+- **Single-content blocks no longer fetch on mount per instance** ([#1003](https://github.com/ArtisanPack-UI/visual-editor/issues/1003)). Each block requested `GET /{plural}?per_page=50` and `GET /{plural}/{id}` on mount for an inspector that was hidden, and both 404'd for dynamic content types, because only `posts` and `pages` had collection routes. On a page with several such blocks this could fill a small server's PHP-FPM pool. Requests now go through a shared session cache that de-duplicates in-flight calls and batches title lookups into one `?include=` request per collection; 403 and 404 answers stay cached for the session, and network failures are retried.
+- **Icon blocks share one SVG request per icon** ([#1004](https://github.com/ArtisanPack-UI/visual-editor/issues/1004)). Every Icon block fetched `GET icons/svg` on its own, so a page with seven copies of an icon sent seven identical requests at once. The Icon block and the inline-icon format now share one memoized lookup per `set` and `name` for the editor session, including in-flight requests; failed lookups are evicted so they can be retried. Successful `icons/svg` responses also send `Cache-Control: private, max-age=86400`, so the browser reuses them across sessions.
+
 ## [1.15.4] - 2026-10-20
 
 ### Fixed

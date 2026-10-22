@@ -325,6 +325,45 @@ describe('Post Content preview (#992)', () => {
     });
 });
 
+describe('single-content entry still resolving (#1003)', () => {
+    // Single-content claims the preview context with `null` while its
+    // picked entry loads; `postId` / `postType` then name that entry,
+    // so the blocks must not treat it as the entry being edited.
+    const resolvingContext = { ...customContext, 'artisanpack/postPreview': null };
+
+    it('Post Title does not offer inline editing', () => {
+        seedCurrentEntryRecord(customEntry, { title: 'Widget Pro', excerpt: '' });
+
+        const { container, getByText } = render(
+            <PostTitleEdit attributes={{}} context={resolvingContext} />
+        );
+
+        expect(container.querySelector('textarea, input')).toBeNull();
+        expect(getByText('Post Title')).not.toBeNull();
+    });
+
+    it('Post Excerpt does not offer inline editing', () => {
+        seedCurrentEntryRecord(customEntry, { title: '', excerpt: 'Small and fast.' });
+
+        const { container } = render(
+            <PostExcerptEdit attributes={{}} context={resolvingContext} />
+        );
+
+        expect(container.querySelector('textarea')).toBeNull();
+    });
+
+    it('Post Content does not preview the canvas entry', () => {
+        canvasBlocks = [paragraph('Host page body.')];
+
+        const { container, getByText } = render(
+            <PostContentEdit attributes={{}} context={resolvingContext} />
+        );
+
+        expect(container.textContent).not.toContain('Host page body.');
+        expect(getByText('Post Content')).not.toBeNull();
+    });
+});
+
 describe('Post Title heading level (#994)', () => {
     it.each([
         [1, 'H1'],

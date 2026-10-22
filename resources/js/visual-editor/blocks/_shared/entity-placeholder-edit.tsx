@@ -256,6 +256,23 @@ export function readQueryPreviewPost( context: unknown ): QueryPreviewPost | nul
     return value as QueryPreviewPost;
 }
 
+/**
+ * Whether a preview provider has claimed the `artisanpack/postPreview`
+ * context — a record, or `null` while a single-content block's picked
+ * entry is still resolving (#1003). Blocks use it to tell a preview of
+ * another entry from the entry being edited, whose `postId` / `postType`
+ * context looks the same.
+ *
+ * @since 1.16.0
+ */
+export function hasPreviewContext( context: unknown ): boolean {
+    if ( context === null || typeof context !== 'object' ) {
+        return false;
+    }
+
+    return ( context as Record<string, unknown> )[ PREVIEW_CONTEXT_KEY ] !== undefined;
+}
+
 export interface PostEntityIdentity {
     readonly postType: string;
     readonly postId: number;

@@ -28,10 +28,10 @@ import { useEntityProp } from '../../vendor/core-data-shim';
 import { TEXT_DOMAIN } from '../../vendor/i18n';
 import {
     createEntityPlaceholderEdit,
+    hasPreviewContext,
     isInQueryLoop,
     readEntityString,
     readPostEntityIdentity,
-    readQueryPreviewPost,
     type PostEntityIdentity,
 } from '../_shared/entity-placeholder-edit';
 
@@ -109,7 +109,7 @@ export default function PostExcerptEdit( props: AnyProps ): ReactElement {
     const isEditable =
         identity !== null
         && ! isInQueryLoop( context )
-        && readQueryPreviewPost( context ) === null
+        && ! hasPreviewContext( context )
         && readEntityString( attributes._resolvedExcerpt ) === '';
 
     if ( ! isEditable || identity === null ) {

@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: artisanpack-ui-visual-editor\n"
-"POT-Creation-Date: 2026-10-20T17:48:35+0000\n"
+"POT-Creation-Date: 2026-10-22T22:32:47+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -79,7 +79,7 @@ msgstr ""
 msgid "(no label)"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/post-title/edit.tsx:316
+#: resources/js/visual-editor/blocks/post-title/edit.tsx:319
 msgid "(no title)"
 msgstr ""
 
@@ -318,7 +318,7 @@ msgstr ""
 msgid "A copy of these blocks will be inserted each time. Changes only affect future insertions."
 msgstr ""
 
-#: resources/js/visual-editor/blocks/icon/edit.tsx:453
+#: resources/js/visual-editor/blocks/icon/edit.tsx:436
 msgid "A decorative icon inside a link needs an aria-label so screen readers can announce the destination."
 msgstr ""
 
@@ -1190,7 +1190,7 @@ msgstr ""
 msgid "Change content position"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/icon/edit.tsx:369
+#: resources/js/visual-editor/blocks/icon/edit.tsx:352
 msgid "Change icon…"
 msgstr ""
 
@@ -1236,7 +1236,7 @@ msgstr ""
 msgid "Choose a sync type — this cannot be changed once the pattern is created."
 msgstr ""
 
-#: resources/js/visual-editor/blocks/icon/edit.tsx:272
+#: resources/js/visual-editor/blocks/icon/edit.tsx:255
 #: resources/js/visual-editor/blocks/icon/icon-picker.tsx:518
 msgid "Choose an icon"
 msgstr ""
@@ -1245,7 +1245,7 @@ msgstr ""
 msgid "Choose font files"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/icon/edit.tsx:370
+#: resources/js/visual-editor/blocks/icon/edit.tsx:353
 msgid "Choose icon…"
 msgstr ""
 
@@ -1343,7 +1343,7 @@ msgstr ""
 msgid "Collection"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/icon/edit.tsx:381
+#: resources/js/visual-editor/blocks/icon/edit.tsx:364
 #: resources/js/visual-editor/blocks/skills-slider/edit.tsx:109
 #: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:402
 #: resources/js/visual-editor/box-shadows/with-box-shadow-control.tsx:427
@@ -1922,7 +1922,7 @@ msgctxt "blend mode"
 msgid "Difference"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/icon/edit.tsx:392
+#: resources/js/visual-editor/blocks/icon/edit.tsx:375
 msgid "Dimensions"
 msgstr ""
 
@@ -3126,7 +3126,7 @@ msgstr ""
 msgid "Headline sample"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/icon/edit.tsx:421
+#: resources/js/visual-editor/blocks/icon/edit.tsx:404
 #: resources/js/visual-editor/blocks/spacer/controls.tsx:170
 #: resources/js/visual-editor/blocks/spacer/controls.tsx:178
 msgid "Height"
@@ -3257,8 +3257,8 @@ msgstr ""
 
 #: resources/js/visual-editor/blocks/callout/edit.tsx:81
 #: resources/js/visual-editor/blocks/gallery/edit.tsx:127
-#: resources/js/visual-editor/blocks/icon/edit.tsx:364
-#: resources/js/visual-editor/blocks/icon/edit.tsx:387
+#: resources/js/visual-editor/blocks/icon/edit.tsx:347
+#: resources/js/visual-editor/blocks/icon/edit.tsx:370
 msgid "Icon"
 msgstr ""
 
@@ -3631,7 +3631,7 @@ msgstr ""
 msgid "Link images to media files"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/post-title/edit.tsx:221
+#: resources/js/visual-editor/blocks/post-title/edit.tsx:222
 msgid "Link rel"
 msgstr ""
 
@@ -3639,7 +3639,7 @@ msgstr ""
 msgid "Link relation"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/post-title/edit.tsx:198
+#: resources/js/visual-editor/blocks/post-title/edit.tsx:199
 msgid "Link settings"
 msgstr ""
 
@@ -3822,7 +3822,7 @@ msgstr ""
 msgid "Make shorter"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/post-title/edit.tsx:202
+#: resources/js/visual-editor/blocks/post-title/edit.tsx:203
 msgid "Make title a link to the post"
 msgstr ""
 
@@ -4469,7 +4469,7 @@ msgstr ""
 
 #: resources/js/visual-editor/blocks/file/edit.tsx:262
 #: resources/js/visual-editor/blocks/file/edit.tsx:268
-#: resources/js/visual-editor/blocks/post-title/edit.tsx:211
+#: resources/js/visual-editor/blocks/post-title/edit.tsx:212
 #: resources/js/visual-editor/site-editor/navigation/navigation-inspector.tsx:380
 msgid "Open in new tab"
 msgstr ""
@@ -4738,7 +4738,7 @@ msgstr ""
 msgid "Pick at least one platform from the sidebar."
 msgstr ""
 
-#: resources/js/visual-editor/blocks/single-content/edit.tsx:229
+#: resources/js/visual-editor/blocks/single-content/record-picker.tsx:118
 msgid "Pick the entry to render. Leave empty to render the host post in scope."
 msgstr ""
 
@@ -4801,7 +4801,7 @@ msgstr ""
 msgid "post"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/single-content/edit.tsx:228
+#: resources/js/visual-editor/blocks/single-content/record-picker.tsx:117
 #: resources/js/visual-editor/editor/content-type-registry.ts:35
 #: resources/js/visual-editor/site-editor/navigation/link-picker.tsx:49
 #: resources/js/visual-editor/site-editor/navigation/navigation-canvas.tsx:504
@@ -4821,7 +4821,7 @@ msgstr ""
 msgid "Post content"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/post-content/edit.tsx:55
+#: resources/js/visual-editor/blocks/post-content/edit.tsx:56
 msgid "Post Content"
 msgstr ""
 
@@ -4845,13 +4845,13 @@ msgstr ""
 msgid "Post Terms"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/post-title/edit.tsx:334
+#: resources/js/visual-editor/blocks/post-title/edit.tsx:337
 msgid "Post Title"
 msgstr ""
 
 #: resources/js/visual-editor/blocks/query/edit.tsx:139
 #: resources/js/visual-editor/blocks/search-filters/edit.tsx:78
-#: resources/js/visual-editor/blocks/single-content/edit.tsx:242
+#: resources/js/visual-editor/blocks/single-content/edit.tsx:175
 #: resources/js/visual-editor/blocks/single-post-types-search-results/edit.tsx:65
 msgid "Post type"
 msgstr ""
@@ -5229,7 +5229,7 @@ msgstr ""
 msgid "Resolution"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/single-content/edit.tsx:243
+#: resources/js/visual-editor/blocks/single-content/edit.tsx:176
 msgid "Resource slug to query. Defaults to \"post\"."
 msgstr ""
 
@@ -5321,8 +5321,8 @@ msgctxt "image width preset: small"
 msgid "S"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/icon/edit.tsx:415
-#: resources/js/visual-editor/blocks/icon/edit.tsx:425
+#: resources/js/visual-editor/blocks/icon/edit.tsx:398
+#: resources/js/visual-editor/blocks/icon/edit.tsx:408
 msgid "Same as size"
 msgstr ""
 
@@ -5552,7 +5552,7 @@ msgstr ""
 msgid "Set featured image"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/icon/edit.tsx:398
+#: resources/js/visual-editor/blocks/icon/edit.tsx:381
 msgid "Sets width and height together. Override either below."
 msgstr ""
 
@@ -5777,7 +5777,7 @@ msgstr ""
 msgid "Single %s"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/single-content/edit.tsx:224
+#: resources/js/visual-editor/blocks/single-content/edit.tsx:159
 msgid "Single content settings"
 msgstr ""
 
@@ -5837,7 +5837,7 @@ msgstr ""
 msgid "Six."
 msgstr ""
 
-#: resources/js/visual-editor/blocks/icon/edit.tsx:397
+#: resources/js/visual-editor/blocks/icon/edit.tsx:380
 #: resources/js/visual-editor/formats/inline-icon/edit.tsx:239
 msgid "Size"
 msgstr ""
@@ -7015,7 +7015,7 @@ msgstr ""
 #: resources/js/visual-editor/blocks/author-social-icons/edit.tsx:219
 #: resources/js/visual-editor/blocks/column/edit.tsx:72
 #: resources/js/visual-editor/blocks/column/edit.tsx:77
-#: resources/js/visual-editor/blocks/icon/edit.tsx:411
+#: resources/js/visual-editor/blocks/icon/edit.tsx:394
 #: resources/js/visual-editor/blocks/marquee/edit.tsx:61
 #: resources/js/visual-editor/blocks/search/edit.tsx:488
 #: resources/js/visual-editor/blocks/search/edit.tsx:501

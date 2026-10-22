@@ -260,7 +260,7 @@ export function useQueryPreview(
     return state;
 }
 
-function readCsrfToken(): string | null {
+export function readCsrfToken(): string | null {
     if (typeof document === 'undefined') {
         return null;
     }
@@ -363,7 +363,7 @@ function normalizePosts(items: unknown[]): QueryPreviewPost[] {
         .map((item) => mapWpEntityToPost(item));
 }
 
-function mapWpEntityToPost(entity: Record<string, unknown>): QueryPreviewPost {
+export function mapWpEntityToPost(entity: Record<string, unknown>): QueryPreviewPost {
     const id = typeof entity.id === 'number' ? entity.id : Number(entity.id ?? 0);
     const titleRendered =
         typeof entity.title === 'object' && entity.title !== null

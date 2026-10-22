@@ -72,6 +72,16 @@ default `60,1`; `false` turns it off). See
 [Access Gate](../site-editor/Access-Gate.md#content-authoring-ability-visual-editoredit-content)
 and [Configuration](../Configuration.md#content_access).
 
+### SVG requests are shared
+
+*Since v1.16.0 (#1004).* The canvas fetches each registered-set icon once
+per editor session: every Icon block and inline icon showing the same
+`set` and `name` shares one `GET icons/svg` request, including requests
+already in flight. A failed lookup isn't cached, so it is retried the
+next time the icon is shown. Successful responses also carry
+`Cache-Control: private, max-age=86400`, so the browser reuses them across
+editor sessions; `400` and `404` responses don't.
+
 ---
 
 ## Developer recipe — registering custom sets

@@ -41,6 +41,7 @@ import { useEntityProp } from '../../vendor/core-data-shim';
 import { TEXT_DOMAIN } from '../../vendor/i18n';
 import {
     PREVIEW_CONTEXT_KEY,
+    hasPreviewContext,
     isInQueryLoop,
     readEntityString,
 } from '../_shared/entity-placeholder-edit';
@@ -242,7 +243,9 @@ export default function PostTitleEdit( props: AnyProps ): ReactElement {
     // Readonly previews render the chosen level's tag too (#994), so the
     // canvas matches the front-end `<hN>` / `<p>` markup.
     const ReadonlyTag = TagName as 'h2';
-    const hasLiveEntity = identity !== null && ! inQueryLoop;
+    // A claimed preview context (#1003) means `postId` / `postType` name
+    // the previewed entry, not the one being edited.
+    const hasLiveEntity = identity !== null && ! inQueryLoop && ! hasPreviewContext( context );
 
     // Hooks must fire unconditionally. The shim returns `[undefined,
     // noop, undefined]` when any of the args are missing, so the

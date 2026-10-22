@@ -54,6 +54,11 @@ class IconSvgController extends Controller
 			return response()->json( [ 'svg' => null ], 404 );
 		}
 
-		return response()->json( [ 'svg' => $svg ] );
+		// Icon SVGs are static per (set, name), so let the browser reuse
+		// the response across editor sessions (#1004). `private` because
+		// the route sits behind the content-editor gate.
+		return response()
+			->json( [ 'svg' => $svg ] )
+			->header( 'Cache-Control', 'private, max-age=86400' );
 	}
 }

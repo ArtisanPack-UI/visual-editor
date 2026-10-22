@@ -8,7 +8,8 @@
  *
  *  1. Stamped `_resolvedContent` attribute.
  *  2. `artisanpack/postPreview` context — the query loop's resolved post
- *     (#483) or the site editor's template preview entry (#993).
+ *     (#483), a single-content block's picked entry (#1003), or the site
+ *     editor's template preview entry (#993).
  *  3. The entry being edited (`postType` / `postId` block context, no
  *     `queryId`): its live block tree from the canvas, so the preview
  *     tracks unsaved edits for posts, pages and custom content types
@@ -33,10 +34,10 @@ import { __ } from '@wordpress/i18n';
 import { TEXT_DOMAIN } from '../../vendor/i18n';
 import {
     createEntityPlaceholderEdit,
+    hasPreviewContext,
     htmlToText,
     isInQueryLoop,
     readPostEntityIdentity,
-    readQueryPreviewPost,
 } from '../_shared/entity-placeholder-edit';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -95,6 +96,10 @@ const PlaceholderPostContentEdit = createEntityPlaceholderEdit( {
     label,
     resolvedKey: '_resolvedContent',
     kind: 'html',
+    fromQueryPreview: ( post ) =>
+        typeof post.content === 'string' && post.content !== ''
+            ? { text: post.content }
+            : null,
 } );
 
 /**
@@ -178,7 +183,7 @@ export default function PostContentEdit( props: AnyProps ): ReactElement {
     const isCurrentEntry =
         readPostEntityIdentity( context ) !== null
         && ! isInQueryLoop( context )
-        && readQueryPreviewPost( context ) === null
+        && ! hasPreviewContext( context )
         && ( typeof attributes._resolvedContent !== 'string' || attributes._resolvedContent === '' );
 
     if ( isCurrentEntry ) {

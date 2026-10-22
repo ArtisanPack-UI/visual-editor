@@ -40,6 +40,7 @@ use ArtisanPackUI\VisualEditor\Http\Controllers\QueryResolveController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\ResourceAppliedTemplateController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\ResourceContentController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\ResourceEntryController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\ResourceRecordController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\GlobalStylesController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\MenuController;
@@ -546,3 +547,18 @@ if ( interface_exists( ArtisanPackUI\Ai\Contracts\FeatureRegistry::class ) ) {
 			->name( 'visual-editor.api.ai.heading-hierarchy' );
 	} );
 }
+
+// #1003 — generic record list + single-record reads for any registered
+// resource, in the minimal `{ id, title, slug }` shape record pickers
+// need (the single-content block's "Post" dropdown, for one). Resolves
+// `{resource}` through `ResourceResolver` with the same `view` policy
+// check as `{resource}/{id}/content`. Registered last so every static
+// segment above (and the `posts` / `pages` WP-shape adapters) wins.
+Route::get( '{resource}', [ ResourceRecordController::class, 'index' ] )
+	->where( 'resource', '[A-Za-z0-9_-]+' )
+	->name( 'visual-editor.api.resources.index' );
+
+Route::get( '{resource}/{id}', [ ResourceRecordController::class, 'show' ] )
+	->where( 'resource', '[A-Za-z0-9_-]+' )
+	->where( 'id', '[A-Za-z0-9_-]+' )
+	->name( 'visual-editor.api.resources.show' );

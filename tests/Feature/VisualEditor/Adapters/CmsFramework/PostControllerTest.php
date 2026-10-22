@@ -105,6 +105,71 @@ it( 'lists posts with the paginated { data, meta } envelope', function (): void 
 		->assertJsonPath( 'meta.total', 3 );
 } );
 
+it( 'filters the post list by search', function (): void {
+	actor();
+
+	TestBlockContentModel::create( [ 'title' => 'Hello', 'status' => 'published', 'content' => [] ] );
+	$match = TestBlockContentModel::create( [ 'title' => 'Release notes', 'status' => 'published', 'content' => [] ] );
+
+	$this->getJson( '/visual-editor/api/posts?search=release' )
+		->assertOk()
+		->assertJsonCount( 1, 'data' )
+		->assertJsonPath( 'data.0.id', $match->id );
+} );
+
+it( 'limits the post list to the include ids', function (): void {
+	actor();
+
+	$a = TestBlockContentModel::create( [ 'title' => 'A', 'status' => 'published', 'content' => [] ] );
+	TestBlockContentModel::create( [ 'title' => 'B', 'status' => 'published', 'content' => [] ] );
+	$c = TestBlockContentModel::create( [ 'title' => 'C', 'status' => 'published', 'content' => [] ] );
+
+	$response = $this->getJson( "/visual-editor/api/posts?include={$a->id},{$c->id}" )
+		->assertOk()
+		->assertJsonCount( 2, 'data' );
+
+	expect( array_column( $response->json( 'data' ), 'id' ) )->toEqualCanonicalizing( [ $a->id, $c->id ] );
+} );
+
+it( 'returns no posts when include has no valid ids', function ( string $include ): void {
+	actor();
+
+	TestBlockContentModel::create( [ 'title' => 'A', 'status' => 'published', 'content' => [] ] );
+
+	$this->getJson( "/visual-editor/api/posts?include={$include}" )
+		->assertOk()
+		->assertJsonCount( 0, 'data' );
+} )->with( [
+	'path traversal' => [ '../etc' ],
+	'non-numeric'    => [ 'abc' ],
+	'empty'          => [ '' ],
+] );
+
+it( 'drops non-numeric include ids from the post list', function (): void {
+	actor();
+
+	$a = TestBlockContentModel::create( [ 'title' => 'A', 'status' => 'published', 'content' => [] ] );
+	TestBlockContentModel::create( [ 'title' => 'B', 'status' => 'published', 'content' => [] ] );
+
+	$this->getJson( "/visual-editor/api/posts?include={$a->id},abc" )
+		->assertOk()
+		->assertJsonCount( 1, 'data' )
+		->assertJsonPath( 'data.0.id', $a->id );
+} );
+
+it( 'returns every include id even past the default page size', function (): void {
+	actor();
+
+	$ids = [];
+	foreach ( range( 1, 30 ) as $i ) {
+		$ids[] = TestBlockContentModel::create( [ 'title' => "Post {$i}", 'status' => 'published', 'content' => [] ] )->id;
+	}
+
+	$this->getJson( '/visual-editor/api/posts?include=' . implode( ',', $ids ) )
+		->assertOk()
+		->assertJsonCount( 30, 'data' );
+} );
+
 it( 'creates a post via POST and returns 201', function (): void {
 	actor();
 

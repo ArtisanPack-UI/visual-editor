@@ -1,13 +1,29 @@
 /**
- * Inline-icon RichText format — set-icon SVG fetch (#717).
+ * Registered-set icon SVG fetch, shared by the Icon block's canvas
+ * preview and the inline-icon RichText format (#717).
  *
- * The icon picker hands back only a `{ set, name }` reference, so when an
- * author picks a registered-set icon we fetch its SVG once (via the same
- * `/visual-editor/api/icons/svg` endpoint the Icon block's canvas preview
- * uses) to embed as the editor preview. The server render-time hydrator
- * re-resolves the reference at render, so this preview is a convenience,
- * not the source of truth.
+ * The icon picker hands back only a `{ set, name }` reference, so both
+ * consumers resolve the SVG through `/visual-editor/api/icons/svg`. The
+ * server render-time hydrator re-resolves the reference at render, so
+ * this preview is a convenience, not the source of truth.
+ *
+ * Lookups are memoized per editor session (#1004): the in-flight promise
+ * is cached by `apiBase` + `set:name`, so N block instances showing the
+ * same icon share a single request instead of each booting the app.
+ * Empty results (failures, unknown icons) are evicted once they settle so
+ * a transient error doesn't pin the placeholder for the whole session.
  */
+
+const svgCache = new Map< string, Promise< string > >();
+
+/**
+ * Drop every memoized SVG lookup. Exposed for tests.
+ *
+ * @since 1.16.0
+ */
+export function clearIconSvgCache(): void {
+    svgCache.clear();
+}
 
 function readMetaCsrfToken(): string | null {
     if ( 'undefined' === typeof document ) {
@@ -41,13 +57,37 @@ function buildHeaders(): Record< string, string > {
 /**
  * Fetch the SVG markup for a registered-set icon. Returns an empty string
  * on any non-OK response so the caller can still insert the reference
- * span (the server hydrator fills it in at render time).
+ * span (the server hydrator fills it in at render time). Concurrent and
+ * later calls for the same icon reuse the first successful request.
  */
-export async function fetchIconSvg(
+export function fetchIconSvg(
     set: string,
     name: string,
     fetchImpl: typeof fetch = fetch,
     apiBase = '/visual-editor/api',
+): Promise< string > {
+    const key    = `${ apiBase }|${ set }:${ name }`;
+    const cached = svgCache.get( key );
+    if ( cached ) {
+        return cached;
+    }
+
+    const pending: Promise< string > = requestIconSvg( set, name, fetchImpl, apiBase ).then( ( svg ) => {
+        if ( '' === svg && pending === svgCache.get( key ) ) {
+            svgCache.delete( key );
+        }
+        return svg;
+    } );
+    svgCache.set( key, pending );
+
+    return pending;
+}
+
+async function requestIconSvg(
+    set: string,
+    name: string,
+    fetchImpl: typeof fetch,
+    apiBase: string,
 ): Promise< string > {
     const params = new URLSearchParams( { set, name } );
 
