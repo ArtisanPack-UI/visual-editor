@@ -99,9 +99,11 @@ value. The list accepts:
   table has one; ignored otherwise.
 - `per_page` — default 25, capped at 100.
 - `include` — a comma-separated id list (`?include=11,12,21`) that limits
-  the result to those records, for batched title lookups. Duplicates and
-  ids with characters outside `[A-Za-z0-9_-]` are dropped, and the list is
-  capped at 100.
+  the result to those records, for batched title lookups. Duplicates,
+  ids with characters outside `[A-Za-z0-9_-]` and, for an integer primary
+  key, non-numeric ids are dropped, and the list is capped at 100. An
+  `include` with no valid ids returns no records, never the unfiltered
+  list.
 
 Records come newest-first by primary key, scoped with `forVisualEditor()`
 as `ResourceResolver::resolve()` scopes single lookups (both now go

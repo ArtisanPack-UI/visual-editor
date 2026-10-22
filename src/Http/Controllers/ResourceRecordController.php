@@ -56,7 +56,8 @@ class ResourceRecordController extends Controller
 	 * Supports `search` (matched against the `title` column when the
 	 * table has one), `per_page` (capped at {@see self::MAX_PER_PAGE}),
 	 * and `include` (a comma-separated id list that limits the result to
-	 * those records). Records the user may not `view` are left out.
+	 * those records; one with no valid ids returns no records). Records
+	 * the user may not `view` are left out.
 	 *
 	 * @since 1.16.0
 	 */
@@ -65,9 +66,12 @@ class ResourceRecordController extends Controller
 		$query = $this->resolver->query( $resource );
 		$model = $query->getModel();
 
-		$include = RecordIdList::parse( $request->query( 'include' ), self::MAX_PER_PAGE );
+		// A sent `include` always filters, so one with no valid ids
+		// matches nothing rather than falling back to the full list.
+		$hasInclude = $request->query->has( 'include' );
+		$include    = RecordIdList::parseForModel( $request->query( 'include' ), $model, self::MAX_PER_PAGE );
 
-		if ( [] !== $include ) {
+		if ( $hasInclude ) {
 			$query->whereIn( $model->getKeyName(), $include );
 		}
 
@@ -79,7 +83,7 @@ class ResourceRecordController extends Controller
 
 		$records = $query
 			->orderBy( $model->getKeyName(), 'desc' )
-			->limit( [] !== $include ? count( $include ) : $this->perPage( $request ) )
+			->limit( $hasInclude ? count( $include ) : $this->perPage( $request ) )
 			->get()
 			->filter( fn ( Model $record ): bool => Gate::allows( 'view', $record ) )
 			->map( fn ( Model $record ): array => $this->transform( $record ) )

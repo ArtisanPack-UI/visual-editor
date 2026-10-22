@@ -91,9 +91,11 @@ abstract class WpEntityController extends Controller
 			$query->where( 'title', 'like', '%' . $search . '%' );
 		}
 
-		// #1003 — batched title lookups from record pickers.
-		$include = RecordIdList::parse( $request->query( 'include' ), self::MAX_PER_PAGE );
-		if ( [] !== $include ) {
+		// #1003 — batched title lookups from record pickers. A sent
+		// `include` always filters, so one with no valid ids matches
+		// nothing rather than falling back to the full list.
+		if ( $request->query->has( 'include' ) ) {
+			$include = RecordIdList::parseForModel( $request->query( 'include' ), $model, self::MAX_PER_PAGE );
 			$query->whereIn( $model->getKeyName(), $include );
 			$perPage = max( $perPage, count( $include ) );
 		}

@@ -19,6 +19,8 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Support;
 
+use Illuminate\Database\Eloquent\Model;
+
 class RecordIdList
 {
 	/**
@@ -66,5 +68,31 @@ class RecordIdList
 		}
 
 		return array_values( $ids );
+	}
+
+	/**
+	 * Parses record ids for a model's primary key.
+	 *
+	 * Runs {@see self::parse()}, then drops non-numeric ids when the key
+	 * is an integer, so a token such as `abc` never reaches an integer
+	 * column (PostgreSQL rejects the comparison with an error).
+	 *
+	 * @since 1.16.0
+	 *
+	 * @param  mixed  $raw    The raw `include` input.
+	 * @param  Model  $model  The model whose primary key the ids target.
+	 * @param  int    $max    The maximum number of ids to return.
+	 *
+	 * @return array<int, string>
+	 */
+	public static function parseForModel( mixed $raw, Model $model, int $max ): array
+	{
+		$ids = self::parse( $raw, $max );
+
+		if ( ! in_array( $model->getKeyType(), [ 'int', 'integer' ], true ) ) {
+			return $ids;
+		}
+
+		return array_values( array_filter( $ids, 'ctype_digit' ) );
 	}
 }

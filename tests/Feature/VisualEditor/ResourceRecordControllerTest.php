@@ -122,6 +122,33 @@ it( 'limits the list to the include ids, ignoring malformed entries', function (
 	expect( array_column( $response->json( 'data' ), 'id' ) )->toEqualCanonicalizing( [ $a->id, $c->id ] );
 } );
 
+it( 'returns no records when include has no valid ids', function ( string $include ): void {
+	recordActor();
+
+	makePackage( 'A' );
+	makePackage( 'B' );
+
+	$this->getJson( "/visual-editor/api/packages?include={$include}" )
+		->assertOk()
+		->assertExactJson( [ 'data' => [] ] );
+} )->with( [
+	'path traversal' => [ '../etc' ],
+	'non-numeric'    => [ 'abc' ],
+	'empty'          => [ '' ],
+] );
+
+it( 'drops non-numeric include ids for an integer key', function (): void {
+	recordActor();
+
+	$a = makePackage( 'A' );
+	makePackage( 'B' );
+
+	$this->getJson( "/visual-editor/api/packages?include={$a->id},abc" )
+		->assertOk()
+		->assertJsonCount( 1, 'data' )
+		->assertJsonPath( 'data.0.id', $a->id );
+} );
+
 it( 'returns a single record for a dynamic resource', function (): void {
 	recordActor();
 

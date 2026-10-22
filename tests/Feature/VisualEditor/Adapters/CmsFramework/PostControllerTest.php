@@ -131,6 +131,32 @@ it( 'limits the post list to the include ids', function (): void {
 	expect( array_column( $response->json( 'data' ), 'id' ) )->toEqualCanonicalizing( [ $a->id, $c->id ] );
 } );
 
+it( 'returns no posts when include has no valid ids', function ( string $include ): void {
+	actor();
+
+	TestBlockContentModel::create( [ 'title' => 'A', 'status' => 'published', 'content' => [] ] );
+
+	$this->getJson( "/visual-editor/api/posts?include={$include}" )
+		->assertOk()
+		->assertJsonCount( 0, 'data' );
+} )->with( [
+	'path traversal' => [ '../etc' ],
+	'non-numeric'    => [ 'abc' ],
+	'empty'          => [ '' ],
+] );
+
+it( 'drops non-numeric include ids from the post list', function (): void {
+	actor();
+
+	$a = TestBlockContentModel::create( [ 'title' => 'A', 'status' => 'published', 'content' => [] ] );
+	TestBlockContentModel::create( [ 'title' => 'B', 'status' => 'published', 'content' => [] ] );
+
+	$this->getJson( "/visual-editor/api/posts?include={$a->id},abc" )
+		->assertOk()
+		->assertJsonCount( 1, 'data' )
+		->assertJsonPath( 'data.0.id', $a->id );
+} );
+
 it( 'returns every include id even past the default page size', function (): void {
 	actor();
 
