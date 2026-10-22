@@ -135,7 +135,8 @@ it( 'returns the resolved svg for a known (set, name) via the svg endpoint', fun
 	try {
 		$this->getJson( '/visual-editor/api/icons/svg?set=fab&name=github' )
 			->assertOk()
-			->assertJsonPath( 'svg', '<svg id="github"/>' );
+			->assertJsonPath( 'svg', '<svg id="github"/>' )
+			->assertHeader( 'Cache-Control', 'max-age=86400, private' );
 	} finally {
 		unlink( $base . '/fab/github.svg' );
 		rmdir( $base . '/fab' );
@@ -148,9 +149,11 @@ it( 'returns 404 from the svg endpoint when the icon is unknown', function (): v
 
 	app()->instance( IconSvgResolver::class, new IconSvgResolver( [] ) );
 
-	$this->getJson( '/visual-editor/api/icons/svg?set=fab&name=nope' )
+	$response = $this->getJson( '/visual-editor/api/icons/svg?set=fab&name=nope' )
 		->assertNotFound()
 		->assertJsonPath( 'svg', null );
+
+	expect( $response->headers->get( 'Cache-Control' ) )->not->toContain( 'max-age=86400' );
 } );
 
 it( 'returns 400 from the svg endpoint when set or name is missing', function (): void {

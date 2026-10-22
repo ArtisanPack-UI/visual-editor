@@ -29,11 +29,11 @@ import { useAnchor } from '@wordpress/rich-text';
 
 import { TEXT_DOMAIN } from '../../vendor/i18n';
 import CustomSvgControl from '../../blocks/icon/custom-svg-control';
+import { fetchIconSvg } from '../../blocks/icon/fetch-svg';
 import { IconPickerPanel } from '../../blocks/icon/icon-picker';
 import IconInserterIcon from '../../blocks/icon/inserter-icon';
 import type { IconRef } from '../../blocks/icon/types';
 
-import { fetchIconSvg } from './fetch-svg';
 import {
     FORMAT_NAME,
     INLINE_ICON_CLASS,
