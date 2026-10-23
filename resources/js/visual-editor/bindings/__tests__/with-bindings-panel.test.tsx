@@ -67,7 +67,8 @@ vi.mock( '../api', () => ( {
 		{ name: 'post_core' },
 	] ),
 	fetchBindingFields:  vi.fn( async () => [] ),
-	resolveBindings:     vi.fn( async () => ( {} ) ),
+	resolveBindings:      vi.fn( async () => ( {} ) ),
+	resolveBindingsBatch: vi.fn( async () => [] ),
 } ) )
 
 import { __setBlockType, __clearBlockTypes } from '@wordpress/blocks'

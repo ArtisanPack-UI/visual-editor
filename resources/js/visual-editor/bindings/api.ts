@@ -43,10 +43,36 @@ interface ResolveResponse {
 	values: Record<string, unknown>;
 }
 
-interface ResolveContextPayload {
+export interface ResolveContextPayload {
 	resource: string | null;
 	id: number | string | null;
 	draft?: Record<string, unknown>;
+}
+
+export interface ResolveBindingsPayload {
+	attrs: Record<string, unknown>;
+	bindings: BindingsMap;
+	context: ResolveContextPayload;
+}
+
+export interface ResolveBindingsBatchItem extends ResolveBindingsPayload {
+	key: string;
+}
+
+/**
+ * One entry of a batch resolve response: the item's resolved `values`,
+ * or an `error` code when the item was malformed or its record is
+ * forbidden.
+ */
+export interface ResolveBindingsBatchResult {
+	key: string | number | null;
+	values?: Record<string, unknown>;
+	error?: string;
+	message?: string;
+}
+
+interface ResolveBatchResponse {
+	results: ResolveBindingsBatchResult[];
 }
 
 async function jsonOrThrow<T>(
@@ -121,14 +147,10 @@ export async function fetchBindingFields(
 	return body.fields ?? [];
 }
 
-export async function resolveBindings(
-	payload: {
-		attrs: Record<string, unknown>;
-		bindings: BindingsMap;
-		context: ResolveContextPayload;
-	},
+function postResolve(
+	payload: unknown,
 	signal?: AbortSignal
-): Promise<Record<string, unknown>> {
+): Promise<Response> {
 	const { apiBase } = getBindingsApiConfig();
 	const csrfToken = readCsrfToken();
 
@@ -142,13 +164,20 @@ export async function resolveBindings(
 		headers[ 'X-CSRF-TOKEN' ] = csrfToken;
 	}
 
-	const response = await fetch( `${ apiBase }/bindings/resolve`, {
+	return fetch( `${ apiBase }/bindings/resolve`, {
 		method: 'POST',
 		credentials: 'same-origin',
 		headers,
 		body: JSON.stringify( payload ),
 		signal,
 	} );
+}
+
+export async function resolveBindings(
+	payload: ResolveBindingsPayload,
+	signal?: AbortSignal
+): Promise<Record<string, unknown>> {
+	const response = await postResolve( payload, signal );
 
 	const body = await jsonOrThrow<ResolveResponse>(
 		response,
@@ -156,4 +185,26 @@ export async function resolveBindings(
 	);
 
 	return body.values ?? {};
+}
+
+/**
+ * Resolve several blocks' bindings in one request (#1009). Results
+ * come back in request order, one per item, each carrying the item's
+ * `key`. Per-item failures arrive as `error` entries rather than a
+ * rejected promise; only a failed request rejects.
+ *
+ * @since 1.17.0
+ */
+export async function resolveBindingsBatch(
+	items: ResolveBindingsBatchItem[],
+	signal?: AbortSignal
+): Promise<ResolveBindingsBatchResult[]> {
+	const response = await postResolve( { items }, signal );
+
+	const body = await jsonOrThrow<ResolveBatchResponse>(
+		response,
+		__( 'Failed to resolve bindings.', TEXT_DOMAIN )
+	);
+
+	return Array.isArray( body.results ) ? body.results : [];
 }

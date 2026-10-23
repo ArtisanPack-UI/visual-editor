@@ -100,3 +100,24 @@ it( 'resolves when the model\'s policy allows view', function (): void {
 		->assertOk()
 		->assertJsonPath( 'html', '<p>Hi, Secret published!</p>' );
 } );
+
+it( 'returns a per-item error for a forbidden record in a batch without failing the others', function (): void {
+	Gate::policy( TestBindingsModel::class, TestPublishedOnlyPolicy::class );
+
+	$draft     = recordAccessModel( 'draft' );
+	$published = recordAccessModel( 'published' );
+
+	$this->postJson( '/visual-editor/api/bindings/resolve', [
+		'items' => [
+			[ 'key' => 'draft' ] + recordAccessResolvePayload( $draft->id ),
+			[ 'key' => 'published' ] + recordAccessResolvePayload( $published->id ),
+			[ 'key' => 'draft-again' ] + recordAccessResolvePayload( $draft->id ),
+		],
+	] )
+		->assertOk()
+		->assertJsonPath( 'results.0.key', 'draft' )
+		->assertJsonPath( 'results.0.error', 'forbidden' )
+		->assertJsonMissingPath( 'results.0.values' )
+		->assertJsonPath( 'results.1.values.label', 'Secret published' )
+		->assertJsonPath( 'results.2.error', 'forbidden' );
+} );

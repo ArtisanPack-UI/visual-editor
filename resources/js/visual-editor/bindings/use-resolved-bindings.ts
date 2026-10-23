@@ -4,9 +4,12 @@
  * on top of the block's static `attrs` so the canvas shows what the
  * frontend renderer will show.
  *
- * Debounces calls — typing a path / picking a different field fires
- * setAttributes every keystroke, and we don't want to spam the
- * `bindings/resolve` endpoint for every intermediate state.
+ * Requests go through the session-wide batcher (#1009): every bound
+ * block on the canvas shares one debounced `bindings/resolve` request,
+ * and results are cached by input hash so unchanged blocks, remounts
+ * and undo/redo don't refetch. The shared debounce also keeps typing a
+ * path / picking a different field from sending a request for every
+ * intermediate state.
  *
  * @package @artisanpack-ui/visual-editor
  * @since 1.1.0
@@ -14,10 +17,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { resolveBindings } from './api';
+import { getCachedResolvedBindings, queueResolveBindings } from './resolve-batcher';
 import type { BindingsMap } from './types';
-
-const DEBOUNCE_MS = 250;
 
 export interface ResolvedBindingsState {
 	values: Record<string, unknown>;
@@ -77,36 +78,39 @@ export function useResolvedBindings(
 
 		lastSerializedRef.current = serialized;
 
+		const payload = {
+			attrs,
+			bindings: bindings ?? {},
+			context: { resource, id },
+		};
+
+		const cached = getCachedResolvedBindings( payload );
+
+		if ( cached ) {
+			setState( { values: cached, loading: false, error: null } );
+			return;
+		}
+
 		let cancelled = false;
 		const controller = new AbortController();
 
 		setState( ( prev ) => ( { values: prev.values, loading: true, error: null } ) );
 
-		const handle = setTimeout( () => {
-			resolveBindings(
-				{
-					attrs,
-					bindings: bindings ?? {},
-					context: { resource, id },
-				},
-				controller.signal,
-			)
-				.then( ( values ) => {
-					if ( ! cancelled ) {
-						setState( { values, loading: false, error: null } );
-					}
-				} )
-				.catch( ( error: Error ) => {
-					if ( ! cancelled && error.name !== 'AbortError' ) {
-						setState( { values: {}, loading: false, error } );
-					}
-				} );
-		}, DEBOUNCE_MS );
+		queueResolveBindings( payload, controller.signal )
+			.then( ( values ) => {
+				if ( ! cancelled ) {
+					setState( { values, loading: false, error: null } );
+				}
+			} )
+			.catch( ( error: Error ) => {
+				if ( ! cancelled && error.name !== 'AbortError' ) {
+					setState( { values: {}, loading: false, error } );
+				}
+			} );
 
 		return () => {
 			cancelled = true;
 			controller.abort();
-			clearTimeout( handle );
 		};
 	// `bindings` and `attrs` arrive as new object refs on every parent
 	// render — Gutenberg rebuilds the attributes prop frequently, and
