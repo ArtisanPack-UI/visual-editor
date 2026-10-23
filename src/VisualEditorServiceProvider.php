@@ -700,13 +700,14 @@ class VisualEditorServiceProvider extends ServiceProvider
 		// 1. Merge the configuration correctly.
 		$this->mergeConfiguration();
 
-		// 1a. Build the resource map after every provider has finished
-		//     booting so filter callbacks registered in another provider's
-		//     boot() phase are visible regardless of provider ordering.
-		//     Static config wins on key collision; host overrides always
-		//     take precedence over filter contributions. See
-		//     docs/plans/12-cms-framework-integration.md §4.1 for the full
-		//     filter contract.
+		// 1a. Bind the resource and site-editor resolvers after every
+		//     provider has finished booting. The bindings are lazy: the
+		//     filters run on first resolve, so callbacks registered in any
+		//     provider's boot() are visible and requests that never use
+		//     the editor skip them (#1019). Static config wins on key
+		//     collision; host overrides always take precedence over filter
+		//     contributions. See docs/plans/12-cms-framework-integration.md
+		//     §4.1 for the full filter contract.
 		$this->app->booted( function (): void {
 			$this->registerResourceResolver();
 			$this->registerSiteEditorResolvers();
@@ -856,7 +857,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 	}
 
 	/**
-	 * Builds the slug → model class map for ResourceResolver.
+	 * Binds ResourceResolver to a lazily built slug → model class map.
 	 *
 	 * Pipes the static config through the `ap.visualEditor.resources` filter
 	 * (so packages like cms-framework can register their models at runtime),
@@ -866,26 +867,29 @@ class VisualEditorServiceProvider extends ServiceProvider
 	 * standalone install of a contributor (cms-framework without visual-editor
 	 * loaded) from tripping host boot.
 	 *
+	 * The map is built on first resolve in each request rather than at boot,
+	 * so requests that never touch a resource endpoint skip the filter.
+	 * First resolve always happens after boot, so callbacks registered in any
+	 * provider's boot() are still visible.
+	 *
 	 * Public so tests (and edge cases that mutate config or hook callbacks at
 	 * runtime) can re-trigger the rebind without going through reflection.
 	 *
 	 * @since 1.0.0
+	 * @since 1.17.1 Binds request-scoped and builds the map on first resolve.
 	 */
 	public function registerResourceResolver(): void
 	{
-		$staticConfig = (array) config( 'artisanpack.visual-editor.resources', [] );
-		$filtered     = applyFilters( 'ap.visualEditor.resources', $staticConfig );
-		$filtered     = is_array( $filtered ) ? $filtered : [];
-
-		// Static config wins on key collision: host app entries take
-		// precedence over filter contributions.
-		$resources = array_merge( $filtered, $staticConfig );
-
-		$this->app->instance( ResourceResolver::class, new ResourceResolver( $resources ) );
+		$this->app->scoped(
+			ResourceResolver::class,
+			fn (): ResourceResolver => new ResourceResolver(
+				$this->mergedFilterMap( 'ap.visualEditor.resources', 'artisanpack.visual-editor.resources' ),
+			),
+		);
 	}
 
 	/**
-	 * Builds the five site-editor resolvers from filter-merged data.
+	 * Binds the five site-editor resolvers to lazily built, filter-merged data.
 	 *
 	 * Mirrors {@see self::registerResourceResolver()}: each filter receives the
 	 * static config, contributors (cms-framework H1–H4) merge their data in,
@@ -894,77 +898,79 @@ class VisualEditorServiceProvider extends ServiceProvider
 	 * contributor surfaces an exception on the editor's first request, not at
 	 * boot.
 	 *
+	 * Every resolver is bound request-scoped and runs its filter on first
+	 * resolve, so only requests that use the site editor pay for building the
+	 * theme's template, part and pattern catalogue, and long-lived workers
+	 * never serve a stale snapshot.
+	 *
 	 * Standalone visual-editor (no cms-framework, no host registrations) ends
 	 * up with empty resolvers — the editor's site-editor surface boots clean
 	 * and the editor renders with zero entities until something registers.
-	 *
-	 * The global styles resolver is the exception: it is bound request-
-	 * scoped and merges its filter on first use in each request (see
-	 * {@see self::mergedGlobalStyles()}), so long-lived workers never serve
-	 * a stale snapshot.
 	 *
 	 * Public so tests (and edge cases that mutate config or hook callbacks at
 	 * runtime) can re-trigger the rebind without going through reflection.
 	 *
 	 * @since 1.0.0
 	 * @since 1.15.0 Binds the global styles resolver request-scoped.
+	 * @since 1.17.1 Binds every resolver request-scoped and builds it on first resolve.
 	 */
 	public function registerSiteEditorResolvers(): void
 	{
-		// Templates ─ array<string, array> keyed by slug.
-		$templatesStatic = (array) config( 'artisanpack.visual-editor.site-editor.templates', [] );
-		$templatesMerged = applyFilters( 'ap.visualEditor.templates', $templatesStatic );
-		$templatesMerged = is_array( $templatesMerged ) ? $templatesMerged : [];
-		$templatesMerged = array_merge( $templatesMerged, $templatesStatic );
-
-		$this->app->instance(
+		$this->app->scoped(
 			SiteEditorTemplateResolver::class,
-			new SiteEditorTemplateResolver( $templatesMerged ),
+			fn (): SiteEditorTemplateResolver => new SiteEditorTemplateResolver(
+				$this->mergedFilterMap( 'ap.visualEditor.templates', 'artisanpack.visual-editor.site-editor.templates' ),
+			),
 		);
 
-		// Template parts ─ array<string, array> keyed by slug.
-		$partsStatic = (array) config( 'artisanpack.visual-editor.site-editor.template-parts', [] );
-		$partsMerged = applyFilters( 'ap.visualEditor.templateParts', $partsStatic );
-		$partsMerged = is_array( $partsMerged ) ? $partsMerged : [];
-		$partsMerged = array_merge( $partsMerged, $partsStatic );
-
-		$this->app->instance(
+		$this->app->scoped(
 			SiteEditorTemplatePartResolver::class,
-			new SiteEditorTemplatePartResolver( $partsMerged ),
+			fn (): SiteEditorTemplatePartResolver => new SiteEditorTemplatePartResolver(
+				$this->mergedFilterMap( 'ap.visualEditor.templateParts', 'artisanpack.visual-editor.site-editor.template-parts' ),
+			),
 		);
 
-		// Patterns ─ array<string, array> keyed by slug.
-		$patternsStatic = (array) config( 'artisanpack.visual-editor.site-editor.patterns', [] );
-		$patternsMerged = applyFilters( 'ap.visualEditor.patterns', $patternsStatic );
-		$patternsMerged = is_array( $patternsMerged ) ? $patternsMerged : [];
-		$patternsMerged = array_merge( $patternsMerged, $patternsStatic );
-
-		$this->app->instance(
+		$this->app->scoped(
 			SiteEditorPatternResolver::class,
-			new SiteEditorPatternResolver( $patternsMerged ),
+			fn (): SiteEditorPatternResolver => new SiteEditorPatternResolver(
+				$this->mergedFilterMap( 'ap.visualEditor.patterns', 'artisanpack.visual-editor.site-editor.patterns' ),
+			),
 		);
 
-		// Global styles ─ request-scoped (F-6). The filter's contributors
-		// (cms-framework reads the user's Global Styles row and the active
-		// theme) run on first use in each request rather than once at
-		// boot, so under Octane an edit or a theme switch shows up without
-		// a worker restart. The variations and keyframes read it through
+		// Global styles (F-6). The variations and keyframes read it through
 		// the container, so they pick up the fresh instance too.
 		$this->app->scoped(
 			SiteEditorGlobalStylesResolver::class,
 			fn (): SiteEditorGlobalStylesResolver => new SiteEditorGlobalStylesResolver( $this->mergedGlobalStyles() ),
 		);
 
-		// Navigation ─ array<string, array> keyed by location.
-		$menusStatic = (array) config( 'artisanpack.visual-editor.site-editor.navigation', [] );
-		$menusMerged = applyFilters( 'ap.visualEditor.navigation', $menusStatic );
-		$menusMerged = is_array( $menusMerged ) ? $menusMerged : [];
-		$menusMerged = array_merge( $menusMerged, $menusStatic );
-
-		$this->app->instance(
+		$this->app->scoped(
 			SiteEditorMenuResolver::class,
-			new SiteEditorMenuResolver( $menusMerged ),
+			fn (): SiteEditorMenuResolver => new SiteEditorMenuResolver(
+				$this->mergedFilterMap( 'ap.visualEditor.navigation', 'artisanpack.visual-editor.site-editor.navigation' ),
+			),
 		);
+	}
+
+	/**
+	 * A keyed map from a config key piped through a filter. The static
+	 * config seeds the filter, then merges back on top so host-app entries
+	 * win on key collision. A non-array filter return counts as empty.
+	 *
+	 * @since 1.17.1
+	 *
+	 * @param  string  $filter     The filter hook name.
+	 * @param  string  $configKey  The config key holding the static map.
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function mergedFilterMap( string $filter, string $configKey ): array
+	{
+		$static   = (array) config( $configKey, [] );
+		$filtered = applyFilters( $filter, $static );
+		$filtered = is_array( $filtered ) ? $filtered : [];
+
+		return array_merge( $filtered, $static );
 	}
 
 	/**
