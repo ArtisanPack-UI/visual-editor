@@ -26,7 +26,13 @@ export {
 	fetchBindingFields,
 	fetchBindingSources,
 	resolveBindings,
+	resolveBindingsBatch,
 } from './api';
+export {
+	clearResolvedBindingsCache,
+	getCachedResolvedBindings,
+	queueResolveBindings,
+} from './resolve-batcher';
 export { useResolvedBindings } from './use-resolved-bindings';
 export {
 	BoundAttributesContext,
