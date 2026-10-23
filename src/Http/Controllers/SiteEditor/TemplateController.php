@@ -611,8 +611,8 @@ class TemplateController extends Controller
 
 	/**
 	 * Force the H5 resolver to re-read its filter sources after a write so
-	 * the response reflects the new state. Without this the same singleton
-	 * resolver returns the boot-time snapshot for the rest of the request.
+	 * the response reflects the new state. Without this the same scoped
+	 * resolver returns its pre-write snapshot for the rest of the request.
 	 *
 	 * Mirrors the merge order used in
 	 * {@see VisualEditorServiceProvider::registerSiteEditorResolvers()}:

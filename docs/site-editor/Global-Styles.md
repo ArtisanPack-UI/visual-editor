@@ -235,7 +235,8 @@ host's layout.
 request-scoped, so on Octane and other long-lived workers a Global
 Styles edit or a theme switch shows on the next request (front end,
 canvas CSS, block style variations, keyframes) rather than after a
-worker restart.
+worker restart. *Since v1.17.1* the template, template-part, pattern
+and navigation resolvers are request-scoped too.
 
 ### Generated CSS
 
