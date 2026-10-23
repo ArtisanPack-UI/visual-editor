@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: artisanpack-ui-visual-editor\n"
-"POT-Creation-Date: 2026-10-22T22:32:47+0000\n"
+"POT-Creation-Date: 2026-10-23T19:06:26+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -2552,12 +2552,12 @@ msgstr ""
 msgid "Failed to install the font."
 msgstr ""
 
-#: resources/js/visual-editor/bindings/api.ts:80
+#: resources/js/visual-editor/bindings/api.ts:106
 msgid "Failed to load binding sources."
 msgstr ""
 
 #: resources/js/visual-editor/editor/api-client.ts:132
-#: resources/js/visual-editor/editor/use-persistence.ts:326
+#: resources/js/visual-editor/editor/use-persistence.ts:331
 msgid "Failed to load content."
 msgstr ""
 
@@ -2574,7 +2574,7 @@ msgid "Failed to load entity."
 msgstr ""
 
 #. translators: %s: binding source name.
-#: resources/js/visual-editor/bindings/api.ts:116
+#: resources/js/visual-editor/bindings/api.ts:142
 msgid "Failed to load fields for source \"%s\"."
 msgstr ""
 
@@ -2694,8 +2694,9 @@ msgstr ""
 msgid "Failed to look up global styles."
 msgstr ""
 
-#: resources/js/visual-editor/editor/api-client.ts:266
-#: resources/js/visual-editor/editor/server-side-render.tsx:111
+#: resources/js/visual-editor/editor/api-client.ts:303
+#: resources/js/visual-editor/editor/block-preview-batcher.ts:172
+#: resources/js/visual-editor/editor/server-side-render.tsx:172
 msgid "Failed to preview block."
 msgstr ""
 
@@ -2703,7 +2704,10 @@ msgstr ""
 msgid "Failed to render pattern previews."
 msgstr ""
 
-#: resources/js/visual-editor/bindings/api.ts:155
+#: resources/js/visual-editor/bindings/api.ts:184
+#: resources/js/visual-editor/bindings/api.ts:206
+#: resources/js/visual-editor/bindings/resolve-batcher.ts:131
+#: resources/js/visual-editor/bindings/resolve-batcher.ts:137
 msgid "Failed to resolve bindings."
 msgstr ""
 
@@ -2712,7 +2716,7 @@ msgid "Failed to resolve query."
 msgstr ""
 
 #: resources/js/visual-editor/editor/api-client.ts:161
-#: resources/js/visual-editor/editor/use-persistence.ts:438
+#: resources/js/visual-editor/editor/use-persistence.ts:443
 msgid "Failed to save content."
 msgstr ""
 
@@ -3731,7 +3735,7 @@ msgstr ""
 #: resources/js/visual-editor/blocks/form/edit.tsx:387
 #: resources/js/visual-editor/blocks/query/edit.tsx:221
 #: resources/js/visual-editor/editor/query-block-override.tsx:177
-#: resources/js/visual-editor/editor/server-side-render.tsx:147
+#: resources/js/visual-editor/editor/server-side-render.tsx:201
 msgid "Loading preview…"
 msgstr ""
 
@@ -6948,6 +6952,7 @@ msgstr ""
 
 #. translators: %d: HTTP status code.
 #: resources/js/visual-editor/editor/api-client.ts:95
+#: resources/js/visual-editor/editor/block-preview-batcher.ts:121
 msgid "Visual editor request failed with status %d"
 msgstr ""
 

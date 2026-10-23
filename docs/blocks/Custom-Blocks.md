@@ -360,10 +360,24 @@ abstract class DynamicBlock
 ### Block preview endpoint
 
 While authoring, dynamic blocks render via
-`POST /visual-editor/api/blocks/preview`. The editor sends
-`{ blockName, attributes }`; the controller resolves the block, runs
-`validateAttrs` → `authorize` → `render`, and returns HTML. Cache misses
-during typing are amortized by the editor's per-block debounce.
+`POST /visual-editor/api/blocks/preview`. A single-block request sends
+`{ name, attributes, innerBlocks, bindings, context }`; the controller
+resolves the block, runs `validateAttrs` → `authorize` → `render`, and
+returns HTML.
+
+*Since v1.17.0 (#1010)*, the editor batches these. Previews requested
+together go out as one request with an `items` list (at most 25), each
+item the single-block payload plus a client-chosen `key`. The response
+is `{ "results": [...] }` in request order: `{ key, name, html }` on
+success, or `{ key, name, error, message, status }`, where `status` is
+the HTTP status the single-block request would have returned. One
+failing item doesn't fail the others, and a context record shared by
+several items is loaded and its `view` policy checked once.
+
+Identical blocks share one render, and rendered HTML is cached for the
+editor session, so remounts and undo/redo don't refetch. A block doesn't
+request its preview until it comes within 400px of the viewport, so a
+long pattern inserted below the fold renders as it's scrolled into view.
 
 ---
 

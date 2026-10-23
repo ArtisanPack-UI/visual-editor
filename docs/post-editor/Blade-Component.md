@@ -70,7 +70,7 @@ Always set `resource="…"` explicitly when:
 | `GET` | `{apiBase}/{resource}/{id}/content` | On mount, fetches the persisted block tree. |
 | `PUT` | `{apiBase}/{resource}/{id}/content` | On autosave (debounced ~1s after the last change) and on explicit save (⌘S). |
 | `PUT` | `{apiBase}/{resource}/{id}/entry` | When a custom content type's title or excerpt changes and the host doesn't handle `onMetadataChange` (since v1.15.3). |
-| `POST` | `{apiBase}/blocks/preview` | When a dynamic block requests an editor preview render. |
+| `POST` | `{apiBase}/blocks/preview` | When dynamic blocks near the viewport need an editor preview render; batched into one request (since v1.17.0). |
 | `POST` | `{apiBase}/query/resolve` | When a `core/query` block needs paginated results. |
 | `GET` | `{apiBase}/blocks` | Once on mount, to fetch the enabled-block manifest. |
 

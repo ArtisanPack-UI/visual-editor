@@ -7,6 +7,7 @@ use ArtisanPackUI\VisualEditor\Registries\BlockBindingSourceRegistry;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BlockBindingSource;
 use ArtisanPackUI\VisualEditor\VisualEditorServiceProvider;
+use Illuminate\Support\Facades\DB;
 use Tests\Fixtures\TestBindingsModel;
 use Tests\Fixtures\TestDynamicBlock;
 use Tests\TestUser;
@@ -211,4 +212,42 @@ it( 'leaves a preview without a bindings payload unchanged (BC regression)', fun
 
 	$response->assertOk()
 		->assertJsonPath( 'html', '<p>Hello, Original!</p>' );
+} );
+
+it( 'loads a context record shared by several batch items once', function (): void {
+	VisualEditor::registerDynamicBlock( TestDynamicBlock::class );
+
+	$model = TestBindingsModel::query()->create( [
+		'title'   => 'Shared Title',
+		'status'  => 'published',
+		'content' => [],
+	] );
+
+	$item = static fn ( string $key, string $greeting ): array => [
+		'key'        => $key,
+		'name'       => 'tests/hello',
+		'attributes' => [ 'name' => 'Static', 'greeting' => $greeting ],
+		'bindings'   => [ 'name' => [ 'source' => 'custom_field', 'args' => [ 'key' => 'title' ] ] ],
+		'context'    => [ 'resource' => 'bindings', 'id' => $model->getKey() ],
+	];
+
+	$table = $model->getTable();
+
+	DB::enableQueryLog();
+
+	$this->postJson( '/visual-editor/api/blocks/preview', [
+		'items' => [ $item( 'a', 'Hi' ), $item( 'b', 'Hey' ), $item( 'c', 'Yo' ) ],
+	] )
+		->assertOk()
+		->assertJsonPath( 'results.0.html', '<p>Hi, Shared Title!</p>' )
+		->assertJsonPath( 'results.1.html', '<p>Hey, Shared Title!</p>' )
+		->assertJsonPath( 'results.2.html', '<p>Yo, Shared Title!</p>' );
+
+	$recordLoads = array_filter(
+		DB::getQueryLog(),
+		static fn ( array $query ): bool => str_starts_with( strtolower( $query['query'] ), 'select' )
+			&& str_contains( $query['query'], $table ),
+	);
+
+	expect( $recordLoads )->toHaveCount( 1 );
 } );

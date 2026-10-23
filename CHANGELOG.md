@@ -6,6 +6,24 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.17.0] - 2026-10-23
+
+### Added
+
+- **Batched binding resolves** ([#1009](https://github.com/ArtisanPack-UI/visual-editor/issues/1009)). `POST /visual-editor/api/bindings/resolve` also accepts `{ items: [{ key, attrs, bindings, context }] }` (at most 100 items) and answers `{ results: [...] }` in request order: `{ key, values }` per item, or `{ key, error, message }` with `invalid_item` or `forbidden`, without failing the rest of the batch. Items on the same record share one lookup and one `view` policy check. A batch that isn't a list or is over the cap fails with 422. The single-block payload is unchanged. The bindings API exports `resolveBindingsBatch()`.
+- **Batched block previews** ([#1010](https://github.com/ArtisanPack-UI/visual-editor/issues/1010)). `POST /visual-editor/api/blocks/preview` also accepts `{ items: [{ key, name, attributes, innerBlocks, bindings, context }] }` (at most 25 items) and answers `{ results: [...] }`: `{ key, name, html }` per item, or `{ key, name, error, message, status }` where `status` is what the single-block request would have returned. A context record shared by several items is loaded and its `view` policy checked once. The single-block payload is unchanged.
+- **Batched icon SVG lookups** ([#1012](https://github.com/ArtisanPack-UI/visual-editor/issues/1012)). `GET /visual-editor/api/icons/svg` also accepts `?icons=set:name,…` (deduplicated, at most 100) and answers a `{ "set:name": svg }` map, with `null` for unknown or malformed icons. The `Cache-Control: private, max-age=86400` header is sent only when every icon resolved. The `set` + `name` form is unchanged.
+
+### Changed
+
+- **Bound blocks resolve together** ([#1009](https://github.com/ArtisanPack-UI/visual-editor/issues/1009)). Every bound block used to post its own `bindings/resolve` request, so inserting a pattern with dozens of bound blocks sent dozens of requests at once. Bound blocks now share one 250ms debounce (with a 1s ceiling, so a block being typed into can't hold the others back) and go out as one batched request. Identical payloads share one item, and results are cached for the editor session, so remounts and undo/redo don't refetch. Failures aren't cached.
+- **Server-rendered block previews are batched, cached and lazy** ([#1010](https://github.com/ArtisanPack-UI/visual-editor/issues/1010)). Blocks previewed through `ServerSideRender` (including the synthesized edit of a block registered with only a PHP render callback) used to send one `blocks/preview` request each. Previews requested together now go out as one batched request, identical blocks share one render, and rendered HTML is cached for the editor session. A block doesn't request its preview until it comes within 400px of the viewport.
+- **Distinct icons share one request** ([#1012](https://github.com/ArtisanPack-UI/visual-editor/issues/1012)). Building on the 1.16.0 cache, which shared requests only for identical icons, the Icon block and inline-icon format now queue every cache miss for one microtask and fetch them in one batched request. A lone miss still uses the single-icon form, so its browser cache entry is reused.
+
+### Fixed
+
+- **Saved pages no longer show "Unsaved changes" on load** ([#1011](https://github.com/ArtisanPack-UI/visual-editor/issues/1011)). The save status stayed at its initial `idle` after the content loaded, and the top bar labels `idle` as "Unsaved changes", so a page that wrote nothing on load looked dirty until its first save. A successful load now sets the status to `saved`. Queuing a block edit marks the editor dirty straight away, so the indicator never reads "Saved" over a pending edit during the autosave debounce.
+
 ## [1.16.0] - 2026-10-22
 
 ### Added

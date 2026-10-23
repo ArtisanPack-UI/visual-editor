@@ -82,6 +82,15 @@ next time the icon is shown. Successful responses also carry
 `Cache-Control: private, max-age=86400`, so the browser reuses them across
 editor sessions; `400` and `404` responses don't.
 
+*Since v1.17.0 (#1012)*, distinct icons are batched too. Cache misses
+are queued for one microtask and fetched together with
+`GET icons/svg?icons=set:name,set:name,…` (deduplicated, at most 100 per
+request; larger batches are split). It answers a `{ "set:name": svg }`
+map with `null` for unknown or malformed icons, and sends the
+`Cache-Control` header only when every icon resolved. A lone miss still
+uses `?set=…&name=…`, so its browser cache entry is reused. The
+`set` + `name` form is unchanged for other callers.
+
 ---
 
 ## Developer recipe — registering custom sets

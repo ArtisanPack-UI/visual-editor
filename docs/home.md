@@ -123,7 +123,7 @@ All endpoints use the `/visual-editor/api/` prefix and run through the middlewar
 - `GET/PUT /{resource}/{id}/content` — Block content CRUD for any registered resource
 - `PUT /{resource}/{id}/entry` — Title and excerpt saves for custom content types (since v1.15.3)
 - `GET /{resource}/{id}/applied-template` — Resolved template chrome for the post editor's composed view
-- `POST /blocks/preview` — Dynamic block editor preview rendering
+- `POST /blocks/preview` — Dynamic block editor preview rendering; also takes an `items` batch of up to 25 blocks (since v1.17.0)
 - `GET /blocks` — Enabled-block manifest (allow/deny lists applied)
 - `POST /query/resolve` — `core/query` block resolution
 
@@ -146,7 +146,7 @@ The site-editor integration needs `artisanpack-ui/cms-framework` installed at a 
 
 | visual-editor   | cms-framework | Notes                                                              |
 | --------------- | ------------- | ------------------------------------------------------------------ |
-| v1.15 – v1.16   | v2.11 or later | v2.15 is needed for pattern header fields (`keywords`, `inserter`, `template_types`), full global-styles parity, and the Site Editor API block-content filter (`ap.cmsFramework.siteEditor.blockContent`). The Custom CSS guard also runs on model save, so older cms-framework versions are covered too |
+| v1.15 – v1.17   | v2.11 or later | v2.15 is needed for pattern header fields (`keywords`, `inserter`, `template_types`), full global-styles parity, and the Site Editor API block-content filter (`ap.cmsFramework.siteEditor.blockContent`). The Custom CSS guard also runs on model save, so older cms-framework versions are covered too |
 | v1.12 – v1.14   | v2.11 or later | Navigation items store extra block settings in `menu_items.block_attributes`; run `php artisan migrate` after updating |
 | v1.0 – v1.11    | v2.x          | Site-editor integration                                            |
 | v0.x            | v0.x          | Pre-v1 — no site-editor integration                                |

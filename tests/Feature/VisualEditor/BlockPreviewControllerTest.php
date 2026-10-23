@@ -3,6 +3,7 @@
 declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\Facades\VisualEditor;
+use ArtisanPackUI\VisualEditor\Http\Requests\BlockPreviewRequest;
 use Tests\Fixtures\TestDynamicBlock;
 use Tests\TestUser;
 
@@ -140,3 +141,103 @@ it( 'returns a generic message when the block render() throws', function (): voi
 
 	expect( $response->json( 'message' ) )->not->toContain( 'secret internal path' );
 } );
+
+it( 'renders a batch of blocks and returns one result per item in order', function (): void {
+	VisualEditor::registerDynamicBlock( TestDynamicBlock::class );
+	VisualEditor::registerDynamicBlock( 'acme/bold', [
+		'render' => static fn ( array $attrs ): string => '<b>' . ( $attrs['text'] ?? '' ) . '</b>',
+	] );
+
+	$this->postJson( '/visual-editor/api/blocks/preview', [
+		'items' => [
+			[ 'key' => 'a', 'name' => 'tests/hello', 'attributes' => [ 'name' => 'Ada' ] ],
+			[ 'key' => 'b', 'name' => 'acme/bold', 'attributes' => [ 'text' => 'hi' ] ],
+			[ 'key' => 3, 'name' => 'tests/hello' ],
+		],
+	] )
+		->assertOk()
+		->assertJsonCount( 3, 'results' )
+		->assertJsonPath( 'results.0.key', 'a' )
+		->assertJsonPath( 'results.0.html', '<p>Hello, Ada!</p>' )
+		->assertJsonPath( 'results.1.key', 'b' )
+		->assertJsonPath( 'results.1.name', 'acme/bold' )
+		->assertJsonPath( 'results.1.html', '<b>hi</b>' )
+		->assertJsonPath( 'results.2.key', 3 )
+		->assertJsonPath( 'results.2.html', '<p>Hello, World!</p>' )
+		->assertJsonMissingPath( 'results.0.error' );
+} );
+
+it( 'reports a failing batch item without failing the others', function (): void {
+	VisualEditor::registerDynamicBlock( TestDynamicBlock::class );
+	VisualEditor::registerDynamicBlock( 'acme/boom', [
+		'render' => static function (): string {
+			throw new RuntimeException( 'secret internal path /var/www/leak' );
+		},
+	] );
+
+	$response = $this->postJson( '/visual-editor/api/blocks/preview', [
+		'items' => [
+			[ 'key' => 'missing', 'name' => 'acme/missing' ],
+			[ 'key' => 'invalid', 'name' => 'tests/hello', 'attributes' => [ 'greeting' => [ 'x' ] ] ],
+			[ 'key' => 'denied', 'name' => 'tests/hello', 'attributes' => [ 'name' => 'secret' ] ],
+			[ 'key' => 'boom', 'name' => 'acme/boom' ],
+			[ 'key' => 'ok', 'name' => 'tests/hello', 'attributes' => [ 'name' => 'Ada' ] ],
+		],
+	] );
+
+	$response->assertOk()
+		->assertJsonPath( 'results.0.error', 'block_not_registered' )
+		->assertJsonPath( 'results.0.status', 404 )
+		->assertJsonPath( 'results.1.error', 'invalid_attributes' )
+		->assertJsonPath( 'results.1.status', 422 )
+		->assertJsonPath( 'results.2.error', 'unauthorized' )
+		->assertJsonPath( 'results.2.status', 403 )
+		->assertJsonPath( 'results.3.error', 'render_failed' )
+		->assertJsonPath( 'results.3.status', 500 )
+		->assertJsonMissingPath( 'results.3.html' )
+		->assertJsonPath( 'results.4.html', '<p>Hello, Ada!</p>' );
+
+	expect( $response->json( 'results.3.message' ) )->not->toContain( 'secret internal path' );
+} );
+
+it( 'reports malformed batch items as invalid_item', function (): void {
+	VisualEditor::registerDynamicBlock( TestDynamicBlock::class );
+
+	$this->postJson( '/visual-editor/api/blocks/preview', [
+		'items' => [
+			[ 'name' => 'tests/hello' ],
+			[ 'key' => 'bad-name', 'name' => 'Not A Valid Name' ],
+			[ 'key' => 'bad-attrs', 'name' => 'tests/hello', 'attributes' => 'nope' ],
+			[ 'key' => 'ok', 'name' => 'tests/hello' ],
+		],
+	] )
+		->assertOk()
+		->assertJsonPath( 'results.0.key', null )
+		->assertJsonPath( 'results.0.error', 'invalid_item' )
+		->assertJsonPath( 'results.1.error', 'invalid_item' )
+		->assertJsonPath( 'results.2.error', 'invalid_item' )
+		->assertJsonPath( 'results.3.html', '<p>Hello, World!</p>' );
+} );
+
+it( 'rejects a batch over the item cap', function (): void {
+	VisualEditor::registerDynamicBlock( TestDynamicBlock::class );
+
+	$items = array_map(
+		static fn ( int $i ): array => [ 'key' => $i, 'name' => 'tests/hello' ],
+		range( 1, BlockPreviewRequest::MAX_ITEMS + 1 ),
+	);
+
+	$this->postJson( '/visual-editor/api/blocks/preview', [ 'items' => $items ] )
+		->assertUnprocessable()
+		->assertJsonValidationErrors( 'items' );
+} );
+
+it( 'rejects an empty or non-list batch', function ( mixed $items ): void {
+	$this->postJson( '/visual-editor/api/blocks/preview', [ 'items' => $items ] )
+		->assertUnprocessable()
+		->assertJsonValidationErrors( 'items' );
+} )->with( [
+	'empty'    => [ [] ],
+	'non-list' => [ [ 'a' => [ 'key' => 'a', 'name' => 'tests/hello' ] ] ],
+	'string'   => [ 'nope' ],
+] );
