@@ -6,6 +6,12 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.17.1] - 2026-10-23
+
+### Fixed
+
+- **Site-editor and resource resolvers are built lazily** ([#1019](https://github.com/ArtisanPack-UI/visual-editor/issues/1019)). The service provider's `booted()` callback ran the `ap.visualEditor.templates`, `.templateParts`, `.patterns`, `.navigation` and `.resources` filters on every request, so with cms-framework installed even health checks, public pages and page-cache hits read and block-parsed the active theme's whole site-editor catalogue (over a second per request on template-heavy themes). The template, template-part, pattern, navigation and resource resolvers are now bound request-scoped and run their filter on first resolve, so only requests that use them pay for it. Filter callbacks registered in any provider's `boot()` are still seen, and static config still wins on key collision. On Octane and other long-lived workers, these resolvers are now rebuilt per request rather than held from boot. `registerResourceResolver()` and `registerSiteEditorResolvers()` still rebind on demand.
+
 ## [1.17.0] - 2026-10-23
 
 ### Added

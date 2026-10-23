@@ -141,7 +141,9 @@ rather than skipped. The response mirrors the editor's entity records:
 }
 ```
 
-`{resource}` is the slug. The map is read from two places, merged at boot:
+`{resource}` is the slug. The map is read from two places, merged the
+first time a request resolves it (since v1.17.1; earlier versions merged
+it on every request at boot):
 
 1. **Static config** — `config('artisanpack.visual-editor.resources')`
    in `config/artisanpack/visual-editor.php`.

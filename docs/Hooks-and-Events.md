@@ -37,7 +37,7 @@ addFilter('ap.visualEditor.resources', function (array $resources): array {
 });
 ```
 
-Filter contributions are merged with `config('artisanpack.visual-editor.resources')`. **Static config wins on key collision** — host-app overrides always take precedence over package contributions.
+Filter contributions are merged with `config('artisanpack.visual-editor.resources')` the first time a request resolves the map (since v1.17.1). **Static config wins on key collision** — host-app overrides always take precedence over package contributions.
 
 Models must use `ArtisanPackUI\VisualEditor\Concerns\HasBlockContent`. Invalid entries surface as `InvalidArgumentException` on first request, not at boot — contributor packages standalone never trip host boot.
 
@@ -64,7 +64,7 @@ addFilter('ap.visualEditor.templates', function (array $templates): array {
 });
 ```
 
-Static config wins on key collision. cms-framework uses these filters to expose its `Template`, `TemplatePart`, `Pattern`, and `Menu` models to the editor.
+Static config wins on key collision. *Since v1.17.1* each filter runs the first time its resolver is used in a request, not at boot, so requests that never touch the site editor skip it; callbacks added in any provider's `boot()` are still seen, and long-lived workers such as Octane pick up changes on the next request. cms-framework uses these filters to expose its `Template`, `TemplatePart`, `Pattern`, and `Menu` models to the editor.
 
 Entity shape contracts are documented in `config/visual-editor.php` and [[Configuration#site-editor]].
 
