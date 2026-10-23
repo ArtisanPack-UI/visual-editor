@@ -2,6 +2,7 @@
 
 declare( strict_types=1 );
 
+use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSvgController;
 use ArtisanPackUI\VisualEditor\Http\Middleware\EnsureContentEditorAccess;
 use ArtisanPackUI\VisualEditor\Services\Icon\IconCatalog;
 use ArtisanPackUI\VisualEditor\Services\Icon\IconSvgResolver;
@@ -165,6 +166,94 @@ it( 'returns 400 from the svg endpoint when set or name is missing', function ()
 } );
 
 // Phase 5 (#556) — custom SVG paste/upload sanitize endpoint.
+it( 'resolves a batch of icons in one request via the svg endpoint', function (): void {
+	actingAsIconPickerUser();
+
+	$base = sys_get_temp_dir() . '/icon-picker-batch-' . bin2hex( random_bytes( 4 ) );
+	mkdir( $base . '/fas', 0o755, true );
+	mkdir( $base . '/fab', 0o755, true );
+	file_put_contents( $base . '/fas/cube.svg', '<svg id="cube"/>' );
+	file_put_contents( $base . '/fab/react.svg', '<svg id="react"/>' );
+
+	app()->instance(
+		IconSvgResolver::class,
+		new IconSvgResolver( [ 'fas' => $base . '/fas', 'fab' => $base . '/fab' ] ),
+	);
+
+	try {
+		$this->getJson( '/visual-editor/api/icons/svg?icons=fas:cube,fab:react,fas:cube' )
+			->assertOk()
+			->assertExactJson( [
+				'fas:cube'  => '<svg id="cube"/>',
+				'fab:react' => '<svg id="react"/>',
+			] )
+			->assertHeader( 'Cache-Control', 'max-age=86400, private' );
+	} finally {
+		unlink( $base . '/fas/cube.svg' );
+		unlink( $base . '/fab/react.svg' );
+		rmdir( $base . '/fas' );
+		rmdir( $base . '/fab' );
+		rmdir( $base );
+	}
+} );
+
+it( 'maps unknown and malformed icons in a batch to null without failing the rest', function (): void {
+	actingAsIconPickerUser();
+
+	$base = sys_get_temp_dir() . '/icon-picker-batch-' . bin2hex( random_bytes( 4 ) );
+	mkdir( $base . '/fas', 0o755, true );
+	file_put_contents( $base . '/fas/cube.svg', '<svg id="cube"/>' );
+
+	app()->instance( IconSvgResolver::class, new IconSvgResolver( [ 'fas' => $base . '/fas' ] ) );
+
+	try {
+		$response = $this->getJson( '/visual-editor/api/icons/svg?icons=fas:cube,fas:nope,zzz:cube,0,fas:../secret' )
+			->assertOk()
+			->assertExactJson( [
+				'fas:cube'      => '<svg id="cube"/>',
+				'fas:nope'      => null,
+				'zzz:cube'      => null,
+				'0'             => null,
+				'fas:../secret' => null,
+			] );
+
+		expect( $response->getContent() )->toStartWith( '{' );
+		expect( $response->headers->get( 'Cache-Control' ) )->not->toContain( 'max-age=86400' );
+	} finally {
+		unlink( $base . '/fas/cube.svg' );
+		rmdir( $base . '/fas' );
+		rmdir( $base );
+	}
+} );
+
+it( 'rejects an empty or non-string icon batch', function ( string $query ): void {
+	actingAsIconPickerUser();
+
+	$this->getJson( '/visual-editor/api/icons/svg?' . $query )
+		->assertStatus( 400 );
+} )->with( [
+	'empty'       => [ 'icons=' ],
+	'only commas' => [ 'icons=,%20,' ],
+	'array'       => [ 'icons[]=fas:cube' ],
+] );
+
+it( 'rejects an icon batch over the cap', function (): void {
+	actingAsIconPickerUser();
+
+	app()->instance( IconSvgResolver::class, new IconSvgResolver( [] ) );
+
+	$icons = implode( ',', array_map( fn ( int $i ): string => 'fas:icon-' . $i, range( 1, IconSvgController::MAX_BATCH + 1 ) ) );
+
+	$this->getJson( '/visual-editor/api/icons/svg?icons=' . $icons )
+		->assertStatus( 400 );
+
+	$icons = implode( ',', array_map( fn ( int $i ): string => 'fas:icon-' . $i, range( 1, IconSvgController::MAX_BATCH ) ) );
+
+	$this->getJson( '/visual-editor/api/icons/svg?icons=' . $icons )
+		->assertOk()
+		->assertJsonCount( IconSvgController::MAX_BATCH );
+} );
+
 it( 'strips a malicious svg and reports warnings via the sanitize endpoint', function (): void {
 	actingAsIconPickerUser();
 
