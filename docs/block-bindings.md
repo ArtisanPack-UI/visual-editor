@@ -236,7 +236,8 @@ field or path. The picker calls:
 - `GET /visual-editor/api/bindings/sources` — list registered sources.
 - `GET /visual-editor/api/bindings/sources/{source}/fields?resource=…` — field catalog for a source scoped to a resource (`resource` is the resource slug; see [above](#which-custom-fields-a-content-type-offers)).
 - `POST /visual-editor/api/bindings/resolve` — preview the resolved
-  value against the currently-edited record.
+  value against the currently-edited record. The editor batches these
+  (see [Batched resolves](#batched-resolves)).
 
 Dynamic Content is an exception because tokens are host-level, not
 record-scoped — it uses:
@@ -248,6 +249,39 @@ Both endpoints are first-party controllers (`BindingSourcesController`,
 `BindingResolveController`, `DynamicContentSourcesController`,
 `DynamicContentResolveController`) and respect the package's standard
 authorization gates.
+
+### Batched resolves
+
+*Since v1.17.0 (#1009).* Bound blocks don't each send their own resolve
+request. They share one 250ms debounce, with a 1s ceiling so a block
+being typed into can't hold the others back, and go out together as one
+batched request. Identical payloads share one item, and results are
+cached by input for the editor session, so remounts and undo/redo don't
+refetch. Failed resolves aren't cached.
+
+`bindings/resolve` still takes the single-block payload
+(`{ attrs, bindings, context }`, answered with `{ values }`). A batch
+sends a list of those payloads, each with a client-chosen `key`:
+
+```json
+{
+  "items": [
+    { "key": "a", "attrs": {}, "bindings": {}, "context": { "resource": "posts", "id": 12 } },
+    { "key": "b", "attrs": {}, "bindings": {}, "context": { "resource": "posts", "id": 12 } }
+  ]
+}
+```
+
+The response is `{ "results": [...] }`, one entry per item in request
+order: `{ key, values }` on success, or `{ key, error, message }` when
+the item is malformed (`invalid_item`) or the user may not view its
+record (`forbidden`). One bad item doesn't fail the others. Items on the
+same record share one lookup and one `view` policy check. A batch is
+capped at 100 items (`BindingResolveController::MAX_ITEMS`); one that
+isn't a list or is over the cap fails as a whole with `422`.
+
+From JavaScript, `resolveBindingsBatch()` in the bindings API sends a
+batch directly.
 
 ### Bound attributes are locked
 
@@ -283,6 +317,9 @@ So editors who can open the editor but lack `view` on a record get a
 `403` from the bindings preview and block previews for that record. The
 bindings overlay then falls back to the block's static values. The front-end render
 isn't affected: it resolves against the record the host passes in.
+In a [batched request](#batched-resolves), a denied record doesn't fail
+the request: its items come back with `"error": "forbidden"` and the
+rest resolve.
 
 ## SSR
 

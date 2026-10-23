@@ -353,7 +353,11 @@ who can open the editor but whose policy denies `view` on that record
 gets `403`: the canvas shows the blocks' static values instead of the
 bound ones, and server-rendered block previews for that record show the
 request's error message instead of the preview. Allow `view` in the policy for those users. Models
-without a policy are unaffected. See
+without a policy are unaffected.
+
+Since v1.17.0 the editor sends both as batches, so in DevTools the
+request itself answers `200`: look in its `results` for items with
+`"error": "forbidden"` (bindings) or `"status": 403` (block previews). See
 [Block Bindings](block-bindings.md#record-access-check).
 
 ---
