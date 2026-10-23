@@ -64,6 +64,78 @@ describe('usePersistence', () => {
         expect(result.current.lastSavedAt).toBe('2026-04-19T10:00:00Z');
     });
 
+    it('starts clean once the content has loaded (#1011)', async () => {
+        const requests: RecordedCall[] = [];
+        mockFetch((call) => {
+            requests.push(call);
+            return jsonResponse({
+                id: 42,
+                resource: 'posts',
+                blocks: [
+                    { clientId: 'a', name: 'core/paragraph', attributes: {}, innerBlocks: [] },
+                ],
+                updated_at: '2026-04-19T10:00:00Z',
+            });
+        });
+
+        const { result } = renderHook(() => usePersistence(CONFIG));
+
+        await waitFor(() => {
+            expect(result.current.loadStatus).toBe('ready');
+        });
+
+        // The loaded tree is the persisted state: no "Unsaved changes",
+        // and no save to get there.
+        expect(result.current.saveStatus).toBe('saved');
+
+        await new Promise((resolve) => setTimeout(resolve, CONFIG.debounceMs * 3));
+
+        expect(requests.filter((r) => r.method === 'PUT')).toHaveLength(0);
+        expect(result.current.saveStatus).toBe('saved');
+    });
+
+    it('marks the editor dirty as soon as a block edit is queued (#1011)', async () => {
+        mockFetch((call) => {
+            if (call.method === 'GET') {
+                return jsonResponse({ id: 42, resource: 'posts', blocks: [], updated_at: null });
+            }
+            return jsonResponse({
+                id: 42,
+                resource: 'posts',
+                blocks: [],
+                updated_at: '2026-04-19T10:10:00Z',
+            });
+        });
+
+        const { result } = renderHook(() =>
+            usePersistence({ ...CONFIG, debounceMs: 10_000 })
+        );
+
+        await waitFor(() => {
+            expect(result.current.saveStatus).toBe('saved');
+        });
+
+        act(() => {
+            result.current.queueBlocksForSave([
+                { clientId: '1', name: 'core/paragraph', attributes: {}, innerBlocks: [] } as never,
+            ]);
+        });
+
+        // Dirty before the debounce window elapses, so the indicator
+        // never reads "Saved" over a pending edit.
+        expect(result.current.saveStatus).toBe('idle');
+
+        act(() => {
+            result.current.flush();
+        });
+
+        await waitFor(() => {
+            expect(result.current.saveStatus).toBe('saved');
+        });
+
+        expect(result.current.lastSavedAt).toBe('2026-04-19T10:10:00Z');
+    });
+
     it('exposes load errors so the editor can recover', async () => {
         mockFetch(() => jsonResponse({ message: 'forbidden' }, 403));
 

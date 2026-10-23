@@ -316,6 +316,11 @@ export function usePersistence(
 
                 setBlocks(response.blocks as BlockInstance[]);
                 setLastSavedAt(response.updated_at);
+                // The loaded tree *is* the persisted state, so the editor
+                // starts clean. Staying `idle` here labelled every page
+                // "Unsaved changes" until its first save, which pages
+                // that write nothing on load never reach (#1011).
+                setSaveStatus('saved');
                 setLoadStatus('ready');
             })
             .catch((error: unknown) => {
@@ -477,6 +482,10 @@ export function usePersistence(
             }
 
             pendingRef.current = next;
+            // Mark dirty immediately, as `queueMetadataForSave` does. A
+            // repeat `idle` while typing is a same-value bail-out, so
+            // this doesn't re-render the editor per keystroke.
+            setSaveStatus('idle');
 
             if (timerRef.current !== null) {
                 clearTimeout(timerRef.current);
