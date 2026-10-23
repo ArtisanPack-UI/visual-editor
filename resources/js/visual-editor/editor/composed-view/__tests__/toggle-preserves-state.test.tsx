@@ -395,7 +395,21 @@ describe('composed-view toggle preserves editor state (#618)', () => {
         expect(redo).toBeDisabled();
         expect(
             screen.getByTestId('ap-visual-editor-top-bar-save-status')
-        ).toHaveAttribute('data-save-status', 'idle');
+        ).toHaveAttribute('data-save-status', 'saved');
+    });
+});
+
+describe('save status on load (#1011)', () => {
+    it('shows the freshly loaded document as saved, not as unsaved changes', async () => {
+        await renderEditor();
+
+        const status = screen.getByTestId('ap-visual-editor-top-bar-save-status');
+
+        // Nothing has been edited, so there is nothing unsaved. Reading
+        // `idle` here labelled every page "Unsaved changes" on load.
+        expect(status).toHaveAttribute('data-save-status', 'saved');
+        expect(status).toHaveTextContent(/Saved/);
+        expect(status).not.toHaveTextContent(/Unsaved changes/);
     });
 });
 
