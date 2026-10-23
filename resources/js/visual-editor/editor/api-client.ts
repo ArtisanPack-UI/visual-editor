@@ -217,27 +217,17 @@ export interface PreviewBlockConfig {
     apiBase: string;
 }
 
-export interface PreviewBlockResponse {
-    name: string;
-    html: string;
-}
-
 function previewUrl(config: PreviewBlockConfig): string {
     const base = config.apiBase.replace(/\/$/, '');
 
     return `${base}/blocks/preview`;
 }
 
-export interface PreviewBlockOptions {
-    name: string;
-    attributes?: Record<string, unknown>;
-    signal?: AbortSignal;
-}
-
-export async function previewBlock(
+function postPreview(
     config: PreviewBlockConfig,
-    options: PreviewBlockOptions
-): Promise<PreviewBlockResponse> {
+    payload: unknown,
+    signal?: AbortSignal
+): Promise<Response> {
     const csrfToken = readCsrfToken();
     const headers: Record<string, string> = {
         Accept: 'application/json',
@@ -249,19 +239,66 @@ export async function previewBlock(
         headers['X-CSRF-TOKEN'] = csrfToken;
     }
 
-    try {
-        const response = await fetch(previewUrl(config), {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers,
-            body: JSON.stringify({
-                name: options.name,
-                attributes: options.attributes ?? {},
-            }),
-            signal: options.signal,
-        });
+    return fetch(previewUrl(config), {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers,
+        body: JSON.stringify(payload),
+        signal,
+    });
+}
 
-        return (await requireOk(response)) as PreviewBlockResponse;
+/**
+ * One block in a batch preview request: the single-block payload plus a
+ * client-chosen `key` the result is returned under.
+ *
+ * @since 1.17.0
+ */
+export interface PreviewBlocksBatchItem {
+    key: string;
+    name: string;
+    attributes?: Record<string, unknown>;
+    innerBlocks?: readonly unknown[];
+    bindings?: Record<string, unknown>;
+    context?: Record<string, unknown>;
+}
+
+/**
+ * One entry of a batch preview response: the block's `html`, or an
+ * `error` code plus the HTTP `status` the single-block request would
+ * have returned.
+ *
+ * @since 1.17.0
+ */
+export interface PreviewBlocksBatchResult {
+    key: string | number | null;
+    name?: string | null;
+    html?: string;
+    error?: string;
+    message?: string;
+    status?: number;
+}
+
+/**
+ * Render several dynamic blocks in one request (#1010). Results come
+ * back in request order, one per item, each carrying the item's `key`.
+ * Per-item failures arrive as `error` entries rather than a rejected
+ * promise; only a failed request rejects.
+ *
+ * @since 1.17.0
+ */
+export async function previewBlocksBatch(
+    config: PreviewBlockConfig,
+    items: readonly PreviewBlocksBatchItem[],
+    signal?: AbortSignal
+): Promise<PreviewBlocksBatchResult[]> {
+    try {
+        const response = await postPreview(config, { items }, signal);
+        const body = (await requireOk(response)) as {
+            results?: PreviewBlocksBatchResult[];
+        } | null;
+
+        return Array.isArray(body?.results) ? body.results : [];
     } catch (error: unknown) {
         throw normalizeError(error, __('Failed to preview block.', TEXT_DOMAIN));
     }
