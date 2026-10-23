@@ -1,6 +1,7 @@
 import { act, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { clearBlockPreviewCache } from '../block-preview-batcher';
 import { ServerSideRender } from '../server-side-render';
 
 interface FetchCall {
@@ -67,7 +68,15 @@ describe('ServerSideRender', () => {
     afterEach(() => {
         vi.useRealTimers();
         vi.unstubAllGlobals();
+        clearBlockPreviewCache();
     });
+
+    /** Advance past the instance debounce and the shared batch window. */
+    async function flushQueue(debounceMs: number): Promise<void> {
+        await act(async () => {
+            vi.advanceTimersByTime(debounceMs + 50);
+        });
+    }
 
     it('shows the loading placeholder before the first response arrives', () => {
         installFetchMock();
@@ -118,14 +127,16 @@ describe('ServerSideRender', () => {
         expect(mock.calls).toHaveLength(0);
 
         await act(async () => {
-            vi.advanceTimersByTime(1);
+            vi.advanceTimersByTime(51);
         });
 
         expect(mock.calls).toHaveLength(1);
         expect(mock.calls[0].url).toBe('/visual-editor/api/blocks/preview');
 
         const payload = JSON.parse(mock.calls[0].init.body as string);
-        expect(payload).toEqual({ name: 'acme/example', attributes: { text: 'abc' } });
+        expect(payload).toEqual({
+            items: [{ key: '0', name: 'acme/example', attributes: { text: 'abc' } }],
+        });
     });
 
     it('renders the returned HTML once the fetch resolves', async () => {
@@ -139,12 +150,10 @@ describe('ServerSideRender', () => {
             />
         );
 
-        await act(async () => {
-            vi.advanceTimersByTime(50);
-        });
+        await flushQueue(50);
 
         await act(async () => {
-            mock.resolve({ name: 'acme/example', html: '<p>hello</p>' });
+            mock.resolve({ results: [{ key: '0', name: 'acme/example', html: '<p>hello</p>' }] });
             await vi.runAllTimersAsync();
         });
 
@@ -153,7 +162,7 @@ describe('ServerSideRender', () => {
         );
     });
 
-    it('aborts the in-flight request when attributes change again', async () => {
+    it('ignores a stale response when attributes change again', async () => {
         const mock = installFetchMock();
 
         const { rerender } = render(
@@ -164,9 +173,7 @@ describe('ServerSideRender', () => {
             />
         );
 
-        await act(async () => {
-            vi.advanceTimersByTime(50);
-        });
+        await flushQueue(50);
 
         expect(mock.calls).toHaveLength(1);
 
@@ -179,11 +186,68 @@ describe('ServerSideRender', () => {
         );
 
         await act(async () => {
-            vi.advanceTimersByTime(50);
+            mock.resolve({ results: [{ key: '0', name: 'acme/example', html: '<p>first</p>' }] });
+            await Promise.resolve();
         });
 
-        expect(mock.aborts).toBeGreaterThanOrEqual(1);
+        expect(document.body.innerHTML).not.toContain('<p>first</p>');
+
+        await flushQueue(50);
+
         expect(mock.calls).toHaveLength(2);
+        expect(JSON.parse(mock.calls[1].init.body as string).items[0].attributes).toEqual({
+            text: 'second',
+        });
+    });
+
+    it('paints a cached render straight away without a request', async () => {
+        const mock = installFetchMock();
+
+        const first = render(
+            <ServerSideRender block="acme/example" attributes={{ text: 'hi' }} debounceMs={10} />
+        );
+
+        await flushQueue(10);
+
+        await act(async () => {
+            mock.resolve({ results: [{ key: '0', name: 'acme/example', html: '<p>hi</p>' }] });
+            await vi.runAllTimersAsync();
+        });
+
+        first.unmount();
+
+        render(<ServerSideRender block="acme/example" attributes={{ text: 'hi' }} debounceMs={10} />);
+
+        expect(document.querySelector('[data-status="ready"]')?.innerHTML).toBe('<p>hi</p>');
+
+        await flushQueue(10);
+
+        expect(mock.calls).toHaveLength(1);
+    });
+
+    it('surfaces a per-item error from the batch', async () => {
+        const mock = installFetchMock();
+
+        render(
+            <ServerSideRender
+                block="acme/missing"
+                debounceMs={10}
+                errorPlaceholder={(error) => <span role="alert">{error.message}</span>}
+            />
+        );
+
+        await flushQueue(10);
+
+        await act(async () => {
+            mock.resolve({
+                results: [
+                    { key: '0', name: 'acme/missing', error: 'block_not_registered', status: 404 },
+                ],
+            });
+            await vi.runAllTimersAsync();
+        });
+
+        expect(screen.getByRole('alert').textContent).toContain('404');
     });
 
     it('surfaces an error placeholder when the fetch fails', async () => {
@@ -198,15 +262,131 @@ describe('ServerSideRender', () => {
             />
         );
 
-        await act(async () => {
-            vi.advanceTimersByTime(10);
-        });
+        await flushQueue(10);
 
         await act(async () => {
-            mock.resolve({ error: 'block_not_registered' }, 404);
+            mock.resolve({ message: 'Server Error' }, 500);
             await vi.runAllTimersAsync();
         });
 
-        expect(screen.getByRole('alert').textContent).toContain('404');
+        expect(screen.getByRole('alert').textContent).toContain('500');
+    });
+
+    it('sends identical instances as one item in one request', async () => {
+        const mock = installFetchMock();
+
+        render(
+            <>
+                {Array.from({ length: 13 }, (_, index) => (
+                    <ServerSideRender
+                        key={index}
+                        block="acme/copy-command"
+                        attributes={{ command: 'composer install' }}
+                        debounceMs={10}
+                    />
+                ))}
+            </>
+        );
+
+        await flushQueue(10);
+
+        expect(mock.calls).toHaveLength(1);
+        expect(JSON.parse(mock.calls[0].init.body as string).items).toHaveLength(1);
+
+        await act(async () => {
+            mock.resolve({ results: [{ key: '0', html: '<code>composer install</code>' }] });
+            await vi.runAllTimersAsync();
+        });
+
+        expect(document.querySelectorAll('[data-status="ready"]')).toHaveLength(13);
+    });
+
+    it('batches distinct instances into one request', async () => {
+        const mock = installFetchMock();
+
+        render(
+            <>
+                {['a', 'b', 'c'].map((text) => (
+                    <ServerSideRender
+                        key={text}
+                        block="acme/example"
+                        attributes={{ text }}
+                        debounceMs={10}
+                    />
+                ))}
+            </>
+        );
+
+        await flushQueue(10);
+
+        expect(mock.calls).toHaveLength(1);
+        expect(
+            JSON.parse(mock.calls[0].init.body as string).items.map(
+                (item: { attributes: { text: string } }) => item.attributes.text
+            )
+        ).toEqual(['a', 'b', 'c']);
+    });
+
+    it('does not request an off-screen block until it nears the viewport', async () => {
+        const mock = installFetchMock();
+        const observers: FakeIntersectionObserver[] = [];
+
+        class FakeIntersectionObserver {
+            readonly elements: Element[] = [];
+
+            constructor(readonly callback: IntersectionObserverCallback) {
+                observers.push(this);
+            }
+
+            observe(element: Element): void {
+                this.elements.push(element);
+            }
+
+            disconnect(): void {
+                this.elements.length = 0;
+            }
+
+            trigger(isIntersecting: boolean): void {
+                this.callback(
+                    this.elements.map(
+                        (target) => ({ isIntersecting, target }) as IntersectionObserverEntry
+                    ),
+                    this as unknown as IntersectionObserver
+                );
+            }
+        }
+
+        vi.stubGlobal('IntersectionObserver', FakeIntersectionObserver);
+
+        render(
+            <ServerSideRender
+                block="acme/example"
+                attributes={{ text: 'below the fold' }}
+                debounceMs={10}
+                loadingPlaceholder={<span>placeholder</span>}
+            />
+        );
+
+        await flushQueue(10);
+
+        expect(mock.calls).toHaveLength(0);
+        expect(screen.getByText('placeholder')).toBeDefined();
+        expect(document.querySelector('[data-status="idle"]')).not.toBeNull();
+
+        await act(async () => {
+            observers[0]?.trigger(false);
+        });
+
+        await flushQueue(10);
+
+        expect(mock.calls).toHaveLength(0);
+
+        await act(async () => {
+            observers[0]?.trigger(true);
+        });
+
+        await flushQueue(10);
+
+        expect(mock.calls).toHaveLength(1);
     });
 });
