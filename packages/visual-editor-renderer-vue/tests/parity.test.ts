@@ -244,6 +244,24 @@ const FIXTURES: Array<{ name: string; tree: Block[] }> = [
         ],
     },
     {
+        name: 'image link with class, new tab and rel (#1022)',
+        tree: [
+            makeBlock(
+                'core/image',
+                {
+                    url: 'https://example.test/image.jpg',
+                    alt: 'Linked',
+                    href: 'https://example.test/page',
+                    linkClass: 'promo-link',
+                    linkTarget: '_blank',
+                    rel: 'nofollow noopener',
+                },
+                [],
+                'img-link-1'
+            ),
+        ],
+    },
+    {
         name: 'gallery',
         tree: [
             makeBlock(

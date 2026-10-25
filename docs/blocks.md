@@ -30,7 +30,7 @@ The forked allow-list covers the following clusters:
 | **Content** | paragraph, heading (with h1–h6 level variations, v1.12.1), list, quote, code, preformatted, pullquote, verse, table (row/column editing, v1.15.4) |
 | **Media** | image, gallery, video, audio, file, embed, cover, media-text |
 | **Layout** | group (with row/stack variations), columns, column, buttons, button, separator, spacer, details |
-| **Widgets** | search, latest-posts |
+| **Widgets** | search, latest-posts, social-links + social-link (Social Icons: 48 services, Default / Logos Only / Pill Shape styles, v1.18.0 — see [[blocks/Social Icons]]) |
 | **Entity** | template-part, post-title, post-content, post-excerpt, post-date, post-author, post-featured-image, site-title, site-tagline, site-logo, navigation |
 | **Loop / Feed** | categories, tag-cloud, archives, query, post-template |
 | **Comments** | comments, comment-template, comment-author-avatar, comment-author-name, comment-content, comment-date, comment-edit-link, comment-reply-link, post-comments-form, post-comments-count, post-comments-link, post-comments-title, comments-pagination (+ next / numbers / previous) |

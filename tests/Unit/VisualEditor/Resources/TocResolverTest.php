@@ -684,3 +684,179 @@ it( 'claims a numeric author anchor as the id it renders (F-5)', function (): vo
 		->and( $resolved[1]['attributes']['anchor'] )->toBe( '42-1' )
 		->and( array_column( $resolved[2]['attributes']['_resolvedItems'], 'anchor' ) )->toBe( [ '42', '42-1' ] );
 } );
+
+it( 'keeps only post-content headings on a TOC whose source is post-content', function (): void {
+	$resolver = new TocResolver();
+
+	$tree = [
+		tocBlock( 'artisanpack/toc', [ 'source' => 'post-content' ] ),
+		tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Template heading' ] ),
+		tocBlock( 'artisanpack/post-content', [
+			'_resolvedContent' => '<h2>Intro</h2><p>Text.</p><h3>Details</h3>',
+		] ),
+		tocBlock( 'core/group', [], [
+			tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Related posts' ] ),
+		] ),
+	];
+
+	$resolved = $resolver->resolveTree( $tree );
+
+	expect( $resolved[0]['attributes']['_resolvedItems'] )->toBe( [
+		[ 'level' => 2, 'text' => 'Intro', 'anchor' => 'intro' ],
+		[ 'level' => 3, 'text' => 'Details', 'anchor' => 'details' ],
+	] )
+		->and( $resolved[1]['attributes']['anchor'] )->toBe( 'template-heading' )
+		->and( $resolved[3]['innerBlocks'][0]['attributes']['anchor'] )->toBe( 'related-posts' );
+} );
+
+it( 'counts heading blocks nested inside post-content as post content', function (): void {
+	$resolver = new TocResolver();
+
+	$tree = [
+		tocBlock( 'artisanpack/toc', [ 'source' => 'post-content' ] ),
+		tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Outside' ] ),
+		tocBlock( 'core/post-content', [], [
+			tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Inside' ] ),
+		] ),
+	];
+
+	$items = $resolver->resolveTree( $tree )[0]['attributes']['_resolvedItems'];
+
+	expect( array_column( $items, 'text' ) )->toBe( [ 'Inside' ] );
+} );
+
+it( 'stamps an empty list on a post-content TOC when the post body has no headings', function (): void {
+	$resolver = new TocResolver();
+
+	$tree = [
+		tocBlock( 'artisanpack/toc', [ 'source' => 'post-content' ] ),
+		tocBlock( 'core/post-content', [ '_resolvedContent' => '<p>No headings.</p>' ] ),
+		tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Related posts' ] ),
+	];
+
+	expect( $resolver->resolveTree( $tree )[0]['attributes']['_resolvedItems'] )->toBe( [] );
+} );
+
+it( 'keeps every heading on a post-content TOC when the tree has no post-content block', function (): void {
+	$resolver = new TocResolver();
+
+	$tree = [
+		tocBlock( 'artisanpack/toc', [ 'source' => 'post-content' ] ),
+		tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'One' ] ),
+		tocBlock( 'core/heading', [ 'level' => 3, 'content' => 'Two' ] ),
+	];
+
+	$items = $resolver->resolveTree( $tree )[0]['attributes']['_resolvedItems'];
+
+	expect( array_column( $items, 'text' ) )->toBe( [ 'One', 'Two' ] );
+} );
+
+it( 'keeps every heading on a TOC whose source is page alongside a post-content TOC', function (): void {
+	$resolver = new TocResolver();
+
+	$tree = [
+		tocBlock( 'artisanpack/toc', [ 'source' => 'page' ] ),
+		tocBlock( 'artisanpack/toc', [ 'source' => 'post-content' ] ),
+		tocBlock( 'core/post-content', [ '_resolvedContent' => '<h2>Body</h2>' ] ),
+		tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Footer' ] ),
+	];
+
+	$resolved = $resolver->resolveTree( $tree );
+
+	expect( array_column( $resolved[0]['attributes']['_resolvedItems'], 'text' ) )->toBe( [ 'Body', 'Footer' ] )
+		->and( array_column( $resolved[1]['attributes']['_resolvedItems'], 'text' ) )->toBe( [ 'Body' ] );
+} );
+
+it( 'loads a subclass that overrides the stamping methods with their 1.17 signatures', function (): void {
+	$resolver = new class() extends TocResolver {
+		protected function stampHeadings( array $tree, array &$used, array &$headings, ?array $contentTree = null ): array
+		{
+			return parent::stampHeadings( $tree, $used, $headings, $contentTree );
+		}
+
+		protected function stampHeadingBlock( array $block, array &$used, array &$headings, ?array $source = null ): array
+		{
+			return parent::stampHeadingBlock( $block, $used, $headings, $source );
+		}
+
+		protected function stampTocBlocks( array $tree, array $headings ): array
+		{
+			return parent::stampTocBlocks( $tree, $headings );
+		}
+
+		protected function stampTocBlock( array $block, array $headings ): array
+		{
+			return parent::stampTocBlock( $block, $headings );
+		}
+	};
+
+	$tree = [
+		tocBlock( 'artisanpack/toc', [ 'source' => 'post-content' ] ),
+		tocBlock( 'core/post-content', [], [
+			tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Inside' ] ),
+		] ),
+		tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Outside' ] ),
+	];
+
+	$items = $resolver->resolveTree( $tree )[0]['attributes']['_resolvedItems'];
+
+	expect( array_column( $items, 'text' ) )->toBe( [ 'Inside' ] );
+} );
+
+it( 'does not carry post-content state from one tree to the next on a reused resolver', function (): void {
+	$resolver = new TocResolver();
+
+	$resolver->resolveTree( [
+		tocBlock( 'core/post-content', [ '_resolvedContent' => '<h2>Body</h2>' ] ),
+	] );
+
+	$items = $resolver->resolveTree( [
+		tocBlock( 'artisanpack/toc', [ 'source' => 'post-content' ] ),
+		tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Standalone' ] ),
+	] )[0]['attributes']['_resolvedItems'];
+
+	expect( array_column( $items, 'text' ) )->toBe( [ 'Standalone' ] );
+} );
+
+it( 'ignores post-content shown by a query loop on a post-content TOC', function ( string $loopBlock ): void {
+	$resolver = new TocResolver();
+
+	$tree = [
+		tocBlock( 'artisanpack/toc', [ 'source' => 'post-content' ] ),
+		tocBlock( 'core/post-content', [ '_resolvedContent' => '<h2>Own heading</h2>' ] ),
+		tocBlock( $loopBlock, [], [
+			tocBlock( 'core/post-template', [], [
+				tocBlock( 'core/post-content', [ '_resolvedContent' => '<h2>Other post</h2>' ], [
+					tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Other nested' ] ),
+				] ),
+			] ),
+		] ),
+	];
+
+	$items = $resolver->resolveTree( $tree )[0]['attributes']['_resolvedItems'];
+
+	expect( array_column( $items, 'text' ) )->toBe( [ 'Own heading' ] );
+} )->with( [
+	'core/query',
+	'artisanpack/query',
+	'artisanpack/related-posts',
+	'artisanpack/single-content',
+] );
+
+it( 'keeps every heading on a post-content TOC when the only post-content is inside a query loop', function (): void {
+	$resolver = new TocResolver();
+
+	$tree = [
+		tocBlock( 'artisanpack/toc', [ 'source' => 'post-content' ] ),
+		tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Page heading' ] ),
+		tocBlock( 'core/query', [], [
+			tocBlock( 'core/post-template', [], [
+				tocBlock( 'core/post-content', [ '_resolvedContent' => '<h2>Other post</h2>' ] ),
+			] ),
+		] ),
+	];
+
+	$resolved = $resolver->resolveTree( $tree );
+
+	expect( array_column( $resolved[0]['attributes']['_resolvedItems'], 'text' ) )->toBe( [ 'Page heading', 'Other post' ] );
+} );

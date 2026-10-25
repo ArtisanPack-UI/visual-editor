@@ -9,7 +9,12 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { deriveHeadingItems, filterItemsByLevel } from '../derive-items';
+import {
+    containsPostContent,
+    deriveHeadingItems,
+    filterItemsByLevel,
+    filterItemsBySource,
+} from '../derive-items';
 
 function heading(level: number, content: string, extras: Record<string, unknown> = {}) {
     return {
@@ -33,6 +38,14 @@ function group(children: unknown[]) {
     };
 }
 
+function postContent(children: unknown[] = []) {
+    return {
+        name: 'core/post-content',
+        attributes: {},
+        innerBlocks: children,
+    };
+}
+
 describe('deriveHeadingItems', () => {
     it('extracts core/heading and artisanpack/heading blocks in document order', () => {
         const items = deriveHeadingItems([
@@ -42,9 +55,9 @@ describe('deriveHeadingItems', () => {
         ] as never);
 
         expect(items).toEqual([
-            { level: 2, text: 'Getting Started', anchor: 'getting-started' },
-            { level: 3, text: 'Installation Steps', anchor: 'installation-steps' },
-            { level: 2, text: 'FAQ Support', anchor: 'faq-support' },
+            { level: 2, text: 'Getting Started', anchor: 'getting-started', inContent: false },
+            { level: 3, text: 'Installation Steps', anchor: 'installation-steps', inContent: false },
+            { level: 2, text: 'FAQ Support', anchor: 'faq-support', inContent: false },
         ]);
     });
 
@@ -89,8 +102,8 @@ describe('deriveHeadingItems', () => {
         ] as never);
 
         expect(items).toEqual([
-            { level: 2, text: 'Outer', anchor: 'outer' },
-            { level: 3, text: 'Deep', anchor: 'deep' },
+            { level: 2, text: 'Outer', anchor: 'outer', inContent: false },
+            { level: 3, text: 'Deep', anchor: 'deep', inContent: false },
         ]);
     });
 
@@ -101,7 +114,7 @@ describe('deriveHeadingItems', () => {
         ] as never);
 
         expect(items).toEqual([
-            { level: 2, text: 'Kept', anchor: 'kept' },
+            { level: 2, text: 'Kept', anchor: 'kept', inContent: false },
         ]);
     });
 
@@ -118,10 +131,10 @@ describe('deriveHeadingItems', () => {
 
 describe('filterItemsByLevel', () => {
     const items = [
-        { level: 1, text: 'H1', anchor: 'h1' },
-        { level: 2, text: 'H2', anchor: 'h2' },
-        { level: 3, text: 'H3', anchor: 'h3' },
-        { level: 4, text: 'H4', anchor: 'h4' },
+        { level: 1, text: 'H1', anchor: 'h1', inContent: false },
+        { level: 2, text: 'H2', anchor: 'h2', inContent: false },
+        { level: 3, text: 'H3', anchor: 'h3', inContent: false },
+        { level: 4, text: 'H4', anchor: 'h4', inContent: false },
     ];
 
     it('keeps only entries within min/max', () => {
@@ -134,5 +147,70 @@ describe('filterItemsByLevel', () => {
         const filtered = filterItemsByLevel(items, 4, 2);
 
         expect(filtered.map((i) => i.level)).toEqual([2, 3, 4]);
+    });
+});
+
+describe('filterItemsBySource', () => {
+    const tree = [
+        heading(2, 'Template heading'),
+        postContent([heading(2, 'Body heading'), group([heading(3, 'Nested body heading')])]),
+        heading(2, 'Related posts'),
+    ];
+
+    it('marks headings inside Post Content', () => {
+        const items = deriveHeadingItems(tree as never);
+
+        expect(items.map((i) => i.inContent)).toEqual([false, true, true, false]);
+    });
+
+    it('keeps only Post Content headings for the post-content source', () => {
+        const items = deriveHeadingItems(tree as never);
+        const filtered = filterItemsBySource(items, 'post-content', containsPostContent(tree as never));
+
+        expect(filtered.map((i) => i.text)).toEqual(['Body heading', 'Nested body heading']);
+    });
+
+    it('keeps every heading for the page source', () => {
+        const items = deriveHeadingItems(tree as never);
+
+        expect(filterItemsBySource(items, 'page', true)).toHaveLength(4);
+    });
+
+    it('keeps every heading when the tree has no Post Content block', () => {
+        const bodyOnly = [heading(2, 'One'), heading(3, 'Two')];
+        const items = deriveHeadingItems(bodyOnly as never);
+
+        expect(containsPostContent(bodyOnly as never)).toBe(false);
+        expect(filterItemsBySource(items, 'post-content', false)).toHaveLength(2);
+    });
+
+    it.each(['core/query', 'artisanpack/query', 'artisanpack/related-posts', 'artisanpack/single-content'])(
+        'ignores Post Content shown by %s',
+        (loopBlock) => {
+            const withLoop = [
+                postContent([heading(2, 'Own heading')]),
+                {
+                    name: loopBlock,
+                    attributes: {},
+                    innerBlocks: [
+                        { name: 'core/post-template', attributes: {}, innerBlocks: [postContent([heading(2, 'Other post')])] },
+                    ],
+                },
+            ];
+            const items = deriveHeadingItems(withLoop as never);
+            const filtered = filterItemsBySource(items, 'post-content', containsPostContent(withLoop as never));
+
+            expect(filtered.map((i) => i.text)).toEqual(['Own heading']);
+        }
+    );
+
+    it('keeps every heading when the only Post Content is inside a Query Loop', () => {
+        const loopOnly = [
+            heading(2, 'Page heading'),
+            { name: 'core/query', attributes: {}, innerBlocks: [postContent([heading(2, 'Other post')])] },
+        ];
+
+        expect(containsPostContent(loopOnly as never)).toBe(false);
+        expect(filterItemsBySource(deriveHeadingItems(loopOnly as never), 'post-content', false)).toHaveLength(2);
     });
 });

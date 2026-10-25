@@ -20,9 +20,8 @@
  *     expose `utils/caption`.
  *   - `useToolsPanelDropdownMenuProps` is omitted from the inspector
  *     `ToolsPanel`s for the same reason. The defaults are good enough.
- *   - The link-destination dropdown UI, the image cropper / image-editor
- *     popover, the lightbox toggle UI, and the `ResizableBox` are all
- *     omitted — they depend on private block-editor APIs unreachable through
+ *   - The image cropper / image-editor popover and the lightbox toggle UI
+ *     are omitted — they depend on private block-editor APIs unreachable through
  *     the package's `exports`. The corresponding attributes are still
  *     serializable and round-trip through transforms; consumers can set them
  *     via deserialization.
@@ -44,12 +43,13 @@ import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { image as icon } from '@wordpress/icons';
 import { store as noticesStore } from '@wordpress/notices';
 
-import Image from './image-editor';
+import Image, { resolveLinkDestination } from './image-editor';
 import { useMaxWidthObserver } from './use-max-width-observer';
 import { isValidFileType } from './utils';
 import {
     ALLOWED_MEDIA_TYPES,
     DEFAULT_MEDIA_SIZE_SLUG,
+    LINK_DESTINATION_MEDIA,
 } from './constants';
 
 interface ImageEditAttributes {
@@ -107,6 +107,8 @@ function ImageEdit({
     className,
 }: ImageEditProps): ReactElement {
     const { url = '', id, width, height, sizeSlug } = attributes;
+    const linksToMediaFile =
+        resolveLinkDestination(attributes) === LINK_DESTINATION_MEDIA;
 
     const [temporaryURL, setTemporaryURL] = useState<string | undefined>(
         attributes.blob
@@ -159,6 +161,7 @@ function ImageEdit({
                 title: undefined,
                 caption: undefined,
                 blob: undefined,
+                ...(linksToMediaFile ? { href: undefined } : {}),
             });
             setTemporaryURL(undefined);
             return;
@@ -176,6 +179,8 @@ function ImageEdit({
             caption: media.caption,
             title: media.title,
             blob: undefined,
+            // A media-file link follows the image when it is replaced.
+            ...(linksToMediaFile ? { href: media.url } : {}),
         };
 
         // Reset the dimension attributes if changing to a different image.
@@ -198,6 +203,7 @@ function ImageEdit({
                 url: newURL,
                 id: undefined,
                 sizeSlug: DEFAULT_MEDIA_SIZE_SLUG,
+                ...(linksToMediaFile ? { href: newURL } : {}),
             });
             setTemporaryURL(undefined);
         }

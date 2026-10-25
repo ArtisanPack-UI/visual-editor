@@ -8,6 +8,41 @@
 	$caption = (string) ( $attributes['caption'] ?? '' );
 	$href    = UrlSanitizer::safe( (string) ( $attributes['href'] ?? '' ) );
 
+	// #1022 — the link's class / target / rel, in the save() attribute
+	// order. A new-tab link always carries noopener + noreferrer, as in
+	// `button.blade.php`.
+	$linkClass  = trim( (string) ( $attributes['linkClass'] ?? '' ) );
+	$linkTarget = (string) ( $attributes['linkTarget'] ?? '' );
+	$linkRel    = trim( (string) ( $attributes['rel'] ?? '' ) );
+
+	if ( '_blank' === $linkTarget ) {
+		$relTokens = array_filter( preg_split( '/\s+/', $linkRel ) ?: [] );
+
+		foreach ( [ 'noopener', 'noreferrer' ] as $required ) {
+			if ( ! in_array( $required, $relTokens, true ) ) {
+				$relTokens[] = $required;
+			}
+		}
+
+		$linkRel = implode( ' ', $relTokens );
+	}
+
+	$linkAttrs = '';
+
+	if ( '' !== $linkClass ) {
+		$linkAttrs .= sprintf( ' class="%s"', e( $linkClass ) );
+	}
+
+	$linkAttrs .= sprintf( ' href="%s"', e( $href ) );
+
+	if ( '' !== $linkTarget ) {
+		$linkAttrs .= sprintf( ' target="%s"', e( $linkTarget ) );
+	}
+
+	if ( '' !== $linkRel ) {
+		$linkAttrs .= sprintf( ' rel="%s"', e( $linkRel ) );
+	}
+
 	// #985 — `width` / `height` are string attributes (WordPress 6.3+:
 	// `"auto"`, `"30px"`, `"50%"`), saved by the editor as an inline
 	// `style` on the `<img>` plus `is-resized` on the figure. Legacy
@@ -101,7 +136,7 @@
 <figure{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}>
 	@if ( '' !== $url )
 		@if ( '' !== $href )
-			<a href="{{ $href }}"><img{!! $imgAttrs !!}/></a>
+			<a{!! $linkAttrs !!}><img{!! $imgAttrs !!}/></a>
 		@else
 			<img{!! $imgAttrs !!}/>
 		@endif

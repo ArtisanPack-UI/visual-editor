@@ -7101,6 +7101,239 @@
                     ]
                 }
             ]
+        },
+        {
+            "name": "social-links-default",
+            "tree": [
+                {
+                    "clientId": "sl-default",
+                    "name": "artisanpack/social-links",
+                    "attributes": {},
+                    "innerBlocks": [
+                        {
+                            "clientId": "sl-default-fb",
+                            "name": "artisanpack/social-link",
+                            "attributes": {
+                                "service": "facebook",
+                                "url": "https://facebook.com/example"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "sl-default-x",
+                            "name": "artisanpack/social-link",
+                            "attributes": {
+                                "service": "x",
+                                "url": "https://x.com/example"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "sl-default-empty",
+                            "name": "artisanpack/social-link",
+                            "attributes": {
+                                "service": "github",
+                                "url": ""
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "social-links-settings",
+            "tree": [
+                {
+                    "clientId": "sl-settings",
+                    "name": "artisanpack/social-links",
+                    "attributes": {
+                        "size": "has-large-icon-size",
+                        "showLabels": true,
+                        "openInNewTab": true,
+                        "iconColor": "white",
+                        "iconColorValue": "#ffffff",
+                        "iconBackgroundColorValue": "rgba(0, 0, 0, 0.5)",
+                        "iconBorderColorValue": "#cccccc",
+                        "iconBorderWidth": "2px",
+                        "iconBorderStyle": "dashed",
+                        "iconBorderRadius": "8px",
+                        "iconPadding": "0.5em",
+                        "iconHoverColorValue": "#000000",
+                        "iconHoverBackgroundColorValue": "var(--wp--preset--color--accent)",
+                        "iconHoverBorderColorValue": "#111111",
+                        "className": "is-style-pill-shape",
+                        "anchor": "socials",
+                        "align": "center",
+                        "layout": {
+                            "type": "flex",
+                            "justifyContent": "center",
+                            "orientation": "horizontal"
+                        },
+                        "style": {
+                            "spacing": {
+                                "blockGap": {
+                                    "left": "12px"
+                                }
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "sl-settings-gh",
+                            "name": "artisanpack/social-link",
+                            "attributes": {
+                                "service": "github",
+                                "url": "https://github.com/example",
+                                "label": "Code",
+                                "rel": "me"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "sl-settings-mail",
+                            "name": "artisanpack/social-link",
+                            "attributes": {
+                                "service": "mail",
+                                "url": "hello@example.com"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "sl-settings-unknown",
+                            "name": "artisanpack/social-link",
+                            "attributes": {
+                                "service": "myspace",
+                                "url": "https://example.com/profile",
+                                "className": "custom-icon",
+                                "anchor": "profile"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "social-links-hostile",
+            "tree": [
+                {
+                    "clientId": "sl-hostile",
+                    "name": "artisanpack/social-links",
+                    "attributes": {
+                        "size": "\"><script>alert(1)</script>",
+                        "iconColorValue": "red; position: fixed",
+                        "iconBackgroundColorValue": "url(//evil.test/x.png)",
+                        "iconBorderStyle": "solid; background: red",
+                        "iconBorderWidth": "1px} body{display:none",
+                        "iconBorderRadius": "50%",
+                        "iconPadding": "1em; color: red",
+                        "iconHoverColorValue": "</style><script>alert(1)</script>"
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "sl-hostile-js",
+                            "name": "artisanpack/social-link",
+                            "attributes": {
+                                "service": "facebook",
+                                "url": "javascript:alert(1)"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "sl-hostile-service",
+                            "name": "artisanpack/social-link",
+                            "attributes": {
+                                "service": "\"><img src=x onerror=alert(1)>",
+                                "url": "https://example.com",
+                                "label": "<b>bold</b>",
+                                "rel": "\" onclick=\"alert(1)"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "sl-hostile-forged",
+                            "name": "artisanpack/social-link",
+                            "attributes": {
+                                "service": "x",
+                                "url": "https://x.com/example",
+                                "_veSocialLinks": {
+                                    "openInNewTab": true,
+                                    "showLabels": true,
+                                    "iconColorValue": "#000"
+                                }
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "social-links-urls",
+            "tree": [
+                {
+                    "clientId": "sl-urls",
+                    "name": "artisanpack/social-links",
+                    "attributes": {},
+                    "innerBlocks": [
+                        {
+                            "clientId": "sl-urls-bare",
+                            "name": "artisanpack/social-link",
+                            "attributes": {
+                                "service": "x",
+                                "url": "x.com/example"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "sl-urls-relative",
+                            "name": "artisanpack/social-link",
+                            "attributes": {
+                                "service": "feed",
+                                "url": "/feed"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "sl-urls-fragment",
+                            "name": "artisanpack/social-link",
+                            "attributes": {
+                                "service": "chain",
+                                "url": "#contact"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "sl-urls-mail-dots",
+                            "name": "artisanpack/social-link",
+                            "attributes": {
+                                "service": "mail",
+                                "url": "first..last@example.com"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "sl-urls-mail-underscore",
+                            "name": "artisanpack/social-link",
+                            "attributes": {
+                                "service": "mail",
+                                "url": "me@my_host.com"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "sl-urls-mail-scheme",
+                            "name": "artisanpack/social-link",
+                            "attributes": {
+                                "service": "mail",
+                                "url": "mailto:hello@example.com"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
         }
     ]
 }

@@ -20,6 +20,8 @@ import {
     Button,
     PanelBody,
     PanelRow,
+    TextControl,
+    ToggleControl,
     // eslint-disable-next-line @typescript-eslint/naming-convention -- WP component name
     __experimentalNumberControl as NumberControl,
     // eslint-disable-next-line @typescript-eslint/naming-convention -- WP component name
@@ -27,6 +29,7 @@ import {
 } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
+import LinkToolbarControl, { type LinkToolbarValue } from '../_shared/link-toolbar-control';
 import { sanitizeOnServer } from './custom-svg';
 import CustomSvgControl from './custom-svg-control';
 import { fetchIconSvg } from './fetch-svg';
@@ -159,6 +162,18 @@ export default function IconEdit( { attributes, setAttributes }: IconEditProps )
 
     const onIconColorChange = ( next: string | undefined ): void => {
         setAttributes( { iconColor: typeof next === 'string' ? next : '' } );
+    };
+
+    const onLinkChange = ( next: LinkToolbarValue ): void => {
+        setAttributes( {
+            link: next.url,
+            linkTarget: next.linkTarget ?? '',
+            linkRel: next.rel ?? '',
+        } );
+    };
+
+    const onLinkRemove = (): void => {
+        setAttributes( { link: '', linkTarget: '', linkRel: '' } );
     };
 
     const openPicker = (): void => setPickerOpen( true );
@@ -410,6 +425,52 @@ export default function IconEdit( { attributes, setAttributes }: IconEditProps )
                         />
                     </PanelRow>
                 </PanelBody>
+                <PanelBody
+                    title={ __( 'Accessibility', 'artisanpack-visual-editor' ) }
+                    initialOpen={ conflict }
+                >
+                    <ToggleControl
+                        __nextHasNoMarginBottom
+                        label={ __( 'Decorative', 'artisanpack-visual-editor' ) }
+                        help={ __(
+                            'Hide the icon from screen readers when it adds no information.',
+                            'artisanpack-visual-editor',
+                        ) }
+                        checked={ normalized.isDecorative }
+                        onChange={ ( value: boolean ) => setAttributes( { isDecorative: value } ) }
+                    />
+                    <TextControl
+                        __nextHasNoMarginBottom
+                        __next40pxDefaultSize
+                        label={ __( 'Accessible label', 'artisanpack-visual-editor' ) }
+                        help={ shouldRenderLink( normalized )
+                            ? __( 'Describe where the link goes, e.g. "Visit our Facebook page".', 'artisanpack-visual-editor' )
+                            : undefined }
+                        value={ normalized.ariaLabel }
+                        onChange={ ( value: string ) => setAttributes( { ariaLabel: value } ) }
+                    />
+                    <TextControl
+                        __nextHasNoMarginBottom
+                        __next40pxDefaultSize
+                        label={ __( 'Title attribute', 'artisanpack-visual-editor' ) }
+                        value={ normalized.titleAttr }
+                        onChange={ ( value: string ) => setAttributes( { titleAttr: value } ) }
+                    />
+                </PanelBody>
+                { shouldRenderLink( normalized ) && (
+                    <PanelBody
+                        title={ __( 'Link', 'artisanpack-visual-editor' ) }
+                        initialOpen={ false }
+                    >
+                        <TextControl
+                            __nextHasNoMarginBottom
+                            __next40pxDefaultSize
+                            label={ __( 'Link relation', 'artisanpack-visual-editor' ) }
+                            value={ normalized.linkRel }
+                            onChange={ ( value: string ) => setAttributes( { linkRel: value } ) }
+                        />
+                    </PanelBody>
+                ) }
                 <CustomSvgControl
                     customSvg={ normalized.customSvg }
                     onApplied={ ( sanitized ) => {
@@ -427,6 +488,14 @@ export default function IconEdit( { attributes, setAttributes }: IconEditProps )
                 <IconPicker onSelect={ handlePicked } onClose={ closePicker } />
             ) }
             <div { ...blockProps }>
+            { /* Inside the wrapper so the popover anchor stays in the block. */ }
+            <LinkToolbarControl
+                url={ normalized.link }
+                linkTarget={ normalized.linkTarget }
+                rel={ normalized.linkRel }
+                onChange={ onLinkChange }
+                onRemove={ onLinkRemove }
+            />
             { wrapped }
             { conflict && (
                 <span

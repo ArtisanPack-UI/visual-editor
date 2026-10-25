@@ -1,0 +1,53 @@
+/**
+ * Social Icons — per-icon styles set on the parent (#1023).
+ *
+ * The `<ul>` carries the parent's icon settings as `--ap-social-links-*`
+ * custom properties, each switched on by a `has-icon-*` class. These
+ * rules outrank the block-library's per-service colours (which sit in
+ * `:where()`) without `!important`. On the front end the Blade renderer
+ * serves the same rules from `frontend/social-icons.css`.
+ */
+
+.wp-block-artisanpack-social-links .wp-social-link {
+    transition: transform 0.1s ease, color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .wp-block-artisanpack-social-links .wp-social-link {
+        transition: none;
+    }
+}
+
+.wp-block-artisanpack-social-links.has-icon-color .wp-social-link {
+    color: var(--ap-social-links-color, currentcolor);
+}
+
+.wp-block-artisanpack-social-links.has-icon-background-color .wp-social-link {
+    background-color: var(--ap-social-links-bg, transparent);
+}
+
+.wp-block-artisanpack-social-links.has-icon-border .wp-social-link {
+    border-width: var(--ap-social-links-border-width, 1px);
+    border-style: var(--ap-social-links-border-style, solid);
+    border-color: var(--ap-social-links-border-color, currentcolor);
+}
+
+.wp-block-artisanpack-social-links.has-icon-border-radius .wp-social-link {
+    border-radius: var(--ap-social-links-radius, 9999px);
+}
+
+.wp-block-artisanpack-social-links.has-icon-padding .wp-social-link .wp-block-social-link-anchor {
+    padding: var(--ap-social-links-padding, 0.25em);
+}
+
+.wp-block-artisanpack-social-links.has-icon-hover-color .wp-social-link:is(:hover, :focus-within) {
+    color: var(--ap-social-links-hover-color, currentcolor);
+}
+
+.wp-block-artisanpack-social-links.has-icon-hover-background-color .wp-social-link:is(:hover, :focus-within) {
+    background-color: var(--ap-social-links-hover-bg, transparent);
+}
+
+.wp-block-artisanpack-social-links.has-icon-hover-border-color .wp-social-link:is(:hover, :focus-within) {
+    border-color: var(--ap-social-links-hover-border-color, currentcolor);
+}

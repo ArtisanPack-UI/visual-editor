@@ -25,7 +25,14 @@ import { useSelect } from '@wordpress/data';
 import { __, sprintf } from '@wordpress/i18n';
 
 import { TEXT_DOMAIN } from '../../vendor/i18n';
-import { deriveHeadingItems, filterItemsByLevel, type HeadingItem } from './derive-items';
+import {
+    containsPostContent,
+    deriveHeadingItems,
+    filterItemsByLevel,
+    filterItemsBySource,
+    type HeadingItem,
+    type TocSource,
+} from './derive-items';
 
 const HEADING_LEVELS: ReadonlyArray<1 | 2 | 3 | 4 | 5 | 6> = [1, 2, 3, 4, 5, 6];
 const LABEL_HEADING_LEVELS: ReadonlyArray<2 | 3 | 4 | 5 | 6> = [2, 3, 4, 5, 6];
@@ -36,6 +43,7 @@ interface TocAttributes {
     readonly minLevel: number;
     readonly maxLevel: number;
     readonly ordered: boolean;
+    readonly source: TocSource;
 }
 
 interface TocEditProps {
@@ -121,7 +129,7 @@ function renderTree(nodes: ReadonlyArray<HeadingNode>, ordered: boolean): ReactE
 }
 
 export default function TocEdit({ attributes, setAttributes }: TocEditProps): ReactElement {
-    const { heading, headingLevel, minLevel, maxLevel, ordered } = attributes;
+    const { heading, headingLevel, minLevel, maxLevel, ordered, source } = attributes;
 
     const blockProps = useBlockProps({ className: 'ap-toc' });
 
@@ -132,7 +140,7 @@ export default function TocEdit({ attributes, setAttributes }: TocEditProps): Re
 
     const headingTag = `h${clampLabelLevel(headingLevel)}` as 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 
-    const allItems = useSelect(
+    const { allItems, hasPostContent } = useSelect(
         (select) => {
             // `getBlocks()` with no arguments returns the top-level blocks of
             // the current editor. The store handles change notifications, so
@@ -147,25 +155,55 @@ export default function TocEdit({ attributes, setAttributes }: TocEditProps): Re
             };
 
             try {
-                return deriveHeadingItems(store.getBlocks() as never);
+                const blocks = store.getBlocks() as never;
+
+                return {
+                    allItems: deriveHeadingItems(blocks),
+                    hasPostContent: containsPostContent(blocks),
+                };
             } catch {
-                return [] as ReadonlyArray<HeadingItem>;
+                return { allItems: [] as ReadonlyArray<HeadingItem>, hasPostContent: false };
             }
         },
         []
     );
 
-    const filtered = filterItemsByLevel(allItems, displayMin, displayMax);
+    const contentOnly = source === 'post-content' && hasPostContent;
+    const filtered = filterItemsByLevel(
+        filterItemsBySource(allItems, source, hasPostContent),
+        displayMin,
+        displayMax
+    );
     const tree = buildTree(filtered);
 
-    const placeholder = displayMin === displayMax
-        ? sprintf( __( 'No H%d headings on this page yet — add one to see it here.', TEXT_DOMAIN ), displayMin )
-        : sprintf( __( 'No H%1$d–H%2$d headings on this page yet — add one to see it here.', TEXT_DOMAIN ), displayMin, displayMax );
+    // In a template, Post Content is a placeholder: the post's headings
+    // only exist on the rendered page.
+    const placeholder = contentOnly
+        ? __('The post content\'s headings will be listed here on the published page.', TEXT_DOMAIN)
+        : displayMin === displayMax
+            ? sprintf( __( 'No H%d headings on this page yet — add one to see it here.', TEXT_DOMAIN ), displayMin )
+            : sprintf( __( 'No H%1$d–H%2$d headings on this page yet — add one to see it here.', TEXT_DOMAIN ), displayMin, displayMax );
 
     return (
         <>
             <InspectorControls>
                 <PanelBody title={__('Table of contents', TEXT_DOMAIN)} initialOpen>
+                    <SelectControl
+                        label={__('Headings from', TEXT_DOMAIN)}
+                        help={__(
+                            'Post content leaves out the template\'s own headings, such as a related-posts heading or the footer\'s. Without a Post Content block on the page, every heading is listed.',
+                            TEXT_DOMAIN
+                        )}
+                        value={source}
+                        options={[
+                            { label: __('Whole page', TEXT_DOMAIN), value: 'page' },
+                            { label: __('Post content', TEXT_DOMAIN), value: 'post-content' },
+                        ]}
+                        onChange={(value) =>
+                            setAttributes({ source: value === 'post-content' ? 'post-content' : 'page' })
+                        }
+                        __nextHasNoMarginBottom
+                    />
                     <SelectControl
                         label={__('Minimum heading level', TEXT_DOMAIN)}
                         value={String(min)}

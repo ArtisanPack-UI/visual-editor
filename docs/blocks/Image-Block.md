@@ -47,6 +47,22 @@ The **Reset** button next to the presets clears `width`, `widthUnit`, and any de
 
 ---
 
+## Links (v1.18)
+
+*Since v1.18.0 (#1022).* The **Link** button in the block toolbar opens the same link popover as the Button block, Dynamic Content tab included, with **Open in new tab** and **Mark as nofollow** toggles. **Unlink** removes the link.
+
+**Inspector → Settings → Link to** picks the destination:
+
+| Option | Stored `linkDestination` | Behavior |
+|--------|--------------------------|----------|
+| **None** | `none` | No link. Clears `href`, `linkTarget`, `rel` and `linkClass`. |
+| **Media file** | `media` | Links to the image's own URL and follows the image when it is replaced. |
+| **Custom URL** | `custom` | Set the URL from the toolbar Link button. |
+
+When the image has a link, the **Advanced** panel adds **Link CSS class** (`linkClass`) and **Link relation** (`rel`). The Blade, React and Vue renderers print the link's `class`, `target` and `rel`, and a new-tab link always carries `noopener noreferrer`.
+
+---
+
 ## Attributes
 
 The block ships the full upstream `core/image` attribute schema plus these fork-specific additions:
