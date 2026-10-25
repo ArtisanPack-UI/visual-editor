@@ -422,6 +422,55 @@ it( 'enforces noopener noreferrer on target=_blank buttons', function (): void {
 		->toContain( 'target="_blank"' );
 } );
 
+it( 'renders the image link class, target and rel (#1022)', function (): void {
+	$tree = [
+		makeBlock( 'core/image', [
+			'url'        => 'https://example.test/image.jpg',
+			'alt'        => 'Linked',
+			'href'       => 'https://example.test/page',
+			'linkClass'  => 'promo-link',
+			'linkTarget' => '_blank',
+			'rel'        => 'nofollow',
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( '<a class="promo-link" href="https://example.test/page" target="_blank" rel="nofollow noopener noreferrer">' );
+} );
+
+it( 'keeps an author rel on a same-tab image link without adding noopener (#1022)', function (): void {
+	$tree = [
+		makeBlock( 'artisanpack/image', [
+			'url'  => 'https://example.test/image.jpg',
+			'href' => 'https://example.test/page',
+			'rel'  => 'sponsored',
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( '<a href="https://example.test/page" rel="sponsored">' )
+		->not->toContain( 'target=' )
+		->not->toContain( 'noopener' );
+} );
+
+it( 'escapes hostile image link attributes (#1022)', function (): void {
+	$tree = [
+		makeBlock( 'core/image', [
+			'url'        => 'https://example.test/image.jpg',
+			'href'       => 'https://example.test/page',
+			'linkClass'  => '"><script>x</script>',
+			'linkTarget' => '" onclick="x',
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->not->toContain( '<script>' )
+		->not->toContain( '" onclick="' );
+} );
+
 it( 'drops unsafe URL schemes from image hrefs and src', function (): void {
 	$tree = [
 		makeBlock( 'core/image', [

@@ -91,11 +91,45 @@ function imageStyle(
     return Object.keys(style).length > 0 ? style : undefined;
 }
 
+/**
+ * The image link's class / target / rel (#1022), mirroring
+ * `core/image.blade.php`: a new-tab link always carries noopener +
+ * noreferrer.
+ */
+function imageLinkAttrs(attributes: Record<string, unknown>): {
+    className: string | undefined;
+    target: string | undefined;
+    rel: string | undefined;
+} {
+    const linkClass = attrString(attributes.linkClass).trim();
+    const linkTarget = attrString(attributes.linkTarget);
+    let rel = attrString(attributes.rel).trim();
+
+    if (linkTarget === '_blank') {
+        const tokens = rel.split(/\s+/).filter((t) => t !== '');
+
+        for (const required of ['noopener', 'noreferrer']) {
+            if (!tokens.includes(required)) {
+                tokens.push(required);
+            }
+        }
+
+        rel = tokens.join(' ');
+    }
+
+    return {
+        className: linkClass === '' ? undefined : linkClass,
+        target: linkTarget === '' ? undefined : linkTarget,
+        rel: rel === '' ? undefined : rel,
+    };
+}
+
 export function ImageBlock({ attributes }: BlockRendererProps): JSX.Element {
     const url = safeUrl(attributes.url);
     const alt = attrString(attributes.alt);
     const caption = attrString(attributes.caption);
     const href = safeUrl(attributes.href);
+    const link = imageLinkAttrs(attributes);
     const id = attrInt(attributes.id);
     const width = imageDimension(attributes.width);
     const height = imageDimension(attributes.height);
@@ -133,7 +167,13 @@ export function ImageBlock({ attributes }: BlockRendererProps): JSX.Element {
 
     return (
         <figure className={figureClasses} style={styleProp(supports.style)}>
-            {img !== null && href !== '' ? <a href={href}>{img}</a> : img}
+            {img !== null && href !== '' ? (
+                <a className={link.className} href={href} target={link.target} rel={link.rel}>
+                    {img}
+                </a>
+            ) : (
+                img
+            )}
             {caption.trim() !== '' ? (
                 <figcaption dangerouslySetInnerHTML={{ __html: caption }} />
             ) : null}

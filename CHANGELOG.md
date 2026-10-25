@@ -10,6 +10,13 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - **Table of contents can list Post Content headings only.** The TOC block has a `source` attribute (**Headings from** in the block settings). The default, `page`, keeps today's behavior: every heading on the page, which in a single-post template includes the template's own headings, such as a related-posts heading, a newsletter call to action or the footer's columns. `post-content` lists only the headings inside Post Content. A page with no Post Content block, such as a post body with the TOC inside it, still lists every heading. Anchors are stamped on every heading as before.
 
+### Fixed
+
+- **Image and Icon blocks can be linked from the editor** ([#1022](https://github.com/ArtisanPack-UI/visual-editor/issues/1022)). Both blocks stored a link and rendered it, but had no editor control to set one. Each now has a **Link** button in the block toolbar. It opens the same link popover as the Button block, Dynamic Content tab included, with **Open in new tab** and **Mark as nofollow** toggles.
+  - **Image:** the block settings add **Link to** (None, Media file or Custom URL). A Media file link follows the image when it is replaced. The Advanced panel adds **Link CSS class** and **Link relation**.
+  - **Icon:** the block settings add **Link relation** and an **Accessibility** panel with **Decorative**, **Accessible label** and **Title attribute**. The panel opens on its own when a decorative linked icon has no label.
+- **Image links keep their class, target and rel on the front end** ([#1022](https://github.com/ArtisanPack-UI/visual-editor/issues/1022)). The Blade, React and Vue image renderers printed only the link's `href`. They now also print `class`, `target` and `rel`, and a new-tab link always carries `noopener noreferrer`.
+
 ## [1.17.1] - 2026-10-23
 
 ### Fixed
