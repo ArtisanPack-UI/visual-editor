@@ -9,10 +9,7 @@
  * `{ url, linkTarget, rel }` triple so each block can map it onto its
  * own attribute names.
  *
- * Unlike the Button block's `getUpdatedLinkAttributes()`, the rel tokens
- * are handled as a set (so toggling never leaves stray or duplicate
- * tokens) and Dynamic Content `{{token}}` hrefs are not prefixed with
- * `https://`.
+ * The rel / URL normalization lives in `./link-attributes`.
  *
  * @since 1.18.0
  */
@@ -23,20 +20,14 @@ import { Popover, ToolbarButton } from '@wordpress/components';
 import { useRef, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { link as linkIcon, linkOff as linkOffIcon } from '@wordpress/icons';
-import { prependHTTPS } from '@wordpress/url';
 
 import { ArtisanPackLinkControl } from '../../dynamic-content/link-control';
 import { TEXT_DOMAIN } from '../../vendor/i18n';
+import { NEW_TAB_TARGET, hasNofollow, resolveLinkChange, type ResolvedLink } from './link-attributes';
 
-const NEW_TAB_TARGET = '_blank';
-const NEW_TAB_REL_TOKENS: readonly string[] = [ 'noreferrer', 'noopener' ];
-const NOFOLLOW_REL = 'nofollow';
+export { hasNofollow, resolveLinkChange } from './link-attributes';
 
-export interface LinkToolbarValue {
-    readonly url: string;
-    readonly linkTarget: string | undefined;
-    readonly rel: string | undefined;
-}
+export type LinkToolbarValue = ResolvedLink;
 
 export interface LinkToolbarControlProps {
     readonly url?: string;
@@ -44,60 +35,6 @@ export interface LinkToolbarControlProps {
     readonly rel?: string;
     readonly onChange: ( next: LinkToolbarValue ) => void;
     readonly onRemove: () => void;
-}
-
-interface LinkControlChange {
-    readonly url?: string;
-    readonly opensInNewTab?: boolean;
-    readonly nofollow?: boolean;
-}
-
-/**
- * Whether a `rel` string carries the `nofollow` token.
- *
- * @since 1.18.0
- */
-export function hasNofollow( rel: string | undefined ): boolean {
-    return ( rel ?? '' ).split( /\s+/ ).includes( NOFOLLOW_REL );
-}
-
-/**
- * Resolve a LinkControl change into the normalized link triple. Author
- * `rel` tokens are kept; the new-tab (`noreferrer noopener`) and
- * `nofollow` tokens are owned by the two toggles and re-derived from
- * them on every change.
- *
- * @since 1.18.0
- */
-export function resolveLinkChange(
-    change: LinkControlChange,
-    currentRel: string | undefined
-): LinkToolbarValue {
-    const managed = new Set( [ ...NEW_TAB_REL_TOKENS, NOFOLLOW_REL ] );
-    const tokens = new Set(
-        ( currentRel ?? '' )
-            .split( /\s+/ )
-            .filter( ( token ) => '' !== token && ! managed.has( token ) )
-    );
-
-    if ( change.opensInNewTab ) {
-        NEW_TAB_REL_TOKENS.forEach( ( token ) => tokens.add( token ) );
-    }
-
-    if ( change.nofollow ) {
-        tokens.add( NOFOLLOW_REL );
-    }
-
-    const rawUrl = ( change.url ?? '' ).trim();
-    const rel = Array.from( tokens ).join( ' ' );
-
-    return {
-        // Dynamic Content hrefs (`{{token}}`) are resolved at render time;
-        // prefixing a scheme would break the resolved URL.
-        url: rawUrl.startsWith( '{{' ) ? rawUrl : prependHTTPS( rawUrl ),
-        linkTarget: change.opensInNewTab ? NEW_TAB_TARGET : undefined,
-        rel: rel || undefined,
-    };
 }
 
 export default function LinkToolbarControl( {
@@ -153,7 +90,7 @@ export default function LinkToolbarControl( {
                     <ArtisanPackLinkControl
                         value={ {
                             url: url ?? '',
-                            opensInNewTab: '_blank' === linkTarget,
+                            opensInNewTab: NEW_TAB_TARGET === linkTarget,
                             nofollow: hasNofollow( rel ),
                         } }
                         settings={ [

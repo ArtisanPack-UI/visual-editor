@@ -94,6 +94,10 @@ describe('resolveLinkChange', () => {
         ).toEqual({ url: 'https://example.com', linkTarget: undefined, rel: 'sponsored' });
     });
 
+    it('keeps an existing nofollow when the change does not manage it', () => {
+        expect(resolveLinkChange({ url: '/about' }, 'nofollow').rel).toBe('nofollow');
+    });
+
     it('returns an undefined rel when no tokens remain', () => {
         expect(resolveLinkChange({ url: '/about' }, undefined).rel).toBeUndefined();
     });
