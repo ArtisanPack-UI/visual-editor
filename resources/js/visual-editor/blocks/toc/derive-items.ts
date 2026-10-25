@@ -21,6 +21,10 @@
  * fills that gap by parsing headings out of `_resolvedContent` at
  * render time, so the frontend output is always correct; the editor
  * preview inside a template just cannot show post-body headings.
+ *
+ * Each row records whether its heading sits inside a Post Content block,
+ * so `filterItemsBySource()` can apply the block's `source` attribute the
+ * way `TocResolver::stampTocBlock()` does.
  */
 
 import removeAccents from 'remove-accents';
@@ -29,7 +33,10 @@ export interface HeadingItem {
     readonly level: number;
     readonly text: string;
     readonly anchor: string;
+    readonly inContent: boolean;
 }
+
+export type TocSource = 'page' | 'post-content';
 
 interface EditorBlock {
     readonly name: string;
@@ -38,6 +45,7 @@ interface EditorBlock {
 }
 
 const HEADING_BLOCKS = new Set<string>(['core/heading', 'artisanpack/heading']);
+const POST_CONTENT_BLOCKS = new Set<string>(['core/post-content', 'artisanpack/post-content']);
 
 function plainText(html: string): string {
     if (typeof document === 'undefined') {
@@ -102,12 +110,17 @@ export function deriveHeadingItems(blocks: ReadonlyArray<EditorBlock>): Readonly
     const used: Set<string> = new Set();
     const items: HeadingItem[] = [];
 
-    walk(blocks, used, items);
+    walk(blocks, used, items, false);
 
     return items;
 }
 
-function walk(blocks: ReadonlyArray<EditorBlock>, used: Set<string>, items: HeadingItem[]): void {
+function walk(
+    blocks: ReadonlyArray<EditorBlock>,
+    used: Set<string>,
+    items: HeadingItem[],
+    inContent: boolean
+): void {
     for (const block of blocks) {
         if (block === null || typeof block !== 'object') {
             continue;
@@ -142,13 +155,50 @@ function walk(blocks: ReadonlyArray<EditorBlock>, used: Set<string>, items: Head
                 level,
                 text: plainText(content),
                 anchor,
+                inContent,
             });
         }
 
         if (Array.isArray(block.innerBlocks) && block.innerBlocks.length > 0) {
-            walk(block.innerBlocks, used, items);
+            walk(block.innerBlocks, used, items, inContent || POST_CONTENT_BLOCKS.has(block.name));
         }
     }
+}
+
+/**
+ * Whether the tree holds a Post Content block at any depth. Mirrors
+ * `TocResolver::containsPostContent()`.
+ */
+export function containsPostContent(blocks: ReadonlyArray<EditorBlock>): boolean {
+    return blocks.some((block) => {
+        if (block === null || typeof block !== 'object') {
+            return false;
+        }
+
+        if (POST_CONTENT_BLOCKS.has(block.name)) {
+            return true;
+        }
+
+        return Array.isArray(block.innerBlocks) && containsPostContent(block.innerBlocks);
+    });
+}
+
+/**
+ * Apply the block's `source` attribute: `post-content` keeps only the
+ * headings inside Post Content. A tree with no Post Content block (the
+ * post editor, where the TOC sits in the post body) keeps every heading,
+ * as the server does.
+ */
+export function filterItemsBySource(
+    items: ReadonlyArray<HeadingItem>,
+    source: TocSource,
+    hasPostContent: boolean
+): ReadonlyArray<HeadingItem> {
+    if (source !== 'post-content' || !hasPostContent) {
+        return items;
+    }
+
+    return items.filter((item) => item.inContent);
 }
 
 /**

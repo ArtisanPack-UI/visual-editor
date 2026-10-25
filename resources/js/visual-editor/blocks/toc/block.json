@@ -33,6 +33,14 @@
         "ordered": {
             "type": "boolean",
             "default": false
+        },
+        "source": {
+            "type": "string",
+            "enum": [
+                "page",
+                "post-content"
+            ],
+            "default": "page"
         }
     },
     "supports": {
