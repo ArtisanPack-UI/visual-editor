@@ -13,11 +13,13 @@
  *
  *   - figure → optional anchor → img → optional figcaption.
  *   - `MediaReplaceFlow` toolbar button to swap the media or paste a URL.
+ *   - Toolbar link control + inspector "Link to" destination, link CSS
+ *     class and link rel (#1022), built on the public `LinkControl`
+ *     instead of upstream's private `ImageURLInputUI`.
  *   - Inspector `ToolsPanel` with the alt-text + title controls.
  *
  * Anything that depended on the private APIs above (image-editor cropping,
- * the lightbox toggle UI, the link-destination dropdown UI, the resizable
- * box, the focal-point picker, etc.) is documented as a divergence in
+ * the lightbox toggle UI, the focal-point picker, etc.) is documented as a divergence in
  * `upstream-state.json#knownDivergences`. The block's serialized output is
  * still produced by `save.tsx`, so this divergence is editor-only.
  */
@@ -26,6 +28,7 @@ import type { ChangeEvent, ReactElement, ReactNode } from 'react';
 import clsx from 'clsx';
 import {
     ResizableBox,
+    SelectControl,
     TextareaControl,
     TextControl,
     __experimentalToolsPanel as ToolsPanel,
@@ -40,8 +43,12 @@ import {
 import { __ } from '@wordpress/i18n';
 import { TEXT_DOMAIN } from '../../vendor/i18n';
 
+import LinkToolbarControl, { type LinkToolbarValue } from '../_shared/link-toolbar-control';
 import {
     ALLOWED_MEDIA_TYPES,
+    LINK_DESTINATION_CUSTOM,
+    LINK_DESTINATION_MEDIA,
+    LINK_DESTINATION_NONE,
     MIN_SIZE,
     WIDTH_PRESETS,
     WIDTH_PRESET_SNAP_PCT,
@@ -59,6 +66,7 @@ interface ImageEditorAttributes {
     readonly rel?: string;
     readonly linkClass?: string;
     readonly linkTarget?: string;
+    readonly linkDestination?: string;
     readonly sizeSlug?: string;
     readonly width?: string;
     readonly widthUnit?: WidthUnit;
@@ -118,6 +126,74 @@ function ImageWrapper({
     );
 }
 
+type LinkDestination =
+    | typeof LINK_DESTINATION_NONE
+    | typeof LINK_DESTINATION_MEDIA
+    | typeof LINK_DESTINATION_CUSTOM;
+
+/**
+ * Resolve the effective link destination, inferring one for images saved
+ * before `linkDestination` was editable: a link to the image's own URL is
+ * a media-file link, any other link is custom.
+ *
+ * @since 1.18.0
+ */
+export function resolveLinkDestination(
+    attributes: Pick<ImageEditorAttributes, 'href' | 'url' | 'linkDestination'>
+): LinkDestination {
+    const { href, url, linkDestination } = attributes;
+
+    if (!href) {
+        // "Custom URL" chosen in the inspector but not filled in yet.
+        return linkDestination === LINK_DESTINATION_CUSTOM
+            ? LINK_DESTINATION_CUSTOM
+            : LINK_DESTINATION_NONE;
+    }
+
+    if (
+        linkDestination === LINK_DESTINATION_MEDIA ||
+        linkDestination === LINK_DESTINATION_CUSTOM
+    ) {
+        return linkDestination;
+    }
+
+    return href === url ? LINK_DESTINATION_MEDIA : LINK_DESTINATION_CUSTOM;
+}
+
+/**
+ * Attributes to apply when the author picks a new link destination.
+ *
+ * Choosing "Custom URL" keeps an existing custom href so switching back
+ * and forth does not wipe what the author typed; a media-file href is
+ * dropped because it is not a custom value.
+ *
+ * @since 1.18.0
+ */
+export function getLinkDestinationAttributes(
+    destination: string,
+    attributes: Pick<ImageEditorAttributes, 'href' | 'url' | 'linkDestination'>
+): Partial<ImageEditorAttributes> {
+    if (destination === LINK_DESTINATION_MEDIA) {
+        return { href: attributes.url, linkDestination: LINK_DESTINATION_MEDIA };
+    }
+
+    if (destination === LINK_DESTINATION_CUSTOM) {
+        const keepHref =
+            resolveLinkDestination(attributes) === LINK_DESTINATION_CUSTOM;
+        return {
+            href: keepHref ? attributes.href : undefined,
+            linkDestination: LINK_DESTINATION_CUSTOM,
+        };
+    }
+
+    return {
+        href: undefined,
+        linkTarget: undefined,
+        rel: undefined,
+        linkDestination: LINK_DESTINATION_NONE,
+    };
+}
+
 export default function Image(props: ImageEditorProps): ReactElement {
     const {
         attributes,
@@ -141,7 +217,31 @@ export default function Image(props: ImageEditorProps): ReactElement {
         height,
         aspectRatio,
         scale,
+        href,
+        rel,
+        linkClass,
+        linkTarget,
     } = attributes;
+
+    const linkDestination = resolveLinkDestination(attributes);
+
+    function onLinkChange(next: LinkToolbarValue): void {
+        setAttributes({
+            href: next.url || undefined,
+            linkTarget: next.linkTarget,
+            rel: next.rel,
+            linkDestination:
+                next.url && next.url === url
+                    ? LINK_DESTINATION_MEDIA
+                    : LINK_DESTINATION_CUSTOM,
+        });
+    }
+
+    function onLinkRemove(): void {
+        setAttributes(
+            getLinkDestinationAttributes(LINK_DESTINATION_NONE, attributes)
+        );
+    }
 
     const imageClasses = clsx({
         [`wp-image-${id}`]: !!id,
@@ -282,6 +382,15 @@ export default function Image(props: ImageEditorProps): ReactElement {
                     />
                 </BlockControls>
             )}
+            {isSingleSelected && (
+                <LinkToolbarControl
+                    url={href}
+                    linkTarget={linkTarget}
+                    rel={rel}
+                    onChange={onLinkChange}
+                    onRemove={onLinkRemove}
+                />
+            )}
             <InspectorControls>
                 <ToolsPanel
                     label={__('Settings', TEXT_DOMAIN)}
@@ -333,6 +442,34 @@ export default function Image(props: ImageEditorProps): ReactElement {
                         />
                     </ToolsPanelItem>
                     <ToolsPanelItem
+                        label={__('Link to', TEXT_DOMAIN)}
+                        isShownByDefault
+                        hasValue={() => linkDestination !== LINK_DESTINATION_NONE}
+                        onDeselect={onLinkRemove}
+                    >
+                        <SelectControl
+                            __nextHasNoMarginBottom
+                            __next40pxDefaultSize
+                            label={__('Link to', TEXT_DOMAIN)}
+                            value={linkDestination}
+                            options={[
+                                { label: __('None', TEXT_DOMAIN), value: LINK_DESTINATION_NONE },
+                                { label: __('Media file', TEXT_DOMAIN), value: LINK_DESTINATION_MEDIA },
+                                { label: __('Custom URL', TEXT_DOMAIN), value: LINK_DESTINATION_CUSTOM },
+                            ]}
+                            onChange={(value: string) =>
+                                setAttributes(
+                                    getLinkDestinationAttributes(value, attributes)
+                                )
+                            }
+                            help={
+                                linkDestination === LINK_DESTINATION_CUSTOM
+                                    ? __('Use the link button in the toolbar to set the URL.', TEXT_DOMAIN)
+                                    : undefined
+                            }
+                        />
+                    </ToolsPanelItem>
+                    <ToolsPanelItem
                         label={__('Title attribute', TEXT_DOMAIN)}
                         hasValue={() => !!title}
                         onDeselect={() => setAttributes({ title: undefined })}
@@ -351,6 +488,28 @@ export default function Image(props: ImageEditorProps): ReactElement {
                     </ToolsPanelItem>
                 </ToolsPanel>
             </InspectorControls>
+            {href && (
+                <InspectorControls group="advanced">
+                    <TextControl
+                        __nextHasNoMarginBottom
+                        __next40pxDefaultSize
+                        label={__('Link CSS class', TEXT_DOMAIN)}
+                        value={linkClass ?? ''}
+                        onChange={(value: string) =>
+                            setAttributes({ linkClass: value || undefined })
+                        }
+                    />
+                    <TextControl
+                        __nextHasNoMarginBottom
+                        __next40pxDefaultSize
+                        label={__('Link relation', TEXT_DOMAIN)}
+                        value={rel ?? ''}
+                        onChange={(value: string) =>
+                            setAttributes({ rel: value || undefined })
+                        }
+                    />
+                </InspectorControls>
+            )}
             {wrappedImage}
             {(isSingleSelected && hasNonContentControls) ||
             !RichText.isEmpty(caption ?? '') ? (

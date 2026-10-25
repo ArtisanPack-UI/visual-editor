@@ -205,6 +205,34 @@ describe('Core media blocks', () => {
         expect(html).toContain('<figcaption>A <em>caption</em></figcaption>');
     });
 
+    it('renders the image link class, target and rel (#1022)', () => {
+        const html = renderTree([
+            makeBlock('core/image', {
+                url: 'https://example.test/image.jpg',
+                alt: 'Linked',
+                href: 'https://example.test/page',
+                linkClass: 'promo-link',
+                linkTarget: '_blank',
+                rel: 'nofollow',
+            }),
+        ]);
+
+        expect(html).toContain(
+            '<a class="promo-link" href="https://example.test/page" target="_blank" rel="nofollow noopener noreferrer">'
+        );
+    });
+
+    it('renders a bare image link when no link extras are set (#1022)', () => {
+        const html = renderTree([
+            makeBlock('core/image', {
+                url: 'https://example.test/image.jpg',
+                href: 'https://example.test/page',
+            }),
+        ]);
+
+        expect(html).toContain('<a href="https://example.test/page"><img');
+    });
+
     it('drops unsafe URL schemes from image hrefs', () => {
         const tree = [
             makeBlock('core/image', {

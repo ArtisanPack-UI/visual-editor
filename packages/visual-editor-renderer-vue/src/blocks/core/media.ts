@@ -92,6 +92,39 @@ function imageStyle(
     return Object.keys(style).length > 0 ? style : undefined;
 }
 
+/**
+ * The image link's class / target / rel (#1022), mirroring
+ * `core/image.blade.php`: a new-tab link always carries noopener +
+ * noreferrer.
+ */
+function imageLinkAttrs(attributes: Record<string, unknown>): {
+    className: string | undefined;
+    target: string | undefined;
+    rel: string | undefined;
+} {
+    const linkClass = attrString(attributes.linkClass).trim();
+    const linkTarget = attrString(attributes.linkTarget);
+    let rel = attrString(attributes.rel).trim();
+
+    if (linkTarget === '_blank') {
+        const tokens = rel.split(/\s+/).filter((t) => t !== '');
+
+        for (const required of ['noopener', 'noreferrer']) {
+            if (!tokens.includes(required)) {
+                tokens.push(required);
+            }
+        }
+
+        rel = tokens.join(' ');
+    }
+
+    return {
+        className: linkClass === '' ? undefined : linkClass,
+        target: linkTarget === '' ? undefined : linkTarget,
+        rel: rel === '' ? undefined : rel,
+    };
+}
+
 export const ImageBlock = defineComponent({
     name: 'ImageBlock',
     props: blockRendererProps,
@@ -148,7 +181,30 @@ export const ImageBlock = defineComponent({
             const children: VNode[] = [];
 
             if (img !== null) {
-                children.push(href !== '' ? h('a', { href }, [img]) : img);
+                if (href !== '') {
+                    const link = imageLinkAttrs(props.attributes);
+                    // Vue renders `class: undefined` as `class=""`, so only
+                    // set the keys that carry a value.
+                    const linkProps: Record<string, unknown> = {};
+
+                    if (link.className !== undefined) {
+                        linkProps.class = link.className;
+                    }
+
+                    linkProps.href = href;
+
+                    if (link.target !== undefined) {
+                        linkProps.target = link.target;
+                    }
+
+                    if (link.rel !== undefined) {
+                        linkProps.rel = link.rel;
+                    }
+
+                    children.push(h('a', linkProps, [img]));
+                } else {
+                    children.push(img);
+                }
             }
 
             if (caption.trim() !== '') {
