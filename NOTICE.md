@@ -6,7 +6,7 @@ apply to those assets and do not extend to the rest of the package
 
 ## Font Awesome Free
 
-The 28 first-party block inserter icons under
+The 30 first-party block inserter icons under
 `resources/js/visual-editor/blocks/*/inserter-icon.tsx` embed SVG path
 data copied verbatim from [Font Awesome Free Solid][fa-free] v7.2.0 by
 Fonticons, Inc., licensed under [CC BY 4.0][cc-by-4].
@@ -40,6 +40,8 @@ The bundled `.svg` source assets live under
 | single-content | [`file-lines`](https://fontawesome.com/icons/file-lines) |
 | single-post-types-search-results | [`note-sticky`](https://fontawesome.com/icons/note-sticky) |
 | skills-slider | [`bars-progress`](https://fontawesome.com/icons/bars-progress) |
+| social-link | [`link`](https://fontawesome.com/icons/link) |
+| social-links | [`circle-nodes`](https://fontawesome.com/icons/circle-nodes) |
 | social-share-content | [`share-nodes`](https://fontawesome.com/icons/share-nodes) |
 | tab-section | [`window-maximize`](https://fontawesome.com/icons/window-maximize) |
 | tabs | [`window-restore`](https://fontawesome.com/icons/window-restore) |
@@ -54,6 +56,16 @@ viewBox and repeated in the share-icon registries
 (`resources/js/visual-editor/blocks/_shared/social-icons.ts`,
 `packages/visual-editor-renderer-blade/src/Support/SocialIconRegistry.php`
 and the React / Vue `src/blocks/artisanpack/socialIcons.ts`).
+
+The Social Icons block's service glyphs embed path data copied verbatim
+from Font Awesome Free v7.2.0 (Brands, plus Solid `link`, `rss` and
+`envelope` for the Link, RSS Feed and Mail services), licensed under
+[CC BY 4.0][cc-by-4]. The Gravatar glyph comes from
+[Simple Icons](https://simpleicons.org) (CC0 1.0). The paths are written
+by `scripts/sync-social-link-services.mjs` into the service registries
+(`resources/js/visual-editor/blocks/social-link/services.ts`,
+`packages/visual-editor-renderer-blade/src/Support/SocialLinkServices.php`
+and the React / Vue `src/blocks/artisanpack/socialLinkServices.ts`).
 
 [fa-free]: https://fontawesome.com/license/free
 [cc-by-4]: https://creativecommons.org/licenses/by/4.0/

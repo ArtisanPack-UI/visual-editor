@@ -471,6 +471,37 @@ it( 'escapes hostile image link attributes (#1022)', function (): void {
 		->not->toContain( '" onclick="' );
 } );
 
+it( 'hands a nested Social Icons block its settings (#1023)', function (): void {
+	$tree = [
+		makeBlock( 'core/group', [], [
+			makeBlock( 'artisanpack/social-links', [ 'openInNewTab' => true, 'showLabels' => true ], [
+				makeBlock( 'artisanpack/social-link', [ 'service' => 'x', 'url' => 'https://x.com/example' ] ),
+			] ),
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'rel="noopener nofollow" target="_blank"' )
+		->toContain( '<span class="wp-block-social-link-label">X</span>' );
+} );
+
+it( 'renders a stray Social Icon without parent settings (#1023)', function (): void {
+	$tree = [
+		makeBlock( 'artisanpack/social-link', [
+			'service'        => 'x',
+			'url'            => 'https://x.com/example',
+			'_veSocialLinks' => 'not-an-array',
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( '<li class="wp-social-link wp-social-link-x wp-block-social-link">' )
+		->toContain( 'screen-reader-text' )
+		->not->toContain( 'target=' );
+} );
+
 it( 'drops unsafe URL schemes from image hrefs and src', function (): void {
 	$tree = [
 		makeBlock( 'core/image', [

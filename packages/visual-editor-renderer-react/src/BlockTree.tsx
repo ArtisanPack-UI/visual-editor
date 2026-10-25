@@ -43,6 +43,7 @@ import { stampLayoutScopes } from './support/layoutContainer';
 import { stampNavigationCurrent } from './support/navigationCurrent';
 import { stampPhotoGridScopes } from './support/photoGrid';
 import { stampResponsiveScopes } from './support/responsive';
+import { stampSocialLinksContext } from './support/socialLinks';
 import {
     DEFAULT_MAX_PATTERN_DEPTH,
     inlinePatterns,
@@ -217,7 +218,8 @@ export function BlockTree({
         // Current page (#975) — mark navigation links against the
         // host-supplied URL, after every inliner so links from template
         // parts and patterns take part.
-        return stampNavigationCurrent(stampHeadingAnchors(withQueries), currentUrl);
+        // Social Icons (#1023) — hand each parent's settings to its icons.
+        return stampSocialLinksContext(stampNavigationCurrent(stampHeadingAnchors(withQueries), currentUrl));
     }, [
         tree,
         templateParts,

@@ -24,7 +24,8 @@
         "i18n:extract": "node scripts/extract-pot.mjs",
         "sync:fa-icons": "node scripts/sync-fa-icons.mjs",
         "verify:parity": "node scripts/verify-renderer-parity.mjs",
-        "upstream-diff": "node scripts/upstream-diff.mjs"
+        "upstream-diff": "node scripts/upstream-diff.mjs",
+        "sync:social-links": "node scripts/sync-social-link-services.mjs"
     },
     "devDependencies": {
         "@fortawesome/fontawesome-free": "^7.2.0",

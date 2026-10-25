@@ -549,6 +549,7 @@ class BlockRenderer
 		}
 
 		$innerBlocks     = $this->normalizeInnerBlocks( $block['innerBlocks'] ?? [] );
+		$innerBlocks     = $this->stampSocialLinksContext( $name, $attributes, $innerBlocks );
 		$innerBlocksHtml = $this->renderInner( $innerBlocks );
 
 		$html = $this->dynamicBlocks->has( $name )
@@ -701,6 +702,48 @@ class BlockRenderer
 		}
 
 		return $out;
+	}
+
+	/**
+	 * Hands a Social Icons block's settings to its `social-link` children
+	 * as a `_veSocialLinks` attribute (#1023).
+	 *
+	 * The editor passes them through block context (`providesContext`),
+	 * but children render before their parent here, so the parent's
+	 * settings are stamped onto each child up front instead. A child's
+	 * own `_veSocialLinks` is always overwritten, so stored content can't
+	 * forge one.
+	 *
+	 * @since 1.18.0
+	 *
+	 * @param  string                            $name         The block name.
+	 * @param  array<string, mixed>              $attributes   The parent's attributes.
+	 * @param  array<int, array<string, mixed>>  $innerBlocks  The parent's inner blocks.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	protected function stampSocialLinksContext( string $name, array $attributes, array $innerBlocks ): array
+	{
+		if ( 'artisanpack/social-links' !== $name ) {
+			return $innerBlocks;
+		}
+
+		$context = [
+			'openInNewTab' => true === ( $attributes['openInNewTab'] ?? false ),
+			'showLabels'   => true === ( $attributes['showLabels'] ?? false ),
+		];
+
+		foreach ( $innerBlocks as $index => $innerBlock ) {
+			if ( ! is_array( $innerBlock ) || 'artisanpack/social-link' !== ( $innerBlock['name'] ?? null ) ) {
+				continue;
+			}
+
+			$innerAttributes                     = is_array( $innerBlock['attributes'] ?? null ) ? $innerBlock['attributes'] : [];
+			$innerAttributes['_veSocialLinks']   = $context;
+			$innerBlocks[ $index ]['attributes'] = $innerAttributes;
+		}
+
+		return $innerBlocks;
 	}
 
 	/**

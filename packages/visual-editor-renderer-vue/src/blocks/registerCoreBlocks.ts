@@ -39,6 +39,7 @@ import {
     PreviousPostBlock,
 } from './artisanpack/postNavigation';
 import { AuthorSocialIconsBlock } from './artisanpack/authorSocialIcons';
+import { SocialLinkBlock, SocialLinksBlock } from './artisanpack/socialLinks';
 import { RelatedPostsBlock } from './artisanpack/relatedPosts';
 import {
     PostTypesSearchResultsBlock,
@@ -346,6 +347,9 @@ const CORE_BLOCKS: Record<string, BlockRenderer> = {
     'artisanpack/single-content': SingleContentBlock,
     'artisanpack/related-posts': RelatedPostsBlock,
     'artisanpack/author-social-icons': AuthorSocialIconsBlock,
+    // Social Icons (#1023).
+    'artisanpack/social-links': SocialLinksBlock,
+    'artisanpack/social-link': SocialLinkBlock,
     'artisanpack/social-share-content': SocialShareContentBlock,
     // Generic search cluster (#502) — registered under the
     // artisanpack/* namespace only. Every request-time value
