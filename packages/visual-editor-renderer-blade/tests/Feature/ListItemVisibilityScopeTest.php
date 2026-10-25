@@ -93,6 +93,36 @@ it( 'merges the scope onto a core/navigation-link <li> instead of wrapping it in
 		->and( array_unique( listItemScopeChildTagNames( $html ) ) )->toBe( [ 'li' ] );
 } );
 
+it( 'merges the scope onto an artisanpack/social-link <li> (#1023)', function (): void {
+	$html = app( BlockRenderer::class )->render( [
+		[
+			'name'        => 'artisanpack/social-links',
+			'attributes'  => [],
+			'innerBlocks' => [
+				[
+					'name'        => 'artisanpack/social-link',
+					'attributes'  => [ 'service' => 'x', 'url' => 'https://x.com/example' ],
+					'innerBlocks' => [],
+				],
+				[
+					'name'        => 'artisanpack/social-link',
+					'attributes'  => [
+						'service'               => 'github',
+						'url'                   => 'https://github.com/example',
+						'artisanpackVisibility' => listItemScopeHideAtMd(),
+					],
+					'innerBlocks' => [],
+				],
+			],
+		],
+	] );
+
+	expect( $html )
+		->not->toMatch( '/<div[^>]*data-ve-vis-scope/' )
+		->and( $html )->toMatch( '/<li class="[^"]*wp-social-link-github[^"]*\bve-vis-\d+"[^>]*data-ve-vis-scope>/' )
+		->and( array_unique( listItemScopeChildTagNames( $html ) ) )->toBe( [ 'li' ] );
+} );
+
 it( 'merges the scope onto a core/navigation-submenu <li> that contains nested <li>s', function (): void {
 	$html = app( BlockRenderer::class )->render( [
 		[

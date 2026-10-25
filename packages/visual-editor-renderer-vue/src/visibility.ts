@@ -376,6 +376,7 @@ export const LIST_ITEM_BLOCKS: ReadonlySet<string> = new Set([
     'core/navigation-submenu',
     'core/list-item',
     'artisanpack/list-item',
+    'artisanpack/social-link',
 ]);
 
 function attributesOf(block: Block): Record<string, unknown> | null {

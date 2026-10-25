@@ -332,6 +332,9 @@ return [
 		'artisanpack/business-address',
 		'artisanpack/business-phone',
 		'artisanpack/business-email',
+		// Social Icons (#1023): the parent and its per-service child.
+		'artisanpack/social-links',
+		'artisanpack/social-link',
 	],
 
 	'disabled_blocks' => [
