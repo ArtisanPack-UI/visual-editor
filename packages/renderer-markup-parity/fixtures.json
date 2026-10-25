@@ -7268,6 +7268,72 @@
                     ]
                 }
             ]
+        },
+        {
+            "name": "social-links-urls",
+            "tree": [
+                {
+                    "clientId": "sl-urls",
+                    "name": "artisanpack/social-links",
+                    "attributes": {},
+                    "innerBlocks": [
+                        {
+                            "clientId": "sl-urls-bare",
+                            "name": "artisanpack/social-link",
+                            "attributes": {
+                                "service": "x",
+                                "url": "x.com/example"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "sl-urls-relative",
+                            "name": "artisanpack/social-link",
+                            "attributes": {
+                                "service": "feed",
+                                "url": "/feed"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "sl-urls-fragment",
+                            "name": "artisanpack/social-link",
+                            "attributes": {
+                                "service": "chain",
+                                "url": "#contact"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "sl-urls-mail-dots",
+                            "name": "artisanpack/social-link",
+                            "attributes": {
+                                "service": "mail",
+                                "url": "first..last@example.com"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "sl-urls-mail-underscore",
+                            "name": "artisanpack/social-link",
+                            "attributes": {
+                                "service": "mail",
+                                "url": "me@my_host.com"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "sl-urls-mail-scheme",
+                            "name": "artisanpack/social-link",
+                            "attributes": {
+                                "service": "mail",
+                                "url": "mailto:hello@example.com"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
         }
     ]
 }

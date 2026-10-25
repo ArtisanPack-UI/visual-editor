@@ -38,4 +38,29 @@ describe('stampSocialLinksContext', () => {
         expect(links.innerBlocks[0].attributes._veSocialLinks).toEqual({ openInNewTab: false, showLabels: false });
         expect(stray.attributes._veSocialLinks).toBe(forged);
     });
+
+    it('returns the same tree and blocks when there are no Social Icons', () => {
+        const tree = [makeBlock('core/group', {}, [makeBlock('core/paragraph', { content: 'hi' })])];
+
+        const stamped = stampSocialLinksContext(tree);
+
+        expect(stamped).toBe(tree);
+        expect(stamped[0]).toBe(tree[0]);
+    });
+
+    it('only copies the branch that leads to a Social Icons block', () => {
+        const untouched = makeBlock('core/group', {}, [makeBlock('core/paragraph', { content: 'hi' })]);
+        const tree = [
+            untouched,
+            makeBlock('core/group', {}, [
+                makeBlock('artisanpack/social-links', {}, [makeBlock('artisanpack/social-link', { service: 'x' })]),
+            ]),
+        ];
+
+        const stamped = stampSocialLinksContext(tree);
+
+        expect(stamped).not.toBe(tree);
+        expect(stamped[0]).toBe(untouched);
+        expect(stamped[1]).not.toBe(tree[1]);
+    });
 });

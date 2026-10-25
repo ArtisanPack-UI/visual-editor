@@ -817,3 +817,46 @@ it( 'does not carry post-content state from one tree to the next on a reused res
 
 	expect( array_column( $items, 'text' ) )->toBe( [ 'Standalone' ] );
 } );
+
+it( 'ignores post-content shown by a query loop on a post-content TOC', function ( string $loopBlock ): void {
+	$resolver = new TocResolver();
+
+	$tree = [
+		tocBlock( 'artisanpack/toc', [ 'source' => 'post-content' ] ),
+		tocBlock( 'core/post-content', [ '_resolvedContent' => '<h2>Own heading</h2>' ] ),
+		tocBlock( $loopBlock, [], [
+			tocBlock( 'core/post-template', [], [
+				tocBlock( 'core/post-content', [ '_resolvedContent' => '<h2>Other post</h2>' ], [
+					tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Other nested' ] ),
+				] ),
+			] ),
+		] ),
+	];
+
+	$items = $resolver->resolveTree( $tree )[0]['attributes']['_resolvedItems'];
+
+	expect( array_column( $items, 'text' ) )->toBe( [ 'Own heading' ] );
+} )->with( [
+	'core/query',
+	'artisanpack/query',
+	'artisanpack/related-posts',
+	'artisanpack/single-content',
+] );
+
+it( 'keeps every heading on a post-content TOC when the only post-content is inside a query loop', function (): void {
+	$resolver = new TocResolver();
+
+	$tree = [
+		tocBlock( 'artisanpack/toc', [ 'source' => 'post-content' ] ),
+		tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Page heading' ] ),
+		tocBlock( 'core/query', [], [
+			tocBlock( 'core/post-template', [], [
+				tocBlock( 'core/post-content', [ '_resolvedContent' => '<h2>Other post</h2>' ] ),
+			] ),
+		] ),
+	];
+
+	$resolved = $resolver->resolveTree( $tree );
+
+	expect( array_column( $resolved[0]['attributes']['_resolvedItems'], 'text' ) )->toBe( [ 'Page heading', 'Other post' ] );
+} );

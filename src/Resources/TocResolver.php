@@ -70,6 +70,24 @@ class TocResolver
 	];
 
 	/**
+	 * Blocks that render other entries than the one being viewed: a
+	 * Query Loop (expanded per result by `QueryInliner`), Related Posts
+	 * and Single Content. A Post Content block inside one of these shows
+	 * another post's body, so it doesn't count as "the post" for a TOC
+	 * limited to Post Content.
+	 *
+	 * @since 1.18.0
+	 *
+	 * @var array<int, string>
+	 */
+	protected const ENTRY_LOOP_BLOCKS = [
+		'core/query',
+		'artisanpack/query',
+		'artisanpack/related-posts',
+		'artisanpack/single-content',
+	];
+
+	/**
 	 * Table-of-contents block names this resolver stamps items on.
 	 *
 	 * @var array<int, string>
@@ -99,6 +117,15 @@ class TocResolver
 	protected const SOURCE_POST_CONTENT = 'post-content';
 
 	/**
+	 * The auto anchor for a heading whose text slugs only to characters
+	 * an `id` can't keep (e.g. `日本語`). It takes the usual `-1`, `-2`, …
+	 * suffixes when repeated.
+	 *
+	 * @since 1.15.0
+	 */
+	protected const FALLBACK_SLUG = 'heading';
+
+	/**
 	 * How many Post Content blocks the heading walk is currently inside.
 	 * Kept as state rather than a parameter so the protected stamping
 	 * methods keep their signatures for subclasses that override them.
@@ -108,20 +135,19 @@ class TocResolver
 	protected int $postContentDepth = 0;
 
 	/**
+	 * How many {@see ENTRY_LOOP_BLOCKS} the heading walk is currently
+	 * inside. Post Content in a loop doesn't raise `$postContentDepth`.
+	 *
+	 * @since 1.18.0
+	 */
+	protected int $entryLoopDepth = 0;
+
+	/**
 	 * Whether the tree being resolved holds a Post Content block.
 	 *
 	 * @since 1.18.0
 	 */
 	protected bool $hasPostContent = false;
-
-	/**
-	 * The auto anchor for a heading whose text slugs only to characters
-	 * an `id` can't keep (e.g. `日本語`). It takes the usual `-1`, `-2`, …
-	 * suffixes when repeated.
-	 *
-	 * @since 1.15.0
-	 */
-	protected const FALLBACK_SLUG = 'heading';
 
 	/**
 	 * Walk the tree twice: once to stamp anchors on headings and collect
@@ -146,9 +172,11 @@ class TocResolver
 		// Save the walk state so a nested call (a post body resolved while
 		// its template is) can't leak into this one.
 		$previousDepth          = $this->postContentDepth;
+		$previousLoopDepth      = $this->entryLoopDepth;
 		$previousHasPostContent = $this->hasPostContent;
 
 		$this->postContentDepth = 0;
+		$this->entryLoopDepth   = 0;
 		$this->hasPostContent   = $this->containsPostContent( $tree );
 
 		try {
@@ -160,6 +188,7 @@ class TocResolver
 			return $this->stampTocBlocks( $stamped, $headings );
 		} finally {
 			$this->postContentDepth = $previousDepth;
+			$this->entryLoopDepth   = $previousLoopDepth;
 			$this->hasPostContent   = $previousHasPostContent;
 		}
 	}
@@ -346,7 +375,12 @@ class TocResolver
 				? $source['innerBlocks']
 				: null;
 
-			$isPostContent = in_array( $name, self::POST_CONTENT_BLOCKS, true );
+			$isEntryLoop   = in_array( $name, self::ENTRY_LOOP_BLOCKS, true );
+			$isPostContent = 0 === $this->entryLoopDepth && in_array( $name, self::POST_CONTENT_BLOCKS, true );
+
+			if ( $isEntryLoop ) {
+				++$this->entryLoopDepth;
+			}
 
 			if ( $isPostContent ) {
 				++$this->postContentDepth;
@@ -357,6 +391,10 @@ class TocResolver
 			} finally {
 				if ( $isPostContent ) {
 					--$this->postContentDepth;
+				}
+
+				if ( $isEntryLoop ) {
+					--$this->entryLoopDepth;
 				}
 			}
 		}
@@ -487,7 +525,7 @@ class TocResolver
 						'level'     => $level,
 						'text'      => $plainText,
 						'anchor'    => $existingId,
-						'inContent' => true,
+						'inContent' => 0 === $this->entryLoopDepth,
 					];
 
 					return $match[0];
@@ -506,7 +544,7 @@ class TocResolver
 					'level'     => $level,
 					'text'      => $plainText,
 					'anchor'    => $anchor,
-					'inContent' => true,
+					'inContent' => 0 === $this->entryLoopDepth,
 				];
 
 				return sprintf(
@@ -625,7 +663,8 @@ class TocResolver
 	}
 
 	/**
-	 * Whether the tree holds a Post Content block at any depth.
+	 * Whether the tree holds a Post Content block at any depth, outside
+	 * the {@see ENTRY_LOOP_BLOCKS}.
 	 *
 	 * @since 1.18.0
 	 *
@@ -640,6 +679,10 @@ class TocResolver
 
 			if ( in_array( $block['name'] ?? null, self::POST_CONTENT_BLOCKS, true ) ) {
 				return true;
+			}
+
+			if ( in_array( $block['name'] ?? null, self::ENTRY_LOOP_BLOCKS, true ) ) {
+				continue;
 			}
 
 			if ( isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) && $this->containsPostContent( $block['innerBlocks'] ) ) {

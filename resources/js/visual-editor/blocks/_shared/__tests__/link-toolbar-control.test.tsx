@@ -94,6 +94,19 @@ describe('resolveLinkChange', () => {
         ).toEqual({ url: 'https://example.com', linkTarget: undefined, rel: 'sponsored' });
     });
 
+    it.each(['noreferrer', 'noopener', 'sponsored noopener'])(
+        'keeps a lone new-tab token the author typed (%s)',
+        (rel) => {
+            expect(resolveLinkChange({ url: '/about', opensInNewTab: false }, rel).rel).toBe(rel);
+        }
+    );
+
+    it('completes a lone new-tab token into the pair without duplicating it', () => {
+        expect(resolveLinkChange({ url: '/about', opensInNewTab: true }, 'noopener').rel).toBe(
+            'noreferrer noopener'
+        );
+    });
+
     it('keeps an existing nofollow when the change does not manage it', () => {
         expect(resolveLinkChange({ url: '/about' }, 'nofollow').rel).toBe('nofollow');
     });

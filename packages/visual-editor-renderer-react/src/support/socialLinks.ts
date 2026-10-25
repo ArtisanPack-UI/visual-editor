@@ -24,8 +24,16 @@ function contextFor(attributes: Record<string, unknown>): SocialLinksContext {
     };
 }
 
+// Returns the same array when no child changed, so blocks outside a
+// Social Icons subtree keep their identity.
+function stampChildren(children: Block[]): Block[] {
+    const stamped = children.map(stampBlock);
+
+    return stamped.every((child, index) => child === children[index]) ? children : stamped;
+}
+
 function stampBlock(block: Block): Block {
-    const innerBlocks = Array.isArray(block.innerBlocks) ? block.innerBlocks.map(stampBlock) : block.innerBlocks;
+    const innerBlocks = Array.isArray(block.innerBlocks) ? stampChildren(block.innerBlocks) : block.innerBlocks;
 
     if (block.name !== 'artisanpack/social-links' || !Array.isArray(innerBlocks)) {
         return innerBlocks === block.innerBlocks ? block : { ...block, innerBlocks };
@@ -44,5 +52,5 @@ function stampBlock(block: Block): Block {
 }
 
 export function stampSocialLinksContext(tree: Block[]): Block[] {
-    return tree.map(stampBlock);
+    return stampChildren(tree);
 }

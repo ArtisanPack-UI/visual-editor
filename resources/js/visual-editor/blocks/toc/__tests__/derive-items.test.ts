@@ -183,4 +183,34 @@ describe('filterItemsBySource', () => {
         expect(containsPostContent(bodyOnly as never)).toBe(false);
         expect(filterItemsBySource(items, 'post-content', false)).toHaveLength(2);
     });
+
+    it.each(['core/query', 'artisanpack/query', 'artisanpack/related-posts', 'artisanpack/single-content'])(
+        'ignores Post Content shown by %s',
+        (loopBlock) => {
+            const withLoop = [
+                postContent([heading(2, 'Own heading')]),
+                {
+                    name: loopBlock,
+                    attributes: {},
+                    innerBlocks: [
+                        { name: 'core/post-template', attributes: {}, innerBlocks: [postContent([heading(2, 'Other post')])] },
+                    ],
+                },
+            ];
+            const items = deriveHeadingItems(withLoop as never);
+            const filtered = filterItemsBySource(items, 'post-content', containsPostContent(withLoop as never));
+
+            expect(filtered.map((i) => i.text)).toEqual(['Own heading']);
+        }
+    );
+
+    it('keeps every heading when the only Post Content is inside a Query Loop', () => {
+        const loopOnly = [
+            heading(2, 'Page heading'),
+            { name: 'core/query', attributes: {}, innerBlocks: [postContent([heading(2, 'Other post')])] },
+        ];
+
+        expect(containsPostContent(loopOnly as never)).toBe(false);
+        expect(filterItemsBySource(deriveHeadingItems(loopOnly as never), 'post-content', false)).toHaveLength(2);
+    });
 });

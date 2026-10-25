@@ -128,6 +128,24 @@ describe('SocialLinkEdit', () => {
         expect(container.querySelector('li')?.getAttribute('style')).toBeNull();
     });
 
+    it.each([
+        ['an empty service', ''],
+        ['an invalid slug', 'Foo Bar'],
+    ])('uses the chain service class for %s, like the renderers', (_case, service) => {
+        const { container } = renderEdit({ service, url: 'https://example.com' });
+        const classes = container.querySelector('li')?.className ?? '';
+
+        expect(classes).toContain('wp-social-link-chain');
+        expect(classes).not.toMatch(/wp-social-link-(\s|$)/);
+        expect(classes).not.toContain('Foo');
+    });
+
+    it('keeps the class for a valid but unknown service slug', () => {
+        const { container } = renderEdit({ service: 'myspace', url: 'https://example.com' });
+
+        expect(container.querySelector('li')?.className).toContain('wp-social-link-myspace');
+    });
+
     it('falls back to a generic name for an unknown service', () => {
         const { container, getByLabelText } = renderEdit({ service: 'myspace', url: 'https://example.com' });
 

@@ -281,7 +281,7 @@ describe('ImageEdit', () => {
         );
     });
 
-    it('clears every link attribute except the class on unlink', () => {
+    it('clears every link attribute, including the hidden class, on unlink', () => {
         const setAttributes = vi.fn();
         const { getByTestId } = render(
             <ImageEdit
@@ -290,7 +290,7 @@ describe('ImageEdit', () => {
                     href: 'https://example.com/page',
                     linkTarget: '_blank',
                     rel: 'noopener',
-                    linkClass: 'keep-me',
+                    linkClass: 'lightbox-trigger',
                     linkDestination: 'custom',
                 }}
                 setAttributes={setAttributes}
@@ -302,6 +302,7 @@ describe('ImageEdit', () => {
             href: undefined,
             linkTarget: undefined,
             rel: undefined,
+            linkClass: undefined,
             linkDestination: 'none',
         });
     });

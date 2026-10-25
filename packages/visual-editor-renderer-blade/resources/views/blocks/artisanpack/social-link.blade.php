@@ -6,7 +6,7 @@
 	// #1023 — one Social Icons service. Mirrors WordPress's
 	// `render_block_core_social_link()`: an icon without a URL renders
 	// nothing, a bare address on the Mail service becomes a `mailto:`
-	// link, and the parent's new-tab / show-text settings arrive as
+	// link, a bare domain gets `https://`, and the parent's new-tab / show-text settings arrive as
 	// `_veSocialLinks`. Colours, border and hover styles come from the
 	// parent `<ul>` (see social-links.blade.php), so the `<li>` has no
 	// inline style.
@@ -19,8 +19,17 @@
 
 	$url = trim( is_string( $attributes['url'] ?? null ) ? $attributes['url'] : '' );
 
-	if ( 'mail' === $service && '' !== $url && ! str_starts_with( strtolower( $url ), 'mailto:' ) && false !== filter_var( $url, FILTER_VALIDATE_EMAIL ) ) {
+	// The React and Vue renderers use the same address pattern, so every
+	// renderer agrees on which bare addresses become `mailto:` links.
+	if ( 'mail' === $service && '' !== $url && ! str_starts_with( strtolower( $url ), 'mailto:' ) && 1 === preg_match( '/^[^\s@]+@[^\s@]+\.[^\s@]+$/D', $url ) ) {
 		$url = 'mailto:' . $url;
+	}
+
+	// A bare domain such as `twitter.com/acme` gets `https://`, as in
+	// WordPress and the editor's `prependHTTPS()`. A scheme, fragment,
+	// query or relative path is left alone.
+	if ( '' !== $url && 1 !== preg_match( '/^(?:[a-z]+:|#|\?|\.|\/)/i', $url ) ) {
+		$url = 'https://' . $url;
 	}
 
 	$href = UrlSanitizer::safe( $url );

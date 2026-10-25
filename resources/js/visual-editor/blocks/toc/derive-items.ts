@@ -47,6 +47,16 @@ interface EditorBlock {
 const HEADING_BLOCKS = new Set<string>(['core/heading', 'artisanpack/heading']);
 const POST_CONTENT_BLOCKS = new Set<string>(['core/post-content', 'artisanpack/post-content']);
 
+// Blocks that show other entries than the one being edited. Post Content
+// inside one of them is another post's body, so it doesn't count as "the
+// post". Mirrors `TocResolver::ENTRY_LOOP_BLOCKS`.
+const ENTRY_LOOP_BLOCKS = new Set<string>([
+    'core/query',
+    'artisanpack/query',
+    'artisanpack/related-posts',
+    'artisanpack/single-content',
+]);
+
 function plainText(html: string): string {
     if (typeof document === 'undefined') {
         // SSR / test environments without a DOM — fall back to a naive
@@ -110,7 +120,7 @@ export function deriveHeadingItems(blocks: ReadonlyArray<EditorBlock>): Readonly
     const used: Set<string> = new Set();
     const items: HeadingItem[] = [];
 
-    walk(blocks, used, items, false);
+    walk(blocks, used, items, false, false);
 
     return items;
 }
@@ -119,7 +129,8 @@ function walk(
     blocks: ReadonlyArray<EditorBlock>,
     used: Set<string>,
     items: HeadingItem[],
-    inContent: boolean
+    inContent: boolean,
+    inEntryLoop: boolean
 ): void {
     for (const block of blocks) {
         if (block === null || typeof block !== 'object') {
@@ -160,14 +171,17 @@ function walk(
         }
 
         if (Array.isArray(block.innerBlocks) && block.innerBlocks.length > 0) {
-            walk(block.innerBlocks, used, items, inContent || POST_CONTENT_BLOCKS.has(block.name));
+            const childInEntryLoop = inEntryLoop || ENTRY_LOOP_BLOCKS.has(block.name);
+            const childInContent = inContent || (!childInEntryLoop && POST_CONTENT_BLOCKS.has(block.name));
+
+            walk(block.innerBlocks, used, items, childInContent, childInEntryLoop);
         }
     }
 }
 
 /**
- * Whether the tree holds a Post Content block at any depth. Mirrors
- * `TocResolver::containsPostContent()`.
+ * Whether the tree holds a Post Content block at any depth, outside the
+ * entry loops. Mirrors `TocResolver::containsPostContent()`.
  */
 export function containsPostContent(blocks: ReadonlyArray<EditorBlock>): boolean {
     return blocks.some((block) => {
@@ -177,6 +191,10 @@ export function containsPostContent(blocks: ReadonlyArray<EditorBlock>): boolean
 
         if (POST_CONTENT_BLOCKS.has(block.name)) {
             return true;
+        }
+
+        if (ENTRY_LOOP_BLOCKS.has(block.name)) {
+            return false;
         }
 
         return Array.isArray(block.innerBlocks) && containsPostContent(block.innerBlocks);

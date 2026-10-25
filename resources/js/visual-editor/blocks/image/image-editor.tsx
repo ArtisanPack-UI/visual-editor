@@ -186,10 +186,14 @@ export function getLinkDestinationAttributes(
         };
     }
 
+    // `linkClass` is cleared too: its field is hidden once there is no
+    // href, so a leftover class could not be seen and would return with
+    // the next link.
     return {
         href: undefined,
         linkTarget: undefined,
         rel: undefined,
+        linkClass: undefined,
         linkDestination: LINK_DESTINATION_NONE,
     };
 }

@@ -160,6 +160,9 @@ export default function SocialLinkEdit({
     const ref = useRef<HTMLElement | null>(null);
     const isContentOnlyMode = useBlockEditingMode() === 'contentOnly';
 
+    // Same slug check and `chain` fallback as the three renderers, so the
+    // canvas and the front end carry the same service class.
+    const serviceSlug = /^[a-z0-9-]+$/.test(service) ? service : '';
     const serviceInfo = getSocialLinkService(service);
     const socialLinkName = serviceInfo?.label ?? __('Social Icon', TEXT_DOMAIN);
     const socialLinkText = label.trim() === '' ? socialLinkName : label;
@@ -169,7 +172,7 @@ export default function SocialLinkEdit({
         // Kept on the `<li>` for upstream CSS compatibility after block
         // props moved to the button (WordPress/gutenberg#64883).
         'wp-block-social-link',
-        `wp-social-link-${service}`,
+        `wp-social-link-${'' !== serviceSlug ? serviceSlug : 'chain'}`,
         {
             'wp-social-link__is-incomplete': !url,
         }

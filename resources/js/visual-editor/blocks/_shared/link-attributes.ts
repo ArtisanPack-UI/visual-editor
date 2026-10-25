@@ -5,7 +5,9 @@
  * `rel` is handled as a token set: the author's own tokens are kept, and
  * the new-tab (`noreferrer noopener`) and `nofollow` tokens are owned by
  * the matching LinkControl toggles, so toggling never leaves stray or
- * duplicate tokens whatever order they were stored in. Dynamic Content
+ * duplicate tokens whatever order they were stored in. The new-tab
+ * tokens only count as toggle-owned while both are present, so a lone
+ * `noopener` or `noreferrer` typed into Link relation survives. Dynamic Content
  * `{{token}}` hrefs are resolved at render time, so they are never
  * prefixed with `https://`.
  *
@@ -77,9 +79,11 @@ export function normalizeLinkUrl( url: string | undefined ): string {
  * @since 1.18.0
  */
 export function resolveLinkChange( change: LinkChange, currentRel: string | undefined ): ResolvedLink {
+    const current = relTokens( currentRel );
     const keepNofollow = undefined === change.nofollow && hasNofollow( currentRel );
-    const managed = new Set( [ ...NEW_TAB_REL_TOKENS, NOFOLLOW_REL ] );
-    const tokens = new Set( relTokens( currentRel ).filter( ( token ) => ! managed.has( token ) ) );
+    const ownsNewTabTokens = change.opensInNewTab || NEW_TAB_REL_TOKENS.every( ( token ) => current.includes( token ) );
+    const managed = new Set( ownsNewTabTokens ? [ ...NEW_TAB_REL_TOKENS, NOFOLLOW_REL ] : [ NOFOLLOW_REL ] );
+    const tokens = new Set( current.filter( ( token ) => ! managed.has( token ) ) );
 
     if ( change.opensInNewTab ) {
         NEW_TAB_REL_TOKENS.forEach( ( token ) => tokens.add( token ) );

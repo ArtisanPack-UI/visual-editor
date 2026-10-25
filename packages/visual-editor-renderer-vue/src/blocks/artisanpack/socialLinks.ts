@@ -73,9 +73,15 @@ function alignClasses(align: string): string[] {
     return ['left', 'center', 'right'].includes(align) ? [`align${align}`, `has-text-align-${align}`] : [`align${align}`];
 }
 
-// The same loose check as PHP's FILTER_VALIDATE_EMAIL for the Mail
-// service's bare-address case.
+// The Mail service's bare-address check. social-link.blade.php uses the
+// same pattern, so every renderer agrees on which addresses become
+// `mailto:` links.
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Anything that already reads as a usable href: a scheme, fragment,
+// query or relative path. A bare domain such as `twitter.com/acme` gets
+// `https://`, as in WordPress and the editor's `prependHTTPS()`.
+const USABLE_HREF_PATTERN = /^(?:[a-z]+:|#|\?|\.|\/)/i;
 
 export const SocialLinksBlock = defineComponent({
     name: 'SocialLinksBlock',
@@ -140,6 +146,10 @@ export const SocialLinkBlock = defineComponent({
 
             if (service === 'mail' && url !== '' && !url.toLowerCase().startsWith('mailto:') && EMAIL_PATTERN.test(url)) {
                 url = `mailto:${url}`;
+            }
+
+            if (url !== '' && !USABLE_HREF_PATTERN.test(url)) {
+                url = `https://${url}`;
             }
 
             const href = safeUrl(url);
