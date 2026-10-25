@@ -766,3 +766,54 @@ it( 'keeps every heading on a TOC whose source is page alongside a post-content 
 	expect( array_column( $resolved[0]['attributes']['_resolvedItems'], 'text' ) )->toBe( [ 'Body', 'Footer' ] )
 		->and( array_column( $resolved[1]['attributes']['_resolvedItems'], 'text' ) )->toBe( [ 'Body' ] );
 } );
+
+it( 'loads a subclass that overrides the stamping methods with their 1.17 signatures', function (): void {
+	$resolver = new class() extends TocResolver {
+		protected function stampHeadings( array $tree, array &$used, array &$headings, ?array $contentTree = null ): array
+		{
+			return parent::stampHeadings( $tree, $used, $headings, $contentTree );
+		}
+
+		protected function stampHeadingBlock( array $block, array &$used, array &$headings, ?array $source = null ): array
+		{
+			return parent::stampHeadingBlock( $block, $used, $headings, $source );
+		}
+
+		protected function stampTocBlocks( array $tree, array $headings ): array
+		{
+			return parent::stampTocBlocks( $tree, $headings );
+		}
+
+		protected function stampTocBlock( array $block, array $headings ): array
+		{
+			return parent::stampTocBlock( $block, $headings );
+		}
+	};
+
+	$tree = [
+		tocBlock( 'artisanpack/toc', [ 'source' => 'post-content' ] ),
+		tocBlock( 'core/post-content', [], [
+			tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Inside' ] ),
+		] ),
+		tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Outside' ] ),
+	];
+
+	$items = $resolver->resolveTree( $tree )[0]['attributes']['_resolvedItems'];
+
+	expect( array_column( $items, 'text' ) )->toBe( [ 'Inside' ] );
+} );
+
+it( 'does not carry post-content state from one tree to the next on a reused resolver', function (): void {
+	$resolver = new TocResolver();
+
+	$resolver->resolveTree( [
+		tocBlock( 'core/post-content', [ '_resolvedContent' => '<h2>Body</h2>' ] ),
+	] );
+
+	$items = $resolver->resolveTree( [
+		tocBlock( 'artisanpack/toc', [ 'source' => 'post-content' ] ),
+		tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Standalone' ] ),
+	] )[0]['attributes']['_resolvedItems'];
+
+	expect( array_column( $items, 'text' ) )->toBe( [ 'Standalone' ] );
+} );
