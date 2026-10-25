@@ -6,19 +6,21 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.18.0] - 2026-10-25
+
 ### Added
 
-- **Table of contents can list Post Content headings only.** The TOC block has a `source` attribute (**Headings from** in the block settings). The default, `page`, keeps today's behavior: every heading on the page, which in a single-post template includes the template's own headings, such as a related-posts heading, a newsletter call to action or the footer's columns. `post-content` lists only the headings inside Post Content. A page with no Post Content block, such as a post body with the TOC inside it, still lists every heading. Anchors are stamped on every heading as before.
+- **Table of contents can list Post Content headings only.** The TOC block has a `source` attribute (**Headings from** in the block settings). The default, `page`, keeps today's behavior: every heading on the page, which in a single-post template includes the template's own headings, such as a related-posts heading, a newsletter call to action or the footer's columns. `post-content` lists only the headings inside Post Content. A page with no Post Content block, such as a post body with the TOC inside it, still lists every heading. Post Content shown by a Query Loop, Related Posts or Single Content block is another post's body, so it doesn't count. Anchors are stamped on every heading as before.
 - **Social Icons block** ([#1023](https://github.com/ArtisanPack-UI/visual-editor/issues/1023)). `artisanpack/social-links` holds `artisanpack/social-link` icons for a site's own profiles, like WordPress's `core/social-links`. Each icon has a service, a URL (set from a popover on the icon), an optional text label and a link relation. There are 48 services, each its own inserter variation, from WordPress's list.
   - **Settings:** Default, Logos Only and Pill Shape styles, icon size, show text, open links in new tab, flex justification, block spacing, border and alignment.
   - **Per-icon styles, set once on the block:** icon color, icon background, icon border (color, style, width), icon corner radius, icon padding, and hover colors for the icon, its background and its border. They ride on the list as `--ap-social-links-*` custom properties, each switched on by a `has-icon-*` class, and the social-icons stylesheet applies them to every icon, hover and keyboard focus included. Unlike WordPress, Logos Only keeps the background settings. The renderers drop any value that fails the shared CSS-value check.
-  - **Front end:** the Blade, React and Vue renderers output WordPress's markup, so the bundled block-library CSS styles it. An icon without a URL is skipped. A bare address on the Mail service becomes a `mailto:` link.
+  - **Front end:** the Blade, React and Vue renderers output WordPress's markup, so the bundled block-library CSS styles it. An icon without a URL is skipped. A bare address on the Mail service becomes a `mailto:` link, and a bare domain such as `twitter.com/example` gets `https://`, as in WordPress.
   - **Icons:** the glyphs are Font Awesome Free (CC BY 4.0) and, for Gravatar, Simple Icons (CC0). `npm run sync:social-links` regenerates the four service registries (editor, Blade, React, Vue) from one list, and a test fails if they drift.
 
 ### Fixed
 
 - **Image and Icon blocks can be linked from the editor** ([#1022](https://github.com/ArtisanPack-UI/visual-editor/issues/1022)). Both blocks stored a link and rendered it, but had no editor control to set one. Each now has a **Link** button in the block toolbar. It opens the same link popover as the Button block, Dynamic Content tab included, with **Open in new tab** and **Mark as nofollow** toggles.
-  - **Image:** the block settings add **Link to** (None, Media file or Custom URL). A Media file link follows the image when it is replaced. The Advanced panel adds **Link CSS class** and **Link relation**.
+  - **Image:** the block settings add **Link to** (None, Media file or Custom URL). A Media file link follows the image when it is replaced. The Advanced panel adds **Link CSS class** and **Link relation**. Choosing **None** or **Unlink** clears the link's class along with its URL, target and rel.
   - **Icon:** the block settings add **Link relation** and an **Accessibility** panel with **Decorative**, **Accessible label** and **Title attribute**. The panel opens on its own when a decorative linked icon has no label.
 - **Image links keep their class, target and rel on the front end** ([#1022](https://github.com/ArtisanPack-UI/visual-editor/issues/1022)). The Blade, React and Vue image renderers printed only the link's `href`. They now also print `class`, `target` and `rel`, and a new-tab link always carries `noopener noreferrer`.
 - **Button links keep their rel tokens and Dynamic Content URLs.** Editing a Button's link in the toolbar popover:
@@ -26,7 +28,7 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - left `noopener` / `noreferrer` behind after turning **Open in new tab** off when they weren't stored in the order `noreferrer noopener`;
   - removed a `nofollow` typed into **Link relation**.
 
-  The Button now uses the same link handling as the Image and Icon blocks.
+  The Button now uses the same link handling as the Image and Icon blocks. The new-tab toggle owns the `noreferrer noopener` pair, so a lone `noopener` or `noreferrer` typed into **Link relation** is kept.
 
 ## [1.17.1] - 2026-10-23
 

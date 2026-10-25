@@ -31,6 +31,8 @@ A TOC placed in a single-post template sits in one block tree with the template'
 
 Headings count as post content when they are in a Post Content block's rendered HTML or nested inside the block. Every heading still gets its anchor; `source` only decides which ones the TOC lists. A page with no Post Content block, such as a post body with the TOC inside it, lists every heading either way.
 
+Post Content inside a Query Loop (`core/query` / `artisanpack/query`), Related Posts or Single Content block shows another post's body, so it doesn't count as the post. Its headings are left out of a `post-content` TOC. If that is the page's only Post Content, the TOC lists every heading, as on a page with none.
+
 In the site editor, Post Content is a placeholder, so a `post-content` TOC in a template previews a note instead of a list. The published page lists the post's headings.
 
 

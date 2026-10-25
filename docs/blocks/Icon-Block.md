@@ -52,12 +52,16 @@ Width/height override the uniform `Size` per-axis. Clearing either field falls b
 
 ### Link
 
-The Inspector's link controls produce a wrapping `<a>` on the rendered icon. `target="_blank"` automatically forces `rel="noopener noreferrer"`; `rel="nofollow"` and `rel="sponsored"` are author-controlled.
+*Since v1.18.0 (#1022).* The **Link** button in the block toolbar opens the same link popover as the Button block, Dynamic Content tab included, with **Open in new tab** and **Mark as nofollow** toggles. **Unlink** removes the link. The block settings add **Link relation** for other `rel` tokens, such as `sponsored` or `me`.
+
+A link wraps the rendered icon in an `<a>`. `target="_blank"` always adds `rel="noopener noreferrer"`. The new-tab toggle owns that pair: turning it off removes both tokens, but a lone `noopener` or `noreferrer` typed into **Link relation** is kept. A bare domain gets `https://`, but a Dynamic Content `{{token}}` URL is left as typed.
 
 ### Accessibility
 
 - **aria-label** — explicit accessible name; required when the icon is the only content in a link.
 - **Decorative** — sets `aria-hidden="true"` and suppresses any `aria-label`. The editor shows a warning if a decorative icon sits inside a link without a wrapping label, because screen readers would announce an unlabeled link.
+
+Since v1.18.0 these live in an **Accessibility** panel in the block settings (**Decorative**, **Accessible label**, **Title attribute**). The panel opens on its own when a decorative linked icon has no label.
 
 ### Who can use the picker and sanitizer
 
