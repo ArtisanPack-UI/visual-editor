@@ -6,6 +6,10 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- **Table of contents can list Post Content headings only.** The TOC block has a `source` attribute (**Headings from** in the block settings). The default, `page`, keeps today's behavior: every heading on the page, which in a single-post template includes the template's own headings, such as a related-posts heading, a newsletter call to action or the footer's columns. `post-content` lists only the headings inside Post Content. A page with no Post Content block, such as a post body with the TOC inside it, still lists every heading. Anchors are stamped on every heading as before.
+
 ## [1.17.1] - 2026-10-23
 
 ### Fixed

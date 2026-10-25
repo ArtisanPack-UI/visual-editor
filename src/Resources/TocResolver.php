@@ -13,7 +13,9 @@
  *    on exactly one target.
  * 2. Every `artisanpack/toc` block gets `_resolvedItems` stamped from
  *    the same walk, filtered by the block's `minLevel` / `maxLevel`
- *    attributes so the Blade renderer stays declarative.
+ *    attributes so the Blade renderer stays declarative. A TOC whose
+ *    `source` is `post-content` keeps only the headings inside Post
+ *    Content, so a template's own headings (and its parts') stay out.
  *
  * The resolver never touches headings that already have an author-set
  * anchor, and never re-stamps items on TOC blocks that were pre-populated
@@ -90,6 +92,13 @@ class TocResolver
 	protected const ANCHOR_DISALLOWED = '/[^A-Za-z0-9_:.\-]/';
 
 	/**
+	 * The `source` value that limits a TOC to Post Content headings.
+	 *
+	 * @since 1.18.0
+	 */
+	protected const SOURCE_POST_CONTENT = 'post-content';
+
+	/**
 	 * The auto anchor for a heading whose text slugs only to characters
 	 * an `id` can't keep (e.g. `日本語`). It takes the usual `-1`, `-2`, …
 	 * suffixes when repeated.
@@ -118,16 +127,13 @@ class TocResolver
 		$used     = [];
 		$headings = [];
 
-		$stamped = $this->stampHeadings( $tree, $used, $headings, $contentTree );
+		$stamped        = $this->stampHeadings( $tree, $used, $headings, $contentTree );
+		$hasPostContent = $this->containsPostContent( $tree );
 
-		if ( empty( $headings ) ) {
-			// No headings in the tree — TOC blocks still get an empty
-			// `_resolvedItems` so their renderer can emit a placeholder
-			// message instead of the previous render's stale items.
-			return $this->stampTocBlocks( $stamped, [] );
-		}
-
-		return $this->stampTocBlocks( $stamped, $headings );
+		// With no headings in the tree, TOC blocks still get an empty
+		// `_resolvedItems` so their renderer can emit a placeholder
+		// message instead of the previous render's stale items.
+		return $this->stampTocBlocks( $stamped, $headings, $hasPostContent );
 	}
 
 	/**
@@ -182,10 +188,11 @@ class TocResolver
 	 * @param  array<string, bool>                $used         Anchor slugs already claimed (by ref).
 	 * @param  array<int, array<string, mixed>>   $headings     Collected heading rows (by ref).
 	 * @param  ?array<int, array<string, mixed>>  $contentTree  Binding-resolved copy of `$tree`.
+	 * @param  bool                               $inContent    Whether `$tree` sits inside Post Content.
 	 *
 	 * @return array<int, array<string, mixed>>
 	 */
-	protected function stampHeadings( array $tree, array &$used, array &$headings, ?array $contentTree = null ): array
+	protected function stampHeadings( array $tree, array &$used, array &$headings, ?array $contentTree = null, bool $inContent = false ): array
 	{
 		$out     = [];
 		$sources = null === $contentTree ? [] : array_values( $contentTree );
@@ -197,7 +204,7 @@ class TocResolver
 
 			$source = $sources[ $index ] ?? null;
 
-			$out[] = $this->stampHeadingBlock( $block, $used, $headings, is_array( $source ) ? $source : null );
+			$out[] = $this->stampHeadingBlock( $block, $used, $headings, is_array( $source ) ? $source : null, $inContent );
 		}
 
 		return $out;
@@ -214,15 +221,17 @@ class TocResolver
 	 *
 	 * @since 1.9.0
 	 * @since 1.14.0 Accepts an optional `$source` block (#851).
+	 * @since 1.18.0 Accepts `$inContent`; heading rows record it.
 	 *
 	 * @param  array<string, mixed>              $block
 	 * @param  array<string, bool>               $used
 	 * @param  array<int, array<string, mixed>>  $headings
-	 * @param  ?array<string, mixed>             $source    Binding-resolved copy of `$block`.
+	 * @param  ?array<string, mixed>             $source     Binding-resolved copy of `$block`.
+	 * @param  bool                              $inContent  Whether `$block` sits inside Post Content.
 	 *
 	 * @return array<string, mixed>
 	 */
-	protected function stampHeadingBlock( array $block, array &$used, array &$headings, ?array $source = null ): array
+	protected function stampHeadingBlock( array $block, array &$used, array &$headings, ?array $source = null, bool $inContent = false ): array
 	{
 		$name = isset( $block['name'] ) && is_string( $block['name'] ) ? $block['name'] : '';
 
@@ -279,9 +288,10 @@ class TocResolver
 
 			if ( '' !== $anchor ) {
 				$headings[] = [
-					'level'  => $level,
-					'text'   => $this->plainText( $content ),
-					'anchor' => $anchor,
+					'level'     => $level,
+					'text'      => $this->plainText( $content ),
+					'anchor'    => $anchor,
+					'inContent' => $inContent,
 				];
 			}
 		}
@@ -310,7 +320,13 @@ class TocResolver
 				? $source['innerBlocks']
 				: null;
 
-			$block['innerBlocks'] = $this->stampHeadings( $block['innerBlocks'], $used, $headings, $sourceInner );
+			$block['innerBlocks'] = $this->stampHeadings(
+				$block['innerBlocks'],
+				$used,
+				$headings,
+				$sourceInner,
+				$inContent || in_array( $name, self::POST_CONTENT_BLOCKS, true ),
+			);
 		}
 
 		return $block;
@@ -436,9 +452,10 @@ class TocResolver
 				if ( null !== $existingId ) {
 					$used[ $existingId ] = true;
 					$headings[]          = [
-						'level'  => $level,
-						'text'   => $plainText,
-						'anchor' => $existingId,
+						'level'     => $level,
+						'text'      => $plainText,
+						'anchor'    => $existingId,
+						'inContent' => true,
 					];
 
 					return $match[0];
@@ -454,9 +471,10 @@ class TocResolver
 				$used[ $anchor ] = true;
 
 				$headings[] = [
-					'level'  => $level,
-					'text'   => $plainText,
-					'anchor' => $anchor,
+					'level'     => $level,
+					'text'      => $plainText,
+					'anchor'    => $anchor,
+					'inContent' => true,
 				];
 
 				return sprintf(
@@ -475,16 +493,18 @@ class TocResolver
 
 	/**
 	 * Second pass: stamp `_resolvedItems` on every TOC block, filtered by
-	 * that block's `minLevel` / `maxLevel` attributes.
+	 * that block's `minLevel` / `maxLevel` and `source` attributes.
 	 *
 	 * @since 1.9.0
+	 * @since 1.18.0 Accepts `$hasPostContent`.
 	 *
 	 * @param  array<int, array<string, mixed>>  $tree
 	 * @param  array<int, array<string, mixed>>  $headings
+	 * @param  bool                              $hasPostContent  Whether the tree holds a Post Content block.
 	 *
 	 * @return array<int, array<string, mixed>>
 	 */
-	protected function stampTocBlocks( array $tree, array $headings ): array
+	protected function stampTocBlocks( array $tree, array $headings, bool $hasPostContent = false ): array
 	{
 		$out = [];
 
@@ -493,7 +513,7 @@ class TocResolver
 				continue;
 			}
 
-			$out[] = $this->stampTocBlock( $block, $headings );
+			$out[] = $this->stampTocBlock( $block, $headings, $hasPostContent );
 		}
 
 		return $out;
@@ -503,14 +523,21 @@ class TocResolver
 	 * Stamp a single block (and its inner blocks) with the derived TOC
 	 * items when the block is `artisanpack/toc`.
 	 *
+	 * A `source` of `post-content` keeps only the headings inside Post
+	 * Content. On a tree with no Post Content block, such as a post body
+	 * rendered on its own with the TOC inside it, every heading is the
+	 * post's, so the TOC keeps them all.
+	 *
 	 * @since 1.9.0
+	 * @since 1.18.0 Honors the block's `source` attribute.
 	 *
 	 * @param  array<string, mixed>              $block
 	 * @param  array<int, array<string, mixed>>  $headings
+	 * @param  bool                              $hasPostContent  Whether the tree holds a Post Content block.
 	 *
 	 * @return array<string, mixed>
 	 */
-	protected function stampTocBlock( array $block, array $headings ): array
+	protected function stampTocBlock( array $block, array $headings, bool $hasPostContent = false ): array
 	{
 		$name = isset( $block['name'] ) && is_string( $block['name'] ) ? $block['name'] : '';
 
@@ -537,6 +564,8 @@ class TocResolver
 					[ $minLevel, $maxLevel ] = [ $maxLevel, $minLevel ];
 				}
 
+				$contentOnly = $hasPostContent && self::SOURCE_POST_CONTENT === ( $attributes['source'] ?? null );
+
 				$filtered = [];
 
 				foreach ( $headings as $heading ) {
@@ -546,6 +575,12 @@ class TocResolver
 						continue;
 					}
 
+					if ( $contentOnly && true !== ( $heading['inContent'] ?? false ) ) {
+						continue;
+					}
+
+					unset( $heading['inContent'] );
+
 					$filtered[] = $heading;
 				}
 
@@ -554,10 +589,36 @@ class TocResolver
 		}
 
 		if ( isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) ) {
-			$block['innerBlocks'] = $this->stampTocBlocks( $block['innerBlocks'], $headings );
+			$block['innerBlocks'] = $this->stampTocBlocks( $block['innerBlocks'], $headings, $hasPostContent );
 		}
 
 		return $block;
+	}
+
+	/**
+	 * Whether the tree holds a Post Content block at any depth.
+	 *
+	 * @since 1.18.0
+	 *
+	 * @param  array<int, mixed>  $tree
+	 */
+	protected function containsPostContent( array $tree ): bool
+	{
+		foreach ( $tree as $block ) {
+			if ( ! is_array( $block ) ) {
+				continue;
+			}
+
+			if ( in_array( $block['name'] ?? null, self::POST_CONTENT_BLOCKS, true ) ) {
+				return true;
+			}
+
+			if ( isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) && $this->containsPostContent( $block['innerBlocks'] ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**

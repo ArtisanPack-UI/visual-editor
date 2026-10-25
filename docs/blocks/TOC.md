@@ -16,9 +16,23 @@ A pre-render pass (`TocResolver`) walks the block tree, stamps a stable, unique 
 | `minLevel`       | `number` (default `2`)          | Lowest heading level included. |
 | `maxLevel`       | `number` (default `6`)          | Highest heading level included. |
 | `ordered`        | `boolean` (default `false`)     | When `true` renders as `<ol>` instead of `<ul>`. |
+| `source`         | `string` (default `page`)       | `page` lists every heading on the page. `post-content` lists only the headings inside Post Content, leaving out the template's own (a related-posts heading, a footer's). *Since v1.18.0.* |
 | `_resolvedItems` | Reserved                        | Populated by `TocResolver`; do not set from the editor. |
 
-## Markup
+## Headings from Post Content only
+
+A TOC placed in a single-post template sits in one block tree with the template's headings, its parts' headings and the post body, so with the default `source` it lists all of them. Set `source` to `post-content` (**Headings from → Post content** in the editor) to keep only the post's own headings:
+
+```html
+<!-- wp:artisanpack/toc {"source":"post-content"} -->
+<nav class="wp-block-artisanpack-toc ap-toc"></nav>
+<!-- /wp:artisanpack/toc -->
+```
+
+Headings count as post content when they are in a Post Content block's rendered HTML or nested inside the block. Every heading still gets its anchor; `source` only decides which ones the TOC lists. A page with no Post Content block, such as a post body with the TOC inside it, lists every heading either way.
+
+In the site editor, Post Content is a placeholder, so a `post-content` TOC in a template previews a note instead of a list. The published page lists the post's headings.
+
 
 Renders a `<nav>` landmark wrapping a nested `<ul>` (or `<ol>` when `ordered` is on). Smooth in-page scrolling activates automatically via `html:has(.ap-toc) { scroll-behavior: smooth }`.
 
