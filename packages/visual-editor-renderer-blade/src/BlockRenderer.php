@@ -648,6 +648,12 @@ class BlockRenderer
 			$html = $filtered;
 		}
 
+		// #1034 — a host calling this directly has no `render()` to print
+		// the block's queued FAQ questions.
+		if ( 0 === $this->renderDepth && 0 === $this->innerDepth ) {
+			$html .= app( FaqSchemaAccumulator::class )->flush();
+		}
+
 		return $html;
 	}
 

@@ -110,6 +110,25 @@ it( 'ignores a manifest left over from another package version', function (): vo
 	expect( renderBlocksStyles() )->toContain( 'href="/vendor/visual-editor-renderer-blade/frontend/tabs.css"' );
 } );
 
+it( 'ignores a manifest once a source changes without changing size', function (): void {
+	$this->artisan( 'visual-editor:publish-assets' );
+
+	$source   = FrontendAssets::sources()['frontend/tabs.css'];
+	$modified = (int) filemtime( $source );
+
+	try {
+		touch( $source, $modified + 60 );
+		clearstatcache();
+
+		app()->forgetScopedInstances();
+
+		expect( renderBlocksStyles() )->toContain( 'href="/vendor/visual-editor-renderer-blade/frontend/tabs.css"' );
+	} finally {
+		touch( $source, $modified );
+		clearstatcache();
+	}
+} );
+
 it( 'ignores a corrupt manifest', function (): void {
 	File::ensureDirectoryExists( publishedAssetsDirectory() );
 	file_put_contents( FrontendAssetManifest::path(), 'not json' );

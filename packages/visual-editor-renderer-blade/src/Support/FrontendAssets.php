@@ -141,9 +141,11 @@ class FrontendAssets
 	}
 
 	/**
-	 * Cheap signature of the bundled files, built from names and sizes so
-	 * it can run on every request. The manifest stores it, so a package
-	 * update that nobody published afterwards is noticed (#1033).
+	 * Cheap signature of the bundled files, built from names, sizes and
+	 * modification times so it can run on every request. The manifest
+	 * stores it, so a package update that nobody published afterwards is
+	 * noticed, even one that keeps a file's size (#1033). A deploy that
+	 * resets the times costs only the fallback to the asset route.
 	 *
 	 * @since 1.19.0
 	 */
@@ -152,7 +154,7 @@ class FrontendAssets
 		$parts = [];
 
 		foreach ( self::sources() as $path => $file ) {
-			$parts[] = $path . ':' . ( (int) filesize( $file ) );
+			$parts[] = $path . ':' . ( (int) filesize( $file ) ) . ':' . ( (int) filemtime( $file ) );
 		}
 
 		return hash( 'sha256', implode( "\n", $parts ) );
