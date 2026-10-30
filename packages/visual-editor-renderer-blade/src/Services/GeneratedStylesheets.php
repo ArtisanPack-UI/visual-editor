@@ -104,15 +104,23 @@ class GeneratedStylesheets
 	 */
 	public function get( string $hash ): ?string
 	{
-		$css = Cache::get( $this->cacheKey( $hash ) );
+		try {
+			$css = Cache::get( $this->cacheKey( $hash ) );
+		} catch ( Throwable $e ) {
+			report( $e );
+
+			$css = null;
+		}
 
 		if ( is_string( $css ) ) {
 			return $css;
 		}
 
 		$backup = $this->backupDirectory() . '/' . $hash . '.css';
+		$css    = is_file( $backup ) ? file_get_contents( $backup ) : false;
 
-		return is_file( $backup ) ? (string) file_get_contents( $backup ) : null;
+		// An empty body would be served as immutable, so a failed read is a miss.
+		return false === $css ? null : $css;
 	}
 
 	/**

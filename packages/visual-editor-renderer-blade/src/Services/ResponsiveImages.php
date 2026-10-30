@@ -389,21 +389,25 @@ class ResponsiveImages
 
 		$media = '' === $path ? null : $this->fetchMediaByPaths( $suffixes );
 
-		return $this->mediaByUrl[ $url ] = null !== $media && $this->sameHost( $url, (string) $media->url() ) ? $media : null;
+		return $this->mediaByUrl[ $url ] = null !== $media && $this->isSameFile( $url, (string) $media->url() ) ? $media : null;
 	}
 
 	/**
-	 * Whether a URL points at the host a record is served from, so an
-	 * off-site image whose path happens to end like a local file doesn't
-	 * resolve to that file. A root-relative URL is on the app's own host.
+	 * Whether a URL points at a record's file. Its stored path only has to
+	 * be a tail of the URL's, so an off-site image or a theme asset can
+	 * match by accident. A root-relative URL is on the app's own host.
 	 *
 	 * @since 1.19.0
 	 *
 	 * @param  string  $url        URL to check.
 	 * @param  string  $recordUrl  The record's file URL.
 	 */
-	protected function sameHost( string $url, string $recordUrl ): bool
+	protected function isSameFile( string $url, string $recordUrl ): bool
 	{
+		if ( parse_url( $url, PHP_URL_PATH ) !== parse_url( $recordUrl, PHP_URL_PATH ) ) {
+			return false;
+		}
+
 		$appHost = parse_url( (string) config( 'app.url' ), PHP_URL_HOST );
 
 		return ( parse_url( $url, PHP_URL_HOST ) ?? $appHost ) === ( parse_url( $recordUrl, PHP_URL_HOST ) ?? $appHost );

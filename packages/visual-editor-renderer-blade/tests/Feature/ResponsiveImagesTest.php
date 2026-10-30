@@ -416,6 +416,13 @@ it( 'does not match an off-site avatar to a local file with the same path', func
 		->toContain( 'src="https://other.test/storage/2026/09/hero.jpg"' );
 } );
 
+it( 'does not match a same-host avatar to a record whose path is only a tail of it', function (): void {
+	useFakeMedia( [ 7 => fakeMedia( 7, [ 'file_path' => 'hero.jpg', 'metadata' => [ 'thumbnails' => [ 'thumbnail' => 'hero-thumbnail.jpg' ] ] ] ) ] );
+
+	expect( renderImages( imageBlock( [ '_resolvedAuthorAvatar' => '/images/hero.jpg', 'size' => 28 ], 'core/avatar' ) ) )
+		->toContain( 'src="/images/hero.jpg"' );
+} );
+
 it( 'leaves an off-site avatar alone', function (): void {
 	$url = 'https://www.gravatar.com/avatar/abc';
 

@@ -318,6 +318,16 @@ it( 'still serves a generated stylesheet after the cache is cleared', function (
 	expect( $response->getContent() )->toBe( '.survives{color:red}' );
 } );
 
+it( 'falls back to the stored copy when the cache store is down', function (): void {
+	fileCacheForStyles();
+
+	$path = (string) app( GeneratedStylesheets::class )->urlFor( '.down{color:red}' );
+
+	Cache::shouldReceive( 'get' )->andThrow( new RuntimeException( 'Connection refused' ) );
+
+	expect( $this->get( $path )->assertOk()->getContent() )->toBe( '.down{color:red}' );
+} );
+
 it( 'answers an unknown generated stylesheet with a 404', function (): void {
 	fileCacheForStyles();
 
