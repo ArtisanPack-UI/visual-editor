@@ -2731,6 +2731,25 @@ it( 'emits no FAQ script when no block queued a question (#1034)', function (): 
 		->not->toContain( 'application/ld+json' );
 } );
 
+it( 'keeps the FAQ script on a direct renderBlock call (#1034)', function (): void {
+	$scripts = faqSchemaScripts( makeRenderer()->renderBlock( faqBlock( [ [ 'question' => 'Direct?', 'answer' => 'Yes.' ] ] ) ) );
+
+	expect( $scripts )->toHaveCount( 1 )
+		->and( array_column( $scripts[0]['mainEntity'], 'name' ) )->toBe( [ 'Direct?' ] );
+} );
+
+it( 'prints one FAQ script for a container passed to renderBlock (#1034)', function (): void {
+	$html = makeRenderer()->renderBlock( makeBlock( 'core/group', [], [
+		faqBlock( [ [ 'question' => 'One?', 'answer' => 'Yes.' ] ] ),
+		faqBlock( [ [ 'question' => 'Two?', 'answer' => 'Yes.' ] ] ),
+	] ) );
+
+	$scripts = faqSchemaScripts( $html );
+
+	expect( $scripts )->toHaveCount( 1 )
+		->and( $scripts[0]['mainEntity'] )->toHaveCount( 2 );
+} );
+
 it( 'does not carry FAQ questions into the next render (#1034)', function (): void {
 	$renderer = makeRenderer();
 
