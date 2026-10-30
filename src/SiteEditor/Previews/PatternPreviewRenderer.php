@@ -37,6 +37,7 @@ use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\DuotoneCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveImages;
 use Illuminate\Support\Facades\Blade;
 use RuntimeException;
 
@@ -179,10 +180,12 @@ class PatternPreviewRenderer
 		// script, its id counter) must start fresh for every pattern —
 		// otherwise only the batch's first overlay nav gets its CSS, and
 		// that order-dependent HTML is what gets cached. The duotone
-		// accumulator prints each `<filter>` once per request (R-10), so it
-		// starts fresh per pattern too.
+		// accumulator prints each `<filter>` once per request (R-10), and
+		// image loading hints depend on an image's place in the document
+		// (#1031), so both start fresh per pattern too.
 		$this->resetNavigationOverlayTracker();
 		$this->resetDuotoneAccumulator();
+		$this->resetImageLoadingOrder();
 
 		// Theme patterns ship serialized markup (and a parse-shape tree
 		// with no recovered text), so hydrate the markup; user patterns
@@ -240,6 +243,23 @@ class PatternPreviewRenderer
 		}
 
 		app( $accumulatorClass )->reset();
+	}
+
+	/**
+	 * Restart the Blade renderer's image loading hints, so a pattern's first
+	 * image is treated as the first in its own document.
+	 *
+	 * @since 1.19.0
+	 */
+	protected function resetImageLoadingOrder(): void
+	{
+		$imagesClass = ResponsiveImages::class;
+
+		if ( ! class_exists( $imagesClass ) || ! app()->bound( $imagesClass ) ) {
+			return;
+		}
+
+		app( $imagesClass )->resetLoadingOrder();
 	}
 
 	/**

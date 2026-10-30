@@ -26,7 +26,9 @@ use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use ArtisanPackUI\VisualEditor\Responsive\ResponsiveValueResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Animations\AnimationMarkupResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Console\Commands\PublishAssetsCommand;
 use ArtisanPackUI\VisualEditorRendererBlade\Http\Middleware\InjectQueuedGlobalStyles;
+use ArtisanPackUI\VisualEditorRendererBlade\Http\Middleware\OptimizeBlockStyles;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\BreadcrumbsResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\BusinessInfoResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\LoginoutResolver;
@@ -37,17 +39,24 @@ use ArtisanPackUI\VisualEditorRendererBlade\Services\BlockTreeReferenceResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\BoxShadowCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\DuotoneCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ElementsCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\FaqSchemaAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\FrontendAssetManifest;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\FrontendAssetPublisher;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\FrontendStylesOptimizer;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\GeneratedStylesheets;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesPlacement;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\PositionCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveImages;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\StateCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ThemeJsonTokensCompiler;
 use ArtisanPackUI\VisualEditorRendererBlade\View\Components\BlocksComponent;
 use ArtisanPackUI\VisualEditorRendererBlade\View\Components\BlocksStylesComponent;
 use ArtisanPackUI\VisualEditorRendererBlade\View\Components\TemplateComponent;
+use Illuminate\Console\Events\CommandFinished;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
@@ -237,6 +246,27 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 			return new DuotoneCssAccumulator();
 		} );
 
+		// #1034 — queues FAQ questions so a page prints one `FAQPage` script.
+		$this->app->scoped( FaqSchemaAccumulator::class, function () {
+			return new FaqSchemaAccumulator();
+		} );
+
+		// #1033 — the published asset manifest, re-read per request so a
+		// long-lived worker notices a publish.
+		$this->app->scoped( FrontendAssetManifest::class, function () {
+			return new FrontendAssetManifest();
+		} );
+
+		// #1031 — scoped: it memoizes media records and tracks which image
+		// on the page takes the priority slot.
+		$this->app->scoped( ResponsiveImages::class, function () {
+			return new ResponsiveImages();
+		} );
+
+		// #1032 — stateless apart from the config they read.
+		$this->app->singleton( GeneratedStylesheets::class );
+		$this->app->singleton( FrontendStylesOptimizer::class );
+
 		// #879 — where the request's global styles land (head vs body).
 		// Scoped with the emission tracker it works alongside.
 		$this->app->scoped( GlobalStylesPlacement::class, function () {
@@ -256,6 +286,7 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 
 		// #879 — deliver queued global styles a layout never printed (no
 		// `<x-ve-blocks-styles>` or `@stack('ve-global-styles')` in its head).
+		// #1032 — trim the stylesheets the finished page doesn't need.
 		$this->registerGlobalStylesMiddleware();
 
 		Blade::component( BlocksComponent::class, 've-blocks' );
@@ -266,6 +297,8 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 			$this->publishes( [
 				__DIR__ . '/../resources/views' => resource_path( 'views/vendor/visual-editor-renderer-blade' ),
 			], 'visual-editor-blade-views' );
+
+			$this->commands( [ PublishAssetsCommand::class ] );
 
 			// Optional asset publish path: copies the bundled
 			// `@wordpress/block-library` CSS to the consumer's
@@ -283,11 +316,59 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 				__DIR__ . '/../resources/assets/block-library' => public_path( 'vendor/visual-editor-renderer-blade' ),
 				__DIR__ . '/../resources/assets/frontend'      => public_path( 'vendor/visual-editor-renderer-blade/frontend' ),
 			], 'visual-editor-renderer-blade-assets' );
+
+			$this->refreshPublishedAssetsAfterComposer();
 		}
 	}
 
 	/**
-	 * Add {@see InjectQueuedGlobalStyles} to the `web` middleware group.
+	 * Refresh fingerprinted assets when Composer finishes.
+	 *
+	 * Every `composer install` / `update` in a Laravel app ends with
+	 * `package:discover`, so a host that has published once stays current
+	 * with nothing added to its `composer.json`. A host that never
+	 * published gets nothing written to `public/`. A failure here must not
+	 * fail the Composer run: until the next publish the manifest stays
+	 * stale, which sends pages back to the asset route.
+	 *
+	 * @since 1.19.0
+	 */
+	protected function refreshPublishedAssetsAfterComposer(): void
+	{
+		$this->app['events']->listen( CommandFinished::class, function ( CommandFinished $event ): void {
+			if ( 'package:discover' !== $event->command ) {
+				return;
+			}
+
+			try {
+				$publisher = $this->app->make( FrontendAssetPublisher::class );
+
+				if ( $publisher->isPublished() ) {
+					$publisher->publish();
+				}
+			} catch ( Throwable $e ) {
+				report( $e );
+			}
+		} );
+	}
+
+	/**
+	 * Add the response middleware to the `web` group, each on its own.
+	 *
+	 * {@see OptimizeBlockStyles} goes first so it wraps
+	 * {@see InjectQueuedGlobalStyles} and sees the injected global styles.
+	 *
+	 * @since 1.15.0
+	 * @since 1.19.0 Adds {@see OptimizeBlockStyles}.
+	 */
+	protected function registerGlobalStylesMiddleware(): void
+	{
+		$this->appendToWebGroup( OptimizeBlockStyles::class );
+		$this->appendToWebGroup( InjectQueuedGlobalStyles::class );
+	}
+
+	/**
+	 * Append a middleware to the `web` group.
 	 *
 	 * Registered on the HTTP kernel, not only the router: the kernel copies
 	 * its own middleware groups into the router when it handles a request,
@@ -295,9 +376,11 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 	 * back to the router when no HTTP kernel (or no `web` group on it) is
 	 * available.
 	 *
-	 * @since 1.15.0
+	 * @since 1.19.0
+	 *
+	 * @param  class-string  $middleware  Middleware class.
 	 */
-	protected function registerGlobalStylesMiddleware(): void
+	protected function appendToWebGroup( string $middleware ): void
 	{
 		$kernelClass = \Illuminate\Contracts\Http\Kernel::class;
 
@@ -309,7 +392,7 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 					&& method_exists( $kernel, 'appendMiddlewareToGroup' )
 					&& isset( $kernel->getMiddlewareGroups()['web'] )
 				) {
-					$kernel->appendMiddlewareToGroup( 'web', InjectQueuedGlobalStyles::class );
+					$kernel->appendMiddlewareToGroup( 'web', $middleware );
 
 					return;
 				}
@@ -318,6 +401,6 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 			}
 		}
 
-		$this->app['router']->pushMiddlewareToGroup( 'web', InjectQueuedGlobalStyles::class );
+		$this->app['router']->pushMiddlewareToGroup( 'web', $middleware );
 	}
 }

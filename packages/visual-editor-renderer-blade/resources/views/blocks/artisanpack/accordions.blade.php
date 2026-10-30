@@ -1,4 +1,5 @@
 @php
+	use ArtisanPackUI\VisualEditorRendererBlade\Services\FaqSchemaAccumulator;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\LayoutSupport;
 
@@ -10,8 +11,6 @@
 	$ownGap = LayoutSupport::blockGapValue( $attributes['style']['spacing']['blockGap'] ?? null );
 
 	$faqSchema = (bool) ( $attributes['faqSchema'] ?? false );
-
-	$faqJsonLd = '';
 
 	if ( $faqSchema && ! empty( $innerBlocks ) ) {
 		$renderer = app( \ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer::class );
@@ -71,26 +70,13 @@
 			];
 		}
 
+		// #1034 — queued, not printed, so every FAQ on the page lands in
+		// one `FAQPage` script once the tree has rendered.
 		if ( ! empty( $faqPairs ) ) {
-			$encoded = json_encode(
-				[
-					'@context'   => 'https://schema.org',
-					'@type'      => 'FAQPage',
-					'mainEntity' => $faqPairs,
-				],
-				JSON_UNESCAPED_UNICODE | JSON_HEX_TAG
-			);
-			// json_encode returns false on invalid UTF-8; the whitespace
-			// fallback above preserves those bytes, so guard here to
-			// avoid emitting an empty `<script type="application/ld+json">`
-			// tag when encoding fails.
-			$faqJsonLd = false === $encoded ? '' : $encoded;
+			app( FaqSchemaAccumulator::class )->push( $faqPairs );
 		}
 	}
 @endphp
 <div{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-artisanpack-accordions', 'ap-accordions' ], null === $ownGap ? [] : [ 'gap: ' . $ownGap ] ) !!}>
 	{!! $innerBlocksHtml !!}
-	@if ( '' !== $faqJsonLd )
-		<script type="application/ld+json">{!! $faqJsonLd !!}</script>
-	@endif
 </div>

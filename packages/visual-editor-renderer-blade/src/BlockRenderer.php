@@ -38,9 +38,11 @@ use ArtisanPackUI\VisualEditorRendererBlade\Services\BlockTreeReferenceResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\BoxShadowCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\DuotoneCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ElementsCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\FaqSchemaAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\PositionCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveImages;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\StateCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 use Illuminate\Contracts\Container\BindingResolutionException;
@@ -122,6 +124,35 @@ class BlockRenderer
 	protected const LOGINOUT_BLOCKS = [
 		'core/loginout',
 		'artisanpack/loginout',
+	];
+
+	/**
+	 * Blocks that repeat their children per post. An image inside one is a
+	 * card, not the page's hero (#1031).
+	 *
+	 * @since 1.19.0
+	 *
+	 * @var array<int, string>
+	 */
+	protected const LOOP_BLOCKS = [
+		'core/post-template',
+		'artisanpack/post-template',
+		'artisanpack/related-posts',
+		DynamicLoopBlock::BLOCK_NAME,
+	];
+
+	/**
+	 * Attributes that hold a media id, by block name suffix (#1031).
+	 *
+	 * @since 1.19.0
+	 *
+	 * @var array<string, array<int, string>>
+	 */
+	protected const MEDIA_ID_ATTRIBUTES = [
+		'image'               => [ 'id' ],
+		'cover'               => [ 'id', '_resolvedImageId' ],
+		'media-text'          => [ 'mediaId' ],
+		'post-featured-image' => [ '_resolvedImageId' ],
 	];
 
 	/**
@@ -383,6 +414,9 @@ class BlockRenderer
 				$this->visibilityContext = null;
 				$this->bindingContext    = $bindingContext;
 
+				// Drop anything a render that threw partway left queued.
+				app( FaqSchemaAccumulator::class )->flush();
+
 				if ( null !== $this->visibility && $this->visibility->enabled() ) {
 					$this->visibilityContext = $this->visibility->contextFromRequest();
 				}
@@ -411,6 +445,11 @@ class BlockRenderer
 			// cms-framework is not on the classpath.
 			$tree = $this->resolveInlineTokens( $tree );
 
+			// #1031 — one query for every image in the tree.
+			if ( 1 === $this->renderDepth ) {
+				app( ResponsiveImages::class )->prime( $this->collectMediaIds( $tree ) );
+			}
+
 			$out = '';
 
 			foreach ( $tree as $block ) {
@@ -428,8 +467,10 @@ class BlockRenderer
 			}
 		}
 
+		// #1034 — every FAQ in the tree has queued its questions by now, so
+		// the outermost call prints them as one `FAQPage` script.
 		return 0 === $this->renderDepth
-			? $this->applyRenderedContentFilter( $out )
+			? $this->applyRenderedContentFilter( $out . app( FaqSchemaAccumulator::class )->flush() )
 			: $out;
 	}
 
@@ -550,11 +591,23 @@ class BlockRenderer
 
 		$innerBlocks     = $this->normalizeInnerBlocks( $block['innerBlocks'] ?? [] );
 		$innerBlocks     = $this->stampSocialLinksContext( $name, $attributes, $innerBlocks );
-		$innerBlocksHtml = $this->renderInner( $innerBlocks );
+		$isLoop          = in_array( $name, self::LOOP_BLOCKS, true );
 
-		$html = $this->dynamicBlocks->has( $name )
-			? $this->renderDynamic( $name, $attributes, $innerBlocksHtml, $innerBlocks, $renderIndex )
-			: $this->renderStatic( $name, $attributes, $innerBlocksHtml, $innerBlocks, $renderIndex );
+		if ( $isLoop ) {
+			app( ResponsiveImages::class )->enterLoop();
+		}
+
+		try {
+			$innerBlocksHtml = $this->renderInner( $innerBlocks );
+
+			$html = $this->dynamicBlocks->has( $name )
+				? $this->renderDynamic( $name, $attributes, $innerBlocksHtml, $innerBlocks, $renderIndex )
+				: $this->renderStatic( $name, $attributes, $innerBlocksHtml, $innerBlocks, $renderIndex );
+		} finally {
+			if ( $isLoop ) {
+				app( ResponsiveImages::class )->leaveLoop();
+			}
+		}
 
 		// If the screen-size rule flagged this block as CSS-hidden at
 		// certain breakpoints, wrap its markup in a scope class + emit
@@ -596,6 +649,42 @@ class BlockRenderer
 		}
 
 		return $html;
+	}
+
+	/**
+	 * Media ids of every image block in a tree.
+	 *
+	 * @since 1.19.0
+	 *
+	 * @param  array<int, mixed>  $tree  Normalized block tree.
+	 *
+	 * @return array<int, int>
+	 */
+	protected function collectMediaIds( array $tree ): array
+	{
+		$ids = [];
+
+		foreach ( $tree as $block ) {
+			if ( ! is_array( $block ) ) {
+				continue;
+			}
+
+			$name       = (string) ( $block['name'] ?? '' );
+			$attributes = is_array( $block['attributes'] ?? null ) ? $block['attributes'] : [];
+			$suffix     = substr( $name, (int) strrpos( $name, '/' ) + 1 );
+
+			foreach ( self::MEDIA_ID_ATTRIBUTES[ $suffix ] ?? [] as $key ) {
+				if ( is_numeric( $attributes[ $key ] ?? null ) && (int) $attributes[ $key ] > 0 ) {
+					$ids[] = (int) $attributes[ $key ];
+				}
+			}
+
+			if ( is_array( $block['innerBlocks'] ?? null ) ) {
+				$ids = [ ...$ids, ...$this->collectMediaIds( $block['innerBlocks'] ) ];
+			}
+		}
+
+		return $ids;
 	}
 
 	/**

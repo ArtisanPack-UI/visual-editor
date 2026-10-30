@@ -1,4 +1,5 @@
 @php
+	use ArtisanPackUI\VisualEditorRendererBlade\Services\FaqSchemaAccumulator;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 
 	$rawItems = $attributes['items'] ?? [];
@@ -79,20 +80,10 @@
 		];
 	}
 
-	$faqJsonLd = '';
-
-	if ( $emitSchema && ! empty( $faqPairs ) ) {
-		$encoded = json_encode(
-			[
-				'@context'   => 'https://schema.org',
-				'@type'      => 'FAQPage',
-				'mainEntity' => $faqPairs,
-			],
-			JSON_UNESCAPED_UNICODE | JSON_HEX_TAG
-		);
-		// json_encode returns false on invalid UTF-8; guard here so a
-		// broken payload does not emit an empty `<script>` tag.
-		$faqJsonLd = false === $encoded ? '' : $encoded;
+	// #1034 — queued, not printed, so every FAQ on the page lands in one
+	// `FAQPage` script once the tree has rendered.
+	if ( $emitSchema && [] !== $faqPairs ) {
+		app( FaqSchemaAccumulator::class )->push( $faqPairs );
 	}
 @endphp
 <div{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-artisanpack-faq', 'ap-faq' ] ) !!}>
@@ -102,7 +93,4 @@
 			<div class="ap-faq__answer">{!! $item['answer'] !!}</div>
 		</div>
 	@endforeach
-	@if ( '' !== $faqJsonLd )
-		<script type="application/ld+json">{!! $faqJsonLd !!}</script>
-	@endif
 </div>
