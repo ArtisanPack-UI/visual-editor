@@ -472,6 +472,7 @@ class PostResolver
 		}
 
 		return [
+			'_resolvedImageId'     => null !== $mediaId ? (int) $mediaId : 0,
 			'_resolvedImageUrl'    => $url,
 			'_resolvedImageAlt'    => $alt,
 			'_resolvedImageWidth'  => $width,

@@ -2651,3 +2651,92 @@ describe( 'ap.visualEditor.beforeRender filter', function (): void {
 			->toContain( 'core/paragraph' );
 	} );
 } );
+
+/**
+ * Every `<script type="application/ld+json">` payload in the markup, decoded.
+ *
+ * @return array<int, array<string, mixed>>
+ */
+function faqSchemaScripts( string $html ): array
+{
+	preg_match_all( '#<script type="application/ld\+json">(.*?)</script>#s', $html, $matches );
+
+	return array_map( static fn ( string $json ): array => json_decode( $json, true ), $matches[1] );
+}
+
+function faqBlock( array $items, array $attributes = [] ): array
+{
+	return makeBlock( 'artisanpack/faq', array_merge( [ 'items' => $items ], $attributes ) );
+}
+
+it( 'merges several FAQ blocks into one FAQPage script (#1034)', function (): void {
+	$html = makeRenderer()->render( [
+		faqBlock( [ [ 'question' => 'First?', 'answer' => 'One.' ] ] ),
+		makeBlock( 'core/paragraph', [ 'content' => 'Between the FAQs.' ] ),
+		faqBlock( [
+			[ 'question' => 'Second?', 'answer' => 'Two.' ],
+			[ 'question' => 'Third?', 'answer' => 'Three.' ],
+		] ),
+	] );
+
+	$scripts = faqSchemaScripts( $html );
+
+	expect( $scripts )->toHaveCount( 1 )
+		->and( $scripts[0]['@type'] )->toBe( 'FAQPage' )
+		->and( array_column( $scripts[0]['mainEntity'], 'name' ) )->toBe( [ 'First?', 'Second?', 'Third?' ] );
+} );
+
+it( 'merges FAQ blocks with the accordions FAQ toggle and nested FAQs (#1034)', function (): void {
+	$html = makeRenderer()->render( [
+		makeBlock( 'core/group', [], [
+			faqBlock( [ [ 'question' => 'Nested?', 'answer' => 'Yes.' ] ] ),
+		] ),
+		makeBlock( 'artisanpack/accordions', [ 'faqSchema' => true ], [
+			makeBlock( 'artisanpack/accordion', [ 'panelId' => 'faq-1' ], [
+				makeBlock( 'artisanpack/accordion-title', [], [
+					makeBlock( 'core/heading', [ 'level' => 3, 'content' => 'From an accordion?' ], [], 'h-1' ),
+				], 'title-1' ),
+				makeBlock( 'artisanpack/accordion-body', [], [
+					makeBlock( 'core/paragraph', [ 'content' => 'Yes.' ], [], 'p-1' ),
+				], 'body-1' ),
+			], 'panel-1' ),
+		] ),
+	] );
+
+	$scripts = faqSchemaScripts( $html );
+
+	expect( $scripts )->toHaveCount( 1 )
+		->and( array_column( $scripts[0]['mainEntity'], 'name' ) )->toBe( [ 'Nested?', 'From an accordion?' ] );
+} );
+
+it( 'lists a repeated FAQ question once (#1034)', function (): void {
+	$question = [ 'question' => 'Same?', 'answer' => 'Same.' ];
+
+	$scripts = faqSchemaScripts( makeRenderer()->render( [ faqBlock( [ $question ] ), faqBlock( [ $question ] ) ] ) );
+
+	expect( $scripts[0]['mainEntity'] )->toHaveCount( 1 );
+} );
+
+it( 'leaves a FAQ block with emitSchema off out of the merged script (#1034)', function (): void {
+	$scripts = faqSchemaScripts( makeRenderer()->render( [
+		faqBlock( [ [ 'question' => 'Listed?', 'answer' => 'Yes.' ] ] ),
+		faqBlock( [ [ 'question' => 'Hidden?', 'answer' => 'No.' ] ], [ 'emitSchema' => false ] ),
+	] ) );
+
+	expect( array_column( $scripts[0]['mainEntity'], 'name' ) )->toBe( [ 'Listed?' ] );
+} );
+
+it( 'emits no FAQ script when no block queued a question (#1034)', function (): void {
+	expect( makeRenderer()->render( [ faqBlock( [ [ 'question' => 'Only a question', 'answer' => '' ] ] ) ] ) )
+		->not->toContain( 'application/ld+json' );
+} );
+
+it( 'does not carry FAQ questions into the next render (#1034)', function (): void {
+	$renderer = makeRenderer();
+
+	$renderer->render( [ faqBlock( [ [ 'question' => 'First page?', 'answer' => 'Yes.' ] ] ) ] );
+
+	$scripts = faqSchemaScripts( $renderer->render( [ faqBlock( [ [ 'question' => 'Second page?', 'answer' => 'Yes.' ] ] ) ] ) );
+
+	expect( array_column( $scripts[0]['mainEntity'], 'name' ) )->toBe( [ 'Second page?' ] );
+} );

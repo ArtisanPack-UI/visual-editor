@@ -66,14 +66,17 @@
 	width: 100%;
 }
 
-.has-photo-grid :is(.wp-block-image, .wp-block-artisanpack-image) > :is(picture, a) {
+.has-photo-grid :is(.wp-block-image, .wp-block-artisanpack-image) > :is(picture, a),
+.has-photo-grid :is(.wp-block-image, .wp-block-artisanpack-image) > a > picture {
 	display: flex;
 	flex: 1 1 auto;
 	min-height: 0;
 	width: 100%;
 }
 
-.has-photo-grid :is(.wp-block-image, .wp-block-artisanpack-image) > :is(img, a > img, picture > img) {
+.has-photo-grid :is(.wp-block-image, .wp-block-artisanpack-image) > img,
+.has-photo-grid :is(.wp-block-image, .wp-block-artisanpack-image) > :is(a, picture) > img,
+.has-photo-grid :is(.wp-block-image, .wp-block-artisanpack-image) > a > picture > img {
 	aspect-ratio: var(--ap-photo-grid-aspect, auto);
 	flex: 1 1 auto;
 	min-height: 0;

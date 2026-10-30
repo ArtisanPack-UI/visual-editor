@@ -1,4 +1,5 @@
 @php
+	use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveImages;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\DuotoneSupport;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\UrlSanitizer;
@@ -12,14 +13,16 @@
 	$name      = isset( $attributes['_resolvedAuthorName'] ) && is_string( $attributes['_resolvedAuthorName'] ) ? $attributes['_resolvedAuthorName'] : '';
 	$bio       = isset( $attributes['_resolvedAuthorBio'] ) && is_string( $attributes['_resolvedAuthorBio'] ) ? $attributes['_resolvedAuthorBio'] : '';
 	$authorUrl = UrlSanitizer::safe( isset( $attributes['_resolvedAuthorUrl'] ) && is_string( $attributes['_resolvedAuthorUrl'] ) ? $attributes['_resolvedAuthorUrl'] : '' );
+	// #1031 — the smallest variant that's sharp at this size.
 	$avatarUrl = UrlSanitizer::safe( isset( $attributes['_resolvedAuthorAvatar'] ) && is_string( $attributes['_resolvedAuthorAvatar'] ) ? $attributes['_resolvedAuthorAvatar'] : '' );
+	$avatarUrl = $showAvatar ? app( ResponsiveImages::class )->avatarUrl( $avatarUrl, $avatarSize ) : $avatarUrl;
 
 	// F-2 — duotone filter on the avatar `<img>`, only when one renders.
 	$duotoneClass = $showAvatar && '' !== $avatarUrl ? DuotoneSupport::apply( $attributes, DuotoneSupport::TARGETS['core/post-author'] ) : '';
 @endphp
 <div{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-post-author', $duotoneClass ] ) !!}>
 	@if ( $showAvatar && '' !== $avatarUrl )
-		<div class="wp-block-post-author__avatar"><img alt="{{ $name }}" width="{{ $avatarSize }}" height="{{ $avatarSize }}" src="{{ $avatarUrl }}"/></div>
+		<div class="wp-block-post-author__avatar"><img alt="{{ $name }}" width="{{ $avatarSize }}" height="{{ $avatarSize }}" src="{{ $avatarUrl }}" loading="lazy"/></div>
 	@endif
 	<div class="wp-block-post-author__content">
 		@if ( '' !== $byline )
