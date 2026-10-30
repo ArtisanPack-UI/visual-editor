@@ -229,6 +229,12 @@ Vue renderers print whatever CSS the host passes to `<GlobalStyles>` (or
 `BlockTree`'s `globalStylesCss` prop), so placement there is up to the
 host's layout.
 
+*Since v1.19.0 (#1032).* On HTML responses in the `web` middleware group,
+the Blade renderer moves `<style data-ve-global-styles>` and the inline
+tokens beside it into one fingerprinted stylesheet, at the same place in
+the cascade. Changing the global styles links a new file on the next page.
+See [Frontend Performance](../frontend-performance.md#compiled-styles-file).
+
 ### Long-lived workers
 
 *Since v1.15.0.* The site editor's `GlobalStylesResolver` is bound

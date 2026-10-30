@@ -7,6 +7,12 @@ The Image block is a fork of `core/image` (upstream pinned at `@wordpress/block-
 
 ---
 
+## Front-end output
+
+*Since v1.19.0 (#1031).* With `artisanpack-ui/media-library` installed, the Blade renderer prints a `srcset` from the image's size variants, the file's `width` and `height` when the block sets no size, and WebP or AVIF through `<picture>`. Images load lazily, except the first on the page. See [Frontend Performance](../frontend-performance.md#responsive-images).
+
+---
+
 ## Width control (v1.11)
 
 The width control lives in **Inspector → Settings → Image dimensions** and is also available as drag-to-resize handles on the image itself. All three surfaces write the same block attributes so the front-end render is a single code path.

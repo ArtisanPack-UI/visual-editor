@@ -3,7 +3,7 @@
 **Status:** v1.9 · issue #758
 **Block name:** `artisanpack/faq`
 
-The FAQ block persists a list of question / answer pairs and — when the Blade renderer runs — emits a `FAQPage` JSON-LD script alongside the visual markup so Google can surface the page in FAQ rich results.
+The FAQ block persists a list of question / answer pairs and — when the Blade renderer runs — adds them to the page's `FAQPage` JSON-LD script so Google can surface the page in FAQ rich results.
 
 The React and Vue renderers ship the same visual DOM but skip the JSON-LD script so downstream head managers can stay in charge of schema in headless environments.
 
@@ -19,7 +19,9 @@ The React and Vue renderers ship the same visual DOM but skip the JSON-LD script
 
 ## Structured data
 
-The Blade renderer emits a single `<script type="application/ld+json">` per rendered FAQ block. Question and answer text is stripped to plain text before being written into the payload (block wrappers, inline HTML, and entity-encoded `</script>` sequences are all normalised) so Google Search Console does not flag the markup as noise.
+*Since v1.19.0 (#1034).* Google expects one `FAQPage` per page, so FAQ blocks queue their questions while rendering, and the Blade renderer prints one merged `<script type="application/ld+json">` after the block tree. The Accordions block's FAQ toggle joins the same script, and a question repeated word for word is listed once. Separate `<x-ve-blocks>` renders on one page each print their own script, so render a page's FAQs in one tree. Calling `BlockRenderer::renderBlock()` directly prints the script with that block.
+
+Question and answer text is stripped to plain text before being written into the payload (block wrappers, inline HTML, and entity-encoded `</script>` sequences are all normalised) so Google Search Console does not flag the markup as noise.
 
 ## Related
 

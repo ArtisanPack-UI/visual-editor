@@ -6,6 +6,8 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.19.0] - 2026-10-30
+
 ### Added
 
 - **Static, fingerprinted renderer assets** ([#1033](https://github.com/ArtisanPack-UI/visual-editor/issues/1033)). `php artisan visual-editor:publish-assets` copies the Blade renderer's CSS and JS to `public/vendor/visual-editor-renderer-blade/` under content-hashed names and writes a manifest, and `<x-ve-blocks-styles />` links to those files, so the web server serves them without PHP. After that first run, every `composer install` / `composer update` refreshes them. A manifest that doesn't match the installed package is ignored, so an update nobody published falls back to the asset route rather than old CSS. Hosts that never publish are unaffected. A fingerprinted URL through the asset route is sent `public, max-age=31536000, immutable`, and a stale one gets the current file with revalidation rather than a 404. The publish step writes an `.htaccess` that sets the same header on Apache. On nginx, add it yourself:

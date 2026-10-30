@@ -404,6 +404,22 @@ Only entries that resolve to a `.css` file inside the theme's `assets/` director
 
 `$storedBlocks` is the record's stored tree, or the theme file's blocks when the save copies or first overrides a theme file. Custom CSS found there is kept, and vouched for so the model-level guard keeps it too. `$context` is `template`, `template-part`, `block` or `block-pattern`. Older cms-framework versions don't fire the filter; the model-level guard still covers their saves. See [Access Gate](site-editor/Access-Gate.md#custom-css-ability-visual-editoredit-block-css).
 
+### `ap.visualEditor.requiredStylesheets`
+
+**Since v1.19.0 (#1032).** Lists the conditional stylesheets the Blade renderer keeps on every page, whatever the body contains. Use it for CSS a page needs before its markup exists, such as a block loaded later by a Livewire update.
+
+**Signature:** `array $required -> array`
+
+Values are the stylesheet's tag attribute, such as `data-ve-tabs`. See [Frontend Performance](frontend-performance.md#keeping-a-stylesheet) for the full list.
+
+```php
+addFilter('ap.visualEditor.requiredStylesheets', function (array $required): array {
+    $required[] = 'data-ve-tabs';
+
+    return $required;
+});
+```
+
 ### `TocResolver` heading-anchor pre-render pass
 
 **Since v1.9.** Not a filter, but observable: `TocResolver` walks the block tree before render and stamps a stable, unique slug into the `anchor` attribute of every `core/heading` / `artisanpack/heading` that lacks one (existing author-set anchors are preserved; duplicate slugs receive a `-1`, `-2`, … suffix), plus a `_resolvedItems` payload onto every `artisanpack/toc` block filtered by its `minLevel` / `maxLevel` range. Hosts that traverse the tree after resolution will see the stamped anchors.
