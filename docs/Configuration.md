@@ -505,6 +505,26 @@ Output that never becomes an HTTP response, such as mail or `Blade::render()` in
 
 ---
 
+## `frontend_styles`
+
+**Since v1.19.0 (#1032).** Controls how the Blade renderer trims what `<x-ve-blocks-styles>` printed. Both steps run on HTML responses in the `web` middleware group, so output that skips it keeps the component's full output.
+
+```php
+'frontend_styles' => [
+    'conditional'   => true,
+    'compiled_file' => true,
+],
+```
+
+| Key | Default | Behavior |
+|-----|---------|----------|
+| `conditional` | `true` | Remove each `frontend/*` stylesheet with no matching classes in the page body. `style.css` and `theme.css` always stay. To keep one stylesheet rather than all of them, use the [`ap.visualEditor.requiredStylesheets`](Hooks-and-Events.md#apvisualeditorrequiredstylesheets) filter. |
+| `compiled_file` | `true` | Move the head's inline tokens, layout baseline and global styles into one fingerprinted file. The file is stored in the application cache, so a multi-server host needs a shared cache store or this set to `false`. |
+
+See [Frontend Performance](frontend-performance.md).
+
+---
+
 ## `ai`
 
 **Since v1.12.1 (#828).** Access and payload bounds for the optional AI features. Every call spends the site's AI credentials, so the `/ai/*` endpoints and the `AiTools` Livewire listeners require the `visual-editor.use-ai` ability (denied by default) and the endpoints are throttled.

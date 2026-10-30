@@ -1,6 +1,7 @@
 @php
 	use ArtisanPackUI\VisualEditorRendererBlade\Animations\AnimationMarkupResolver;
 	use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
+	use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveImages;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\DuotoneSupport;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\LayoutSupport;
@@ -16,6 +17,17 @@
 		$url = is_string( $attributes['_resolvedImageUrl'] ?? null ) ? $attributes['_resolvedImageUrl'] : '';
 		$alt = '' !== $alt ? $alt : ( is_string( $attributes['_resolvedImageAlt'] ?? null ) ? $attributes['_resolvedImageAlt'] : '' );
 	}
+
+	// #1031 — a cover is usually the page's hero. No `<picture>`: duotone
+	// and the photo grid target the image as a direct child of the cover.
+	$responsive = '' !== $url
+		? app( ResponsiveImages::class )->forImage(
+			$url,
+			! empty( $attributes['useFeaturedImage'] ) ? ( $attributes['_resolvedImageId'] ?? null ) : ( $attributes['id'] ?? null ),
+			ResponsiveImages::ROLE_HERO,
+			fullWidth: true,
+		)
+		: null;
 	$isDark = ! isset( $attributes['isDark'] ) || ! empty( $attributes['isDark'] );
 
 	// block.json defaults dimRatio to 100 and the editor omits defaults (#906).
@@ -217,7 +229,7 @@
 <div class="{{ implode( ' ', $classes ) }}"{!! $styleAttr !!}{!! $idAttr !!}{!! $animationsString !!}>
 	<span aria-hidden="true" class="{{ implode( ' ', $overlayClassList ) }}" style="{{ $overlayStyle }}"></span>
 	@if ( '' !== $url )
-		<img class="wp-block-cover__image-background" alt="{{ $alt }}" src="{{ $url }}"/>
+		<img class="wp-block-cover__image-background" alt="{{ $alt }}" src="{{ $url }}"{!! $responsive?->attributes() ?? '' !!}/>
 	@endif
 	<div class="{{ implode( ' ', $innerContainerClasses ) }}">
 		{!! $innerBlocksHtml !!}

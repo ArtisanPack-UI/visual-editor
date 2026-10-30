@@ -126,14 +126,22 @@ Mount `<x-ve-blocks-styles>` once in your layout's `<head>`:
 It links the bundled block-library CSS and the per-block front-end
 stylesheets, and inlines the `--wp--preset--*` tokens compiled from the
 `theme.json` you pass, the layout baseline, the defaults below and, since
-v1.15.0, the compiled global styles. It takes these attributes:
+v1.15.0, the compiled global styles.
+
+*Since v1.19.0*, HTML responses on the `web` middleware group are then
+trimmed: stylesheets the page has no markup for are removed, and the inline
+styles move to one cached file. Output that skips the middleware, such as
+mail, keeps everything. See
+[Frontend Performance](frontend-performance.md).
+
+It takes these attributes:
 
 | Attribute | Default | Effect |
 |-----------|---------|--------|
 | `:theme-json` | `null` | The `theme.json` array to compile into `<style data-ve-theme-tokens>`. |
 | `:bundle` | `true` | `false` skips the block-library `<link>`s. |
 | `:interactive` | `true` | `false` skips the accordion / tabs assets. |
-| `asset-base` | `/vendor/visual-editor-renderer-blade` | Serve the CSS and scripts from another base URL, such as a CDN. |
+| `asset-base` | `/vendor/visual-editor-renderer-blade` | Serve the CSS and scripts from another base URL, such as a CDN. A custom base always uses plain file names, even after [`visual-editor:publish-assets`](frontend-performance.md#publishing-static-assets). |
 | `:global-styles` | `true` | *Since v1.15.0.* `false` means this component never prints the global styles itself. See [Global styles placement](#global-styles-placement). |
 | `:block-style-variations` | `true` | *Since v1.15.0.* `false` keeps the theme's `styles.blocks.*.variations` out of the theme tokens. |
 
@@ -844,6 +852,7 @@ publish.
 - [Custom blocks](blocks/Custom-Blocks.md) — authoring blocks that need renderers
 - [Templates](site-editor/Templates.md) — template fallback chain and `core/template-part`
 - [Patterns](site-editor/Patterns.md) — synced-pattern (`core/block`) references
-- [Configuration](Configuration.md) — `default_styles`, `global_styles_in_head`, `effects` and `presets`
+- [Frontend Performance](frontend-performance.md) — responsive images, per-page CSS and static assets
+- [Configuration](Configuration.md) — `default_styles`, `global_styles_in_head`, `frontend_styles`, `effects` and `presets`
 - [Global styles](site-editor/Global-Styles.md) — CSS emission contract
 - [Inertia](post-editor/Inertia-Integration.md) — embedding the renderers inside Inertia apps

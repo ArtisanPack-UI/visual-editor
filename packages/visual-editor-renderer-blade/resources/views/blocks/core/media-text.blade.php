@@ -1,4 +1,5 @@
 @php
+	use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveImages;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 
 	$mediaUrl      = (string) ( $attributes['mediaUrl'] ?? '' );
@@ -33,6 +34,20 @@
 
 	$styleAttr = '' !== $style ? sprintf( ' style="%s"', e( $style . ';' ) ) : '';
 	$idAttr    = null !== $compiled['id'] ? sprintf( ' id="%s"', e( $compiled['id'] ) ) : '';
+
+	// #1031 — variants, dimensions and a loading hint from the media record.
+	$imageTag = '';
+
+	if ( '' !== $mediaUrl && 'video' !== $mediaType ) {
+		$responsive = app( ResponsiveImages::class )->forImage( $mediaUrl, $attributes['mediaId'] ?? null );
+		$imageAttrs = sprintf( ' src="%s" alt="%s"', e( $mediaUrl ), e( $mediaAlt ) );
+
+		if ( null !== $responsive->width && null !== $responsive->height ) {
+			$imageAttrs .= sprintf( ' width="%d" height="%d"', $responsive->width, $responsive->height );
+		}
+
+		$imageTag = $responsive->wrap( '<img' . $imageAttrs . $responsive->attributes() . '/>' );
+	}
 @endphp
 <div class="{{ implode( ' ', $classes ) }}"{!! $styleAttr !!}{!! $idAttr !!}>
 	<figure class="wp-block-media-text__media">
@@ -40,7 +55,7 @@
 			@if ( 'video' === $mediaType )
 				<video controls src="{{ $mediaUrl }}"></video>
 			@else
-				<img src="{{ $mediaUrl }}" alt="{{ $mediaAlt }}"/>
+				{!! $imageTag !!}
 			@endif
 		@endif
 	</figure>

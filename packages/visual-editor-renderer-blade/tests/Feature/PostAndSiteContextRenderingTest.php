@@ -65,7 +65,7 @@ it( 'renders a featured-image cover from the stamped image (#942)', function ():
 
 	$rendered = $this->stripGlobalStyles( renderTree( $tree ) );
 
-	expect( $rendered )->toContain( '<img class="wp-block-cover__image-background" alt="Featured photo" src="https://example.test/featured.jpg"/>' )
+	expect( $rendered )->toContain( '<img class="wp-block-cover__image-background" alt="Featured photo" src="https://example.test/featured.jpg" fetchpriority="high"/>' )
 		->and( $rendered )->not->toContain( 'saved.jpg' );
 } );
 

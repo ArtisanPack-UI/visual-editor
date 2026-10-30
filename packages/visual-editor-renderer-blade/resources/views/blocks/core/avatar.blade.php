@@ -1,4 +1,5 @@
 @php
+	use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveImages;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\DuotoneSupport;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\UrlSanitizer;
@@ -7,7 +8,11 @@
 	$isLink     = ! empty( $attributes['isLink'] );
 	$linkTarget = isset( $attributes['linkTarget'] ) && is_string( $attributes['linkTarget'] ) ? $attributes['linkTarget'] : '_self';
 
-	$avatarUrl = UrlSanitizer::safe( isset( $attributes['_resolvedAuthorAvatar'] ) && is_string( $attributes['_resolvedAuthorAvatar'] ) ? $attributes['_resolvedAuthorAvatar'] : '' );
+	// #1031 — the smallest variant that's sharp at this size.
+	$avatarUrl = app( ResponsiveImages::class )->avatarUrl(
+		UrlSanitizer::safe( isset( $attributes['_resolvedAuthorAvatar'] ) && is_string( $attributes['_resolvedAuthorAvatar'] ) ? $attributes['_resolvedAuthorAvatar'] : '' ),
+		$size,
+	);
 	$alt       = isset( $attributes['_resolvedAuthorName'] ) && is_string( $attributes['_resolvedAuthorName'] ) ? $attributes['_resolvedAuthorName'] : '';
 	$authorUrl = UrlSanitizer::safe( isset( $attributes['_resolvedAuthorUrl'] ) && is_string( $attributes['_resolvedAuthorUrl'] ) ? $attributes['_resolvedAuthorUrl'] : '' );
 
@@ -32,9 +37,9 @@
 <div{!! BlockSupports::wrapperAttrs( $wrapperAttributes, [ 'wp-block-avatar', $duotoneClass ] ) !!}>
 	@if ( '' !== $avatarUrl )
 		@if ( $isLink && '' !== $authorUrl )
-			<a {!! $linkAttrs !!}><img alt="{{ $alt }}" width="{{ $size }}" height="{{ $size }}" src="{{ $avatarUrl }}"{!! $imageAttrs !!}/></a>
+			<a {!! $linkAttrs !!}><img alt="{{ $alt }}" width="{{ $size }}" height="{{ $size }}" src="{{ $avatarUrl }}" loading="lazy"{!! $imageAttrs !!}/></a>
 		@else
-			<img alt="{{ $alt }}" width="{{ $size }}" height="{{ $size }}" src="{{ $avatarUrl }}"{!! $imageAttrs !!}/>
+			<img alt="{{ $alt }}" width="{{ $size }}" height="{{ $size }}" src="{{ $avatarUrl }}" loading="lazy"{!! $imageAttrs !!}/>
 		@endif
 	@endif
 </div>

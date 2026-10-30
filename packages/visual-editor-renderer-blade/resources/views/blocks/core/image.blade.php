@@ -1,4 +1,5 @@
 @php
+	use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveImages;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\DuotoneSupport;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\UrlSanitizer;
@@ -114,6 +115,20 @@
 		$imgStyle[] = 'height:' . $height['style'];
 	}
 
+	// #1031 — variants, dimensions and a loading hint from the media record.
+	$responsive = '' !== $url
+		? app( ResponsiveImages::class )->forImage( $url, $attributes['id'] ?? null, displayWidth: $width['attr'] )
+		: null;
+
+	// The file's own size only applies to an image nobody resized.
+	if ( null !== $responsive
+		&& null === $width['attr'] && null === $height['attr']
+		&& null === $width['style'] && null === $height['style']
+	) {
+		$width['attr']  = $responsive->width;
+		$height['attr'] = $responsive->height;
+	}
+
 	$imgAttrs = sprintf( ' src="%s"', e( $url ) );
 	$imgAttrs .= sprintf( ' alt="%s"', e( $alt ) );
 
@@ -132,13 +147,16 @@
 	if ( [] !== $imgStyle ) {
 		$imgAttrs .= sprintf( ' style="%s"', e( implode( ';', $imgStyle ) ) );
 	}
+
+	$imgAttrs .= $responsive?->attributes() ?? '';
+	$imgTag    = $responsive?->wrap( '<img' . $imgAttrs . '/>' ) ?? '';
 @endphp
 <figure{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}>
 	@if ( '' !== $url )
 		@if ( '' !== $href )
-			<a{!! $linkAttrs !!}><img{!! $imgAttrs !!}/></a>
+			<a{!! $linkAttrs !!}>{!! $imgTag !!}</a>
 		@else
-			<img{!! $imgAttrs !!}/>
+			{!! $imgTag !!}
 		@endif
 	@endif
 	@if ( '' !== trim( $caption ) )

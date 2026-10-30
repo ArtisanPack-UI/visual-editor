@@ -142,6 +142,18 @@ See [[site-editor/Getting Started]] for the access-gate setup and a tour of the 
 
 ---
 
+## 10. Optional: serve the front-end assets statically
+
+The Blade renderer's CSS and JS work with no setup, through a package route. To let the web server serve them, with cache headers that last, run:
+
+```bash
+php artisan visual-editor:publish-assets
+```
+
+Later `composer install` and `composer update` runs refresh them. nginx hosts add one `location` block. See [[Frontend Performance#publishing-static-assets]].
+
+---
+
 ## Where to go next
 
 - [[Quick Start]] — Ship your first post end-to-end

@@ -917,6 +917,30 @@ return [
 
 	/*
 	|--------------------------------------------------------------------------
+	| Front-end stylesheets (#1032)
+	|--------------------------------------------------------------------------
+	|
+	| The Blade renderer trims what `<x-ve-blocks-styles />` printed once a
+	| page has rendered. Pages that skip the `web` middleware group keep the
+	| component's full output.
+	|
+	| `conditional`: drop the `frontend/*` stylesheets the page has no markup
+	| for. A page that adds blocks after load (a Livewire update, say) can
+	| keep a stylesheet with the `ap.visualEditor.requiredStylesheets` filter.
+	|
+	| `compiled_file`: move the inline tokens and global styles into one
+	| fingerprinted file. It's stored in the cache, so a multi-server host
+	| needs a cache store the servers share; otherwise turn this off.
+	|
+	*/
+
+	'frontend_styles' => [
+		'conditional'   => true,
+		'compiled_file' => true,
+	],
+
+	/*
+	|--------------------------------------------------------------------------
 	| AI features: access and payload limits (#828)
 	|--------------------------------------------------------------------------
 	|

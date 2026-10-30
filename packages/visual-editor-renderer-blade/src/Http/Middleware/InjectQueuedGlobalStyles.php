@@ -34,16 +34,15 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditorRendererBlade\Http\Middleware;
 
+use ArtisanPackUI\VisualEditorRendererBlade\Http\Middleware\Concerns\RewritesHtmlResponses;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesPlacement;
 use Closure;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class InjectQueuedGlobalStyles
 {
+	use RewritesHtmlResponses;
+
 	/**
 	 * Deliver queued global styles the layout never printed.
 	 *
@@ -123,31 +122,5 @@ class InjectQueuedGlobalStyles
 		}
 
 		return $html . $tag;
-	}
-
-	/**
-	 * Whether the response is a buffered HTML document this middleware may
-	 * rewrite.
-	 *
-	 * @since 1.15.0
-	 *
-	 * @param  mixed  $response  Response from the pipeline.
-	 */
-	protected function isInjectable( mixed $response ): bool
-	{
-		if ( ! $response instanceof Response
-			|| $response instanceof StreamedResponse
-			|| $response instanceof BinaryFileResponse
-			|| $response instanceof JsonResponse
-			|| $response->isRedirection()
-			|| $response->isInformational()
-			|| $response->headers->has( 'Content-Encoding' )
-		) {
-			return false;
-		}
-
-		$type = strtolower( (string) $response->headers->get( 'Content-Type', '' ) );
-
-		return '' === $type || str_contains( $type, 'text/html' );
 	}
 }

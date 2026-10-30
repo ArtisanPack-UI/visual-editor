@@ -362,8 +362,21 @@ request itself answers `200`: look in its `results` for items with
 
 ---
 
+## 15. A block is unstyled after upgrading to 1.19
+
+Since v1.19.0, the `web` middleware removes block stylesheets a page has no markup for, and moves the inline tokens and global styles to one file. See [Frontend Performance](frontend-performance.md).
+
+- **A block added after the page loads has no CSS.** A Livewire update or a script added it after the middleware ran. Keep its stylesheet with the [`ap.visualEditor.requiredStylesheets`](Hooks-and-Events.md#apvisualeditorrequiredstylesheets) filter.
+- **A theme rule stopped matching an image.** Images with a WebP or AVIF file now sit inside `<picture>`, so a direct child selector such as `.wp-block-image > img` no longer matches. Use `.wp-block-image img`.
+- **The `generated/*.css` link returns 404.** The server can't read that file. Check that the servers share a cache store. If they can't, set [`frontend_styles.compiled_file`](Configuration.md#frontend_styles) to `false`.
+- **Styles are stale after an upgrade on a host that published its assets.** Run `php artisan visual-editor:publish-assets`. A stale manifest falls back to the package route, so this usually means a CDN is holding the old page.
+- **To rule the trimming out,** set both [`frontend_styles`](Configuration.md#frontend_styles) keys to `false`.
+
+---
+
 ## See also
 
 - [Quick Start](Quick-Start.md)
 - [Global styles](site-editor/Global-Styles.md)
+- [Frontend Performance](frontend-performance.md)
 - [Theming](post-editor/Theming.md)

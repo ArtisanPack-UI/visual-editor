@@ -36,6 +36,7 @@ The Visual Editor is designed to give Laravel apps a first-class block-based aut
 
 - [[Content Model]] — The `HasBlockContent` trait, resource map, and authorization
 - [[Renderers]] — Rendering saved block content on the public site
+- [[Frontend Performance]] — Responsive images, per-page CSS, and static fingerprinted assets (v1.19)
 - [[Migration]] — Migrating content into the editor (including from WordPress)
 - [[Troubleshooting]] — Common problems and how to resolve them
 

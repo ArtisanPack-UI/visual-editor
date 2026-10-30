@@ -15,7 +15,9 @@
  *      prefer static delivery can still run
  *      `vendor:publish --tag=visual-editor-renderer-blade-assets` to copy
  *      the files into `public/`; the web server then serves them and the
- *      route is never reached.
+ *      route is never reached. `visual-editor:publish-assets` publishes
+ *      fingerprinted copies, which this component links to through
+ *      {@see FrontendAssetManifest} so they can be cached forever (#1033).
  *   2. A `<style>` block with `--wp--preset--*` CSS custom properties
  *      compiled from a `theme.json` payload, so a block referencing e.g.
  *      `var(--wp--preset--color--primary)` resolves on the public site
@@ -55,6 +57,7 @@ namespace ArtisanPackUI\VisualEditorRendererBlade\View\Components;
 
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesEmissionTracker;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\FrontendAssetManifest;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesPlacement;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ThemeJsonTokensCompiler;
@@ -180,23 +183,28 @@ class BlocksStylesComponent extends Component
 	) {
 		$base = $this->normaliseBase( $assetBase ?? self::DEFAULT_ASSET_BASE );
 
-		$this->styleHref                = $base . '/style.css';
-		$this->themeHref                = $base . '/theme.css';
-		$this->accordionStyleHref       = $base . '/frontend/accordion.css';
-		$this->tabsStyleHref            = $base . '/frontend/tabs.css';
-		$this->gridStyleHref            = $base . '/frontend/grid.css';
-		$this->marqueeStyleHref         = $base . '/frontend/marquee.css';
-		$this->socialIconsStyleHref     = $base . '/frontend/social-icons.css';
-		$this->inlineIconStyleHref      = $base . '/frontend/inline-icon.css';
-		$this->breadcrumbsStyleHref     = $base . '/frontend/breadcrumbs.css';
-		$this->queryPaginationStyleHref = $base . '/frontend/query-pagination.css';
-		$this->flexLayoutStyleHref      = $base . '/frontend/flex-layout.css';
-		$this->photoGridStyleHref       = $base . '/frontend/photo-grid.css';
-		$this->postTemplateStyleHref    = $base . '/frontend/post-template.css';
-		$this->postVariantStyleHref     = $base . '/frontend/post-variant.css';
-		$this->masonryStyleHref         = $base . '/frontend/masonry.css';
-		$this->masonryScriptSrc         = $base . '/frontend/masonry-fallback.js';
-		$this->interactivityScriptSrc   = $base . '/frontend/interactivity.js';
+		// #1033 — published, fingerprinted files where they exist. A custom
+		// base stays on plain paths: a CDN mirror may not hold those names.
+		$manifest = null === $assetBase ? app( FrontendAssetManifest::class ) : null;
+		$url      = static fn ( string $path ): string => $base . '/' . ( $manifest?->resolve( $path ) ?? $path );
+
+		$this->styleHref                = $url( 'style.css' );
+		$this->themeHref                = $url( 'theme.css' );
+		$this->accordionStyleHref       = $url( 'frontend/accordion.css' );
+		$this->tabsStyleHref            = $url( 'frontend/tabs.css' );
+		$this->gridStyleHref            = $url( 'frontend/grid.css' );
+		$this->marqueeStyleHref         = $url( 'frontend/marquee.css' );
+		$this->socialIconsStyleHref     = $url( 'frontend/social-icons.css' );
+		$this->inlineIconStyleHref      = $url( 'frontend/inline-icon.css' );
+		$this->breadcrumbsStyleHref     = $url( 'frontend/breadcrumbs.css' );
+		$this->queryPaginationStyleHref = $url( 'frontend/query-pagination.css' );
+		$this->flexLayoutStyleHref      = $url( 'frontend/flex-layout.css' );
+		$this->photoGridStyleHref       = $url( 'frontend/photo-grid.css' );
+		$this->postTemplateStyleHref    = $url( 'frontend/post-template.css' );
+		$this->postVariantStyleHref     = $url( 'frontend/post-variant.css' );
+		$this->masonryStyleHref         = $url( 'frontend/masonry.css' );
+		$this->masonryScriptSrc         = $url( 'frontend/masonry-fallback.js' );
+		$this->interactivityScriptSrc   = $url( 'frontend/interactivity.js' );
 		$this->emitBlockLibrary         = $bundle;
 		$this->emitInteractive          = $interactive;
 		$this->spacingPresetsCss        = $this->compiler->compileSpacingPresets( $themeJson );

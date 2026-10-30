@@ -63,17 +63,27 @@ bundled CSS and `frontend/*` assets from
 `/vendor/visual-editor-renderer-blade/` — the prefix `<x-ve-blocks-styles />`
 points to by default — so package upgrades take effect immediately.
 
-If you would rather your web server serve the files statically, publish them
-into `public/`:
+If you would rather your web server serve the files statically, publish them:
 
 ```sh
-php artisan vendor:publish --tag=visual-editor-renderer-blade-assets
+php artisan visual-editor:publish-assets
 ```
 
-That drops `style.css`, `theme.css`, and the `frontend/` assets at
-`public/vendor/visual-editor-renderer-blade/`. Those static files win over the
-package route at the same URLs, so re-run the command with `--force` after
-every package upgrade to pick up refreshed CSS.
+That writes content-hashed copies and a manifest to
+`public/vendor/visual-editor-renderer-blade/`, and `<x-ve-blocks-styles />`
+links to them. Later `composer install` and `composer update` runs refresh
+them. Apache gets its cache headers from a generated `.htaccess`, and nginx
+hosts add a `location` block. See
+[Frontend Performance](../../docs/frontend-performance.md).
+
+The older `vendor:publish --tag=visual-editor-renderer-blade-assets` still
+works, but it copies plain file names, so re-run it with `--force` after every
+package upgrade.
+
+On HTML responses in the `web` middleware group, the renderer also removes
+stylesheets a page has no markup for and moves the inline styles to one cached
+file. Both steps can be turned off under
+`artisanpack.visual-editor.frontend_styles`.
 
 ### Props
 

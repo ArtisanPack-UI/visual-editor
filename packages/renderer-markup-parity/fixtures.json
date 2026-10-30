@@ -2,6 +2,13 @@
     "$comment": "Shared, language-neutral block trees for the Blade-vs-JS markup parity check (#704). Consumed by both packages/visual-editor-renderer-blade/tests/Feature/RendererMarkupParityTest.php (PHP) and packages/renderer-markup-parity/tests/blade-parity.test.ts (JS). Adding a fixture here automatically exercises it against all three renderers. See README.md for the golden-file workflow.",
     "knownDivergences": [
         {
+            "id": "blade-image-loading-hints",
+            "issue": "#1031",
+            "fixturesMatching": ".",
+            "reason": "Blade decides `loading` and `fetchpriority` from where an image sits in the whole request (first image, query loop, one priority slot per page). The React and Vue renderers print neither, and a host's own loader decides there.",
+            "dropAttributesMatching": "^(loading|fetchpriority)$"
+        },
+        {
             "id": "navigation-overlay-ids",
             "issue": "#804",
             "fixturesMatching": "^navigation-overlay-",

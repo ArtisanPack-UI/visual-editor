@@ -1,4 +1,5 @@
 @php
+	use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveImages;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\DuotoneSupport;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\UrlSanitizer;
@@ -66,6 +67,22 @@
 
 	$imgStyle = '' !== implode( '', $styleParts ) ? sprintf( ' style="%s"', e( implode( ';', $styleParts ) ) ) : '';
 
+	// #1031 — outside a query loop this is the template's hero, the likely
+	// LCP element. `sizes` needs pixels, so a `%` or `rem` frame leaves it to
+	// the file's own width.
+	$responsive = '' !== $imageUrl
+		? app( ResponsiveImages::class )->forImage(
+			$imageUrl,
+			$attributes['_resolvedImageId'] ?? null,
+			ResponsiveImages::ROLE_HERO,
+			1 === preg_match( '/^(\d+)px$/D', $frameWidth, $frameMatch ) ? (int) $frameMatch[1] : null,
+		)
+		: null;
+
+	// A record the stamp couldn't size still knows its own dimensions.
+	$width  = $width > 0 ? $width : (int) $responsive?->width;
+	$height = $height > 0 ? $height : (int) $responsive?->height;
+
 	$imgAttrs = sprintf( ' src="%s" alt="%s"', e( $imageUrl ), e( $alt ) );
 
 	if ( $width > 0 ) {
@@ -76,7 +93,8 @@
 		$imgAttrs .= sprintf( ' height="%d"', $height );
 	}
 
-	$imgAttrs .= $imgStyle;
+	$imgAttrs .= $imgStyle . ( $responsive?->attributes() ?? '' );
+	$imgTag    = $responsive?->wrap( '<img' . $imgAttrs . '/>' ) ?? '';
 @endphp
 <figure{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses, $figureStyles ) !!}>
 	@if ( '' !== $imageUrl )
@@ -89,9 +107,9 @@
 					$linkAttrs .= sprintf( ' rel="%s"', e( $rel ) );
 				}
 			@endphp
-			<a{!! $linkAttrs !!}><img{!! $imgAttrs !!}/></a>
+			<a{!! $linkAttrs !!}>{!! $imgTag !!}</a>
 		@else
-			<img{!! $imgAttrs !!}/>
+			{!! $imgTag !!}
 		@endif
 	@endif
 </figure>
