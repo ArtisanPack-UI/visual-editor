@@ -12,13 +12,15 @@
  * @since 1.4.0
  */
 
-import { InspectorControls } from '@wordpress/block-editor';
+import { InspectorControls, store as blockEditorStore } from '@wordpress/block-editor';
 import { getBlockType } from '@wordpress/blocks';
 import { createHigherOrderComponent } from '@wordpress/compose';
+import { useSelect } from '@wordpress/data';
 import { addFilter } from '@wordpress/hooks';
 import { __ } from '@wordpress/i18n';
 import type { ComponentType } from 'react';
 
+import { collectSubtreeBlockNames, getVisibilityContentSources } from './content-sources';
 import { VisibilityPanel } from './VisibilityPanel';
 import { searchUsers } from './user-search';
 import type { VisibilityAttribute, VisibilityBreakpointOption } from './types';
@@ -64,6 +66,7 @@ export function setVisibilityRoles(next: Array<{ slug: string; label: string }>)
 
 interface BlockEditProps {
     name: string;
+    clientId?: string;
     attributes: Record<string, unknown> & {
         artisanpackVisibility?: VisibilityAttribute | null;
     };
@@ -110,6 +113,49 @@ function readBreakpoints(): VisibilityBreakpointOption[] {
     ];
 }
 
+/**
+ * The names of the block and its descendants, for the Content
+ * subsection's detected-source hint. Skips the walk unless the block
+ * has a Content rule, since it reruns on every store change.
+ */
+function useSubtreeBlockNames(clientId: string | undefined, enabled: boolean): string[] {
+    // Joined so `useSelect` compares a string, not a fresh array.
+    const joined = useSelect(
+        (select) => (enabled && clientId !== undefined
+            ? collectSubtreeBlockNames(select(blockEditorStore) as Parameters<typeof collectSubtreeBlockNames>[0], clientId).join(' ')
+            : ''),
+        [clientId, enabled],
+    );
+
+    return joined === '' ? [] : joined.split(' ');
+}
+
+interface VisibilityInspectorProps {
+    clientId?: string;
+    value: VisibilityAttribute | null;
+    onChange: (next: VisibilityAttribute | null) => void;
+}
+
+/**
+ * Rendered inside `InspectorControls`, so only the selected block
+ * mounts it and subscribes to the store.
+ */
+function VisibilityInspector({ clientId, value, onChange }: VisibilityInspectorProps): JSX.Element {
+    const subtreeBlockNames = useSubtreeBlockNames(clientId, value?.content !== undefined);
+
+    return (
+        <VisibilityPanel
+            value={value}
+            onChange={onChange}
+            breakpointOptions={readBreakpoints()}
+            roleOptions={readRoles()}
+            searchUsers={searchUsers}
+            contentSources={getVisibilityContentSources()}
+            subtreeBlockNames={subtreeBlockNames}
+        />
+    );
+}
+
 export const withVisibilityPanel = createHigherOrderComponent(
     (BlockEdit: ComponentType<BlockEditProps>) => {
         function VisibilityBlockEdit(props: BlockEditProps): JSX.Element {
@@ -125,12 +171,10 @@ export const withVisibilityPanel = createHigherOrderComponent(
                 <>
                     <BlockEdit {...props} />
                     <InspectorControls>
-                        <VisibilityPanel
+                        <VisibilityInspector
+                            clientId={props.clientId}
                             value={value}
                             onChange={(next) => props.setAttributes({ artisanpackVisibility: next })}
-                            breakpointOptions={readBreakpoints()}
-                            roleOptions={readRoles()}
-                            searchUsers={searchUsers}
                         />
                     </InspectorControls>
                 </>

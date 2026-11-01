@@ -21,6 +21,7 @@
 
 declare( strict_types=1 );
 
+use ArtisanPackUI\VisualEditor\Visibility\TreePruner;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\DuotoneCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Tests\Support\CanonicalMarkup;
 use Illuminate\Http\Request;
@@ -155,6 +156,11 @@ function markupParityDivergencesFor( string $name ): array
  * request for that URL. Without one, the request is for a path no fixture
  * links to, so — like the JS renderers given no `currentUrl` — no
  * navigation link is marked current.
+ *
+ * A fixture may also carry `prunedClientIds`: the blocks its visibility
+ * rules drop. Blade evaluates the rules while rendering; the JS side
+ * removes these first, as `TreePruner::prune()` would for a React or Vue
+ * host, and a test here pins that the pruner drops exactly them.
  *
  * @return array<string, array{0: string, 1: array<int, mixed>, 2: array<int, array<string, mixed>>, 3: array<int|string, mixed>, 4: bool, 5: string}>
  */
@@ -416,6 +422,33 @@ it( 'matches the golden markup shared with the React and Vue renderers', functio
 
 	expect( $canonical )->toBe( rtrim( $golden, "\n" ) );
 } )->with( markupParityFixtures() );
+
+it( 'prunes exactly the blocks a fixture says the JS renderers never receive', function (): void {
+	$withoutPruned = static function ( array $tree, array $pruned ) use ( &$withoutPruned ): array {
+		$out = [];
+
+		foreach ( $tree as $block ) {
+			if ( ! in_array( $block['clientId'], $pruned, true ) ) {
+				$block['innerBlocks'] = $withoutPruned( $block['innerBlocks'] ?? [], $pruned );
+				$out[]                = $block;
+			}
+		}
+
+		return $out;
+	};
+
+	$fixtures = array_filter(
+		markupParityManifest()['fixtures'],
+		static fn ( array $fixture ): bool => isset( $fixture['prunedClientIds'] ),
+	);
+
+	expect( $fixtures )->not->toBeEmpty();
+
+	foreach ( $fixtures as $fixture ) {
+		expect( app( TreePruner::class )->prune( $fixture['tree'] ) )
+			->toEqual( $withoutPruned( $fixture['tree'], $fixture['prunedClientIds'] ), $fixture['name'] );
+	}
+} );
 
 it( 'has a golden for every fixture and no orphaned goldens', function (): void {
 	$expected = array_keys( markupParityFixtures() );

@@ -36,6 +36,10 @@
 		     viewport switcher's registry from this so host-configured
 		     `label` / `previewWidthPx` overrides reach the UI. --}}
 		data-breakpoints="{{ json_encode( app( \ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry::class )->toArray() ) }}"
+		{{-- #1030 — sources the Visibility panel's Content rule offers,
+		     including any registered through
+		     `ap.visualEditor.visibility.registerContentSources`. --}}
+		data-visibility-content-sources="{{ json_encode( app( \ArtisanPackUI\VisualEditor\Visibility\ContentSourceRegistry::class )->toEditorPayload(), JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS ) }}"
 		{{-- #771 — registered taxonomies drive the post-terms inserter
 		     variations + the Settings-sidebar taxonomy picker. Templates
 		     live in the site editor, so the post-terms block needs the

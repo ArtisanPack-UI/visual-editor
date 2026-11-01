@@ -49,9 +49,16 @@ class VisibilityDecision
 	) {
 	}
 
-	public static function visible(): self
+	/**
+	 * @since 1.4.0
+	 * @since 1.20.0 Accepts reasons, so a rule that left a block visible
+	 *               for a notable reason can tell the debug hook why.
+	 *
+	 * @param  array<int, string>  $reasons
+	 */
+	public static function visible( array $reasons = [] ): self
 	{
-		return new self( self::OUTCOME_VISIBLE );
+		return new self( self::OUTCOME_VISIBLE, $reasons );
 	}
 
 	/**
@@ -107,6 +114,6 @@ class VisibilityDecision
 			);
 		}
 
-		return self::visible();
+		return self::visible( array_values( array_unique( array_merge( $this->reasons, $other->reasons ) ) ) );
 	}
 }

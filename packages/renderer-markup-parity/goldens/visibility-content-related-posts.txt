@@ -1,0 +1,17 @@
+<div class="wp-block-group is-layout-flow wp-block-group-is-layout-flow">
+  <h2 class="wp-block-heading" id="related-full">
+    "Related posts"
+  </h2>
+  <div class="ap-related-posts">
+    <li class="wp-block-post-template-item related-post post-21" id="post-21">
+      <p class="wp-block-paragraph">
+        "Related A"
+      </p>
+    </li>
+  </div>
+</div>
+<div class="wp-block-group is-layout-flow wp-block-group-is-layout-flow">
+  <p class="wp-block-paragraph">
+    "No other posts yet"
+  </p>
+</div>

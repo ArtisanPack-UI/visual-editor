@@ -62,6 +62,14 @@ interface Fixture {
      * to).
      */
     currentUrl?: string;
+    /**
+     * `clientId`s the server drops for a fixture with visibility rules.
+     * Blade evaluates the rules while rendering; the JS renderers get
+     * the tree after `TreePruner::prune()`, so this suite removes the
+     * same blocks first. The Pest suite asserts the pruner really drops
+     * exactly these.
+     */
+    prunedClientIds?: string[];
 }
 
 /**
@@ -273,16 +281,31 @@ function canonicalOutput(html: string, name: string): string {
         : `${canonicalMarkup}\n${CSS_SECTION_DELIMITER}\n${canonicalCss}`;
 }
 
-function renderReact({ name, tree, templateParts, duotonePresets, currentUrl }: Fixture): string {
+/**
+ * Removes the blocks the server would have pruned from a fixture's tree.
+ */
+function withoutPruned(tree: Block[], prunedClientIds: string[] = []): Block[] {
+    return tree
+        .filter((block) => !prunedClientIds.includes(String(block.clientId)))
+        .map((block) => ({
+            ...block,
+            innerBlocks: withoutPruned((block.innerBlocks ?? []) as Block[], prunedClientIds),
+        })) as Block[];
+}
+
+function renderReact({ name, tree, templateParts, duotonePresets, currentUrl, prunedClientIds }: Fixture): string {
+    const served = withoutPruned(tree, prunedClientIds);
+
     return canonicalOutput(
-        renderToStaticMarkup(createElement(ReactBlockTree, { tree, templateParts, duotonePresets, currentUrl })),
+        renderToStaticMarkup(createElement(ReactBlockTree, { tree: served, templateParts, duotonePresets, currentUrl })),
         name
     );
 }
 
-async function renderVue({ name, tree, templateParts, duotonePresets, currentUrl }: Fixture): Promise<string> {
-    const app = createSSRApp({
-        render: () => vueH(VueBlockTree, { tree, templateParts, duotonePresets, currentUrl }),
+async function renderVue({ name, tree, templateParts, duotonePresets, currentUrl, prunedClientIds }: Fixture): Promise<string> {
+    const served = withoutPruned(tree, prunedClientIds);
+    const app    = createSSRApp({
+        render: () => vueH(VueBlockTree, { tree: served, templateParts, duotonePresets, currentUrl }),
     });
 
     return canonicalOutput(await vueRenderToString(app), name);

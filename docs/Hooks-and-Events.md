@@ -239,6 +239,19 @@ The picker only controls what authors can choose. Whatever `postType` a saved bl
 
 ---
 
+### `ap.visualEditor.visibility.registerContentSources`
+
+**Since v1.20.** PHP filter that receives the `ContentSourceRegistry` so a host or package can add sources to the [Content visibility rule](visibility.md#content). Must return the registry. A registered source appears in the Visibility panel automatically. See [Adding a content source](visibility.md#adding-a-content-source).
+
+```php
+use ArtisanPackUI\VisualEditor\Visibility\ContentSourceRegistry;
+
+addFilter( 'ap.visualEditor.visibility.registerContentSources', function ( ContentSourceRegistry $registry ) {
+    $registry->register( new \App\Visibility\ProductLoopSource() );
+    return $registry;
+} );
+```
+
 ### `ap.visualEditor.localeData`
 
 *Since v1.15.1 (#896).* Supplies or adjusts the Jed locale data the

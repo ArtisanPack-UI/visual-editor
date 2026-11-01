@@ -23,7 +23,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { __, _x, sprintf } from '@wordpress/i18n';
+import { __, _n, _x, sprintf } from '@wordpress/i18n';
 import {
     Button,
     ButtonGroup,
@@ -38,6 +38,7 @@ import {
 
 import type {
     BrowserOsDeviceRuleAttrs,
+    ContentRuleAttrs,
     DateTimeWindowRuleAttrs,
     QueryStringClause,
     QueryStringRuleAttrs,
@@ -50,6 +51,7 @@ import type {
     UserRoleRuleAttrs,
     VisibilityAttribute,
     VisibilityBreakpointOption,
+    VisibilityContentSourceOption,
 } from './types';
 
 interface Props {
@@ -58,6 +60,8 @@ interface Props {
     breakpointOptions: VisibilityBreakpointOption[];
     roleOptions: Array<{ slug: string; label: string }>;
     searchUsers: (term: string) => Promise<SpecificUserRef[]>;
+    contentSources?: VisibilityContentSourceOption[];
+    subtreeBlockNames?: string[];
 }
 
 // Option lists are built per render so labels pick up locale data
@@ -130,7 +134,7 @@ const REMOVE_BUTTON_STYLE: React.CSSProperties = {
     marginTop: '4px',
 };
 
-export function VisibilityPanel({ value, onChange, breakpointOptions, roleOptions, searchUsers }: Props): JSX.Element {
+export function VisibilityPanel({ value, onChange, breakpointOptions, roleOptions, searchUsers, contentSources = [], subtreeBlockNames = [] }: Props): JSX.Element {
     const v: VisibilityAttribute = value ?? {};
 
     function patch(next: VisibilityAttribute): void {
@@ -188,6 +192,12 @@ export function VisibilityPanel({ value, onChange, breakpointOptions, roleOption
             <RecurringPanel
                 value={v.recurring}
                 onChange={(next) => patch({ ...v, recurring: next })}
+            />
+            <ContentPanel
+                value={v.content}
+                onChange={(next) => patch({ ...v, content: next })}
+                sources={contentSources}
+                subtreeBlockNames={subtreeBlockNames}
             />
         </PanelBody>
     );
@@ -704,6 +714,100 @@ function RecurringPanel({ value, onChange }: { value: RecurringScheduleRuleAttrs
                 </div>
             )}
         </>
+    );
+}
+
+function ContentPanel({ value, onChange, sources, subtreeBlockNames }: { value: ContentRuleAttrs | undefined; onChange: (next: ContentRuleAttrs | undefined) => void; sources: VisibilityContentSourceOption[]; subtreeBlockNames: string[] }): JSX.Element | null {
+    if (sources.length === 0) {
+        return null;
+    }
+
+    const active = value !== undefined;
+    const source = sources.find((candidate) => candidate.key === value?.source);
+
+    // A source that is no longer registered stays selected, rather than
+    // the panel quietly showing a different one than the block stores.
+    const sourceOptions = sources.map((candidate) => ({ value: candidate.key, label: candidate.label }));
+
+    if (active && source === undefined && value?.source) {
+        sourceOptions.push({ value: value.source, label: value.source });
+    }
+
+    const conditionOptions = source?.conditions ?? [];
+    const conditions       = conditionOptions.some((option) => option.value === value?.condition) || !value?.condition
+        ? conditionOptions
+        : [...conditionOptions, { value: value.condition, label: value.condition }];
+
+    function selectSource(key: string): void {
+        const next = sources.find((candidate) => candidate.key === key);
+
+        onChange({ ...(value ?? {}), source: key, condition: next?.conditions[0]?.value });
+    }
+
+    return (
+        <>
+            <PanelRow>
+                <ToggleControl
+                    label={__('Content', 'artisanpack-visual-editor')}
+                    help={__('Show or hide this block based on the dynamic content inside it. Applies on the published page; the editor always shows the block.', 'artisanpack-visual-editor')}
+                    checked={active}
+                    onChange={(next) => onChange(next
+                        ? { direction: 'show', match: 'any', source: sources[0].key, condition: sources[0].conditions[0]?.value }
+                        : undefined)}
+                />
+            </PanelRow>
+            {active && (
+                <div style={SUBSECTION_STYLE}>
+                    <SelectControl
+                        label={__('Source', 'artisanpack-visual-editor')}
+                        value={value?.source ?? ''}
+                        options={sourceOptions}
+                        onChange={selectSource}
+                    />
+                    <SelectControl
+                        label={__('Condition', 'artisanpack-visual-editor')}
+                        value={value?.condition ?? ''}
+                        options={conditions}
+                        onChange={(condition) => onChange({ ...(value ?? {}), condition })}
+                    />
+                    <CombinatorToggle value={value?.match ?? 'any'} onChange={(match) => onChange({ ...(value ?? {}), match })} />
+                    <DirectionToggle value={value?.direction ?? 'show'} onChange={(direction) => onChange({ ...(value ?? {}), direction })} />
+                    <ContentSourceHint source={source} subtreeBlockNames={subtreeBlockNames} />
+                </div>
+            )}
+        </>
+    );
+}
+
+/**
+ * Names what the rule found in the block's subtree, or warns when it
+ * found nothing. Sources that don't match on block name can't be
+ * detected here, so they show neither.
+ */
+function ContentSourceHint({ source, subtreeBlockNames }: { source: VisibilityContentSourceOption | undefined; subtreeBlockNames: string[] }): JSX.Element | null {
+    if (source === undefined || source.blocks.length === 0) {
+        return null;
+    }
+
+    const count = subtreeBlockNames.filter((name) => source.blocks.includes(name)).length;
+
+    if (count === 0) {
+        return (
+            <em role="status">
+                {__('No matching block inside — this rule has no effect.', 'artisanpack-visual-editor')}
+            </em>
+        );
+    }
+
+    return (
+        <em role="status" style={{ opacity: 0.7 }}>
+            {sprintf(
+                /* translators: 1: number of blocks found. 2: source name, e.g. "Related Posts". */
+                _n('Checks %1$d %2$s block.', 'Checks %1$d %2$s blocks.', count, 'artisanpack-visual-editor'),
+                count,
+                source.label,
+            )}
+        </em>
     );
 }
 

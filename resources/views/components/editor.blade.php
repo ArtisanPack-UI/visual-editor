@@ -37,6 +37,10 @@
 	     defaults) so the viewport switcher's registry hydrates with
 	     host-configured `label` / `previewWidthPx` overrides. --}}
 	data-breakpoints="{{ json_encode( $breakpoints ) }}"
+	{{-- #1030 — sources the Visibility panel's Content rule offers,
+	     including any registered through
+	     `ap.visualEditor.visibility.registerContentSources`. --}}
+	data-visibility-content-sources="{{ json_encode( app( \ArtisanPackUI\VisualEditor\Visibility\ContentSourceRegistry::class )->toEditorPayload(), JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS ) }}"
 	{{-- #773 — host-provided palette / font-size / font-family /
 	     spacing-size presets. Merged into `editorSettings` by
 	     `preset-registry.ts` at editor boot and layered on top of the

@@ -7341,6 +7341,269 @@
                     ]
                 }
             ]
+        },
+        {
+            "name": "visibility-content-related-posts",
+            "$comment": "#1030 — a Group with a heading and Related Posts disappears, heading included, when there are no related posts; renders normally when there are; and a `direction: hide` fallback shows only for the empty loop.",
+            "resolveQueries": false,
+            "prunedClientIds": [
+                "cv-rp-empty",
+                "cv-fallback-full"
+            ],
+            "tree": [
+                {
+                    "clientId": "cv-rp-empty",
+                    "name": "core/group",
+                    "attributes": {
+                        "artisanpackVisibility": {
+                            "content": {
+                                "source": "relatedPosts",
+                                "condition": "hasResults",
+                                "match": "any",
+                                "direction": "show"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "cv-rp-empty-h",
+                            "name": "core/heading",
+                            "attributes": {
+                                "anchor": "related-empty",
+                                "content": "Related posts",
+                                "level": 2
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "cv-rp-empty-l",
+                            "name": "artisanpack/related-posts",
+                            "attributes": {
+                                "_resolvedTotal": 0,
+                                "_resolvedItems": 0
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                },
+                {
+                    "clientId": "cv-rp-full",
+                    "name": "core/group",
+                    "attributes": {
+                        "artisanpackVisibility": {
+                            "content": {
+                                "source": "relatedPosts",
+                                "condition": "hasResults",
+                                "match": "any",
+                                "direction": "show"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "cv-rp-full-h",
+                            "name": "core/heading",
+                            "attributes": {
+                                "anchor": "related-full",
+                                "content": "Related posts",
+                                "level": 2
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "cv-rp-full-l",
+                            "name": "artisanpack/related-posts",
+                            "attributes": {
+                                "_resolvedTotal": 1,
+                                "_resolvedItems": 1
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "cv-item-21",
+                                    "name": "core/post-template-item",
+                                    "attributes": {
+                                        "postId": 21,
+                                        "className": "related-post post-21"
+                                    },
+                                    "innerBlocks": [
+                                        {
+                                            "clientId": "cv-item-21-p",
+                                            "name": "core/paragraph",
+                                            "attributes": {
+                                                "content": "Related A"
+                                            },
+                                            "innerBlocks": []
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "clientId": "cv-fallback-empty",
+                    "name": "core/group",
+                    "attributes": {
+                        "artisanpackVisibility": {
+                            "content": {
+                                "source": "relatedPosts",
+                                "condition": "hasResults",
+                                "match": "any",
+                                "direction": "hide"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "cv-fallback-empty-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "No other posts yet"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "cv-fallback-empty-l",
+                            "name": "artisanpack/related-posts",
+                            "attributes": {
+                                "_resolvedTotal": 0,
+                                "_resolvedItems": 0
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                },
+                {
+                    "clientId": "cv-fallback-full",
+                    "name": "core/group",
+                    "attributes": {
+                        "artisanpackVisibility": {
+                            "content": {
+                                "source": "relatedPosts",
+                                "condition": "hasResults",
+                                "match": "any",
+                                "direction": "hide"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "cv-fallback-full-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Never shown"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "cv-fallback-full-l",
+                            "name": "artisanpack/related-posts",
+                            "attributes": {
+                                "_resolvedTotal": 1,
+                                "_resolvedItems": 1
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "cv-item-22",
+                                    "name": "core/post-template-item",
+                                    "attributes": {
+                                        "postId": 22,
+                                        "className": "related-post post-22"
+                                    },
+                                    "innerBlocks": [
+                                        {
+                                            "clientId": "cv-item-22-p",
+                                            "name": "core/paragraph",
+                                            "attributes": {
+                                                "content": "Related B"
+                                            },
+                                            "innerBlocks": []
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "visibility-content-post-navigation",
+            "$comment": "#1030 — a Group of post-navigation links disappears when the post has no neighbours and renders with one.",
+            "resolveQueries": false,
+            "prunedClientIds": [
+                "cv-nav-none"
+            ],
+            "tree": [
+                {
+                    "clientId": "cv-nav-none",
+                    "name": "core/group",
+                    "attributes": {
+                        "artisanpackVisibility": {
+                            "content": {
+                                "source": "postNavigation",
+                                "condition": "hasEither",
+                                "match": "any",
+                                "direction": "show"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "cv-nav-none-p",
+                            "name": "artisanpack/post-navigation-link",
+                            "attributes": {
+                                "type": "previous",
+                                "_resolvedPrevUrl": "",
+                                "_resolvedPrevTitle": "",
+                                "_resolvedNextUrl": "",
+                                "_resolvedNextTitle": ""
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "cv-nav-none-n",
+                            "name": "artisanpack/post-navigation-link",
+                            "attributes": {
+                                "type": "next",
+                                "_resolvedPrevUrl": "",
+                                "_resolvedPrevTitle": "",
+                                "_resolvedNextUrl": "",
+                                "_resolvedNextTitle": ""
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                },
+                {
+                    "clientId": "cv-nav-one",
+                    "name": "core/group",
+                    "attributes": {
+                        "artisanpackVisibility": {
+                            "content": {
+                                "source": "postNavigation",
+                                "condition": "hasEither",
+                                "match": "any",
+                                "direction": "show"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "cv-nav-one-p",
+                            "name": "artisanpack/post-navigation-link",
+                            "attributes": {
+                                "type": "previous",
+                                "_resolvedPrevUrl": "https://example.com/older",
+                                "_resolvedPrevTitle": "Older",
+                                "_resolvedNextUrl": "",
+                                "_resolvedNextTitle": ""
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
         }
     ]
 }
