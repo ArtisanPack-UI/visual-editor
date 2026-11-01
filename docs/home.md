@@ -128,6 +128,7 @@ All endpoints use the `/visual-editor/api/` prefix and run through the middlewar
 - `POST /blocks/preview` — Dynamic block editor preview rendering; also takes an `items` batch of up to 25 blocks (since v1.17.0)
 - `GET /blocks` — Enabled-block manifest (allow/deny lists applied)
 - `POST /query/resolve` — `core/query` block resolution
+- `GET /taxonomies/{taxonomy}/terms` — term list for the Query Loop's taxonomy filter
 
 ### Site editor
 - `GET/POST/PUT/DELETE /templates`, `/template-parts` — Templates and parts (wp_template shape)

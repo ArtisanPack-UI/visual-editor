@@ -370,7 +370,7 @@ Since v1.12.0 the front end declares every spacing preset the pickers offer, and
 
 ## `taxonomies`
 
-**Since v1.9 (#771).** Taxonomies registered here are surfaced in the `artisanpack/post-terms` Settings-sidebar picker and get one inserter variation each. Resolved through `TaxonomyRegistry`; the editor mount stamps them as `data-taxonomies` for both the post and site editors.
+**Since v1.9 (#771).** Taxonomies registered here are surfaced in the `artisanpack/post-terms` Settings-sidebar picker and get one inserter variation each, and since v1.20 (#1029) they're listed in the `artisanpack/query` Filters panel. Resolved through `TaxonomyRegistry`; the editor mount stamps them as `data-taxonomies` for both the post and site editors.
 
 Keys are the taxonomy slug stamped onto the block's `term` attribute (matching the slugs `PostResolver::resolvePostTerms()` reads from the post's relations). Each value is either a display label, or an array with `label` and an optional `plural` for richer inserter keywords:
 
@@ -384,6 +384,14 @@ Keys are the taxonomy slug stamped onto the block's `term` attribute (matching t
 ```
 
 The `category` and `post_tag` defaults mirror WordPress core's built-in public taxonomies.
+
+**Since v1.20 (#1029).** An array entry can also set `postTypes` to limit which Query Loop post types offer the taxonomy:
+
+```php
+'package' => [ 'label' => 'Package', 'postTypes' => [ 'post' ] ],
+```
+
+Without `postTypes`, a custom taxonomy is offered for every post type. `category` and `post_tag` are always offered for `post` only, because their term ids come from cms-framework's post tables. The values are the same slugs the Query Loop's Post type picker uses. `postTypes` doesn't affect `post-terms`.
 
 ---
 
