@@ -81,7 +81,7 @@ export const BreadcrumbsBlock = defineComponent({
             const separatorIcon = normalizeSeparator(props.attributes.separatorIcon);
             const breadcrumbsSchema = attrBoolean(
                 props.attributes.breadcrumbsSchema,
-                true
+                false
             );
             const trail = normalizeTrail(props.attributes._resolvedTrail);
             const ariaLabel = attrString(props.attributes.ariaLabel, 'Breadcrumb');

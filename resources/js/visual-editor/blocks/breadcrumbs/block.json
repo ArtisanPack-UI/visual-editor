@@ -24,7 +24,7 @@
         },
         "breadcrumbsSchema": {
             "type": "boolean",
-            "default": true
+            "default": false
         }
     },
     "supports": {

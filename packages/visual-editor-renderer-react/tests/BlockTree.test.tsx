@@ -764,6 +764,25 @@ describe('Core design blocks', () => {
         expect(html).not.toContain('itemprop="position"');
     });
 
+    it('omits breadcrumbs schema microdata when the attribute was never saved', () => {
+        const tree = [
+            makeBlock('artisanpack/breadcrumbs', {
+                _resolvedTrail: [
+                    { label: 'Home', url: '/' },
+                    { label: 'Page', current: true },
+                ],
+            }),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('ap-breadcrumbs__link');
+        expect(html).not.toContain('schema.org/BreadcrumbList');
+        expect(html).not.toContain('schema.org/ListItem');
+        expect(html).not.toContain('itemprop=');
+        expect(html).not.toContain('itemscope');
+    });
+
     it('drops unsafe URLs from breadcrumbs trail entries', () => {
         const tree = [
             makeBlock('artisanpack/breadcrumbs', {

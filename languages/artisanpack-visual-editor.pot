@@ -1989,10 +1989,6 @@ msgstr ""
 msgid "Direction"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/breadcrumbs/edit.tsx:90
-msgid "Disable if your SEO plugin already emits BreadcrumbList structured data."
-msgstr ""
-
 #: resources/js/visual-editor/states/registry.ts:93
 msgid "Disabled"
 msgstr ""
@@ -2463,6 +2459,10 @@ msgstr ""
 
 #: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:116
 msgid "Enable Flex"
+msgstr ""
+
+#: resources/js/visual-editor/blocks/breadcrumbs/edit.tsx:90
+msgid "Enable only if nothing else on the site emits BreadcrumbList structured data."
 msgstr ""
 
 #: resources/js/visual-editor/blocks/_shared/photo-grid/controls.tsx:185
