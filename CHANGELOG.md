@@ -6,12 +6,20 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Upgrade notes
+
+- **Breadcrumbs no longer print microdata by default ([#1038](https://github.com/ArtisanPack-UI/visual-editor/issues/1038)).** A breadcrumbs block with **Include schema.org markup** left at its old default never saved the setting, so it stops printing `BreadcrumbList` microdata after this update. The block looks the same, and a block with the toggle explicitly off is unchanged. If that microdata is your site's only breadcrumb schema, turn the toggle on for each block and save, or emit a JSON-LD `BreadcrumbList` in the head instead.
+
 ### Added
 
 - **Taxonomy and term filter for the Query Loop** ([#1029](https://github.com/ArtisanPack-UI/visual-editor/issues/1029)). The block's Filters panel now has a **Taxonomy** select and a **Terms** checkbox list, so authors can build "posts in category X" loops without editing block markup. The selection is saved as `query.taxQuery`, and the preview updates as it changes. Terms come from a new `GET /visual-editor/api/taxonomies/{taxonomy}/terms` endpoint, which reads `category` / `post_tag` from cms-framework and asks the `ap.visualEditor.terms` filter for anything else.
 - **`postTypes` on taxonomy config entries** ([#1029](https://github.com/ArtisanPack-UI/visual-editor/issues/1029)). This limits which Query Loop post types offer a taxonomy, and changing the post type clears a filter the new type doesn't support. Without it, a custom taxonomy is offered for every post type. `category` and `post_tag` are always offered for `post` only. Filtering on a custom taxonomy also needs a resolver that handles it; for cms-framework that's [cms-framework#439](https://github.com/ArtisanPack-UI/cms-framework/issues/439).
 - **Content visibility rules** ([#1030](https://github.com/ArtisanPack-UI/visual-editor/issues/1030)). The Visibility panel has a new **Content** subsection that shows or hides a block based on the dynamic content inside it, so a Group with a "Related posts" heading disappears when there are no related posts, and a post navigation band disappears on a one-post blog. It checks Query Loops, Related Posts, Post Navigation Links and pagination inside the block, with Any / All and Show / Hide, and *Hide when* builds an empty-state fallback that can sit outside the loop. The rule is evaluated on the server in the Blade renderer and `TreePruner`, and doesn't hide or dim anything in the editor canvas. React and Vue hosts must resolve the tree before pruning it, or every source counts as empty. See [Block Visibility](docs/visibility.md).
 - **`ap.visualEditor.visibility.registerContentSources` filter** ([#1030](https://github.com/ArtisanPack-UI/visual-editor/issues/1030)). Hosts can register their own `ContentSource`, and it appears in the panel. Custom rules can implement the new `BlockAwareVisibilityRule` to read the block tree.
+
+### Fixed
+
+- **A page with a breadcrumbs block carries one `BreadcrumbList`** ([#1038](https://github.com/ArtisanPack-UI/visual-editor/issues/1038)). `breadcrumbsSchema` now defaults to false in `block.json` and the Blade, React and Vue renderers, so a site that emits JSON-LD breadcrumbs in the head doesn't also get a microdata list in the body. The toggle stays in the block's settings for sites that want the microdata. See the upgrade note above.
 
 ## [1.19.0] - 2026-10-30
 

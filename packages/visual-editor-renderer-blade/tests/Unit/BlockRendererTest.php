@@ -987,6 +987,25 @@ it( 'falls back to safe defaults when breadcrumbs separator is invalid and omits
 		->and( $html )->not->toContain( 'itemprop="position"' );
 } );
 
+it( 'omits breadcrumbs schema microdata when the attribute was never saved', function (): void {
+	$tree = [
+		makeBlock( 'artisanpack/breadcrumbs', [
+			'_resolvedTrail' => [
+				[ 'label' => 'Home', 'url' => '/' ],
+				[ 'label' => 'Page', 'current' => true ],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'ap-breadcrumbs__link' )
+		->and( $html )->not->toContain( 'schema.org/BreadcrumbList' )
+		->and( $html )->not->toContain( 'schema.org/ListItem' )
+		->and( $html )->not->toContain( 'itemprop=' )
+		->and( $html )->not->toContain( 'itemscope' );
+} );
+
 it( 'drops unsafe URLs from breadcrumbs trail entries', function (): void {
 	$tree = [
 		makeBlock( 'artisanpack/breadcrumbs', [

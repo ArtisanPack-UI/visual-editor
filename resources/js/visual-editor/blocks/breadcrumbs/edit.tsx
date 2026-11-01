@@ -88,7 +88,7 @@ export default function BreadcrumbsEdit({
                     <ToggleControl
                         label={__('Include schema.org markup', TEXT_DOMAIN)}
                         help={__(
-                            'Disable if your SEO plugin already emits BreadcrumbList structured data.',
+                            'Enable only if nothing else on the site emits BreadcrumbList structured data.',
                             TEXT_DOMAIN
                         )}
                         checked={breadcrumbsSchema}

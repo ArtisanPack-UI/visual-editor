@@ -18,7 +18,7 @@
 	];
 	$separatorPath = $separatorPaths[ $separatorIcon ];
 
-	$breadcrumbsSchema = (bool) ( $attributes['breadcrumbsSchema'] ?? true );
+	$breadcrumbsSchema = (bool) ( $attributes['breadcrumbsSchema'] ?? false );
 
 	$trailRaw = $attributes['_resolvedTrail'] ?? [];
 	$trail    = [];
