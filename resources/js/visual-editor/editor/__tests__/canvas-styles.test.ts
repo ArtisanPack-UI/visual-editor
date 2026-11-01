@@ -21,7 +21,7 @@ import {
     DEFAULT_CANVAS_STYLES,
     POST_EDITOR_FRAMING_STYLES,
 } from '../../editor-settings';
-import { blockStylesheetPaths, canvasStyles } from '../canvas-styles';
+import { blockStylesheetPaths, canvasStyles, formatStylesheetPaths } from '../canvas-styles';
 
 describe('canvasStyles', () => {
     it('spaces flex and grid layout children with the block gap, as the front end does (#883)', () => {
@@ -146,6 +146,22 @@ describe('blockStylesheetPaths (#566 glob)', () => {
         const entriesBeforeDefaults = canvasStyles.slice(0, defaultsIndex);
         expect(entriesBeforeDefaults.length).toBeGreaterThanOrEqual(
             blockStyleStrings.size
+        );
+    });
+});
+
+describe('format stylesheets in the canvas (#1039)', () => {
+    it('discovers every stylesheet under formats/', () => {
+        expect(formatStylesheetPaths).toContain('../formats/inline-icon/inline-icon.css');
+    });
+
+    it('hands them to the iframe ahead of the canvas defaults', () => {
+        const defaultsIndex = canvasStyles.findIndex(
+            (entry) => entry.css === DEFAULT_CANVAS_STYLES
+        );
+
+        expect(defaultsIndex).toBeGreaterThanOrEqual(
+            blockStylesheetPaths.length + formatStylesheetPaths.length
         );
     });
 });

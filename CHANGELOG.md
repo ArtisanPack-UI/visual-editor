@@ -19,6 +19,7 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
+- **The editor canvas matches the front end for inline icons, custom flex values and empty Groups** ([#1039](https://github.com/ArtisanPack-UI/visual-editor/issues/1039)). Inline icons now render at `1em` in the post editor, because stylesheets under `formats/` reach the canvas iframe, and an icon saved without its glyph shows the real one in both editors. Custom Flex panel values such as a `14px` basis now apply in Group, Column, Columns and Grid Item, including responsive values. An empty Group with its own background, border or size keeps that size: its appender only shows while the Group is selected, and it sits over the shape. A bare empty Group keeps its appender, since it has no other size. Masonry styles also reach the canvas now.
 - **A page with a breadcrumbs block carries one `BreadcrumbList`** ([#1038](https://github.com/ArtisanPack-UI/visual-editor/issues/1038)). `breadcrumbsSchema` now defaults to false in `block.json` and the Blade, React and Vue renderers, so a site that emits JSON-LD breadcrumbs in the head doesn't also get a microdata list in the body. The toggle stays in the block's settings for sites that want the microdata. See the upgrade note above.
 
 ## [1.19.0] - 2026-10-30

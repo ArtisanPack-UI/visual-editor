@@ -110,4 +110,21 @@ describe('ColumnEdit', () => {
         );
         expect(getByTestId('inspector')).toBeTruthy();
     });
+
+    it('publishes custom flex values to the canvas (#1039)', () => {
+        render(
+            <ColumnEdit
+                attributes={{
+                    artisanpackFlex: { item: { basis: { base: '14px' } } },
+                }}
+                setAttributes={vi.fn()}
+                clientId="custom-flex"
+            />
+        );
+
+        expect(
+            document.querySelector('style[data-ap-canvas-styles="flex-arbitrary"]')
+                ?.textContent
+        ).toContain('flex-basis: 14px');
+    });
 });

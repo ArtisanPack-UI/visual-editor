@@ -22,6 +22,7 @@ import {
     FlexContainerControls,
     FlexItemControls,
     serializeFlex,
+    useFlexCanvasStyles,
     type ArtisanpackFlexAttribute,
 } from '../_shared/flex-controls';
 import { getResponsiveRegistry } from '../../responsive/registry';
@@ -90,6 +91,7 @@ export default function GridItemEdit({
         attributes.artisanpackFlex ?? null,
         flexRegistry,
     );
+    useFlexCanvasStyles(clientId, flexResult, flexRegistry);
 
     const className = [
         'ap-grid-item',
