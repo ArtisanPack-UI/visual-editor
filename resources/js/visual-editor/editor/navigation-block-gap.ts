@@ -5,16 +5,15 @@
  * never serializes that value inline — it reaches the canvas only through
  * the flex layout support's per-instance `wp-container-*` rule, which
  * Gutenberg hands to `useStyleOverride`. Those overrides are emitted by
- * `EditorStyles`, which only mounts inside the `BlockCanvas` iframe. The
- * site editor renders its block list inline (#418), so the rule never
- * reached the DOM and navigation items stayed flush whatever Block
+ * `EditorStyles`, which didn't mount in the site editor's inline canvas
+ * (#418) until #1040, so navigation items stayed flush whatever Block
  * spacing value was picked.
  *
  * This filter writes the resolved gap straight onto the navigation
- * wrapper's inline style instead, which works on both canvas surfaces.
- * Inside the iframe it duplicates the upstream container rule with the
- * same value, so the two never disagree. The unset default lives in
- * `blocks/navigation/navigation.css`.
+ * wrapper's inline style, which works on every canvas surface and also
+ * expands underscored preset slugs. It duplicates the upstream container
+ * rule with the same value, so the two never disagree. The unset default
+ * lives in `blocks/navigation/navigation.css`.
  *
  * Registered under `editor.BlockListBlock` and idempotent across the
  * post-editor and site-editor bootstrap paths via a page-global sentinel.

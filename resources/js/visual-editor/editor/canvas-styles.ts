@@ -31,6 +31,7 @@ import { applyFilters } from '@wordpress/hooks';
 
 import {
     ALIGNMENT_OVERRIDE_STYLES,
+    CANVAS_LAYOUT_STYLES,
     COMPOSED_CHROME_STYLES,
     DEFAULT_CANVAS_STYLES,
     POST_EDITOR_FRAMING_STYLES,
@@ -106,49 +107,6 @@ const formatStylesheets: readonly CanvasStyle[] = formatStylesheetPaths.map(
 );
 
 /**
- * Layout baseline rules — flex + grid.
- *
- * Upstream WP emits these rules at PAGE RENDER time via
- * `WP_Block_Supports_Layout` (PHP front-end) and `useLayoutStyles`
- * (editor — but only when the block has a non-default layout attribute
- * like `justifyContent`; the `display: flex` rule itself is NOT
- * emitted by `useLayoutStyles.getLayoutStyle` in
- * `@wordpress/block-editor`). Neither the bundled
- * `@wordpress/block-library/style.css` nor `editor.css` define
- * `.is-layout-flex { display: flex }` as a static rule.
- *
- * Result inside the visual-editor iframe: blocks with
- * `supports.layout.default.type = "flex"` in block.json (gallery,
- * buttons, cover, group's row/stack variations) render with
- * `is-layout-flex` on the wrapper but no flex display rule, so they
- * fall back to block flow and inner blocks stack vertically.
- *
- * Ship the baseline rules statically here so the canvas matches the
- * front-end (which gets the same rules via `<x-ve-blocks-styles>`).
- * Generic `.is-layout-flex` / `.is-layout-grid` selectors mean
- * per-block compound classes (`wp-block-gallery-is-layout-flex`, …)
- * inherit without enumerating block names.
- *
- * The zero-specificity `gap` rules (#883) match the front-end
- * baseline: Gutenberg writes a per-container `gap` only when the block
- * sets its own Block spacing, so without them a Row or Grid with no
- * Block spacing renders flush in the canvas but not on the site.
- *
- * The flex defaults (`flex-wrap`, `align-items`) are zero specificity
- * (#927), so the Flex panel's `ap-flex-nowrap` / `ap-items-*` utilities
- * win wherever they load.
- */
-const LAYOUT_BASELINE_STYLES = `
-.is-layout-flex { display: flex; }
-:where(.is-layout-flex) { flex-wrap: wrap; align-items: center; }
-.is-layout-flex > :is(*, div) { margin: 0; }
-.is-layout-grid { display: grid; }
-.is-layout-grid > :is(*, div) { margin: 0; }
-:where(.is-layout-flex) { gap: var(--wp--style--block-gap, 0.5em); }
-:where(.is-layout-grid) { gap: var(--wp--style--block-gap, 0.5em); }
-`;
-
-/**
  * Editor-only overrides for the interactive block families.
  *
  * These rules sit downstream of the block-authored stylesheets so they
@@ -187,9 +145,10 @@ const EDITOR_BLOCK_TWEAKS = `
     /* The block-editor wraps every block in a .block-editor-block-list__block
        div that adds its own margin. Inside the accordion / tab containers,
        trim that wrapper margin so the visual cadence matches the
-       front-end. */
-    .ap-accordion__body .block-editor-block-list__block,
-    .ap-tab-section .block-editor-block-list__block { margin-top: 0; margin-bottom: 0; }
+       front-end. Direct children only, so a Group nested in a panel
+       keeps its block spacing (#1040). */
+    .ap-accordion__body > .block-editor-block-list__block,
+    .ap-tab-section > .block-editor-block-list__block { margin-top: 0; margin-bottom: 0; }
 
     /* Marquee — the front-end CSS translates the text off-screen
        and the renderers' inline animation slides it back. The
@@ -231,7 +190,7 @@ const baseCanvasStyles: CanvasStyle[] = [
     { css: blockEditorContent },
     { css: blockLibraryStyle },
     { css: blockLibraryEditor },
-    { css: LAYOUT_BASELINE_STYLES },
+    { css: CANVAS_LAYOUT_STYLES },
     // Flex layout utility stylesheet (#595). Lives outside the
     // `blocks/*/` tree so it isn't picked up by the glob below; hand
     // it to the iframe explicitly so `.ap-flex` and per-breakpoint
