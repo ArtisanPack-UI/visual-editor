@@ -82,6 +82,20 @@ it( 'keeps host terms with no published posts, so they can be picked ahead of ti
 		->assertJsonPath( 'data.0.name', 'Hooks' );
 } );
 
+it( 'drops host terms with an unusable or repeated id', function (): void {
+	actingAsTermsUser();
+
+	addFilter( CategoriesBlock::FILTER_TERMS, fn (): array => [
+		[ 'id' => 0, 'name' => 'Zero', 'url' => '/zero' ],
+		[ 'id' => 3, 'name' => 'Hooks', 'url' => '/hooks' ],
+		[ 'id' => 3, 'name' => 'Hooks again', 'url' => '/hooks-again' ],
+	] );
+
+	$this->getJson( '/visual-editor/api/taxonomies/package/terms' )
+		->assertOk()
+		->assertExactJson( [ 'data' => [ [ 'id' => 3, 'name' => 'Hooks' ] ] ] );
+} );
+
 it( 'returns an empty list for a taxonomy nothing answers for', function (): void {
 	actingAsTermsUser();
 

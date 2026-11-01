@@ -134,15 +134,18 @@ export default function TaxonomyFilter( {
         onChange( { taxonomy, terms: next, operator: 'IN' } );
     };
 
-    // A selected term that's since been deleted still filters the query,
-    // so it stays listed where the author can remove it.
-    const missingTerms = status === 'ready'
+    // A selected term with no loaded row still filters the query, so it
+    // stays listed where the author can see and remove it.
+    const missingTerms = status === 'ready' || status === 'error'
         ? selected
             .filter( ( id ) => ! terms.some( ( term ) => term.id === id ) )
             .map( ( id ) => ( {
                 id,
-                /* translators: %d: id of a term saved on the block that no longer exists. */
-                name: sprintf( __( 'Term #%d (unavailable)', TEXT_DOMAIN ), id ),
+                name: status === 'ready'
+                    /* translators: %d: id of a term saved on the block that no longer exists. */
+                    ? sprintf( __( 'Term #%d (unavailable)', TEXT_DOMAIN ), id )
+                    /* translators: %d: id of a term saved on the block whose name could not be loaded. */
+                    : sprintf( __( 'Term #%d', TEXT_DOMAIN ), id ),
             } ) )
         : [];
     const listedTerms = [ ...terms, ...missingTerms ];

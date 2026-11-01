@@ -240,6 +240,18 @@ describe( 'TaxonomyFilter', () => {
     } );
 } );
 
+describe( 'TaxonomyFilter when the terms request fails', () => {
+    it( 'keeps the saved selection visible and removable', async () => {
+        respondWithTerms( [], 500 );
+        const onChange = renderFilter( 'post', { taxonomy: 'package', terms: [ 3 ], operator: 'IN' } );
+
+        fireEvent.click( await screen.findByLabelText( 'Term #3' ) );
+
+        expect( screen.getByText( 'Terms could not be loaded.' ) ).toBeTruthy();
+        expect( onChange ).toHaveBeenLastCalledWith( null );
+    } );
+} );
+
 describe( 'readTaxQuery', () => {
     it( 'reads a filter this control wrote', () => {
         expect( readTaxQuery( { taxonomy: 'genre', terms: [ 1, 2 ], operator: 'IN' } ) ).toEqual( {

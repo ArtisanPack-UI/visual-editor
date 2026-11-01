@@ -27,7 +27,8 @@ use Illuminate\Routing\Controller;
 class TaxonomyTermsController extends Controller
 {
 	/**
-	 * Returns the taxonomy's terms as `{ id, name }` rows.
+	 * Returns the taxonomy's terms as `{ id, name }` rows. Host terms may
+	 * repeat an id or use one `taxQuery` rejects, so those rows are dropped.
 	 *
 	 * @since 1.20.0
 	 *
@@ -43,6 +44,8 @@ class TaxonomyTermsController extends Controller
 				'id'   => (int) $term->id,
 				'name' => (string) $term->name,
 			] )
+			->filter( static fn ( array $term ): bool => $term['id'] > 0 )
+			->unique( 'id' )
 			->values()
 			->all();
 
