@@ -85,8 +85,14 @@ use ArtisanPackUI\VisualEditor\States\StateValueResolver;
 use ArtisanPackUI\VisualEditor\Support\BlockMarkupHydrator;
 use ArtisanPackUI\VisualEditor\Support\HookAliases;
 use ArtisanPackUI\VisualEditor\View\Components\VisualEditorComponent;
+use ArtisanPackUI\VisualEditor\Visibility\ContentSourceRegistry;
+use ArtisanPackUI\VisualEditor\Visibility\ContentSources\PaginationContentSource;
+use ArtisanPackUI\VisualEditor\Visibility\ContentSources\PostNavigationContentSource;
+use ArtisanPackUI\VisualEditor\Visibility\ContentSources\QueryContentSource;
+use ArtisanPackUI\VisualEditor\Visibility\ContentSources\RelatedPostsContentSource;
 use ArtisanPackUI\VisualEditor\Visibility\RuleRegistry as VisibilityRuleRegistry;
 use ArtisanPackUI\VisualEditor\Visibility\Rules\BrowserOsDeviceRule;
+use ArtisanPackUI\VisualEditor\Visibility\Rules\ContentRule;
 use ArtisanPackUI\VisualEditor\Visibility\Rules\DateTimeWindowRule;
 use ArtisanPackUI\VisualEditor\Visibility\Rules\HideRule;
 use ArtisanPackUI\VisualEditor\Visibility\Rules\LoginStateRule;
@@ -614,7 +620,23 @@ class VisualEditorServiceProvider extends ServiceProvider
 				$app->make( SpecificUserRule::class ),
 				$app->make( DateTimeWindowRule::class ),
 				$app->make( RecurringScheduleRule::class ),
+				$app->make( ContentRule::class ),
 			] );
+		} );
+
+		// Scoped and filtered in `boot()` for the same reasons as the
+		// rule registry above.
+		$this->app->scoped( ContentSourceRegistry::class, function () {
+			return new ContentSourceRegistry( [
+				new QueryContentSource(),
+				new RelatedPostsContentSource(),
+				new PostNavigationContentSource(),
+				new PaginationContentSource(),
+			] );
+		} );
+
+		$this->app->scoped( ContentRule::class, function ( $app ) {
+			return new ContentRule( $app->make( ContentSourceRegistry::class ) );
 		} );
 
 		$this->app->scoped( VisibilityEvaluator::class, function ( $app ) {
@@ -722,6 +744,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		//     scoped closure (an intra-boot resolve captured an empty
 		//     filter chain).
 		$this->applyVisibilityRulesFilter();
+		$this->applyVisibilityContentSourcesFilter();
 
 		// 1c. Layer the `ap.visualEditor.registerFontSources` filter
 		//     over the Font Library source registry via `extend()`, so
@@ -1037,6 +1060,28 @@ class VisualEditorServiceProvider extends ServiceProvider
 			static function ( VisibilityRuleRegistry $registry ): VisibilityRuleRegistry {
 				$filtered = applyFilters( 'ap.visualEditor.visibility.registerRules', $registry );
 				return $filtered instanceof VisibilityRuleRegistry ? $filtered : $registry;
+			},
+		);
+	}
+
+	/**
+	 * Layer the `ap.visualEditor.visibility.registerContentSources`
+	 * filter over every fresh {@see ContentSourceRegistry} instance, the
+	 * same way {@see applyVisibilityRulesFilter()} treats the rules.
+	 *
+	 * @since 1.20.0
+	 */
+	protected function applyVisibilityContentSourcesFilter(): void
+	{
+		if ( ! function_exists( 'applyFilters' ) ) {
+			return;
+		}
+
+		$this->app->extend(
+			ContentSourceRegistry::class,
+			static function ( ContentSourceRegistry $registry ): ContentSourceRegistry {
+				$filtered = applyFilters( 'ap.visualEditor.visibility.registerContentSources', $registry );
+				return $filtered instanceof ContentSourceRegistry ? $filtered : $registry;
 			},
 		);
 	}

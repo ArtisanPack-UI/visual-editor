@@ -685,8 +685,9 @@ class QueryInliner
 			return array_merge( $block, [
 				'innerBlocks' => [],
 				'attributes'  => array_merge( $attributes, [
-					'_resolvedTotal'  => $paginator->total(),
-					'_resolvedItems'  => count( $results ),
+					'_resolvedTotal'      => $paginator->total(),
+					'_resolvedItems'      => count( $results ),
+					'_resolvedTotalPages' => $paginator->lastPage(),
 				] ),
 			] );
 		}
@@ -704,8 +705,9 @@ class QueryInliner
 			return array_merge( $block, [
 				'innerBlocks' => $filtered,
 				'attributes'  => array_merge( $attributes, [
-					'_resolvedTotal' => $paginator->total(),
-					'_resolvedItems' => 0,
+					'_resolvedTotal'      => $paginator->total(),
+					'_resolvedItems'      => 0,
+					'_resolvedTotalPages' => $paginator->lastPage(),
 				] ),
 			] );
 		}
@@ -847,8 +849,9 @@ class QueryInliner
 		return array_merge( $block, [
 			'innerBlocks' => $newQueryInner,
 			'attributes'  => array_merge( $attributes, [
-				'_resolvedTotal' => $paginator->total(),
-				'_resolvedItems' => count( $results ),
+				'_resolvedTotal'      => $paginator->total(),
+				'_resolvedItems'      => count( $results ),
+				'_resolvedTotalPages' => $paginator->lastPage(),
 			] ),
 		] );
 	}
@@ -1215,8 +1218,9 @@ class QueryInliner
 		return array_merge( $block, [
 			'innerBlocks' => $expanded,
 			'attributes'  => array_merge( $attributes, [
-				'_resolvedTotal' => $paginator->total(),
-				'_resolvedItems' => count( $results ),
+				'_resolvedTotal'      => $paginator->total(),
+				'_resolvedItems'      => count( $results ),
+				'_resolvedTotalPages' => $paginator->lastPage(),
 			] ),
 		] );
 	}

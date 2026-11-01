@@ -16,7 +16,8 @@
  *     e.g. picked from List View — it is revealed dimmed instead so
  *     its toolbar and inline editing keep working. Rules the canvas
  *     can't evaluate (master Hide, request / user / schedule rules)
- *     dim the block at every width.
+ *     dim the block at every width. Content rules (#1030) neither hide
+ *     nor dim it, so wrapped content stays editable.
  *
  *  2. **`blocks.registerBlockType`** — wraps the block's
  *     `__experimentalLabel` so List View rows carry a suffix such as

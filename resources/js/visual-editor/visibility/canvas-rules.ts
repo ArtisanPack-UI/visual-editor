@@ -155,17 +155,19 @@ export function rangeMediaQuery(range: HiddenWidthRange): string {
 }
 
 /**
- * Whether the block carries a rule the canvas can't evaluate — the
- * master Hide toggle or any request / user / schedule rule. Those
- * blocks are dimmed rather than hidden. Screen-size is excluded: the
- * canvas evaluates it through {@link screenSizeHiddenRanges}.
+ * Whether the block carries a rule the canvas dims it for — the master
+ * Hide toggle or any request / user / schedule rule. Those blocks are
+ * dimmed rather than hidden. Screen-size is excluded because the canvas
+ * evaluates it through {@link screenSizeHiddenRanges}. Content is
+ * excluded so the wrapped content stays fully visible and editable: it
+ * only applies on the front end (#1030).
  */
 export function hasServerEvaluatedRule(value: VisibilityAttribute | null | undefined): boolean {
     if (!value) {
         return false;
     }
 
-    return isVisibilityActive({ ...value, screenSize: undefined });
+    return isVisibilityActive({ ...value, screenSize: undefined, content: undefined });
 }
 
 /**
@@ -184,7 +186,7 @@ export function visibilityListViewSuffix(
         return __('Hidden at some screen sizes', 'artisanpack-visual-editor');
     }
 
-    if (hasServerEvaluatedRule(value)) {
+    if (isVisibilityActive({ ...value, screenSize: undefined })) {
         return __('Conditionally visible', 'artisanpack-visual-editor');
     }
 

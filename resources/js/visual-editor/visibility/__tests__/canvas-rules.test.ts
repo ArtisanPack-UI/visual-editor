@@ -144,6 +144,17 @@ describe('hasServerEvaluatedRule', () => {
         expect(hasServerEvaluatedRule({ loginState: { state: 'loggedIn' } })).toBe(true);
         expect(hasServerEvaluatedRule({ recurring: { windows: [{ day: 1, start: '09:00', end: '17:00' }] } })).toBe(true);
     });
+
+    it('ignores content rules, so the canvas never dims a block for one', () => {
+        expect(hasServerEvaluatedRule({ content: { source: 'relatedPosts', condition: 'hasResults' } })).toBe(false);
+    });
+
+    it('still dims for another rule next to a content rule', () => {
+        expect(hasServerEvaluatedRule({
+            content: { source: 'relatedPosts', condition: 'hasResults' },
+            loginState: { state: 'loggedIn' },
+        })).toBe(true);
+    });
 });
 
 describe('visibilityListViewSuffix', () => {
@@ -159,6 +170,11 @@ describe('visibilityListViewSuffix', () => {
                 BREAKPOINTS,
             ),
         ).toBe('Hidden');
+    });
+
+    it('labels a content rule as conditionally visible', () => {
+        expect(visibilityListViewSuffix({ content: { source: 'query', condition: 'hasResults' } }, BREAKPOINTS))
+            .toBe('Conditionally visible');
     });
 
     it('flags screen-size gating', () => {
