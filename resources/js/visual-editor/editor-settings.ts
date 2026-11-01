@@ -130,6 +130,10 @@ export const EFFECTIVE_SPACING_SIZES = mergePresetList(
  * Scoped under `.editor-styles-wrapper` because Gutenberg auto-prepends
  * that selector to every style entry it isn't already scoped to,
  * keeping these rules out of the editor chrome.
+ *
+ * Element margins live in {@link CANVAS_LAYOUT_STYLES}, not here: at this
+ * specificity they beat the layout baseline and Gutenberg's per-container
+ * Block spacing rules (#1040).
  */
 export const DEFAULT_CANVAS_STYLES = `
 .editor-styles-wrapper {
@@ -140,7 +144,6 @@ export const DEFAULT_CANVAS_STYLES = `
 }
 
 .editor-styles-wrapper p {
-    margin: 0 0 1em;
     font-size: 1rem;
     line-height: 1.6;
 }
@@ -154,7 +157,6 @@ export const DEFAULT_CANVAS_STYLES = `
     font-family: inherit;
     font-weight: 700;
     line-height: 1.2;
-    margin: 1.4em 0 0.6em;
     /*
      * #695 — this baseline (0,1,1) out-specifies a theme's bare
      * \`h1\`..\`h6\` rules, so a hardcoded hex here pins headings to a
@@ -181,7 +183,6 @@ export const DEFAULT_CANVAS_STYLES = `
 
 .editor-styles-wrapper blockquote {
     border-left: 4px solid #e5e7eb;
-    margin: 1.5em 0;
     padding: 0 0 0 1em;
     font-style: italic;
     color: #4b5563;
@@ -189,7 +190,6 @@ export const DEFAULT_CANVAS_STYLES = `
 
 .editor-styles-wrapper ul,
 .editor-styles-wrapper ol {
-    margin: 0 0 1em;
     padding-left: 1.5em;
 }
 
@@ -206,15 +206,98 @@ export const DEFAULT_CANVAS_STYLES = `
     padding: 1em;
     border-radius: 6px;
     overflow-x: auto;
-    margin: 0 0 1em;
 }
 
 .editor-styles-wrapper hr {
     border: 0;
     border-top: 1px solid #e5e7eb;
-    margin: 2em 0;
 }
 `;
+
+/**
+ * Default element margins, for content outside a layout container (root
+ * blocks, Accordion bodies).
+ *
+ * Zero specificity, and printed ahead of {@link LAYOUT_BASELINE_STYLES},
+ * so a layout container's rules decide its children's margins. A theme's
+ * bare `p` or `h2` rule also wins, as it does on the front end (#1040).
+ */
+const DEFAULT_ELEMENT_MARGIN_STYLES = `
+:where(.editor-styles-wrapper p) { margin: 0 0 1em; }
+:where(.editor-styles-wrapper :is(h1, h2, h3, h4, h5, h6)) { margin: 1.4em 0 0.6em; }
+:where(.editor-styles-wrapper blockquote) { margin: 1.5em 0; }
+:where(.editor-styles-wrapper :is(ul, ol)) { margin: 0 0 1em; }
+:where(.editor-styles-wrapper pre) { margin: 0 0 1em; }
+:where(.editor-styles-wrapper hr) { margin: 2em 0; }
+`;
+
+/**
+ * Layout baseline rules: flow, constrained, flex and grid.
+ *
+ * Upstream WP emits these rules at PAGE RENDER time via
+ * `WP_Block_Supports_Layout` (PHP front-end) and `useLayoutStyles`
+ * (editor — but only when the block has a non-default layout attribute
+ * like `justifyContent`; the `display: flex` rule itself is NOT
+ * emitted by `useLayoutStyles.getLayoutStyle` in
+ * `@wordpress/block-editor`). Neither the bundled
+ * `@wordpress/block-library/style.css` nor `editor.css` define
+ * `.is-layout-flex { display: flex }` as a static rule.
+ *
+ * Result without them: blocks with `supports.layout.default.type =
+ * "flex"` in block.json (gallery, buttons, cover, group's row/stack
+ * variations) render with `is-layout-flex` on the wrapper but no flex
+ * display rule, so they fall back to block flow and inner blocks stack
+ * vertically.
+ *
+ * Ship the baseline rules statically here so the canvas matches the
+ * front-end (which gets the same rules via `<x-ve-blocks-styles>`).
+ * Generic `.is-layout-flex` / `.is-layout-grid` selectors mean
+ * per-block compound classes (`wp-block-gallery-is-layout-flex`, …)
+ * inherit without enumerating block names.
+ *
+ * Gutenberg writes a per-container rule only when a block sets its own
+ * Block spacing, so the zero-specificity margin (#1040) and `gap` (#883)
+ * rules are what space a container that inherits the theme's
+ * `blockGap`. Without them a Group, Row or Grid with no Block spacing
+ * renders flush in the canvas but not on the site.
+ *
+ * The flex defaults (`flex-wrap`, `align-items`) are zero specificity
+ * (#927), so the Flex panel's `ap-flex-nowrap` / `ap-items-*` utilities
+ * win wherever they load.
+ *
+ * These rules are copied from the Blade, React and Vue baselines rather
+ * than generated from them, because the Blade rules live in a template.
+ * `canvas-styles.test.ts` fails if they drift. The one deliberate change
+ * is the root-gap selector: `:where(.editor-styles-wrapper)` replaces
+ * `:where(body)`, because the theme's `blockGap` lands on that wrapper
+ * (see `scopeGlobalStylesCss`), which isn't `body` in the site editor.
+ */
+export const LAYOUT_BASELINE_STYLES = `
+:where(.is-layout-flow) > :first-child { margin-block-start: 0; }
+:where(.is-layout-flow) > :last-child { margin-block-end: 0; }
+:where(.is-layout-flow) > * { margin-block-start: 0; margin-block-end: 0; }
+:where(.is-layout-flow) > * + * { margin-block-start: var(--wp--style--block-gap, 24px); margin-block-end: 0; }
+:where(.is-layout-constrained) > :first-child { margin-block-start: 0; }
+:where(.is-layout-constrained) > :last-child { margin-block-end: 0; }
+:where(.is-layout-constrained) > * { margin-block-start: 0; margin-block-end: 0; }
+:where(.is-layout-constrained) > * + * { margin-block-start: var(--wp--style--block-gap, 24px); margin-block-end: 0; }
+.is-layout-flex { display: flex; }
+:where(.is-layout-flex) { flex-wrap: wrap; align-items: center; }
+.is-layout-flex > :is(*, div) { margin: 0; }
+.is-layout-grid { display: grid; }
+.is-layout-grid > :is(*, div) { margin: 0; }
+:where(.is-layout-flex) { gap: var(--wp--style--block-gap, 0.5em); }
+:where(.is-layout-grid) { gap: var(--wp--style--block-gap, 0.5em); }
+:where(.editor-styles-wrapper) { --ap-root-block-gap: var(--wp--style--block-gap); }
+:where(.is-layout-flow, .is-layout-constrained, .is-layout-flex, .is-layout-grid) { --wp--style--block-gap: var(--ap-root-block-gap); }
+`;
+
+/**
+ * Element margins and the layout baseline, in the order they must print.
+ * Every canvas and preview needs this alongside
+ * {@link DEFAULT_CANVAS_STYLES}.
+ */
+export const CANVAS_LAYOUT_STYLES = DEFAULT_ELEMENT_MARGIN_STYLES + LAYOUT_BASELINE_STYLES;
 
 /**
  * Per-block alignment overrides for the root canvas. Shipped via
@@ -321,6 +404,13 @@ export const ALIGNMENT_OVERRIDE_STYLES = `
  * `core/list`, columns inside `core/columns`, every inner container
  * of `core/group`) out of the rule so each child of a nested layout
  * doesn't inherit 720px / 48px padding too.
+ *
+ * The gap rule stands in for the constrained Post Content block that
+ * wraps these blocks on the front end. The root list carries no layout
+ * class, so without it stacked Groups, which keep no outer margin of
+ * their own (#1040), would touch. The site editor skips it because a
+ * template's root blocks aren't in a layout container on the front end
+ * either.
  */
 export const POST_EDITOR_FRAMING_STYLES = `
 .editor-styles-wrapper .block-editor-block-list__layout.is-root-container {
@@ -332,6 +422,10 @@ export const POST_EDITOR_FRAMING_STYLES = `
     margin-left: auto;
     margin-right: auto;
 }
+
+:where(.editor-styles-wrapper .block-editor-block-list__layout.is-root-container) > * + :where(:not(.block-list-appender)) {
+    margin-block-start: var(--wp--style--block-gap, 24px);
+}
 `;
 
 /**
@@ -339,9 +433,9 @@ export const POST_EDITOR_FRAMING_STYLES = `
  *
  * The chrome previews render as siblings of the block list *inside* the
  * canvas, so they inherit {@link POST_EDITOR_FRAMING_STYLES} — 48px of
- * editor padding and a 720px content clamp. Those exist to frame post
- * *content*; applying them to a site header or footer would cap
- * full-bleed chrome at the content measure and misrepresent the layout
+ * editor padding, a 720px content clamp and the root block gap. Those
+ * exist to frame post *content*; applying them to a site header or footer
+ * would cap full-bleed chrome at the content measure and misrepresent the layout
  * the author is trying to check. Reset them inside the chrome regions and
  * let the theme's own layout rules decide.
  *
@@ -358,6 +452,10 @@ export const COMPOSED_CHROME_STYLES = `
     max-width: none;
     margin-left: 0;
     margin-right: 0;
+}
+
+:where(.ap-visual-editor__chrome .block-editor-block-list__layout.is-root-container) > * + :where(:not(.block-list-appender)) {
+    margin-block-start: 0;
 }
 
 .ap-visual-editor__chrome {
@@ -472,7 +570,7 @@ export const editorSettings = {
      * entries via the theme.json bridge (planned) — they're appended
      * to this array and win on cascade.
      */
-    styles: [{ css: DEFAULT_CANVAS_STYLES }],
+    styles: [{ css: DEFAULT_CANVAS_STYLES }, { css: CANVAS_LAYOUT_STYLES }],
     // Top-level legacy keys are still read by some core blocks that
     // haven't migrated to `__experimentalFeatures`. Sourced from the
     // effective preset arrays so host-registered additions (#773) reach
