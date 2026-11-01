@@ -39,6 +39,7 @@ import {
 import canvasThemeTokens from './canvas-theme-tokens.css?inline';
 import composedRibbonStyles from './composed-view/composed-view-ribbon.css?inline';
 import flexLayoutStyles from '../../../css/flex-layout.css?inline';
+import masonryStyles from '../blocks/_shared/masonry/masonry.css?inline';
 import photoGridStyles from '../blocks/_shared/photo-grid/photo-grid.css?inline';
 
 /** A single stylesheet entry in the shape `BlockCanvas`'s `styles` prop expects. */
@@ -80,6 +81,28 @@ export const blockStylesheetPaths: readonly string[] = Object.keys(
 
 const blockStylesheets: readonly CanvasStyle[] = blockStylesheetPaths.map(
     (path) => ({ css: blockStylesheetModules[path] })
+);
+
+/**
+ * Auto-discovered rich-text format stylesheets (#1039).
+ *
+ * A format's stylesheet has the same problem as a block's (#566): its
+ * side-effect import lands in the parent document only, so the iframe
+ * has to be handed the sheet as inline CSS. Without
+ * `formats/inline-icon/inline-icon.css`, a viewBox-only icon SVG expands
+ * to the full width of its paragraph.
+ */
+const formatStylesheetModules = import.meta.glob<string>(
+    '../formats/*/*.css',
+    { eager: true, query: '?inline', import: 'default' }
+);
+
+export const formatStylesheetPaths: readonly string[] = Object.keys(
+    formatStylesheetModules
+).sort();
+
+const formatStylesheets: readonly CanvasStyle[] = formatStylesheetPaths.map(
+    (path) => ({ css: formatStylesheetModules[path] })
 );
 
 /**
@@ -219,6 +242,12 @@ const baseCanvasStyles: CanvasStyle[] = [
     // entries that used to sit here and forced an edit to
     // canvas-styles.ts every time a new custom block landed.
     ...blockStylesheets,
+    // Rich-text format stylesheets (#1039), auto-discovered via the
+    // `formats/*/*.css` glob.
+    ...formatStylesheets,
+    // Masonry (#1039). Like Photo Grid below, it's three levels deep, so
+    // the `blocks/*/*.css` glob above skips it.
+    { css: masonryStyles },
     // Photo Grid container support (#594). Lives at
     // `blocks/_shared/photo-grid/photo-grid.css` — three levels deep,
     // so the two-level `blocks/*/*.css` glob above skips it. Hand

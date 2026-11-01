@@ -15,6 +15,11 @@ export {
 	FLEX_SERIALIZER_VERSION,
 } from './serializer'
 export type { SerializeResult, ArbitraryRule } from './serializer'
+export {
+	buildFlexCanvasCss,
+	FLEX_ARBITRARY_STYLE_CHANNEL,
+	useFlexCanvasStyles,
+} from './canvas-css'
 export type {
 	AlignContentValue,
 	AlignItemsValue,

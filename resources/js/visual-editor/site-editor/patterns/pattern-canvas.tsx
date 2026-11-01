@@ -32,6 +32,7 @@ import {
 import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { CanvasThemeStyles } from '../canvas-theme-styles';
 import { SpacingPresetStyles } from '../../editor/spacing-preset-styles';
+import { InlineIconCanvasHydrator } from '../../formats/inline-icon/canvas-hydrator';
 
 import './pattern-canvas.css';
 
@@ -141,6 +142,7 @@ export function PatternCanvas(props: PatternCanvasProps): JSX.Element {
                     <CanvasThemeStyles apiBase={apiBase} />
                     {/* #814: spacing presets in effect, after the theme sheet. */}
                     <SpacingPresetStyles />
+                    <InlineIconCanvasHydrator />
                     <BlockTools>
                         <WritingFlow>
                             <ObserveTyping>

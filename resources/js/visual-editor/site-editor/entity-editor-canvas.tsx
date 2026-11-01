@@ -38,6 +38,7 @@ import { TEXT_DOMAIN } from '../vendor/i18n';
 
 import { CanvasThemeStyles } from './canvas-theme-styles';
 import { SpacingPresetStyles } from '../editor/spacing-preset-styles';
+import { InlineIconCanvasHydrator } from '../formats/inline-icon/canvas-hydrator';
 
 import './entity-editor-canvas.css';
 
@@ -175,6 +176,7 @@ export function EntityEditorCanvas(props: EntityEditorCanvasProps): JSX.Element 
                     <CanvasThemeStyles apiBase={apiBase} />
                     {/* #814: spacing presets in effect, after the theme sheet. */}
                     <SpacingPresetStyles />
+                    <InlineIconCanvasHydrator />
                     <BlockTools>
                         <WritingFlow>
                             <ObserveTyping>

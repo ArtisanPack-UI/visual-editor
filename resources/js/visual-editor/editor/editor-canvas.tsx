@@ -41,6 +41,7 @@ import { useMemo } from 'react';
 
 import { canvasColorTokenStyle } from './canvas-color-tokens';
 import { canvasStyles, FLEX_LAYOUT_STYLE } from './canvas-styles';
+import { InlineIconCanvasHydrator } from '../formats/inline-icon/canvas-hydrator';
 import { ChromeBlocks } from './composed-view/chrome-blocks';
 import { ComposedViewRibbon } from './composed-view/composed-view-ribbon';
 import { PostTitle } from './post-title';
@@ -295,9 +296,13 @@ export function EditorCanvas(props: EditorCanvasProps): JSX.Element {
                     {blockContext !== null ? (
                         <BlockContextProvider value={blockContext}>
                             <ObserveTyping>{blockList}</ObserveTyping>
+                            <InlineIconCanvasHydrator />
                         </BlockContextProvider>
                     ) : (
-                        <ObserveTyping>{blockList}</ObserveTyping>
+                        <>
+                            <ObserveTyping>{blockList}</ObserveTyping>
+                            <InlineIconCanvasHydrator />
+                        </>
                     )}
                 </BlockCanvas>
             </div>
