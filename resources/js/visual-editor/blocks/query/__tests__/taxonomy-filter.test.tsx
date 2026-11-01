@@ -31,7 +31,7 @@ function mountTaxonomies(): void {
 }
 
 function respondWithTerms( terms: unknown[], status = 200 ): void {
-    fetchMock.mockResolvedValue(
+    fetchMock.mockImplementation( async () =>
         new Response( JSON.stringify( { data: terms } ), { status } )
     );
 }
@@ -172,14 +172,26 @@ describe( 'TaxonomyFilter', () => {
 
         expect( onChange ).toHaveBeenLastCalledWith( null );
         expect( taxonomySelect().value ).toBe( 'genre' );
+        expect( await screen.findByLabelText( 'Hooks' ) ).toBeTruthy();
     } );
 
-    it( 'keeps a saved taxonomy the post type no longer lists', () => {
+    it( 'replaces a saved value it cannot show when a taxonomy is picked', async () => {
+        respondWithTerms( [ { id: 3, name: 'Hooks' } ] );
+        const onChange = renderFilter( 'post', { category: [ 1 ] } );
+
+        fireEvent.change( taxonomySelect(), { target: { value: 'package' } } );
+
+        expect( onChange ).toHaveBeenLastCalledWith( null );
+        expect( await screen.findByLabelText( 'Hooks' ) ).toBeTruthy();
+    } );
+
+    it( 'keeps a saved taxonomy the post type no longer lists', async () => {
         respondWithTerms( [] );
         renderFilter( 'page', { taxonomy: 'package', terms: [ 3 ], operator: 'IN' } );
 
         expect( optionValues() ).toContain( 'package' );
         expect( taxonomySelect().value ).toBe( 'package' );
+        expect( await screen.findByLabelText( 'Term #3 (unavailable)' ) ).toBeTruthy();
     } );
 
     it( 'lists a selected term that no longer exists so it can be removed', async () => {
@@ -248,6 +260,8 @@ describe( 'readTaxQuery', () => {
         [ 'no taxonomy', { taxonomy: '', terms: [ 1 ] } ],
         [ 'the upstream shape', { category: [ 1 ] } ],
         [ 'invalid term ids', { taxonomy: 'genre', terms: [ 0, 'x' ] } ],
+        [ 'partly invalid term ids', { taxonomy: 'genre', terms: [ 1, 'news' ] } ],
+        [ 'another operator', { taxonomy: 'genre', terms: [ 1 ], operator: 'NOT IN' } ],
     ] )( 'ignores %s', ( _label, value ) => {
         expect( readTaxQuery( value ) ).toBeNull();
     } );

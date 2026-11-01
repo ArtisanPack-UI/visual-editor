@@ -391,7 +391,7 @@ The `category` and `post_tag` defaults mirror WordPress core's built-in public t
 'package' => [ 'label' => 'Package', 'postTypes' => [ 'post' ] ],
 ```
 
-Without `postTypes`, a custom taxonomy is offered for every post type, while `category` and `post_tag` are offered for `post` only. The values are the same slugs the Query Loop's Post type picker uses. `postTypes` doesn't affect `post-terms`.
+Without `postTypes`, a custom taxonomy is offered for every post type. `category` and `post_tag` are always offered for `post` only, because their term ids come from cms-framework's post tables. The values are the same slugs the Query Loop's Post type picker uses. `postTypes` doesn't affect `post-terms`.
 
 ---
 

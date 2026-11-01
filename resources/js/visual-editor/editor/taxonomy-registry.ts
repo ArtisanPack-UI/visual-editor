@@ -58,13 +58,13 @@ const SAFE_SLUG_PATTERN = /^[a-z0-9_-]+$/;
 // Mirrors the PHP registry's `SAFE_POST_TYPE_PATTERN`.
 const SAFE_POST_TYPE_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 
-// The built-ins are post taxonomies unless the host says otherwise.
-// Hosts rarely declare `postTypes` on them, and their term ids mean
-// nothing to another post type's query.
-const BUILT_IN_POST_TYPES: Readonly<Record<string, ReadonlyArray<string>>> = {
-    category: ['post'],
-    post_tag: ['post'],
-};
+// The built-ins' terms always come from cms-framework's post tables, and
+// those ids mean nothing to another post type's query, so a host's
+// `postTypes` can't widen them.
+const BUILT_IN_POST_TYPES: ReadonlyMap<string, ReadonlyArray<string>> = new Map([
+    ['category', ['post']],
+    ['post_tag', ['post']],
+]);
 
 // `undefined` = not read yet; `null` = read, nothing usable stamped.
 let cached: ReadonlyArray<TaxonomyDescriptor> | null | undefined;
@@ -154,14 +154,15 @@ export function getTaxonomies(): ReadonlyArray<TaxonomyDescriptor> {
 }
 
 /**
- * Returns the taxonomies that apply to a post type: those listing it in
- * `postTypes`, plus custom taxonomies that declare no post types at all.
+ * Returns the taxonomies that apply to a post type: the built-ins for
+ * `post`, custom taxonomies listing it in `postTypes`, and custom
+ * taxonomies that declare no post types at all.
  *
  * @since 1.20.0
  */
 export function getTaxonomiesForPostType(postType: string): ReadonlyArray<TaxonomyDescriptor> {
     return getTaxonomies().filter((taxonomy) => {
-        const postTypes = taxonomy.postTypes ?? BUILT_IN_POST_TYPES[taxonomy.slug];
+        const postTypes = BUILT_IN_POST_TYPES.get(taxonomy.slug) ?? taxonomy.postTypes;
 
         return postTypes === undefined || postTypes.includes(postType);
     });

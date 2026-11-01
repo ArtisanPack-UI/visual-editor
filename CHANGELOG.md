@@ -9,7 +9,7 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Added
 
 - **Taxonomy and term filter for the Query Loop** ([#1029](https://github.com/ArtisanPack-UI/visual-editor/issues/1029)). The block's Filters panel now has a **Taxonomy** select and a **Terms** checkbox list, so authors can build "posts in category X" loops without editing block markup. The selection is saved as `query.taxQuery`, and the preview updates as it changes. Terms come from a new `GET /visual-editor/api/taxonomies/{taxonomy}/terms` endpoint, which reads `category` / `post_tag` from cms-framework and asks the `ap.visualEditor.terms` filter for anything else.
-- **`postTypes` on taxonomy config entries** ([#1029](https://github.com/ArtisanPack-UI/visual-editor/issues/1029)). This limits which Query Loop post types offer a taxonomy, and changing the post type clears a filter the new type doesn't support. Without it, a custom taxonomy is offered for every post type, and `category` / `post_tag` for `post` only. Filtering on a custom taxonomy also needs a resolver that handles it; for cms-framework that's [cms-framework#439](https://github.com/ArtisanPack-UI/cms-framework/issues/439).
+- **`postTypes` on taxonomy config entries** ([#1029](https://github.com/ArtisanPack-UI/visual-editor/issues/1029)). This limits which Query Loop post types offer a taxonomy, and changing the post type clears a filter the new type doesn't support. Without it, a custom taxonomy is offered for every post type. `category` and `post_tag` are always offered for `post` only. Filtering on a custom taxonomy also needs a resolver that handles it; for cms-framework that's [cms-framework#439](https://github.com/ArtisanPack-UI/cms-framework/issues/439).
 
 ## [1.19.0] - 2026-10-30
 

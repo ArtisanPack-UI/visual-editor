@@ -137,12 +137,19 @@ describe( 'getTaxonomiesForPostType (#1029)', () => {
         expect( slugs( 'page' ) ).toEqual( [] );
     } );
 
-    it( 'lets a host bind a built-in to other post types', () => {
+    it( 'keeps the built-ins on posts when a host declares other post types', () => {
         mount( 'data-ap-visual-editor', [
             { slug: 'category', label: 'Category', postTypes: [ 'post', 'page' ] },
         ] );
 
-        expect( slugs( 'page' ) ).toEqual( [ 'category' ] );
+        expect( slugs( 'post' ) ).toEqual( [ 'category' ] );
+        expect( slugs( 'page' ) ).toEqual( [] );
+    } );
+
+    it( 'handles a slug that matches an Object.prototype key', () => {
+        mount( 'data-ap-visual-editor', [ { slug: 'constructor', label: 'Builder' } ] );
+
+        expect( slugs( 'page' ) ).toEqual( [ 'constructor' ] );
     } );
 
     it( 'drops invalid postTypes values', () => {

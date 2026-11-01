@@ -36,10 +36,9 @@ interface TaxonomyFilterProps {
 }
 
 /**
- * Reads a stored `taxQuery`, or returns `null` for anything other than a
- * taxonomy with at least one term id. That includes the `''` placeholder
- * and the upstream `{ category: [ 1 ] }` shape, which this filter doesn't
- * write.
+ * Reads a stored `taxQuery`, or returns `null` for anything this filter
+ * can't show as saved: the `''` placeholder, the upstream
+ * `{ category: [ 1 ] }` shape, another operator, or a non-numeric term.
  *
  * @since 1.20.0
  */
@@ -48,16 +47,27 @@ export function readTaxQuery( value: unknown ): QueryTaxQuery | null {
         return null;
     }
 
-    const { taxonomy, terms } = value as { taxonomy?: unknown; terms?: unknown };
+    const { taxonomy, terms, operator } = value as {
+        taxonomy?: unknown;
+        terms?: unknown;
+        operator?: unknown;
+    };
 
-    if ( typeof taxonomy !== 'string' || taxonomy === '' || ! Array.isArray( terms ) ) {
+    if (
+        typeof taxonomy !== 'string' ||
+        taxonomy === '' ||
+        ! Array.isArray( terms ) ||
+        ( operator !== undefined && operator !== 'IN' )
+    ) {
         return null;
     }
 
     // Numeric strings count: the server accepts them, so they still filter.
     const ids = terms.map( Number ).filter( ( id ) => Number.isInteger( id ) && id > 0 );
 
-    return ids.length > 0 ? { taxonomy, terms: ids, operator: 'IN' } : null;
+    return ids.length > 0 && ids.length === terms.length
+        ? { taxonomy, terms: ids, operator: 'IN' }
+        : null;
 }
 
 /**
@@ -103,7 +113,9 @@ export default function TaxonomyFilter( {
     const changeTaxonomy = ( value: string ): void => {
         setPendingTaxonomy( value );
 
-        if ( stored !== null ) {
+        // Also replaces a saved value the panel can't show, which would
+        // otherwise keep failing the preview.
+        if ( taxQuery ) {
             onChange( null );
         }
     };

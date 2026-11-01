@@ -59,7 +59,7 @@ return [
 	|
 	| Add `postTypes` to limit which Query Loop post types offer the
 	| taxonomy. Without it, a custom taxonomy is offered for every post
-	| type, while `category` and `post_tag` are offered for `post` only:
+	| type. `category` and `post_tag` are always offered for `post` only:
 	|
 	|     'package' => [ 'label' => 'Package', 'postTypes' => [ 'post' ] ],
 	|
