@@ -8,7 +8,8 @@
  * one block variation per taxonomy — so "Categories", "Tags", and any
  * custom taxonomy each get an inserter tile — and to populate the
  * taxonomy picker in the block's Settings sidebar, letting authors switch
- * taxonomy without hand-editing markup.
+ * taxonomy without hand-editing markup. The Query Loop's Filters panel
+ * reads the same list through {@see getTaxonomiesForPostType}.
  *
  * Both the post editor (`[data-ap-visual-editor]`) and the site editor
  * (`[data-ap-site-editor]`) stamp the attribute, so the registry reads
@@ -31,6 +32,8 @@ export interface TaxonomyDescriptor {
     readonly slug: string;
     readonly label: string;
     readonly plural: string;
+    /** Post types the taxonomy applies to, when the host declares them. */
+    readonly postTypes?: ReadonlyArray<string>;
 }
 
 /**
@@ -51,6 +54,17 @@ function fallbackTaxonomies(): ReadonlyArray<TaxonomyDescriptor> {
 // name (`term-${slug}`), so constrain it to a safe identifier set —
 // mirroring the PHP registry's guard.
 const SAFE_SLUG_PATTERN = /^[a-z0-9_-]+$/;
+
+// Mirrors the PHP registry's `SAFE_POST_TYPE_PATTERN`.
+const SAFE_POST_TYPE_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
+
+// The built-ins are post taxonomies unless the host says otherwise.
+// Hosts rarely declare `postTypes` on them, and their term ids mean
+// nothing to another post type's query.
+const BUILT_IN_POST_TYPES: Readonly<Record<string, ReadonlyArray<string>>> = {
+    category: ['post'],
+    post_tag: ['post'],
+};
 
 // `undefined` = not read yet; `null` = read, nothing usable stamped.
 let cached: ReadonlyArray<TaxonomyDescriptor> | null | undefined;
@@ -97,7 +111,22 @@ function parseFromElement(
                     ? rawPlural.trim()
                     : label;
 
-            result.push(Object.freeze({ slug, label, plural }));
+            const rawPostTypes = (entry as { postTypes?: unknown }).postTypes;
+            const postTypes = Array.isArray(rawPostTypes)
+                ? rawPostTypes.filter(
+                      (postType): postType is string =>
+                          typeof postType === 'string' && SAFE_POST_TYPE_PATTERN.test(postType)
+                  )
+                : [];
+
+            result.push(
+                Object.freeze({
+                    slug,
+                    label,
+                    plural,
+                    ...(postTypes.length > 0 ? { postTypes: Object.freeze(postTypes) } : {}),
+                })
+            );
         }
 
         return result.length > 0 ? Object.freeze(result) : null;
@@ -122,6 +151,20 @@ export function getTaxonomies(): ReadonlyArray<TaxonomyDescriptor> {
     }
 
     return cached ?? fallbackTaxonomies();
+}
+
+/**
+ * Returns the taxonomies that apply to a post type: those listing it in
+ * `postTypes`, plus custom taxonomies that declare no post types at all.
+ *
+ * @since 1.20.0
+ */
+export function getTaxonomiesForPostType(postType: string): ReadonlyArray<TaxonomyDescriptor> {
+    return getTaxonomies().filter((taxonomy) => {
+        const postTypes = taxonomy.postTypes ?? BUILT_IN_POST_TYPES[taxonomy.slug];
+
+        return postTypes === undefined || postTypes.includes(postType);
+    });
 }
 
 /**

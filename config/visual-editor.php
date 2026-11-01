@@ -45,7 +45,8 @@ return [
 	| The taxonomies the editor surfaces when authors configure a
 	| `post-terms` block: one inserter variation per entry (so
 	| "Categories", "Tags", and any custom taxonomy each get their own
-	| tile) plus the taxonomy picker in the block's Settings sidebar.
+	| tile) plus the taxonomy picker in the block's Settings sidebar. The
+	| Query Loop's Filters panel lists them too.
 	|
 	| Keys are the taxonomy slug stamped onto the block's `term`
 	| attribute — matching the slugs `PostResolver::resolvePostTerms()`
@@ -55,6 +56,12 @@ return [
 	|
 	|     'genre' => 'Genre',
 	|     'topic' => [ 'label' => 'Topic', 'plural' => 'Topics' ],
+	|
+	| Add `postTypes` to limit which Query Loop post types offer the
+	| taxonomy. Without it, a custom taxonomy is offered for every post
+	| type, while `category` and `post_tag` are offered for `post` only:
+	|
+	|     'package' => [ 'label' => 'Package', 'postTypes' => [ 'post' ] ],
 	|
 	| The `category` and `post_tag` defaults mirror WordPress core's
 	| built-in public taxonomies; hosts append their custom taxonomies

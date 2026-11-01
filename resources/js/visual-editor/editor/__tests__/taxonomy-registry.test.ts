@@ -11,6 +11,7 @@ import { afterEach, describe, it, expect } from 'vitest';
 
 import {
     getTaxonomies,
+    getTaxonomiesForPostType,
     refreshTaxonomies,
     type TaxonomyDescriptor,
 } from '../taxonomy-registry';
@@ -107,5 +108,48 @@ describe( 'taxonomy registry', () => {
 
         refreshTaxonomies();
         expect( getTaxonomies().map( ( t ) => t.slug ) ).toEqual( [ 'topic' ] );
+    } );
+} );
+
+describe( 'getTaxonomiesForPostType (#1029)', () => {
+    const slugs = ( postType: string ): string[] =>
+        getTaxonomiesForPostType( postType ).map( ( taxonomy ) => taxonomy.slug );
+
+    it( 'keeps a taxonomy listing the post type and drops one that does not', () => {
+        mount( 'data-ap-visual-editor', [
+            { slug: 'package', label: 'Package', postTypes: [ 'post' ] },
+            { slug: 'venue', label: 'Venue', postTypes: [ 'event' ] },
+        ] );
+
+        expect( slugs( 'post' ) ).toEqual( [ 'package' ] );
+        expect( slugs( 'event' ) ).toEqual( [ 'venue' ] );
+    } );
+
+    it( 'offers a custom taxonomy with no postTypes for every post type', () => {
+        mount( 'data-ap-visual-editor', [ { slug: 'genre', label: 'Genre' } ] );
+
+        expect( slugs( 'post' ) ).toEqual( [ 'genre' ] );
+        expect( slugs( 'page' ) ).toEqual( [ 'genre' ] );
+    } );
+
+    it( 'limits the built-ins to posts by default', () => {
+        expect( slugs( 'post' ) ).toEqual( [ 'category', 'post_tag' ] );
+        expect( slugs( 'page' ) ).toEqual( [] );
+    } );
+
+    it( 'lets a host bind a built-in to other post types', () => {
+        mount( 'data-ap-visual-editor', [
+            { slug: 'category', label: 'Category', postTypes: [ 'post', 'page' ] },
+        ] );
+
+        expect( slugs( 'page' ) ).toEqual( [ 'category' ] );
+    } );
+
+    it( 'drops invalid postTypes values', () => {
+        mount( 'data-ap-visual-editor', [
+            { slug: 'genre', label: 'Genre', postTypes: [ 'bad type', 7 ] },
+        ] );
+
+        expect( getTaxonomies()[ 0 ] ).not.toHaveProperty( 'postTypes' );
     } );
 } );

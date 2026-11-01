@@ -49,6 +49,7 @@ use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\PatternController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\PatternPreviewController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\TemplateController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\TemplatePartController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\TaxonomyTermsController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Visibility\UsersSearchController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\VisualEditorBlocksController;
 use ArtisanPackUI\VisualEditor\Http\Middleware\EnsureContentEditorAccess;
@@ -142,6 +143,13 @@ Route::delete( 'snippets/{snippet}', [ SnippetController::class, 'destroy' ] )
 Route::post( 'query/resolve', [ QueryResolveController::class, 'resolve' ] )
 	->middleware( EnsureContentEditorAccess::class )
 	->name( 'visual-editor.api.query.resolve' );
+
+// #1029 — the Query Loop's term picker. Read-only, and gated like
+// `query/resolve` because only the same inspector calls it.
+Route::get( 'taxonomies/{taxonomy}/terms', [ TaxonomyTermsController::class, 'index' ] )
+	->where( 'taxonomy', '[a-z0-9_-]+' )
+	->middleware( EnsureContentEditorAccess::class )
+	->name( 'visual-editor.api.taxonomies.terms.index' );
 
 Route::get( 'blocks', [ VisualEditorBlocksController::class, 'index' ] )
 	->name( 'visual-editor.api.blocks.index' );

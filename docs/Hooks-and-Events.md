@@ -310,7 +310,7 @@ The block emits no `Review` / `AggregateRating` JSON-LD by design — self-servi
 
 ### `ap.visualEditor.terms`
 
-**Since v1.15.2 (#960).** PHP filter that supplies the terms the `artisanpack/categories` (Terms List) block lists for a taxonomy other than `category` and `post_tag`, which the block reads from cms-framework itself. Fires at render time with the block's `taxonomy` attribute.
+**Since v1.15.2 (#960).** PHP filter that supplies the terms the `artisanpack/categories` (Terms List) block lists for a taxonomy other than `category` and `post_tag`, which the block reads from cms-framework itself. Fires at render time with the block's `taxonomy` attribute. Since v1.20 (#1029) it also fires when an author opens the `artisanpack/query` term picker, with `showEmpty` set to `true` in `$attrs`.
 
 **Signature:** `null $terms, string $taxonomy, array $attrs -> array|null`
 
