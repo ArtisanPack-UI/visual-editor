@@ -77,7 +77,7 @@
 		$percentages = [];
 
 		foreach ( [ 'x', 'y' ] as $axis ) {
-			$value = $focalPoint[ $axis ] ?? 0.5;
+			$value = array_key_exists( $axis, $focalPoint ) ? $focalPoint[ $axis ] : 0.5;
 
 			if ( ! ( is_int( $value ) || is_float( $value ) ) || ! ( $value >= 0 && $value <= 1 ) ) {
 				return null;

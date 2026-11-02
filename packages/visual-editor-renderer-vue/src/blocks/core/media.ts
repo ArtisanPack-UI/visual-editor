@@ -80,7 +80,7 @@ function imageFocalPosition(focalPoint: unknown): string | null {
     const percentages: string[] = [];
 
     for (const axis of [x, y]) {
-        const value = axis ?? 0.5;
+        const value = axis === undefined ? 0.5 : axis;
 
         if (typeof value !== 'number' || !(value >= 0 && value <= 1)) {
             return null;

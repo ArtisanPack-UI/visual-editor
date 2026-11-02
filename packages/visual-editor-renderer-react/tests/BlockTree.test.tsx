@@ -239,6 +239,7 @@ describe('Core media blocks', () => {
         ['a numeric string', { x: '0.5', y: 0 }],
         ['a hostile string', { x: '0;position:fixed', y: 0 }],
         ['a boolean', { x: true, y: 0 }],
+        ['a null axis', { x: null, y: 0 }],
         ['a non-object', 'top'],
     ])('drops a focal point with %s (#1054)', (_label, focalPoint) => {
         const html = renderTree([

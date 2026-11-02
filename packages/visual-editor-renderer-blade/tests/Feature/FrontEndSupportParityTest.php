@@ -108,6 +108,7 @@ describe( 'image aspect ratio, scale and duotone (#873)', function (): void {
 		'numeric string'    => [ [ 'x' => '0.5', 'y' => 0 ] ],
 		'hostile string'    => [ [ 'x' => '0;position:fixed', 'y' => 0 ] ],
 		'boolean'           => [ [ 'x' => true, 'y' => 0 ] ],
+		'null axis'         => [ [ 'x' => null, 'y' => 0 ] ],
 		'not-a-number'      => [ [ 'x' => NAN, 'y' => 0 ] ],
 		'non-array'         => [ 'top' ],
 	] );

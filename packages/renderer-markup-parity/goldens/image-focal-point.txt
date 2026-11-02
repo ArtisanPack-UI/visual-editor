@@ -14,5 +14,8 @@
   <img alt="e" src="https://example.test/e.jpg" style="object-fit: cover" />
 </figure>
 <figure class="wp-block-image">
+  <img alt="g" src="https://example.test/g.jpg" style="object-fit: cover" />
+</figure>
+<figure class="wp-block-image">
   <img alt="f" src="https://example.test/f.jpg" />
 </figure>

@@ -7679,6 +7679,7 @@
                 { "clientId": "fp-axis", "name": "core/image", "attributes": { "url": "https://example.test/c.jpg", "alt": "c", "scale": "cover", "focalPoint": { "y": 0.667 } }, "innerBlocks": [] },
                 { "clientId": "fp-range", "name": "core/image", "attributes": { "url": "https://example.test/d.jpg", "alt": "d", "scale": "cover", "focalPoint": { "x": 1.5, "y": 0 } }, "innerBlocks": [] },
                 { "clientId": "fp-hostile", "name": "core/image", "attributes": { "url": "https://example.test/e.jpg", "alt": "e", "scale": "cover", "focalPoint": { "x": "0;position:fixed", "y": 0 } }, "innerBlocks": [] },
+                { "clientId": "fp-null", "name": "core/image", "attributes": { "url": "https://example.test/g.jpg", "alt": "g", "scale": "cover", "focalPoint": { "x": null, "y": 0 } }, "innerBlocks": [] },
                 { "clientId": "fp-no-scale", "name": "core/image", "attributes": { "url": "https://example.test/f.jpg", "alt": "f", "focalPoint": { "x": 0.5, "y": 0 } }, "innerBlocks": [] }
             ]
         }
