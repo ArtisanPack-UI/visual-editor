@@ -14,6 +14,7 @@
 # Composer consumers. Renderer `src/` trees stay: the root composer.json
 # autoloads the Blade renderer and hosts import the React / Vue ones.
 /packages/code-highlight export-ignore
+/packages/lightbox export-ignore
 /packages/renderer-markup-parity export-ignore
 /packages/renderer-parity.json export-ignore
 /packages/visual-editor-renderer-blade/tests export-ignore

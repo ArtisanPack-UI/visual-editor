@@ -16,10 +16,11 @@
  *   - Toolbar link control + inspector "Link to" destination, link CSS
  *     class and link rel (#1022), built on the public `LinkControl`
  *     instead of upstream's private `ImageURLInputUI`.
- *   - Inspector `ToolsPanel` with the alt-text + title controls.
+ *   - Inspector `ToolsPanel` with the alt-text + title controls and the
+ *     "Enlarge on click" lightbox toggle (#1046).
  *
  * Anything that depended on the private APIs above (image-editor cropping,
- * the lightbox toggle UI, the focal-point picker, etc.) is documented as a divergence in
+ * the focal-point picker, etc.) is documented as a divergence in
  * `upstream-state.json#knownDivergences`. The block's serialized output is
  * still produced by `save.tsx`, so this divergence is editor-only.
  */
@@ -31,6 +32,7 @@ import {
     SelectControl,
     TextareaControl,
     TextControl,
+    ToggleControl,
     __experimentalToolsPanel as ToolsPanel,
     __experimentalToolsPanelItem as ToolsPanelItem,
 } from '@wordpress/components';
@@ -54,6 +56,7 @@ import {
     WIDTH_PRESET_SNAP_PCT,
     type WidthUnit,
 } from './constants';
+import { useLightboxSetting } from './use-lightbox-setting';
 import WidthControl, { composeWidth } from './width-control';
 
 interface ImageEditorAttributes {
@@ -77,6 +80,7 @@ interface ImageEditorAttributes {
     readonly focalPoint?: { x?: number; y?: number };
     readonly align?: string;
     readonly blob?: string;
+    readonly lightbox?: { enabled?: boolean; [key: string]: unknown };
     readonly [key: string]: unknown;
 }
 
@@ -225,9 +229,11 @@ export default function Image(props: ImageEditorProps): ReactElement {
         rel,
         linkClass,
         linkTarget,
+        lightbox,
     } = attributes;
 
     const linkDestination = resolveLinkDestination(attributes);
+    const lightboxSetting = useLightboxSetting();
 
     function onLinkChange(next: LinkToolbarValue): void {
         setAttributes({
@@ -406,6 +412,7 @@ export default function Image(props: ImageEditorProps): ReactElement {
                             widthUnit: undefined,
                             height: undefined,
                             keepAspectRatio: true,
+                            lightbox: undefined,
                         })
                     }
                 >
@@ -490,6 +497,29 @@ export default function Image(props: ImageEditorProps): ReactElement {
                             }
                         />
                     </ToolsPanelItem>
+                    {lightboxSetting.allowEditing && (
+                        <ToolsPanelItem
+                            label={__('Enlarge on click', TEXT_DOMAIN)}
+                            isShownByDefault
+                            hasValue={() => lightbox?.enabled !== undefined}
+                            onDeselect={() => setAttributes({ lightbox: undefined })}
+                        >
+                            <ToggleControl
+                                __nextHasNoMarginBottom
+                                label={__('Enlarge on click', TEXT_DOMAIN)}
+                                checked={!href && (lightbox?.enabled ?? lightboxSetting.enabled)}
+                                disabled={!!href}
+                                onChange={(enabled: boolean) =>
+                                    setAttributes({ lightbox: { ...lightbox, enabled } })
+                                }
+                                help={
+                                    href
+                                        ? __('Remove the link to enlarge this image on click.', TEXT_DOMAIN)
+                                        : undefined
+                                }
+                            />
+                        </ToolsPanelItem>
+                    )}
                 </ToolsPanel>
             </InspectorControls>
             {href && (

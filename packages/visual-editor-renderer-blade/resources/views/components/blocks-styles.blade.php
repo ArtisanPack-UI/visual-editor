@@ -6,6 +6,10 @@
 <link rel="stylesheet" href="{{ $accordionStyleHref }}" data-ve-accordion>
 <link rel="stylesheet" href="{{ $tabsStyleHref }}" data-ve-tabs>
 <script src="{{ $interactivityScriptSrc }}" defer data-ve-interactivity></script>
+{{-- #1046 — Image and Gallery lightbox. `FrontendStylesOptimizer` removes
+	both tags from a page with no lightbox. --}}
+<link rel="stylesheet" href="{{ $lightboxStyleHref }}" data-ve-lightbox>
+<script src="{{ $lightboxScriptSrc }}" defer data-ve-lightbox></script>
 @endif
 {{-- Grid family CSS is layout-only (no interactivity script), so it
 	loads independently of $emitInteractive. Hosts that opt out of

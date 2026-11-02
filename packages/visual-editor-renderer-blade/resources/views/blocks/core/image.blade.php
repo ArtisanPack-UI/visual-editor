@@ -2,6 +2,7 @@
 	use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveImages;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\DuotoneSupport;
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\ImageLightbox;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\UrlSanitizer;
 
 	$url     = UrlSanitizer::safe( (string) ( $attributes['url'] ?? '' ) );
@@ -87,6 +88,13 @@
 		$baseClasses[] = $duotoneClass;
 	}
 
+	// #1046 — a link wins over the lightbox.
+	$lightbox = ImageLightbox::enabled( $attributes, $url, $href );
+
+	if ( $lightbox ) {
+		$baseClasses[] = 'wp-lightbox-container';
+	}
+
 	$imgClass = ! empty( $attributes['id'] ) ? 'wp-image-' . (int) $attributes['id'] : '';
 
 	// #873 — aspect ratio + scale (object-fit) live on the `<img>`, as
@@ -151,12 +159,15 @@
 	$imgAttrs .= $responsive?->attributes() ?? '';
 	$imgTag    = $responsive?->wrap( '<img' . $imgAttrs . '/>' ) ?? '';
 @endphp
-<figure{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}>
+<figure{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}@if ( $lightbox ) data-ap-lightbox-labels="{{ ImageLightbox::labels() }}"@endif>
 	@if ( '' !== $url )
 		@if ( '' !== $href )
 			<a{!! $linkAttrs !!}>{!! $imgTag !!}</a>
 		@else
 			{!! $imgTag !!}
+		@endif
+		@if ( $lightbox )
+			<button type="button" class="lightbox-trigger" aria-haspopup="dialog" aria-label="{{ ImageLightbox::triggerLabel( $alt ) }}" style="display:none">{!! ImageLightbox::TRIGGER_ICON !!}</button>
 		@endif
 	@endif
 	@if ( '' !== trim( $caption ) )

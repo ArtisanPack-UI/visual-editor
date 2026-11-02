@@ -4,12 +4,20 @@
  * rendered output is interchangeable with the server-side renderer.
  */
 
-import { defineComponent, h } from 'vue';
+import { defineComponent, h, onMounted, onUpdated, ref } from 'vue';
 import type { VNode } from 'vue';
 import { attrBoolean, attrInt, attrString, classList } from '../../support/attributes';
 import { compileBlockSupports } from '../../support/blockSupports';
 import { safeCssValue } from '../../support/cssValue';
 import { safeUrl } from '../../support/urlSanitizer';
+import {
+    LIGHTBOX_LABELS,
+    LIGHTBOX_TRIGGER_ICON_PATH,
+    bindLightbox,
+    imageHasLightbox,
+    lightboxNavigationType,
+    lightboxTriggerLabel,
+} from '../../support/lightbox';
 import { blockRendererProps, withStyle } from '../shared';
 
 /**
@@ -129,6 +137,17 @@ export const ImageBlock = defineComponent({
     name: 'ImageBlock',
     props: blockRendererProps,
     setup(props) {
+        const figureRef = ref<HTMLElement | null>(null);
+
+        function bind(): void {
+            if (figureRef.value !== null && imageHasLightbox(props.attributes)) {
+                void bindLightbox(figureRef.value);
+            }
+        }
+
+        onMounted(bind);
+        onUpdated(bind);
+
         return () => {
             const url = safeUrl(props.attributes.url);
             const alt = attrString(props.attributes.alt);
@@ -143,14 +162,17 @@ export const ImageBlock = defineComponent({
             const className = attrString(props.attributes.className);
 
             const supports = compileBlockSupports(props.attributes);
+            // #1046 — a link wins over the lightbox.
+            const lightbox = imageHasLightbox(props.attributes);
             // Blade order: base, size, is-resized (#985), duotone scope (stamped by
-            // `stampDuotoneScopes()`), then the supports' align, the other
-            // supports (#920) and className.
+            // `stampDuotoneScopes()`), the lightbox, then the supports' align, the
+            // other supports (#920) and className.
             const figureClasses = classList([
                 'wp-block-image',
                 sizeSlug !== '' ? `size-${sizeSlug}` : null,
                 width.style !== undefined || height.style !== undefined ? 'is-resized' : null,
                 attrString(props.attributes._veDuotone) || null,
+                lightbox ? 'wp-lightbox-container' : null,
                 align !== '' ? `align${align}` : null,
                 ...supports.classNames,
                 className,
@@ -207,11 +229,37 @@ export const ImageBlock = defineComponent({
                 }
             }
 
+            if (lightbox) {
+                children.push(
+                    h(
+                        'button',
+                        {
+                            type: 'button',
+                            class: 'lightbox-trigger',
+                            'aria-haspopup': 'dialog',
+                            'aria-label': lightboxTriggerLabel(alt),
+                            style: { display: 'none' },
+                        },
+                        [
+                            h('svg', { width: '12', height: '12', viewBox: '0 0 12 12', 'aria-hidden': 'true', focusable: 'false' }, [
+                                h('path', { fill: 'currentColor', d: LIGHTBOX_TRIGGER_ICON_PATH }),
+                            ]),
+                        ]
+                    )
+                );
+            }
+
             if (caption.trim() !== '') {
                 children.push(h('figcaption', { innerHTML: caption }));
             }
 
-            return h('figure', withStyle({ class: figureClasses }, supports.style), children);
+            const figureProps: Record<string, unknown> = { ref: figureRef, class: figureClasses };
+
+            if (lightbox) {
+                figureProps['data-ap-lightbox-labels'] = LIGHTBOX_LABELS;
+            }
+
+            return h('figure', withStyle(figureProps, supports.style), children);
         };
     },
 });
@@ -250,7 +298,14 @@ export const GalleryBlock = defineComponent({
                 );
             }
 
-            return h('figure', withStyle({ class: classes }, supports.style), children);
+            const figureProps: Record<string, unknown> = { class: classes };
+            const navigationType = lightboxNavigationType(props.attributes.navigationButtonType);
+
+            if (navigationType !== undefined) {
+                figureProps['data-ap-lightbox-navigation'] = navigationType;
+            }
+
+            return h('figure', withStyle(figureProps, supports.style), children);
         };
     },
 });

@@ -36,7 +36,7 @@
             "status": "added",
             "notes": "Labels for the language select.",
             "result": "skipped-status",
-            "forkDigest": "c924d8dbd8ac"
+            "forkDigest": "8c0200985525"
         },
         {
             "fork": "deprecated.tsx",
@@ -52,7 +52,7 @@
             "status": "extended",
             "notes": "Upstream raw/input/block transforms preserved; added bidirectional core/code ↔ artisanpack/code + accepts artisanpack/paragraph.",
             "result": "skipped-status",
-            "forkDigest": "8df8ef9af1b7"
+            "forkDigest": "c0531e8975c9"
         },
         {
             "fork": "utils.ts",

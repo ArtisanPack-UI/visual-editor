@@ -1,5 +1,6 @@
 @php
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\ImageLightbox;
 
 	// block.json declares `supports.layout.default.type = "flex"`. The
 	// editor's `useBlockProps` adds the `is-layout-flex` +
@@ -25,7 +26,7 @@
 
 	$caption = (string) ( $attributes['caption'] ?? '' );
 @endphp
-<figure{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}>
+<figure{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}{!! ImageLightbox::navigationAttribute( $attributes['navigationButtonType'] ?? null ) !!}>
 	{!! $innerBlocksHtml !!}
 	@if ( '' !== trim( $caption ) )
 		<figcaption class="blocks-gallery-caption">{!! $caption !!}</figcaption>

@@ -44,7 +44,7 @@
             "status": "extended",
             "notes": "Upstream raw/prefix/multi-block transforms preserved; added bidirectional block transforms for core/quote ↔ artisanpack/quote and accepts artisanpack/* peers (verse, pullquote, paragraph, heading, list).",
             "result": "skipped-status",
-            "forkDigest": "7ab5feb357e9"
+            "forkDigest": "cfc56ad12af4"
         },
         {
             "fork": "quote.css",

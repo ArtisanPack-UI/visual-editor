@@ -41,7 +41,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditorRendererBlade\Support;
 
-use ArtisanPackUI\VisualEditor\Resources\PresetRegistry;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\ActiveThemeSettings;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\DuotoneCssAccumulator;
 use Throwable;
 
@@ -290,7 +290,7 @@ class DuotoneSupport
 	{
 		$resolve = static function (): ?array {
 			try {
-				$settings = PresetRegistry::activeThemeSettings();
+				$settings = app( ActiveThemeSettings::class )->get();
 			} catch ( Throwable ) {
 				return null;
 			}

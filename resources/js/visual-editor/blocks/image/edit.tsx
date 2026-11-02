@@ -20,11 +20,13 @@
  *     expose `utils/caption`.
  *   - `useToolsPanelDropdownMenuProps` is omitted from the inspector
  *     `ToolsPanel`s for the same reason. The defaults are good enough.
- *   - The image cropper / image-editor popover and the lightbox toggle UI
- *     are omitted — they depend on private block-editor APIs unreachable through
- *     the package's `exports`. The corresponding attributes are still
- *     serializable and round-trip through transforms; consumers can set them
- *     via deserialization.
+ *   - The image cropper / image-editor popover is omitted — it depends on
+ *     private block-editor APIs unreachable through the package's `exports`.
+ *     The corresponding attributes are still serializable and round-trip
+ *     through transforms; consumers can set them via deserialization.
+ *   - The lightbox toggle is a plain "Enlarge on click" inspector control
+ *     (#1046) instead of the upstream link-destination option, for the same
+ *     reason.
  */
 
 import type { ReactElement } from 'react';

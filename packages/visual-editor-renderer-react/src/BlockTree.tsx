@@ -36,6 +36,7 @@ import {
 } from './support/navigationOverlayCss';
 import { treeNavigationCollapseCss } from './support/navigationCollapseCss';
 import { stampDuotoneScopes } from './support/duotone';
+import { stampLightboxDefault } from './support/lightbox';
 import type { DuotonePresets } from './support/duotone';
 import { stampEffectsScopes } from './support/effects';
 import { stampHeadingAnchors } from './support/headingAnchors';
@@ -129,6 +130,14 @@ export interface BlockTreeProps {
      */
     duotonePresets?: DuotonePresets;
     /**
+     * The theme's lightbox default, so images with no setting of their own
+     * follow `settings.blocks.{artisanpack,core}/image.lightbox.enabled` as
+     * they do on the Blade renderer.
+     *
+     * @since 1.20.0
+     */
+    lightboxDefault?: boolean;
+    /**
      * URL of the page being rendered, so navigation links / submenus
      * pointing at it get `current-menu-item` + `aria-current="page"` and
      * the ones leading to it `current-menu-ancestor`, as Blade marks them
@@ -155,6 +164,7 @@ export function BlockTree({
     queryResults,
     customCssAllowUrls = true,
     duotonePresets,
+    lightboxDefault = false,
     currentUrl,
 }: BlockTreeProps): ReactElement {
     const blocks = useMemo(() => {
@@ -296,8 +306,8 @@ export function BlockTree({
     // whose media renders, and print the rules plus the hidden SVG filter
     // definitions Blade drains from `DuotoneCssAccumulator`.
     const { tree: renderTree, css: duotoneCss, filters: duotoneFilters } = useMemo(() => {
-        return stampDuotoneScopes(effectsTree, duotonePresets);
-    }, [effectsTree, duotonePresets]);
+        return stampDuotoneScopes(stampLightboxDefault(effectsTree, lightboxDefault), duotonePresets);
+    }, [effectsTree, duotonePresets, lightboxDefault]);
 
     // Navigation overlay (#804) — the drawer's breakpoint + open-state
     // rules, emitted once when any navigation block has its overlay on.
