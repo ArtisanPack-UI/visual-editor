@@ -364,6 +364,38 @@ it( 'gives each row after the first its own anchors so ids stay unique', functio
 	expect( $ids[1] )->toBe( [ 'member', 'member-team-2' ] );
 } );
 
+it( 'gives each row its own tab ids (#1057)', function (): void {
+	$html = renderDynamicLoop( [ [
+		'name'        => 'artisanpack/tabs',
+		'attributes'  => [],
+		'innerBlocks' => [ [
+			'name'        => 'artisanpack/tab-section',
+			'attributes'  => [ 'label' => 'Bio', 'tabId' => 'bio' ],
+			'innerBlocks' => [],
+		] ],
+	] ] );
+
+	preg_match_all( '/\sid="(tabs-panel-[^"]+)"/', $html, $ids );
+
+	expect( $ids[1] )->toBe( [ 'tabs-panel-bio', 'tabs-panel-bio-2' ] );
+} );
+
+it( 'ignores a tab id stored in a row template (#1057)', function (): void {
+	$html = renderDynamicLoop( [ [
+		'name'        => 'artisanpack/tabs',
+		'attributes'  => [],
+		'innerBlocks' => [ [
+			'name'        => 'artisanpack/tab-section',
+			'attributes'  => [ 'label' => 'Bio', 'tabId' => 'bio', '_resolvedTabId' => 'stored' ],
+			'innerBlocks' => [],
+		] ],
+	] ] );
+
+	preg_match_all( '/\sid="(tabs-panel-[^"]+)"/', $html, $ids );
+
+	expect( $ids[1] )->toBe( [ 'tabs-panel-bio', 'tabs-panel-bio-2' ] );
+} );
+
 it( 'keeps nested-loop anchors unique across outer and inner rows', function (): void {
 	$html = renderNestedDynamicLoop( [ [
 		'name'        => 'core/heading',

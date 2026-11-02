@@ -44,6 +44,7 @@ use ArtisanPackUI\VisualEditorRendererBlade\Services\PositionCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveImages;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\StateCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\TabIdStamper;
 use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Contracts\Support\Htmlable;
@@ -444,6 +445,11 @@ class BlockRenderer
 			// Token Inserter) resolve at render time. Silent no-op when
 			// cms-framework is not on the classpath.
 			$tree = $this->resolveInlineTokens( $tree );
+
+			// #1057 — unique tab ids across the page. A nested render keeps
+			// the ids the outer call stamped, because a partial re-rendering
+			// its children must print the same ids.
+			$tree = app( TabIdStamper::class )->stamp( $tree, 1 === $this->renderDepth );
 
 			// #1031 — one query for every image in the tree.
 			if ( 1 === $this->renderDepth ) {

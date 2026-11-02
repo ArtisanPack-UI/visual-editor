@@ -13,6 +13,7 @@
 import { defineComponent, h, type VNode } from 'vue';
 
 import { attrString, classList } from '../../support/attributes';
+import { TAB_ID_ATTRIBUTE, sanitizeTabId, uniqueTabId } from '../../support/tabIds';
 import { blockRendererProps } from '../shared';
 
 type TabsAlign = 'horizontal' | 'vertical';
@@ -45,34 +46,16 @@ function normalizeSpacing(value: unknown): TabsSpacing {
         : 'start';
 }
 
-function sanitizeTabId(raw: string, sectionIndex: number): string {
-    // ASCII-only lowercase, like the Blade partial's `strtolower()`.
-    const slug = raw
-        .replace(/[A-Z]/g, (char) => char.toLowerCase())
-        .replace(/[^a-z0-9-]+/g, '-')
-        .replace(/^-+|-+$/g, '');
-    return slug === '' ? `tab-${sectionIndex}` : slug;
-}
-
 /**
- * Ensure a tab id is unique within the current tabs block — if the
- * author duplicated a tab-section (copy/paste, template clone) two
- * sections can land on the same slug, which would collapse the
- * trigger / panel ARIA wiring. Append a numeric suffix in that case.
+ * The section's id. `BlockTree` stamps a tree-unique one (#1057); a Tabs
+ * block rendered on its own falls back to ids unique within the block.
  */
-function uniqueTabId(base: string, used: Set<string>): string {
-    if (!used.has(base)) {
-        used.add(base);
-        return base;
-    }
-    let suffix = 2;
-    let candidate = `${base}-${suffix}`;
-    while (used.has(candidate)) {
-        suffix += 1;
-        candidate = `${base}-${suffix}`;
-    }
-    used.add(candidate);
-    return candidate;
+function resolveTabId(childAttrs: Record<string, unknown>, sectionIndex: number, used: Set<string>): string {
+    const stamped = attrString(childAttrs[TAB_ID_ATTRIBUTE]);
+
+    return stamped !== ''
+        ? stamped
+        : uniqueTabId(sanitizeTabId(attrString(childAttrs.tabId), sectionIndex), used);
 }
 
 function extractSlotContent(vnode: VNode | null | undefined): VNode[] {
@@ -118,8 +101,7 @@ export const TabsBlock = defineComponent({
                 sectionIndex += 1;
                 const childAttrs = (child.attributes ?? {}) as Record<string, unknown>;
                 const labelRaw = attrString(childAttrs.label);
-                const baseId = sanitizeTabId(attrString(childAttrs.tabId), sectionIndex);
-                const tabId = uniqueTabId(baseId, usedIds);
+                const tabId = resolveTabId(childAttrs, sectionIndex, usedIds);
 
                 tabs.push({
                     label: labelRaw === '' ? `Tab ${sectionIndex}` : labelRaw,

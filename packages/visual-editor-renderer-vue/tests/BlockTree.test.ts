@@ -1430,6 +1430,50 @@ describe('Core design blocks', () => {
         expect(html).toContain('aria-labelledby="tabs-tab-tab-2"');
     });
 
+    it('keeps ids unique across Tabs blocks that share tabId values', () => {
+        const tabs = (): ReturnType<typeof makeBlock> =>
+            makeBlock('artisanpack/tabs', {}, [
+                makeBlock('artisanpack/tab-section', { label: 'Overview', tabId: 'overview' }),
+                makeBlock('artisanpack/tab-section', { label: 'Specs', tabId: 'specs' }),
+            ]);
+
+        const html = renderTree([tabs(), tabs()]);
+        const ids = [...html.matchAll(/\bid="(tabs-(?:tab|panel)-[^"]*)"/g)].map((match) => match[1]);
+
+        expect(ids).toHaveLength(8);
+        expect(new Set(ids).size).toBe(8);
+        expect(html).toContain('id="tabs-panel-overview"');
+        expect(html).toContain('id="tabs-panel-overview-2"');
+        expect(html).toContain('href="#tabs-panel-overview-2"');
+        expect(html).toContain('aria-controls="tabs-panel-specs-2"');
+        expect(html).toContain('aria-labelledby="tabs-tab-specs-2"');
+    });
+
+    it('keeps ids unique across Tabs blocks whose sections have no tabId', () => {
+        const tabs = (): ReturnType<typeof makeBlock> =>
+            makeBlock('artisanpack/tabs', {}, [
+                makeBlock('artisanpack/tab-section', { label: 'One' }),
+                makeBlock('artisanpack/tab-section', { label: 'Two' }),
+            ]);
+
+        const html = renderTree([tabs(), tabs()]);
+
+        expect(html).toContain('id="tabs-panel-tab-1"');
+        expect(html).toContain('id="tabs-panel-tab-1-2"');
+        expect(html).toContain('id="tabs-panel-tab-2-2"');
+    });
+
+    it('ignores an id stored on a tab section', () => {
+        const html = renderTree([
+            makeBlock('artisanpack/tabs', {}, [
+                makeBlock('artisanpack/tab-section', { tabId: 'overview', _resolvedTabId: 'forged' }),
+            ]),
+        ]);
+
+        expect(html).toContain('id="tabs-panel-overview"');
+        expect(html).not.toContain('forged');
+    });
+
     it('renders a tab-section without aria wiring when tabId is empty', () => {
         const tree = [
             makeBlock('artisanpack/tab-section', { tabId: '' }, [

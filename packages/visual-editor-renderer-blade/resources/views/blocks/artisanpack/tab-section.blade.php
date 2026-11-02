@@ -5,8 +5,8 @@
 	// Slugify to a valid HTML id (lowercase ASCII + hyphens) so any
 	// special chars in the persisted value can't break the surrounding
 	// attribute markup or produce an unreachable ARIA target. Mirrors
-	// the sanitizeTabId helper in tabs.blade.php / React / Vue
-	// renderers — kept here for the standalone fallback when a
+	// TabIdStamper::sanitize() and the React / Vue sanitizeTabId
+	// helpers — kept here for the standalone fallback when a
 	// tab-section is rendered outside its tabs parent.
 	$tabIdSlug  = preg_replace( '/[^a-z0-9-]+/', '-', strtolower( $tabIdRaw ) ) ?? '';
 	$tabIdSlug  = trim( $tabIdSlug, '-' );
