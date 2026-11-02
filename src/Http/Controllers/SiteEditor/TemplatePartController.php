@@ -38,6 +38,7 @@ use ArtisanPackUI\VisualEditor\SiteEditor\Previews\PatternPreviewCache;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedTemplatePart;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\TemplatePartResolver;
 use ArtisanPackUI\VisualEditor\Support\ThemeBlockMarkup;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -403,9 +404,12 @@ class TemplatePartController extends Controller
 	 * revert to theme by deleting the DB override scoped to `(theme, slug)`.
 	 * Theme is required because cms-framework's unique index is
 	 * `(theme, slug)`; see {@see TemplateController::destroy()} for the
-	 * full rationale.
+	 * full rationale. Returns 409 when a `deleting` listener cancels the
+	 * delete.
 	 *
 	 * @since 1.0.0
+	 * @since 1.20.0 The slug path deletes through the model, so it fires
+	 *               `deleting` / `deleted` like the numeric path.
 	 */
 	public function destroy( Request $request, string $slug ): JsonResponse
 	{
@@ -429,14 +433,7 @@ class TemplatePartController extends Controller
 				);
 			}
 
-			$existing->delete();
-
-			// #832 — previews embedding this template part render stale otherwise.
-			app( PatternPreviewCache::class )->flush();
-
-			$this->refreshResolver();
-
-			return response()->json( null, Response::HTTP_NO_CONTENT );
+			return $this->revertOverride( $existing );
 		}
 
 		// Cast to string defensively — see {@see TemplateController::destroy()}.
@@ -453,19 +450,41 @@ class TemplatePartController extends Controller
 			], Response::HTTP_UNPROCESSABLE_ENTITY );
 		}
 
-		$deleted = (int) $model::query()
+		$existing = $model::query()
 			->where( 'theme', $theme )
 			->where( 'slug', $slug )
-			->delete();
+			->first();
 
-		if ( 0 === $deleted ) {
+		if ( null === $existing ) {
 			return response()->json( [ 'message' => 'No template-part override to revert.' ], Response::HTTP_NOT_FOUND );
+		}
+
+		return $this->revertOverride( $existing );
+	}
+
+	/**
+	 * Delete an override through its model so `deleting` / `deleted` fire,
+	 * then report the revert on the same action cms-framework's resolvers
+	 * use. Returns 204, or 409 when a `deleting` listener cancels the delete.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @param  Model  $override  The cms-framework `TemplatePart` row.
+	 *
+	 * @return JsonResponse
+	 */
+	protected function revertOverride( Model $override ): JsonResponse
+	{
+		if ( true !== $override->delete() ) {
+			return response()->json( [ 'message' => 'Template part override could not be reverted.' ], Response::HTTP_CONFLICT );
 		}
 
 		// #832 — previews embedding this template part render stale otherwise.
 		app( PatternPreviewCache::class )->flush();
 
 		$this->refreshResolver();
+
+		doAction( 'ap.cmsFramework.siteEditor.reverted', 'template-part', $override->getAttribute( 'slug' ), $override->getAttribute( 'theme' ) );
 
 		return response()->json( null, Response::HTTP_NO_CONTENT );
 	}

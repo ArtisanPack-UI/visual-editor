@@ -35,6 +35,7 @@ use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\UpdateTemplateRequest;
 use ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\SiteEditor\TemplateAdapter;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedTemplate;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\TemplateResolver;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -348,9 +349,12 @@ class TemplateController extends Controller
 	 * index is `(theme, slug)` — deleting by slug alone would collapse
 	 * across themes and silently revert overrides the request never named.
 	 * Returns 204 on delete, 404 when no override matches the pair, 422
-	 * when `theme` is missing.
+	 * when `theme` is missing, 409 when a `deleting` listener cancels the
+	 * delete.
 	 *
 	 * @since 1.0.0
+	 * @since 1.20.0 The slug path deletes through the model, so it fires
+	 *               `deleting` / `deleted` like the numeric path.
 	 */
 	public function destroy( Request $request, string $slug ): JsonResponse
 	{
@@ -375,11 +379,7 @@ class TemplateController extends Controller
 				);
 			}
 
-			$existing->delete();
-
-			$this->refreshResolver();
-
-			return response()->json( null, Response::HTTP_NO_CONTENT );
+			return $this->revertOverride( $existing );
 		}
 
 		// Cast to string defensively — Laravel returns an array if the
@@ -397,16 +397,38 @@ class TemplateController extends Controller
 			], Response::HTTP_UNPROCESSABLE_ENTITY );
 		}
 
-		$deleted = (int) $model::query()
+		$existing = $model::query()
 			->where( 'theme', $theme )
 			->where( 'slug', $slug )
-			->delete();
+			->first();
 
-		if ( 0 === $deleted ) {
+		if ( null === $existing ) {
 			return response()->json( [ 'message' => 'No template override to revert.' ], Response::HTTP_NOT_FOUND );
 		}
 
+		return $this->revertOverride( $existing );
+	}
+
+	/**
+	 * Delete an override through its model so `deleting` / `deleted` fire,
+	 * then report the revert on the same action cms-framework's resolvers
+	 * use. Returns 204, or 409 when a `deleting` listener cancels the delete.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @param  Model  $override  The cms-framework `Template` row.
+	 *
+	 * @return JsonResponse
+	 */
+	protected function revertOverride( Model $override ): JsonResponse
+	{
+		if ( true !== $override->delete() ) {
+			return response()->json( [ 'message' => 'Template override could not be reverted.' ], Response::HTTP_CONFLICT );
+		}
+
 		$this->refreshResolver();
+
+		doAction( 'ap.cmsFramework.siteEditor.reverted', 'template', $override->getAttribute( 'slug' ), $override->getAttribute( 'theme' ) );
 
 		return response()->json( null, Response::HTTP_NO_CONTENT );
 	}

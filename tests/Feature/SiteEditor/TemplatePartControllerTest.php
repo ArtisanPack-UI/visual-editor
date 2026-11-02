@@ -12,6 +12,7 @@ declare( strict_types=1 );
 
 use ArtisanPackUI\CMSFramework\Modules\SiteEditor\Models\TemplatePart;
 use ArtisanPackUI\CMSFramework\Modules\Themes\Managers\ThemeManager;
+use ArtisanPackUI\VisualEditor\SiteEditor\Previews\PatternPreviewCache;
 use ArtisanPackUI\VisualEditor\VisualEditorServiceProvider;
 use Tests\Concerns\GrantsSiteEditorAccess;
 use Tests\Concerns\WithCmsFramework;
@@ -569,4 +570,139 @@ describe( 'DELETE /visual-editor/api/template-parts/{slug}', function (): void {
 
 		expect( TemplatePart::query()->whereKey( $part->id )->exists() )->toBeFalse();
 	} );
+
+	// #1018. Both URL forms report the revert, so a consumer that flushes
+	// caches on `deleted` or on the revert action never stays stale.
+	it( 'fires deleting and deleted events and the revert action on both URL forms', function ( string $form ): void {
+		$row = TemplatePart::create( [
+			'theme'         => 'digital-shopfront',
+			'slug'          => 'header',
+			'title'         => 'Title',
+			'area'          => 'header',
+			'status'        => 'publish',
+			'is_custom'     => false,
+			'block_content' => [],
+			'author_id'     => null,
+		] );
+
+		$events  = [];
+		$reverts = [];
+
+		TemplatePart::deleting( function () use ( &$events ): void {
+			$events[] = 'deleting';
+		} );
+		TemplatePart::deleted( function ( TemplatePart $deleted ) use ( &$events ): void {
+			$events[] = 'deleted:' . $deleted->slug;
+		} );
+		addAction( 'ap.cmsFramework.siteEditor.reverted', function ( string $type, ?string $slug, string $theme ) use ( &$reverts ): void {
+			$reverts[] = [ $type, $slug, $theme ];
+		} );
+
+		$path = 'id' === $form ? (string) $row->id : 'header?theme=digital-shopfront';
+
+		$this->deleteJson( '/visual-editor/api/template-parts/' . $path )->assertNoContent();
+
+		expect( $events )->toBe( [ 'deleting', 'deleted:header' ] )
+			->and( $reverts )->toBe( [ [ 'template-part', 'header', 'digital-shopfront' ] ] )
+			->and( TemplatePart::query()->whereKey( $row->id )->exists() )->toBeFalse();
+	} )->with( [ 'slug', 'id' ] );
+
+	it( 'reports the row\'s own theme when reverting an override for an inactive theme', function ( string $form ): void {
+		$row = TemplatePart::create( [
+			'theme'         => 'other-theme',
+			'slug'          => 'header',
+			'title'         => 'Title',
+			'area'          => 'header',
+			'status'        => 'publish',
+			'is_custom'     => false,
+			'block_content' => [],
+			'author_id'     => null,
+		] );
+
+		$reverts = [];
+
+		addAction( 'ap.cmsFramework.siteEditor.reverted', function ( string $type, ?string $slug, string $theme ) use ( &$reverts ): void {
+			$reverts[] = [ $type, $slug, $theme ];
+		} );
+
+		$path = 'id' === $form ? (string) $row->id : 'header?theme=other-theme';
+
+		$this->deleteJson( '/visual-editor/api/template-parts/' . $path )->assertNoContent();
+
+		expect( $reverts )->toBe( [ [ 'template-part', 'header', 'other-theme' ] ] );
+	} )->with( [ 'slug', 'id' ] );
+
+	it( 'flushes pattern previews only after a successful revert', function ( string $form, bool $cancelled ): void {
+		$row = TemplatePart::create( [
+			'theme'         => 'digital-shopfront',
+			'slug'          => 'header',
+			'title'         => 'Title',
+			'area'          => 'header',
+			'status'        => 'publish',
+			'is_custom'     => false,
+			'block_content' => [],
+			'author_id'     => null,
+		] );
+
+		$cache = $this->spy( PatternPreviewCache::class );
+
+		if ( $cancelled ) {
+			TemplatePart::deleting( fn (): bool => false );
+		}
+
+		$path = 'id' === $form ? (string) $row->id : 'header?theme=digital-shopfront';
+
+		$response = $this->deleteJson( '/visual-editor/api/template-parts/' . $path );
+
+		if ( $cancelled ) {
+			$response->assertConflict();
+			$cache->shouldNotHaveReceived( 'flush' );
+
+			return;
+		}
+
+		$response->assertNoContent();
+		$cache->shouldHaveReceived( 'flush' )->once();
+	} )->with( [ 'slug', 'id' ] )->with( [ 'reverted' => false, 'cancelled' => true ] );
+
+	it( 'fires no revert action when no override matches the slug', function (): void {
+		$reverts = 0;
+
+		addAction( 'ap.cmsFramework.siteEditor.reverted', function () use ( &$reverts ): void {
+			$reverts++;
+		} );
+
+		$this->deleteJson( '/visual-editor/api/template-parts/missing?theme=digital-shopfront' )->assertNotFound();
+
+		expect( $reverts )->toBe( 0 );
+	} );
+
+	it( 'returns 409 and keeps the row when a deleting listener cancels the revert', function ( string $form ): void {
+		$row = TemplatePart::create( [
+			'theme'         => 'digital-shopfront',
+			'slug'          => 'header',
+			'title'         => 'Title',
+			'area'          => 'header',
+			'status'        => 'publish',
+			'is_custom'     => false,
+			'block_content' => [],
+			'author_id'     => null,
+		] );
+
+		$reverts = 0;
+
+		TemplatePart::deleting( fn (): bool => false );
+		addAction( 'ap.cmsFramework.siteEditor.reverted', function () use ( &$reverts ): void {
+			$reverts++;
+		} );
+
+		$path = 'id' === $form ? (string) $row->id : 'header?theme=digital-shopfront';
+
+		$this->deleteJson( '/visual-editor/api/template-parts/' . $path )
+			->assertConflict()
+			->assertJsonPath( 'message', 'Template part override could not be reverted.' );
+
+		expect( $reverts )->toBe( 0 )
+			->and( TemplatePart::query()->whereKey( $row->id )->exists() )->toBeTrue();
+	} )->with( [ 'slug', 'id' ] );
 } );
