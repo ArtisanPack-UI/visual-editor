@@ -6,10 +6,12 @@
  * React-rendered pages ship identical markup.
  */
 
+import { useEffect, useRef } from 'react';
 import { attrBoolean, attrInt, attrRecord, attrString, classList, layoutClass, phpTrim } from '../../support/attributes';
 import { layoutWrapperClasses } from '../../support/layoutContainer';
 import { resolveAnchor } from '../../support/headingAnchors';
 import { compileBlockSupports } from '../../support/blockSupports';
+import { codeLanguageClass, highlightCode, needsHighlighter } from '../../support/codeLanguage';
 import { styleProp } from '../../support/styleProp';
 import type { BlockRendererProps } from '../../types';
 
@@ -162,10 +164,22 @@ export function CodeBlock({ attributes }: BlockRendererProps): JSX.Element {
     const supports = compileBlockSupports(attributes);
     // `className` carries the `ve-r-*` / `ve-fx-*` scopes too (M-7).
     const classes = classList(['wp-block-code', ...supports.classNames, attrString(attributes.className)]);
+    const languageClass = codeLanguageClass(attributes.language);
+    const codeRef = useRef<HTMLElement>(null);
+
+    useEffect(() => {
+        if (codeRef.current !== null && needsHighlighter(languageClass)) {
+            void highlightCode(codeRef.current);
+        }
+    }, [content, languageClass]);
 
     return (
         <pre className={classes} style={styleProp(supports.style)}>
-            <code dangerouslySetInnerHTML={{ __html: content }} />
+            <code
+                ref={codeRef}
+                className={languageClass === '' ? undefined : languageClass}
+                dangerouslySetInnerHTML={{ __html: content }}
+            />
         </pre>
     );
 }

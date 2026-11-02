@@ -1,0 +1,30 @@
+<pre class="wp-block-code">
+  <code>
+    "plain"
+  </code>
+</pre>
+<pre class="wp-block-code">
+  <code class="language-php">
+    "<?php echo 1;"
+  </code>
+</pre>
+<pre class="wp-block-code">
+  <code class="language-javascript">
+    "const a = 1;"
+  </code>
+</pre>
+<pre class="wp-block-code">
+  <code class="language-plaintext">
+    "text"
+  </code>
+</pre>
+<pre class="wp-block-code">
+  <code>
+    "text"
+  </code>
+</pre>
+<pre class="wp-block-code">
+  <code>
+    "text"
+  </code>
+</pre>

@@ -7604,6 +7604,18 @@
                     ]
                 }
             ]
+        },
+        {
+            "name": "code-language",
+            "$comment": "#1044 — `language` prints as a class on `<code>`, only for a known language, so a hostile value can't reach the attribute. A block with no language keeps a bare `<code>`, and `core/code` and `artisanpack/code` render alike.",
+            "tree": [
+                { "clientId": "cl-none", "name": "artisanpack/code", "attributes": { "content": "plain" }, "innerBlocks": [] },
+                { "clientId": "cl-php", "name": "artisanpack/code", "attributes": { "content": "&lt;?php echo 1;", "language": "php" }, "innerBlocks": [] },
+                { "clientId": "cl-core", "name": "core/code", "attributes": { "content": "const a = 1;", "language": "javascript" }, "innerBlocks": [] },
+                { "clientId": "cl-plain", "name": "artisanpack/code", "attributes": { "content": "text", "language": "plaintext" }, "innerBlocks": [] },
+                { "clientId": "cl-unknown", "name": "artisanpack/code", "attributes": { "content": "text", "language": "cobol" }, "innerBlocks": [] },
+                { "clientId": "cl-hostile", "name": "artisanpack/code", "attributes": { "content": "text", "language": "php\" onclick=\"alert(1)" }, "innerBlocks": [] }
+            ]
         }
     ]
 }

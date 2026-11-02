@@ -117,6 +117,22 @@ it( 'renders a code block', function (): void {
 	expect( $html )->toBe( '<pre class="wp-block-code"><code>echo 1;</code></pre>' );
 } );
 
+it( 'prints a code block language as a class on the code element', function (): void {
+	$tree = [ makeBlock( 'artisanpack/code', [ 'content' => '&lt;?php echo 1;', 'language' => 'php' ] ) ];
+
+	$html = $this->normalizeHtml( makeRenderer()->render( $tree ) );
+
+	expect( $html )->toBe( '<pre class="wp-block-code"><code class="language-php">&lt;?php echo 1;</code></pre>' );
+} );
+
+it( 'drops a code block language it does not know', function (): void {
+	$tree = [ makeBlock( 'artisanpack/code', [ 'content' => 'a', 'language' => 'php" onclick="alert(1)' ] ) ];
+
+	$html = $this->normalizeHtml( makeRenderer()->render( $tree ) );
+
+	expect( $html )->toBe( '<pre class="wp-block-code"><code>a</code></pre>' );
+} );
+
 it( 'renders a preformatted block', function (): void {
 	$tree = [ makeBlock( 'core/preformatted', [ 'content' => "line 1\nline 2" ] ) ];
 

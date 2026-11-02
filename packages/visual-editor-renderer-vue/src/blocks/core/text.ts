@@ -6,9 +6,10 @@
  * Vue-rendered pages ship identical markup.
  */
 
-import { defineComponent, h } from 'vue';
+import { defineComponent, h, onMounted, onUpdated, ref } from 'vue';
 import { attrBoolean, attrInt, attrRecord, attrString, classList, layoutClass, phpTrim } from '../../support/attributes';
 import { compileBlockSupports } from '../../support/blockSupports';
+import { codeLanguageClass, highlightCode, needsHighlighter } from '../../support/codeLanguage';
 import { layoutWrapperClasses } from '../../support/layoutContainer';
 import { resolveAnchor } from '../../support/headingAnchors';
 import { blockRendererProps, withStyle } from '../shared';
@@ -175,13 +176,28 @@ export const CodeBlock = defineComponent({
     name: 'CodeBlock',
     props: blockRendererProps,
     setup(props) {
+        const codeRef = ref<HTMLElement | null>(null);
+
+        function highlight(): void {
+            if (codeRef.value !== null && needsHighlighter(codeLanguageClass(props.attributes.language))) {
+                void highlightCode(codeRef.value);
+            }
+        }
+
+        onMounted(highlight);
+        onUpdated(highlight);
+
         return () => {
             const content = attrString(props.attributes.content);
             const supports = compileBlockSupports(props.attributes);
             // `className` carries the `ve-r-*` / `ve-fx-*` scopes too (M-7).
             const classes = classList(['wp-block-code', ...supports.classNames, attrString(props.attributes.className)]);
 
-            return h('pre', withStyle({ class: classes }, supports.style), h('code', { innerHTML: content }));
+            const languageClass = codeLanguageClass(props.attributes.language);
+            // Spread, not `class: undefined`: Vue's SSR prints that as `class=""`.
+            const code = h('code', { ref: codeRef, ...(languageClass === '' ? {} : { class: languageClass }), innerHTML: content });
+
+            return h('pre', withStyle({ class: classes }, supports.style), code);
         };
     },
 });

@@ -13,6 +13,27 @@
             "selector": "code",
             "__unstablePreserveWhiteSpace": true,
             "role": "content"
+        },
+        "language": {
+            "type": "string",
+            "enum": [
+                "plaintext",
+                "html",
+                "css",
+                "javascript",
+                "typescript",
+                "php",
+                "python",
+                "ruby",
+                "go",
+                "rust",
+                "json",
+                "yaml",
+                "bash",
+                "sql",
+                "markdown",
+                "blade"
+            ]
         }
     },
     "supports": {

@@ -16,9 +16,10 @@
         "added": "file unique to the fork (no upstream)"
     },
     "files": [
-        { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped." },
-        { "fork": "edit.tsx", "upstream": "edit.js", "status": "adapted", "notes": "TypeScript port." },
-        { "fork": "save.tsx", "upstream": "save.js", "status": "adapted", "notes": "TypeScript port; verbatim escape() handling." },
+        { "fork": "block.json", "upstream": "block.json", "status": "extended", "notes": "name + textdomain swapped; adds the `language` attribute (#1044)." },
+        { "fork": "edit.tsx", "upstream": "edit.js", "status": "extended", "notes": "TypeScript port; adds the language select (#1044)." },
+        { "fork": "save.tsx", "upstream": "save.js", "status": "extended", "notes": "TypeScript port; verbatim escape() handling; prints `language-*` on the code element when a language is set (#1044)." },
+        { "fork": "languages.ts", "upstream": "n/a", "status": "added", "notes": "Labels for the language select." },
         { "fork": "deprecated.tsx", "upstream": "n/a", "status": "added", "notes": "No upstream deprecation chain; empty array preserves the file shape across forks." },
         { "fork": "transforms.ts", "upstream": "transforms.js", "status": "extended", "notes": "Upstream raw/input/block transforms preserved; added bidirectional core/code ↔ artisanpack/code + accepts artisanpack/paragraph." },
         { "fork": "utils.ts", "upstream": "utils.js", "status": "adapted", "notes": "TypeScript port; dropped @wordpress/compose `pipe` dependency in favor of direct composition." },
@@ -29,7 +30,8 @@
     "vendoredPrimitives": [],
     "knownDivergences": [
         "utils.ts inlines the upstream `pipe` composition rather than depending on `@wordpress/compose.pipe`.",
-        "transforms.ts adds bidirectional block transforms with core/code."
+        "transforms.ts adds bidirectional block transforms with core/code.",
+        "The `language` attribute and its `language-*` class have no upstream equivalent (#1044). Blocks with no language still save byte-equivalent to upstream."
     ],
     "triage": {
         "label": "in-sync",

@@ -9,6 +9,9 @@
  *  - packages/visual-editor-renderer-vue/src/blocks/registerCoreBlocks.ts
  *  - packages/visual-editor-renderer-blade/resources/views/blocks/{ns}/{block}.blade.php
  *
+ * It also asserts that the Code block's language list (`codeLanguages`)
+ * matches the block, all three renderers and the shared highlighter (#1044).
+ *
  * Exits non-zero on the first mismatch — wire this into CI so any new fork
  * (artisanpack/*) or removed block trips the build before merge.
  */
@@ -106,9 +109,48 @@ const reports = [
     diff('blade', expectedForBlade, checkBladeRenderer().found),
 ];
 
+/** The quoted strings in the array assigned to the name in `marker`. */
+function listAfter(relativePath, marker) {
+    const src = fs.readFileSync(path.join(repoRoot, relativePath), 'utf8');
+    const start = src.indexOf(marker);
+    const open = src.indexOf('= [', start);
+    const body = src.slice(open, src.indexOf(']', open));
+    return [...body.matchAll(/'([a-z]+)'/g)].map((match) => match[1]);
+}
+
+function codeLanguageReports() {
+    const languages = new Set(manifest.codeLanguages);
+    const blockJson = JSON.parse(
+        fs.readFileSync(path.join(repoRoot, 'resources/js/visual-editor/blocks/code/block.json'), 'utf8')
+    );
+    const sources = {
+        'code block': blockJson.attributes.language.enum,
+        'code block labels': [
+            'plaintext',
+            ...[
+                ...fs
+                    .readFileSync(path.join(repoRoot, 'resources/js/visual-editor/blocks/code/languages.ts'), 'utf8')
+                    .matchAll(/value: '([a-z]+)'/g),
+            ].map((match) => match[1]),
+        ],
+        'code languages (react)': listAfter('packages/visual-editor-renderer-react/src/support/codeLanguage.ts', 'CODE_LANGUAGES'),
+        'code languages (vue)': listAfter('packages/visual-editor-renderer-vue/src/support/codeLanguage.ts', 'CODE_LANGUAGES'),
+        'code languages (blade)': listAfter('packages/visual-editor-renderer-blade/src/Support/CodeLanguage.php', 'const LANGUAGES'),
+        'code highlighter': ['plaintext', ...listAfter('packages/code-highlight/src/highlighter.js', 'SUPPORTED_LANGUAGES =')],
+    };
+
+    return Object.entries(sources).map(([label, list]) => diff(label, languages, new Set(list)));
+}
+
+reports.push(...codeLanguageReports());
+
 let failed = false;
 for (const report of reports) {
     if (report.missing.length === 0 && report.extra.length === 0) {
+        if (report.label.startsWith('code ')) {
+            console.log(`  ok   ${report.label}: all ${manifest.codeLanguages.length} languages listed`);
+            continue;
+        }
         const total = report.label === 'blade' ? expectedForBlade.size : expectedForJs.size;
         console.log(`  ok   ${report.label}: all ${total} blocks registered`);
         continue;
