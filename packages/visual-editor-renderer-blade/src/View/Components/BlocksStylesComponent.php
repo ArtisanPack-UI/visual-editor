@@ -118,6 +118,10 @@ class BlocksStylesComponent extends Component
 
 	public string $masonryScriptSrc;
 
+	public string $codeHighlightStyleHref;
+
+	public string $codeHighlightScriptSrc;
+
 	public string $interactivityScriptSrc;
 
 	public bool $emitBlockLibrary;
@@ -204,6 +208,8 @@ class BlocksStylesComponent extends Component
 		$this->postVariantStyleHref     = $url( 'frontend/post-variant.css' );
 		$this->masonryStyleHref         = $url( 'frontend/masonry.css' );
 		$this->masonryScriptSrc         = $url( 'frontend/masonry-fallback.js' );
+		$this->codeHighlightStyleHref   = $url( 'frontend/code-highlight.css' );
+		$this->codeHighlightScriptSrc   = $url( 'frontend/code-highlight.js' );
 		$this->interactivityScriptSrc   = $url( 'frontend/interactivity.js' );
 		$this->emitBlockLibrary         = $bundle;
 		$this->emitInteractive          = $interactive;

@@ -74,7 +74,7 @@ Lazy images use `sizes="auto, …"`, so the browser picks a file from the width 
 
 ## Per-page stylesheets
 
-`<x-ve-blocks-styles>` still prints every stylesheet. The `OptimizeBlockStyles` middleware on the `web` group then reads the finished page and removes each `frontend/*` stylesheet with no matching classes in the body. `style.css` and `theme.css` always stay, because they cover every core block. Scripts aren't removed.
+`<x-ve-blocks-styles>` still prints every stylesheet. The `OptimizeBlockStyles` middleware on the `web` group then reads the finished page and removes each `frontend/*` stylesheet with no matching classes in the body. `style.css` and `theme.css` always stay, because they cover every core block. Scripts aren't removed, except the [Code block highlighter](blocks/Code-Block.md), which is removed with its stylesheet from any page with no highlighted Code block.
 
 Reading the output rather than the blocks that rendered has two benefits. It sees markup the renderer never touched in that request, such as a cached fragment, a page-cache hit or hand-written theme markup that uses a block's classes. It also sees classes no block type predicts, such as an inline icon or the flex support.
 
@@ -106,6 +106,7 @@ addFilter( 'ap.visualEditor.requiredStylesheets', fn ( array $required ): array 
 | `data-ve-post-template` | `frontend/post-template.css` |
 | `data-ve-post-variant` | `frontend/post-variant.css` |
 | `data-ve-masonry` | `frontend/masonry.css` |
+| `data-ve-code-highlight` | `frontend/code-highlight.css` and `frontend/code-highlight.js` |
 
 To keep every stylesheet on every page, set [`frontend_styles.conditional`](Configuration.md#frontend_styles) to `false`.
 

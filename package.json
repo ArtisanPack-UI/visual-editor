@@ -25,7 +25,8 @@
         "sync:fa-icons": "node scripts/sync-fa-icons.mjs",
         "verify:parity": "node scripts/verify-renderer-parity.mjs",
         "upstream-diff": "node scripts/upstream-diff.mjs",
-        "sync:social-links": "node scripts/sync-social-link-services.mjs"
+        "sync:social-links": "node scripts/sync-social-link-services.mjs",
+        "build:code-highlight": "node scripts/build-code-highlight.mjs"
     },
     "devDependencies": {
         "@fortawesome/fontawesome-free": "^7.2.0",
@@ -40,6 +41,7 @@
         "@wordpress/block-library": "9.43.0",
         "daisyui": "^5.0.48",
         "jsdom": "^25.0.0",
+        "prismjs": "^1.30.0",
         "tailwindcss": "^4.1.11",
         "typescript": "^5.5.0",
         "vite": "^5.4.0",

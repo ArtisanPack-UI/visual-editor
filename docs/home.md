@@ -77,6 +77,7 @@ The block library — what ships, how to author your own, and how to wire respon
 - [[Blocks]] — Block library overview and the `artisanpack/*` allow-list
 - [[blocks/Custom Blocks]] — Authoring your own blocks (static and dynamic)
 - [[blocks/Icon Block]] — The `artisanpack/icon` block (FA Free + admin upload)
+- [[blocks/Code Block]] — Language selection, syntax highlighting and token theming for `artisanpack/code`
 - [[blocks/Social Icons]] — The `artisanpack/social-links` block (48 services, per-icon styles) (v1.18)
 - [[blocks/Responsive Design Tools]] — Per-breakpoint values on block controls
 - [[blocks/State Design Tools]] — Per-state overrides (hover, focus, active, etc.)

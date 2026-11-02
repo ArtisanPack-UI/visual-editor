@@ -65,6 +65,10 @@
 	bootstrap below handles the rest. --}}
 <link rel="stylesheet" href="{{ $masonryStyleHref }}" data-ve-masonry>
 <script src="{{ $masonryScriptSrc }}" defer data-ve-masonry-fallback></script>
+{{-- #1044 — Code block syntax highlighting. `FrontendStylesOptimizer` removes
+	both tags from a page with no highlighted Code block. --}}
+<link rel="stylesheet" href="{{ $codeHighlightStyleHref }}" data-ve-code-highlight>
+<script src="{{ $codeHighlightScriptSrc }}" defer data-ve-code-highlight></script>
 @if( '' !== $themeTokensCss )
 <style data-ve-theme-tokens>{!! $themeTokensCss !!}</style>
 @endif

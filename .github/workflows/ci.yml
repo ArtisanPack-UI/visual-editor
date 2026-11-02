@@ -88,6 +88,11 @@ jobs:
         # packages/renderer-parity.json doesn't list, or misses one it does.
         run: npm run verify:parity
 
+      - name: Verify code highlighter output
+        # Fails when the generated highlighter files differ from
+        # packages/code-highlight, which is what they're built from.
+        run: npm run build:code-highlight -- --check
+
       - name: Build library bundle
         run: npm run build:lib
 

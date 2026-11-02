@@ -14,10 +14,11 @@ vi.mock('@wordpress/block-editor', () => ({
         Content: ({
             value,
             tagName,
-        }: { value?: string; tagName?: string }) => {
+            className,
+        }: { value?: string; tagName?: string; className?: string }) => {
             const Tag = (tagName ?? 'code') as keyof JSX.IntrinsicElements;
             return (
-                <Tag dangerouslySetInnerHTML={{ __html: value ?? '' }} />
+                <Tag className={className} dangerouslySetInnerHTML={{ __html: value ?? '' }} />
             );
         },
     }),
@@ -36,6 +37,17 @@ describe('artisanpack/code block.json', () => {
     it('content attribute uses the code selector and preserveWhiteSpace flag', () => {
         expect(metadata.attributes.content.selector).toBe('code');
         expect(metadata.attributes.content.__unstablePreserveWhiteSpace).toBe(true);
+    });
+});
+
+describe('language attribute', () => {
+    it('has no default, so existing blocks serialize as before', () => {
+        expect(metadata.attributes.language).not.toHaveProperty('default');
+    });
+
+    it('offers plain text and Blade alongside the older manifest list', () => {
+        expect(metadata.attributes.language.enum).toContain('plaintext');
+        expect(metadata.attributes.language.enum).toContain('blade');
     });
 });
 
@@ -71,5 +83,19 @@ describe('CodeSave', () => {
             <CodeSave attributes={{ content: '[shortcode]' }} />
         );
         expect(html).toContain('#91;shortcode');
+    });
+
+    it('saves a bare code element when no language is set', () => {
+        const html = renderToStaticMarkup(
+            <CodeSave attributes={{ content: 'a' }} />
+        );
+        expect(html).toBe('<pre><code>a</code></pre>');
+    });
+
+    it('prints the language class on the code element', () => {
+        const html = renderToStaticMarkup(
+            <CodeSave attributes={{ content: 'a', language: 'php' }} />
+        );
+        expect(html).toBe('<pre><code class="language-php">a</code></pre>');
     });
 });

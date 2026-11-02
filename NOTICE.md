@@ -69,3 +69,11 @@ and the React / Vue `src/blocks/artisanpack/socialLinkServices.ts`).
 
 [fa-free]: https://fontawesome.com/license/free
 [cc-by-4]: https://creativecommons.org/licenses/by/4.0/
+
+## Prism
+
+The Code block highlighter bundles [Prism](https://prismjs.com) v1.30.0 by
+Lea Verou and contributors, licensed under the
+[MIT License](https://github.com/PrismJS/prism/blob/v1.30.0/LICENSE). It is
+included in `frontend/code-highlight.js` in the Blade renderer and
+`src/support/codeHighlighter.generated.js` in the React and Vue renderers.

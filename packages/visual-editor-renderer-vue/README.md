@@ -244,3 +244,7 @@ This package ships as part of the ArtisanPack UI visual editor V1 (epic
 `visual-editor` monorepo under `packages/visual-editor-renderer-vue/` and
 is distributed to npm via a subtree split — see `PACKAGING.md` at the
 monorepo root for the release workflow.
+
+## Code block highlighting
+
+A Code block with a language renders as plain code, on the server too, then is highlighted in the browser. The highlighter is imported on first use, so pages with no highlighted block never download it, and it inserts its own `<style data-ve-code-highlight>` tag. A strict `style-src` Content Security Policy blocks that tag, which leaves tokens uncoloured. See [Code Block](../../docs/blocks/Code-Block.md) for theming.
