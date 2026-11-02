@@ -27,6 +27,7 @@ import {
     dispatchEditorEvent,
 } from './editor-events';
 import { setPath } from '../responsive/attribute-paths';
+import { ensureEditorInstances } from '../site-editor/hydrate-blocks';
 import {
     getAllPristineClientIds,
     getPristineSnapshot,
@@ -314,7 +315,11 @@ export function usePersistence(
                     return;
                 }
 
-                setBlocks(response.blocks as BlockInstance[]);
+                // Stored trees aren't always editor-saved. Blocks seeded
+                // from code have no `clientId`, and the block-editor store
+                // silently drops those, leaving a blank canvas whose next
+                // edit would overwrite the record (#1055).
+                setBlocks(ensureEditorInstances(response.blocks));
                 setLastSavedAt(response.updated_at);
                 // The loaded tree *is* the persisted state, so the editor
                 // starts clean. Staying `idle` here labelled every page

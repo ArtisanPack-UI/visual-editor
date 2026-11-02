@@ -1390,6 +1390,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
         () => (
             <TopBar
                 saveStatus={saveStatus}
+                contentLoaded={loadStatus === 'ready'}
                 lastSavedAt={lastSavedAt}
                 saveErrorMessage={saveError?.message ?? null}
                 canUndo={history.past.length > 0}
@@ -1428,6 +1429,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
             inserterOpen,
             inspectorOpen,
             lastSavedAt,
+            loadStatus,
             patternModalTriggerAvailable,
             previewUrl,
             saveError,

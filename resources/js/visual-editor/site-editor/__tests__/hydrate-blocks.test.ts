@@ -40,12 +40,54 @@ describe('ensureEditorInstances (#809)', () => {
         expect(block.attributes).toEqual({ ref: 1 });
     });
 
+    it('fills a missing isValid without replacing an existing clientId (#1055)', () => {
+        const [block] = ensureEditorInstances([
+            { name: 'core/navigation', clientId: 'saved-id', attributes: { ref: 1 }, innerBlocks: [] },
+        ]);
+
+        expect(block.clientId).toBe('saved-id');
+        expect(block.isValid).toBe(true);
+    });
+
+    it('keeps a stored isValid: false (#1055)', () => {
+        const [block] = ensureEditorInstances([
+            { name: 'core/navigation', clientId: 'saved-id', isValid: false, attributes: {}, innerBlocks: [] },
+        ]);
+
+        expect(block.isValid).toBe(false);
+    });
+
+    it('coerces PHP empty-array attributes on saved instances too (#1055)', () => {
+        const [block] = ensureEditorInstances([
+            { name: 'core/navigation', clientId: 'saved-id', isValid: true, attributes: [], innerBlocks: [] },
+        ]);
+
+        expect(block.attributes).toEqual({});
+    });
+
     it('coerces PHP empty-array attributes to an object', () => {
         const [block] = ensureEditorInstances([
             { name: 'core/navigation', attributes: [], innerBlocks: [] },
         ]);
 
         expect(block.attributes).toEqual({});
+    });
+
+    it('reads the blockName and attrs shapes the server renders (#1055)', () => {
+        const [block] = ensureEditorInstances([
+            {
+                blockName: 'core/heading',
+                attrs: { content: 'Parsed' },
+                innerBlocks: [{ type: 'core/paragraph', attrs: { content: 'Nested' } }],
+            },
+        ]);
+
+        expect(block.name).toBe('core/heading');
+        expect(block.attributes).toEqual({ content: 'Parsed' });
+        expect(block).not.toHaveProperty('blockName');
+        expect(block).not.toHaveProperty('attrs');
+        expect(block.innerBlocks[0].name).toBe('core/paragraph');
+        expect(block.innerBlocks[0].attributes).toEqual({ content: 'Nested' });
     });
 
     it('drops malformed entries instead of throwing', () => {

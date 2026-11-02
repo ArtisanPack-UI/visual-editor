@@ -64,6 +64,50 @@ describe('usePersistence', () => {
         expect(result.current.lastSavedAt).toBe('2026-04-19T10:00:00Z');
     });
 
+    it('gives stored blocks without a clientId the editor fields they need (#1055)', async () => {
+        const requests: RecordedCall[] = [];
+        mockFetch((call) => {
+            requests.push(call);
+            return jsonResponse({
+                id: 42,
+                resource: 'posts',
+                blocks: [
+                    {
+                        name: 'core/group',
+                        attributes: [],
+                        innerHTML: '<div></div>',
+                        innerBlocks: [
+                            { name: 'core/paragraph', attributes: { content: 'Seeded' }, innerBlocks: [] },
+                        ],
+                    },
+                ],
+                updated_at: '2026-04-19T10:00:00Z',
+            });
+        });
+
+        const { result } = renderHook(() => usePersistence(CONFIG));
+
+        await waitFor(() => {
+            expect(result.current.loadStatus).toBe('ready');
+        });
+
+        const [group] = result.current.blocks;
+        const [paragraph] = group.innerBlocks;
+
+        expect(group.clientId).toEqual(expect.any(String));
+        expect(group.isValid).toBe(true);
+        expect(group.attributes).toEqual({});
+        expect(paragraph.clientId).toEqual(expect.any(String));
+        expect(paragraph.clientId).not.toBe(group.clientId);
+        expect(paragraph.isValid).toBe(true);
+        expect(paragraph.attributes).toEqual({ content: 'Seeded' });
+
+        // Normalizing the tree isn't an edit.
+        expect(result.current.saveStatus).toBe('saved');
+        await new Promise((resolve) => setTimeout(resolve, CONFIG.debounceMs * 2));
+        expect(requests.filter((call) => call.method !== 'GET')).toEqual([]);
+    });
+
     it('starts clean once the content has loaded (#1011)', async () => {
         const requests: RecordedCall[] = [];
         mockFetch((call) => {
