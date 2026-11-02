@@ -4,11 +4,20 @@
  * rendered output is interchangeable with the server-side renderer.
  */
 
+import { useEffect, useRef } from 'react';
 import { attrBoolean, attrInt, attrString, classList } from '../../support/attributes';
 import { compileBlockSupports } from '../../support/blockSupports';
 import { styleProp } from '../../support/styleProp';
 import { safeCssValue } from '../../support/cssValue';
 import { safeUrl } from '../../support/urlSanitizer';
+import {
+    LIGHTBOX_LABELS,
+    LIGHTBOX_TRIGGER_ICON_PATH,
+    bindLightbox,
+    imageHasLightbox,
+    lightboxNavigationType,
+    lightboxTriggerLabel,
+} from '../../support/lightbox';
 import type { BlockRendererProps } from '../../types';
 
 /**
@@ -138,15 +147,26 @@ export function ImageBlock({ attributes }: BlockRendererProps): JSX.Element {
     const sizeSlug = attrString(attributes.sizeSlug);
     const className = attrString(attributes.className);
 
+    // #1046 — a link wins over the lightbox.
+    const lightbox = imageHasLightbox(attributes);
+    const figureRef = useRef<HTMLElement>(null);
+
+    useEffect(() => {
+        if (lightbox && figureRef.current !== null) {
+            void bindLightbox(figureRef.current);
+        }
+    }, [lightbox]);
+
     const supports = compileBlockSupports(attributes);
     // Blade order: base, size, is-resized (#985), duotone scope (stamped by
-    // `stampDuotoneScopes()`), then the supports' align, the other
-    // supports (#920) and className.
+    // `stampDuotoneScopes()`), the lightbox, then the supports' align, the
+    // other supports (#920) and className.
     const figureClasses = classList([
         'wp-block-image',
         sizeSlug !== '' ? `size-${sizeSlug}` : null,
         width.style !== undefined || height.style !== undefined ? 'is-resized' : null,
         attrString(attributes._veDuotone) || null,
+        lightbox ? 'wp-lightbox-container' : null,
         align !== '' ? `align${align}` : null,
         ...supports.classNames,
         className,
@@ -166,7 +186,12 @@ export function ImageBlock({ attributes }: BlockRendererProps): JSX.Element {
         );
 
     return (
-        <figure className={figureClasses} style={styleProp(supports.style)}>
+        <figure
+            ref={figureRef}
+            className={figureClasses}
+            style={styleProp(supports.style)}
+            data-ap-lightbox-labels={lightbox ? LIGHTBOX_LABELS : undefined}
+        >
             {img !== null && href !== '' ? (
                 <a className={link.className} href={href} target={link.target} rel={link.rel}>
                     {img}
@@ -174,6 +199,19 @@ export function ImageBlock({ attributes }: BlockRendererProps): JSX.Element {
             ) : (
                 img
             )}
+            {lightbox ? (
+                <button
+                    type="button"
+                    className="lightbox-trigger"
+                    aria-haspopup="dialog"
+                    aria-label={lightboxTriggerLabel(alt)}
+                    style={{ display: 'none' }}
+                >
+                    <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
+                        <path fill="currentColor" d={LIGHTBOX_TRIGGER_ICON_PATH} />
+                    </svg>
+                </button>
+            ) : null}
             {caption.trim() !== '' ? (
                 <figcaption dangerouslySetInnerHTML={{ __html: caption }} />
             ) : null}
@@ -198,7 +236,11 @@ export function GalleryBlock({ attributes, children }: BlockRendererProps): JSX.
     ]);
 
     return (
-        <figure className={classes} style={styleProp(supports.style)}>
+        <figure
+            className={classes}
+            style={styleProp(supports.style)}
+            data-ap-lightbox-navigation={lightboxNavigationType(attributes.navigationButtonType)}
+        >
             {children}
             {caption.trim() !== '' ? (
                 <figcaption

@@ -93,6 +93,11 @@ jobs:
         # packages/code-highlight, which is what they're built from.
         run: npm run build:code-highlight -- --check
 
+      - name: Verify lightbox output
+        # Fails when the generated lightbox files differ from
+        # packages/lightbox, which is what they're built from.
+        run: npm run build:lightbox -- --check
+
       - name: Build library bundle
         run: npm run build:lib
 

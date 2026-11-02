@@ -62,6 +62,7 @@ and pass it in, so the page matches the Blade renderer:
 
 - `duotonePresets`: `PresetRegistry::activeThemeSettings()['color']['duotone'] ?? null`
 - `customCssAllowUrls`: `config('artisanpack.visual-editor.effects.custom_css_allow_urls')`
+- `lightboxDefault`: `ImageLightbox::themeDefault()`, the theme's "Enlarge on click" default for images with no setting of their own
 
 ```tsx
 <BlockTree

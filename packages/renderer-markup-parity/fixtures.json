@@ -84,6 +84,13 @@
             "fixturesMatching": "^navigation-layout-colors-elements$",
             "reason": "The scoped `.wp-elements-{hash} a:where(:not(.wp-element-button)) { color: … }` rules ElementsSupport pushes into the shared `<style data-ve-elements>` block (#852) — Blade-only, like its scope class.",
             "dropRendererStyleTag": "data-ve-elements"
+        },
+        {
+            "id": "gallery-layout-classes",
+            "issue": "#1046",
+            "fixturesMatching": "^image-lightbox$",
+            "reason": "Blade prints `is-layout-flex wp-block-gallery-is-layout-flex` on a Gallery because its partial mirrors `supports.layout`; the React and Vue Gallery renderers don't. This predates the lightbox and no fixture covered Gallery until this one.",
+            "dropClassTokensMatching": "^(wp-block-gallery-)?is-layout-flex$"
         }
     ],
     "fixtures": [
@@ -7615,6 +7622,19 @@
                 { "clientId": "cl-plain", "name": "artisanpack/code", "attributes": { "content": "text", "language": "plaintext" }, "innerBlocks": [] },
                 { "clientId": "cl-unknown", "name": "artisanpack/code", "attributes": { "content": "text", "language": "cobol" }, "innerBlocks": [] },
                 { "clientId": "cl-hostile", "name": "artisanpack/code", "attributes": { "content": "text", "language": "php\" onclick=\"alert(1)" }, "innerBlocks": [] }
+            ]
+        },
+        {
+            "name": "image-lightbox",
+            "$comment": "#1046 — an enabled image prints the container class, the overlay labels and a hidden trigger after the image, on both image block names. A link wins, and a block with the setting off or absent prints what it always did. A Gallery tells the overlay a non-default navigation button type.",
+            "tree": [
+                { "clientId": "lb-on", "name": "artisanpack/image", "attributes": { "url": "https://example.test/a.jpg", "alt": "A cat", "caption": "Hello", "lightbox": { "enabled": true } }, "innerBlocks": [] },
+                { "clientId": "lb-core", "name": "core/image", "attributes": { "url": "https://example.test/b.jpg", "alt": "", "lightbox": { "enabled": true } }, "innerBlocks": [] },
+                { "clientId": "lb-off", "name": "artisanpack/image", "attributes": { "url": "https://example.test/c.jpg", "alt": "Off", "lightbox": { "enabled": false } }, "innerBlocks": [] },
+                { "clientId": "lb-link", "name": "artisanpack/image", "attributes": { "url": "https://example.test/d.jpg", "alt": "Linked", "href": "https://example.test/page", "lightbox": { "enabled": true } }, "innerBlocks": [] },
+                { "clientId": "lb-gallery", "name": "core/gallery", "attributes": { "navigationButtonType": "both" }, "innerBlocks": [
+                    { "clientId": "lb-gallery-1", "name": "core/image", "attributes": { "url": "https://example.test/e.jpg", "alt": "One", "lightbox": { "enabled": true } }, "innerBlocks": [] }
+                ] }
             ]
         }
     ]

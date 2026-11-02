@@ -44,7 +44,7 @@
             "status": "extended",
             "notes": "Upstream raw/block transforms preserved; added bidirectional core/preformatted ↔ artisanpack/preformatted and accepts artisanpack/code, artisanpack/paragraph, artisanpack/verse as from-sources.",
             "result": "skipped-status",
-            "forkDigest": "d31eb5d51ef5"
+            "forkDigest": "8acaa766a9c5"
         },
         {
             "fork": "preformatted.css",

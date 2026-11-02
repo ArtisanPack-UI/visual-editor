@@ -1,0 +1,247 @@
+/**
+ * Image and Gallery lightbox (#1046).
+ *
+ * The Blade renderer ships this as `frontend/lightbox.css`, loaded only on
+ * pages with a lightbox. The React and Vue renderers insert it along with the
+ * overlay. It uses the block library's `wp-lightbox-*` class names and loads
+ * after that stylesheet, so these rules win where the two overlap.
+ *
+ * Themes can restyle the overlay with `--ap-lightbox-scrim` and
+ * `--ap-lightbox-color`.
+ */
+
+.wp-lightbox-container {
+    position: relative;
+    display: block;
+}
+
+.wp-lightbox-container img {
+    cursor: zoom-in;
+}
+
+.wp-lightbox-container > .lightbox-trigger {
+    position: absolute;
+    z-index: 100;
+    top: 16px;
+    right: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: 4px;
+    color: #fff;
+    cursor: zoom-in;
+    opacity: 0;
+}
+
+.wp-lightbox-container > button.lightbox-trigger:hover,
+.wp-lightbox-container > button.lightbox-trigger:focus,
+.wp-lightbox-container > button.lightbox-trigger:not(:hover):not(:active):not(.has-background) {
+    border: none;
+    background-color: rgb(0 0 0 / 60%);
+}
+
+.wp-lightbox-container > :is(img, picture):hover + .lightbox-trigger,
+.wp-lightbox-container > .lightbox-trigger:hover,
+.wp-lightbox-container > .lightbox-trigger:focus {
+    opacity: 1;
+}
+
+.wp-lightbox-container > .lightbox-trigger:focus-visible {
+    outline: 3px solid currentcolor;
+    outline-offset: 2px;
+}
+
+.wp-lightbox-overlay {
+    position: fixed;
+    z-index: 100000;
+    top: 0;
+    left: 0;
+    overflow: hidden;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    color: var(--ap-lightbox-color, #1e1e1e);
+    cursor: zoom-out;
+    visibility: hidden;
+}
+
+.wp-lightbox-overlay.active {
+    visibility: visible;
+}
+
+.wp-lightbox-overlay .scrim {
+    position: absolute;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    background-color: var(--ap-lightbox-scrim, #fff);
+    opacity: 0.9;
+}
+
+.wp-lightbox-overlay .lightbox-image-container {
+    position: absolute;
+    z-index: 2;
+    inset: 0;
+    overflow: hidden;
+    padding: 72px 16px;
+    box-sizing: border-box;
+    transform: none;
+}
+
+.wp-lightbox-overlay .wp-block-image {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    gap: 12px;
+}
+
+.wp-lightbox-overlay .wp-block-image img {
+    width: auto;
+    min-width: 0;
+    max-width: 100%;
+    height: auto;
+    min-height: 0;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.wp-lightbox-overlay .wp-block-image figcaption {
+    display: block;
+    flex: none;
+    max-height: 25%;
+    margin: 0;
+    overflow: auto;
+    text-align: center;
+}
+
+.wp-lightbox-overlay button {
+    border: none;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+    font-family: inherit;
+    line-height: 1;
+}
+
+.wp-lightbox-overlay button:hover,
+.wp-lightbox-overlay button:focus {
+    border: none;
+    background: none;
+}
+
+.wp-lightbox-overlay button:focus-visible {
+    outline: 2px solid currentcolor;
+    outline-offset: 2px;
+}
+
+.wp-lightbox-overlay .wp-lightbox-close-button,
+.wp-lightbox-overlay .wp-lightbox-navigation-button-prev,
+.wp-lightbox-overlay .wp-lightbox-navigation-button-next {
+    position: absolute;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    min-height: 40px;
+    padding: 0 8px;
+    gap: 4px;
+}
+
+.wp-lightbox-overlay .wp-lightbox-close-button {
+    top: calc(env(safe-area-inset-top) + 16px);
+    right: calc(env(safe-area-inset-right) + 16px);
+}
+
+.wp-lightbox-overlay .wp-lightbox-navigation-button-prev,
+.wp-lightbox-overlay .wp-lightbox-navigation-button-next {
+    bottom: 16px;
+}
+
+.wp-lightbox-overlay .wp-lightbox-navigation-button-prev {
+    left: calc(env(safe-area-inset-left) + 16px);
+}
+
+.wp-lightbox-overlay .wp-lightbox-navigation-button-next {
+    right: calc(env(safe-area-inset-right) + 16px);
+}
+
+.wp-lightbox-overlay .wp-lightbox-navigation-button-prev[hidden],
+.wp-lightbox-overlay .wp-lightbox-navigation-button-next[hidden],
+.wp-lightbox-overlay .wp-lightbox-navigation-icon[hidden],
+.wp-lightbox-overlay .wp-lightbox-navigation-text[hidden] {
+    display: none;
+}
+
+.wp-lightbox-overlay .wp-lightbox-close-icon svg,
+.wp-lightbox-overlay .wp-lightbox-navigation-icon svg {
+    display: block;
+    fill: currentcolor;
+}
+
+.wp-lightbox-overlay .wp-lightbox-live-region {
+    position: absolute;
+    overflow: hidden;
+    width: 1px;
+    height: 1px;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+@media (min-width: 960px) {
+    .wp-lightbox-overlay .lightbox-image-container {
+        padding-inline: 72px;
+    }
+
+    .wp-lightbox-overlay .wp-lightbox-navigation-button-prev,
+    .wp-lightbox-overlay .wp-lightbox-navigation-button-next {
+        bottom: 50%;
+        transform: translateY(50%);
+    }
+}
+
+@media not (prefers-reduced-motion) {
+    .wp-lightbox-container > .lightbox-trigger {
+        transition: opacity 0.2s ease;
+    }
+
+    .wp-lightbox-overlay.active {
+        animation: both ap-lightbox-fade-in 0.25s;
+    }
+
+    .wp-lightbox-overlay.show-closing-animation:not(.active) {
+        animation: both ap-lightbox-fade-out 0.25s;
+    }
+}
+
+@keyframes ap-lightbox-fade-in {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+@keyframes ap-lightbox-fade-out {
+    0% {
+        opacity: 1;
+        visibility: visible;
+    }
+    99% {
+        opacity: 0;
+        visibility: visible;
+    }
+    100% {
+        opacity: 0;
+        visibility: hidden;
+    }
+}

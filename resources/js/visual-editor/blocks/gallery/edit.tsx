@@ -62,6 +62,7 @@ import {
     fullscreen,
 } from '@wordpress/icons';
 
+import { useLightboxSetting } from '../image/use-lightbox-setting';
 import { sharedIcon } from './shared-icon';
 import { defaultColumnsNumber, pickRelevantMediaFiles } from './shared';
 import {
@@ -92,8 +93,8 @@ interface LinkOption {
 }
 
 // Built per render so the labels pick up locale data loaded after import.
-function linkOptionsList(): LinkOption[] {
-    return [
+export function linkOptionsList(allowLightbox: boolean): LinkOption[] {
+    const options: LinkOption[] = [
         {
             icon: customLink,
             label: __('Link images to attachment pages', TEXT_DOMAIN),
@@ -120,6 +121,10 @@ function linkOptionsList(): LinkOption[] {
             noticeText: __('None', TEXT_DOMAIN),
         },
     ];
+
+    return allowLightbox
+        ? options
+        : options.filter((option) => option.value !== LINK_DESTINATION_LIGHTBOX);
 }
 
 function navigationButtonTypeOptions(): Array<{ label: string; value: string }> {
@@ -216,24 +221,18 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
     } = props;
 
     const settingsResult = useSettings(
-        'blocks.core/image.lightbox',
         'dimensions.aspectRatios.default',
         'dimensions.aspectRatios.theme',
         'dimensions.defaultAspectRatios'
     ) as readonly [
-        { allowEditing?: boolean; enabled?: boolean } | undefined,
         ReadonlyArray<{ name: string; ratio: string }> | undefined,
         ReadonlyArray<{ name: string; ratio: string }> | undefined,
         boolean | undefined,
     ];
-    const [lightboxSetting, defaultRatios, themeRatios, showDefaultRatios] =
-        settingsResult;
+    const [defaultRatios, themeRatios, showDefaultRatios] = settingsResult;
+    const lightboxSetting = useLightboxSetting();
 
-    const linkOptions = !lightboxSetting?.allowEditing
-        ? linkOptionsList().filter(
-              (option) => option.value !== LINK_DESTINATION_LIGHTBOX
-          )
-        : linkOptionsList();
+    const linkOptions = linkOptionsList(lightboxSetting.allowEditing);
 
     const {
         navigationButtonType,
@@ -349,7 +348,7 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
 
     const newImages = useGetNewImages(images, imageData);
 
-    const hasLightboxImages = lightboxSetting?.enabled
+    const hasLightboxImages = lightboxSetting.enabled
         ? images.filter(
               (image) =>
                   image.attributes?.lightbox?.enabled === undefined ||

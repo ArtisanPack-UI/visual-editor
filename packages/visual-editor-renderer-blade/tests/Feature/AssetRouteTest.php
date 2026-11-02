@@ -87,6 +87,7 @@ it( 'serves the frontend scripts with a javascript content type', function ( str
 	'interactivity.js',
 	'masonry-fallback.js',
 	'code-highlight.js',
+	'lightbox.js',
 ] );
 
 it( 'marks served assets nosniff so a mistyped response cannot be re-interpreted', function (): void {

@@ -36,6 +36,7 @@ import {
 } from './support/navigationOverlayCss';
 import { treeNavigationCollapseCss } from './support/navigationCollapseCss';
 import { stampDuotoneScopes } from './support/duotone';
+import { stampLightboxDefault } from './support/lightbox';
 import type { DuotonePresets } from './support/duotone';
 import { stampEffectsScopes } from './support/effects';
 import { stampHeadingAnchors } from './support/headingAnchors';
@@ -128,6 +129,14 @@ export interface BlockTreeProps {
      */
     duotonePresets?: DuotonePresets;
     /**
+     * The theme's lightbox default, so images with no setting of their own
+     * follow `settings.blocks.{artisanpack,core}/image.lightbox.enabled` as
+     * they do on the Blade renderer.
+     *
+     * @since 1.20.0
+     */
+    lightboxDefault?: boolean;
+    /**
      * URL of the page being rendered, so navigation links / submenus
      * pointing at it get `current-menu-item` + `aria-current="page"` and
      * the ones leading to it `current-menu-ancestor`, as Blade marks them
@@ -194,6 +203,10 @@ export const BlockTree = defineComponent({
         duotonePresets: {
             type: [Array, Object] as PropType<DuotonePresets>,
             default: undefined,
+        },
+        lightboxDefault: {
+            type: Boolean,
+            default: false,
         },
         currentUrl: {
             type: String as PropType<string | null | undefined>,
@@ -334,7 +347,7 @@ export const BlockTree = defineComponent({
         // whose media renders, and print the rules plus the hidden SVG
         // filter definitions Blade drains from `DuotoneCssAccumulator`.
         const duotone = computed(() =>
-            stampDuotoneScopes(effects.value.tree, props.duotonePresets)
+            stampDuotoneScopes(stampLightboxDefault(effects.value.tree, props.lightboxDefault), props.duotonePresets)
         );
 
         const hasNavigationOverlay = computed(() => treeHasNavigationOverlay(duotone.value.tree));

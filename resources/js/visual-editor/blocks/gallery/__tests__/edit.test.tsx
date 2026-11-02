@@ -143,7 +143,8 @@ vi.mock('@wordpress/block-editor', () => ({
 
 (globalThis as { React?: unknown }).React = require('react');
 
-import GalleryEdit from '../edit';
+import GalleryEdit, { linkOptionsList } from '../edit';
+import { getHrefAndDestination } from '../utils';
 
 describe('GalleryEdit', () => {
     it('renders the MediaPlaceholder when no inner image blocks exist', () => {
@@ -159,3 +160,44 @@ describe('GalleryEdit', () => {
         expect(getByTestId('placeholder')).toBeTruthy();
     });
 });
+
+describe('Gallery lightbox link option (#1046)', () => {
+    const values = (allowLightbox: boolean): string[] =>
+        linkOptionsList(allowLightbox).map((option) => option.value);
+
+    it('offers the lightbox unless the theme turns off editing', () => {
+        expect(values(true)).toContain('lightbox');
+        expect(values(false)).not.toContain('lightbox');
+    });
+
+    it('turns the lightbox on for each image and clears its link', () => {
+        expect(getHrefAndDestination({ url: '/a.jpg' }, 'lightbox', false, { lightbox: {} })).toEqual({
+            href: undefined,
+            lightbox: { enabled: true },
+            linkDestination: 'none',
+        });
+    });
+
+    it('leaves images on the theme default when that is on', () => {
+        expect(
+            getHrefAndDestination({ url: '/a.jpg' }, 'lightbox', false, {}, { enabled: true }).lightbox
+        ).toBeUndefined();
+    });
+
+    it('turns a theme default off when the author picks None', () => {
+        expect(
+            getHrefAndDestination({ url: '/a.jpg' }, 'none', false, {}, { enabled: true }).lightbox
+        ).toEqual({ enabled: false });
+    });
+
+    it('leaves None alone with no theme default', () => {
+        expect(getHrefAndDestination({ url: '/a.jpg' }, 'none', false, {}).lightbox).toBeUndefined();
+    });
+
+    it('turns the lightbox off when a theme default is on and images link to media', () => {
+        expect(
+            getHrefAndDestination({ url: '/a.jpg' }, 'media', false, {}, { enabled: true }).lightbox
+        ).toEqual({ enabled: false });
+    });
+});
+

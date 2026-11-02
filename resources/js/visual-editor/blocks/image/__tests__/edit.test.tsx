@@ -2,8 +2,10 @@
  * Tests for the `artisanpack/image` edit component.
  */
 
-import { describe, it, expect, vi } from 'vitest';
-import { fireEvent, render } from '@testing-library/react';
+import { afterEach, describe, it, expect, vi } from 'vitest';
+import { fireEvent, render, within } from '@testing-library/react';
+
+const mockThemeSettings: Record<string, unknown> = {};
 
 vi.mock('@wordpress/i18n', () => ({
     __: (text: string) => text,
@@ -55,6 +57,32 @@ vi.mock('@wordpress/components', () => {
         ),
     });
     return {
+        ToggleControl: ({
+            label,
+            checked,
+            disabled,
+            help,
+            onChange,
+        }: {
+            label: string;
+            checked?: boolean;
+            disabled?: boolean;
+            help?: string;
+            onChange: (next: boolean) => void;
+        }) => (
+            <>
+                <label>
+                    {label}
+                    <input
+                        type="checkbox"
+                        checked={!!checked}
+                        disabled={disabled}
+                        onChange={(event) => onChange(event.target.checked)}
+                    />
+                </label>
+                <span>{help}</span>
+            </>
+        ),
         BaseControl,
         Button: ({ children, ...rest }: { children?: React.ReactNode }) => (
             <button {...rest}>{children}</button>
@@ -142,6 +170,7 @@ vi.mock('@wordpress/block-editor', () => ({
     ),
     useBlockProps: (props?: Record<string, unknown>) => ({ ...props }),
     useBlockEditingMode: () => 'default',
+    useSettings: (...paths: string[]) => paths.map((path) => mockThemeSettings[path]),
     __experimentalGetBorderClassesAndStyles: () => ({
         className: '',
         style: {},
@@ -447,5 +476,75 @@ describe('getLinkDestinationAttributes', () => {
         expect(
             getLinkDestinationAttributes('custom', { url: PHOTO, href: PHOTO })
         ).toEqual({ href: undefined, linkDestination: 'custom' });
+    });
+});
+
+describe('Enlarge on click toggle', () => {
+    const toggle = (container: HTMLElement): HTMLInputElement =>
+        within(container).getByLabelText('Enlarge on click') as HTMLInputElement;
+
+    function renderImage(attributes: Record<string, unknown>, setAttributes = vi.fn()) {
+        return render(
+            <ImageEdit attributes={{ url: PHOTO, ...attributes }} setAttributes={setAttributes} isSelected />
+        ).container;
+    }
+
+    afterEach(() => {
+        Object.keys(mockThemeSettings).forEach((key) => delete mockThemeSettings[key]);
+    });
+
+    it('starts off with no theme setting', () => {
+        expect(toggle(renderImage({})).checked).toBe(false);
+    });
+
+    it('turns the lightbox on for the image', () => {
+        const setAttributes = vi.fn();
+
+        fireEvent.click(toggle(renderImage({}, setAttributes)));
+
+        expect(setAttributes).toHaveBeenCalledWith({ lightbox: { enabled: true } });
+    });
+
+    it('turns it off for the image, keeping an explicit false', () => {
+        const setAttributes = vi.fn();
+
+        fireEvent.click(toggle(renderImage({ lightbox: { enabled: true } }, setAttributes)));
+
+        expect(setAttributes).toHaveBeenCalledWith({ lightbox: { enabled: false } });
+    });
+
+    it.each([['blocks.artisanpack/image.lightbox'], ['blocks.core/image.lightbox']])(
+        'follows the theme default from %s',
+        (path) => {
+            mockThemeSettings[path] = { enabled: true };
+
+            expect(toggle(renderImage({})).checked).toBe(true);
+        }
+    );
+
+    it('lets the image override the theme default', () => {
+        mockThemeSettings['blocks.core/image.lightbox'] = { enabled: true };
+
+        expect(toggle(renderImage({ lightbox: { enabled: false } })).checked).toBe(false);
+    });
+
+    it('prefers the first-party theme key', () => {
+        mockThemeSettings['blocks.artisanpack/image.lightbox'] = { enabled: false };
+        mockThemeSettings['blocks.core/image.lightbox'] = { enabled: true };
+
+        expect(toggle(renderImage({})).checked).toBe(false);
+    });
+
+    it('is off and disabled on a linked image, since the link wins', () => {
+        const input = toggle(renderImage({ href: 'https://example.com/page', lightbox: { enabled: true } }));
+
+        expect(input.checked).toBe(false);
+        expect(input.disabled).toBe(true);
+    });
+
+    it('is hidden when the theme turns off editing', () => {
+        mockThemeSettings['blocks.core/image.lightbox'] = { allowEditing: false };
+
+        expect(within(renderImage({})).queryByLabelText('Enlarge on click')).toBeNull();
     });
 });

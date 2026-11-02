@@ -26,7 +26,8 @@
         "verify:parity": "node scripts/verify-renderer-parity.mjs",
         "upstream-diff": "node scripts/upstream-diff.mjs",
         "sync:social-links": "node scripts/sync-social-link-services.mjs",
-        "build:code-highlight": "node scripts/build-code-highlight.mjs"
+        "build:code-highlight": "node scripts/build-code-highlight.mjs",
+        "build:lightbox": "node scripts/build-lightbox.mjs"
     },
     "devDependencies": {
         "@fortawesome/fontawesome-free": "^7.2.0",
