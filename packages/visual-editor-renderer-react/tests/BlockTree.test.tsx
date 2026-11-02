@@ -202,7 +202,77 @@ describe('Core media blocks', () => {
         expect(html).toContain('alt="An image"');
         expect(html).toContain('class="wp-image-42"');
         expect(html).toContain('href="https://example.test/full.jpg"');
-        expect(html).toContain('<figcaption>A <em>caption</em></figcaption>');
+        expect(html).toContain('<figcaption class="wp-element-caption">A <em>caption</em></figcaption>');
+    });
+
+    it('paints the border and shadow on the image, not the figure (#1052)', () => {
+        const html = renderTree([
+            makeBlock('core/image', {
+                id: 42,
+                url: 'https://example.test/image.jpg',
+                alt: 'x',
+                caption: 'Caption',
+                borderColor: 'primary',
+                style: {
+                    border: { width: '3px', radius: '12px' },
+                    shadow: 'var:preset|shadow|natural',
+                    spacing: { margin: { top: '1rem' } },
+                },
+            }),
+        ]);
+
+        expect(html).toContain('<figure class="wp-block-image has-custom-border" style="margin-top: 1rem;">');
+        expect(html).toContain('class="has-border-color has-primary-border-color wp-image-42"');
+        expect(html).toMatch(/<img[^>]*style="[^"]*border-radius: 12px[^"]*box-shadow: var\(--wp--preset--shadow--natural\)/);
+        expect(html).toContain('<figcaption class="wp-element-caption">Caption</figcaption>');
+    });
+
+    it('prints a structured shadow on the image and leaves a gradient one out (#1052)', () => {
+        const structured = renderTree([
+            makeBlock('core/image', {
+                url: 'https://example.test/image.jpg',
+                style: { shadow: { offsetY: '4px', blur: '8px', color: 'rgba(0, 0, 0, 0.5)', inset: true } },
+            }),
+        ]);
+        const gradient = renderTree([
+            makeBlock('core/image', {
+                url: 'https://example.test/image.jpg',
+                style: { shadow: { blur: '8px', gradient: 'linear-gradient(red, blue)' } },
+            }),
+        ]);
+
+        expect(structured).toContain('box-shadow: inset 0px 4px 8px 0px rgba(0, 0, 0, 0.5)');
+        expect(structured).toContain('<figure class="wp-block-image">');
+        expect(gradient).not.toContain('box-shadow');
+    });
+
+    it('keeps the border on the figure for a hover or breakpoint gradient (#1052)', () => {
+        for (const overrides of [
+            { states: { _scopeId: 'a', 'style.border.gradient': { hover: 'linear-gradient(red, blue)' } } },
+            { responsive: { 'border.gradient': { md: 'linear-gradient(red, blue)' } } },
+        ]) {
+            const html = renderTree([
+                makeBlock('core/image', {
+                    url: 'https://example.test/image.jpg',
+                    style: { border: { width: '2px' } },
+                    ...overrides,
+                }),
+            ]);
+
+            expect(html).toMatch(/<figure class="wp-block-image" style="[^"]*border-width: 2px/);
+        }
+    });
+
+    it('keeps a gradient border on the figure (#1052)', () => {
+        const html = renderTree([
+            makeBlock('core/image', {
+                url: 'https://example.test/image.jpg',
+                style: { border: { gradient: 'linear-gradient(red, blue)', width: '2px' } },
+            }),
+        ]);
+
+        expect(html).toMatch(/<figure class="wp-block-image" style="[^"]*border-width: 2px/);
+        expect(html).not.toContain('has-custom-border');
     });
 
     it('renders the image link class, target and rel (#1022)', () => {

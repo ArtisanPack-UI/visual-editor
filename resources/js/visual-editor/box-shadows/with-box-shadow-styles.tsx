@@ -28,7 +28,7 @@ import { useCanvasScopedStyle } from '../support/canvas-scoped-styles'
 
 import { TAILWIND_V4_DEFAULTS, BreakpointRegistry } from '../responsive/registry'
 import { DEFAULT_STATES, StateRegistry } from '../states/registry'
-import { emitBoxShadowCss } from './emitter'
+import { emitBoxShadowCss, shadowScopeFor } from './emitter'
 import { normalizeShadowSubtree, resolveBoxShadow } from './resolver'
 import type { BoxShadowAttributes, ShadowSubtree } from './types'
 
@@ -220,12 +220,12 @@ export const withBoxShadowStyles = createHigherOrderComponent(
 				}
 
 				return emitBoxShadowCss(
-					`.${ scopeIdToClass( effectiveScopeId ) }`,
+					shadowScopeFor( name, `.${ scopeIdToClass( effectiveScopeId ) }`, payload ),
 					payload,
 					states,
 					breakpoints,
 				)
-			}, [ supported, effectiveScopeId, attributes ] )
+			}, [ supported, effectiveScopeId, attributes, name ] )
 
 			useCanvasScopedStyle( BOX_SHADOW_STYLE_CHANNEL, clientId, css )
 

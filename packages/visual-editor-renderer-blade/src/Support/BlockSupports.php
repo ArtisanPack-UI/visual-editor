@@ -1281,6 +1281,97 @@ class BlockSupports
 	}
 
 	/**
+	 * Split a block's border and shadow supports off its wrapper, for a
+	 * block whose `block.json` skips their serialization and paints them
+	 * on an inner element, as core's Image does on its `<img>` (#1052).
+	 *
+	 * `wrapper` goes to {@see self::wrapperAttrs()} and `element` to
+	 * {@see self::compile()}. State and responsive overrides of those
+	 * supports move too, under their own `-img` state scope, and a state
+	 * `transition` is copied so the moved overrides still animate.
+	 *
+	 * A gradient border or shadow stays on the wrapper: it paints through
+	 * `::before` / `::after`, which an `<img>` can't have.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 *
+	 * @return array{wrapper: array<string, mixed>, element: array<string, mixed>}
+	 */
+	public static function splitBorderAndShadow( array $attributes ): array
+	{
+		$wrapper = $attributes;
+		$element = [];
+		$style   = is_array( $attributes['style'] ?? null ) ? $attributes['style'] : [];
+		$moved   = [];
+
+		if ( null === GradientBorderResolver::resolve( $attributes ) ) {
+			$moved[] = 'border';
+
+			if ( isset( $attributes['borderColor'] ) ) {
+				$element['borderColor'] = $attributes['borderColor'];
+				unset( $wrapper['borderColor'] );
+			}
+
+			if ( isset( $style['border'] ) ) {
+				$element['style']['border'] = $style['border'];
+				unset( $wrapper['style']['border'] );
+			}
+		}
+
+		if ( ! self::hasGradientShadow( $attributes ) ) {
+			$moved[] = 'shadow';
+
+			if ( isset( $style['shadow'] ) ) {
+				$element['style']['shadow'] = $style['shadow'];
+				unset( $wrapper['style']['shadow'] );
+			}
+		}
+
+		if ( [] === $moved ) {
+			return [ 'wrapper' => $wrapper, 'element' => $element ];
+		}
+
+		$pattern = '/^(style\.)?(' . implode( '|', $moved ) . ')(\.|$)/';
+
+		foreach ( [ 'states', 'responsive' ] as $bag ) {
+			if ( ! is_array( $attributes[ $bag ] ?? null ) ) {
+				continue;
+			}
+
+			$overrides = array_filter(
+				$attributes[ $bag ],
+				static fn ( int|string $path ): bool => 1 === preg_match( $pattern, (string) $path ),
+				ARRAY_FILTER_USE_KEY,
+			);
+
+			if ( [] === $overrides ) {
+				continue;
+			}
+
+			$wrapper[ $bag ] = array_diff_key( $attributes[ $bag ], $overrides );
+			$element[ $bag ] = $overrides;
+		}
+
+		if ( isset( $element['states'] ) ) {
+			$scopeId = $attributes['states']['_scopeId'] ?? null;
+
+			if ( is_string( $scopeId ) ) {
+				$element['states']['_scopeId'] = $scopeId . '-img';
+			}
+
+			foreach ( [ 'transition', 'style.transition' ] as $path ) {
+				if ( isset( $attributes['states'][ $path ] ) ) {
+					$element['states'][ $path ] = $attributes['states'][ $path ];
+				}
+			}
+		}
+
+		return [ 'wrapper' => $wrapper, 'element' => $element ];
+	}
+
+	/**
 	 * Validate an expanded block-support value for the CSS property it
 	 * lands on (#920 review): a gradient `background` goes through
 	 * {@see self::safeGradientValue()}, a `font-family` through
@@ -2581,6 +2672,26 @@ class BlockSupports
 			: null;
 
 		return self::composeScopeClass( 've-bs', $candidate, $payload );
+	}
+
+	/**
+	 * Whether any cascade level of a block's shadow is a gradient (#1052).
+	 *
+	 * @since 1.20.0
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 */
+	protected static function hasGradientShadow( array $attributes ): bool
+	{
+		$payload = BoxShadowResolver::resolve( $attributes );
+
+		if ( null === $payload ) {
+			return false;
+		}
+
+		$layers = array_filter( [ $payload['idle'], ...array_values( $payload['states'] ), ...array_values( $payload['breakpoints'] ) ] );
+
+		return [] !== array_filter( $layers, static fn ( array $layer ): bool => BoxShadowEmitter::isGradient( $layer ) );
 	}
 
 	/**

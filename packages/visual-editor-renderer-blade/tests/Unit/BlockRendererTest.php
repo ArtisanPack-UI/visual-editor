@@ -168,7 +168,7 @@ it( 'renders an image block with caption and link', function (): void {
 		->toContain( 'alt="An image"' )
 		->toContain( 'class="wp-image-42"' )
 		->toContain( 'href="https://example.test/full.jpg"' )
-		->toContain( '<figcaption>A <em>caption</em></figcaption>' );
+		->toContain( '<figcaption class="wp-element-caption">A <em>caption</em></figcaption>' );
 } );
 
 it( 'renders a separator block', function (): void {

@@ -32,6 +32,8 @@ import type { BreakpointRegistry } from '../responsive/registry'
 import type { StateRegistry } from '../states/registry'
 import type { ResolvedBoxShadow, ResolvedShadowLayer } from './types'
 
+const IMAGE_BLOCKS = [ 'core/image', 'artisanpack/image' ]
+
 export const DEFAULT_TRANSITION =
 	'box-shadow 200ms ease, background 200ms ease, opacity 200ms ease, transform 200ms ease'
 
@@ -222,6 +224,31 @@ function layerBoxShadowValue( layer: ResolvedShadowLayer ): string {
 	}
 
 	return solidBoxShadow( layer )
+}
+
+/**
+ * The selector a block's shadow rules target (#1052). The Image block's
+ * shadow paints on its `<img>`, as `save()` and `block.json`'s `selectors`
+ * have it, except a gradient shadow, which needs a pseudo-element an `<img>`
+ * can't have. Mirrors `BlockSupports::splitBorderAndShadow()`.
+ */
+export function shadowScopeFor( blockName: string, scope: string, payload: ResolvedBoxShadow ): string {
+	if ( ! IMAGE_BLOCKS.includes( blockName ) ) {
+		return scope
+	}
+
+	return hasGradientLayer( payload ) ? scope : `${ scope } img`
+}
+
+/**
+ * Whether any cascade level of a shadow is a gradient (#1052).
+ */
+export function hasGradientLayer( payload: ResolvedBoxShadow ): boolean {
+	return [
+		...( null !== payload.idle ? [ payload.idle ] : [] ),
+		...Object.values( payload.states ),
+		...Object.values( payload.breakpoints ),
+	].some( isGradient )
 }
 
 /**

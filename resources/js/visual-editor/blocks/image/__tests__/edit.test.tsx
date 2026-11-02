@@ -175,6 +175,17 @@ vi.mock('@wordpress/block-editor', () => ({
         className: '',
         style: {},
     }),
+    __experimentalUseBorderProps: (attributes: {
+        borderColor?: string;
+        style?: { border?: { width?: string } };
+    }) => ({
+        className: attributes.borderColor
+            ? `has-border-color has-${attributes.borderColor}-border-color`
+            : undefined,
+        style: attributes.style?.border?.width
+            ? { borderWidth: attributes.style.border.width }
+            : {},
+    }),
     __experimentalGetShadowClassesAndStyles: () => ({
         className: '',
         style: {},
@@ -258,6 +269,73 @@ describe('ImageEdit', () => {
         expect(img).toBeTruthy();
         expect(img?.getAttribute('src')).toBe('https://example.com/photo.jpg');
         expect(getByTestId('replace-flow')).toBeTruthy();
+    });
+
+    it('paints the border on the image, not the figure (#1052)', () => {
+        const { container } = render(
+            <ImageEdit
+                attributes={{
+                    id: 7,
+                    url: 'https://example.com/photo.jpg',
+                    borderColor: 'primary',
+                    style: { border: { width: '3px' } },
+                }}
+                setAttributes={vi.fn()}
+                isSelected
+            />
+        );
+        const img = container.querySelector('img');
+        const figure = container.querySelector('figure');
+
+        expect(figure?.className).toContain('has-custom-border');
+        expect(figure?.style.borderWidth).toBe('');
+        expect(img?.className).toBe('has-border-color has-primary-border-color wp-image-7');
+        expect(img?.style.borderWidth).toBe('3px');
+    });
+
+    it('marks no custom border on an image without one (#1052)', () => {
+        const { container } = render(
+            <ImageEdit
+                attributes={{ url: 'https://example.com/photo.jpg' }}
+                setAttributes={vi.fn()}
+                isSelected
+            />
+        );
+
+        expect(container.querySelector('figure')?.className).not.toContain('has-custom-border');
+        expect(container.querySelector('img')?.hasAttribute('class')).toBe(false);
+    });
+
+    it('leaves a gradient border to the figure (#1052)', () => {
+        const { container } = render(
+            <ImageEdit
+                attributes={{
+                    url: 'https://example.com/photo.jpg',
+                    style: { border: { gradient: 'linear-gradient(red, blue)', width: '2px' } },
+                }}
+                setAttributes={vi.fn()}
+                isSelected
+            />
+        );
+
+        expect(container.querySelector('figure')?.className).not.toContain('has-custom-border');
+        expect(container.querySelector('img')?.style.borderWidth).toBe('');
+    });
+
+    it('leaves the border to the figure for a hover gradient (#1052)', () => {
+        const { container } = render(
+            <ImageEdit
+                attributes={{
+                    url: 'https://example.com/photo.jpg',
+                    style: { border: { width: '2px' } },
+                    states: { 'style.border.gradient': { hover: 'linear-gradient(red, blue)' } },
+                }}
+                setAttributes={vi.fn()}
+                isSelected
+            />
+        );
+
+        expect(container.querySelector('img')?.style.borderWidth).toBe('');
     });
 
     it('wraps the image in an anchor when href is set', () => {

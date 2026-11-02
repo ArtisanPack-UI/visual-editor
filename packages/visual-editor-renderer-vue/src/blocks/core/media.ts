@@ -7,7 +7,7 @@
 import { defineComponent, h, onMounted, onUpdated, ref } from 'vue';
 import type { VNode } from 'vue';
 import { attrBoolean, attrInt, attrString, classList } from '../../support/attributes';
-import { compileBlockSupports } from '../../support/blockSupports';
+import { compileBlockSupports, compileBoxShadow, splitBorderSupports } from '../../support/blockSupports';
 import { safeCssValue } from '../../support/cssValue';
 import { safeUrl } from '../../support/urlSanitizer';
 import {
@@ -69,14 +69,16 @@ function imageDimension(value: unknown): { attr?: number; style?: string } {
  * The `<img>` style for the image block's `aspectRatio` + `scale`
  * attributes (#873), mirroring `image.blade.php`: the ratio must pass
  * `safeCssValue`, the scale must be a known object-fit keyword. The
- * resolved width / height (#985) follow, in the editor `save()` order.
+ * border and shadow (#1052) lead and the resolved width / height (#985)
+ * follow, in the editor `save()` order.
  */
 function imageStyle(
     attributes: Record<string, unknown>,
+    borderAndShadow: Record<string, string>,
     width: string | undefined,
     height: string | undefined,
 ): Record<string, string> | undefined {
-    const style: Record<string, string> = {};
+    const style: Record<string, string> = { ...borderAndShadow };
     const aspectRatio =
         typeof attributes.aspectRatio === 'string' ? safeCssValue(attributes.aspectRatio) : null;
     const scale = attributes.scale;
@@ -161,16 +163,22 @@ export const ImageBlock = defineComponent({
             const sizeSlug = attrString(props.attributes.sizeSlug);
             const className = attrString(props.attributes.className);
 
-            const supports = compileBlockSupports(props.attributes);
+            // #1052 — block.json skips border and shadow serialization: as in
+            // `save()`, they paint on the `<img>`, so the caption sits outside them.
+            const { wrapper, element: border } = splitBorderSupports(props.attributes);
+            const shadow = compileBoxShadow(props.attributes);
+            const hasCustomBorder = border.classNames.length > 0 || Object.keys(border.style).length > 0;
+            const supports = compileBlockSupports(wrapper);
             // #1046 — a link wins over the lightbox.
             const lightbox = imageHasLightbox(props.attributes);
-            // Blade order: base, size, is-resized (#985), duotone scope (stamped by
-            // `stampDuotoneScopes()`), the lightbox, then the supports' align, the
-            // other supports (#920) and className.
+            // Blade order: base, size, is-resized (#985), a custom border (#1052),
+            // duotone scope (stamped by `stampDuotoneScopes()`), the lightbox, then
+            // the supports' align, the other supports (#920) and className.
             const figureClasses = classList([
                 'wp-block-image',
                 sizeSlug !== '' ? `size-${sizeSlug}` : null,
                 width.style !== undefined || height.style !== undefined ? 'is-resized' : null,
+                hasCustomBorder ? 'has-custom-border' : null,
                 attrString(props.attributes._veDuotone) || null,
                 lightbox ? 'wp-lightbox-container' : null,
                 align !== '' ? `align${align}` : null,
@@ -180,8 +188,10 @@ export const ImageBlock = defineComponent({
 
             const imgProps: Record<string, unknown> = { src: url, alt };
 
-            if (id > 0) {
-                imgProps.class = `wp-image-${id}`;
+            const imgClass = classList([...border.classNames, id > 0 ? `wp-image-${id}` : null]);
+
+            if (imgClass !== '') {
+                imgProps.class = imgClass;
             }
 
             if (width.attr !== undefined) {
@@ -192,7 +202,8 @@ export const ImageBlock = defineComponent({
                 imgProps.height = height.attr;
             }
 
-            const style = imageStyle(props.attributes, width.style, height.style);
+            const borderAndShadow = shadow === null ? border.style : { ...border.style, boxShadow: shadow };
+            const style = imageStyle(props.attributes, borderAndShadow, width.style, height.style);
 
             if (style !== undefined) {
                 imgProps.style = style;
@@ -250,7 +261,7 @@ export const ImageBlock = defineComponent({
             }
 
             if (caption.trim() !== '') {
-                children.push(h('figcaption', { innerHTML: caption }));
+                children.push(h('figcaption', { class: 'wp-element-caption', innerHTML: caption }));
             }
 
             const figureProps: Record<string, unknown> = { ref: figureRef, class: figureClasses };

@@ -177,6 +177,21 @@ class BoxShadowEmitter
 	}
 
 	/**
+	 * Whether a layer paints through a pseudo-element, not `box-shadow`.
+	 *
+	 * @since 1.2.0
+	 * @since 1.20.0 Public (#1052).
+	 *
+	 * @param  array<string, mixed>  $layer
+	 */
+	public static function isGradient( array $layer ): bool
+	{
+		return null === ( $layer['preset'] ?? null )
+			&& null === ( $layer['value'] ?? null )
+			&& null !== ( $layer['gradient'] ?? null );
+	}
+
+	/**
 	 * Build the CSS rule for a layer in idle/breakpoint context where
 	 * the scope itself is the selector.
 	 *
@@ -399,16 +414,6 @@ class BoxShadowEmitter
 		}
 
 		return $out;
-	}
-
-	/**
-	 * @param  array<string, mixed>  $layer
-	 */
-	protected static function isGradient( array $layer ): bool
-	{
-		return null === ( $layer['preset'] ?? null )
-			&& null === ( $layer['value'] ?? null )
-			&& null !== ( $layer['gradient'] ?? null );
 	}
 
 	/**

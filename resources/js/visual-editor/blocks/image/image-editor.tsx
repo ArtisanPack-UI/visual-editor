@@ -56,6 +56,7 @@ import {
     WIDTH_PRESET_SNAP_PCT,
     type WidthUnit,
 } from './constants';
+import { useImageBorderProps } from './use-image-border-props';
 import { useLightboxSetting } from './use-lightbox-setting';
 import WidthControl, { composeWidth } from './width-control';
 
@@ -234,6 +235,7 @@ export default function Image(props: ImageEditorProps): ReactElement {
 
     const linkDestination = resolveLinkDestination(attributes);
     const lightboxSetting = useLightboxSetting();
+    const border = useImageBorderProps(attributes);
 
     function onLinkChange(next: LinkToolbarValue): void {
         setAttributes({
@@ -253,7 +255,7 @@ export default function Image(props: ImageEditorProps): ReactElement {
         );
     }
 
-    const imageClasses = clsx({
+    const imageClasses = clsx(border.className, {
         [`wp-image-${id}`]: !!id,
     });
 
@@ -263,6 +265,7 @@ export default function Image(props: ImageEditorProps): ReactElement {
             alt={alt}
             className={imageClasses || undefined}
             style={{
+                ...border.style,
                 aspectRatio,
                 objectFit: scale,
                 width,

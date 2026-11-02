@@ -6,7 +6,7 @@
 
 import { useEffect, useRef } from 'react';
 import { attrBoolean, attrInt, attrString, classList } from '../../support/attributes';
-import { compileBlockSupports } from '../../support/blockSupports';
+import { compileBlockSupports, compileBoxShadow, splitBorderSupports } from '../../support/blockSupports';
 import { styleProp } from '../../support/styleProp';
 import { safeCssValue } from '../../support/cssValue';
 import { safeUrl } from '../../support/urlSanitizer';
@@ -69,14 +69,16 @@ function imageDimension(value: unknown): { attr?: number; style?: string } {
  * The `<img>` style for the image block's `aspectRatio` + `scale`
  * attributes (#873), mirroring `image.blade.php`: the ratio must pass
  * `safeCssValue`, the scale must be a known object-fit keyword. The
- * resolved width / height (#985) follow, in the editor `save()` order.
+ * border and shadow (#1052) lead and the resolved width / height (#985)
+ * follow, in the editor `save()` order.
  */
 function imageStyle(
     attributes: Record<string, unknown>,
+    borderAndShadow: Record<string, string>,
     width: string | undefined,
     height: string | undefined,
 ): Record<string, string> | undefined {
-    const style: Record<string, string> = {};
+    const style: Record<string, string> = { ...borderAndShadow };
     const aspectRatio =
         typeof attributes.aspectRatio === 'string' ? safeCssValue(attributes.aspectRatio) : null;
     const scale = attributes.scale;
@@ -157,14 +159,20 @@ export function ImageBlock({ attributes }: BlockRendererProps): JSX.Element {
         }
     }, [lightbox]);
 
-    const supports = compileBlockSupports(attributes);
-    // Blade order: base, size, is-resized (#985), duotone scope (stamped by
-    // `stampDuotoneScopes()`), the lightbox, then the supports' align, the
-    // other supports (#920) and className.
+    // #1052 — block.json skips border and shadow serialization: as in
+    // `save()`, they paint on the `<img>`, so the caption sits outside them.
+    const { wrapper, element: border } = splitBorderSupports(attributes);
+    const shadow = compileBoxShadow(attributes);
+    const hasCustomBorder = border.classNames.length > 0 || Object.keys(border.style).length > 0;
+    const supports = compileBlockSupports(wrapper);
+    // Blade order: base, size, is-resized (#985), a custom border (#1052),
+    // duotone scope (stamped by `stampDuotoneScopes()`), the lightbox, then
+    // the supports' align, the other supports (#920) and className.
     const figureClasses = classList([
         'wp-block-image',
         sizeSlug !== '' ? `size-${sizeSlug}` : null,
         width.style !== undefined || height.style !== undefined ? 'is-resized' : null,
+        hasCustomBorder ? 'has-custom-border' : null,
         attrString(attributes._veDuotone) || null,
         lightbox ? 'wp-lightbox-container' : null,
         align !== '' ? `align${align}` : null,
@@ -172,7 +180,8 @@ export function ImageBlock({ attributes }: BlockRendererProps): JSX.Element {
         className,
     ]);
 
-    const imgClass = id > 0 ? `wp-image-${id}` : undefined;
+    const imgClass = classList([...border.classNames, id > 0 ? `wp-image-${id}` : null]) || undefined;
+    const borderAndShadow = shadow === null ? border.style : { ...border.style, boxShadow: shadow };
     const img =
         url === '' ? null : (
             <img
@@ -181,7 +190,7 @@ export function ImageBlock({ attributes }: BlockRendererProps): JSX.Element {
                 className={imgClass}
                 width={width.attr}
                 height={height.attr}
-                style={imageStyle(attributes, width.style, height.style)}
+                style={imageStyle(attributes, borderAndShadow, width.style, height.style)}
             />
         );
 
@@ -213,7 +222,7 @@ export function ImageBlock({ attributes }: BlockRendererProps): JSX.Element {
                 </button>
             ) : null}
             {caption.trim() !== '' ? (
-                <figcaption dangerouslySetInnerHTML={{ __html: caption }} />
+                <figcaption className="wp-element-caption" dangerouslySetInnerHTML={{ __html: caption }} />
             ) : null}
         </figure>
     );
