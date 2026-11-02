@@ -20,7 +20,7 @@ import { buildSocialColorStyle } from '../../support/socialColorStyle';
 import { safeUrl } from '../../support/urlSanitizer';
 import type { BlockRendererProps } from '../../types';
 
-import { getAuthorIcon } from './socialIcons';
+import { getAuthorIcon } from './socialLinkServices';
 
 type IconStyle = 'show-label-icon' | 'show-icon' | 'show-label';
 type IconsDirection = 'horizontal' | 'vertical';
@@ -40,6 +40,7 @@ interface ResolvedChip {
     readonly slug: string;
     readonly url: string;
     readonly label: string;
+    readonly viewBox: string;
     readonly path: string;
 }
 
@@ -110,6 +111,7 @@ function resolvedChips(
             slug,
             url,
             label: definition.label,
+            viewBox: definition.viewBox,
             path: definition.path,
         });
     }
@@ -177,7 +179,7 @@ export function AuthorSocialIconsBlock({
                         {showIcon && (
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 24 24"
+                                viewBox={chip.viewBox}
                                 width="1em"
                                 height="1em"
                                 aria-hidden="true"

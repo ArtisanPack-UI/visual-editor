@@ -72,3 +72,53 @@ export function getSocialLinkService(slug: string): SocialLinkService {
         ? SOCIAL_LINK_SERVICES[slug]
         : SOCIAL_LINK_SERVICES.chain;
 }
+
+interface SocialPlatform {
+    readonly service: string;
+    readonly label?: string;
+}
+
+const AUTHOR_PLATFORMS: Readonly<Record<string, SocialPlatform>> = {
+    'facebook': { service: 'facebook' },
+    'twitter': { service: 'x' },
+    'mastodon': { service: 'mastodon' },
+    'instagram': { service: 'instagram' },
+    'tumblr': { service: 'tumblr' },
+    'email': { service: 'mail', label: 'Email' },
+    'website': { service: 'chain', label: 'Website' },
+};
+
+const SHARE_PLATFORMS: Readonly<Record<string, SocialPlatform>> = {
+    'facebook': { service: 'facebook' },
+    'twitter': { service: 'x' },
+    'linkedin': { service: 'linkedin' },
+    'mastodon': { service: 'mastodon' },
+    'reddit': { service: 'reddit' },
+    'pinterest': { service: 'pinterest' },
+    'email': { service: 'mail', label: 'Email' },
+    'copyLink': { service: 'chain', label: 'Copy link' },
+};
+
+function platformIcon(
+    platforms: Readonly<Record<string, SocialPlatform>>,
+    slug: string
+): SocialLinkService | undefined {
+    if (!Object.prototype.hasOwnProperty.call(platforms, slug)) {
+        return undefined;
+    }
+
+    const { service, label } = platforms[slug];
+    const glyph = SOCIAL_LINK_SERVICES[service];
+
+    return { ...glyph, label: label ?? glyph.label };
+}
+
+/** The chip for an Author Social Icons platform (#1027). */
+export function getAuthorIcon(slug: string): SocialLinkService | undefined {
+    return platformIcon(AUTHOR_PLATFORMS, slug);
+}
+
+/** The chip for a Social Share platform (#1027). */
+export function getShareIcon(slug: string): SocialLinkService | undefined {
+    return platformIcon(SHARE_PLATFORMS, slug);
+}

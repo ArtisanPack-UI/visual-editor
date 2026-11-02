@@ -6,7 +6,7 @@
  * (CC0 1.0) — see NOTICE.md.
  */
 
-import { _x } from '@wordpress/i18n';
+import { __, _x } from '@wordpress/i18n';
 
 import { TEXT_DOMAIN } from '../../vendor/i18n';
 
@@ -17,6 +17,21 @@ export interface SocialLinkService {
     readonly viewBox: string;
     readonly path: string;
 }
+
+/** A platform chip in the Author Social Icons or Social Share block (#1027). */
+export interface SocialIconDefinition {
+    readonly slug: string;
+    readonly label: string;
+    readonly viewBox: string;
+    readonly path: string;
+}
+
+/** Saved platform slug, the service that draws it, and any label of its own. */
+type SocialIconEntry = readonly [slug: string, service: string, label?: string];
+
+export const AUTHOR_SOCIAL_PLATFORM_SLUGS: ReadonlyArray<string> = ['facebook', 'twitter', 'mastodon', 'instagram', 'tumblr', 'email', 'website'];
+
+export const SHARE_SOCIAL_PLATFORM_SLUGS: ReadonlyArray<string> = ['facebook', 'twitter', 'linkedin', 'mastodon', 'reddit', 'pinterest', 'email', 'copyLink'];
 
 /**
  * Every service, in inserter order. A function so the labels translate
@@ -315,4 +330,47 @@ export function socialLinkServices(): ReadonlyArray<SocialLinkService> {
             path: 'M549.7 124.1C543.5 100.4 524.9 81.8 501.4 75.5 458.9 64 288.1 64 288.1 64S117.3 64 74.7 75.5C51.2 81.8 32.7 100.4 26.4 124.1 15 167 15 256.4 15 256.4s0 89.4 11.4 132.3c6.3 23.6 24.8 41.5 48.3 47.8 42.6 11.5 213.4 11.5 213.4 11.5s170.8 0 213.4-11.5c23.5-6.3 42-24.2 48.3-47.8 11.4-42.9 11.4-132.3 11.4-132.3s0-89.4-11.4-132.3zM232.2 337.6l0-162.4 142.7 81.2-142.7 81.2z',
         },
     ];
+}
+
+function socialIcons(entries: ReadonlyArray<SocialIconEntry>): ReadonlyArray<SocialIconDefinition> {
+    const services = new Map(socialLinkServices().map((service) => [service.slug, service]));
+
+    return entries.map(([slug, service, label]) => {
+        const glyph = services.get(service) as SocialLinkService;
+
+        return { slug, label: label ?? glyph.label, viewBox: glyph.viewBox, path: glyph.path };
+    });
+}
+
+/**
+ * The Author Social Icons platforms, in picker order. A function for the
+ * same reason as `socialLinkServices()`.
+ */
+export function authorSocialPlatforms(): ReadonlyArray<SocialIconDefinition> {
+    return socialIcons([
+        ['facebook', 'facebook'],
+        ['twitter', 'x'],
+        ['mastodon', 'mastodon'],
+        ['instagram', 'instagram'],
+        ['tumblr', 'tumblr'],
+        ['email', 'mail', __('Email', TEXT_DOMAIN)],
+        ['website', 'chain', __('Website', TEXT_DOMAIN)],
+    ]);
+}
+
+/**
+ * The Social Share platforms, in picker order. A function for the same
+ * reason as `socialLinkServices()`.
+ */
+export function shareSocialPlatforms(): ReadonlyArray<SocialIconDefinition> {
+    return socialIcons([
+        ['facebook', 'facebook'],
+        ['twitter', 'x'],
+        ['linkedin', 'linkedin'],
+        ['mastodon', 'mastodon'],
+        ['reddit', 'reddit'],
+        ['pinterest', 'pinterest'],
+        ['email', 'mail', __('Email', TEXT_DOMAIN)],
+        ['copyLink', 'chain', __('Copy link', TEXT_DOMAIN)],
+    ]);
 }

@@ -37,11 +37,7 @@ import singleContentSave from '../single-content/save';
 import relatedPostsSave from '../related-posts/save';
 import authorSocialIconsSave from '../author-social-icons/save';
 import socialShareContentSave from '../social-share-content/save';
-import {
-    getShareSocialIcon,
-    SHARE_SOCIAL_PLATFORM_SLUGS,
-    socialIconLabel,
-} from '../_shared/social-icons';
+import { SHARE_SOCIAL_PLATFORM_SLUGS, shareSocialPlatforms } from '../social-link/services';
 
 const FAMILY = [
     { slug: 'single-content', meta: singleContentMeta },
@@ -136,12 +132,13 @@ describe('social-share-content platform picker', () => {
             'copyLink',
         ]);
 
-        const linkedin = getShareSocialIcon('linkedin');
-        const copyLink = getShareSocialIcon('copyLink');
+        const platforms = shareSocialPlatforms();
+        const linkedin = platforms.find((platform) => platform.slug === 'linkedin');
+        const copyLink = platforms.find((platform) => platform.slug === 'copyLink');
 
         expect(linkedin?.label).toBe('LinkedIn');
         expect(linkedin?.path).not.toBe('');
-        expect(copyLink && socialIconLabel(copyLink)).toBe('Copy link');
+        expect(copyLink?.label).toBe('Copy link');
         expect(copyLink?.path).not.toBe('');
     });
 });

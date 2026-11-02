@@ -27,9 +27,8 @@ import { TEXT_DOMAIN } from '../../vendor/i18n';
 import {
     shareSocialPlatforms,
     SHARE_SOCIAL_PLATFORM_SLUGS,
-    socialIconLabel,
     type SocialIconDefinition,
-} from '../_shared/social-icons';
+} from '../social-link/services';
 import { buildSocialColorStyle } from '../_shared/social-color-style';
 
 type IconStyle = 'show-label-icon' | 'show-icon' | 'show-label';
@@ -105,7 +104,7 @@ function isStretch(value: string): value is IconsStretch {
 }
 
 function isSharePlatformSlug(slug: string): boolean {
-    return (SHARE_SOCIAL_PLATFORM_SLUGS as ReadonlyArray<string>).includes(slug);
+    return SHARE_SOCIAL_PLATFORM_SLUGS.includes(slug);
 }
 
 function togglePlatform(
@@ -128,6 +127,7 @@ export default function SocialShareContentEdit({
         : [];
 
     const radius = clampRadius(attributes.iconsBorderRadius);
+    const platforms = shareSocialPlatforms();
 
     const blockProps = useBlockProps({
         className: `ap-social-share-content ap-social-share-content--${attributes.iconsDirection} ap-social-share-content--${attributes.iconsStretch}`,
@@ -148,7 +148,7 @@ export default function SocialShareContentEdit({
                     {showIcon && (
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 24 24"
+                            viewBox={platform.viewBox}
                             width="1em"
                             height="1em"
                             aria-hidden="true"
@@ -161,7 +161,7 @@ export default function SocialShareContentEdit({
                     )}
                     {showLabel && (
                         <span className="ap-social-share-content__label">
-                            {socialIconLabel(platform)}
+                            {platform.label}
                         </span>
                     )}
                 </span>
@@ -176,10 +176,10 @@ export default function SocialShareContentEdit({
                     title={__('Social share settings', TEXT_DOMAIN)}
                     initialOpen
                 >
-                    {shareSocialPlatforms().map((platform) => (
+                    {platforms.map((platform) => (
                         <CheckboxControl
                             key={platform.slug}
-                            label={socialIconLabel(platform)}
+                            label={platform.label}
                             checked={selected.includes(platform.slug)}
                             onChange={(next) =>
                                 setAttributes({
@@ -288,7 +288,7 @@ export default function SocialShareContentEdit({
                         )}
                     </p>
                 ) : (
-                    shareSocialPlatforms()
+                    platforms
                         .filter((platform) => selected.includes(platform.slug))
                         .map(renderChip)
                 )}

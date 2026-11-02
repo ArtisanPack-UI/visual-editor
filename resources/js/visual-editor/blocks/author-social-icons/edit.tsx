@@ -27,9 +27,8 @@ import { TEXT_DOMAIN } from '../../vendor/i18n';
 import {
     authorSocialPlatforms,
     AUTHOR_SOCIAL_PLATFORM_SLUGS,
-    socialIconLabel,
     type SocialIconDefinition,
-} from '../_shared/social-icons';
+} from '../social-link/services';
 import { buildSocialColorStyle } from '../_shared/social-color-style';
 
 type IconStyle = 'show-label-icon' | 'show-icon' | 'show-label';
@@ -105,7 +104,7 @@ function isStretch(value: string): value is IconsStretch {
 }
 
 function isAuthorPlatformSlug(slug: string): boolean {
-    return (AUTHOR_SOCIAL_PLATFORM_SLUGS as ReadonlyArray<string>).includes(slug);
+    return AUTHOR_SOCIAL_PLATFORM_SLUGS.includes(slug);
 }
 
 function togglePlatform(
@@ -128,6 +127,7 @@ export default function AuthorSocialIconsEdit({
         : [];
 
     const radius = clampRadius(attributes.iconsBorderRadius);
+    const platforms = authorSocialPlatforms();
 
     const blockProps = useBlockProps({
         className: `ap-author-social-icons ap-author-social-icons--${attributes.iconsDirection} ap-author-social-icons--${attributes.iconsStretch}`,
@@ -148,7 +148,7 @@ export default function AuthorSocialIconsEdit({
                     {showIcon && (
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 24 24"
+                            viewBox={platform.viewBox}
                             width="1em"
                             height="1em"
                             aria-hidden="true"
@@ -161,7 +161,7 @@ export default function AuthorSocialIconsEdit({
                     )}
                     {showLabel && (
                         <span className="ap-author-social-icons__label">
-                            {socialIconLabel(platform)}
+                            {platform.label}
                         </span>
                     )}
                 </span>
@@ -176,10 +176,10 @@ export default function AuthorSocialIconsEdit({
                     title={__('Author social icons settings', TEXT_DOMAIN)}
                     initialOpen
                 >
-                    {authorSocialPlatforms().map((platform) => (
+                    {platforms.map((platform) => (
                         <CheckboxControl
                             key={platform.slug}
-                            label={socialIconLabel(platform)}
+                            label={platform.label}
                             checked={selected.includes(platform.slug)}
                             onChange={(next) =>
                                 setAttributes({
@@ -288,7 +288,7 @@ export default function AuthorSocialIconsEdit({
                         )}
                     </p>
                 ) : (
-                    authorSocialPlatforms()
+                    platforms
                         .filter((platform) => selected.includes(platform.slug))
                         .map(renderChip)
                 )}

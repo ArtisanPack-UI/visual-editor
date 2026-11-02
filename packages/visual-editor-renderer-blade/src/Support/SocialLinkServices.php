@@ -18,7 +18,9 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditorRendererBlade\Support;
 
 /**
- * Service slug → label and glyph for the `artisanpack/social-link` block.
+ * Service slug → label and glyph for the `artisanpack/social-link`,
+ * `artisanpack/author-social-icons` and
+ * `artisanpack/social-share-content` blocks.
  *
  * @since 1.18.0
  */
@@ -79,6 +81,41 @@ final class SocialLinkServices
 	];
 
 	/**
+	 * Author Social Icons platform slug → service and any label of its own.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @var array<string, array{service: string, label?: string}>
+	 */
+	public const AUTHOR_PLATFORMS = [
+		'facebook'  => [ 'service' => 'facebook' ],
+		'twitter'   => [ 'service' => 'x' ],
+		'mastodon'  => [ 'service' => 'mastodon' ],
+		'instagram' => [ 'service' => 'instagram' ],
+		'tumblr'    => [ 'service' => 'tumblr' ],
+		'email'     => [ 'service' => 'mail', 'label' => 'Email' ],
+		'website'   => [ 'service' => 'chain', 'label' => 'Website' ],
+	];
+
+	/**
+	 * Social Share platform slug → service and any label of its own.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @var array<string, array{service: string, label?: string}>
+	 */
+	public const SHARE_PLATFORMS = [
+		'facebook'  => [ 'service' => 'facebook' ],
+		'twitter'   => [ 'service' => 'x' ],
+		'linkedin'  => [ 'service' => 'linkedin' ],
+		'mastodon'  => [ 'service' => 'mastodon' ],
+		'reddit'    => [ 'service' => 'reddit' ],
+		'pinterest' => [ 'service' => 'pinterest' ],
+		'email'     => [ 'service' => 'mail', 'label' => 'Email' ],
+		'copyLink'  => [ 'service' => 'chain', 'label' => 'Copy link' ],
+	];
+
+	/**
 	 * The service for `$slug`, falling back to the generic link glyph for
 	 * an unknown service so a link is never dropped for want of an icon.
 	 *
@@ -89,5 +126,49 @@ final class SocialLinkServices
 	public static function get( string $slug ): array
 	{
 		return self::SERVICES[ $slug ] ?? self::SERVICES['chain'];
+	}
+
+	/**
+	 * The chip for an Author Social Icons platform.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @return array{label: string, viewBox: string, path: string}|null
+	 */
+	public static function author( string $slug ): ?array
+	{
+		return self::platform( self::AUTHOR_PLATFORMS[ $slug ] ?? null );
+	}
+
+	/**
+	 * The chip for a Social Share platform.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @return array{label: string, viewBox: string, path: string}|null
+	 */
+	public static function share( string $slug ): ?array
+	{
+		return self::platform( self::SHARE_PLATFORMS[ $slug ] ?? null );
+	}
+
+	/**
+	 * @param  array{service: string, label?: string}|null  $platform
+	 *
+	 * @return array{label: string, viewBox: string, path: string}|null
+	 */
+	private static function platform( ?array $platform ): ?array
+	{
+		if ( null === $platform ) {
+			return null;
+		}
+
+		$glyph = self::SERVICES[ $platform['service'] ];
+
+		return [
+			'label'   => $platform['label'] ?? $glyph['label'],
+			'viewBox' => $glyph['viewBox'],
+			'path'    => $glyph['path'],
+		];
 	}
 }

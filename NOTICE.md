@@ -47,17 +47,8 @@ The bundled `.svg` source assets live under
 | tabs | [`window-restore`](https://fontawesome.com/icons/window-restore) |
 | toc | [`list-ol`](https://fontawesome.com/icons/list-ol) |
 
-The Social Share Content block's LinkedIn and Copy link chip glyphs embed
-path data from Font Awesome Free v7.2.0 (Brands
-[`linkedin-in`](https://fontawesome.com/icons/linkedin-in) and Solid
-[`link`](https://fontawesome.com/icons/link)), licensed under
-[CC BY 4.0][cc-by-4]. The paths are scaled and centred into a 24×24
-viewBox and repeated in the share-icon registries
-(`resources/js/visual-editor/blocks/_shared/social-icons.ts`,
-`packages/visual-editor-renderer-blade/src/Support/SocialIconRegistry.php`
-and the React / Vue `src/blocks/artisanpack/socialIcons.ts`).
-
-The Social Icons block's service glyphs embed path data copied verbatim
+The Social Icons, Author Social Icons and Social Share Content blocks'
+glyphs embed path data copied verbatim
 from Font Awesome Free v7.2.0 (Brands, plus Solid `link`, `rss` and
 `envelope` for the Link, RSS Feed and Mail services), licensed under
 [CC BY 4.0][cc-by-4]. The Gravatar glyph comes from
