@@ -44,7 +44,7 @@
             "status": "extended",
             "notes": "Upstream raw/input/block transforms preserved; added bidirectional core/code ↔ artisanpack/code + accepts artisanpack/paragraph.",
             "result": "skipped-status",
-            "forkDigest": "e6f0a721ae1b"
+            "forkDigest": "8df8ef9af1b7"
         },
         {
             "fork": "utils.ts",
@@ -76,7 +76,7 @@
             "status": "rewritten",
             "notes": "Adapted to the visual-editor auto-discovery contract.",
             "result": "skipped-status",
-            "forkDigest": "b67345f8aad6"
+            "forkDigest": "a9c5c21d6df4"
         }
     ]
 }

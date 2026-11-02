@@ -64,10 +64,12 @@ export default function ButtonEdit({
     attributes,
     setAttributes,
     className,
+    mergeBlocks,
 }: {
     attributes: ButtonAttributes;
     setAttributes: (attrs: Partial<ButtonAttributes>) => void;
     className?: string;
+    mergeBlocks?: (forward?: boolean) => void;
 }): ReactElement {
     const { tagName, placeholder, rel, style, text, url } = attributes;
     const TagName = (tagName || 'a') as 'a' | 'button';
@@ -142,6 +144,7 @@ export default function ButtonEdit({
                         writingMode: undefined,
                     }}
                     identifier="text"
+                    onMerge={mergeBlocks}
                 />
             </div>
             {isLinkTag && (

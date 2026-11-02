@@ -13,7 +13,20 @@ import icon from './inserter-icon';
 
 import './preformatted.css';
 
-export { edit, save, metadata, icon, deprecated, transforms };
+/**
+ * Join two blocks' content with a blank line on merge (#1043). Mirrors
+ * upstream's `merge`.
+ */
+function merge(
+    attributes: { content?: string },
+    attributesToMerge: { content?: string }
+): { content: string } {
+    return {
+        content: attributes.content + '\n\n' + attributesToMerge.content,
+    };
+}
+
+export { edit, save, metadata, icon, deprecated, transforms, merge };
 
 export default {
     name: metadata.name,
@@ -23,4 +36,5 @@ export default {
     icon,
     deprecated,
     transforms,
+    merge,
 };

@@ -18,9 +18,25 @@
             "fork": "edit.tsx",
             "upstream": "edit.js",
             "status": "rewritten",
-            "notes": "Simplified edit. Upstream's `hooks.js` ships `useEnter`, `useSpace`, `useIndentListItem`, `useOutdentListItem`, `useMerge` — all reach into block-editor private dispatch surface for nested-list keyboard navigation. Deferred to post-I7. RichText editing and inner-block nesting still work.",
+            "notes": "Simplified edit. Upstream's `useEnter`, `useSpace` and `useIndentListItem` hooks are deferred to post-I7; `useMerge` and `useOutdentListItem` are ported (#1043). RichText editing and inner-block nesting still work.",
             "result": "skipped-status",
-            "forkDigest": "af5353b1d443"
+            "forkDigest": "7f70e1f00d12"
+        },
+        {
+            "fork": "hooks/use-merge.ts",
+            "upstream": "hooks/use-merge.js",
+            "status": "adapted",
+            "notes": "TypeScript port; `core/list-item` swapped for the fork's name.",
+            "result": "skipped-status",
+            "forkDigest": "6710f9899852"
+        },
+        {
+            "fork": "hooks/use-outdent-list-item.ts",
+            "upstream": "hooks/use-outdent-list-item.js",
+            "status": "adapted",
+            "notes": "TypeScript port; `core/list-item` swapped for the fork's name.",
+            "result": "skipped-status",
+            "forkDigest": "fe3fe8946ffd"
         },
         {
             "fork": "save.tsx",
@@ -44,7 +60,7 @@
             "status": "extended",
             "notes": "Upstream paragraph transform preserved; added bidirectional core/list-item ↔ artisanpack/list-item.",
             "result": "skipped-status",
-            "forkDigest": "874b4d3ae6f8"
+            "forkDigest": "85730ea30c6c"
         },
         {
             "fork": "list-item.css",
@@ -68,7 +84,7 @@
             "status": "rewritten",
             "notes": "Auto-discovery contract.",
             "result": "skipped-status",
-            "forkDigest": "8dff279ef478"
+            "forkDigest": "6d6881d8d593"
         }
     ]
 }

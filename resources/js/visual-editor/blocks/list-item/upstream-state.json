@@ -17,7 +17,9 @@
     },
     "files": [
         { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain + parent + allowedBlocks updated to artisanpack/* names." },
-        { "fork": "edit.tsx", "upstream": "edit.js", "status": "rewritten", "notes": "Simplified edit. Upstream's `hooks.js` ships `useEnter`, `useSpace`, `useIndentListItem`, `useOutdentListItem`, `useMerge` — all reach into block-editor private dispatch surface for nested-list keyboard navigation. Deferred to post-I7. RichText editing and inner-block nesting still work." },
+        { "fork": "edit.tsx", "upstream": "edit.js", "status": "rewritten", "notes": "Simplified edit. Upstream's `useEnter`, `useSpace` and `useIndentListItem` hooks are deferred to post-I7; `useMerge` and `useOutdentListItem` are ported (#1043). RichText editing and inner-block nesting still work." },
+        { "fork": "hooks/use-merge.ts", "upstream": "hooks/use-merge.js", "status": "adapted", "notes": "TypeScript port; `core/list-item` swapped for the fork's name." },
+        { "fork": "hooks/use-outdent-list-item.ts", "upstream": "hooks/use-outdent-list-item.js", "status": "adapted", "notes": "TypeScript port; `core/list-item` swapped for the fork's name." },
         { "fork": "save.tsx", "upstream": "save.js", "status": "adapted", "notes": "TypeScript port; verbatim save shape." },
         { "fork": "deprecated.tsx", "upstream": "n/a", "status": "added", "notes": "No upstream deprecation chain; empty array preserves the file shape." },
         { "fork": "transforms.ts", "upstream": "transforms.js", "status": "extended", "notes": "Upstream paragraph transform preserved; added bidirectional core/list-item ↔ artisanpack/list-item." },
@@ -27,7 +29,7 @@
     ],
     "vendoredPrimitives": [],
     "knownDivergences": [
-        "edit.tsx omits the `hooks.js` keyboard-navigation suite. Tab indent/outdent and Enter-to-split behaviour falls back to the default block-editor behaviour. The post-I7 customization phase ports these.",
+        "edit.tsx omits `useEnter`, `useSpace` and `useIndentListItem`. Tab indent/outdent and Enter-to-split behaviour falls back to the default block-editor behaviour. The post-I7 customization phase ports these.",
         "transforms.ts adds bidirectional block transforms with core/list-item."
     ],
     "triage": {

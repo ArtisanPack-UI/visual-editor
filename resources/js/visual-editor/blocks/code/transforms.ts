@@ -75,14 +75,14 @@ const transforms = {
         },
     ],
     to: [
-        {
-            type: 'block',
-            blocks: ['core/paragraph'],
+        ...['core/paragraph', 'artisanpack/paragraph'].map((blockName) => ({
+            type: 'block' as const,
+            blocks: [blockName],
             transform: (attributes: CodeAttributes) => {
                 const { content } = attributes;
-                return createBlock('core/paragraph', { ...attributes, content });
+                return createBlock(blockName, { ...attributes, content });
             },
-        },
+        })),
         {
             type: 'block',
             blocks: ['core/code'],

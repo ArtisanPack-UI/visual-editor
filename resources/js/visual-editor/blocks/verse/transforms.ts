@@ -33,12 +33,12 @@ const transforms = {
         },
     ],
     to: [
-        {
-            type: 'block',
-            blocks: ['core/paragraph'],
+        ...['core/paragraph', 'artisanpack/paragraph'].map((blockName) => ({
+            type: 'block' as const,
+            blocks: [blockName],
             transform: (attributes: VerseAttributes) =>
-                createBlock('core/paragraph', attributes),
-        },
+                createBlock(blockName, attributes),
+        })),
         {
             type: 'block',
             blocks: ['core/verse'],

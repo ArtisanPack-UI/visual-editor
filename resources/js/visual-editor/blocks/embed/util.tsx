@@ -277,6 +277,14 @@ export function getClassNames(
 }
 
 /**
+ * Build the markup for a plain link to a URL. React escapes the URL, so a
+ * quote in it can't break out of the `href` (#1043).
+ */
+export function renderUrlLink(url: string): string {
+    return renderToString(<a href={url}>{url}</a>);
+}
+
+/**
  * Fallback behaviour for unembeddable URLs.
  * Creates a paragraph block containing a link to the URL, and calls
  * `onReplace`.
@@ -285,10 +293,7 @@ export function fallback(
     url: string,
     onReplace: (block: ReturnType<typeof createBlock>) => void
 ): void {
-    const link = <a href={url}>{url}</a>;
-    onReplace(
-        createBlock('core/paragraph', { content: renderToString(link) })
-    );
+    onReplace(createBlock('core/paragraph', { content: renderUrlLink(url) }));
 }
 
 /**

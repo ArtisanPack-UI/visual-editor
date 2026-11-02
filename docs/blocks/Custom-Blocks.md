@@ -594,6 +594,11 @@ window.ApVisualEditor.registerBlockType('acme/rating', {
   and your controls would render detached from the editor.
 - `registerBlocks(modules)` takes an array in this package's
   `{ metadata, edit, save? }` module shape for registering several at once.
+- **Text blocks that should merge on Backspace and Delete** need a `merge`
+  export and `onMerge={mergeBlocks}` on their `RichText`. `merge( attributes,
+  attributesToMerge )` returns the attributes of the joined block. Without it,
+  Backspace at the start of a non-empty block only moves the cursor to the
+  previous block.
 - The site editor mirrors the same surface on `window.ApSiteEditor`.
 
 ## 7. Authoring checklist

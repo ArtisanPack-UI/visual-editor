@@ -14,10 +14,6 @@ vi.mock('@wordpress/blocks', () => ({
     getBlockVariations: () => [],
 }));
 
-vi.mock('@wordpress/element', () => ({
-    renderToString: () => '<a href="x">x</a>',
-}));
-
 import transforms from '../transforms';
 
 interface BlockTransform {
@@ -133,5 +129,38 @@ describe('embed transforms', () => {
             '<a href="https://example.com">'
         );
         expect((result.attributes.content as string)).toContain('<br />hi');
+    });
+
+    it.each(['core/paragraph', 'artisanpack/paragraph'])(
+        'escapes the URL when building the %s link',
+        (target) => {
+            const toParagraph = transforms.to.find(
+                (entry) =>
+                    (entry as { blocks?: string[] }).blocks?.[0] === target
+            ) as unknown as BlockTransform;
+            const url = 'https://a.example/"onmouseover="alert(1)&b=<c>';
+
+            const content = toParagraph.transform({ url }).attributes
+                .content as string;
+
+            expect(content).toContain('href="https://a.example/&quot;onmouseover');
+            expect(content).not.toContain('<c>');
+            expect(content).toContain('&amp;b=');
+        }
+    );
+
+    it.each([
+        'javascript:alert(1)',
+        'JAVASCRIPT:alert(1)',
+        'data:text/html,x',
+        ' https://example.com',
+    ])('does not offer a paragraph link for %s', (url) => {
+        const toParagraph = transforms.to.find(
+            (entry) =>
+                (entry as { blocks?: string[] }).blocks?.[0] ===
+                'artisanpack/paragraph'
+        ) as unknown as BlockTransform;
+
+        expect(toParagraph.isMatch?.({ url })).toBe(false);
     });
 });

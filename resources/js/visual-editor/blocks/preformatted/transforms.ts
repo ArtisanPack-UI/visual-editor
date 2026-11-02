@@ -65,24 +65,19 @@ const transforms = {
         },
     ],
     to: [
-        {
-            type: 'block',
-            blocks: ['core/paragraph'],
+        ...[
+            'core/paragraph',
+            'core/code',
+            'core/verse',
+            'artisanpack/paragraph',
+            'artisanpack/code',
+            'artisanpack/verse',
+        ].map((blockName) => ({
+            type: 'block' as const,
+            blocks: [blockName],
             transform: (attributes: PreformattedAttributes) =>
-                createBlock('core/paragraph', attributes),
-        },
-        {
-            type: 'block',
-            blocks: ['core/code'],
-            transform: (attributes: PreformattedAttributes) =>
-                createBlock('core/code', attributes),
-        },
-        {
-            type: 'block',
-            blocks: ['core/verse'],
-            transform: (attributes: PreformattedAttributes) =>
-                createBlock('core/verse', attributes),
-        },
+                createBlock(blockName, attributes),
+        })),
         {
             type: 'block',
             blocks: ['core/preformatted'],

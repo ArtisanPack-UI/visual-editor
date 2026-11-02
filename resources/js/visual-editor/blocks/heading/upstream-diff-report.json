@@ -20,7 +20,7 @@
             "status": "adapted",
             "notes": "TypeScript port; upstream `useDeprecatedTextAlign` hook is replaced by the inline migrate-text-align deprecation path so the heading edit doesn't reach into block-library private utilities.",
             "result": "skipped-status",
-            "forkDigest": "73be9ee925f5"
+            "forkDigest": "a46f694f3b6c"
         },
         {
             "fork": "save.tsx",
@@ -44,7 +44,7 @@
             "status": "extended",
             "notes": "Upstream raw/prefix/enter transforms preserved (namespaced to artisanpack/heading); added bidirectional block transforms for core/heading ↔ artisanpack/heading and accepts artisanpack/paragraph as a from-source.",
             "result": "skipped-status",
-            "forkDigest": "2519507b7789"
+            "forkDigest": "3f2af4d59bc6"
         },
         {
             "fork": "variations.ts",
@@ -60,7 +60,7 @@
             "status": "extended",
             "notes": "TypeScript port. The slug is reduced to the id-safe characters the renderers keep (`[A-Za-z0-9_:.-]`, runs of `-` collapsed) before the uniqueness check, falling back to `heading`, so saved anchors match the rendered ids and TocResolver (1.15.0). Reads `textContent` instead of `innerText` (identical on the detached element).",
             "result": "skipped-status",
-            "forkDigest": "bd0743a51ad5"
+            "forkDigest": "a2c15bf92c4f"
         },
         {
             "fork": "heading.css",
@@ -84,7 +84,7 @@
             "status": "rewritten",
             "notes": "Adapted to the visual-editor auto-discovery contract (custom-blocks.ts glob). Upstream index.js wires `init` and PHP server-side init; we don't need either.",
             "result": "skipped-status",
-            "forkDigest": "f35d5b0f23c1"
+            "forkDigest": "080967a1bf38"
         }
     ]
 }

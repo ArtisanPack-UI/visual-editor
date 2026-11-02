@@ -44,7 +44,7 @@
             "status": "extended",
             "notes": "Upstream paragraph/heading transforms preserved; added bidirectional core/pullquote ↔ artisanpack/pullquote and accepts artisanpack/paragraph + artisanpack/heading.",
             "result": "skipped-status",
-            "forkDigest": "84ac9137c550"
+            "forkDigest": "1fd9e7f66e70"
         },
         {
             "fork": "shared.ts",

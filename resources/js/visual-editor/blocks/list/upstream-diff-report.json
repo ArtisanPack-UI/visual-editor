@@ -44,7 +44,7 @@
             "status": "extended",
             "notes": "Upstream paragraph/heading/raw/prefix transforms preserved; added bidirectional core/list ↔ artisanpack/list. Raw transform creates artisanpack/list-item inner blocks.",
             "result": "skipped-status",
-            "forkDigest": "d527a2b8e5d2"
+            "forkDigest": "13b111e12e3a"
         },
         {
             "fork": "list.css",
