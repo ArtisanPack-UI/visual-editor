@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { TAILWIND_V4_DEFAULTS, BreakpointRegistry } from '../../responsive/registry'
 import { DEFAULT_STATES, StateRegistry } from '../../states/registry'
-import { emitBoxShadowCss } from '../emitter'
+import { emitBoxShadowCss, shadowScopeFor } from '../emitter'
 import type { ResolvedBoxShadow, ResolvedShadowLayer } from '../types'
 
 const states      = new StateRegistry( DEFAULT_STATES )
@@ -193,5 +193,38 @@ describe( 'emitBoxShadowCss raw values (#900)', () => {
 		)
 
 		expect( css ).toBe( '' )
+	} )
+} )
+
+describe( 'shadowScopeFor (#1052)', () => {
+	const solid = { preset: 'natural', gradient: null } as unknown as ResolvedShadowLayer
+	const gradient = { preset: null, value: null, gradient: 'linear-gradient(red, blue)' } as unknown as ResolvedShadowLayer
+
+	it.each( [ 'core/image', 'artisanpack/image' ] )( 'targets the img of %s', ( name ) => {
+		expect( shadowScopeFor( name, '.ve-bs-a', { idle: solid, states: {}, breakpoints: {} } ) ).toBe( '.ve-bs-a img' )
+	} )
+
+	it( 'keeps other blocks on the wrapper', () => {
+		expect( shadowScopeFor( 'core/group', '.ve-bs-a', { idle: solid, states: {}, breakpoints: {} } ) ).toBe( '.ve-bs-a' )
+	} )
+
+	it.each( [
+		[ 'idle', { idle: gradient, states: {}, breakpoints: {} } ],
+		[ 'state', { idle: solid, states: { hover: gradient }, breakpoints: {} } ],
+		[ 'breakpoint', { idle: solid, states: {}, breakpoints: { md: gradient } } ],
+	] )( 'keeps an image on the wrapper for a gradient %s layer', ( _level, payload ) => {
+		expect( shadowScopeFor( 'core/image', '.ve-bs-a', payload ) ).toBe( '.ve-bs-a' )
+	} )
+
+	it( 'puts state rules on the img', () => {
+		const css = emitBoxShadowCss(
+			shadowScopeFor( 'core/image', '.ve-bs-a', { idle: solid, states: { hover: solid }, breakpoints: {} } ),
+			{ idle: solid, states: { hover: solid }, breakpoints: {} },
+			states,
+			breakpoints,
+		)
+
+		expect( css ).toContain( '.ve-bs-a img{box-shadow:' )
+		expect( css ).toContain( '.ve-bs-a img:hover' )
 	} )
 } )

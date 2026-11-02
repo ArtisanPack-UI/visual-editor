@@ -36,6 +36,7 @@ import { Fragment, createElement, useEffect, useMemo, useRef } from 'react'
 import type { ComponentType, ReactNode } from 'react'
 
 import { emitStateCss, type StatesByPath } from './css-emitter'
+import { splitImageStatePaths } from './image-state-paths'
 import { getStateRegistry } from './registry'
 import { registerStateCssDeprecations, stateCssShapeFor } from './state-css-deprecations'
 
@@ -217,8 +218,12 @@ export const withStateStyles = createHigherOrderComponent(
 					return ''
 				}
 
-				return emitStateCss( `.${ scopeIdToClass( effectiveScopeId ) }`, paths, getStateRegistry() )
-			}, [ supportsStates, effectiveScopeId, paths ] )
+				const scope             = `.${ scopeIdToClass( effectiveScopeId ) }`
+				const { wrapper, image } = splitImageStatePaths( name, attributes, paths )
+
+				return emitStateCss( scope, wrapper, getStateRegistry() )
+					+ emitStateCss( `${ scope } img`, image, getStateRegistry() )
+			}, [ supportsStates, effectiveScopeId, paths, name, attributes ] )
 
 			const effectiveWrapperProps: Record<string, unknown> = useMemo( () => {
 				if ( ! supportsStates || ! effectiveScopeId ) {

@@ -7660,6 +7660,15 @@
                     { "clientId": "lb-gallery-1", "name": "core/image", "attributes": { "url": "https://example.test/e.jpg", "alt": "One", "lightbox": { "enabled": true } }, "innerBlocks": [] }
                 ] }
             ]
+        },
+        {
+            "name": "image-border-caption",
+            "$comment": "#1052 — border and radius land on the `<img>` with `has-custom-border` on the figure, ahead of the block's own image styles and class, and spacing stays on the figure. The caption keeps `wp-element-caption`.",
+            "tree": [
+                { "clientId": "ib-preset", "name": "core/image", "attributes": { "id": 7, "url": "https://example.test/a.jpg", "alt": "x", "caption": "Caption", "sizeSlug": "full", "borderColor": "primary", "style": { "border": { "width": "3px", "radius": "12px" }, "spacing": { "margin": { "top": "1rem" } } } }, "innerBlocks": [] },
+                { "clientId": "ib-custom", "name": "artisanpack/image", "attributes": { "url": "https://example.test/b.jpg", "alt": "y", "href": "https://example.test/page", "aspectRatio": "16/9", "width": "300px", "style": { "border": { "color": "#ff0000", "style": "dashed", "width": "1px", "radius": { "topLeft": "4px", "bottomRight": "8px" } } } }, "innerBlocks": [] },
+                { "clientId": "ib-side", "name": "core/image", "attributes": { "url": "https://example.test/c.jpg", "alt": "z", "style": { "border": { "top": { "color": "#00ff00", "width": "2px" } } } }, "innerBlocks": [] }
+            ]
         }
     ]
 }

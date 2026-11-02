@@ -46,6 +46,7 @@ import { image as icon } from '@wordpress/icons';
 import { store as noticesStore } from '@wordpress/notices';
 
 import Image, { resolveLinkDestination } from './image-editor';
+import { useImageBorderProps } from './use-image-border-props';
 import { useMaxWidthObserver } from './use-max-width-observer';
 import { isValidFileType } from './utils';
 import {
@@ -220,10 +221,13 @@ function ImageEdit({
     const isExternal = isExternalImage(id, url);
     const src = isExternal ? url : undefined;
 
+    const border = useImageBorderProps(attributes);
+
     const classes = clsx(className, {
         'is-transient': !!temporaryURL,
         'is-resized': !!width || !!height,
         [`size-${sizeSlug}`]: sizeSlug,
+        'has-custom-border': border.hasCustomBorder,
     });
 
     const blockProps = useBlockProps({

@@ -69,6 +69,13 @@
 	$width  = $resolveDimension( $attributes['width'] ?? null );
 	$height = $resolveDimension( $attributes['height'] ?? null );
 
+	// #1052 — block.json skips border and shadow serialization: as in
+	// `save()`, they paint on the `<img>`, so the caption sits outside
+	// them, and the figure keeps every other support.
+	$supports    = BlockSupports::splitBorderAndShadow( $attributes );
+	$border      = BlockSupports::borderAttrs( $supports['element'] );
+	$imgSupports = BlockSupports::compile( $supports['element'] );
+
 	$baseClasses = [ 'wp-block-image' ];
 
 	if ( ! empty( $attributes['sizeSlug'] ) ) {
@@ -77,6 +84,10 @@
 
 	if ( null !== $width['style'] || null !== $height['style'] ) {
 		$baseClasses[] = 'is-resized';
+	}
+
+	if ( [] !== $border['classes'] || '' !== $border['style'] ) {
+		$baseClasses[] = 'has-custom-border';
 	}
 
 	// #873 — duotone filter (`supports.filter.duotone`): the scope
@@ -95,7 +106,7 @@
 		$baseClasses[] = 'wp-lightbox-container';
 	}
 
-	$imgClass = ! empty( $attributes['id'] ) ? 'wp-image-' . (int) $attributes['id'] : '';
+	$imgClass = implode( ' ', array_filter( [ ...$imgSupports['classes'], ! empty( $attributes['id'] ) ? 'wp-image-' . (int) $attributes['id'] : '' ] ) );
 
 	// #873 — aspect ratio + scale (object-fit) live on the `<img>`, as
 	// the editor's save output and `post-featured-image` emit them.
@@ -103,7 +114,7 @@
 		? BlockSupports::safeCssValue( $attributes['aspectRatio'] )
 		: null;
 	$scale       = $attributes['scale'] ?? null;
-	$imgStyle    = [];
+	$imgStyle    = '' !== $imgSupports['style'] ? [ rtrim( $imgSupports['style'], ';' ) ] : [];
 
 	if ( null !== $aspectRatio ) {
 		$imgStyle[] = 'aspect-ratio:' . trim( $aspectRatio );
@@ -113,8 +124,8 @@
 		$imgStyle[] = 'object-fit:' . $scale;
 	}
 
-	// Declaration order matches the editor's `save()`: aspect-ratio,
-	// object-fit, then width and height.
+	// Declaration order matches the editor's `save()`: border, then
+	// aspect-ratio, object-fit, width and height.
 	if ( null !== $width['style'] ) {
 		$imgStyle[] = 'width:' . $width['style'];
 	}
@@ -159,7 +170,7 @@
 	$imgAttrs .= $responsive?->attributes() ?? '';
 	$imgTag    = $responsive?->wrap( '<img' . $imgAttrs . '/>' ) ?? '';
 @endphp
-<figure{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}@if ( $lightbox ) data-ap-lightbox-labels="{{ ImageLightbox::labels() }}"@endif>
+<figure{!! BlockSupports::wrapperAttrs( $supports['wrapper'], $baseClasses ) !!}@if ( $lightbox ) data-ap-lightbox-labels="{{ ImageLightbox::labels() }}"@endif>
 	@if ( '' !== $url )
 		@if ( '' !== $href )
 			<a{!! $linkAttrs !!}>{!! $imgTag !!}</a>
@@ -171,6 +182,6 @@
 		@endif
 	@endif
 	@if ( '' !== trim( $caption ) )
-		<figcaption>{!! $caption !!}</figcaption>
+		<figcaption class="wp-element-caption">{!! $caption !!}</figcaption>
 	@endif
 </figure>
