@@ -172,6 +172,24 @@ describe( 'queueResolveBindings', () => {
 		expect( fetchMock ).toHaveBeenCalledTimes( 1 )
 	} )
 
+	it( 'caches each record separately when only the binding context differs (#1041)', async () => {
+		const page   = { ...payload( 'version' ), context: { resource: 'pages', id: 12 } }
+		const nested = { ...payload( 'version' ), context: { resource: 'packages', id: 12 } }
+
+		const first  = queueResolveBindings( page )
+		const second = queueResolveBindings( nested )
+
+		await vi.advanceTimersByTimeAsync( BATCH_DEBOUNCE_MS )
+		await Promise.all( [ first, second ] )
+
+		expect( sentItems() ).toHaveLength( 2 )
+		expect( getCachedResolvedBindings( page ) ).toBeDefined()
+		expect( getCachedResolvedBindings( nested ) ).toBeDefined()
+		expect(
+			getCachedResolvedBindings( { ...nested, context: { resource: 'packages', id: 13 } } ),
+		).toBeUndefined()
+	} )
+
 	it( 'rejects only the item the server reports an error for, and does not cache it', async () => {
 		installFetch( ( item ) => (
 			2 === item.context.id ? { error: 'forbidden', message: 'Nope.' } : undefined

@@ -26,7 +26,12 @@ const anchors: Record<string, string | null> = {};
 export const FALLBACK_SLUG = 'heading';
 
 function getTextWithoutMarkup(text: string): string {
-    const dummyElement = document.createElement('div');
+    // An inert document, because a bound heading's content comes from
+    // stored data and a detached element in this one would still load
+    // `<img onerror>` and run it (#1041).
+    const dummyElement = document.implementation
+        .createHTMLDocument('')
+        .createElement('div');
     dummyElement.innerHTML = text;
     // Upstream reads `innerText`; on a detached element that is the same
     // as `textContent`, which DOM shims without layout also implement.

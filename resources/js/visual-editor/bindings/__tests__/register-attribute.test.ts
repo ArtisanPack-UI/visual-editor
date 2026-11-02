@@ -82,4 +82,36 @@ describe( 'registerBindingsAttribute', () => {
 
 		expect( out.attributes ).toBe( existing.attributes )
 	} )
+
+	describe( 'block context (#1041)', () => {
+		it( 'declares the context the bindings HOC reads', () => {
+			registerBindingsAttribute()
+
+			expect( runFilter( { name: 'demo/box' } ).usesContext ).toEqual(
+				expect.arrayContaining( [ 'postId', 'postType', 'artisanpack/postPreview' ] ),
+			)
+		} )
+
+		it( 'keeps the context a block already declares, without duplicates', () => {
+			registerBindingsAttribute()
+
+			const usesContext = runFilter( {
+				name: 'demo/box',
+				usesContext: [ 'queryId', 'postId' ],
+			} ).usesContext as string[]
+
+			expect( usesContext ).toContain( 'queryId' )
+			expect( usesContext.filter( ( key ) => 'postId' === key ) ).toHaveLength( 1 )
+		} )
+
+		it( 'declares the context on a block that already defines bindings', () => {
+			registerBindingsAttribute()
+
+			const bindings = { type: 'object', default: { custom: true } }
+			const result   = runFilter( { attributes: { bindings } } )
+
+			expect( ( result.attributes as Record<string, unknown> ).bindings ).toBe( bindings )
+			expect( result.usesContext ).toContain( 'postId' )
+		} )
+	} )
 } )
