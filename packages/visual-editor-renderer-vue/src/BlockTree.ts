@@ -45,6 +45,7 @@ import { stampNavigationCurrent } from './support/navigationCurrent';
 import { stampPhotoGridScopes } from './support/photoGrid';
 import { stampResponsiveScopes } from './support/responsive';
 import { stampSocialLinksContext } from './support/socialLinks';
+import { stampTabIds } from './support/tabIds';
 import {
     DEFAULT_MAX_PATTERN_DEPTH,
     inlinePatterns,
@@ -279,8 +280,13 @@ export const BlockTree = defineComponent({
             // host-supplied URL, after every inliner so links from
             // template parts and patterns take part.
             // Social Icons (#1023) — hand each parent's settings to its icons.
-            return stampSocialLinksContext(
-                stampNavigationCurrent(stampHeadingAnchors(withQueries), props.currentUrl)
+            // Tab ids (#1057) — unique across the tree, after every inliner
+            // so sections from template parts, patterns and query rows take
+            // part.
+            return stampTabIds(
+                stampSocialLinksContext(
+                    stampNavigationCurrent(stampHeadingAnchors(withQueries), props.currentUrl)
+                )
             );
         });
 

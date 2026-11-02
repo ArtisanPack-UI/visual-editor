@@ -885,6 +885,27 @@
             ]
         },
         {
+            "name": "tabs-duplicate-ids",
+            "$comment": "#1057: tab ids are unique across Tabs blocks, including empty tabIds that fall back to `tab-N`. The first block keeps its ids.",
+            "tree": [
+                { "clientId": "dt-a", "name": "artisanpack/tabs", "attributes": {}, "innerBlocks": [ { "clientId": "dt-a1", "name": "artisanpack/tab-section", "attributes": { "label": "Overview", "tabId": "overview" }, "innerBlocks": [ { "clientId": "dt-a1p", "name": "core/paragraph", "attributes": { "content": "A1" }, "innerBlocks": [] } ] }, { "clientId": "dt-a2", "name": "artisanpack/tab-section", "attributes": { "label": "Specs", "tabId": "specs" }, "innerBlocks": [ { "clientId": "dt-a2p", "name": "core/paragraph", "attributes": { "content": "A2" }, "innerBlocks": [] } ] } ] },
+                { "clientId": "dt-b", "name": "artisanpack/tabs", "attributes": {}, "innerBlocks": [ { "clientId": "dt-b1", "name": "artisanpack/tab-section", "attributes": { "label": "Overview", "tabId": "overview" }, "innerBlocks": [ { "clientId": "dt-b1p", "name": "core/paragraph", "attributes": { "content": "B1" }, "innerBlocks": [] } ] }, { "clientId": "dt-b2", "name": "artisanpack/tab-section", "attributes": { "label": "Specs", "tabId": "specs" }, "innerBlocks": [ { "clientId": "dt-b2p", "name": "core/paragraph", "attributes": { "content": "B2" }, "innerBlocks": [] } ] } ] },
+                { "clientId": "dt-c", "name": "artisanpack/tabs", "attributes": {}, "innerBlocks": [ { "clientId": "dt-c1", "name": "artisanpack/tab-section", "attributes": { "label": "One", "tabId": "" }, "innerBlocks": [ { "clientId": "dt-c1p", "name": "core/paragraph", "attributes": { "content": "C1" }, "innerBlocks": [] } ] }, { "clientId": "dt-c2", "name": "artisanpack/tab-section", "attributes": { "label": "Two", "tabId": "" }, "innerBlocks": [ { "clientId": "dt-c2p", "name": "core/paragraph", "attributes": { "content": "C2" }, "innerBlocks": [] } ] } ] },
+                { "clientId": "dt-d", "name": "artisanpack/tabs", "attributes": {}, "innerBlocks": [ { "clientId": "dt-d1", "name": "artisanpack/tab-section", "attributes": { "label": "One", "tabId": "" }, "innerBlocks": [ { "clientId": "dt-d1p", "name": "core/paragraph", "attributes": { "content": "D1" }, "innerBlocks": [] } ] }, { "clientId": "dt-d2", "name": "artisanpack/tab-section", "attributes": { "label": "Two", "tabId": "" }, "innerBlocks": [ { "clientId": "dt-d2p", "name": "core/paragraph", "attributes": { "content": "D2" }, "innerBlocks": [] } ] } ] }
+            ]
+        },
+        {
+            "name": "tabs-nested",
+            "$comment": "#1057: Blade renders Tabs inside Tabs or an Accordion twice, which must not cost them their ids. Ids number in document order: a section, the Tabs inside it, then the next section.",
+            "tree": [
+                { "clientId": "nt-outer", "name": "artisanpack/tabs", "attributes": {}, "innerBlocks": [ { "clientId": "nt-o1", "name": "artisanpack/tab-section", "attributes": { "label": "Outer", "tabId": "same" }, "innerBlocks": [ { "clientId": "nt-inner", "name": "artisanpack/tabs", "attributes": {}, "innerBlocks": [ { "clientId": "nt-i1", "name": "artisanpack/tab-section", "attributes": { "label": "Inner", "tabId": "same" }, "innerBlocks": [ { "clientId": "nt-i1p", "name": "core/paragraph", "attributes": { "content": "I1" }, "innerBlocks": [] } ] }, { "clientId": "nt-i2", "name": "artisanpack/tab-section", "attributes": { "label": "Solo", "tabId": "solo" }, "innerBlocks": [ { "clientId": "nt-i2p", "name": "core/paragraph", "attributes": { "content": "I2" }, "innerBlocks": [] } ] } ] } ] }, { "clientId": "nt-o2", "name": "artisanpack/tab-section", "attributes": { "label": "Last", "tabId": "same" }, "innerBlocks": [ { "clientId": "nt-o2p", "name": "core/paragraph", "attributes": { "content": "O2" }, "innerBlocks": [] } ] } ] },
+                { "clientId": "nt-acc", "name": "artisanpack/accordion", "attributes": { "panelId": "nt-panel" }, "innerBlocks": [
+                    { "clientId": "nt-acc-title", "name": "artisanpack/accordion-title", "attributes": {}, "innerBlocks": [ { "clientId": "nt-tp", "name": "core/paragraph", "attributes": { "content": "Title" }, "innerBlocks": [] } ] },
+                    { "clientId": "nt-acc-body", "name": "artisanpack/accordion-body", "attributes": {}, "innerBlocks": [ { "clientId": "nt-acc-tabs", "name": "artisanpack/tabs", "attributes": {}, "innerBlocks": [ { "clientId": "nt-a1", "name": "artisanpack/tab-section", "attributes": { "label": "Kept", "tabId": "kept" }, "innerBlocks": [ { "clientId": "nt-a1p", "name": "core/paragraph", "attributes": { "content": "K1" }, "innerBlocks": [] } ] } ] } ] }
+                ] }
+            ]
+        },
+        {
             "name": "buttons-layout-vertical",
             "$comment": "F-3 — vertical, non-wrapping, aligned buttons with their own Block spacing get a `wp-container-*` scope plus the `is-vertical` / `is-nowrap` modifiers.",
             "tree": [
