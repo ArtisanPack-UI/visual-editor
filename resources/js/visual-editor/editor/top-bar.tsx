@@ -55,6 +55,12 @@ export type ViewMode = 'content' | 'with-template';
 
 export interface TopBarProps {
     saveStatus: SaveStatus;
+    /**
+     * False until the stored content has loaded. `idle` means dirty, which
+     * says nothing true about a tree that hasn't loaded, so the save status
+     * stays empty until then (#1055). Defaults to `true`.
+     */
+    contentLoaded?: boolean;
     lastSavedAt?: string | null;
     saveErrorMessage?: string | null;
     canUndo: boolean;
@@ -222,6 +228,7 @@ function focusAdjacent(
 export function TopBar(props: TopBarProps): JSX.Element {
     const {
         saveStatus,
+        contentLoaded = true,
         lastSavedAt,
         saveErrorMessage,
         canUndo,
@@ -562,7 +569,7 @@ export function TopBar(props: TopBarProps): JSX.Element {
                     data-save-status={saveStatus}
                     data-testid="ap-visual-editor-top-bar-save-status"
                 >
-                    {saveStatusText}
+                    {contentLoaded ? saveStatusText : null}
                 </span>
                 {viewModeAvailable ? (
                     <button
