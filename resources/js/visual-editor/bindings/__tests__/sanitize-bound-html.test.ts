@@ -63,6 +63,24 @@ describe( 'sanitizeBoundHtml', () => {
 	} )
 
 	it.each( [
+		[ 'target="_blank" rel="opener"', 'target="_blank" rel="noopener"' ],
+		[ 'target="_blank" rel="OPENER nofollow"', 'target="_blank" rel="nofollow noopener"' ],
+		[ 'target="_blank"', 'target="_blank" rel="noopener"' ],
+		[ 'target="_BLANK" rel="NoOpener"', 'target="_BLANK" rel="NoOpener"' ],
+		[ 'target="_blank" rel="noreferrer"', 'target="_blank" rel="noreferrer noopener"' ],
+		[ 'target="named-window"', '' ],
+		[ 'target="_top"', '' ],
+		[ 'target="_parent" rel="nofollow"', 'rel="nofollow"' ],
+		[ 'rel="opener"', '' ],
+		[ 'rel="nofollow"', 'rel="nofollow"' ],
+	] )( 'keeps a link from reaching the editor window: %s', ( attributes, expected ) => {
+		const output = expected ? ` ${ expected }` : ''
+
+		expect( sanitizeBoundHtml( `<a href="/a" ${ attributes }>x</a>` ) )
+			.toBe( `<a href="/a"${ output }>x</a>` )
+	} )
+
+	it.each( [
 		'https://example.com/a',
 		'http://example.com',
 		'mailto:a@example.com',

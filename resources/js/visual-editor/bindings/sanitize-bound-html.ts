@@ -70,6 +70,29 @@ function isSafeUrl( value: string ): boolean {
 	}
 }
 
+// A link may open a new tab but never reach the editor window. Only
+// `_blank` implies `noopener`, so a named target keeps `window.opener`
+// and `_top` would navigate the editor itself. `noopener` is set
+// explicitly because `rel="opener"` overrides what `_blank` implies.
+function sanitizeLinkTarget( link: Element ): void {
+	const opensNewTab = '_blank' === link.getAttribute( 'target' )?.toLowerCase();
+	const relTokens   = ( link.getAttribute( 'rel' ) ?? '' )
+		.split( /\s+/ )
+		.filter( ( token ) => '' !== token && 'opener' !== token.toLowerCase() );
+
+	if ( ! opensNewTab ) {
+		link.removeAttribute( 'target' );
+	} else if ( ! relTokens.some( ( token ) => 'noopener' === token.toLowerCase() ) ) {
+		relTokens.push( 'noopener' );
+	}
+
+	if ( relTokens.length > 0 ) {
+		link.setAttribute( 'rel', relTokens.join( ' ' ) );
+	} else {
+		link.removeAttribute( 'rel' );
+	}
+}
+
 function sanitizeAttributes( element: Element ): void {
 	for ( const { name, value } of Array.from( element.attributes ) ) {
 		const allowed = ALLOWED_ATTRIBUTES.has( name )
@@ -78,6 +101,10 @@ function sanitizeAttributes( element: Element ): void {
 		if ( ! allowed ) {
 			element.removeAttribute( name );
 		}
+	}
+
+	if ( 'a' === element.tagName.toLowerCase() ) {
+		sanitizeLinkTarget( element );
 	}
 }
 
