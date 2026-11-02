@@ -129,15 +129,15 @@ const transforms = {
         },
     ],
     to: [
-        {
-            type: 'block',
+        ...['core/paragraph', 'artisanpack/paragraph'].map((blockName) => ({
+            type: 'block' as const,
             isMultiBlock: true,
-            blocks: ['core/paragraph'],
+            blocks: [blockName],
             transform: (attributes: HeadingAttributes[]) =>
                 attributes.map((_attributes) => {
                     const { content, style } = _attributes;
                     const textAlign = style?.typography?.textAlign;
-                    return createBlock('core/paragraph', {
+                    return createBlock(blockName, {
                         content,
                         ...(textAlign && {
                             style: {
@@ -148,7 +148,7 @@ const transforms = {
                         }),
                     });
                 }),
-        },
+        })),
         {
             type: 'block',
             blocks: ['core/heading'],

@@ -44,7 +44,7 @@
             "status": "extended",
             "notes": "Upstream paragraph transforms preserved; added bidirectional core/verse ↔ artisanpack/verse and accepts artisanpack/paragraph.",
             "result": "skipped-status",
-            "forkDigest": "f803527d2f74"
+            "forkDigest": "6a1f86500a5d"
         },
         {
             "fork": "verse.css",
@@ -68,7 +68,7 @@
             "status": "rewritten",
             "notes": "Auto-discovery contract.",
             "result": "skipped-status",
-            "forkDigest": "8d381252ee3a"
+            "forkDigest": "7c6d7e232f8e"
         }
     ]
 }

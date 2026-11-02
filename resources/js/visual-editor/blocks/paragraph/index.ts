@@ -18,7 +18,19 @@ import icon from './inserter-icon';
 
 import './paragraph.css';
 
-export { edit, save, metadata, icon, deprecated, transforms };
+/**
+ * Join two blocks' content on merge (#1043). Mirrors upstream's `merge`.
+ */
+function merge(
+    attributes: { content?: string },
+    attributesToMerge: { content?: string }
+): { content: string } {
+    return {
+        content: (attributes.content || '') + (attributesToMerge.content || ''),
+    };
+}
+
+export { edit, save, metadata, icon, deprecated, transforms, merge };
 
 export default {
     name: metadata.name,
@@ -28,4 +40,5 @@ export default {
     icon,
     deprecated,
     transforms,
+    merge,
 };

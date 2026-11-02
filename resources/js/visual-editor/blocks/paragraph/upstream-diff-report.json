@@ -84,7 +84,7 @@
             "status": "rewritten",
             "notes": "Adapted to the visual-editor auto-discovery contract (custom-blocks.ts glob). Upstream index.js wires `init` and PHP server-side init; we don't need either.",
             "result": "skipped-status",
-            "forkDigest": "2187c239aead"
+            "forkDigest": "f09eb180be59"
         }
     ]
 }

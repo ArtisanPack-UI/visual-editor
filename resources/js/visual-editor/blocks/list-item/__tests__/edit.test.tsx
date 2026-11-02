@@ -17,6 +17,7 @@ vi.mock('@wordpress/block-editor', () => ({
     RichText: function RichText(props: {
         value?: string;
         onChange?: (v: string) => void;
+        onMerge?: (forward?: boolean) => void;
         placeholder?: string;
     }) {
         return (
@@ -25,21 +26,50 @@ vi.mock('@wordpress/block-editor', () => ({
                 aria-label="list-item-rich-text"
                 data-placeholder={props.placeholder}
                 onClick={() => props.onChange?.('changed')}
+                onKeyDown={() => props.onMerge?.(false)}
                 dangerouslySetInnerHTML={{ __html: props.value ?? '' }}
             />
         );
     },
 }));
 
+const useMergeSpy = vi.hoisted(() => vi.fn());
+
+vi.mock('../hooks/use-merge', () => ({ default: useMergeSpy }));
+
 import ListItemEdit from '../edit';
 
 describe('ListItemEdit', () => {
+    it('routes RichText merges through useMerge', () => {
+        const onMerge = vi.fn();
+        const mergeBlocks = vi.fn();
+        useMergeSpy.mockReturnValueOnce(onMerge);
+
+        render(
+            <ListItemEdit
+                attributes={{ content: 'One' }}
+                setAttributes={vi.fn()}
+                clientId="item-1"
+                mergeBlocks={mergeBlocks}
+            />
+        );
+
+        expect(useMergeSpy).toHaveBeenCalledWith('item-1', mergeBlocks);
+
+        fireEvent.keyDown(
+            screen.getByRole('textbox', { name: 'list-item-rich-text' })
+        );
+
+        expect(onMerge).toHaveBeenCalledWith(false);
+    });
+
     it('renders a RichText with the default List placeholder', () => {
         const setAttributes = vi.fn();
         render(
             <ListItemEdit
                 attributes={{ content: '' }}
                 setAttributes={setAttributes}
+                clientId="item-1"
             />
         );
         const textbox = screen.getByRole('textbox', { name: 'list-item-rich-text' });
@@ -52,6 +82,7 @@ describe('ListItemEdit', () => {
             <ListItemEdit
                 attributes={{ content: '' }}
                 setAttributes={setAttributes}
+                clientId="item-1"
             />
         );
         fireEvent.click(

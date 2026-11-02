@@ -10,7 +10,7 @@
 import { createBlock } from '@wordpress/blocks';
 
 import metadata from './block.json';
-import { removeAspectRatioClasses } from './util';
+import { removeAspectRatioClasses, renderUrlLink } from './util';
 
 const { name: EMBED_BLOCK } = metadata;
 
@@ -48,21 +48,22 @@ const transforms = {
         },
     ],
     to: [
-        {
-            type: 'block',
-            blocks: ['core/paragraph'],
-            isMatch: ({ url }: EmbedAttributes): boolean => !!url,
+        ...['core/paragraph', 'artisanpack/paragraph'].map((blockName) => ({
+            type: 'block' as const,
+            blocks: [blockName],
+            isMatch: ({ url }: EmbedAttributes): boolean =>
+                /^https?:\/\//i.test(url ?? ''),
             transform: ({ url, caption, className }: EmbedAttributes) => {
-                let value = `<a href="${url}">${url}</a>`;
+                let value = renderUrlLink(url as string);
                 if (caption?.trim()) {
                     value += `<br />${caption}`;
                 }
-                return createBlock('core/paragraph', {
+                return createBlock(blockName, {
                     content: value,
                     className: removeAspectRatioClasses(className),
                 });
             },
-        },
+        })),
         {
             type: 'block',
             blocks: ['core/embed'],

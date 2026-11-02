@@ -68,6 +68,13 @@ export interface CustomBlockModule {
      * (#411) added this when forking `core/columns` + `core/group`.
      */
     readonly variations?: BlockConfiguration['variations'];
+    /**
+     * Optional merge callback — forwarded to `registerBlockType`.
+     * `@wordpress/block-editor` calls it to join two blocks when Backspace
+     * or Delete lands on their boundary; without it, a non-empty block just
+     * moves the cursor to the previous block (#1043).
+     */
+    readonly merge?: BlockConfiguration['merge'];
 }
 
 /**
@@ -158,7 +165,7 @@ export function registerCustomBlocks(
             continue;
         }
 
-        const { metadata, edit, save, icon, deprecated, transforms, variations } = module;
+        const { metadata, edit, save, icon, deprecated, transforms, variations, merge } = module;
         const { name: _metadataName, ...rest } = metadata;
 
         const settings: BlockConfiguration = {
@@ -169,6 +176,7 @@ export function registerCustomBlocks(
             ...(deprecated !== undefined ? { deprecated } : {}),
             ...(transforms !== undefined ? { transforms } : {}),
             ...(variations !== undefined ? { variations } : {}),
+            ...(merge !== undefined ? { merge } : {}),
         } as BlockConfiguration;
 
         try {
@@ -194,6 +202,7 @@ interface GlobbedModule {
     readonly icon?: unknown;
     readonly deprecated?: unknown;
     readonly transforms?: unknown;
+    readonly merge?: unknown;
 }
 
 /**
@@ -290,6 +299,7 @@ function resolveCustomBlockModule(module: GlobbedModule): CustomBlockModule | nu
     const icon = candidate.icon;
     const deprecated = candidate.deprecated;
     const transforms = candidate.transforms;
+    const merge = candidate.merge;
     const variations = (candidate as GlobbedModule & { variations?: unknown })
         .variations;
 
@@ -310,6 +320,9 @@ function resolveCustomBlockModule(module: GlobbedModule): CustomBlockModule | nu
             : {}),
         ...(Array.isArray(variations)
             ? { variations: variations as CustomBlockModule['variations'] }
+            : {}),
+        ...(typeof merge === 'function'
+            ? { merge: merge as CustomBlockModule['merge'] }
             : {}),
     };
 }
