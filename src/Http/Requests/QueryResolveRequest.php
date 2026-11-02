@@ -63,7 +63,9 @@ class QueryResolveRequest extends FormRequest
 			'orderBy'               => [ 'sometimes', 'string', 'in:date,title,menu_order,random,relevance' ],
 			'order'                 => [ 'sometimes', 'string', 'in:asc,desc' ],
 			'author'                => [ 'sometimes', 'integer', 'min:1' ],
-			'sticky'                => [ 'sometimes', 'boolean' ],
+			// Upstream `core/query` stores `sticky` as a string, with `''`
+			// meaning no constraint.
+			'sticky'                => [ 'sometimes', 'nullable', 'string', 'in:only,exclude,ignore' ],
 			'exclude'               => [ 'sometimes', 'array' ],
 			'exclude.*'             => [ 'integer', 'min:1' ],
 			'taxQuery'              => [ 'sometimes', 'array' ],
@@ -86,5 +88,25 @@ class QueryResolveRequest extends FormRequest
 			// silently fight.
 			'relatedTo'             => [ 'sometimes', 'integer', 'min:1', 'prohibits:taxQuery' ],
 		];
+	}
+
+	/**
+	 * Map the legacy boolean `sticky` form to its `core/query` string.
+	 *
+	 * @since 1.20.0
+	 */
+	protected function prepareForValidation(): void
+	{
+		if ( ! $this->has( 'sticky' ) ) {
+			return;
+		}
+
+		$this->merge( [
+			'sticky' => match ( $this->input( 'sticky' ) ) {
+				true, 1, '1'  => 'only',
+				false, 0, '0' => 'exclude',
+				default       => $this->input( 'sticky' ),
+			},
+		] );
 	}
 }

@@ -172,6 +172,66 @@ it( 'rejects an invalid orderBy value', function (): void {
 	] )->assertUnprocessable();
 } );
 
+it( 'forwards core/query sticky strings to the resolver (#1002)', function ( string $sticky ): void {
+	actingResolver();
+
+	$this->postJson( '/visual-editor/api/query/resolve', [
+		'postType' => 'post',
+		'sticky'   => $sticky,
+	] )->assertOk();
+
+	expect( test()->fake->lastAttributes['sticky'] )->toBe( $sticky );
+} )->with( [ 'only', 'exclude', 'ignore' ] );
+
+it( 'maps a boolean sticky to its core/query string (#1002)', function ( mixed $sticky, string $expected ): void {
+	actingResolver();
+
+	$this->postJson( '/visual-editor/api/query/resolve', [
+		'postType' => 'post',
+		'sticky'   => $sticky,
+	] )->assertOk();
+
+	expect( test()->fake->lastAttributes['sticky'] )->toBe( $expected );
+} )->with( [
+	'true'        => [ true, 'only' ],
+	'one'         => [ 1, 'only' ],
+	'one string'  => [ '1', 'only' ],
+	'false'       => [ false, 'exclude' ],
+	'zero'        => [ 0, 'exclude' ],
+	'zero string' => [ '0', 'exclude' ],
+] );
+
+it( 'treats an empty sticky as no constraint (#1002)', function ( ?string $sticky ): void {
+	actingResolver();
+
+	$this->postJson( '/visual-editor/api/query/resolve', [
+		'postType' => 'post',
+		'sticky'   => $sticky,
+	] )->assertOk();
+
+	expect( test()->fake->lastAttributes['sticky'] ?? null )->toBeEmpty();
+} )->with( [
+	'empty string' => [ '' ],
+	'null'         => [ null ],
+] );
+
+it( 'rejects an unknown sticky value (#1002)', function ( mixed $sticky ): void {
+	actingResolver();
+
+	$this->postJson( '/visual-editor/api/query/resolve', [
+		'postType' => 'post',
+		'sticky'   => $sticky,
+	] )
+		->assertUnprocessable()
+		->assertJsonValidationErrors( 'sticky' );
+
+	expect( test()->fake->lastAttributes )->toBeNull();
+} )->with( [
+	'unknown string' => [ 'sometimes' ],
+	'number'         => [ 2 ],
+	'array'          => [ [ 'only' ] ],
+] );
+
 it( 'rejects perPage above the documented cap', function (): void {
 	actingResolver();
 
