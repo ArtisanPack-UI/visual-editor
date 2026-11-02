@@ -213,6 +213,20 @@ describe( 'resolvePastedHtml', () => {
         expect( resolvePastedHtml( '<h2># Title</h2>', '# Title' ) ).toBeNull();
     } );
 
+    it.each( [
+        [ 'a link', '<div>- <a href="https://example.com/a">One</a></div><div>- Two</div>' ],
+        [ 'strong text', '<div>- <strong>One</strong></div><div>- Two</div>' ],
+        [ 'emphasis', '<div>- <em>One</em></div><div>- Two</div>' ],
+    ] )( 'keeps formatting the plain text would lose: %s', ( _label, html ) => {
+        expect( resolvePastedHtml( html, '- One\n- Two' ) ).toBeNull();
+    } );
+
+    it( 'still converts text an app auto-linked', () => {
+        const html = '<div># Title</div><div><br></div><div>See [docs](<a href="https://example.com">https://example.com</a>)</div>';
+
+        expect( resolvePastedHtml( html, '# Title\n\nSee [docs](https://example.com)' ) ).toBe( '' );
+    } );
+
     it( 'keeps a rendered code sample of Markdown', () => {
         const plainText = '# Title\n\n- one\n- two';
 

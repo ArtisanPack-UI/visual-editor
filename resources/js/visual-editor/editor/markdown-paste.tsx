@@ -44,7 +44,10 @@ const CONVERTED_FENCE = /(?:^|\n)(?: {0,3})(```+|~~~+)(?: *)([^\s`~]*)\n([\s\S]*
 const UNSAFE_MARKUP = /<[a-z/!?][\w-]*(?:[\s/>]|$)|&(?:#|[a-z][a-z0-9]*;)|(?:java|vb)script[\s\\]*:|data[\s\\]*:[\s\\]*text\//i;
 
 /** Markup that only a rendered page has, which upstream maps to real blocks. */
-const RENDERED_CONTENT = 'h1,h2,h3,h4,h5,h6,ul,ol,table,blockquote,img,pre code,[class*="highlight"] pre';
+const RENDERED_CONTENT = 'h1,h2,h3,h4,h5,h6,ul,ol,table,blockquote,img,strong,em,pre code,[class*="highlight"] pre';
+
+/** Link text that's only a URL, which is how apps auto-link what was typed. */
+const BARE_URL = /^\s*(?:https?:\/\/|mailto:|www\.)\S*\s*$/i;
 
 const HIGHLIGHTED_CODE = '[class*="highlight-source-"] pre,[class*="highlight-text-"] pre,.highlight pre';
 const HIGHLIGHT_SCOPE  = /highlight-(?:source|text)-([\w+-]+)/;
@@ -144,7 +147,12 @@ export function hasUnsafeMarkup( text: string ): boolean {
 function isDecoratedPlainText( doc: Document, plainText: string ): boolean {
     const withoutWhitespace = ( text: string ): string => text.replace( /\s+/g, '' ).normalize();
 
+    const hasRealLink = Array.from( doc.querySelectorAll( 'a[href]' ) ).some(
+        ( link ) => ! BARE_URL.test( link.textContent ?? '' ),
+    );
+
     return (
+        ! hasRealLink &&
         null === doc.querySelector( RENDERED_CONTENT ) &&
         withoutWhitespace( doc.body.textContent ?? '' ) === withoutWhitespace( plainText )
     );
