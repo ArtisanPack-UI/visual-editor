@@ -4,11 +4,11 @@
  * Vanilla DOM, shared by the Blade, React and Vue renderers. A renderer prints
  * a `.wp-lightbox-container` figure holding the image, a hidden trigger button
  * and a `data-ap-lightbox-labels` attribute. The trigger starts with an inline
- * `display: none`, which the block library's `button` rule can't override, and
- * `bindLightbox()` reveals it, so a page without this script has no button that
- * does nothing.
- * Clicks are delegated, so markup added later needs no binding of its own to
- * open; it only needs `bindLightbox()` again to show its trigger.
+ * `display: none`, which the block library's `button` rule can't override, so a
+ * page without this script has no button that does nothing. `bindLightbox()`
+ * marks the document instead of touching each trigger, and `lightbox.css`
+ * reveals them from that class. Clicks are delegated too, so markup that arrives
+ * later, or that a Livewire morph resets, needs no binding of its own.
  */
 
 const CONTAINER_SELECTOR = '.wp-lightbox-container';
@@ -18,6 +18,7 @@ const CAPTION_SELECTOR = ':scope > figcaption';
 const GALLERY_SELECTOR = '.wp-block-gallery';
 const FOCUSABLE_SELECTOR = 'button:not([hidden]), a[href]';
 const CLOSE_ANIMATION_MS = 250;
+const READY_CLASS = 'ap-lightbox-ready';
 
 const DEFAULT_LABELS = {
     dialog: 'Enlarged image',
@@ -124,7 +125,7 @@ function createOverlay(doc) {
     next.button.addEventListener('click', () => step(state, 1));
     root.addEventListener('keydown', (event) => handleKeydown(state, event));
     root.addEventListener('click', (event) => {
-        if (event.target.closest('button, a') === null) {
+        if (event.target.closest('button') === null) {
             closeOverlay(state);
         }
     });
@@ -324,34 +325,30 @@ function handleDocumentClick(event) {
 
 const boundDocuments = new WeakSet();
 
+function closeOpenOverlay(doc) {
+    const state = states.get(doc);
+
+    if (state !== undefined) {
+        closeOverlay(state);
+    }
+}
+
 /**
- * Reveal the triggers under `root` and listen for clicks on its document.
- * Safe to call repeatedly.
+ * Reveal the triggers on a document and listen for its clicks. Safe to call
+ * repeatedly.
  *
- * @param {Document|Element} root The document, or a lightbox figure.
+ * @param {Document|Element} root The document, or any element in it.
  */
 export function bindLightbox(root) {
     const doc = root.ownerDocument ?? root;
 
-    if (!boundDocuments.has(doc)) {
-        boundDocuments.add(doc);
-        doc.addEventListener('click', handleDocumentClick);
-        doc.defaultView?.addEventListener('popstate', () => {
-            const state = states.get(doc);
-
-            if (state !== undefined) {
-                closeOverlay(state);
-            }
-        });
+    if (boundDocuments.has(doc)) {
+        return;
     }
 
-    const containers = root.matches?.(CONTAINER_SELECTOR) ? [root] : root.querySelectorAll(CONTAINER_SELECTOR);
-
-    containers.forEach((container) => {
-        const trigger = container.querySelector(TRIGGER_SELECTOR);
-
-        if (trigger !== null && container.querySelector(IMAGE_SELECTOR) !== null) {
-            trigger.style.removeProperty('display');
-        }
-    });
+    boundDocuments.add(doc);
+    doc.documentElement.classList.add(READY_CLASS);
+    doc.addEventListener('click', handleDocumentClick);
+    doc.addEventListener('turbo:before-cache', () => closeOpenOverlay(doc));
+    doc.defaultView?.addEventListener('popstate', () => closeOpenOverlay(doc));
 }

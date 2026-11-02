@@ -54,17 +54,14 @@ afterEach(() => {
 });
 
 describe('triggers', () => {
-    it('reveals the trigger, which stays hidden until the script runs', () => {
-        document.body.innerHTML = figure('a');
-        expect(trigger().style.display).toBe('none');
+    it('marks the document, which is what reveals the triggers', () => {
+        page(figure('a'));
 
-        bindLightbox(document.querySelector('.wp-lightbox-container') as Element);
-
-        expect(trigger().style.display).toBe('');
+        expect(document.documentElement.classList.contains('ap-lightbox-ready')).toBe(true);
     });
 
-    it('keeps the trigger hidden on a figure with no image', () => {
-        page(`<figure class="wp-lightbox-container"><button class="lightbox-trigger" style="display:none"></button></figure>`);
+    it('leaves the inline style for the stylesheet to override, so a morph cannot undo it', () => {
+        page(figure('a'));
 
         expect(trigger().style.display).toBe('none');
     });
@@ -191,6 +188,24 @@ describe('opening', () => {
         close().click();
 
         expect(document.documentElement.style.overflow).toBe('scroll');
+    });
+
+    it('closes when a caption link is followed', () => {
+        page(figure('a', '<figcaption><a href="#x">More</a></figcaption>'));
+        trigger().click();
+
+        (overlay().querySelector('figcaption a') as HTMLElement).click();
+
+        expect(isOpen()).toBe(false);
+    });
+
+    it('closes before Turbo snapshots the page', () => {
+        page(figure('a'));
+        trigger().click();
+
+        document.dispatchEvent(new Event('turbo:before-cache'));
+
+        expect(isOpen()).toBe(false);
     });
 
     it('closes on browser back', () => {
@@ -369,6 +384,10 @@ describe('styles', () => {
 
     it('leaves the image at its normal size in a block figure', () => {
         expect(css).toMatch(/\.wp-lightbox-container \{[^}]*display: block;/);
+    });
+
+    it('reveals triggers over their inline style once the script has run', () => {
+        expect(css).toMatch(/\.ap-lightbox-ready [^{]*\.lightbox-trigger \{\s*display: flex !important;/);
     });
 
     it('shows captions, which the block library hides', () => {
