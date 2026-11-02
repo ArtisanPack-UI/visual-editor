@@ -93,6 +93,14 @@ interface LinkOption {
 }
 
 // Built per render so the labels pick up locale data loaded after import.
+/**
+ * The link a new Gallery starts with. With the theme's lightbox default on it
+ * starts on the lightbox, so `none` always means the author chose it.
+ */
+export function defaultLinkDestination(lightboxDefault: boolean): string {
+    return lightboxDefault ? LINK_DESTINATION_LIGHTBOX : LINK_DESTINATION_NONE;
+}
+
 export function linkOptionsList(allowLightbox: boolean): LinkOption[] {
     const options: LinkOption[] = [
         {
@@ -440,7 +448,9 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
             ...getHrefAndDestination(
                 image as Parameters<typeof getHrefAndDestination>[0],
                 linkTo,
-                (imageAttributes as { linkDestination?: string }).linkDestination
+                (imageAttributes as { linkDestination?: string }).linkDestination,
+                imageAttributes as Parameters<typeof getHrefAndDestination>[3],
+                lightboxSetting
             ),
             ...newLinkTarget,
             className: newClassName,
@@ -729,7 +739,7 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
                         };
                     }
                 ).wp?.media?.view?.settings?.defaultProps?.link ||
-                LINK_DESTINATION_NONE;
+                defaultLinkDestination(lightboxSetting.enabled);
             setAttributes({ linkTo: defaultLink });
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps

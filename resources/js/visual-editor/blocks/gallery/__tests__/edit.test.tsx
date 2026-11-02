@@ -143,7 +143,7 @@ vi.mock('@wordpress/block-editor', () => ({
 
 (globalThis as { React?: unknown }).React = require('react');
 
-import GalleryEdit, { linkOptionsList } from '../edit';
+import GalleryEdit, { defaultLinkDestination, linkOptionsList } from '../edit';
 import { getHrefAndDestination } from '../utils';
 
 describe('GalleryEdit', () => {
@@ -182,6 +182,11 @@ describe('Gallery lightbox link option (#1046)', () => {
         expect(
             getHrefAndDestination({ url: '/a.jpg' }, 'lightbox', false, {}, { enabled: true }).lightbox
         ).toBeUndefined();
+    });
+
+    it('starts a new gallery on the lightbox when the theme default is on', () => {
+        expect(defaultLinkDestination(true)).toBe('lightbox');
+        expect(defaultLinkDestination(false)).toBe('none');
     });
 
     it('turns a theme default off when the author picks None', () => {

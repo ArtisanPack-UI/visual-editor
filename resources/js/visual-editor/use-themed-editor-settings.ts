@@ -303,15 +303,17 @@ export function withThemeLightboxBlocks<T extends object>(
     }
 
     const features =
-        (settings as { __experimentalFeatures?: { blocks?: Record<string, unknown> } })
+        (settings as { __experimentalFeatures?: { blocks?: Record<string, object> } })
             .__experimentalFeatures ?? {};
+    const blocks = { ...features.blocks };
+
+    for (const [name, setting] of Object.entries(lightboxBlocks)) {
+        blocks[name] = { ...blocks[name], ...setting };
+    }
 
     return {
         ...settings,
-        __experimentalFeatures: {
-            ...features,
-            blocks: { ...features.blocks, ...lightboxBlocks },
-        },
+        __experimentalFeatures: { ...features, blocks },
     };
 }
 

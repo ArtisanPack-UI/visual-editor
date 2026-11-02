@@ -339,6 +339,18 @@ describe('withThemeLightboxBlocks (#1046)', () => {
         expect(withThemeLightboxBlocks(editorSettings, null)).toBe(editorSettings);
     });
 
+    it('keeps an image block\'s other settings', () => {
+        const next = withThemeLightboxBlocks(
+            { __experimentalFeatures: { blocks: { 'core/image': { color: { custom: false } } } } },
+            blocks
+        );
+
+        expect(next.__experimentalFeatures.blocks['core/image']).toEqual({
+            color: { custom: false },
+            lightbox: { enabled: true },
+        });
+    });
+
     it('adds the blocks and leaves the other features alone', () => {
         const next = withThemeLightboxBlocks(
             { __experimentalFeatures: { color: { custom: false }, blocks: { 'core/group': {} } } },
