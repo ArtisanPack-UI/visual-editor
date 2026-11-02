@@ -194,19 +194,33 @@ export const DEFAULT_CANVAS_STYLES = `
     padding-left: 1.5em;
 }
 
-.editor-styles-wrapper code {
+/*
+ * #1051 — zero specificity, so a theme's \`styles.blocks\` rules (0,1,0)
+ * reach Code and Preformatted in the canvas as they do on the front end.
+ * The tints derive from \`currentColor\` so the text stays readable on any
+ * theme. Verse is poetry set in a \`pre\`, so it gets no panel, and code
+ * inside a panel gets no second chip.
+ */
+:where(.editor-styles-wrapper code) {
     font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
     font-size: 0.9em;
-    background: #f3f4f6;
+    background: color-mix(in srgb, currentColor 10%, transparent);
     padding: 0.1em 0.35em;
     border-radius: 4px;
 }
 
-.editor-styles-wrapper pre {
-    background: #f3f4f6;
+:where(.editor-styles-wrapper pre:not(.wp-block-verse)) {
+    background: color-mix(in srgb, currentColor 8%, transparent);
     padding: 1em;
     border-radius: 6px;
     overflow-x: auto;
+}
+
+:where(.editor-styles-wrapper pre:not(.wp-block-verse) code) {
+    font-size: inherit;
+    background: none;
+    padding: 0;
+    border-radius: 0;
 }
 
 .editor-styles-wrapper hr {
