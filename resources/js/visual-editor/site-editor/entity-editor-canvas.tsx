@@ -39,6 +39,7 @@ import { TEXT_DOMAIN } from '../vendor/i18n';
 import { CanvasThemeStyles } from './canvas-theme-styles';
 import { CanvasLayoutStyles, CanvasStyleOverrides } from '../editor/canvas-layout-styles';
 import { SpacingPresetStyles } from '../editor/spacing-preset-styles';
+import { MarkdownPasteBridge } from '../editor/markdown-paste';
 import { InlineIconCanvasHydrator } from '../formats/inline-icon/canvas-hydrator';
 
 import './entity-editor-canvas.css';
@@ -182,6 +183,7 @@ export function EntityEditorCanvas(props: EntityEditorCanvasProps): JSX.Element 
                     {/* #1040: per-container Block spacing, flex and element rules. */}
                     <CanvasStyleOverrides />
                     <InlineIconCanvasHydrator />
+                    <MarkdownPasteBridge />
                     <BlockTools>
                         <WritingFlow>
                             <ObserveTyping>

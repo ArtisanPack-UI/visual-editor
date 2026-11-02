@@ -7,6 +7,7 @@
  */
 
 import { createBlock } from '@wordpress/blocks';
+import type { BlockInstance } from '@wordpress/blocks';
 
 import metadata from './block.json';
 
@@ -28,6 +29,8 @@ interface BlockLike {
     readonly attributes: Record<string, unknown>;
     readonly innerBlocks: readonly BlockLike[];
 }
+
+type RawHandler = (options: { HTML: string; mode: 'BLOCKS' }) => BlockInstance[];
 
 const transforms = {
     from: [
@@ -63,6 +66,23 @@ const transforms = {
                 createBlock(name, {}, [
                     createBlock('core/paragraph', { content }),
                 ]),
+        },
+        {
+            type: 'raw',
+            schema: () => ({
+                blockquote: {
+                    children: '*',
+                },
+            }),
+            selector: 'blockquote',
+            transform: (node: Element, handler: RawHandler) =>
+                createBlock(
+                    name,
+                    // A cite can't be parsed out reliably: there may be
+                    // several, or more attribution than the cite holds.
+                    {},
+                    handler({ HTML: node.innerHTML, mode: 'BLOCKS' })
+                ),
         },
         {
             type: 'block',

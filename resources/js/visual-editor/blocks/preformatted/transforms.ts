@@ -8,6 +8,8 @@
 
 import { createBlock } from '@wordpress/blocks';
 
+import { CODE_LANGUAGE_CLASS } from '../code/languages';
+
 import metadata from './block.json';
 
 const { name } = metadata;
@@ -25,7 +27,7 @@ interface RawTransformNode {
 }
 
 interface RawTransformContext {
-    readonly phrasingContentSchema: unknown;
+    readonly phrasingContentSchema: Record<string, unknown>;
 }
 
 const transforms = {
@@ -53,7 +55,16 @@ const transforms = {
                 ),
             schema: ({ phrasingContentSchema }: RawTransformContext) => ({
                 pre: {
-                    children: phrasingContentSchema,
+                    // Schemas for `pre` merge shallowly and this one lands
+                    // last, so it has to repeat the Code block's class
+                    // rule or the language is lost (#1045).
+                    children: {
+                        ...phrasingContentSchema,
+                        code: {
+                            ...(phrasingContentSchema.code as object),
+                            classes: [CODE_LANGUAGE_CLASS],
+                        },
+                    },
                 },
             }),
         },
