@@ -18,6 +18,7 @@ import { createHigherOrderComponent } from '@wordpress/compose';
 import { addFilter } from '@wordpress/hooks';
 import { useMemo, type ComponentType } from 'react';
 
+import { resolveBindingTarget } from './binding-target';
 import { BindingsPanel, type BindableAttribute } from './BindingsPanel';
 import {
 	BoundAttributesContext,
@@ -47,6 +48,7 @@ interface BlockEditProps {
 		bindings?: BindingsMap | null;
 	};
 	setAttributes: ( updates: Record<string, unknown> ) => void;
+	context?: Record<string, unknown>;
 	[ key: string ]: unknown;
 }
 
@@ -153,14 +155,16 @@ export const withBindingsPanel = createHigherOrderComponent(
 	( BlockEdit: ComponentType<BlockEditProps> ) => {
 		function BindingsBlockEdit( props: BlockEditProps ): JSX.Element {
 			const attributes = collectBindableAttributes( props.name );
-			const resource   = getBindingsResource();
-			const recordId   = getBindingsRecordId();
+			const { resource, id: recordId } = resolveBindingTarget( props.context, {
+				resource: getBindingsResource(),
+				id: getBindingsRecordId(),
+			} );
 			const current: BindingsMap =
 				( props.attributes.bindings as BindingsMap | undefined ) ?? {};
 
-			// Live-resolve any active bindings against the editor's
-			// current parent record so the canvas reflects the bound
-			// values without waiting for a frontend render.
+			// Live-resolve any active bindings against the block's own
+			// record so the canvas reflects the bound values without
+			// waiting for a frontend render.
 			const { values: resolved } = useResolvedBindings(
 				current,
 				props.attributes,

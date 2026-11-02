@@ -236,8 +236,9 @@ field or path. The picker calls:
 - `GET /visual-editor/api/bindings/sources` — list registered sources.
 - `GET /visual-editor/api/bindings/sources/{source}/fields?resource=…` — field catalog for a source scoped to a resource (`resource` is the resource slug; see [above](#which-custom-fields-a-content-type-offers)).
 - `POST /visual-editor/api/bindings/resolve` — preview the resolved
-  value against the currently-edited record. The editor batches these
-  (see [Batched resolves](#batched-resolves)).
+  value against the block's record: the entry picked in Single Content,
+  the row of a Query Loop, or otherwise the record being edited. The
+  editor batches these (see [Batched resolves](#batched-resolves)).
 
 Dynamic Content is an exception because tokens are host-level, not
 record-scoped — it uses:

@@ -174,8 +174,30 @@ describe('HeadingEdit', () => {
 
         const heading = container.querySelector('h2');
         expect(heading?.querySelector('script')).toBeNull();
-        expect(heading?.querySelector('img')?.hasAttribute('onerror')).toBe(false);
+        expect(heading?.querySelector('img')).toBeNull();
         expect(heading?.textContent).toBe('Hi');
+    });
+
+    it('removes frames and script links that survive a scripts-only filter', () => {
+        const { container } = render(
+            <BoundAttributesContext.Provider
+                value={{ content: { source: 'post_core', key: 'title' } }}
+            >
+                <HeadingEdit
+                    attributes={{
+                        content:
+                            'Hi<iframe srcdoc="<script>alert(1)</script>"></iframe>' +
+                            '<a href="javascript:alert(2)">link</a>',
+                        level: 2,
+                    }}
+                    setAttributes={vi.fn()}
+                    clientId="abc"
+                />
+            </BoundAttributesContext.Provider>
+        );
+
+        const heading = container.querySelector('h2');
+        expect(heading?.innerHTML).toBe('Hi<a>link</a>');
     });
 
     it('keeps content editable when only another attribute is bound', () => {

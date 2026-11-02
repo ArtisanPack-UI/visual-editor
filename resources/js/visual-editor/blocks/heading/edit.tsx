@@ -11,7 +11,6 @@ import { __ } from '@wordpress/i18n';
 import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { useEffect } from '@wordpress/element';
 import { useDispatch, useSelect } from '@wordpress/data';
-import { safeHTML } from '@wordpress/dom';
 import {
     RichText,
     useBlockProps,
@@ -19,6 +18,7 @@ import {
 } from '@wordpress/block-editor';
 
 import { useBoundAttribute } from '../../bindings/bound-attributes-context';
+import { sanitizeBoundHtml } from '../../bindings/sanitize-bound-html';
 import { generateAnchor, setAnchor } from './autogenerate-anchors';
 
 interface HeadingAttributes {
@@ -111,8 +111,8 @@ export default function HeadingEdit(props: HeadingEditProps): ReactElement {
     // A bound heading renders its resolved value read-only (#995). The
     // tag is rendered directly rather than through `RichText.Content`,
     // a function component that would drop `blockProps.ref`. Binding
-    // sources return stored values unsanitised, so scripts and event
-    // handlers are stripped before the markup reaches the canvas.
+    // sources return stored values unsanitised, possibly from a record
+    // another author wrote, so only inline formatting reaches the canvas.
     if (contentBinding !== null) {
         const BoundTag = tagName as 'h2';
 
@@ -120,7 +120,7 @@ export default function HeadingEdit(props: HeadingEditProps): ReactElement {
             <BoundTag
                 {...blockProps}
                 aria-readonly="true"
-                dangerouslySetInnerHTML={{ __html: safeHTML(content ?? '') }}
+                dangerouslySetInnerHTML={{ __html: sanitizeBoundHtml(content ?? '') }}
             />
         );
     }
