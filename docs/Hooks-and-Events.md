@@ -45,6 +45,20 @@ See [[Content Model#2-the-resource-map]] for the full contract.
 
 ---
 
+### `ap.visualEditor.search.resourceUrl`
+
+Supply the public URL of a record in entity search. The link selector uses a model's `permalink` or `url` attribute and leaves out records that have neither, so a custom content type needs one of those or this filter to appear in results.
+
+**Signature:** `?string $url, Model $record, string $resource -> ?string`
+
+```php
+addFilter('ap.visualEditor.search.resourceUrl', function (?string $url, Model $record, string $resource): ?string {
+    return 'books' === $resource ? route('books.show', $record) : $url;
+});
+```
+
+---
+
 ### `ap.visualEditor.templates` / `templateParts` / `patterns` / `navigation`
 
 Register site-editor entities at runtime. Each filter slug merges into the matching `config('artisanpack.visual-editor.site-editor.*')` array.

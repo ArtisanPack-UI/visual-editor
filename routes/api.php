@@ -331,6 +331,10 @@ Route::get( 'menu-locations', [ MenuLocationsController::class, 'index' ] )
 Route::get( 'search', [ EntitySearchController::class, 'index' ] )
 	->name( 'visual-editor.api.search.index' );
 
+// #1042 — all-types search behind the block editor's link selector.
+Route::get( 'search/links', [ EntitySearchController::class, 'links' ] )
+	->name( 'visual-editor.api.search.links' );
+
 // #492 — user autocomplete for the "Specific User" visibility rule's
 // InspectorControls picker. Read-only; short-circuits to an empty
 // list when the current session isn't authenticated. Hosts can filter

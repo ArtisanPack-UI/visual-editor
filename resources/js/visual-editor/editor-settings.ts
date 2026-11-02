@@ -27,6 +27,7 @@
 import { __ } from '@wordpress/i18n';
 
 import { getNavigationOverlayPattern } from './editor/navigation-overlay-pattern';
+import { fetchLinkSuggestions } from './link-suggestions';
 import { mediaUploadSetting } from './media-bridge';
 import { getHostPresets, mergePresetList } from './preset-registry';
 import { TEXT_DOMAIN } from './vendor/i18n';
@@ -499,6 +500,12 @@ export const ROOT_CANVAS_LAYOUT = {
  */
 export const editorSettings = {
     mediaUpload: mediaUploadSetting,
+    /*
+     * #1042 — the content search behind `LinkControl` and `URLInput`.
+     * WordPress gets this from core-data, which this package replaces
+     * with a shim, so without it the link selector only takes typed URLs.
+     */
+    __experimentalFetchLinkSuggestions: fetchLinkSuggestions,
     alignWide: true,
     /*
      * #791 — dock the block toolbar into the editor chrome so it never
