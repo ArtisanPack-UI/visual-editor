@@ -24,7 +24,7 @@
         { "fork": "deprecated.tsx", "upstream": "deprecated.js", "status": "adapted", "notes": "Full v1–v8 deprecation chain ported verbatim with their migrate/isEligible callbacks." },
         { "fork": "transforms.ts", "upstream": "transforms.js", "status": "extended", "notes": "Upstream raw (figure → img) + files + caption-shortcode transforms preserved; added bidirectional core/image ↔ artisanpack/image block transforms." },
         { "fork": "constants.ts", "upstream": "constants.js", "status": "adapted", "notes": "TypeScript port; values verbatim." },
-        { "fork": "utils.ts", "upstream": "utils.js", "status": "adapted", "notes": "TypeScript port; behaviour byte-equivalent." },
+        { "fork": "utils.ts", "upstream": "utils.js", "status": "adapted", "notes": "TypeScript port; behaviour byte-equivalent, except `mediaPosition()` centers a missing or non-number focal point axis instead of printing NaN or throwing." },
         { "fork": "use-max-width-observer.tsx", "upstream": "use-max-width-observer.js", "status": "adapted", "notes": "TypeScript port; behaviour byte-equivalent." },
         { "fork": "image.css", "upstream": "style.scss + editor.scss + theme.scss", "status": "adapted", "notes": "Sass caption-style() and caption-style-theme() mixins inlined; $grid-unit-20/$border-width/$white literals inlined; lightbox keyframes preserved verbatim; data-type selectors duplicated for both core/image and artisanpack/image." },
         { "fork": "inserter-icon.tsx", "upstream": "n/a", "status": "added", "notes": "Inline SVG for the inserter (matches @wordpress/icons image path)." },

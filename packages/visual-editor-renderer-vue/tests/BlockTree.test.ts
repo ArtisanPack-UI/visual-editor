@@ -209,6 +209,73 @@ describe('Core media blocks', () => {
         expect(html).toContain('<figcaption class="wp-element-caption">A <em>caption</em></figcaption>');
     });
 
+    it('prints the focal point after object-fit (#1054)', () => {
+        const html = renderTree([
+            makeBlock('core/image', {
+                url: 'https://example.test/image.jpg',
+                alt: 'x',
+                aspectRatio: '16/10',
+                scale: 'cover',
+                focalPoint: { x: 0.5, y: 0 },
+                width: '300px',
+            }),
+        ]);
+
+        expect(html).toContain('object-fit: cover; object-position: 50% 0%; width: 300px');
+    });
+
+    it('defaults a missing focal point axis to the center (#1054)', () => {
+        const html = renderTree([
+            makeBlock('core/image', {
+                url: 'https://example.test/image.jpg',
+                alt: 'x',
+                scale: 'cover',
+                focalPoint: { y: 1 },
+            }),
+        ]);
+
+        expect(html).toContain('object-position: 50% 100%');
+    });
+
+    it.each([
+        ['an out-of-range axis', { x: 1.5, y: 0 }],
+        ['a negative axis', { x: 0.5, y: -0.1 }],
+        ['a numeric string', { x: '0.5', y: 0 }],
+        ['a hostile string', { x: '0;position:fixed', y: 0 }],
+        ['a boolean', { x: true, y: 0 }],
+        ['a non-object', 'top'],
+    ])('drops a focal point with %s (#1054)', (_label, focalPoint) => {
+        const html = renderTree([
+            makeBlock('core/image', {
+                url: 'https://example.test/image.jpg',
+                alt: 'x',
+                scale: 'cover',
+                focalPoint,
+            }),
+        ]);
+
+        expect(html).toContain('object-fit: cover');
+        expect(html).not.toContain('object-position');
+    });
+
+    it('ignores the focal point without a known scale (#1054)', () => {
+        const html = renderTree([
+            makeBlock('core/image', {
+                url: 'https://example.test/image.jpg',
+                alt: 'x',
+                focalPoint: { x: 0.5, y: 0 },
+            }),
+            makeBlock('core/image', {
+                url: 'https://example.test/image.jpg',
+                alt: 'x',
+                scale: 'stretch',
+                focalPoint: { x: 0.5, y: 0 },
+            }),
+        ]);
+
+        expect(html).not.toContain('object-position');
+    });
+
     it('paints the border and shadow on the image, not the figure (#1052)', () => {
         const html = renderTree([
             makeBlock('core/image', {

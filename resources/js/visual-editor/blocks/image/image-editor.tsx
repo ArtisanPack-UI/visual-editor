@@ -58,6 +58,7 @@ import {
 } from './constants';
 import { useImageBorderProps } from './use-image-border-props';
 import { useLightboxSetting } from './use-lightbox-setting';
+import { mediaPosition } from './utils';
 import WidthControl, { composeWidth } from './width-control';
 
 interface ImageEditorAttributes {
@@ -226,6 +227,7 @@ export default function Image(props: ImageEditorProps): ReactElement {
         height,
         aspectRatio,
         scale,
+        focalPoint,
         href,
         rel,
         linkClass,
@@ -268,6 +270,10 @@ export default function Image(props: ImageEditorProps): ReactElement {
                 ...border.style,
                 aspectRatio,
                 objectFit: scale,
+                objectPosition:
+                    focalPoint && scale
+                        ? mediaPosition(focalPoint)
+                        : undefined,
                 width,
                 height,
             }}

@@ -7669,6 +7669,18 @@
                 { "clientId": "ib-custom", "name": "artisanpack/image", "attributes": { "url": "https://example.test/b.jpg", "alt": "y", "href": "https://example.test/page", "aspectRatio": "16/9", "width": "300px", "style": { "border": { "color": "#ff0000", "style": "dashed", "width": "1px", "radius": { "topLeft": "4px", "bottomRight": "8px" } } } }, "innerBlocks": [] },
                 { "clientId": "ib-side", "name": "core/image", "attributes": { "url": "https://example.test/c.jpg", "alt": "z", "style": { "border": { "top": { "color": "#00ff00", "width": "2px" } } } }, "innerBlocks": [] }
             ]
+        },
+        {
+            "name": "image-focal-point",
+            "$comment": "#1054 — `focalPoint` prints as `object-position` after `object-fit` and before `width`, in `save()` order. A missing axis defaults to the center. An invalid point, or one with no scale, prints nothing.",
+            "tree": [
+                { "clientId": "fp-top", "name": "core/image", "attributes": { "url": "https://example.test/a.jpg", "alt": "a", "aspectRatio": "16/10", "scale": "cover", "focalPoint": { "x": 0.5, "y": 0 } }, "innerBlocks": [] },
+                { "clientId": "fp-width", "name": "artisanpack/image", "attributes": { "url": "https://example.test/b.jpg", "alt": "b", "scale": "contain", "focalPoint": { "x": 0.25, "y": 1 }, "width": "300px", "style": { "border": { "width": "1px" } } }, "innerBlocks": [] },
+                { "clientId": "fp-axis", "name": "core/image", "attributes": { "url": "https://example.test/c.jpg", "alt": "c", "scale": "cover", "focalPoint": { "y": 0.667 } }, "innerBlocks": [] },
+                { "clientId": "fp-range", "name": "core/image", "attributes": { "url": "https://example.test/d.jpg", "alt": "d", "scale": "cover", "focalPoint": { "x": 1.5, "y": 0 } }, "innerBlocks": [] },
+                { "clientId": "fp-hostile", "name": "core/image", "attributes": { "url": "https://example.test/e.jpg", "alt": "e", "scale": "cover", "focalPoint": { "x": "0;position:fixed", "y": 0 } }, "innerBlocks": [] },
+                { "clientId": "fp-no-scale", "name": "core/image", "attributes": { "url": "https://example.test/f.jpg", "alt": "f", "focalPoint": { "x": 0.5, "y": 0 } }, "innerBlocks": [] }
+            ]
         }
     ]
 }

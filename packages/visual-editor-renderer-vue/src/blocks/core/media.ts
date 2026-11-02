@@ -66,11 +66,39 @@ function imageDimension(value: unknown): { attr?: number; style?: string } {
 }
 
 /**
- * The `<img>` style for the image block's `aspectRatio` + `scale`
- * attributes (#873), mirroring `image.blade.php`: the ratio must pass
- * `safeCssValue`, the scale must be a known object-fit keyword. The
- * border and shadow (#1052) lead and the resolved width / height (#985)
- * follow, in the editor `save()` order.
+ * The `object-position` for an image `focalPoint` (#1054), mirroring
+ * `image.blade.php`: a missing axis defaults to the center, as in the
+ * editor's `mediaPosition()`, and anything but a number from 0 to 1 drops
+ * the whole value.
+ */
+function imageFocalPosition(focalPoint: unknown): string | null {
+    if (typeof focalPoint !== 'object' || focalPoint === null) {
+        return null;
+    }
+
+    const { x, y } = focalPoint as { x?: unknown; y?: unknown };
+    const percentages: string[] = [];
+
+    for (const axis of [x, y]) {
+        const value = axis ?? 0.5;
+
+        if (typeof value !== 'number' || !(value >= 0 && value <= 1)) {
+            return null;
+        }
+
+        percentages.push(`${Math.round(value * 100)}%`);
+    }
+
+    return percentages.join(' ');
+}
+
+/**
+ * The `<img>` style for the image block's `aspectRatio`, `scale` and
+ * `focalPoint` attributes (#873, #1054), mirroring `image.blade.php`: the
+ * ratio must pass `safeCssValue`, the scale must be a known object-fit
+ * keyword, and the focal point only applies alongside a scale. The border
+ * and shadow (#1052) lead and the resolved width / height (#985) follow,
+ * in the editor `save()` order.
  */
 function imageStyle(
     attributes: Record<string, unknown>,
@@ -89,6 +117,12 @@ function imageStyle(
 
     if (typeof scale === 'string' && IMAGE_SCALES.includes(scale)) {
         style.objectFit = scale;
+
+        const focalPosition = imageFocalPosition(attributes.focalPoint);
+
+        if (focalPosition !== null) {
+            style.objectPosition = focalPosition;
+        }
     }
 
     if (width !== undefined) {
