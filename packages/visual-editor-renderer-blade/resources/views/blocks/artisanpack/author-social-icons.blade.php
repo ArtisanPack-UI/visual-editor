@@ -1,6 +1,6 @@
 @php
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
-	use ArtisanPackUI\VisualEditorRendererBlade\Support\SocialIconRegistry;
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\SocialLinkServices;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\UrlSanitizer;
 
 	$validStyles     = [ 'show-label-icon', 'show-icon', 'show-label' ];
@@ -58,7 +58,7 @@
 				continue;
 			}
 
-			$definition = SocialIconRegistry::author( $slug );
+			$definition = SocialLinkServices::author( $slug );
 
 			if ( null === $definition ) {
 				continue;
@@ -71,10 +71,11 @@
 			}
 
 			$chips[] = [
-				'slug'  => $slug,
-				'url'   => $safeUrl,
-				'label' => $definition['label'],
-				'path'  => $definition['path'],
+				'slug'    => $slug,
+				'url'     => $safeUrl,
+				'label'   => $definition['label'],
+				'viewBox' => $definition['viewBox'],
+				'path'    => $definition['path'],
 			];
 		}
 	}
@@ -124,7 +125,7 @@
 		<div class="ap-author-social-icons__item">
 			<a class="ap-author-social-icons__chip {{ $chip['slug'] }}" href="{{ $chip['url'] }}" aria-label="{{ 'Author on ' . $chip['label'] }}"{!! $styleAttr !!}>
 				@if ( $showIcon )
-					<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true" focusable="false" class="ap-author-social-icons__icon" fill="currentColor"><path d="{{ $chip['path'] }}"></path></svg>
+					<svg xmlns="http://www.w3.org/2000/svg" viewBox="{{ $chip['viewBox'] }}" width="1em" height="1em" aria-hidden="true" focusable="false" class="ap-author-social-icons__icon" fill="currentColor"><path d="{{ $chip['path'] }}"></path></svg>
 				@endif
 				@if ( $showLabel )
 					<span class="ap-author-social-icons__label">{{ $chip['label'] }}</span>

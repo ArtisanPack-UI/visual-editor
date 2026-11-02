@@ -24,7 +24,7 @@ import { buildSocialColorStyle } from '../../support/socialColorStyle';
 import { safeUrl } from '../../support/urlSanitizer';
 import { blockRendererProps } from '../shared';
 
-import { getShareIcon } from './socialIcons';
+import { getShareIcon } from './socialLinkServices';
 
 type IconStyle = 'show-label-icon' | 'show-icon' | 'show-label';
 type IconsDirection = 'horizontal' | 'vertical';
@@ -45,6 +45,7 @@ interface ResolvedChip {
     readonly url: string;
     readonly label: string;
     readonly ariaLabel: string;
+    readonly viewBox: string;
     readonly path: string;
     readonly copy: boolean;
 }
@@ -122,6 +123,7 @@ function resolvedChips(
             url,
             label: definition.label,
             ariaLabel: copy ? definition.label : `Share on ${definition.label}`,
+            viewBox: definition.viewBox,
             path: definition.path,
             copy,
         });
@@ -220,7 +222,7 @@ export const SocialShareContentBlock = defineComponent({
                                           'svg',
                                           {
                                               xmlns: 'http://www.w3.org/2000/svg',
-                                              viewBox: '0 0 24 24',
+                                              viewBox: chip.viewBox,
                                               width: '1em',
                                               height: '1em',
                                               'aria-hidden': 'true',

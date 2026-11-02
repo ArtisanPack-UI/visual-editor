@@ -1,6 +1,6 @@
 @php
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
-	use ArtisanPackUI\VisualEditorRendererBlade\Support\SocialIconRegistry;
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\SocialLinkServices;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\UrlSanitizer;
 
 	$validStyles     = [ 'show-label-icon', 'show-icon', 'show-label' ];
@@ -58,7 +58,7 @@
 				continue;
 			}
 
-			$definition = SocialIconRegistry::share( $slug );
+			$definition = SocialLinkServices::share( $slug );
 
 			if ( null === $definition ) {
 				continue;
@@ -80,6 +80,7 @@
 				'url'       => $safeUrl,
 				'label'     => $definition['label'],
 				'ariaLabel' => $isCopyLink ? $definition['label'] : 'Share on ' . $definition['label'],
+				'viewBox'   => $definition['viewBox'],
 				'path'      => $definition['path'],
 				'copy'      => $isCopyLink,
 			];
@@ -131,7 +132,7 @@
 		<div class="ap-social-share-content__item">
 			<a class="ap-social-share-content__chip {{ $chip['slug'] }}" href="{{ $chip['url'] }}" aria-label="{{ $chip['ariaLabel'] }}"@if ( $chip['copy'] ) data-ap-copy-link="{{ $chip['url'] }}"@endif{!! $styleAttr !!}>
 				@if ( $showIcon )
-					<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true" focusable="false" class="ap-social-share-content__icon" fill="currentColor"><path d="{{ $chip['path'] }}"></path></svg>
+					<svg xmlns="http://www.w3.org/2000/svg" viewBox="{{ $chip['viewBox'] }}" width="1em" height="1em" aria-hidden="true" focusable="false" class="ap-social-share-content__icon" fill="currentColor"><path d="{{ $chip['path'] }}"></path></svg>
 				@endif
 				@if ( $showLabel )
 					<span class="ap-social-share-content__label">{{ $chip['label'] }}</span>
