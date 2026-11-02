@@ -116,8 +116,16 @@ interface FocalPoint {
     readonly y?: number;
 }
 
+/**
+ * Stored attributes aren't guaranteed to match `FocalPoint`, and multiplying
+ * a crafted object throws, so a non-number axis falls back to the center.
+ */
+function axisPercentage(axis: unknown): number {
+    return Math.round((typeof axis === 'number' ? axis : 0.5) * 100);
+}
+
 export function mediaPosition(
     { x, y }: FocalPoint = { x: 0.5, y: 0.5 }
 ): string {
-    return `${Math.round((x ?? 0.5) * 100)}% ${Math.round((y ?? 0.5) * 100)}%`;
+    return `${axisPercentage(x)}% ${axisPercentage(y)}%`;
 }

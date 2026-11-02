@@ -66,6 +66,29 @@
 		return [ 'attr' => $attr, 'style' => $value ];
 	};
 
+	// #1054 — `focalPoint` becomes `object-position`. A missing axis
+	// defaults to the center, as in the editor's `mediaPosition()`.
+	// Anything but a number from 0 to 1 drops the whole value.
+	$resolveFocalPosition = static function ( $focalPoint ): ?string {
+		if ( ! is_array( $focalPoint ) ) {
+			return null;
+		}
+
+		$percentages = [];
+
+		foreach ( [ 'x', 'y' ] as $axis ) {
+			$value = array_key_exists( $axis, $focalPoint ) ? $focalPoint[ $axis ] : 0.5;
+
+			if ( ! ( is_int( $value ) || is_float( $value ) ) || ! ( $value >= 0 && $value <= 1 ) ) {
+				return null;
+			}
+
+			$percentages[] = (int) round( $value * 100 ) . '%';
+		}
+
+		return implode( ' ', $percentages );
+	};
+
 	$width  = $resolveDimension( $attributes['width'] ?? null );
 	$height = $resolveDimension( $attributes['height'] ?? null );
 
@@ -122,10 +145,16 @@
 
 	if ( is_string( $scale ) && in_array( $scale, [ 'cover', 'contain', 'fill', 'none', 'scale-down' ], true ) ) {
 		$imgStyle[] = 'object-fit:' . $scale;
+
+		$focalPosition = $resolveFocalPosition( $attributes['focalPoint'] ?? null );
+
+		if ( null !== $focalPosition ) {
+			$imgStyle[] = 'object-position:' . $focalPosition;
+		}
 	}
 
 	// Declaration order matches the editor's `save()`: border, then
-	// aspect-ratio, object-fit, width and height.
+	// aspect-ratio, object-fit, object-position, width and height.
 	if ( null !== $width['style'] ) {
 		$imgStyle[] = 'width:' . $width['style'];
 	}

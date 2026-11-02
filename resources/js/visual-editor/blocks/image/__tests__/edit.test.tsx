@@ -338,6 +338,54 @@ describe('ImageEdit', () => {
         expect(container.querySelector('img')?.style.borderWidth).toBe('');
     });
 
+    it('shows the focal point on the canvas when the image has a scale (#1054)', () => {
+        const { container } = render(
+            <ImageEdit
+                attributes={{
+                    url: 'https://example.com/photo.jpg',
+                    aspectRatio: '16/10',
+                    scale: 'cover',
+                    focalPoint: { x: 0.5, y: 0 },
+                }}
+                setAttributes={vi.fn()}
+                isSelected
+            />
+        );
+
+        expect(container.querySelector('img')?.style.objectPosition).toBe('50% 0%');
+    });
+
+    it('survives a focal point axis that can not be multiplied (#1054)', () => {
+        const { container } = render(
+            <ImageEdit
+                attributes={{
+                    url: 'https://example.com/photo.jpg',
+                    scale: 'cover',
+                    focalPoint: JSON.parse('{"x":{"valueOf":1,"toString":1},"y":0}'),
+                }}
+                setAttributes={vi.fn()}
+                isSelected
+            />
+        );
+
+        expect(container.querySelector('img')?.style.objectPosition).toBe('50% 0%');
+    });
+
+    it('leaves the focal point off the canvas without a scale (#1054)', () => {
+        const { container } = render(
+            <ImageEdit
+                attributes={{
+                    url: 'https://example.com/photo.jpg',
+                    focalPoint: { x: 0.5, y: 0 },
+                }}
+                setAttributes={vi.fn()}
+                isSelected
+            />
+        );
+
+        expect(container.querySelector('img')?.style.objectPosition).toBe('');
+    });
+
     it('wraps the image in an anchor when href is set', () => {
         const setAttributes = vi.fn();
         const { container } = render(
