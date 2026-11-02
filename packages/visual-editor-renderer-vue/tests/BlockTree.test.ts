@@ -9,6 +9,7 @@ import {
     resetBlockRegistry,
     unregisterBlockRenderer,
 } from '../src/registry';
+import { TabsBlock } from '../src/blocks/artisanpack/tabs';
 import { registerCoreBlocks } from '../src/blocks/registerCoreBlocks';
 import { blockRendererProps } from '../src/blocks/shared';
 import { setBreakpoints } from '../src/visibility';
@@ -1472,6 +1473,25 @@ describe('Core design blocks', () => {
 
         expect(html).toContain('id="tabs-panel-overview"');
         expect(html).not.toContain('forged');
+    });
+
+    it('keeps ids unique within a Tabs block rendered on its own', () => {
+        const wrapper = mount(TabsBlock, {
+            props: {
+                name: 'artisanpack/tabs',
+                attributes: {},
+                innerBlocks: [
+                    makeBlock('artisanpack/tab-section', { _resolvedTabId: 'same' }),
+                    makeBlock('artisanpack/tab-section', { tabId: 'same' }),
+                    makeBlock('artisanpack/tab-section', { _resolvedTabId: 'same' }),
+                ],
+            },
+        });
+        const html = wrapper.html();
+
+        expect(html).toContain('id="tabs-panel-same"');
+        expect(html).toContain('id="tabs-panel-same-2"');
+        expect(html).toContain('id="tabs-panel-same-3"');
     });
 
     it('renders a tab-section without aria wiring when tabId is empty', () => {

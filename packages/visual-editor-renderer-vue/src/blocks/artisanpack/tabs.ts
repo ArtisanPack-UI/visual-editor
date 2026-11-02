@@ -53,9 +53,10 @@ function normalizeSpacing(value: unknown): TabsSpacing {
 function resolveTabId(childAttrs: Record<string, unknown>, sectionIndex: number, used: Set<string>): string {
     const stamped = attrString(childAttrs[TAB_ID_ATTRIBUTE]);
 
-    return stamped !== ''
-        ? stamped
-        : uniqueTabId(sanitizeTabId(attrString(childAttrs.tabId), sectionIndex), used);
+    return uniqueTabId(
+        stamped !== '' ? stamped : sanitizeTabId(attrString(childAttrs.tabId), sectionIndex),
+        used
+    );
 }
 
 function extractSlotContent(vnode: VNode | null | undefined): VNode[] {

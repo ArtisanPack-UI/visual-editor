@@ -107,6 +107,7 @@ class TabIdStamper
 	public function stampSections( array $innerBlocks, bool $overwrite = false ): array
 	{
 		$sectionIndex = 0;
+		$inBlock      = [];
 
 		foreach ( $innerBlocks as $key => $block ) {
 			if ( ! is_array( $block ) || 'artisanpack/tab-section' !== ( $block['name'] ?? null ) ) {
@@ -116,11 +117,22 @@ class TabIdStamper
 			$sectionIndex++;
 
 			$attributes = is_array( $block['attributes'] ?? null ) ? $block['attributes'] : [];
-			$stamped    = $attributes[ self::ATTRIBUTE ] ?? null;
+			$stored     = $attributes[ self::ATTRIBUTE ] ?? null;
+			$keep       = ! $overwrite && is_string( $stored ) && '' !== $stored;
 
-			if ( $overwrite || ! is_string( $stamped ) || '' === $stamped ) {
-				$stamped = $this->claim( $this->sanitize( (string) ( $attributes['tabId'] ?? '' ), $sectionIndex ) );
+			// An id this block hasn't printed yet stays as it is, even if
+			// it's already claimed: a nested render re-prints the ids the
+			// outer pass stamped.
+			if ( $keep && ! isset( $inBlock[ $stored ] ) ) {
+				$stamped                 = $stored;
+				$this->used[ $stamped ]  = true;
+			} else {
+				$stamped = $this->claim(
+					$keep ? $stored : $this->sanitize( (string) ( $attributes['tabId'] ?? '' ), $sectionIndex ),
+				);
 			}
+
+			$inBlock[ $stamped ] = true;
 
 			$attributes[ self::ATTRIBUTE ]     = $stamped;
 			$innerBlocks[ $key ]['attributes'] = $attributes;

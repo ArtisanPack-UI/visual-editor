@@ -106,6 +106,18 @@ it( 'keeps ids unique within a Tabs block rendered on its own', function (): voi
 		->and( $html )->toContain( 'id="tabs-panel-overview-2"' );
 } );
 
+it( 'keeps ids unique within a Tabs block whose sections already carry ids', function (): void {
+	$tabs                                                   = tabsBlockWith( [ [ 'One', '' ], [ 'Two', 'same' ], [ 'Three', '' ] ] );
+	$tabs['innerBlocks'][0]['attributes']['_resolvedTabId'] = 'same';
+	$tabs['innerBlocks'][2]['attributes']['_resolvedTabId'] = 'same';
+
+	$ids = tabElementIds( app( BlockRenderer::class )->renderBlock( $tabs ) );
+
+	expect( $ids )->toContain( 'tabs-panel-same' )
+		->and( $ids )->toContain( 'tabs-panel-same-2' )
+		->and( $ids )->toContain( 'tabs-panel-same-3' );
+} );
+
 it( 'gives Tabs inside an Accordion their ids despite the second render', function (): void {
 	$html = app( BlockRenderer::class )->render( [ [
 		'clientId'    => 'accordion',
