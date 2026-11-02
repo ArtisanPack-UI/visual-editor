@@ -178,6 +178,47 @@ describe('element margins in the canvas (#1040)', () => {
     });
 });
 
+describe('code and pre baseline in the canvas (#1051)', () => {
+    const CODE_RULE = ':where(.editor-styles-wrapper code) {';
+    const PANEL_RULE = ':where(.editor-styles-wrapper pre:not(.wp-block-verse)) {';
+    const PANEL_CODE_RULE = ':where(.editor-styles-wrapper pre:not(.wp-block-verse) code) {';
+
+    const ruleBody = (opener: string): string => {
+        const start = DEFAULT_CANVAS_STYLES.indexOf(opener);
+
+        expect(start).toBeGreaterThanOrEqual(0);
+
+        return DEFAULT_CANVAS_STYLES.slice(start, DEFAULT_CANVAS_STYLES.indexOf('}', start));
+    };
+
+    it('drops the specific selectors that beat theme.json block styles', () => {
+        expect(DEFAULT_CANVAS_STYLES).not.toMatch(/(?<!:where\()\.editor-styles-wrapper (code|pre)\b/);
+    });
+
+    it('tints code and panels from the text color rather than a fixed light background', () => {
+        expect(ruleBody(CODE_RULE)).toContain('background: color-mix(in srgb, currentColor 10%, transparent);');
+        expect(ruleBody(PANEL_RULE)).toContain('background: color-mix(in srgb, currentColor 8%, transparent);');
+        expect(DEFAULT_CANVAS_STYLES).not.toContain('#f3f4f6');
+    });
+
+    it('sets no text color, so the theme decides it', () => {
+        expect(ruleBody(CODE_RULE)).not.toMatch(/(^|\s)color:/);
+        expect(ruleBody(PANEL_RULE)).not.toMatch(/(^|\s)color:/);
+    });
+
+    it('does not paint a second chip inside a panel', () => {
+        const panelCode = ruleBody(PANEL_CODE_RULE);
+
+        expect(panelCode).toContain('background: none;');
+        expect(panelCode).toContain('padding: 0;');
+        expect(panelCode).toContain('border-radius: 0;');
+        expect(panelCode).toContain('font-size: inherit;');
+        expect(DEFAULT_CANVAS_STYLES.indexOf(PANEL_CODE_RULE)).toBeGreaterThan(
+            DEFAULT_CANVAS_STYLES.indexOf(CODE_RULE)
+        );
+    });
+});
+
 describe('root block spacing in the post editor (#1040)', () => {
     const rootGapSelector =
         '.block-editor-block-list__layout.is-root-container) > * + :where(:not(.block-list-appender))';
