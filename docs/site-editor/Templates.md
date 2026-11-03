@@ -168,6 +168,59 @@ restoring the theme version.
 All endpoints behind the API middleware stack. Slug regex allows path-style
 segments (`single/post/hello-world`).
 
+### Slugs and ids
+
+`{slug}` takes either a slug or a row id, because the API returns a template
+with a database row under its numeric id. An all-digit value such as `404`
+could be either, so it's resolved in this order:
+
+- **`GET`** looks in the active theme only. A template whose row has that id
+  wins, then a template with that slug.
+- **`PUT`** targets the body's `theme`, or the active theme. A row with that
+  id in that theme wins, then a template with that slug, which is created as
+  an override if it has no row yet. A row with that id in another theme is
+  only updated when the body has no `theme`; otherwise the response is a 404.
+- **`DELETE` without `?theme=`** works like `PUT` in the active theme: a row
+  with that id in the active theme, then an override with that slug, then a
+  row with that id in any theme.
+- **`DELETE` with `?theme=`** treats the value as a slug first, because only
+  clients that work by slug send a theme. The override with that slug in that
+  theme wins, then a row with that id in that theme. A row in a different
+  theme isn't deleted: the response is a 404.
+
+`?theme=` must be a single string. A value such as `?theme[]=x` returns a
+422 with a `theme` error.
+
+### Reverting an override
+
+`DELETE /visual-editor/api/templates/{slug}` and
+`DELETE /visual-editor/api/template-parts/{slug}` delete the database
+override and leave the theme version in place. A slug URL needs a theme:
+pass `?theme=`, or the active theme is used, and with neither the response is
+a 422. A row-id URL needs no theme.
+
+| Status | Meaning |
+|--------|---------|
+| `204` | The override was deleted. |
+| `404` | No override matches. |
+| `409` | A `deleting` listener on the model returned `false`, so the row was kept. |
+| `422` | A slug URL had no theme to match, or `?theme=` wasn't a string. |
+
+Both URL forms, by slug and by row id, delete through the model, so the
+model's `deleting` and `deleted` events fire. After a delete they also fire
+the `ap.cmsFramework.siteEditor.reverted` action, which a 409 doesn't. The
+action reports the row's own theme. A delete by row id can remove an
+override in a theme that isn't active, so this theme can differ from the
+active one. See
+[Hooks and Events](../Hooks-and-Events.md#apcmsframeworksiteeditorreverted).
+
+```php
+addAction('ap.cmsFramework.siteEditor.reverted', function (string $type, ?string $slug, string $theme): void {
+    // $type is 'template' or 'template-part' for these endpoints.
+    // Purge anything cached for $theme here.
+}, 10, 3);
+```
+
 ---
 
 ## 6. Custom templates

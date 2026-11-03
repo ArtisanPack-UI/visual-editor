@@ -33,6 +33,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor;
 
 use ArtisanPackUI\VisualEditor\Effects\CustomCssGuard;
+use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\Concerns\ReadsSiteEditorRouteInput;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\MenuContentBlocksRule;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\StoreMenuRequest;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\UpdateMenuRequest;
@@ -50,6 +51,8 @@ use Illuminate\Support\Str;
 
 class MenuController extends Controller
 {
+	use ReadsSiteEditorRouteInput;
+
 	protected const CMS_MENU_FQCN = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Models\\Menu';
 
 	protected const CMS_RESOLVER_BINDING = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Resolution\\MenuResolver';
@@ -97,7 +100,12 @@ class MenuController extends Controller
 		// list endpoint would N+1 one items query per menu.
 		$query = $model::query()->with( 'items' )->orderBy( 'id' );
 
-		$theme = trim( (string) $request->query( 'theme', '' ) );
+		$theme = $this->themeQuery( $request );
+
+		if ( null === $theme ) {
+			return $this->invalidThemeQuery();
+		}
+
 		if ( '' !== $theme ) {
 			$query->where( 'theme', $theme );
 		}
