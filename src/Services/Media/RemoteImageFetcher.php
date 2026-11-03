@@ -31,7 +31,9 @@ use Illuminate\Support\Facades\Http;
  * ports, no credentials in the URL, and a host whose every address is
  * public. The connection is pinned to the addresses checked, so a DNS
  * answer that changes afterwards can't reach an internal one. Redirects
- * are followed by hand so each target gets the same check.
+ * are followed by hand so each target gets the same check, and proxies
+ * are bypassed because one would do its own DNS lookup. A host that can
+ * only reach the internet through a proxy can't import.
  *
  * Whatever comes back is capped in size, and typed from its bytes rather
  * than from the response's headers.
@@ -68,8 +70,8 @@ class RemoteImageFetcher
 
 	/**
 	 * IPv6 prefixes that carry an IPv4 address, which PHP's reserved-range
-	 * filter doesn't look inside: IPv4-mapped, IPv4-compatible, NAT64 and
-	 * 6to4. Hex strings, compared with the address's packed bytes so every
+	 * filter doesn't look inside: IPv4-mapped, IPv4-compatible, NAT64 (the
+	 * well-known prefix and RFC 8215's local-use one) and 6to4. Hex strings, compared with the address's packed bytes so every
 	 * way of writing it counts.
 	 *
 	 * @since 1.20.0
@@ -80,6 +82,7 @@ class RemoteImageFetcher
 		'00000000000000000000ffff',
 		'000000000000000000000000',
 		'0064ff9b0000000000000000',
+		'0064ff9b0001',
 		'2002',
 	];
 
@@ -232,12 +235,18 @@ class RemoteImageFetcher
 		$port    = $parts['port'] ?? ( 'https' === strtolower( (string) ( $parts['scheme'] ?? '' ) ) ? 443 : 80 );
 		$maxSize = $this->maxBytes();
 
+		if ( ! extension_loaded( 'curl' ) ) {
+			throw new RemoteImageException( __( 'The image could not be downloaded.' ) );
+		}
+
 		try {
 			return Http::withoutRedirecting()
 				->connectTimeout( 5 )
 				->timeout( 20 )
 				->accept( 'image/*' )
 				->withOptions( [
+					// A proxy would resolve the host itself, past the pin.
+					'proxy' => '',
 					// `+`, because a spread would renumber curl's integer keys.
 					'curl' => $this->pinnedAddresses( $host, $port, $addresses ) + [
 						CURLOPT_PROTOCOLS        => CURLPROTO_HTTP | CURLPROTO_HTTPS,
@@ -309,7 +318,13 @@ class RemoteImageFetcher
 
 		$path = tempnam( sys_get_temp_dir(), 've-import-' );
 
-		if ( false === $path || false === file_put_contents( $path, $body ) ) {
+		if ( false === $path ) {
+			throw new RemoteImageException( __( 'The image could not be downloaded.' ) );
+		}
+
+		if ( false === file_put_contents( $path, $body ) ) {
+			@unlink( $path );
+
 			throw new RemoteImageException( __( 'The image could not be downloaded.' ) );
 		}
 

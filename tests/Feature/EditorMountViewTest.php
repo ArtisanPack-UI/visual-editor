@@ -60,6 +60,16 @@ test( 'editor mounts stamp the unfiltered-HTML ability for the inserter (#1062)'
         ->toContain( '@if( $canUseUnfilteredHtml ) data-can-use-unfiltered-html="true" @endif' );
 } );
 
+test( 'editor mounts stamp whether media can be imported (#1066)', function (): void {
+    foreach ( [ 'editor/mount', 'site-editor/index' ] as $view ) {
+        expect( file_get_contents( __DIR__ . '/../../resources/views/' . $view . '.blade.php' ) )
+            ->toContain( '@if( \\ArtisanPackUI\\VisualEditor\\Support\\MediaImportAccess::allows() ) data-can-import-media="true" @endif' );
+    }
+
+    expect( file_get_contents( __DIR__ . '/../../resources/views/components/editor.blade.php' ) )
+        ->toContain( '@if( $canImportMedia ) data-can-import-media="true" @endif' );
+} );
+
 test( 'editor mounts stamp the Custom CSS URL switch (F-11)', function (): void {
     foreach ( [ 'editor/mount', 'site-editor/index' ] as $view ) {
         expect( file_get_contents( __DIR__ . '/../../resources/views/' . $view . '.blade.php' ) )

@@ -82,6 +82,13 @@ export interface VisualEditorProps {
      */
     canUseUnfilteredHtml?: boolean;
     /**
+     * Whether the server can import a pasted image for this user
+     * (`MediaImportAccess::allows()`). Only shows the offer.
+     *
+     * @since 1.20.0
+     */
+    canImportMedia?: boolean;
+    /**
      * Config `effects.custom_css_allow_urls`, so the canvas previews what
      * the front end prints. Defaults to `true`.
      *
@@ -120,6 +127,7 @@ function buildMountConfig(props: VisualEditorProps): MountConfig {
         ...(props.blockStyles !== undefined ? { blockStyles: props.blockStyles } : {}),
         canEditBlockCss: props.canEditBlockCss === true,
         canUseUnfilteredHtml: props.canUseUnfilteredHtml === true,
+        canImportMedia: props.canImportMedia === true,
         customCssAllowUrls: props.customCssAllowUrls !== false,
         previewUrl: props.previewUrl ?? null,
     };
@@ -157,6 +165,10 @@ export const VisualEditor = defineComponent({
             default: false,
         },
         canUseUnfilteredHtml: {
+            type: Boolean,
+            default: false,
+        },
+        canImportMedia: {
             type: Boolean,
             default: false,
         },

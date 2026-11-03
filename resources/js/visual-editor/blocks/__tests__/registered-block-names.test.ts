@@ -76,6 +76,39 @@ describe( 'forks', () => {
     } );
 } );
 
+describe( 'media transforms', () => {
+    it( 'makes a Group of a Cover and back without an extra wrapper', () => {
+        const group = createBlock( 'artisanpack/group', {}, [ createBlock( 'artisanpack/paragraph', { content: 'Text' } ) ] );
+        const [ cover ] = switchToBlockType( group, 'artisanpack/cover' ) as BlockInstance[];
+
+        expect( cover.innerBlocks[ 0 ].name ).toBe( 'artisanpack/group' );
+
+        const [ back ] = switchToBlockType( cover, 'artisanpack/group' ) as BlockInstance[];
+
+        expect( back.name ).toBe( 'artisanpack/group' );
+        expect( back.innerBlocks.map( ( { name } ) => name ) ).toEqual( [ 'artisanpack/paragraph' ] );
+    } );
+
+    it.each( [
+        [ 'artisanpack/image', { url: '/a.png' } ],
+        [ 'artisanpack/video', { src: '/a.mp4' } ],
+        [ 'artisanpack/audio', { src: '/a.mp3' } ],
+    ] )( 'turns %s into a File block', ( name, attributes ) => {
+        const blocks = switchToBlockType( createBlock( name, { ...attributes, id: 1 } ), 'artisanpack/file' );
+
+        expect( blocks?.[ 0 ].name ).toBe( 'artisanpack/file' );
+    } );
+
+    it( 'keeps an image with only an id when making a Gallery', () => {
+        const [ gallery ] = switchToBlockType(
+            [ createBlock( 'artisanpack/image', { id: 5 } ), createBlock( 'artisanpack/image', { url: '/b.png' } ) ],
+            'artisanpack/gallery',
+        ) as BlockInstance[];
+
+        expect( gallery.innerBlocks ).toHaveLength( 2 );
+    } );
+} );
+
 describe( 'templates', () => {
     it.each( [
         [ 'Media & Text', mediaTextTemplate ],

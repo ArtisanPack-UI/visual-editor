@@ -57,6 +57,8 @@ it( 'treats only public addresses as public', function ( string $address, bool $
 	'compatible v4'      => [ '::127.0.0.1', false ],
 	'nat64'              => [ '64:ff9b::7f00:1', false ],
 	'6to4'               => [ '2002:7f00:1::', false ],
+	'local nat64'        => [ '64:ff9b:1::7f00:1', false ],
+	'just past nat64'    => [ '64:ff9b:2::1', true ],
 	'long mapped'        => [ '0:0:0:0:0:ffff:7f00:1', false ],
 	'long compatible'    => [ '0:0:0:0:0:0:7f00:1', false ],
 	'long nat64'         => [ '0064:ff9b:0:0:0:0:7f00:1', false ],
@@ -209,5 +211,6 @@ it( 'pins the connection to the checked addresses', function (): void {
 
 	expect( $options['curl'][ CURLOPT_RESOLVE ] )->toBe( [ 'cdn.example.com:443:93.184.216.34' ] )
 		->and( $options['curl'][ CURLOPT_PROTOCOLS ] )->toBe( CURLPROTO_HTTP | CURLPROTO_HTTPS )
-		->and( $options['allow_redirects'] )->toBeFalse();
+		->and( $options['allow_redirects'] )->toBeFalse()
+		->and( $options['proxy'] )->toBe( '' );
 } );

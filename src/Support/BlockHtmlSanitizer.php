@@ -338,14 +338,24 @@ class BlockHtmlSanitizer
 		$offset = 0;
 
 		while ( 1 === preg_match( '/<svg\b/i', $html, $match, PREG_OFFSET_CAPTURE, $offset ) ) {
-			$start = $match[0][1];
-			$end   = $this->svgEnd( $html, $start );
+			$start  = $match[0][1];
+			$tagEnd = strpos( $html, '>', $start );
 
-			if ( null === $end ) {
+			if ( false === $tagEnd ) {
 				break;
 			}
 
-			$output .= substr( $html, $offset, $start - $offset ) . $this->svgPlaceholder( substr( $html, $start, $end - $start ) );
+			$output .= substr( $html, $offset, $start - $offset );
+			$end     = $this->svgEnd( $html, $tagEnd );
+
+			if ( null === $end ) {
+				// Left in, it would swallow the rest of the fragment.
+				$offset = $tagEnd + 1;
+
+				continue;
+			}
+
+			$output .= $this->svgPlaceholder( substr( $html, $start, $end - $start ) );
 			$offset  = $end;
 		}
 
@@ -353,23 +363,19 @@ class BlockHtmlSanitizer
 	}
 
 	/**
-	 * The offset just past the `<svg>` starting at `$start`.
+	 * The offset just past the `<svg>` whose opening tag ends at `$tagEnd`.
+	 * Another `<svg` before its closing tag means this one was never closed,
+	 * so it can't claim that element's.
 	 *
 	 * @since 1.20.0
 	 *
-	 * @param  string  $html   The fragment.
-	 * @param  int     $start  Where the element starts.
+	 * @param  string  $html    The fragment.
+	 * @param  int     $tagEnd  Where its opening tag ends.
 	 *
 	 * @return int|null The offset, or null when it's never closed.
 	 */
-	protected function svgEnd( string $html, int $start ): ?int
+	protected function svgEnd( string $html, int $tagEnd ): ?int
 	{
-		$tagEnd = strpos( $html, '>', $start );
-
-		if ( false === $tagEnd ) {
-			return null;
-		}
-
 		if ( '/' === $html[ $tagEnd - 1 ] ) {
 			return $tagEnd + 1;
 		}
@@ -377,7 +383,13 @@ class BlockHtmlSanitizer
 		$close = stripos( $html, '</svg', $tagEnd );
 		$end   = false === $close ? false : strpos( $html, '>', $close );
 
-		return false === $end ? null : $end + 1;
+		if ( false === $end ) {
+			return null;
+		}
+
+		$between = substr( $html, $tagEnd, $close - $tagEnd );
+
+		return 1 === preg_match( '/<svg\b/i', $between ) ? null : $end + 1;
 	}
 
 	/**

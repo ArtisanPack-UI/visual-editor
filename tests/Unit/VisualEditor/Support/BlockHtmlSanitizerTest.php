@@ -85,6 +85,19 @@ it( 'keeps script out of math', function ( string $html ): void {
 	'handler'        => [ '<math onmouseover="alert(1)"><mi>x</mi></math>' ],
 ] );
 
+it( 'keeps a valid icon and its text after an unclosed svg', function (): void {
+	$output = sanitizeBlockHtml( 'before <svg> middle <svg viewBox="0 0 1 1"><path d="M0 0"/></svg> after' );
+
+	expect( $output )->toContain( 'before' )
+		->toContain( 'middle' )
+		->toContain( 'viewBox="0 0 1 1"' )
+		->toContain( 'after' );
+} );
+
+it( 'keeps the text after a stray opening tag at the end', function (): void {
+	expect( sanitizeBlockHtml( 'before <svg> after' ) )->toBe( 'before  after' );
+} );
+
 it( 'drops an unclosed svg', function (): void {
 	expect( sanitizeBlockHtml( 'a<svg><script>1</script>' ) )->toBe( 'a' );
 } );

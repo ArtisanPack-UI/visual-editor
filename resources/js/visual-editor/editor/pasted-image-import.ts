@@ -11,15 +11,19 @@
  */
 
 import { store as blockEditorStore } from '@wordpress/block-editor';
+import type { BlockInstance } from '@wordpress/blocks';
 import type { DataRegistry } from '@wordpress/data';
 import { __, _n, sprintf } from '@wordpress/i18n';
 import { store as noticesStore } from '@wordpress/notices';
 
 import { getBindingsApiConfig } from '../bindings/config';
-import { getMediaBridge, getMediaUploader } from '../media-bridge/state';
 import { TEXT_DOMAIN } from '../vendor/i18n';
+import { canImportMedia } from './media-import-access';
 
 const IMAGE_BLOCKS = new Set( [ 'artisanpack/image', 'core/image' ] );
+
+/** The longest alt text the import endpoint accepts. */
+const MAX_ALT_LENGTH = 1000;
 
 /** An Image block pointing at another site. */
 export interface ExternalImage {
@@ -103,7 +107,11 @@ export async function requestImport(
             'X-Requested-With': 'XMLHttpRequest',
             ...( csrf ? { 'X-CSRF-TOKEN': csrf } : {} ),
         },
-        body: JSON.stringify( { url: image.url, alt: image.alt } ),
+        body: JSON.stringify( {
+            // A protocol-relative URL means nothing to the server.
+            url: new URL( image.url, window.location.origin ).href,
+            alt: image.alt.slice( 0, MAX_ALT_LENGTH ),
+        } ),
     } );
 
     if ( ! response.ok ) {
@@ -114,8 +122,21 @@ export async function requestImport(
 }
 
 /**
+ * The block for an image, if it's still the external image that was offered.
+ * Removing it, pointing it elsewhere or picking a media item all opt out.
+ */
+function pendingImageBlock( registry: DataRegistry, image: ExternalImage ): BlockInstance | null {
+    const block = registry.select( blockEditorStore ).getBlock( image.clientId );
+
+    return null !== block && IMAGE_BLOCKS.has( block.name ) && ! block.attributes.id && image.url === block.attributes.url
+        ? block
+        : null;
+}
+
+/**
  * Import images one at a time, swapping in each local URL, and report how
- * it went. A block the author removed or pointed elsewhere is skipped.
+ * it went. A block the author has changed since the offer is skipped, and
+ * alt text is read when each import starts, so a later edit is kept.
  *
  * @since 1.20.0
  *
@@ -128,31 +149,29 @@ export async function importExternalImages(
     images: readonly ExternalImage[],
     fetchImpl: typeof fetch = fetch,
 ): Promise< void > {
-    let attempted = 0;
-    let imported  = 0;
+    let imported = 0;
+    let failed   = 0;
 
     for ( const image of images ) {
-        const isUnchanged = (): boolean => image.url === registry.select( blockEditorStore ).getBlock( image.clientId )?.attributes.url;
+        const block = pendingImageBlock( registry, image );
 
-        if ( ! isUnchanged() ) {
+        if ( null === block ) {
             continue;
         }
 
-        attempted++;
-
         try {
-            const media = await requestImport( image, fetchImpl );
+            const media = await requestImport( { url: image.url, alt: String( block.attributes.alt ?? '' ) }, fetchImpl );
 
-            if ( isUnchanged() ) {
+            if ( null !== pendingImageBlock( registry, image ) ) {
                 registry.dispatch( blockEditorStore ).updateBlockAttributes( image.clientId, { id: media.id, url: media.url } );
                 imported++;
             }
         } catch {
             // The block keeps its external URL, which is the fallback.
+            failed++;
         }
     }
 
-    const failed  = attempted - imported;
     const notices = registry.dispatch( noticesStore );
 
     if ( imported > 0 ) {
@@ -185,7 +204,7 @@ export async function importExternalImages(
 
 /**
  * Compares the blocks before and after a paste, and offers to import any
- * new external images. Does nothing when no media library is connected.
+ * new external images. Does nothing when the server can't import them.
  *
  * @since 1.20.0
  *
@@ -194,7 +213,7 @@ export async function importExternalImages(
  * @param origin   This site's origin.
  */
 export function offerPastedImageImport( registry: DataRegistry, before: ReadonlySet< string >, origin: string ): void {
-    if ( null === getMediaBridge() && null === getMediaUploader() ) {
+    if ( ! canImportMedia() ) {
         return;
     }
 

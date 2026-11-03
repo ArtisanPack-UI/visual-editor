@@ -15,6 +15,7 @@
 		data-api-base="{{ $apiBase }}"
 		@can( \ArtisanPackUI\VisualEditor\Effects\BlockCssAccess::ABILITY ) data-can-edit-block-css="true" @endcan
 		@can( \ArtisanPackUI\VisualEditor\Support\UnfilteredHtmlAccess::ABILITY ) data-can-use-unfiltered-html="true" @endcan
+		@if( \ArtisanPackUI\VisualEditor\Support\MediaImportAccess::allows() ) data-can-import-media="true" @endif
 		data-custom-css-allow-urls="{{ config( 'artisanpack.visual-editor.effects.custom_css_allow_urls', true ) ? 'true' : 'false' }}"
 		data-content-types="{{ json_encode( $contentTypes ?? [], JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS ) }}"
 		{{-- #623 — where the site editor SPA is mounted, so the composed

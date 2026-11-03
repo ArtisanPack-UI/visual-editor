@@ -18,6 +18,7 @@ namespace ArtisanPackUI\VisualEditor\Http\Controllers;
 use ArtisanPackUI\VisualEditor\Http\Requests\ImportMediaRequest;
 use ArtisanPackUI\VisualEditor\Services\Media\RemoteImageException;
 use ArtisanPackUI\VisualEditor\Services\Media\RemoteImageFetcher;
+use ArtisanPackUI\VisualEditor\Support\MediaImportAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
@@ -37,9 +38,6 @@ use Illuminate\Support\Facades\Gate;
  */
 class MediaImportController extends Controller
 {
-	/** The media library's model, named as a string because it's optional. */
-	protected const MEDIA_MODEL = 'ArtisanPackUI\\MediaLibrary\\Models\\Media';
-
 	public function __construct( protected RemoteImageFetcher $fetcher )
 	{
 	}
@@ -55,11 +53,11 @@ class MediaImportController extends Controller
 	 */
 	public function store( ImportMediaRequest $request ): JsonResponse
 	{
-		if ( ! function_exists( 'apUploadMedia' ) ) {
+		if ( ! MediaImportAccess::isAvailable() ) {
 			return response()->json( [ 'message' => __( 'No media library is installed.' ) ], Response::HTTP_NOT_IMPLEMENTED );
 		}
 
-		Gate::authorize( 'create', self::MEDIA_MODEL );
+		Gate::authorize( 'create', MediaImportAccess::MEDIA_MODEL );
 
 		try {
 			$file = $this->fetcher->fetch( $request->string( 'url' )->toString() );

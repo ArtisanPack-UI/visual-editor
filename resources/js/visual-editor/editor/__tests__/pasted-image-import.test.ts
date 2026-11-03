@@ -4,7 +4,7 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { __resetMediaBridgeForTests, registerMediaBridge } from '../../media-bridge/state';
+import { setMediaImportAccess } from '../media-import-access';
 import {
     findExternalImages,
     importExternalImages,
@@ -44,7 +44,7 @@ const image = ( url: string, extra: Record< string, unknown > = {} ) => ( {
 const respond = ( status: number, body: unknown ) =>
     Promise.resolve( new Response( JSON.stringify( body ), { status } ) );
 
-afterEach( () => __resetMediaBridgeForTests() );
+afterEach( () => setMediaImportAccess( false ) );
 
 describe( 'isExternalImageUrl', () => {
     it.each( [
@@ -88,6 +88,18 @@ describe( 'requestImport', () => {
         expect( url ).toBe( '/visual-editor/api/media/import' );
         expect( init.headers ).toMatchObject( { 'X-CSRF-TOKEN': 'token' } );
         expect( JSON.parse( init.body as string ) ).toEqual( { url: 'https://x.test/a.png', alt: 'Alt' } );
+    } );
+
+    it( 'resolves a protocol-relative URL and trims long alt text', async () => {
+        const fetchImpl = vi.fn( () => respond( 201, { id: 1, url: '/m/a.png' } ) );
+
+        await requestImport( { url: '//cdn.x.test/a.png', alt: 'a'.repeat( 1200 ) }, fetchImpl as never );
+
+        const [ , init ] = fetchImpl.mock.calls[ 0 ] as unknown as [ string, RequestInit ];
+        const body       = JSON.parse( init.body as string );
+
+        expect( body.url ).toBe( `${ window.location.protocol }//cdn.x.test/a.png` );
+        expect( body.alt ).toHaveLength( 1000 );
     } );
 
     it( 'throws on a refused import', async () => {
@@ -159,6 +171,33 @@ describe( 'importExternalImages', () => {
         expect( notices.createWarningNotice ).not.toHaveBeenCalled();
     } );
 
+    it( 'sends the alt text from when the import starts', async () => {
+        const blocks = { a: image( 'https://x.test/a.png', { alt: 'Edited' } ) };
+        const { registry } = makeRegistry( blocks );
+        const fetchImpl = vi.fn( () => respond( 201, { id: 2, url: '/m/a.png' } ) );
+
+        await importExternalImages( registry, [ { clientId: 'a', url: 'https://x.test/a.png', alt: 'Stale' } ], fetchImpl as never );
+
+        const [ , init ] = fetchImpl.mock.calls[ 0 ] as unknown as [ string, RequestInit ];
+
+        expect( JSON.parse( init.body as string ).alt ).toBe( 'Edited' );
+    } );
+
+    it( 'leaves a block given a media item during the upload', async () => {
+        const blocks = { a: image( 'https://x.test/a.png' ) };
+        const { registry, updateBlockAttributes } = makeRegistry( blocks );
+
+        const fetchImpl = vi.fn( () => {
+            blocks.a.attributes.id = 99;
+
+            return respond( 201, { id: 2, url: '/m/a.png' } );
+        } );
+
+        await importExternalImages( registry, [ { clientId: 'a', url: 'https://x.test/a.png', alt: '' } ], fetchImpl as never );
+
+        expect( updateBlockAttributes ).not.toHaveBeenCalled();
+    } );
+
     it( 'does not count a block removed while its image downloaded', async () => {
         const blocks: Record< string, ReturnType< typeof image > > = { a: image( 'https://x.test/a.png' ) };
         const { registry, notices } = makeRegistry( blocks );
@@ -172,11 +211,12 @@ describe( 'importExternalImages', () => {
         await importExternalImages( registry, [ { clientId: 'a', url: 'https://x.test/a.png', alt: '' } ], fetchImpl as never );
 
         expect( notices.createSuccessNotice ).not.toHaveBeenCalled();
+        expect( notices.createWarningNotice ).not.toHaveBeenCalled();
     } );
 } );
 
 describe( 'offerPastedImageImport', () => {
-    const connect = () => registerMediaBridge( { MediaBridge: ( () => null ) as never, uploadMedia: vi.fn() as never } );
+    const connect = () => setMediaImportAccess( true );
 
     it( 'prompts for new external images and downloads nothing until asked', () => {
         connect();
@@ -193,6 +233,23 @@ describe( 'offerPastedImageImport', () => {
         fetchSpy.mockRestore();
     } );
 
+    it( 'imports the new images when the notice action is clicked', async () => {
+        connect();
+
+        const fetchSpy = vi.spyOn( globalThis, 'fetch' ).mockImplementation( () => respond( 201, { id: 3, url: '/m/new.png' } ) );
+        const { registry, notices, updateBlockAttributes } = makeRegistry( { fresh: image( 'https://x.test/new.png' ) } );
+
+        offerPastedImageImport( registry, new Set(), ORIGIN );
+
+        notices.createInfoNotice.mock.calls[ 0 ][ 1 ].actions[ 0 ].onClick();
+
+        await vi.waitFor( () => expect( updateBlockAttributes ).toHaveBeenCalledOnce() );
+
+        expect( fetchSpy.mock.calls[ 0 ][ 0 ] ).toBe( '/visual-editor/api/media/import' );
+
+        fetchSpy.mockRestore();
+    } );
+
     it( 'stays quiet with no new external images', () => {
         connect();
 
@@ -203,7 +260,7 @@ describe( 'offerPastedImageImport', () => {
         expect( notices.createInfoNotice ).not.toHaveBeenCalled();
     } );
 
-    it( 'stays quiet with no media library connected', () => {
+    it( 'stays quiet when the server can not import', () => {
         const { registry, notices } = makeRegistry( { fresh: image( 'https://x.test/new.png' ) } );
 
         offerPastedImageImport( registry, new Set(), ORIGIN );

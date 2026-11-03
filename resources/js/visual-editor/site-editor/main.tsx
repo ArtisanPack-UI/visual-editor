@@ -55,6 +55,8 @@ ensureMediaBridgeFilter();
 import '../a11y.css';
 import type { BreakpointRegistrySnapshot } from '../responsive/types';
 import { setBlockCssAccess, setCustomCssUrlAccess } from '../effects/access';
+import { setBindingsApiConfig } from '../bindings/config';
+import { setMediaImportAccess } from '../editor/media-import-access';
 import { setUnfilteredHtmlAccess } from '../editor/unfiltered-html-access';
 import { installLocaleDataFromDataset } from '../vendor/i18n';
 
@@ -293,6 +295,10 @@ async function mount(element: MountableElement): Promise<void> {
     setBlockCssAccess(element.dataset.canEditBlockCss === 'true');
     // #1062 — only decides whether Custom HTML is in the inserter.
     setUnfilteredHtmlAccess(element.dataset.canUseUnfilteredHtml === 'true');
+    // #1066 — only decides whether a paste offers to import images.
+    setMediaImportAccess(element.dataset.canImportMedia === 'true');
+    // Paste imports post here, and this editor has no bindings panel to set it.
+    setBindingsApiConfig({ apiBase: element.dataset.apiBase?.trim() || undefined });
     // F-11 — `data-custom-css-allow-urls="false"` mirrors config
     // `effects.custom_css_allow_urls`, so the canvas previews what the
     // front end prints.

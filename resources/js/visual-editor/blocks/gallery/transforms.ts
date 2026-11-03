@@ -171,7 +171,7 @@ const transforms = {
                     ? sizeSlug
                     : undefined;
 
-                const validImages = attributes.filter(({ url }) => url);
+                const validImages = attributes.filter(({ url, id }) => url || id);
 
                 const innerBlocks = validImages.map((image) => {
                     const next = {

@@ -28,6 +28,7 @@ use ArtisanPackUI\VisualEditor\Resources\QueryPostTypeRegistry;
 use ArtisanPackUI\VisualEditor\Resources\TaxonomyRegistry;
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use ArtisanPackUI\VisualEditor\Support\EditorLocaleData;
+use ArtisanPackUI\VisualEditor\Support\MediaImportAccess;
 use ArtisanPackUI\VisualEditor\Support\UnfilteredHtmlAccess;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Model;
@@ -193,6 +194,15 @@ class VisualEditorComponent extends Component
 	public bool $canUseUnfilteredHtml;
 
 	/**
+	 * Whether the current user can import a pasted image (#1066) — see
+	 * {@see MediaImportAccess}. Stamped as `data-can-import-media`; it only
+	 * shows or hides the offer, since the endpoint re-checks.
+	 *
+	 * @since 1.20.0
+	 */
+	public bool $canImportMedia;
+
+	/**
 	 * Whether Custom CSS may load resources — config
 	 * `effects.custom_css_allow_urls`. Stamped as
 	 * `data-custom-css-allow-urls` so the canvas previews what the front
@@ -262,6 +272,7 @@ class VisualEditorComponent extends Component
 		$this->blockStyles          = app( BlockStyleResolver::class )->editorPayload();
 		$this->canEditBlockCss      = Gate::allows( BlockCssAccess::ABILITY );
 		$this->canUseUnfilteredHtml = Gate::allows( UnfilteredHtmlAccess::ABILITY );
+		$this->canImportMedia       = MediaImportAccess::allows();
 		$this->customCssAllowUrls   = (bool) config( EffectsCompiler::ALLOW_URLS_CONFIG, true );
 		$this->localeData           = EditorLocaleData::resolve();
 
@@ -377,6 +388,7 @@ class VisualEditorComponent extends Component
 			'blockStyles'          => $array,
 			'canEditBlockCss'      => $bool,
 			'canUseUnfilteredHtml' => $bool,
+			'canImportMedia'       => $bool,
 			'customCssAllowUrls'   => $bool,
 			'localeData'           => $nullableArray,
 		];

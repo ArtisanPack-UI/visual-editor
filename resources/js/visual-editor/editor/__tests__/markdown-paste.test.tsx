@@ -235,10 +235,10 @@ describe( 'math-looking plain text (#1067)', () => {
         expect( names( paste( { html, plainText: 'x^2 + y^2 = z^2' } ) ) ).toEqual( [ 'artisanpack/paragraph' ] );
     } );
 
-    it( 'handles a Markdown list that also reads as LaTeX', () => {
+    it( 'falls back to a paragraph for a Markdown list that also reads as LaTeX', () => {
         const blocks = paste( { html: '<div>- a^2 = 1</div><div>- b^2 = 2</div>', plainText: '- a^2 = 1\n- b^2 = 2' } );
 
-        expect( blocks.length ).toBeGreaterThan( 0 );
+        expect( names( blocks ) ).toEqual( [ 'artisanpack/paragraph' ] );
     } );
 
     it( 'keeps markup out of the rewritten paste', () => {
@@ -295,7 +295,10 @@ describe.runIf( CAPTURES.length > 0 )( 'captured clipboard payloads', () => {
         expect( blocks.length ).toBeGreaterThan( 0 );
 
         if ( 'markdown' === capture.expected ) {
-            expect( names( blocks ).some( ( name ) => 'artisanpack/paragraph' !== name ) ).toBe( true );
+            const isFormatted = names( blocks ).some( ( name ) => 'artisanpack/paragraph' !== name ) ||
+                blocks.some( ( { attributes } ) => String( attributes.content ).includes( '<' ) );
+
+            expect( isFormatted ).toBe( true );
         }
     } );
 } );

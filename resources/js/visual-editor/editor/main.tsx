@@ -177,6 +177,14 @@ export interface MountConfig {
      */
     canUseUnfilteredHtml?: boolean;
     /**
+     * Whether the server can import a pasted image for this user (#1066).
+     * Only shows the offer; the endpoint re-checks. Read from
+     * `data-can-import-media`.
+     *
+     * @since 1.20.0
+     */
+    canImportMedia?: boolean;
+    /**
      * Whether Custom CSS may load resources (`url(`, `image-set(`, …),
      * as config `effects.custom_css_allow_urls`, so the canvas previews
      * what the front end prints. Read from `data-custom-css-allow-urls`;
@@ -393,6 +401,7 @@ export function readMountConfig(element: HTMLElement): MountConfig | null {
         // `data-custom-css-allow-urls="false"` when config disallows URLs.
         canEditBlockCss: element.dataset.canEditBlockCss === 'true',
         canUseUnfilteredHtml: element.dataset.canUseUnfilteredHtml === 'true',
+        canImportMedia: element.dataset.canImportMedia === 'true',
         customCssAllowUrls: element.dataset.customCssAllowUrls !== 'false',
         previewUrl: previewUrl ?? null,
     };
@@ -535,10 +544,11 @@ export function mountEditor(
     // hosts mounting with an explicit config (the Vue wrapper) get the
     // same Custom CSS access as the `data-*` bootstrap. Absent means no
     // access (fail closed) and the config default for URLs.
-    const { canEditBlockCss, canUseUnfilteredHtml, customCssAllowUrls, blockStyles, localeData, ...appConfig } = config;
+    const { canEditBlockCss, canUseUnfilteredHtml, canImportMedia, customCssAllowUrls, blockStyles, localeData, ...appConfig } = config;
 
     setBlockCssAccess(canEditBlockCss === true);
     setUnfilteredHtmlAccess(canUseUnfilteredHtml === true);
+    setMediaImportAccess(canImportMedia === true);
     setCustomCssUrlAccess(customCssAllowUrls !== false);
 
     // #896 — translations go in before the editor chunk is imported, so
@@ -648,6 +658,7 @@ import {
     registerExternalBlockType as registerExternalBlockTypeImpl,
 } from './external-block-registration';
 import { setBlockCssAccess, setCustomCssUrlAccess } from '../effects/access';
+import { setMediaImportAccess } from './media-import-access';
 import { setUnfilteredHtmlAccess } from './unfiltered-html-access';
 import { installLocaleData, type EditorLocaleData } from '../vendor/i18n';
 

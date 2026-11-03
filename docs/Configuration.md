@@ -612,7 +612,7 @@ After a paste creates Image blocks with external URLs, the editor offers to impo
 - `max_size_kb` — the largest image the server will download.
 - `allowed_mime_types` — accepted types, read from the file's bytes. SVG can't be added, because it can hold script.
 
-Importing needs `artisanpack-ui/media-library` and its `create` policy for media. The offer doesn't appear when no media bridge is registered. An image that can't be imported keeps its external URL.
+Importing needs `artisanpack-ui/media-library` and its `create` policy for media, and the offer only appears for users who have both. Downloads bypass any proxy, because a proxy would do its own DNS lookup, so a server that can only reach the internet through one can't import. An image that can't be imported keeps its external URL.
 
 ## `visibility`
 
