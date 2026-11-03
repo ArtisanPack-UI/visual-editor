@@ -94,6 +94,33 @@ export function getHrefAndDestination(
 }
 
 /**
+ * Whether an image added to a Gallery set to None should follow the theme's
+ * lightbox default rather than turn it off (#1071).
+ *
+ * A saved `none` can't show whether the author picked it or it is the old
+ * default, so the Gallery's images decide. Picking None while the theme
+ * default is on gives every image `lightbox.enabled: false`. When no image has
+ * a setting of its own, the Gallery was saved before the theme default
+ * arrived and its images enlarge with the theme, so a new image leaves
+ * `lightbox` unset and enlarges with them. An empty list has nothing to
+ * follow, so it never does.
+ */
+export function followsThemeLightbox(
+    galleryDestination: string | undefined,
+    images: ReadonlyArray<{ readonly attributes?: BlockAttributesWithLightbox }>,
+    lightboxSetting?: LightboxSetting
+): boolean {
+    return (
+        lightboxSetting?.enabled === true &&
+        galleryDestination === LINK_DESTINATION_NONE &&
+        images.length > 0 &&
+        images.every(
+            (image) => typeof image.attributes?.lightbox?.enabled !== 'boolean'
+        )
+    );
+}
+
+/**
  * Inlined from `@wordpress/block-library/src/image/utils.js`. The
  * upstream module isn't reachable via the package's `exports` field,
  * so we mirror the function under the fork. The behaviour is verbatim:

@@ -140,7 +140,7 @@ It takes these attributes:
 |-----------|---------|--------|
 | `:theme-json` | `null` | The `theme.json` array to compile into `<style data-ve-theme-tokens>`. |
 | `:bundle` | `true` | `false` skips the block-library `<link>`s. |
-| `:interactive` | `true` | `false` skips the accordion / tabs assets. |
+| `:interactive` | `true` | `false` skips the accordion / tabs assets and the Image and Gallery lightbox, whose images then stay ordinary images. |
 | `asset-base` | `/vendor/visual-editor-renderer-blade` | Serve the CSS and scripts from another base URL, such as a CDN. A custom base always uses plain file names, even after [`visual-editor:publish-assets`](frontend-performance.md#publishing-static-assets). |
 | `:global-styles` | `true` | *Since v1.15.0.* `false` means this component never prints the global styles itself. See [Global styles placement](#global-styles-placement). |
 | `:block-style-variations` | `true` | *Since v1.15.0.* `false` keeps the theme's `styles.blocks.*.variations` out of the theme tokens. |

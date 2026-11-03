@@ -181,6 +181,24 @@ export const DEFAULT_TOKENS_CSS =
         ({ slug }) => `.has-${slug}-font-family { font-family: var(--wp--preset--font-family--${slug}) !important; }`
     ).join('\n');
 
+/**
+ * Lightbox figure defaults that hold whether or not the overlay loads (#1070).
+ *
+ * `display: block` matches `lightbox.css`, so an image with no width keeps its
+ * own size instead of stretching across the block library's flex column. The
+ * cursor reset applies only until the overlay marks the document ready.
+ *
+ * Hosts choose where the block library loads, so both rules carry an `html`
+ * prefix that out-specifies its `.wp-lightbox-container` rules in any load
+ * order. The prefix adds an element, not a class, so its aligned-image
+ * `display: table` rules (two classes) still win.
+ *
+ * @since 1.20.0
+ */
+export const LIGHTBOX_BASELINE_CSS =
+    'html .wp-lightbox-container { display: block; }\n' +
+    'html:not(.ap-lightbox-ready) .wp-lightbox-container img { cursor: auto; }';
+
 export const LAYOUT_BASELINE_CSS =
     ':where(.is-layout-flow) > :first-child { margin-block-start: 0; }\n' +
     ':where(.is-layout-flow) > :last-child { margin-block-end: 0; }\n' +
@@ -238,6 +256,8 @@ export const LAYOUT_BASELINE_CSS =
     // kept aligned images from floating; unlayered CSS beats Tailwind's
     // `@layer utilities` even at zero specificity.
     ':where(.wp-block-image.size-full) { width: auto; height: auto; }\n' +
+    LIGHTBOX_BASELINE_CSS +
+    '\n' +
     ':where(.is-layout-constrained, .is-layout-flow) > .alignleft { float: left; margin-inline-start: 0; margin-inline-end: 2em; }\n' +
     ':where(.is-layout-constrained, .is-layout-flow) > .alignright { float: right; margin-inline-start: 2em; margin-inline-end: 0; }\n' +
     // A float takes the same top gap as the sibling beside it so the

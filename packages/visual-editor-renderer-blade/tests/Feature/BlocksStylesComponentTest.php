@@ -142,6 +142,23 @@ it( 'emits the layout-flow block-gap baseline rule for sibling spacing', functio
 		->toContain( 'margin-block-start: var(--wp--style--block-gap, 24px)' );
 } );
 
+it( 'keeps lightbox figures ordinary images without the lightbox assets (#1070)', function (): void {
+	$rendered = Blade::render( '<x-ve-blocks-styles :interactive="false" />' );
+	$baseline = str( $rendered )->after( '<style data-ve-layout-baseline>' )->before( '</style>' )->toString();
+
+	expect( $rendered )->not->toContain( 'frontend/lightbox.css' );
+	expect( $baseline )
+		->toContain( 'html .wp-lightbox-container { display: block; }' )
+		->toContain( 'html:not(.ap-lightbox-ready) .wp-lightbox-container img { cursor: auto; }' );
+} );
+
+it( 'prints the lightbox defaults after the block library they override (#1070)', function (): void {
+	$rendered = Blade::render( '<x-ve-blocks-styles />' );
+
+	expect( strpos( $rendered, 'html .wp-lightbox-container { display: block; }' ) )
+		->toBeGreaterThan( strpos( $rendered, 'data-ve-block-library>' ) );
+} );
+
 it( 'spaces flex and grid layout children with the block gap (#883)', function (): void {
 	expect( Blade::render( '<x-ve-blocks-styles />' ) )
 		->toContain( ':where(.is-layout-flex) { gap: var(--wp--style--block-gap, 0.5em); }' )

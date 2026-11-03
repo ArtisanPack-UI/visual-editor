@@ -46,7 +46,7 @@ import {
     useSettings,
     RichText,
 } from '@wordpress/block-editor';
-import { useEffect, useMemo } from '@wordpress/element';
+import { useEffect, useMemo, useRef } from '@wordpress/element';
 import { __, _x, sprintf } from '@wordpress/i18n';
 import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { useSelect, useDispatch } from '@wordpress/data';
@@ -66,6 +66,7 @@ import { useLightboxSetting } from '../image/use-lightbox-setting';
 import { sharedIcon } from './shared-icon';
 import { defaultColumnsNumber, pickRelevantMediaFiles } from './shared';
 import {
+    followsThemeLightbox,
     getHrefAndDestination,
     getUpdatedLinkTargetSettings,
     getImageSizeAttributes,
@@ -382,11 +383,30 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
         ...(themeOptions || []),
     ];
 
+    // #1071 — an empty Gallery has no images to show whether None was picked,
+    // so images added after it emptied keep None rather than follow the theme.
+    // Runs before the effect below, which reads it.
+    const galleryWasEmpty = useRef(false);
+
     useEffect(() => {
+        if (images.length === 0) {
+            galleryWasEmpty.current = true;
+        }
+    }, [images.length]);
+
+    useEffect(() => {
+        // #1071 — the post editor loads stored blocks without
+        // `originalContent`, so saved images come through here as new too.
+        // The check covers every image, not only the older ones, so a saved
+        // image and one just added get the same answer.
+        const followTheme =
+            !galleryWasEmpty.current &&
+            followsThemeLightbox(linkTo, images, lightboxSetting);
+
         newImages?.forEach((newImage) => {
             __unstableMarkNextChangeAsNotPersistent();
             updateBlockAttributes(newImage.clientId as string, {
-                ...buildImageAttributes(newImage.attributes),
+                ...buildImageAttributes(newImage.attributes, followTheme),
                 id: newImage.id,
                 align: undefined,
             });
@@ -408,7 +428,8 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
             caption?: string | { length?: number };
             alt?: string;
             linkDestination?: string;
-        }
+        },
+        followTheme: boolean
     ): Record<string, unknown> {
         const image = imageAttributes.id
             ? (imageData.find(
@@ -440,18 +461,25 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
                 ? incomingCaption.length
                 : (incomingCaption?.length ?? 0);
 
+        const link = getHrefAndDestination(
+            image as Parameters<typeof getHrefAndDestination>[0],
+            linkTo,
+            (imageAttributes as { linkDestination?: string }).linkDestination,
+            imageAttributes as Parameters<typeof getHrefAndDestination>[3],
+            lightboxSetting
+        );
+
+        // #1071 — an image with its own link still turns the lightbox off.
+        if (followTheme && link.linkDestination === LINK_DESTINATION_NONE) {
+            link.lightbox = imageAttributes.lightbox;
+        }
+
         return {
             ...pickRelevantMediaFiles(
                 image as Parameters<typeof pickRelevantMediaFiles>[0],
                 sizeSlug
             ),
-            ...getHrefAndDestination(
-                image as Parameters<typeof getHrefAndDestination>[0],
-                linkTo,
-                (imageAttributes as { linkDestination?: string }).linkDestination,
-                imageAttributes as Parameters<typeof getHrefAndDestination>[3],
-                lightboxSetting
-            ),
+            ...link,
             ...newLinkTarget,
             className: newClassName,
             sizeSlug,
