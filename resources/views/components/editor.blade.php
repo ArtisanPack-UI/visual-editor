@@ -5,6 +5,8 @@
 	data-id="{{ $modelId }}"
 	data-api-base="{{ $apiBase }}"
 	@if( $canEditBlockCss ) data-can-edit-block-css="true" @endif
+	@if( $canUseUnfilteredHtml ) data-can-use-unfiltered-html="true" @endif
+	@if( $canImportMedia ) data-can-import-media="true" @endif
 	data-custom-css-allow-urls="{{ $customCssAllowUrls ? 'true' : 'false' }}"
 	@isset($initialTitle) data-title="{{ $initialTitle }}" @endisset
 	@isset($initialSlug) data-slug="{{ $initialSlug }}" @endisset

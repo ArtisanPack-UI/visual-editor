@@ -293,7 +293,7 @@ export function fallback(
     url: string,
     onReplace: (block: ReturnType<typeof createBlock>) => void
 ): void {
-    onReplace(createBlock('core/paragraph', { content: renderUrlLink(url) }));
+    onReplace(createBlock('artisanpack/paragraph', { content: renderUrlLink(url) }));
 }
 
 /**

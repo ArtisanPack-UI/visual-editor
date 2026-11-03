@@ -425,11 +425,25 @@ Only entries that resolve to a `.css` file inside the theme's `assets/` director
 
 ### `ap.cmsFramework.siteEditor.blockContent`
 
-**Since v1.15.0, consumed** (the filter ships with cms-framework 2.15.0). cms-framework runs every block tree its Site Editor API is about to store (templates, template parts, synced blocks and block patterns, plus theme-file copies such as `PatternResolver::cloneToUser()`) through this filter. Visual-editor hooks it to apply the Custom CSS guard (`CustomCssGuard::filter()`) for users without the `visual-editor.edit-block-css` ability.
+**Since v1.15.0, consumed** (the filter ships with cms-framework 2.15.0). cms-framework runs every block tree its Site Editor API is about to store (templates, template parts, synced blocks and block patterns, plus theme-file copies such as `PatternResolver::cloneToUser()`) through this filter. Visual-editor hooks it to apply the Custom CSS guard for users without the `visual-editor.edit-block-css` ability and, since v1.20.0, the markup filter for users without `visual-editor.unfiltered-html` (both through `BlockContentGuard::filter()`).
 
 **Signature:** `array $blocks, ?array $storedBlocks, string $context -> array`
 
 `$storedBlocks` is the record's stored tree, or the theme file's blocks when the save copies or first overrides a theme file. Custom CSS found there is kept, and vouched for so the model-level guard keeps it too. `$context` is `template`, `template-part`, `block` or `block-pattern`. Older cms-framework versions don't fire the filter; the model-level guard still covers their saves. See [Access Gate](site-editor/Access-Gate.md#custom-css-ability-visual-editoredit-block-css).
+
+### `ap.visualEditor.contentFilter.allowedHtml`
+
+Changes the tags and attributes that authors without the unfiltered-HTML ability can save. Each key is a tag, and its value lists the attributes it adds to the global set (`class`, `id`, `style`, `aria-*` and a few others). A tag added here wins over the list of tags removed with their contents, so it's how to allow something like `iframe`.
+
+```php
+addFilter('ap.visualEditor.contentFilter.allowedHtml', function (array $tags): array {
+    $tags['iframe'] = ['src', 'width', 'height', 'allowfullscreen'];
+
+    return $tags;
+});
+```
+
+Allowing a tag lets any author use it on any page, so an `iframe` this way can load any site. `href`, `src`, `srcset`, `poster`, `cite` and `style` values are still checked.
 
 ### `ap.visualEditor.requiredStylesheets`
 
@@ -671,6 +685,8 @@ See [[site-editor/Access Gate]] for the contract and bundled implementations.
 Post-editor content-authoring endpoints (the icon picker, the SVG sanitizer and pattern previews) check the `visual-editor.edit-content` Gate ability instead. The package defines it only when the host hasn't, so `Gate::define('visual-editor.edit-content', …)` replaces the default. See [Access Gate](site-editor/Access-Gate.md#content-authoring-ability-visual-editoredit-content).
 
 **Since v1.15.0 (#881)**, writing a block's Custom CSS (Effects panel) checks the `visual-editor.edit-block-css` Gate ability (`BlockCssAccess::ABILITY`). The package's default denies everyone who lacks the `effects.custom_css_capability` capability (default `edit_block_css`), and it is defined only when the host hasn't defined the ability itself. Without it the editor hides the field and every save keeps only the Custom CSS already stored on the record. See [Access Gate](site-editor/Access-Gate.md#custom-css-ability-visual-editoredit-block-css).
+
+**Since v1.20.0 (#1062)**, saving block markup unfiltered checks the `visual-editor.unfiltered-html` Gate ability (`UnfilteredHtmlAccess::ABILITY`). The default denies everyone who lacks the `content_filter.unfiltered_html_capability` capability (default `unfiltered_html`), and it is defined only when the host hasn't defined the ability itself. See [`content_filter`](Configuration.md#content_filter).
 
 ---
 

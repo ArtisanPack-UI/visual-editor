@@ -78,9 +78,9 @@ describe('file transforms', () => {
         expect(blocks).toHaveLength(4);
         expect(blocks[0].name).toBe('artisanpack/file');
         expect(blocks[0].attributes.fileName).toBe('doc.pdf');
-        expect(blocks[1].name).toBe('core/audio');
-        expect(blocks[2].name).toBe('core/video');
-        expect(blocks[3].name).toBe('core/image');
+        expect(blocks[1].name).toBe('artisanpack/audio');
+        expect(blocks[2].name).toBe('artisanpack/video');
+        expect(blocks[3].name).toBe('artisanpack/image');
     });
 
     it('core/file → artisanpack/file round-trips attributes', () => {

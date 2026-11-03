@@ -58,7 +58,7 @@ describe('artisanpack/gallery block.json', () => {
         expect(metadata.attributes.caption.selector).toBe(
             '.blocks-gallery-caption'
         );
-        expect(metadata.allowedBlocks).toEqual(['core/image']);
+        expect(metadata.allowedBlocks).toEqual(['artisanpack/image', 'core/image']);
     });
 
     it('uses the artisanpack textdomain', () => {

@@ -38,6 +38,7 @@ use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\StoreMenuRequest;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\UpdateMenuRequest;
 use ArtisanPackUI\VisualEditor\SiteEditor\MenuItemBlockBridge;
 use ArtisanPackUI\VisualEditor\SiteEditor\Previews\PatternPreviewCache;
+use ArtisanPackUI\VisualEditor\Support\BlockContentGuard;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -413,8 +414,8 @@ class MenuController extends Controller
 	 */
 	protected function resolveContentBlocks( mixed $content, ?array $storedBlocks = null ): array
 	{
-		// #881 — only users with the block-CSS ability may add Custom CSS.
-		$blocks = app( CustomCssGuard::class )->filter( $this->contentToBlocks( $content ), $storedBlocks );
+		// #881, #1062 — Custom CSS and unfiltered markup need their abilities.
+		$blocks = app( BlockContentGuard::class )->filter( $this->contentToBlocks( $content ), $storedBlocks );
 
 		// `content.blocks` is already checked by the form request; this
 		// also bounds the trees parsed out of a `content` / `content.raw`
@@ -447,9 +448,8 @@ class MenuController extends Controller
 				$attributes = json_decode( $attributes, true );
 			}
 
-			if ( is_array( $attributes ) ) {
-				$blocks[] = [ 'attributes' => $attributes ];
-			}
+			// The label is stored in its own column, not in the attributes.
+			$blocks[] = [ 'attributes' => ( is_array( $attributes ) ? $attributes : [] ) + [ 'label' => $item->label ?? null ] ];
 		}
 
 		return $blocks;

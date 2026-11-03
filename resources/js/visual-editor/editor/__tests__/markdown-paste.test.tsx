@@ -14,6 +14,7 @@ import {
     looksLikeMarkdown,
     MarkdownPasteBridge,
     hasUnsafeMarkup,
+    pastedEditorLanguage,
     resolvePastedHtml,
     rewritePasteEvent,
 } from '../markdown-paste';
@@ -96,6 +97,8 @@ describe( 'looksLikeMarkdown', () => {
         [ 'a fence closed too short', '````\ncode\n```' ],
         [ 'a fence closed by the other marker', '```\ncode\n~~~' ],
         [ 'a pipe with no delimiter row', 'a | b\nc | d' ],
+        [ 'a YAML list of mappings', '- name: Build\n  run: npm test\n- name: Test\n  run: pest' ],
+        [ 'a YAML document', '---\nservices:\n  - web: nginx\n  - db: mysql' ],
     ] )( 'rejects %s', ( _label, text ) => {
         expect( looksLikeMarkdown( text ) ).toBe( false );
     } );
@@ -137,7 +140,6 @@ describe( 'hasUnsafeMarkup', () => {
         [ 'a reference-style link', '[c][1]\n\n[1]: javascript:alert(2)' ],
         [ 'a VBScript link', '[c](vbscript:x)' ],
         [ 'an HTML data link', '[c](data:text/html,x)' ],
-        [ 'a tag in an inline code span', '`<img src=x>`' ],
         [ 'a tag after an escaped backtick', '\\`<img src=x>\\`' ],
         [ 'a tag in a fence with a spaced info string', '```x y\n<img src=x>\n```' ],
         [ 'a tag after an unclosed fence', '```\n<img src=x>' ],
@@ -157,6 +159,189 @@ describe( 'hasUnsafeMarkup', () => {
         [ 'markup in a fence with Windows line endings', '```html\r\n<img src=x>\r\n```' ],
     ] )( 'allows %s', ( _label, text ) => {
         expect( hasUnsafeMarkup( text ) ).toBe( false );
+    } );
+} );
+
+describe( 'hasUnsafeMarkup and inline code (#1065)', () => {
+    /**
+     * The check that matters: whatever passes must convert with no live
+     * markup, read off the real converter's output.
+     */
+    const convertsToLiveMarkup = ( text: string ): boolean => {
+        const blocks = pasteHandler( { plainText: text, mode: 'BLOCKS' } as Parameters< typeof pasteHandler >[0] ) as BlockInstance[];
+        const doc    = new DOMParser().parseFromString( JSON.stringify( blocks.map( ( { attributes } ) => attributes ) ), 'text/html' );
+
+        return null !== doc.querySelector( ':not(html,head,body,p,code,strong,em,a,ul,ol,li,h1,h2,h3,h4,h5,h6,br,pre,blockquote,table,thead,tbody,tr,th,td)' )
+            || Array.from( doc.querySelectorAll( '*' ) ).some( ( element ) => element.getAttributeNames().some( ( name ) => name.startsWith( 'on' ) ) );
+    };
+
+    it.each( [
+        [ 'a tag in a span', 'Use the `<div>` element.' ],
+        [ 'a handler in a span', 'Avoid `<img src=x onerror=alert(1)>` here.' ],
+        [ 'a character reference in a span', 'Write `&amp;` for an ampersand.' ],
+        [ 'a script scheme in a span', 'Block `javascript:` links.' ],
+        [ 'a double-backtick span', 'Type `` `<b>` `` literally.' ],
+        [ 'a span the converter opens on the last backtick of two', '``<img src=x onerror=1>`' ],
+        [ 'spans in a list', '- `<a>`\n- `<b>`' ],
+        [ 'spans in a table', '| a | b |\n| --- | --- |\n| `<i>` | `<u>` |' ],
+    ] )( 'exempts %s', ( _label, text ) => {
+        expect( hasUnsafeMarkup( text ) ).toBe( false );
+        expect( convertsToLiveMarkup( text ) ).toBe( false );
+    } );
+
+    it.each( [
+        [ 'an escaped backtick before the tag', '\\`<img src=x onerror=alert(1)>\\`' ],
+        [ 'an escaped opener', '\\`a` <img src=x onerror=alert(1)> `b`' ],
+        [ 'a backtick left open earlier in the block', 'a ` b\nc ` d ` <img src=x onerror=1> ` e' ],
+        [ 'a backtick left open in an earlier block', '` a\n\nb ` c ` <img src=x onerror=1> ` d' ],
+        [ 'a heading with an open backtick', '# a ` b\nc ` d ` <img src=x onerror=1> ` e' ],
+        [ 'a span across lines', '`a\n<img src=x onerror=1>\nb`' ],
+        [ 'a span across paragraphs', '`\n\n<img src=x onerror=1>\n\n`' ],
+        [ 'an html block opened across a span', '`\n<div onclick=x>\n</div>\n`' ],
+        [ 'an unclosed span', '`<img src=x onerror=1>' ],
+        [ 'markup beside a span', '`ok` <img src=x onerror=1>' ],
+        [ 'a tag split around a span', '<`x`img src=x onerror=1>' ],
+        [ 'a link definition', '[x]: `javascript:alert(1)`\n\n[x]' ],
+        [ 'a script link beside a span', '`ok` [a](javascript:alert(1))' ],
+        [ 'a fence the converter opens after a tab', '# Setup\n\n```\t\nnotes\n```sh\n[Click](javascript:alert(1))\n```' ],
+        [ 'a fence with a trailing no-break space', '```\u00a0\nnotes\n```sh\n[Click](javascript:alert(1))\n```' ],
+    ] )( 'keeps checking %s', ( _label, text ) => {
+        expect( hasUnsafeMarkup( text ) ).toBe( true );
+    } );
+
+    it( 'still treats an escaped-backtick document as unsafe once fences are gone', () => {
+        expect( hasUnsafeMarkup( '```\n<b>\n```\n\n\\`<b>\\`' ) ).toBe( true );
+    } );
+} );
+
+describe( 'math-looking plain text (#1067)', () => {
+    it.each( [
+        [ 'an equation', 'x^2 + y^2 = z^2' ],
+        [ 'a command with an argument', '\\frac{a}{b}' ],
+        [ 'a command and an operator', '\\alpha + 1' ],
+    ] )( 'pastes %s as a paragraph instead of failing', ( _label, text ) => {
+        const blocks = paste( { html: '', plainText: text } );
+
+        expect( names( blocks ) ).toEqual( [ 'artisanpack/paragraph' ] );
+        expect( String( blocks[ 0 ].attributes.content ) ).toBe( text.replace( /&/g, '&amp;' ) );
+    } );
+
+    it.each( [
+        [ 'a span', '<span>x^2 + y^2 = z^2</span>' ],
+        [ 'a browser meta tag', "<meta charset='utf-8'>x^2 + y^2 = z^2" ],
+        [ 'a meta tag and span', "<meta charset='utf-8'><span style=\"color: red\">x^2 + y^2 = z^2</span>" ],
+        [ 'a fragment wrapper', '<html><body><!--StartFragment-->x^2 + y^2 = z^2<!--EndFragment--></body></html>' ],
+    ] )( 'handles text wrapped in %s', ( _label, html ) => {
+        expect( names( paste( { html, plainText: 'x^2 + y^2 = z^2' } ) ) ).toEqual( [ 'artisanpack/paragraph' ] );
+    } );
+
+    it( 'falls back to a paragraph for a Markdown list that also reads as LaTeX', () => {
+        const blocks = paste( { html: '<div>- a^2 = 1</div><div>- b^2 = 2</div>', plainText: '- a^2 = 1\n- b^2 = 2' } );
+
+        expect( names( blocks ) ).toEqual( [ 'artisanpack/paragraph' ] );
+    } );
+
+    it( 'keeps markup out of the rewritten paste', () => {
+        expect( resolvePastedHtml( '', 'x^2 = <b>' ) ).toBe( '<p>x^2 = &lt;b&gt;</p>' );
+    } );
+
+    it( 'keeps line breaks', () => {
+        expect( resolvePastedHtml( '', 'a^2 = 1\nb^2 = 2' ) ).toBe( '<p>a^2 = 1<br>b^2 = 2</p>' );
+    } );
+
+    it.each( [
+        [ 'prose with operators', 'Sales rose 5% - about 2 + 2 this year^' ],
+        [ 'a lone operator', 'a = b' ],
+        [ 'a lone exponent', 'x^2' ],
+        [ 'code with a long word', 'function^2 = 1' ],
+    ] )( 'leaves %s alone', ( _label, text ) => {
+        expect( resolvePastedHtml( '', text ) ).toBeNull();
+    } );
+
+    it( 'leaves HTML with formatting alone', () => {
+        expect( resolvePastedHtml( '<p><b>x^2 = 1</b></p>', 'x^2 = 1' ) ).toBeNull();
+    } );
+} );
+
+/**
+ * Real clipboard payloads (#1064), written by `scripts/paste-capture.html`.
+ * Each file names its app and browser.
+ */
+interface CapturedFixture extends PasteFixture {
+    readonly method: string;
+    readonly browser: string;
+    readonly expected: 'markdown' | 'rendered' | 'literal';
+    readonly vscodeEditorData?: string;
+}
+
+const CAPTURES = Object.values(
+    import.meta.glob< CapturedFixture >( './fixtures/captures/*.json', { eager: true, import: 'default' } ),
+);
+
+describe.runIf( CAPTURES.length > 0 )( 'captured clipboard payloads', () => {
+    const label = ( capture: CapturedFixture ): string => `${ capture.source } (${ capture.method }, ${ capture.browser })`;
+
+    it.each( CAPTURES.map( ( capture ) => [ label( capture ), capture ] as const ) )( '%s', ( _label, capture ) => {
+        const language = capture.vscodeEditorData
+            ? pastedEditorLanguage( fakeClipboard( { 'vscode-editor-data': capture.vscodeEditorData } ) )
+            : undefined;
+
+        const rewritten = resolvePastedHtml( capture.html, capture.plainText, language );
+
+        expect( '' === rewritten ).toBe( 'markdown' === capture.expected );
+
+        const blocks = paste( capture );
+
+        expect( blocks.length ).toBeGreaterThan( 0 );
+
+        if ( 'markdown' === capture.expected ) {
+            const isFormatted = names( blocks ).some( ( name ) => 'artisanpack/paragraph' !== name ) ||
+                blocks.some( ( { attributes } ) => String( attributes.content ).includes( '<' ) );
+
+            expect( isFormatted ).toBe( true );
+        }
+    } );
+} );
+
+describe( 'editor language (#1065)', () => {
+    const decorated = '<div><span># comment</span></div><div><br></div><div><span>x = 1</span></div>';
+    const python    = '# comment\n\nx = 1';
+
+    it( 'reads the language VS Code reports', () => {
+        expect( pastedEditorLanguage( fakeClipboard( { 'vscode-editor-data': '{"mode":"python"}' } ) ) ).toBe( 'python' );
+    } );
+
+    it.each( [
+        [ 'no type', {} ],
+        [ 'broken JSON', { 'vscode-editor-data': '{' } ],
+        [ 'no mode', { 'vscode-editor-data': '{}' } ],
+        [ 'a non-string mode', { 'vscode-editor-data': '{"mode":1}' } ],
+    ] )( 'has no language with %s', ( _label, data ) => {
+        expect( pastedEditorLanguage( fakeClipboard( data ) ) ).toBeUndefined();
+    } );
+
+    it.each( [ 'python', 'shellscript', 'yaml' ] )( 'leaves %s alone', ( language ) => {
+        expect( resolvePastedHtml( decorated, python, language ) ).toBeNull();
+    } );
+
+    it.each( [ 'markdown', 'mdx', 'plaintext' ] )( 'converts %s', ( language ) => {
+        expect( resolvePastedHtml( decorated, python, language ) ).toBe( '' );
+    } );
+
+    it( 'still falls back to detection with no language', () => {
+        expect( resolvePastedHtml( decorated, python ) ).toBe( '' );
+    } );
+
+    it( 'passes the language through from the paste event', () => {
+        const event = pasteEvent( fakeClipboard( {
+            'text/html': decorated,
+            'text/plain': python,
+            'vscode-editor-data': '{"mode":"python"}',
+        } ) );
+
+        rewritePasteEvent( event );
+
+        expect( event.clipboardData?.getData( 'text/html' ) ).toBe( decorated );
     } );
 } );
 
@@ -402,8 +587,8 @@ describe( 'the core/html fallback', () => {
         'source', 'style', 'summary', 'svg', 'template', 'textarea', 'track', 'unknown-tag', 'video',
     ];
 
-    it( 'is not registered, so nothing may fall through to it', () => {
-        expect( getBlockType( 'core/html' ) ).toBeUndefined();
+    it( 'is registered, so a third-party transform can fall through to it (#1067)', () => {
+        expect( getBlockType( 'core/html' ) ).toBeDefined();
     } );
 
     it.each( TAGS )( 'a pasted <%s> never reaches it', ( tag ) => {

@@ -24,6 +24,7 @@
  * replace these seeded defaults with the active theme's real presets.
  */
 
+import { canUseUnfilteredHtml } from './editor/unfiltered-html-access';
 import { __ } from '@wordpress/i18n';
 
 import { getNavigationOverlayPattern } from './editor/navigation-overlay-pattern';
@@ -584,6 +585,14 @@ export const editorSettings = {
      * `core/missing` is registered. See `editor/navigation-overlay-pattern.ts`.
      */
     __experimentalBlockPatterns: [getNavigationOverlayPattern()],
+    /*
+     * #1062 — Custom HTML's editor reads this to offer its CSS and JS
+     * tabs. A getter, because the mount sets the access after this module
+     * loads. It only shapes the editor; every save re-checks the gate.
+     */
+    get __experimentalCanUserUseUnfilteredHTML(): boolean {
+        return canUseUnfilteredHtml();
+    },
     /*
      * Default canvas stylesheet (`{ css }`) gives blocks a typographic
      * baseline so headings/paragraphs/links visually differentiate

@@ -42,7 +42,7 @@ interface DetailsAttributes {
 function detailsTemplate(): Array<[string, Record<string, unknown>]> {
     return [
         [
-            'core/paragraph',
+            'artisanpack/paragraph',
             {
                 placeholder: __('Type / to add a hidden block', TEXT_DOMAIN),
             },

@@ -111,9 +111,9 @@ const transforms = {
                         linkTarget: attributes.linkTarget,
                         rel: attributes.rel,
                     };
-                    media = ['core/image', { ...imageAttrs, ...linkAttrs }];
+                    media = ['artisanpack/image', { ...imageAttrs, ...linkAttrs }];
                 } else {
-                    media = ['core/video', { id, src: url }];
+                    media = ['artisanpack/video', { id, src: url }];
                 }
                 const innerBlocksTemplate: any[] = [
                     [COLUMN_BLOCK, { width: `${mediaWidth}%` }, [media]],

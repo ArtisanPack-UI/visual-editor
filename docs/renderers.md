@@ -421,11 +421,13 @@ works either way.
 > **Security.** `$markup` must already be trusted to render. Block partials
 > emit recovered rich-text unescaped — that is what makes a paragraph's
 > `<strong>` survive the round trip — so hydration is safe over theme files,
-> patterns, and editor-authored content that passed the post editor's
-> authorization, and **not** over visitor-submitted markup, which it would
-> turn into stored XSS. It is not a sanitizer. This is the same trust
-> boundary Gutenberg draws around block markup. Run untrusted markup through
-> your own sanitizer (e.g. `kses()` from `artisanpack-ui/security`) first.
+> patterns, and editor-authored content, which saving filters unless the
+> author holds the unfiltered-HTML ability (see
+> [`content_filter`](Configuration.md#content_filter)), and **not** over
+> visitor-submitted markup, which it would turn into stored XSS. It is not a
+> sanitizer. This is the same trust boundary Gutenberg draws around block
+> markup. Run other untrusted markup through `BlockHtmlSanitizer` or your own
+> sanitizer first.
 
 ### Registering a custom block renderer
 

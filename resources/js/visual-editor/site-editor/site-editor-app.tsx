@@ -58,6 +58,7 @@ import { registerBackgroundControls } from '../background-controls';
 import { registerBindingsAttribute } from '../bindings/register-attribute';
 import { registerBindingsPanel } from '../bindings/with-bindings-panel';
 import { registerArtisanPackBlocks } from '../blocks';
+import { EditorSnackbars } from '../editor/editor-snackbars';
 import { registerThemeBlockStyles } from '../block-style-registry';
 import { registerDynamicContent } from '../dynamic-content';
 import { registerDynamicLinkFormat } from '../formats/dynamic-link/register';
@@ -330,6 +331,7 @@ function sectionKind(section: SiteEditorSectionId): EntityKind | null {
 export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
     return (
         <ToastProvider>
+            <EditorSnackbars />
             <SiteEditorAppShell {...props} />
         </ToastProvider>
     );

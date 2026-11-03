@@ -45,9 +45,9 @@ export const migrateToQuoteV2 = (
                       },
                   },
               }).map(({ content }: { content: string }) =>
-                  createBlock('core/paragraph', { content })
+                  createBlock('artisanpack/paragraph', { content })
               )
-            : [createBlock('core/paragraph')],
+            : [createBlock('artisanpack/paragraph')],
     ];
 };
 

@@ -22,7 +22,7 @@ export const LINK_DESTINATION_ATTACHMENT = 'attachment';
 export function mediaTextTemplate(): ReadonlyArray<readonly [string, Record<string, unknown>]> {
     return [
         [
-            'core/paragraph',
+            'artisanpack/paragraph',
             {
                 placeholder: _x('Content…', 'content placeholder', TEXT_DOMAIN),
             },

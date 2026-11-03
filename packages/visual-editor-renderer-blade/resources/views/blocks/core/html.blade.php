@@ -12,15 +12,13 @@
 	`content` with `source: "raw"`), so it is already the saved markup
 	rather than a text value needing escaping.
 
-	Deliberately NOT run through `kses()`: this partial sits inside the
-	trust boundary documented on `BlockMarkupHydrator` — block markup is
-	only ever rendered from sources the host already trusts (theme files
-	on disk, patterns, editor-authored content that cleared the post
-	editor's authorization). Sanitizing here would silently mangle the
-	valid `<script>`/`<iframe>`/`<svg>` payloads authors reach for this
-	block to write, while doing nothing for a host that is already
-	rendering untrusted markup — that host has to sanitize BEFORE
-	hydrating, as every other block partial's `{!! !!}` assumes.
+	Deliberately NOT sanitized here: this partial sits inside the trust
+	boundary documented on `BlockMarkupHydrator`. Authors without the
+	unfiltered-HTML ability have their markup filtered when it's saved
+	(`BlockHtmlGuard`, #1062), so what reaches this partial is theme
+	files, patterns, or markup a trusted user wrote. Sanitizing here would
+	silently mangle the valid `<script>`/`<iframe>`/`<svg>` payloads those
+	users reach for this block to write.
 --}}
 @php
 	$content = (string) ( $attributes['content'] ?? '' );

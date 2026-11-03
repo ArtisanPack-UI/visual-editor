@@ -15,6 +15,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Effects;
 
+use ArtisanPackUI\VisualEditor\Support\BlockHtmlGuard;
 use Closure;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Database\Eloquent\Model;
@@ -43,6 +44,9 @@ use Traversable;
  * runs in the console, so seeders, imports and queued jobs keep working,
  * and inside {@see self::trusted()}. It only sees Eloquent model events, so
  * mass updates through the query builder are not covered.
+ *
+ * The same save runs {@see BlockHtmlGuard} (#1062), so everything above,
+ * including what skips the guard, applies to block markup too.
  *
  * Bound as a scoped instance, so approvals never outlive the request.
  *
@@ -116,6 +120,7 @@ class CustomCssModelGuard
 
 		$original = $model->exists ? $this->decode( $model->getOriginal( $column ) ) : null;
 		$filtered = app( CustomCssGuard::class )->filterAgainst( $blocks, $original, array_keys( $this->approved ) );
+		$filtered = app( BlockHtmlGuard::class )->filterAgainst( $filtered, $original );
 
 		if ( $filtered === $blocks ) {
 			return;

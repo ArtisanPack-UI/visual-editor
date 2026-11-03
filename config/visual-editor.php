@@ -1032,6 +1032,44 @@ return [
 
 	/*
 	|--------------------------------------------------------------------------
+	| Block Content Filter (#1062)
+	|--------------------------------------------------------------------------
+	|
+	| `unfiltered_html_capability` is the capability the default
+	| `visual-editor.unfiltered-html` gate requires before a user's block
+	| markup is saved as sent (checked the same way as
+	| `custom_css_capability`). Anyone else's markup is reduced to an
+	| allowlist on save, which removes scripts, event handlers, iframes
+	| and script-scheme links, and they don't get Custom HTML in the
+	| inserter. Markup already stored on a record is left alone until
+	| someone changes it. Redefine the gate to use your own rule; set to
+	| '' to filter everyone. The allowlist can be changed with the
+	| `ap.visualEditor.contentFilter.allowedHtml` filter.
+	|
+	*/
+	'content_filter' => [
+		'unfiltered_html_capability' => 'unfiltered_html',
+	],
+
+	/*
+	|--------------------------------------------------------------------------
+	| Media Import (#1066)
+	|--------------------------------------------------------------------------
+	|
+	| Limits on the images an author can pull into the media library after
+	| pasting content with external images. The server downloads each one,
+	| refusing internal addresses, so these bound what it will accept. SVG
+	| can't be added, because it can hold script. The media library's own
+	| size and type limits apply as well.
+	|
+	*/
+	'media_import' => [
+		'max_size_kb'        => 10240,
+		'allowed_mime_types' => [ 'image/avif', 'image/gif', 'image/jpeg', 'image/png', 'image/webp' ],
+	],
+
+	/*
+	|--------------------------------------------------------------------------
 	| Block Visibility (#491 · #492 · #493)
 	|--------------------------------------------------------------------------
 	|
