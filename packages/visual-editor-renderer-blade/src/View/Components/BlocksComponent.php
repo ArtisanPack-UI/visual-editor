@@ -105,6 +105,7 @@ class BlocksComponent extends Component
 		protected ?BoxShadowCssAccumulator $boxShadowAccumulator = null,
 		protected ?PositionCssAccumulator $positionAccumulator = null,
 		bool $resolveToc = true,
+		bool $trustResolved = false,
 	) {
 		if ( null === $this->boxShadowAccumulator ) {
 			$this->boxShadowAccumulator = app( BoxShadowCssAccumulator::class );
@@ -126,11 +127,25 @@ class BlocksComponent extends Component
 		// (see BlockTreeReferenceResolver::inlineReferences()).
 		$resolved = $this->referenceResolver()->inlineReferences( $normalized, $defaultTheme, $resolveParts, $resolvePatterns );
 
+		// The tree is saved content (template parts and patterns
+		// included), and `PostResolver` keeps any `_resolved*` key a
+		// block already has. Strip the keys it stamps before the post
+		// passes below, so saved markup can't replace what the post
+		// resolves to (#1078). A host that passes a tree it resolved
+		// itself sets `trust-resolved` to keep its values. The query
+		// inliner does the strip (query controls included) when it runs,
+		// so this only strips when it doesn't.
+		$stripSavedResolved = $resolvePost && is_object( $post ) && ! $trustResolved;
+
+		if ( $stripSavedResolved && ! $resolveQueries ) {
+			$resolved = $this->postResolver->stripSavedAttributes( $resolved );
+		}
+
 		// Query inlining runs before nav-block resolution so a `core/query`
 		// loop with a navigation block inside it (rare but legal) still
 		// gets each cloned nav block resolved to its menu items.
 		$resolved = $resolveQueries
-			? $this->queryInliner->inline( $resolved, is_object( $post ) ? $post : null )
+			? $this->queryInliner->inline( $resolved, is_object( $post ) ? $post : null, $stripSavedResolved )
 			: $resolved;
 
 		// Comment inlining runs after query inlining so a `core/query` loop

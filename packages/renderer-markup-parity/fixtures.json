@@ -4264,6 +4264,55 @@
             ]
         },
         {
+            "name": "social-chip-colors-hostile",
+            "$comment": "#1079 — color attributes on the author and share chips that aren't safe CSS values are dropped, so a `;` can't add declarations and `url()` can't fetch from another origin. A value with an edge control character is dropped by every renderer, not trimmed, and the safe hover colors are kept.",
+            "tree": [
+                {
+                    "clientId": "asi-hostile",
+                    "name": "artisanpack/author-social-icons",
+                    "attributes": {
+                        "socialIcons": ["facebook"],
+                        "iconColor": "red;position:fixed;inset:0",
+                        "iconBackgroundColor": "url(//evil.test/x.png)",
+                        "iconHoverColor": "#abcdef",
+                        "iconHoverBackgroundColor": "</style><script>alert(1)</script>",
+                        "_resolvedAuthorSocialLinks": [
+                            { "slug": "facebook", "url": "https://www.facebook.com/example" }
+                        ]
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "ssc-hostile",
+                    "name": "artisanpack/social-share-content",
+                    "attributes": {
+                        "socialIcons": ["facebook"],
+                        "iconColor": "blue; background: url(https://evil.test/x.png)",
+                        "iconBackgroundColor": "#112233",
+                        "iconHoverColor": "red}body{display:none",
+                        "iconHoverBackgroundColor": "\"><img src=x onerror=alert(1)>",
+                        "_resolvedShareLinks": [
+                            { "slug": "facebook", "url": "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fexample.test%2Fposts%2Fhello" }
+                        ]
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "asi-edge-control",
+                    "name": "artisanpack/author-social-icons",
+                    "attributes": {
+                        "socialIcons": ["facebook"],
+                        "iconColor": "\u000bred",
+                        "iconHoverColor": " #abcdef ",
+                        "_resolvedAuthorSocialLinks": [
+                            { "slug": "facebook", "url": "https://www.facebook.com/example" }
+                        ]
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
             "name": "related-posts-grid",
             "$comment": "#964 — a grid `displayLayout` with the related items directly under the block makes the wrapper Post Template's grid (`is-layout-grid` + `columns-N`), with its own Block spacing gap; the synthetic post-template items are the grid items.",
             "resolveQueries": false,

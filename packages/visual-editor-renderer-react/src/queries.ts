@@ -72,6 +72,56 @@ const POST_CONTEXT_BLOCKS = new Set([
 ]);
 
 /**
+ * Blocks `PostResolver` stamps (its `SUPPORTED_BLOCKS` plus the
+ * adjacent-post containers). Their saved `_resolved*` keys are dropped
+ * before a query result is stamped, so a template can't supply its own
+ * values (#1078). A block this inliner doesn't stamp, such as the social
+ * chips, renders as it would with nothing saved.
+ */
+const POST_RESOLVER_BLOCKS = new Set([
+    'core/post-title',
+    'core/post-content',
+    'core/post-excerpt',
+    'core/post-date',
+    'core/post-author',
+    'core/post-featured-image',
+    'core/post-author-name',
+    'core/post-author-biography',
+    'core/avatar',
+    'artisanpack/post-title',
+    'artisanpack/post-content',
+    'artisanpack/post-excerpt',
+    'artisanpack/post-date',
+    'artisanpack/post-author',
+    'artisanpack/post-featured-image',
+    'artisanpack/post-author-name',
+    'artisanpack/post-author-biography',
+    'artisanpack/avatar',
+    'core/post-comments-count',
+    'core/post-comments-link',
+    'core/post-comments-title',
+    'core/post-comments-form',
+    'artisanpack/post-comments-count',
+    'artisanpack/post-comments-link',
+    'artisanpack/post-comments-title',
+    'artisanpack/post-comments-form',
+    'artisanpack/comments-number',
+    'core/post-navigation-link',
+    'core/post-terms',
+    'core/read-more',
+    'core/term-description',
+    'artisanpack/post-navigation-link',
+    'artisanpack/post-terms',
+    'artisanpack/read-more',
+    'artisanpack/term-description',
+    'artisanpack/author-social-icons',
+    'artisanpack/social-share-content',
+    'artisanpack/post-reading-time',
+    'artisanpack/next-post',
+    'artisanpack/previous-post',
+]);
+
+/**
  * Covers stamped with the post's featured image when `useFeaturedImage`
  * is on (#942), as `PostResolver::FEATURED_IMAGE_COVERS` does.
  */
@@ -243,8 +293,28 @@ function expandQuery(block: Block, queries: Map<string, ResolvedQuery>): Block {
     };
 }
 
+/**
+ * The attributes without their `_resolved*` keys. The query template is
+ * saved content, so its own values must not win over what each result
+ * resolves to (#1078). Mirrors `PostResolver::stripSavedAttributes()`.
+ */
+function withoutResolvedKeys(attributes: Record<string, unknown>): Record<string, unknown> {
+    return Object.fromEntries(
+        Object.entries(attributes).filter(([key]) => !key.startsWith('_resolved')),
+    );
+}
+
 function stampPost(block: Block, post: ResolvedPost): Block {
     const next = cloneBlock(block);
+
+    if (
+        typeof next.name === 'string' &&
+        POST_RESOLVER_BLOCKS.has(next.name) &&
+        typeof next.attributes === 'object' &&
+        next.attributes !== null
+    ) {
+        next.attributes = withoutResolvedKeys(next.attributes as Record<string, unknown>);
+    }
 
     if (
         typeof next.name === 'string' &&
@@ -254,14 +324,14 @@ function stampPost(block: Block, post: ResolvedPost): Block {
         next.attributes = {
             _resolvedImageUrl: post.featuredImage?.url ?? '',
             _resolvedImageAlt: post.featuredImage?.alt ?? '',
-            ...(next.attributes as Record<string, unknown>),
+            ...withoutResolvedKeys(next.attributes as Record<string, unknown>),
         };
     }
 
     if (typeof next.name === 'string' && POST_CONTEXT_BLOCKS.has(next.name)) {
         const own =
             typeof next.attributes === 'object' && next.attributes !== null
-                ? (next.attributes as Record<string, unknown>)
+                ? withoutResolvedKeys(next.attributes as Record<string, unknown>)
                 : {};
 
         next.attributes = {

@@ -21,6 +21,7 @@ import { BASE_KEY } from '../../../responsive/types'
 import type { BreakpointRegistry } from '../../../responsive/registry'
 import { useCanvasScopedStyle } from '../../../support/canvas-scoped-styles'
 import type { ArbitraryRule, SerializeResult } from './serializer'
+import { safeCssValue } from '../../../support/safe-css-value'
 
 /**
  * Shared canvas style host the custom flex rules are published into.
@@ -29,28 +30,9 @@ import type { ArbitraryRule, SerializeResult } from './serializer'
  */
 export const FLEX_ARBITRARY_STYLE_CHANNEL = 'flex-arbitrary'
 
-const DISALLOWED_CSS_VALUE_CHAR = /[^A-Za-z0-9_+\-*/.,()%#\t\n\r\f ]/
-const BLANK_CSS_VALUE           = /^[ \t\n\r\0\x0B]*$/
-const KEYWORD_RULE              = /^\.([a-z0-9-]+) \{ ([a-z-]+): ([^;{}]+); \}$/
+const KEYWORD_RULE = /^\.([a-z0-9-]+) \{ ([a-z-]+): ([^;{}]+); \}$/
 
 let keywordDeclarations: Map<string, { property: string; value: string }> | null = null
-
-/**
- * The value when it's safe to print inside a `<style>` element, or
- * `null`. Same whitelist as `BlockSupports::safeCssValue()`, so the
- * canvas drops exactly the values the front end drops.
- */
-function safeFlexCssValue( value: string ): string | null {
-	if ( BLANK_CSS_VALUE.test( value ) || DISALLOWED_CSS_VALUE_CHAR.test( value ) ) {
-		return null
-	}
-
-	if ( value.includes( '/*' ) || value.includes( '*/' ) || value.includes( '//' ) ) {
-		return null
-	}
-
-	return value
-}
 
 function escapeSelector( className: string ): string {
 	return className.replace( /[^a-zA-Z0-9_-]/g, ( char ) => `\\${ char }` )
@@ -125,7 +107,7 @@ export function buildFlexCanvasCss(
 		const body = rules
 			.filter( ( rule ) => rule.breakpoint === breakpoint )
 			.flatMap( ( rule ) => {
-				const value = safeFlexCssValue( rule.value )
+				const value = safeCssValue( rule.value )
 
 				return null === value
 					? []
