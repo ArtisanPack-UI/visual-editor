@@ -36,3 +36,83 @@ export function safeCssValue(value: string): string | null {
 
     return value;
 }
+
+/**
+ * The CSS functions a custom gradient may call. None fetches a resource.
+ * Mirrors PHP `CssValue::GRADIENT_FUNCTIONS`.
+ *
+ * @since 1.20.0
+ */
+const GRADIENT_FUNCTIONS: ReadonlyArray<string> = [
+    'linear-gradient',
+    'radial-gradient',
+    'conic-gradient',
+    'repeating-linear-gradient',
+    'repeating-radial-gradient',
+    'repeating-conic-gradient',
+    'rgb',
+    'rgba',
+    'hsl',
+    'hsla',
+    'hwb',
+    'lab',
+    'lch',
+    'oklab',
+    'oklch',
+    'color',
+    'color-mix',
+    'var',
+    'calc',
+    'min',
+    'max',
+    'clamp',
+];
+
+/**
+ * Whether a value is one gradient that can't fetch anything: a single
+ * `var(--…)` reference, or one `(repeating-)?(linear|radial|conic)-gradient(…)`
+ * call whose parentheses balance and close at the end, calling only
+ * `GRADIENT_FUNCTIONS`. Checks shape only; callers still apply their own
+ * character filter. Mirrors PHP `CssValue::isGradient()`.
+ *
+ * @since 1.20.0
+ */
+export function isGradient(value: string): boolean {
+    if (/^var\(--[a-zA-Z0-9_-]+\)$/.test(value)) {
+        return true;
+    }
+
+    if (!/^(?:repeating-)?(?:linear|radial|conic)-gradient\(/i.test(value)) {
+        return false;
+    }
+
+    for (const match of value.matchAll(/([a-zA-Z_-][a-zA-Z0-9_-]*)\(/g)) {
+        if (!GRADIENT_FUNCTIONS.includes(match[1].toLowerCase())) {
+            return false;
+        }
+    }
+
+    let depth = 0;
+
+    for (let index = 0; index < value.length; index++) {
+        if ('(' === value[index]) {
+            depth++;
+
+            continue;
+        }
+
+        if (')' !== value[index]) {
+            continue;
+        }
+
+        depth--;
+
+        // A close before the end that returns to depth 0 means a second
+        // top-level layer follows the gradient.
+        if (depth < 0 || (0 === depth && index !== value.length - 1)) {
+            return false;
+        }
+    }
+
+    return 0 === depth;
+}

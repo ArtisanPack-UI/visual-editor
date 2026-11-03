@@ -19,6 +19,101 @@ namespace ArtisanPackUI\VisualEditor\Support;
 class CssValue
 {
 	/**
+	 * The CSS functions a custom gradient may call: the gradient
+	 * functions themselves plus the color, custom-property and math
+	 * functions their color stops and lengths use. None of them fetches
+	 * a resource, so a gradient built only from these can never load a
+	 * `url()` / `image-set()`. Mirrored by `GRADIENT_FUNCTIONS` in the
+	 * editor's `support/safe-css-value.ts` and the React and Vue
+	 * `cssValue.ts`.
+	 *
+	 * @since 1.15.3 As `BlockSupports::GRADIENT_FUNCTIONS`.
+	 * @since 1.20.0 Moved here.
+	 *
+	 * @var list<string>
+	 */
+	public const GRADIENT_FUNCTIONS = [
+		'linear-gradient',
+		'radial-gradient',
+		'conic-gradient',
+		'repeating-linear-gradient',
+		'repeating-radial-gradient',
+		'repeating-conic-gradient',
+		'rgb',
+		'rgba',
+		'hsl',
+		'hsla',
+		'hwb',
+		'lab',
+		'lch',
+		'oklab',
+		'oklch',
+		'color',
+		'color-mix',
+		'var',
+		'calc',
+		'min',
+		'max',
+		'clamp',
+	];
+
+	/**
+	 * Whether a value is one gradient that can't fetch anything: a single
+	 * `var(--…)` reference (an expanded `var:preset|gradient|…`), or one
+	 * `(repeating-)?(linear|radial|conic)-gradient(…)` call whose
+	 * parentheses balance and close at the end of the value, calling only
+	 * {@see self::GRADIENT_FUNCTIONS}. `background` is a fetching
+	 * property, so a character allowlist alone lets a relative `url(…)`
+	 * through. This checks shape only; callers still apply their own
+	 * character filter.
+	 *
+	 * @since 1.20.0
+	 */
+	public static function isGradient( string $value ): bool
+	{
+		if ( 1 === preg_match( '/^var\(--[a-zA-Z0-9_-]+\)$/D', $value ) ) {
+			return true;
+		}
+
+		if ( 1 !== preg_match( '/^(?:repeating-)?(?:linear|radial|conic)-gradient\(/i', $value ) ) {
+			return false;
+		}
+
+		preg_match_all( '/([a-zA-Z_-][a-zA-Z0-9_-]*)\(/', $value, $matches );
+
+		foreach ( $matches[1] as $function ) {
+			if ( ! in_array( strtolower( $function ), self::GRADIENT_FUNCTIONS, true ) ) {
+				return false;
+			}
+		}
+
+		$depth  = 0;
+		$length = strlen( $value );
+
+		for ( $index = 0; $index < $length; $index++ ) {
+			if ( '(' === $value[ $index ] ) {
+				$depth++;
+
+				continue;
+			}
+
+			if ( ')' !== $value[ $index ] ) {
+				continue;
+			}
+
+			$depth--;
+
+			// A close before the end that returns to depth 0 means a
+			// second top-level layer follows the gradient.
+			if ( $depth < 0 || ( 0 === $depth && $index !== $length - 1 ) ) {
+				return false;
+			}
+		}
+
+		return 0 === $depth;
+	}
+
+	/**
 	 * Whether a value can be written into a `<style>` block as-is.
 	 *
 	 * Rejects anything that closes the declaration or rule (`; { }`),

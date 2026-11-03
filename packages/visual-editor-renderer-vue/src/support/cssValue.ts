@@ -58,7 +58,7 @@ export function safeCssValue( value: string ): string | null {
  * The CSS functions a custom gradient may call — the gradient functions
  * plus the colour, custom-property and math functions their stops use.
  * None fetches a resource. Mirrors Blade's
- * `BlockSupports::GRADIENT_FUNCTIONS` and the React renderer's copy.
+ * `CssValue::GRADIENT_FUNCTIONS` and the React renderer's copy.
  *
  * @since 1.15.3
  */

@@ -228,3 +228,120 @@ describe( 'shadowScopeFor (#1052)', () => {
 		expect( css ).toContain( '.ve-bs-a img:hover' )
 	} )
 } )
+
+describe( 'emitBoxShadowCss structured field guard (#1083)', () => {
+	it.each( [
+		[ 'offsetX', '/*' ],
+		[ 'offsetY', '*/' ],
+		[ 'blur', '1px//' ],
+		[ 'spread', 'calc(1px' ],
+		[ 'color', 'red /*' ],
+		[ 'offsetX', '/"*' ],
+	] as const )( 'treats a %s of %s as unset', ( field, value ) => {
+		const css = emitBoxShadowCss(
+			'.scope',
+			{ ...baseline, idle: layer( { offsetX: '2px', blur: '4px', color: '#000', [ field ]: value } ) },
+			states,
+			breakpoints,
+		)
+
+		expect( css ).not.toContain( '/*' )
+		expect( css ).not.toContain( '*/' )
+		expect( css ).not.toContain( '//' )
+		expect( css.startsWith( '.scope{box-shadow:' ) ).toBe( true )
+	} )
+
+	it( 'falls back to the defaults for rejected lengths and color', () => {
+		const css = emitBoxShadowCss(
+			'.scope',
+			{ ...baseline, idle: layer( { offsetX: '/*', offsetY: '2px', blur: '4px', color: '/*' } ) },
+			states,
+			breakpoints,
+		)
+
+		expect( css ).toBe( '.scope{box-shadow:0px 2px 4px 0 currentColor}' )
+	} )
+
+	it( 'drops a layer when every structured field is rejected', () => {
+		const css = emitBoxShadowCss(
+			'.scope',
+			{ ...baseline, idle: layer( { offsetX: '/*', offsetY: '', blur: '', spread: '', color: '*/' } ) },
+			states,
+			breakpoints,
+		)
+
+		expect( css ).toBe( '' )
+	} )
+
+	it.each( [
+		'linear-gradient(red, blue) /*',
+		'url(http:evil.example/t.png)',
+		'url(t.png)',
+		'image-set(http:evil.example/t.png 1x)',
+		'linear-gradient(red, blue),url(t.png)',
+		'linear-gradient(url(t.png), blue)',
+	] )( 'drops a layer whose gradient %s is rejected, rather than painting it solid', ( gradient ) => {
+		const css = emitBoxShadowCss(
+			'.scope',
+			{ ...baseline, idle: layer( { blur: '4px', gradient } ) },
+			states,
+			breakpoints,
+		)
+
+		expect( css ).toBe( '' )
+	} )
+
+	it( 'keeps a preset when its gradient is rejected', () => {
+		const css = emitBoxShadowCss(
+			'.scope',
+			{ ...baseline, idle: layer( { preset: 'natural', gradient: 'url(t.png)' } ) },
+			states,
+			breakpoints,
+		)
+
+		expect( css ).toBe( '.scope{box-shadow:var(--wp--preset--shadow--natural)}' )
+	} )
+
+	it.each( [
+		'linear-gradient(135deg, rgba(0, 0, 0, 0.5), var(--x))',
+		'var(--wp--preset--gradient--sunset)',
+	] )( 'keeps the gradient %s', ( gradient ) => {
+		const css = emitBoxShadowCss( '.scope', { ...baseline, idle: layer( { gradient } ) }, states, breakpoints )
+
+		expect( css ).toContain( `background:${ gradient };` )
+	} )
+
+	it( 'treats a blank preset as unset, as the server does', () => {
+		const css = emitBoxShadowCss(
+			'.scope',
+			{ ...baseline, states: { hover: layer( { preset: ' ', offsetX: '', offsetY: '', blur: '', spread: '' } ) } },
+			states,
+			breakpoints,
+		)
+
+		expect( css ).toBe( '' )
+	} )
+
+	it( 'drops a raw value that opens a comment', () => {
+		const css = emitBoxShadowCss(
+			'.scope',
+			{ ...baseline, idle: layer( { value: '1px 1px red /*' } ) },
+			states,
+			breakpoints,
+		)
+
+		expect( css ).toBe( '' )
+	} )
+} )
+
+describe( 'emitBoxShadowCss preset slugs (#1084)', () => {
+	it.each( [
+		[ 'soft_glow', 'soft-glow' ],
+		[ 'softGlow', 'soft-glow' ],
+		[ 'natural', 'natural' ],
+	] )( 'normalizes %s to %s', ( preset, expected ) => {
+		const css = emitBoxShadowCss( '.scope', { ...baseline, idle: layer( { preset } ) }, states, breakpoints )
+
+		expect( css ).toBe( `.scope{box-shadow:var(--wp--preset--shadow--${ expected })}` )
+	} )
+} )

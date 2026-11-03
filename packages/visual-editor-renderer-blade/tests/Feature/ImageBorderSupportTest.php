@@ -185,3 +185,57 @@ it( 'splits overrides without touching the rest of the bag', function (): void {
 		'states' => [ 'shadow' => [ 'hover' => 'var:preset|shadow|deep' ], '_scopeId' => 'abc-img' ],
 	] );
 } );
+
+it( 'keeps the image hover styles for a scope ID at the length limit', function ( int $length ): void {
+	$scopeId = str_repeat( 'a', $length - 1 ) . 'b';
+	$html    = renderBorderedImage( [
+		'style'  => [ 'border' => [ 'width' => '1px' ] ],
+		'states' => [
+			'_scopeId'     => $scopeId,
+			'border.color' => [ 'hover' => '#ff0000' ],
+		],
+	] );
+
+	preg_match( '/ap-state-([a-z0-9_-]+-img)/', imageTagOf( $html ), $match );
+
+	expect( $match[1] ?? null )->not->toBeNull();
+	expect( strlen( $match[1] ) )->toBeLessThanOrEqual( 64 );
+
+	$split = BlockSupports::splitBorderAndShadow( [
+		'states' => [ '_scopeId' => $scopeId, 'border.color' => [ 'hover' => '#ff0000' ] ],
+	] );
+
+	expect( BlockSupports::compile( $split['element'] )['statesRules'] )
+		->toContain( '.ap-state-' . $match[1] . ':hover' )
+		->toContain( '#ff0000' );
+
+	expect( app( BlockRenderer::class )->flushSupportAssets()['css'] )
+		->toContain( '.ap-state-' . $match[1] . ':hover' )
+		->toContain( '#ff0000' );
+} )->with( [ 61, 62, 64 ] );
+
+it( 'keeps the plain -img suffix for an ID that fits', function (): void {
+	$scopeId = str_repeat( 'a', 60 );
+	$split   = BlockSupports::splitBorderAndShadow( [
+		'states' => [ '_scopeId' => $scopeId, 'border.color' => [ 'hover' => '#ff0000' ] ],
+	] );
+
+	expect( $split['element']['states']['_scopeId'] )->toBe( $scopeId . '-img' );
+} );
+
+it( 'derives distinct image scopes for long IDs that share a prefix', function (): void {
+	$prefix = str_repeat( 'a', 60 );
+	$scope  = static fn ( string $id ): string => BlockSupports::splitBorderAndShadow( [
+		'states' => [ '_scopeId' => $id, 'border.color' => [ 'hover' => '#ff0000' ] ],
+	] )['element']['states']['_scopeId'];
+
+	expect( $scope( $prefix . 'bbbb' ) )->not->toBe( $scope( $prefix . 'cccc' ) );
+} );
+
+it( 'still drops an invalid scope ID', function (): void {
+	$split = BlockSupports::splitBorderAndShadow( [
+		'states' => [ '_scopeId' => str_repeat( 'a', 70 ), 'border.color' => [ 'hover' => '#ff0000' ] ],
+	] );
+
+	expect( BlockSupports::compile( $split['element'] )['statesRules'] )->toBe( '' );
+} );

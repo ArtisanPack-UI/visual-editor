@@ -62,12 +62,12 @@ describe( 'emitters (#820)', () => {
 	it( 'emits gradient-border device overrides as max-width, tablet before mobile', () => {
 		const css = emitGradientBorderCss(
 			'.scope',
-			{ idle: 'red', states: {}, breakpoints: { mobile: 'green', tablet: 'blue' }, width: null, radius: null },
+			{ idle: 'var(--red)', states: {}, breakpoints: { mobile: 'var(--green)', tablet: 'var(--blue)' }, width: null, radius: null },
 			states,
 			registry,
 		)
 
-		expect( css ).toContain( '@media (max-width:767px){.scope::before{background:green}}' )
+		expect( css ).toContain( '@media (max-width:767px){.scope::before{background:var(--green)}}' )
 		expect( css.indexOf( 'max-width:1023px' ) ).toBeLessThan( css.indexOf( 'max-width:767px' ) )
 	} )
 
