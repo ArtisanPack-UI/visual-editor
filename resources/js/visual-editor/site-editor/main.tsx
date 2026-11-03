@@ -55,6 +55,7 @@ ensureMediaBridgeFilter();
 import '../a11y.css';
 import type { BreakpointRegistrySnapshot } from '../responsive/types';
 import { setBlockCssAccess, setCustomCssUrlAccess } from '../effects/access';
+import { setUnfilteredHtmlAccess } from '../editor/unfiltered-html-access';
 import { installLocaleDataFromDataset } from '../vendor/i18n';
 
 const MOUNT_SELECTOR = '[data-ap-site-editor]';
@@ -290,6 +291,8 @@ async function mount(element: MountableElement): Promise<void> {
     // #881 — the host stamps `data-can-edit-block-css="true"` for users
     // with the block-CSS ability; it only controls the Custom CSS field.
     setBlockCssAccess(element.dataset.canEditBlockCss === 'true');
+    // #1062 — only decides whether Custom HTML is in the inserter.
+    setUnfilteredHtmlAccess(element.dataset.canUseUnfilteredHtml === 'true');
     // F-11 — `data-custom-css-allow-urls="false"` mirrors config
     // `effects.custom_css_allow_urls`, so the canvas previews what the
     // front end prints.

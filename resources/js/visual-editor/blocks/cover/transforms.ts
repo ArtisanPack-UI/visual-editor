@@ -123,7 +123,7 @@ const transforms = {
                         },
                     },
                     [
-                        createBlock('core/paragraph', {
+                        createBlock('artisanpack/paragraph', {
                             content: caption,
                             fontSize: 'large',
                             style: {
@@ -162,7 +162,7 @@ const transforms = {
                         anchor,
                     },
                     [
-                        createBlock('core/paragraph', {
+                        createBlock('artisanpack/paragraph', {
                             content: caption,
                             fontSize: 'large',
                             style: {
@@ -232,7 +232,7 @@ const transforms = {
 
                 return createBlock(name, parentAttributes, [
                     createBlock(
-                        'core/group',
+                        'artisanpack/group',
                         attributesWithoutBackgroundColors,
                         innerBlocks
                     ),

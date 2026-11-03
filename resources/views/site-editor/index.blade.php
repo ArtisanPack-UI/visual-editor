@@ -29,6 +29,7 @@
 		data-exit-label="{{ __('← Post editor') }}"
 		data-api-base="/visual-editor/api"
 		@can( \ArtisanPackUI\VisualEditor\Effects\BlockCssAccess::ABILITY ) data-can-edit-block-css="true" @endcan
+		@can( \ArtisanPackUI\VisualEditor\Support\UnfilteredHtmlAccess::ABILITY ) data-can-use-unfiltered-html="true" @endcan
 		data-custom-css-allow-urls="{{ config( 'artisanpack.visual-editor.effects.custom_css_allow_urls', true ) ? 'true' : 'false' }}"
 		data-theme="{{ config('artisanpack.visual-editor.global_styles.theme', 'default') }}"
 		{{-- #617 — the merged breakpoint registry (config +

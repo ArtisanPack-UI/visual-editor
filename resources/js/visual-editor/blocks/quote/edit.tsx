@@ -34,8 +34,8 @@ interface QuoteEditProps {
     readonly className?: string;
 }
 
-const TEMPLATE: ReadonlyArray<readonly [string, Record<string, unknown>]> = [
-    ['core/paragraph', {}],
+export const TEMPLATE: ReadonlyArray<readonly [string, Record<string, unknown>]> = [
+    ['artisanpack/paragraph', {}],
 ];
 
 export default function QuoteEdit({

@@ -29,12 +29,12 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor;
 
-use ArtisanPackUI\VisualEditor\Effects\CustomCssGuard;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\StoreTemplateRequest;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\UpdateTemplateRequest;
 use ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\SiteEditor\TemplateAdapter;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedTemplate;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\TemplateResolver;
+use ArtisanPackUI\VisualEditor\Support\BlockContentGuard;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
@@ -599,9 +599,9 @@ class TemplateController extends Controller
 			$attributes['block_content'] = array_values( $validated['content']['blocks'] );
 		}
 
-		// #881 — only users with the block-CSS ability may add Custom CSS.
+		// #881, #1062 — Custom CSS and unfiltered markup need their abilities.
 		if ( array_key_exists( 'block_content', $attributes ) ) {
-			$attributes['block_content'] = app( CustomCssGuard::class )->filter( $attributes['block_content'], $storedBlocks );
+			$attributes['block_content'] = app( BlockContentGuard::class )->filter( $attributes['block_content'], $storedBlocks );
 		}
 
 		return $attributes;

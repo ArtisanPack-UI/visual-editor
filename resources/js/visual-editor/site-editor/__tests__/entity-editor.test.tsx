@@ -85,6 +85,7 @@ vi.mock('@wordpress/components', () => {
 vi.mock('@wordpress/data', () => ({
     useSelect: () => false,
     useDispatch: () => ({ replaceBlocks: () => undefined }),
+    useRegistry: () => ({}),
 }));
 
 // The `@wordpress/data` stub above has no store API, so keep the

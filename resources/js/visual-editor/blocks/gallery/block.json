@@ -8,6 +8,7 @@
         "galleryId"
     ],
     "allowedBlocks": [
+        "artisanpack/image",
         "core/image"
     ],
     "description": "Display multiple images in a rich gallery.",

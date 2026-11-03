@@ -1290,7 +1290,7 @@ const v3 = {
         return [
             restAttributes,
             [
-                createBlock('core/paragraph', {
+                createBlock('artisanpack/paragraph', {
                     content: attributes.title,
                     style: {
                         typography: {
@@ -1365,7 +1365,7 @@ const v2 = {
         return [
             restAttributes,
             [
-                createBlock('core/paragraph', {
+                createBlock('artisanpack/paragraph', {
                     content: attributes.title,
                     style: {
                         typography: {
@@ -1416,7 +1416,7 @@ const v1 = {
         return [
             restAttributes,
             [
-                createBlock('core/paragraph', {
+                createBlock('artisanpack/paragraph', {
                     content: attributes.title,
                     style: {
                         typography: {

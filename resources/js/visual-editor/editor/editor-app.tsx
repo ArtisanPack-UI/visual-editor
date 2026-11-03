@@ -35,6 +35,7 @@ import { ensureMediaBridgeFilter } from '../media-bridge';
 import { useThemedEditorSettings } from '../use-themed-editor-settings';
 
 import { registerArtisanPackBlocks } from '../blocks';
+import { EditorSnackbars } from './editor-snackbars';
 import { registerThemeBlockStyles } from '../block-style-registry';
 
 import { BlockLibrarySidebar } from './block-library-sidebar';
@@ -1670,6 +1671,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
 
     return (
         <SlotFillProvider>
+            <EditorSnackbars />
             <div
                 className="ap-visual-editor__shell"
                 data-inserter-open={inserterOpen}

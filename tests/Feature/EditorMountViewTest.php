@@ -50,6 +50,16 @@ test( 'editor mounts stamp the block-CSS ability for the Custom CSS field (#881)
         ->toContain( '@if( $canEditBlockCss ) data-can-edit-block-css="true" @endif' );
 } );
 
+test( 'editor mounts stamp the unfiltered-HTML ability for the inserter (#1062)', function (): void {
+    foreach ( [ 'editor/mount', 'site-editor/index' ] as $view ) {
+        expect( file_get_contents( __DIR__ . '/../../resources/views/' . $view . '.blade.php' ) )
+            ->toContain( '@can( \\ArtisanPackUI\\VisualEditor\\Support\\UnfilteredHtmlAccess::ABILITY ) data-can-use-unfiltered-html="true" @endcan' );
+    }
+
+    expect( file_get_contents( __DIR__ . '/../../resources/views/components/editor.blade.php' ) )
+        ->toContain( '@if( $canUseUnfilteredHtml ) data-can-use-unfiltered-html="true" @endif' );
+} );
+
 test( 'editor mounts stamp the Custom CSS URL switch (F-11)', function (): void {
     foreach ( [ 'editor/mount', 'site-editor/index' ] as $view ) {
         expect( file_get_contents( __DIR__ . '/../../resources/views/' . $view . '.blade.php' ) )

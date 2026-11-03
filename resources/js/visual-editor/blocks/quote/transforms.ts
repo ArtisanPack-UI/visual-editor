@@ -39,7 +39,7 @@ const transforms = {
             blocks: ['core/verse', 'artisanpack/verse'],
             transform: ({ content }: { content: string }) =>
                 createBlock(name, {}, [
-                    createBlock('core/paragraph', { content }),
+                    createBlock('artisanpack/paragraph', { content }),
                 ]),
         },
         {
@@ -56,7 +56,7 @@ const transforms = {
                 createBlock(
                     name,
                     { align, citation, anchor, fontSize, style },
-                    [createBlock('core/paragraph', { content: value })]
+                    [createBlock('artisanpack/paragraph', { content: value })]
                 ),
         },
         {
@@ -64,7 +64,7 @@ const transforms = {
             prefix: '>',
             transform: (content: string) =>
                 createBlock(name, {}, [
-                    createBlock('core/paragraph', { content }),
+                    createBlock('artisanpack/paragraph', { content }),
                 ]),
         },
         {

@@ -146,7 +146,7 @@ function navigationButtonTypeOptions(): Array<{ label: string; value: string }> 
 const ALLOWED_MEDIA_TYPES = ['image'];
 
 
-const DEFAULT_BLOCK = { name: 'core/image' };
+const DEFAULT_BLOCK = { name: 'artisanpack/image' };
 const EMPTY_ARRAY: readonly never[] = [];
 
 // Inlined from `@wordpress/block-library/src/utils/hooks.js` so the fork
@@ -541,7 +541,7 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
         );
 
         const newBlocks = newImageList.map((image) =>
-            createBlock('core/image', {
+            createBlock('artisanpack/image', {
                 id: image.id,
                 blob: image.blob,
                 url: image.url,
@@ -1073,7 +1073,7 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
                         inlineToolbar
                         __unstableOnSplitAtEnd={() =>
                             insertBlocksAfter?.(
-                                createBlock('core/paragraph')
+                                createBlock('artisanpack/paragraph')
                             )
                         }
                     />

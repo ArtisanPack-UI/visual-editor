@@ -28,6 +28,7 @@ use ArtisanPackUI\VisualEditor\Resources\QueryPostTypeRegistry;
 use ArtisanPackUI\VisualEditor\Resources\TaxonomyRegistry;
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use ArtisanPackUI\VisualEditor\Support\EditorLocaleData;
+use ArtisanPackUI\VisualEditor\Support\UnfilteredHtmlAccess;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;
@@ -182,6 +183,16 @@ class VisualEditorComponent extends Component
 	public bool $canEditBlockCss;
 
 	/**
+	 * Whether the current user's block markup is saved unfiltered (#1062)
+	 * — the {@see UnfilteredHtmlAccess::ABILITY} gate. Stamped as
+	 * `data-can-use-unfiltered-html`; it only shows or hides Custom HTML
+	 * in the inserter, since every save re-checks the gate.
+	 *
+	 * @since 1.20.0
+	 */
+	public bool $canUseUnfilteredHtml;
+
+	/**
 	 * Whether Custom CSS may load resources — config
 	 * `effects.custom_css_allow_urls`. Stamped as
 	 * `data-custom-css-allow-urls` so the canvas previews what the front
@@ -250,6 +261,7 @@ class VisualEditorComponent extends Component
 		$this->presets              = PresetRegistry::fromConfig();
 		$this->blockStyles          = app( BlockStyleResolver::class )->editorPayload();
 		$this->canEditBlockCss      = Gate::allows( BlockCssAccess::ABILITY );
+		$this->canUseUnfilteredHtml = Gate::allows( UnfilteredHtmlAccess::ABILITY );
 		$this->customCssAllowUrls   = (bool) config( EffectsCompiler::ALLOW_URLS_CONFIG, true );
 		$this->localeData           = EditorLocaleData::resolve();
 
@@ -364,6 +376,7 @@ class VisualEditorComponent extends Component
 			'presets'              => $array,
 			'blockStyles'          => $array,
 			'canEditBlockCss'      => $bool,
+			'canUseUnfilteredHtml' => $bool,
 			'customCssAllowUrls'   => $bool,
 			'localeData'           => $nullableArray,
 		];

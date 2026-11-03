@@ -169,6 +169,14 @@ export interface MountConfig {
      */
     canEditBlockCss?: boolean;
     /**
+     * Whether the current user's block markup is saved unfiltered (#1062).
+     * Only puts Custom HTML in the inserter; every save re-checks the gate
+     * server-side. Read from `data-can-use-unfiltered-html`.
+     *
+     * @since 1.20.0
+     */
+    canUseUnfilteredHtml?: boolean;
+    /**
      * Whether Custom CSS may load resources (`url(`, `image-set(`, …),
      * as config `effects.custom_css_allow_urls`, so the canvas previews
      * what the front end prints. Read from `data-custom-css-allow-urls`;
@@ -384,6 +392,7 @@ export function readMountConfig(element: HTMLElement): MountConfig | null {
         // users with the block-CSS ability, and
         // `data-custom-css-allow-urls="false"` when config disallows URLs.
         canEditBlockCss: element.dataset.canEditBlockCss === 'true',
+        canUseUnfilteredHtml: element.dataset.canUseUnfilteredHtml === 'true',
         customCssAllowUrls: element.dataset.customCssAllowUrls !== 'false',
         previewUrl: previewUrl ?? null,
     };
@@ -526,9 +535,10 @@ export function mountEditor(
     // hosts mounting with an explicit config (the Vue wrapper) get the
     // same Custom CSS access as the `data-*` bootstrap. Absent means no
     // access (fail closed) and the config default for URLs.
-    const { canEditBlockCss, customCssAllowUrls, blockStyles, localeData, ...appConfig } = config;
+    const { canEditBlockCss, canUseUnfilteredHtml, customCssAllowUrls, blockStyles, localeData, ...appConfig } = config;
 
     setBlockCssAccess(canEditBlockCss === true);
+    setUnfilteredHtmlAccess(canUseUnfilteredHtml === true);
     setCustomCssUrlAccess(customCssAllowUrls !== false);
 
     // #896 — translations go in before the editor chunk is imported, so
@@ -638,6 +648,7 @@ import {
     registerExternalBlockType as registerExternalBlockTypeImpl,
 } from './external-block-registration';
 import { setBlockCssAccess, setCustomCssUrlAccess } from '../effects/access';
+import { setUnfilteredHtmlAccess } from './unfiltered-html-access';
 import { installLocaleData, type EditorLocaleData } from '../vendor/i18n';
 
 declare global {

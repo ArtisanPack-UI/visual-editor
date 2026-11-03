@@ -360,6 +360,9 @@ class VisualEditorServiceProvider extends ServiceProvider
 		// values a controller vouched for never outlive the request.
 		$this->app->scoped( Effects\CustomCssModelGuard::class, static fn (): Effects\CustomCssModelGuard => new Effects\CustomCssModelGuard() );
 
+		// #1062 — the block markup filter, scoped for the same reason.
+		$this->app->scoped( Support\BlockHtmlGuard::class );
+
 		// #876 — block style variations. Code registrations live in a
 		// singleton so they survive from boot() to render; the resolver
 		// is scoped because it merges in the per-request global styles.
@@ -783,6 +786,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->registerAiGate();
 		$this->registerContentGate();
 		$this->registerBlockCssGate();
+		$this->registerUnfilteredHtmlGate();
 		$this->registerSiteEditorCustomCssFilter();
 
 		Gate::policy( VisualEditorPost::class, VisualEditorPostPolicy::class );
@@ -1789,7 +1793,26 @@ class VisualEditorServiceProvider extends ServiceProvider
 	}
 
 	/**
-	 * Run {@see Effects\CustomCssGuard} on the block trees cms-framework's
+	 * Define the default `visual-editor.unfiltered-html` gate unless the
+	 * host already has (#1062). Denies by default; see
+	 * {@see Support\UnfilteredHtmlAccess}.
+	 *
+	 * @since 1.20.0
+	 */
+	protected function registerUnfilteredHtmlGate(): void
+	{
+		if ( Gate::has( Support\UnfilteredHtmlAccess::ABILITY ) ) {
+			return;
+		}
+
+		Gate::define(
+			Support\UnfilteredHtmlAccess::ABILITY,
+			static fn ( ?\Illuminate\Contracts\Auth\Authenticatable $user ): bool => Support\UnfilteredHtmlAccess::allows( $user ),
+		);
+	}
+
+	/**
+	 * Run {@see Support\BlockContentGuard} on the block trees cms-framework's
 	 * Site Editor API is about to store (F-1), through its
 	 * `ap.cmsFramework.siteEditor.blockContent` filter
 	 * (`$blocks, ?array $storedBlocks, string $context`). The filter runs
@@ -1811,7 +1834,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		addFilter(
 			'ap.cmsFramework.siteEditor.blockContent',
-			static fn ( mixed $blocks, mixed $storedBlocks = null ): mixed => app( Effects\CustomCssGuard::class )->filter( $blocks, $storedBlocks ),
+			static fn ( mixed $blocks, mixed $storedBlocks = null ): mixed => app( Support\BlockContentGuard::class )->filter( $blocks, $storedBlocks ),
 		);
 	}
 

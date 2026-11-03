@@ -580,6 +580,40 @@ See [Access Gate](site-editor/Access-Gate.md#custom-css-ability-visual-editoredi
 
 ---
 
+## `content_filter`
+
+Block content is printed unescaped on the public site, so markup is filtered when it's saved.
+
+```php
+'content_filter' => [
+    'unfiltered_html_capability' => 'unfiltered_html',
+],
+```
+
+- `unfiltered_html_capability` — what the default `visual-editor.unfiltered-html` gate requires ([checked the same way](#how-capabilities-are-checked) as `custom_css_capability`). **Nobody has it until you grant it to a role.** Set to `''` to filter everyone, or redefine the gate for your own rule.
+
+Users with the ability save markup as sent, and get Custom HTML in the inserter. For everyone else, each save reduces every string holding markup to an allowlist of tags, attributes, link schemes and inline styles, on every block-content model and whichever route wrote it. This removes scripts, event handlers, iframes, embeds and `javascript:` links.
+
+Markup already stored on a record is kept exactly as it is, so an author can move or keep a block an administrator wrote, but can't add or change markup. Existing content isn't rewritten: a value is only filtered once someone without the ability changes it. Writes with no signed-in user from the console, such as seeders and queued jobs, aren't filtered.
+
+To allow more, use the [`ap.visualEditor.contentFilter.allowedHtml`](Hooks-and-Events.md#apvisualeditorcontentfilterallowedhtml) filter.
+
+## `media_import`
+
+After a paste creates Image blocks with external URLs, the editor offers to import them into the media library. Nothing downloads until the author accepts. The server does the fetching, so it refuses non-HTTP(S) URLs, other ports, URLs with credentials, and any host with an internal address, including through a redirect.
+
+```php
+'media_import' => [
+    'max_size_kb'        => 10240,
+    'allowed_mime_types' => [ 'image/avif', 'image/gif', 'image/jpeg', 'image/png', 'image/webp' ],
+],
+```
+
+- `max_size_kb` — the largest image the server will download.
+- `allowed_mime_types` — accepted types, read from the file's bytes. SVG can't be added, because it can hold script.
+
+Importing needs `artisanpack-ui/media-library` and its `create` policy for media. The offer doesn't appear when no media bridge is registered. An image that can't be imported keeps its external URL.
+
 ## `visibility`
 
 **Since v1.4 (#491 · #492 · #493).** Site-wide controls for block visibility rules.

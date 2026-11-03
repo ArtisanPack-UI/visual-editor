@@ -42,14 +42,14 @@
  * block partials emit them unescaped (`{!! $content !!}`) — that is what
  * makes a paragraph's `<strong>` survive the round trip. The hydrator is
  * therefore only safe over markup you already trust to render: theme
- * files on disk, patterns, and editor-authored content that passed
- * through the same authorization the post editor enforces. It is NOT a
- * sanitizer, and passing visitor-submitted markup to {@see hydrate()}
- * turns it into stored XSS. This is the same trust boundary Gutenberg
- * itself draws around block markup — the hydrator neither widens nor
- * narrows it. Hosts that must render untrusted markup should run it
- * through their own sanitizer (e.g. `kses()` from
- * `artisanpack-ui/security`) BEFORE hydrating.
+ * files on disk, patterns, and editor-authored content, which saving
+ * filters unless the author holds the unfiltered-HTML ability (#1062;
+ * {@see BlockHtmlGuard}). It is NOT a sanitizer, and passing
+ * visitor-submitted markup to {@see hydrate()} turns it into stored XSS.
+ * This is the same trust boundary Gutenberg itself draws around block
+ * markup — the hydrator neither widens nor narrows it. Hosts that must
+ * render other untrusted markup should run each tree through
+ * {@see BlockHtmlSanitizer} or their own sanitizer BEFORE hydrating.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor

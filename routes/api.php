@@ -35,6 +35,7 @@ use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSetsController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSetsManagementController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSvgController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSvgSanitizeController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\MediaImportController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\MenuLocationsController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\QueryResolveController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\ResourceAppliedTemplateController;
@@ -505,6 +506,13 @@ Route::delete( 'pages/{id}', [ PageController::class, 'destroy' ] )
 Route::get( 'attachments/{id}', [ AttachmentController::class, 'show' ] )
 	->where( 'id', '[0-9]+' )
 	->name( 'visual-editor.api.attachments.show' );
+
+// #1066 — imports a pasted external image into the media library. The
+// server makes a request to a URL from pasted content, so this has a tight
+// throttle on top of the checks in `RemoteImageFetcher`.
+Route::post( 'media/import', [ MediaImportController::class, 'store' ] )
+	->middleware( [ EnsureContentEditorAccess::class, 'throttle:30,1,ve-media-import' ] )
+	->name( 'visual-editor.api.media.import' );
 
 // #481 — singleton site-meta envelope consumed by the editor's
 // `artisanpack/site-*` block previews. The shim's URL builder always

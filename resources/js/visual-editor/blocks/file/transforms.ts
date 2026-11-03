@@ -64,19 +64,19 @@ const transforms = {
                     // File will be uploaded in componentDidMount()
                     if (file.type.startsWith('video/')) {
                         blocks.push(
-                            createBlock('core/video', {
+                            createBlock('artisanpack/video', {
                                 blob: blobURL,
                             })
                         );
                     } else if (file.type.startsWith('image/')) {
                         blocks.push(
-                            createBlock('core/image', {
+                            createBlock('artisanpack/image', {
                                 blob: blobURL,
                             })
                         );
                     } else if (file.type.startsWith('audio/')) {
                         blocks.push(
-                            createBlock('core/audio', {
+                            createBlock('artisanpack/audio', {
                                 blob: blobURL,
                             })
                         );

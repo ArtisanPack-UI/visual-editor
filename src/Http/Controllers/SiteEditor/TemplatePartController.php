@@ -29,7 +29,6 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor;
 
-use ArtisanPackUI\VisualEditor\Effects\CustomCssGuard;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\StoreTemplatePartRequest;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\UpdateTemplatePartRequest;
 use ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\SiteEditor\TemplatePartAdapter;
@@ -37,6 +36,7 @@ use ArtisanPackUI\VisualEditor\Rules\TemplateBlockTreeRule;
 use ArtisanPackUI\VisualEditor\SiteEditor\Previews\PatternPreviewCache;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedTemplatePart;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\TemplatePartResolver;
+use ArtisanPackUI\VisualEditor\Support\BlockContentGuard;
 use ArtisanPackUI\VisualEditor\Support\ThemeBlockMarkup;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\QueryException;
@@ -657,9 +657,9 @@ class TemplatePartController extends Controller
 			$attributes['block_content'] = $blocks;
 		}
 
-		// #881 — only users with the block-CSS ability may add Custom CSS.
+		// #881, #1062 — Custom CSS and unfiltered markup need their abilities.
 		if ( array_key_exists( 'block_content', $attributes ) ) {
-			$attributes['block_content'] = app( CustomCssGuard::class )->filter( $attributes['block_content'], $storedBlocks );
+			$attributes['block_content'] = app( BlockContentGuard::class )->filter( $attributes['block_content'], $storedBlocks );
 		}
 
 		return $attributes;
