@@ -253,4 +253,39 @@ describe('inlineQueries saved _resolved* attributes (#1078)', () => {
         expect(title(1)).toMatchObject({ _resolvedTitle: 'B', _resolvedPermalink: '/posts/2' });
         expect(cover._resolvedImageUrl).toBe('');
     });
+
+    it('drops saved links on blocks it does not stamp itself', () => {
+        const tree = [
+            makeQueryBlock([
+                {
+                    name: 'artisanpack/social-share-content',
+                    attributes: {
+                        socialIcons: ['facebook'],
+                        _resolvedShareLinks: [{ slug: 'facebook', url: 'https://evil.test/' }],
+                    },
+                    innerBlocks: [],
+                } as Block,
+                {
+                    name: 'artisanpack/post-title',
+                    attributes: { _resolvedPermalink: 'https://evil.test/' },
+                    innerBlocks: [],
+                } as Block,
+                {
+                    name: 'core/paragraph',
+                    attributes: { _resolvedSomething: 'kept' },
+                    innerBlocks: [],
+                } as Block,
+            ]),
+        ];
+
+        const result = inlineQueries(tree, {
+            queries: [{ queryId: 'q1', posts: [fakePost(1, 'A')] }],
+        });
+        const children = result[0].innerBlocks?.[0].innerBlocks?.[0].innerBlocks ?? [];
+        const attrs = (index: number) => children[index].attributes as Record<string, unknown>;
+
+        expect(attrs(0)).toEqual({ socialIcons: ['facebook'] });
+        expect(attrs(1)).toEqual({});
+        expect(attrs(2)).toEqual({ _resolvedSomething: 'kept' });
+    });
 });

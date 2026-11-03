@@ -36,6 +36,8 @@ describe('buildSocialColorStyle', () => {
         ['a tag break', '</style><script>alert(1)</script>'],
         ['a quote', '"><img src=x onerror=alert(1)>'],
         ['a comment', 'red/* x */'],
+        ['an edge vertical tab', '\u000bred'],
+        ['an edge NUL', '\u0000red'],
     ])('drops a value carrying %s', (_label, value) => {
         expect(
             buildSocialColorStyle({

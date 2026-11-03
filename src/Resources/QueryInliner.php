@@ -114,8 +114,10 @@ class QueryInliner
 	 *                                                     it.
 	 * @param  bool                              $stripSavedResolved  Whether to strip the
 	 *                                                                `_resolved*` keys
-	 *                                                                `PostResolver` stamps
-	 *                                                                from the tree before
+	 *                                                                `PostResolver` and the
+	 *                                                                query controls are
+	 *                                                                stamped with from the
+	 *                                                                tree before
 	 *                                                                expanding it, when a
 	 *                                                                host post is given
 	 *                                                                (#1078). The tree is
@@ -123,10 +125,9 @@ class QueryInliner
 	 *                                                                be stamped against that
 	 *                                                                post, so its own values
 	 *                                                                must not win. Pass
-	 *                                                                false when the caller
-	 *                                                                already stripped it, or
-	 *                                                                the tree carries values
-	 *                                                                the host resolved.
+	 *                                                                false when the tree
+	 *                                                                carries values the host
+	 *                                                                resolved.
 	 *                                                                Query templates are
 	 *                                                                always stripped.
 	 *
@@ -135,10 +136,52 @@ class QueryInliner
 	public function inline( array $tree, ?object $hostPost = null, bool $stripSavedResolved = true ): array
 	{
 		if ( $stripSavedResolved && null !== $hostPost ) {
-			$tree = $this->postResolver->stripSavedAttributes( $tree );
+			$tree = $this->stripSavedControlAttributes( $this->postResolver->stripSavedAttributes( $tree ) );
 		}
 
 		return $this->inlineTree( $tree, $hostPost );
+	}
+
+	/**
+	 * Remove the `_resolved*` attributes the query controls get stamped
+	 * with (pagination, total, title, no-results) from a saved tree, so
+	 * a saved `_resolvedNextPageUrl` can't replace the paginator's
+	 * (#1078). Other blocks are left as they are.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @param  array<int, mixed>  $tree  Saved block tree in the `attributes` shape.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	protected function stripSavedControlAttributes( array $tree ): array
+	{
+		$out = [];
+
+		foreach ( $tree as $block ) {
+			if ( ! is_array( $block ) ) {
+				continue;
+			}
+
+			$name = isset( $block['name'] ) && is_string( $block['name'] ) ? $block['name'] : '';
+			$slug = str_contains( $name, '/' ) ? substr( $name, strpos( $name, '/' ) + 1 ) : $name;
+
+			if ( isset( self::QUERY_CONTROL_RESOLVERS[ $slug ] ) && isset( $block['attributes'] ) && is_array( $block['attributes'] ) ) {
+				$block['attributes'] = array_filter(
+					$block['attributes'],
+					static fn ( mixed $key ): bool => ! is_string( $key ) || ! str_starts_with( $key, '_resolved' ),
+					ARRAY_FILTER_USE_KEY,
+				);
+			}
+
+			if ( isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) ) {
+				$block['innerBlocks'] = $this->stripSavedControlAttributes( $block['innerBlocks'] );
+			}
+
+			$out[] = $block;
+		}
+
+		return $out;
 	}
 
 	/**
@@ -995,7 +1038,8 @@ class QueryInliner
 		$attributes = isset( $block['attributes'] ) && is_array( $block['attributes'] ) ? $block['attributes'] : [];
 
 		// Defaults are merged behind the existing attributes so the
-		// host's `_resolved*` overrides win — mirrors PostResolver.
+		// host's `_resolved*` overrides win — mirrors PostResolver. Saved
+		// values are stripped before this by `inline()` (#1078).
 		/** @var array<string, mixed> $defaults */
 		$defaults = $this->{$method}( $paginator, $queryAttrs, $attributes );
 

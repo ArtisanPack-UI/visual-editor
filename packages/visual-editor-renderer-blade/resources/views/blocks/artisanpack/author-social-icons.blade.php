@@ -94,10 +94,10 @@
 
 	// A value that is not a safe CSS value is dropped, so a `;` cannot
 	// add declarations to the chip (#1079).
-	$iconColor      = is_string( $attributes['iconColor'] ?? null ) ? ( BlockSupports::safeCssValue( trim( $attributes['iconColor'] ) ) ?? '' ) : '';
-	$iconHoverColor = is_string( $attributes['iconHoverColor'] ?? null ) ? ( BlockSupports::safeCssValue( trim( $attributes['iconHoverColor'] ) ) ?? '' ) : '';
-	$iconBgColor    = is_string( $attributes['iconBackgroundColor'] ?? null ) ? ( BlockSupports::safeCssValue( trim( $attributes['iconBackgroundColor'] ) ) ?? '' ) : '';
-	$iconHoverBg    = is_string( $attributes['iconHoverBackgroundColor'] ?? null ) ? ( BlockSupports::safeCssValue( trim( $attributes['iconHoverBackgroundColor'] ) ) ?? '' ) : '';
+	$iconColor      = is_string( $attributes['iconColor'] ?? null ) ? ( BlockSupports::safeCssValue( $attributes['iconColor'] ) ?? '' ) : '';
+	$iconHoverColor = is_string( $attributes['iconHoverColor'] ?? null ) ? ( BlockSupports::safeCssValue( $attributes['iconHoverColor'] ) ?? '' ) : '';
+	$iconBgColor    = is_string( $attributes['iconBackgroundColor'] ?? null ) ? ( BlockSupports::safeCssValue( $attributes['iconBackgroundColor'] ) ?? '' ) : '';
+	$iconHoverBg    = is_string( $attributes['iconHoverBackgroundColor'] ?? null ) ? ( BlockSupports::safeCssValue( $attributes['iconHoverBackgroundColor'] ) ?? '' ) : '';
 
 	// Emit ONLY CSS custom properties — the base color / background
 	// come from `var(--ap-social-color)` / `var(--ap-social-bg)` rules

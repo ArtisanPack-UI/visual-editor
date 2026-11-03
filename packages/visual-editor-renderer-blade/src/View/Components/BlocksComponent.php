@@ -132,17 +132,20 @@ class BlocksComponent extends Component
 		// block already has. Strip the keys it stamps before the post
 		// passes below, so saved markup can't replace what the post
 		// resolves to (#1078). A host that passes a tree it resolved
-		// itself sets `trust-resolved` to keep its values.
-		if ( $resolvePost && is_object( $post ) && ! $trustResolved ) {
+		// itself sets `trust-resolved` to keep its values. The query
+		// inliner does the strip (query controls included) when it runs,
+		// so this only strips when it doesn't.
+		$stripSavedResolved = $resolvePost && is_object( $post ) && ! $trustResolved;
+
+		if ( $stripSavedResolved && ! $resolveQueries ) {
 			$resolved = $this->postResolver->stripSavedAttributes( $resolved );
 		}
 
 		// Query inlining runs before nav-block resolution so a `core/query`
 		// loop with a navigation block inside it (rare but legal) still
-		// gets each cloned nav block resolved to its menu items. The tree
-		// was stripped above, so the inliner doesn't strip it again.
+		// gets each cloned nav block resolved to its menu items.
 		$resolved = $resolveQueries
-			? $this->queryInliner->inline( $resolved, is_object( $post ) ? $post : null, false )
+			? $this->queryInliner->inline( $resolved, is_object( $post ) ? $post : null, $stripSavedResolved )
 			: $resolved;
 
 		// Comment inlining runs after query inlining so a `core/query` loop

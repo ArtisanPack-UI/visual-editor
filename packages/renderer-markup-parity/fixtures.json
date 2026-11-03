@@ -4265,7 +4265,7 @@
         },
         {
             "name": "social-chip-colors-hostile",
-            "$comment": "#1079 — color attributes on the author and share chips that aren't safe CSS values are dropped, so a `;` can't add declarations and `url()` can't fetch from another origin. The safe hover color is kept.",
+            "$comment": "#1079 — color attributes on the author and share chips that aren't safe CSS values are dropped, so a `;` can't add declarations and `url()` can't fetch from another origin. A value with an edge control character is dropped by every renderer, not trimmed, and the safe hover colors are kept.",
             "tree": [
                 {
                     "clientId": "asi-hostile",
@@ -4293,6 +4293,19 @@
                         "iconHoverBackgroundColor": "\"><img src=x onerror=alert(1)>",
                         "_resolvedShareLinks": [
                             { "slug": "facebook", "url": "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fexample.test%2Fposts%2Fhello" }
+                        ]
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "asi-edge-control",
+                    "name": "artisanpack/author-social-icons",
+                    "attributes": {
+                        "socialIcons": ["facebook"],
+                        "iconColor": "\u000bred",
+                        "iconHoverColor": " #abcdef ",
+                        "_resolvedAuthorSocialLinks": [
+                            { "slug": "facebook", "url": "https://www.facebook.com/example" }
                         ]
                     },
                     "innerBlocks": []

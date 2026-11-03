@@ -226,6 +226,34 @@ describe( 'QueryInliner', function (): void {
 			->and( shareUrlFor( $items[1]['innerBlocks'][1], 'facebook' ) )->toContain( rawurlencode( 'https://example.test/posts/2' ) );
 	} );
 
+	it( 'stamps query controls over values saved on them when a host post is given', function (): void {
+		$this->fake->setItems( [ savedResolvedPost( 1, 'First' ) ] );
+		$this->fake->perPage       = 1;
+		$this->fake->totalOverride = 3;
+
+		$query = $this->inliner->inline( [
+			[
+				'name'        => 'core/query',
+				'attributes'  => [ 'query' => [ 'postType' => 'post', 'perPage' => 1 ] ],
+				'innerBlocks' => [
+					[ 'name' => 'core/post-template', 'attributes' => [], 'innerBlocks' => [] ],
+					[
+						'name'        => 'core/query-pagination-next',
+						'attributes'  => [ 'label' => 'Next', '_resolvedNextPageUrl' => 'https://evil.test/', '_resolvedTotalPages' => 99 ],
+						'innerBlocks' => [],
+					],
+				],
+			],
+		], savedResolvedPost( 9, 'Host' ) )[0];
+
+		$next = $query['innerBlocks'][1]['attributes'];
+
+		expect( $next['label'] )->toBe( 'Next' )
+			->and( $next['_resolvedNextPageUrl'] )->not->toContain( 'evil.test' )
+			->and( $next['_resolvedNextPageUrl'] )->toContain( 'page=2' )
+			->and( $next['_resolvedTotalPages'] )->toBe( 3 );
+	} );
+
 	it( 'keeps iteration stamps when the stamped tree is stamped again against the host post', function (): void {
 		$this->fake->setItems( [ savedResolvedPost( 2, 'Looped' ) ] );
 
