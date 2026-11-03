@@ -36,7 +36,7 @@ function renderedAnchorBlock( string $name, array $attributes = [] ): array
 }
 
 it( 'links every TOC entry to a unique rendered heading id (M-13)', function (): void {
-	$html = Blade::render( '<x-ve-blocks :tree="$tree" />', [
+	$html = Blade::render( '<x-ve-blocks :tree="$tree" :trust-resolved="true" />', [
 		'tree' => [
 			renderedAnchorBlock( 'artisanpack/toc' ),
 			renderedAnchorBlock( 'core/heading', [ 'level' => 2, 'content' => 'Crème ½ x' ] ),

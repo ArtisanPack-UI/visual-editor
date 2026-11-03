@@ -333,3 +333,138 @@ describe( 'an all-digit URL value with no theme anywhere', function (): void {
 		expect( $entity['model']::query()->whereKey( $row->id )->exists() )->toBeFalse();
 	} )->with( 'site-editor entities' );
 } );
+
+describe( 'a file-only all-digit slug and a row with that id (#1094)', function (): void {
+	it( 'gives the file-only record a composite id that can\'t match the row', function ( array $entity ): void {
+		$row = numericSlugRow( $entity, [ 'id' => 404, 'slug' => 'archive' ] );
+		registerNumericSlugThemeFile( $entity );
+
+		$records = collect( $this->getJson( "/visual-editor/api/{$entity['route']}" )->assertOk()->json() )->keyBy( 'slug' );
+
+		expect( $records['404']['id'] )->toBe( 'digital-shopfront//404' )
+			->and( $records['archive']['id'] )->toBe( $row->id );
+	} )->with( 'site-editor entities' );
+
+	it( 'keeps the slug as the id of a file-only record with a non-numeric slug', function ( array $entity ): void {
+		addFilter( $entity['filter'], function ( array $entries ) use ( $entity ): array {
+			$entries[] = array_merge( [
+				'slug'    => 'single',
+				'theme'   => 'digital-shopfront',
+				'title'   => 'Single',
+				'source'  => 'theme',
+				'content' => [ 'raw' => '', 'blocks' => [] ],
+			], $entity['attributes'] );
+
+			return $entries;
+		} );
+
+		rebuildResolversForNumericSlugTest();
+
+		$this->getJson( "/visual-editor/api/{$entity['route']}/single" )
+			->assertOk()
+			->assertJsonPath( 'id', 'single' );
+	} )->with( 'site-editor entities' );
+
+	it( 'reads the file-only record by its composite id', function ( array $entity ): void {
+		numericSlugRow( $entity, [ 'id' => 404, 'slug' => 'archive' ] );
+		registerNumericSlugThemeFile( $entity );
+
+		$this->getJson( "/visual-editor/api/{$entity['route']}/digital-shopfront%2F%2F404" )
+			->assertOk()
+			->assertJsonPath( 'slug', '404' )
+			->assertJsonPath( 'id', 'digital-shopfront//404' );
+
+		$this->getJson( "/visual-editor/api/{$entity['route']}/404" )
+			->assertOk()
+			->assertJsonPath( 'slug', 'archive' );
+	} )->with( 'site-editor entities' );
+
+	it( 'finds the file-only record through the theme and slug filters', function ( array $entity ): void {
+		numericSlugRow( $entity, [ 'id' => 404, 'slug' => 'archive' ] );
+		registerNumericSlugThemeFile( $entity );
+
+		$this->getJson( "/visual-editor/api/{$entity['route']}?theme=digital-shopfront&slug=404" )
+			->assertOk()
+			->assertJsonCount( 1 )
+			->assertJsonPath( '0.id', 'digital-shopfront//404' );
+	} )->with( 'site-editor entities' );
+
+	it( 'returns 404 for a composite id in a theme that isn\'t active', function ( array $entity ): void {
+		registerNumericSlugThemeFile( $entity );
+
+		$this->getJson( "/visual-editor/api/{$entity['route']}/other-theme%2F%2F404" )->assertNotFound();
+	} )->with( 'site-editor entities' );
+
+	it( 'upserts the file-only record by its composite id and leaves the row alone', function ( array $entity ): void {
+		$row = numericSlugRow( $entity, [ 'id' => 404, 'slug' => 'archive', 'title' => 'Archive' ] );
+		registerNumericSlugThemeFile( $entity );
+
+		$response = $this->putJson( "/visual-editor/api/{$entity['route']}/digital-shopfront%2F%2F404", [
+			'title'   => 'Renamed',
+			'content' => [ 'raw' => '', 'blocks' => [] ],
+		] )->assertOk()->assertJsonPath( 'slug', '404' );
+
+		$override = $entity['model']::query()->where( 'theme', 'digital-shopfront' )->where( 'slug', '404' )->first();
+
+		expect( $override )->not->toBeNull()
+			->and( $override->title )->toBe( 'Renamed' )
+			->and( $response->json( 'id' ) )->toBe( $override->id )
+			->and( $row->fresh()->title )->toBe( 'Archive' );
+	} )->with( 'site-editor entities' );
+
+	it( 'returns 422 when the body names a different theme than the composite id', function ( array $entity ): void {
+		registerNumericSlugThemeFile( $entity );
+
+		$this->putJson( "/visual-editor/api/{$entity['route']}/digital-shopfront%2F%2F404", [
+			'theme' => 'other-theme',
+			'title' => 'Renamed',
+		] )->assertUnprocessable()->assertJsonValidationErrors( 'theme' );
+
+		expect( $entity['model']::query()->where( 'slug', '404' )->exists() )->toBeFalse();
+	} )->with( 'site-editor entities' );
+
+	it( 'reverts the override by composite id and leaves the row alone', function ( array $entity ): void {
+		$row      = numericSlugRow( $entity, [ 'id' => 404, 'slug' => 'archive' ] );
+		$override = numericSlugRow( $entity );
+
+		$this->deleteJson( "/visual-editor/api/{$entity['route']}/digital-shopfront%2F%2F404" )->assertNoContent();
+
+		expect( $entity['model']::query()->whereKey( $override->id )->exists() )->toBeFalse()
+			->and( $entity['model']::query()->whereKey( $row->id )->exists() )->toBeTrue();
+	} )->with( 'site-editor entities' );
+
+	it( 'returns 404 when there is no override to revert for the composite id', function ( array $entity ): void {
+		$row = numericSlugRow( $entity, [ 'id' => 404, 'slug' => 'archive' ] );
+		registerNumericSlugThemeFile( $entity );
+
+		$this->deleteJson( "/visual-editor/api/{$entity['route']}/digital-shopfront%2F%2F404" )->assertNotFound();
+
+		expect( $entity['model']::query()->whereKey( $row->id )->exists() )->toBeTrue();
+	} )->with( 'site-editor entities' );
+
+	it( 'returns 422 when ?theme= names a different theme than the composite id', function ( array $entity ): void {
+		$override = numericSlugRow( $entity );
+
+		$this->deleteJson( "/visual-editor/api/{$entity['route']}/digital-shopfront%2F%2F404?theme=other-theme" )
+			->assertUnprocessable()
+			->assertJsonValidationErrors( 'theme' );
+
+		expect( $entity['model']::query()->whereKey( $override->id )->exists() )->toBeTrue();
+	} )->with( 'site-editor entities' );
+} );
+
+it( 'returns 404 instead of upserting the active theme\'s file through another theme\'s composite id (#1094)', function ( array $entity ): void {
+	registerNumericSlugThemeFile( $entity );
+
+	$this->putJson( "/visual-editor/api/{$entity['route']}/other-theme%2F%2F404", [ 'title' => 'Renamed' ] )->assertNotFound();
+
+	expect( $entity['model']::query()->where( 'slug', '404' )->exists() )->toBeFalse();
+} )->with( 'site-editor entities' );
+
+it( 'updates an override in another theme through its composite id (#1094)', function ( array $entity ): void {
+	$override = numericSlugRow( $entity, [ 'theme' => 'other-theme', 'title' => 'Other' ] );
+
+	$this->putJson( "/visual-editor/api/{$entity['route']}/other-theme%2F%2F404", [ 'title' => 'Renamed' ] )->assertOk();
+
+	expect( $override->fresh()->title )->toBe( 'Renamed' );
+} )->with( 'site-editor entities' );

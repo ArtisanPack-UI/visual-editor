@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Blade;
 
 function forkRenderTree( array $tree ): string
 {
-	return Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+	return Blade::render( '<x-ve-blocks :tree="$tree" :trust-resolved="true" />', [ 'tree' => $tree ] );
 }
 
 function forkBlockNode( string $name, array $attributes = [], array $innerBlocks = [] ): array

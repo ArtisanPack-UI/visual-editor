@@ -17,6 +17,7 @@ declare( strict_types=1 );
 use ArtisanPackUI\VisualEditor\Resources\PostResolver;
 use ArtisanPackUI\VisualEditor\Resources\QueryInliner;
 use ArtisanPackUI\VisualEditor\Services\QueryResolverContract;
+use ArtisanPackUI\VisualEditor\Support\ResolvedAttributes;
 use Tests\Fixtures\FakeQueryResolver;
 
 function savedResolvedPost( int $id = 1, string $title = 'Hello world' ): object
@@ -182,10 +183,33 @@ describe( 'QueryInliner', function (): void {
 		expect( $inlined[0]['attributes'] )->not->toHaveKey( '_resolvedShareLinks' );
 	} );
 
-	it( 'keeps the tree as given without a host post', function (): void {
+	it( 'strips the saved tree without a host post too (#1096)', function (): void {
 		$inlined = $this->inliner->inline( [ spoofedShareBlock() ] );
 
-		expect( shareUrlFor( $inlined[0], 'facebook' ) )->toBe( 'https://evil.test/' );
+		expect( $inlined[0]['attributes'] )->not->toHaveKey( '_resolvedShareLinks' );
+	} );
+
+	it( 'strips saved keys from blocks no post resolver stamps (#1096)', function (): void {
+		$inlined = $this->inliner->inline( [
+			[
+				'name'        => 'core/group',
+				'attributes'  => [],
+				'innerBlocks' => [
+					[ 'name' => 'artisanpack/breadcrumbs', 'attributes' => [ '_resolvedTrail' => [ [ 'url' => 'https://evil.test/' ] ] ], 'innerBlocks' => [] ],
+					[ 'name' => 'artisanpack/loginout', 'attributes' => [ '_resolvedLoginoutUrl' => 'https://evil.test/' ], 'innerBlocks' => [] ],
+				],
+			],
+		] );
+
+		expect( json_encode( $inlined ) )->not->toContain( 'evil.test' );
+	} );
+
+	it( 'computes the Single Content state over a saved one when asked not to strip', function (): void {
+		$inlined = $this->inliner->inline( [
+			[ 'name' => 'artisanpack/single-content', 'attributes' => [ '_resolvedHasPost' => true ], 'innerBlocks' => [] ],
+		], null, false );
+
+		expect( $inlined[0]['attributes']['_resolvedHasPost'] )->toBeFalse();
 	} );
 
 	it( 'keeps the tree as given when asked not to strip it', function (): void {
@@ -280,5 +304,29 @@ describe( 'QueryInliner', function (): void {
 		$stamped = $resolver->stampTree( $tree, $host );
 
 		expect( $stamped[0]['innerBlocks'][0]['innerBlocks'][0]['innerBlocks'][0]['attributes']['_resolvedTitle'] )->toBe( 'Looped' );
+	} );
+} );
+
+describe( 'ResolvedAttributes::strip() (#1096)', function (): void {
+	it( 'removes every _resolved key at any depth and in either attribute shape', function (): void {
+		$stripped = ResolvedAttributes::strip( [
+			[
+				'name'        => 'core/group',
+				'attributes'  => [ 'tagName' => 'section', '_resolvedAnything' => 'x' ],
+				'innerBlocks' => [
+					[ 'name' => 'core/site-title', 'attrs' => [ 'level' => 1, '_resolvedSiteUrl' => 'https://evil.test/' ], 'innerBlocks' => [] ],
+				],
+			],
+			'not a block',
+		] );
+
+		expect( $stripped )->toHaveCount( 1 )
+			->and( $stripped[0]['attributes'] )->toBe( [ 'tagName' => 'section' ] )
+			->and( $stripped[0]['innerBlocks'][0]['attrs'] )->toBe( [ 'level' => 1 ] );
+	} );
+
+	it( 'keeps keys that only contain the prefix later on', function (): void {
+		expect( ResolvedAttributes::stripAttributes( [ 'not_resolved' => 1, 'resolved' => 2, 0 => 'x' ] ) )
+			->toBe( [ 'not_resolved' => 1, 'resolved' => 2, 0 => 'x' ] );
 	} );
 } );

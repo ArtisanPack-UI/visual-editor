@@ -41,6 +41,7 @@ use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingResolver;
 use ArtisanPackUI\VisualEditor\Services\HostRelatedTermsResolver;
 use ArtisanPackUI\VisualEditor\Services\QueryResolverContract;
+use ArtisanPackUI\VisualEditor\Support\ResolvedAttributes;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Model;
@@ -100,7 +101,8 @@ class QueryInliner
 	 * carrying expanded post-template instances under `innerBlocks`.
 	 *
 	 * @since 1.0.0
-	 * @since 1.20.0 Added `$stripSavedResolved` (#1078).
+	 * @since 1.20.0 Added `$stripSavedResolved` (#1078), which strips every
+	 *               `_resolved*` key with or without a host post (#1096).
 	 *
 	 * @param  array<int, array<string, mixed>>  $tree
 	 * @param  object|null                       $hostPost  Optional host
@@ -112,76 +114,35 @@ class QueryInliner
 	 *                                                     query; the other
 	 *                                                     expansions ignore
 	 *                                                     it.
-	 * @param  bool                              $stripSavedResolved  Whether to strip the
-	 *                                                                `_resolved*` keys
-	 *                                                                `PostResolver` and the
-	 *                                                                query controls are
-	 *                                                                stamped with from the
-	 *                                                                tree before
-	 *                                                                expanding it, when a
-	 *                                                                host post is given
-	 *                                                                (#1078). The tree is
-	 *                                                                saved content about to
-	 *                                                                be stamped against that
-	 *                                                                post, so its own values
-	 *                                                                must not win. Pass
-	 *                                                                false when the tree
+	 * @param  bool                              $stripSavedResolved  Whether to strip every
+	 *                                                                saved `_resolved*`
+	 *                                                                attribute from the tree
+	 *                                                                before expanding it,
+	 *                                                                with or without a host
+	 *                                                                post (#1078, #1096). The
+	 *                                                                tree is saved content,
+	 *                                                                so its own values must
+	 *                                                                not win over what the
+	 *                                                                resolvers compute. Pass
+	 *                                                                false when the tree was
+	 *                                                                already stripped, or
 	 *                                                                carries values the host
-	 *                                                                resolved.
+	 *                                                                resolved; see
+	 *                                                                {@see ResolvedAttributes}.
 	 *                                                                Query templates are
-	 *                                                                always stripped.
+	 *                                                                always stripped of the
+	 *                                                                keys `PostResolver`
+	 *                                                                stamps.
 	 *
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function inline( array $tree, ?object $hostPost = null, bool $stripSavedResolved = true ): array
 	{
-		if ( $stripSavedResolved && null !== $hostPost ) {
-			$tree = $this->stripSavedControlAttributes( $this->postResolver->stripSavedAttributes( $tree ) );
+		if ( $stripSavedResolved ) {
+			$tree = ResolvedAttributes::strip( $tree );
 		}
 
 		return $this->inlineTree( $tree, $hostPost );
-	}
-
-	/**
-	 * Remove the `_resolved*` attributes the query controls get stamped
-	 * with (pagination, total, title, no-results) from a saved tree, so
-	 * a saved `_resolvedNextPageUrl` can't replace the paginator's
-	 * (#1078). Other blocks are left as they are.
-	 *
-	 * @since 1.20.0
-	 *
-	 * @param  array<int, mixed>  $tree  Saved block tree in the `attributes` shape.
-	 *
-	 * @return array<int, array<string, mixed>>
-	 */
-	protected function stripSavedControlAttributes( array $tree ): array
-	{
-		$out = [];
-
-		foreach ( $tree as $block ) {
-			if ( ! is_array( $block ) ) {
-				continue;
-			}
-
-			$name = isset( $block['name'] ) && is_string( $block['name'] ) ? $block['name'] : '';
-			$slug = str_contains( $name, '/' ) ? substr( $name, strpos( $name, '/' ) + 1 ) : $name;
-
-			if ( isset( self::QUERY_CONTROL_RESOLVERS[ $slug ] ) && isset( $block['attributes'] ) && is_array( $block['attributes'] ) ) {
-				$block['attributes'] = array_filter(
-					$block['attributes'],
-					static fn ( mixed $key ): bool => ! is_string( $key ) || ! str_starts_with( $key, '_resolved' ),
-					ARRAY_FILTER_USE_KEY,
-				);
-			}
-
-			if ( isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) ) {
-				$block['innerBlocks'] = $this->stripSavedControlAttributes( $block['innerBlocks'] );
-			}
-
-			$out[] = $block;
-		}
-
-		return $out;
 	}
 
 	/**
@@ -295,7 +256,7 @@ class QueryInliner
 		// block sits in a single-post template, so PostResolver alone
 		// stamps the inner tree against the host post downstream.
 		if ( 0 === $postId ) {
-			$attributes = array_merge( [ '_resolvedHasPost' => null !== $this->hostPost ], $attributes );
+			$attributes = array_merge( $attributes, [ '_resolvedHasPost' => null !== $this->hostPost ] );
 
 			return array_merge( $block, [
 				'attributes'  => $attributes,
@@ -333,7 +294,7 @@ class QueryInliner
 
 		if ( null === $post ) {
 			return array_merge( $block, [
-				'attributes'  => array_merge( [ '_resolvedHasPost' => false ], $attributes ),
+				'attributes'  => array_merge( $attributes, [ '_resolvedHasPost' => false ] ),
 				'innerBlocks' => [],
 			] );
 		}
@@ -351,7 +312,7 @@ class QueryInliner
 		$stamped = $this->resolveIterationBindings( $stamped, $post );
 
 		return array_merge( $block, [
-			'attributes'  => array_merge( [ '_resolvedHasPost' => true ], $attributes ),
+			'attributes'  => array_merge( $attributes, [ '_resolvedHasPost' => true ] ),
 			'innerBlocks' => $stamped,
 		] );
 	}
@@ -1039,7 +1000,8 @@ class QueryInliner
 
 		// Defaults are merged behind the existing attributes so the
 		// host's `_resolved*` overrides win — mirrors PostResolver. Saved
-		// values are stripped before this by `inline()` (#1078).
+		// values are stripped before this by `inline()` or the render
+		// entry point (#1078, #1096).
 		/** @var array<string, mixed> $defaults */
 		$defaults = $this->{$method}( $paginator, $queryAttrs, $attributes );
 

@@ -1,10 +1,11 @@
 <?php
 
 /**
- * Non-string `?theme=` values on the site-editor endpoints (#1075).
+ * Non-string query values on the site-editor endpoints (#1075, #1092).
  *
- * `?theme[]=x` arrives as an array. The endpoints answer with a 422 in
- * the existing validation shape instead of a 500 from a string cast.
+ * `?theme[]=x` (or `?status[]=x`, `?area[]=x`, …) arrives as an array.
+ * The endpoints answer with a 422 in the existing validation shape
+ * instead of a 500 from a string cast.
  *
  * @since 1.20.0
  */
@@ -91,4 +92,64 @@ it( 'still filters by a string theme', function (): void {
 	$this->getJson( '/visual-editor/api/template-parts?theme=other-theme' )
 		->assertOk()
 		->assertExactJson( [] );
+} );
+
+it( 'returns 422 for an array value on the list filters (#1092)', function ( string $path, string $key ): void {
+	( new ArtisanPackUI\VisualEditor\VisualEditorServiceProvider( app() ) )->registerSiteEditorResolvers();
+
+	$this->getJson( "{$path}?{$key}[]=x" )
+		->assertUnprocessable()
+		->assertJsonValidationErrors( $key )
+		->assertJsonPath( "errors.{$key}.0", "The {$key} query parameter must be a string." );
+} )->with( [
+	'templates status'     => [ '/visual-editor/api/templates', 'status' ],
+	'templates theme'      => [ '/visual-editor/api/templates', 'theme' ],
+	'templates slug'       => [ '/visual-editor/api/templates', 'slug' ],
+	'template parts area'  => [ '/visual-editor/api/template-parts', 'area' ],
+	'template parts slug'  => [ '/visual-editor/api/template-parts', 'slug' ],
+	'patterns source'      => [ '/visual-editor/api/patterns', 'source' ],
+	'patterns post type'   => [ '/visual-editor/api/patterns', 'post_type' ],
+] );
+
+it( 'still filters by string list values (#1092)', function (): void {
+	TemplatePart::create( [
+		'theme'         => 'digital-shopfront',
+		'slug'          => 'header',
+		'title'         => 'Header',
+		'area'          => 'header',
+		'status'        => 'publish',
+		'is_custom'     => false,
+		'block_content' => [],
+		'author_id'     => null,
+	] );
+
+	Template::create( [
+		'theme'         => 'digital-shopfront',
+		'slug'          => 'single',
+		'title'         => 'Single',
+		'status'        => 'draft',
+		'is_custom'     => false,
+		'block_content' => [],
+		'author_id'     => null,
+	] );
+
+	( new ArtisanPackUI\VisualEditor\VisualEditorServiceProvider( app() ) )->registerSiteEditorResolvers();
+
+	$this->getJson( '/visual-editor/api/template-parts?area=header&slug=header' )
+		->assertOk()
+		->assertJsonPath( '0.slug', 'header' );
+
+	$this->getJson( '/visual-editor/api/template-parts?area=footer' )
+		->assertOk()
+		->assertExactJson( [] );
+
+	$this->getJson( '/visual-editor/api/templates?status=draft' )
+		->assertOk()
+		->assertJsonPath( '0.slug', 'single' );
+
+	$this->getJson( '/visual-editor/api/templates?status=publish&slug=single' )
+		->assertOk()
+		->assertExactJson( [] );
+
+	$this->getJson( '/visual-editor/api/patterns?source=theme&post_type=page' )->assertOk();
 } );

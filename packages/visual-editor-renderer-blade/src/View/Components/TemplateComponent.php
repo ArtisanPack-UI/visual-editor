@@ -33,6 +33,7 @@ use ArtisanPackUI\VisualEditor\Resources\PatternInliner;
 use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesEmissionTracker;
 use ArtisanPackUI\VisualEditor\SiteEditor\NavigationBlockRefResolver;
+use ArtisanPackUI\VisualEditor\Support\ResolvedAttributes;
 use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\BlockTreeReferenceResolver;
@@ -119,10 +120,12 @@ class TemplateComponent extends Component
 		// Template parts, synced patterns and navigation menus resolve
 		// through the same passes `BlocksComponent` runs. The render
 		// runs with the theme recorded so a navigation overlay part
-		// resolves its own menus against it too (#973).
+		// resolves its own menus against it too (#973). The template is
+		// saved content, so its `_resolved*` attributes are stripped
+		// before the renderer stamps its own (#1096).
 		$references = $this->app->make( BlockTreeReferenceResolver::class );
 		$resolved   = $references->resolveNavigation(
-			$references->inlineReferences( $blocks, $theme ),
+			ResolvedAttributes::strip( $references->inlineReferences( $blocks, $theme ) ),
 			$theme,
 		);
 
