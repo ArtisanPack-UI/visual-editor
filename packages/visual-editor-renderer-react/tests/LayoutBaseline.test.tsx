@@ -166,11 +166,15 @@ describe('LayoutBaseline nested block gap reset (M-15)', () => {
 
 describe('LayoutBaseline lightbox defaults (#1070)', () => {
     const rules = [
-        '.wp-lightbox-container { display: block; }',
+        'html .wp-lightbox-container { display: block; }',
         'html:not(.ap-lightbox-ready) .wp-lightbox-container img { cursor: auto; }',
     ];
 
-    it('keeps a lightbox figure an ordinary image until the overlay runs', () => {
+    // These check rule text: jsdom's getComputedStyle ignores specificity, so
+    // it can't show which rule wins. The `html` prefix is what beats the
+    // block library's same-specificity `.wp-lightbox-container` rule in any
+    // load order a host picks.
+    it('carries the lightbox rules with an html prefix that out-specifies the block library', () => {
         for (const rule of rules) {
             expect(LAYOUT_BASELINE_CSS).toContain(rule);
         }

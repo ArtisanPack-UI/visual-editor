@@ -3,6 +3,7 @@
  */
 
 import { afterEach, describe, it, expect, vi } from 'vitest';
+import type { ReactElement } from 'react';
 import { render } from '@testing-library/react';
 
 vi.mock('@wordpress/i18n', () => ({
@@ -91,6 +92,7 @@ vi.mock('@wordpress/element', async () => {
     return {
         useEffect: React.useEffect,
         useMemo: React.useMemo,
+        useRef: React.useRef,
         useState: React.useState,
     };
 });
@@ -242,6 +244,10 @@ describe('Gallery set to None with a theme lightbox default (#1071)', () => {
         expect(followsThemeLightbox('none', [unset])).toBe(false);
         expect(followsThemeLightbox('none', [unset], { enabled: false })).toBe(false);
     });
+
+    it('never follows the theme for an empty Gallery', () => {
+        expect(followsThemeLightbox('none', [], themeOn)).toBe(false);
+    });
 });
 
 describe('Gallery new images under a theme lightbox default (#1071)', () => {
@@ -250,27 +256,51 @@ describe('Gallery new images under a theme lightbox default (#1071)', () => {
         attributes: { id, url: `/${id}.jpg`, ...attributes },
     });
 
-    function renderGallery(innerBlocks: unknown[]): Record<string, Record<string, unknown>> {
+    const gallery = (): ReactElement => (
+        <GalleryEdit
+            attributes={{ linkTo: 'none' }}
+            setAttributes={vi.fn()}
+            clientId="test-gallery-id"
+            isSelected={false}
+        />
+    );
+
+    function setImages(innerBlocks: unknown[]): void {
         galleryStore.innerBlocks = innerBlocks;
         galleryStore.media = innerBlocks.map((block) => ({
             id: (block as { attributes: { id: number } }).attributes.id,
             source_url: '/full.jpg',
         }));
-        galleryStore.lightbox = { allowEditing: true, enabled: true };
-        galleryStore.updateBlockAttributes.mockClear();
+    }
 
-        render(
-            <GalleryEdit
-                attributes={{ linkTo: 'none' }}
-                setAttributes={vi.fn()}
-                clientId="test-gallery-id"
-                isSelected={false}
-            />
-        );
-
+    function writes(): Record<string, Record<string, unknown>> {
         return Object.fromEntries(
             galleryStore.updateBlockAttributes.mock.calls.map(([clientId, attributes]) => [clientId, attributes])
         );
+    }
+
+    function renderGallery(innerBlocks: unknown[]): Record<string, Record<string, unknown>> {
+        setImages(innerBlocks);
+        galleryStore.lightbox = { allowEditing: true, enabled: true };
+        galleryStore.updateBlockAttributes.mockClear();
+
+        render(gallery());
+
+        return writes();
+    }
+
+    /** Mount with `before`, then add `added` to the Gallery. */
+    function addToGallery(before: unknown[], added: unknown[]): Record<string, Record<string, unknown>> {
+        setImages(before);
+        galleryStore.lightbox = { allowEditing: true, enabled: true };
+
+        const { rerender } = render(gallery());
+
+        galleryStore.updateBlockAttributes.mockClear();
+        setImages([...before, ...added]);
+        rerender(gallery());
+
+        return writes();
     }
 
     afterEach(() => {
@@ -299,5 +329,26 @@ describe('Gallery new images under a theme lightbox default (#1071)', () => {
         expect(writes['image-1']).toHaveProperty('lightbox', undefined);
         expect(writes['image-2']).toHaveProperty('lightbox', { enabled: false });
         expect(writes['image-2']).toHaveProperty('href', '/full.jpg');
+    });
+
+    it('lets an image added after mount follow its siblings', () => {
+        const added = addToGallery([image(1)], [image(2)]);
+
+        expect(Object.keys(added)).toEqual(['image-2']);
+        expect(added['image-2']).toHaveProperty('lightbox', undefined);
+        expect(added['image-2']).toHaveProperty('linkDestination', 'none');
+    });
+
+    it('turns an image added after mount off once an author picked None', () => {
+        const added = addToGallery([image(1, { lightbox: { enabled: false } })], [image(2)]);
+
+        expect(added['image-2']).toHaveProperty('lightbox', { enabled: false });
+    });
+
+    it('keeps None for images added to a Gallery that was empty', () => {
+        const added = addToGallery([], [image(1), image(2)]);
+
+        expect(added['image-1']).toHaveProperty('lightbox', { enabled: false });
+        expect(added['image-2']).toHaveProperty('lightbox', { enabled: false });
     });
 });

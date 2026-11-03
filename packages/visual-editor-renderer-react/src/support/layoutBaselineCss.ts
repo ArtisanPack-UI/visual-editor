@@ -186,14 +186,17 @@ export const DEFAULT_TOKENS_CSS =
  *
  * `display: block` matches `lightbox.css`, so an image with no width keeps its
  * own size instead of stretching across the block library's flex column. The
- * cursor reset applies only until the overlay marks the document ready, and
- * its `html:not()` prefix out-specifies the block library's
- * `.wp-lightbox-container img` rule whatever order the two load in.
+ * cursor reset applies only until the overlay marks the document ready.
+ *
+ * Hosts choose where the block library loads, so both rules carry an `html`
+ * prefix that out-specifies its `.wp-lightbox-container` rules in any load
+ * order. The prefix adds an element, not a class, so its aligned-image
+ * `display: table` rules (two classes) still win.
  *
  * @since 1.20.0
  */
 export const LIGHTBOX_BASELINE_CSS =
-    '.wp-lightbox-container { display: block; }\n' +
+    'html .wp-lightbox-container { display: block; }\n' +
     'html:not(.ap-lightbox-ready) .wp-lightbox-container img { cursor: auto; }';
 
 export const LAYOUT_BASELINE_CSS =

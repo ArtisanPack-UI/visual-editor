@@ -148,14 +148,14 @@ it( 'keeps lightbox figures ordinary images without the lightbox assets (#1070)'
 
 	expect( $rendered )->not->toContain( 'frontend/lightbox.css' );
 	expect( $baseline )
-		->toContain( '.wp-lightbox-container { display: block; }' )
+		->toContain( 'html .wp-lightbox-container { display: block; }' )
 		->toContain( 'html:not(.ap-lightbox-ready) .wp-lightbox-container img { cursor: auto; }' );
 } );
 
 it( 'prints the lightbox defaults after the block library they override (#1070)', function (): void {
 	$rendered = Blade::render( '<x-ve-blocks-styles />' );
 
-	expect( strpos( $rendered, '.wp-lightbox-container { display: block; }' ) )
+	expect( strpos( $rendered, 'html .wp-lightbox-container { display: block; }' ) )
 		->toBeGreaterThan( strpos( $rendered, 'data-ve-block-library>' ) );
 } );
 

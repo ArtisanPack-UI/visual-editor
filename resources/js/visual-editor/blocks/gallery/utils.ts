@@ -102,7 +102,8 @@ export function getHrefAndDestination(
  * default is on gives every image `lightbox.enabled: false`. When no image has
  * a setting of its own, the Gallery was saved before the theme default
  * arrived and its images enlarge with the theme, so a new image leaves
- * `lightbox` unset and enlarges with them.
+ * `lightbox` unset and enlarges with them. An empty list has nothing to
+ * follow, so it never does.
  */
 export function followsThemeLightbox(
     galleryDestination: string | undefined,
@@ -112,6 +113,7 @@ export function followsThemeLightbox(
     return (
         lightboxSetting?.enabled === true &&
         galleryDestination === LINK_DESTINATION_NONE &&
+        images.length > 0 &&
         images.every(
             (image) => typeof image.attributes?.lightbox?.enabled !== 'boolean'
         )

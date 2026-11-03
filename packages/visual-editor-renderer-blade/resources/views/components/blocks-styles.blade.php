@@ -167,9 +167,10 @@
 	runs, including with `:interactive="false"`, which skips
 	`frontend/lightbox.css`. `display: block` matches that file, so the
 	block library's flex column no longer stretches an image with no
-	width. The zoom-in cursor waits for `ap-lightbox-ready`, and the
-	`html:not()` prefix beats the block library's
-	`.wp-lightbox-container img` rule in any load order.
+	width. The zoom-in cursor waits for `ap-lightbox-ready`. The `html`
+	prefixes beat the block library's `.wp-lightbox-container` rules in
+	any load order, while its aligned-image `display: table` rules (two
+	classes) still win.
 
 	#927 — the flex defaults (`flex-wrap: wrap; align-items: center`) sit
 	in a zero-specificity `:where()`, so the Flex panel's `ap-flex-nowrap`
@@ -200,7 +201,7 @@
 :where(.wp-block-gallery.has-nested-images) { gap: var(--wp--style--unstable-gallery-gap, 16px); }
 :where(.wp-block-image.size-full) { width: auto; height: auto; }
 :where(.wp-block-image, .wp-block-post-featured-image, .wp-block-media-text__media) picture { display: contents; }
-.wp-lightbox-container { display: block; }
+html .wp-lightbox-container { display: block; }
 html:not(.ap-lightbox-ready) .wp-lightbox-container img { cursor: auto; }
 :where(.is-layout-constrained, .is-layout-flow) > .alignleft { float: left; margin-inline-start: 0; margin-inline-end: 2em; }
 :where(.is-layout-constrained, .is-layout-flow) > .alignright { float: right; margin-inline-start: 2em; margin-inline-end: 0; }
