@@ -230,6 +230,26 @@ describe( 'GET /visual-editor/api/patterns', function (): void {
 } );
 
 describe( 'GET /visual-editor/api/patterns/{slug}', function (): void {
+	// #1074. An all-digit slug that matches no row id falls back to the slug.
+	it( 'resolves an all-digit slug when no row has that id', function (): void {
+		BlockPattern::create( [
+			'slug'          => '404',
+			'title'         => 'Not Found',
+			'source'        => 'user',
+			'synced'        => true,
+			'categories'    => [],
+			'block_types'   => [],
+			'block_content' => [],
+			'author_id'     => null,
+		] );
+
+		rebuildSiteEditorResolversForPatternTest();
+
+		$this->getJson( '/visual-editor/api/patterns/404' )
+			->assertOk()
+			->assertJsonPath( 'slug', 'user/404' );
+	} );
+
 	it( 'returns the resolved pattern with the user/ prefix in the response', function (): void {
 		BlockPattern::create( [
 			'slug'          => 'cta',
@@ -484,6 +504,26 @@ describe( 'DELETE /visual-editor/api/patterns/{slug}', function (): void {
 
 		$this->deleteJson( '/visual-editor/api/patterns/' . $pattern->id )
 			->assertNoContent();
+
+		expect( BlockPattern::query()->whereKey( $pattern->id )->exists() )->toBeFalse();
+	} );
+
+	// #1074. An all-digit slug that matches no row id falls back to the slug.
+	it( 'deletes an all-digit slug when no row has that id', function (): void {
+		$pattern = BlockPattern::create( [
+			'slug'          => '404',
+			'title'         => 'Not Found',
+			'source'        => 'user',
+			'synced'        => true,
+			'categories'    => [],
+			'block_types'   => [],
+			'block_content' => [],
+			'author_id'     => null,
+		] );
+
+		expect( $pattern->id )->not->toBe( 404 );
+
+		$this->deleteJson( '/visual-editor/api/patterns/404' )->assertNoContent();
 
 		expect( BlockPattern::query()->whereKey( $pattern->id )->exists() )->toBeFalse();
 	} );

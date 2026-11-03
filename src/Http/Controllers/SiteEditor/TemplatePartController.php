@@ -29,6 +29,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor;
 
+use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\Concerns\ReadsSiteEditorRouteInput;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\StoreTemplatePartRequest;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\UpdateTemplatePartRequest;
 use ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\SiteEditor\TemplatePartAdapter;
@@ -48,6 +49,8 @@ use Illuminate\Support\Facades\Validator;
 
 class TemplatePartController extends Controller
 {
+	use ReadsSiteEditorRouteInput;
+
 	protected const CMS_TEMPLATE_PART_FQCN = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Models\\TemplatePart';
 
 	protected const CMS_RESOLVER_BINDING = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Resolution\\TemplatePartResolver';
@@ -93,7 +96,11 @@ class TemplatePartController extends Controller
 			);
 		}
 
-		$theme = trim( (string) $request->query( 'theme', '' ) );
+		$theme = $this->themeQuery( $request );
+
+		if ( null === $theme ) {
+			return $this->invalidThemeQuery();
+		}
 
 		if ( '' !== $theme ) {
 			$parts = array_filter(
@@ -271,21 +278,29 @@ class TemplatePartController extends Controller
 
 		$model = self::CMS_TEMPLATE_PART_FQCN;
 
+		$requestTheme = (string) ( $validated['theme'] ?? '' );
+		$scopeTheme   = '' !== $requestTheme ? $requestTheme : (string) ( $this->activeThemeSlug() ?? '' );
+
 		// H7 (#432). Numeric URL parameter → primary-key update on
 		// the row that already knows its `(theme, slug, area)`. Slug
 		// path keeps the existing upsert behavior so a theme-only
 		// part can be DB-overridden through a PUT. `0` is the file-only
 		// sentinel and must fall through to the slug branch (#438).
-		if ( ctype_digit( $slug ) && (int) $slug > 0 ) {
-			$existing = $model::query()->find( (int) $slug );
+		// All-digit input such as `404` can be a slug too (#1074): a row
+		// id in the target theme wins, then a `(theme, slug)` match, and
+		// an id in another theme only when the body names no theme.
+		$existing = $this->couldBeRowId( $slug )
+			? $this->numericUpdateTarget( $slug, $requestTheme, $scopeTheme )
+			: false;
 
-			if ( null === $existing ) {
-				return response()->json(
-					[ 'message' => 'Template part not found.' ],
-					Response::HTTP_NOT_FOUND,
-				);
-			}
+		if ( null === $existing ) {
+			return response()->json(
+				[ 'message' => 'Template part not found.' ],
+				Response::HTTP_NOT_FOUND,
+			);
+		}
 
+		if ( $existing instanceof Model ) {
 			if (
 				array_key_exists( 'slug', $validated )
 				&& $validated['slug'] !== (string) $existing->slug
@@ -311,11 +326,7 @@ class TemplatePartController extends Controller
 
 			unset( $validated['slug'] );
 
-			$theme = (string) ( $validated['theme'] ?? '' );
-
-			if ( '' === $theme ) {
-				$theme = (string) ( $this->activeThemeSlug() ?? '' );
-			}
+			$theme = $scopeTheme;
 
 			if ( '' === $theme ) {
 				return response()->json( [
@@ -419,12 +430,36 @@ class TemplatePartController extends Controller
 
 		$model = self::CMS_TEMPLATE_PART_FQCN;
 
+		$requestTheme = $this->themeQuery( $request );
+
+		if ( null === $requestTheme ) {
+			return $this->invalidThemeQuery();
+		}
+
+		$theme = '' !== $requestTheme ? $requestTheme : (string) ( $this->activeThemeSlug() ?? '' );
+
 		// H7 (#432). Numeric URL parameter → primary-key delete; the
-		// row owns its theme so the `?theme=` collision risk doesn't
-		// apply. Slug path keeps the `?theme=` requirement. `0` is the
-		// file-only sentinel and must fall through (#438).
-		if ( ctype_digit( $slug ) && (int) $slug > 0 ) {
-			$existing = $model::query()->find( (int) $slug );
+		// row owns its theme. `0` is the file-only sentinel and must
+		// fall through (#438). An all-digit value such as `404`
+		// can also be a slug (#1074).
+		if ( $this->couldBeRowId( $slug ) ) {
+			$byId   = $model::query()->find( (int) $slug );
+			$bySlug = '' !== $theme
+				? $model::query()->where( 'theme', $theme )->where( 'slug', $slug )->first()
+				: null;
+
+			if ( null !== $byId && '' !== $theme && $theme !== (string) $byId->theme ) {
+				$byIdInTheme = null;
+			} else {
+				$byIdInTheme = $byId;
+			}
+
+			// A named theme marks a slug client, so its slug wins. Otherwise
+			// the editor sent a row id: one in the active theme wins, then
+			// the active theme's slug, then an id in another theme.
+			$existing = '' !== $requestTheme
+				? $bySlug ?? $byIdInTheme
+				: $byIdInTheme ?? $bySlug ?? $byId;
 
 			if ( null === $existing ) {
 				return response()->json(
@@ -434,13 +469,6 @@ class TemplatePartController extends Controller
 			}
 
 			return $this->revertOverride( $existing );
-		}
-
-		// Cast to string defensively — see {@see TemplateController::destroy()}.
-		$theme = trim( (string) $request->query( 'theme', '' ) );
-
-		if ( '' === $theme ) {
-			$theme = (string) ( $this->activeThemeSlug() ?? '' );
 		}
 
 		if ( '' === $theme ) {
@@ -496,14 +524,16 @@ class TemplatePartController extends Controller
 	 * Resolve a part through the H5 resolver by either DB id or slug.
 	 * Mirrors {@see TemplateController::findTemplateByIdOrSlug()};
 	 * numeric inputs scan the resolver's `all()` for a matching
-	 * `wpId`, slugs fall through to the slug-keyed lookup.
+	 * `wpId`, and slugs, or a numeric input no `wpId` matches, fall
+	 * through to the slug-keyed lookup (#1074).
 	 *
 	 * @since 1.0.0
+	 * @since 1.20.0 A numeric input no `wpId` matches is tried as a slug.
 	 */
 	protected function findTemplatePartByIdOrSlug( string $input ): ?ResolvedTemplatePart
 	{
-		// `0` is the file-only sentinel and must fall through (#438).
-		if ( ctype_digit( $input ) && (int) $input > 0 ) {
+		// `0` is the file-only sentinel `wpId` and never a DB id (#438).
+		if ( $this->couldBeRowId( $input ) ) {
 			$id = (int) $input;
 
 			foreach ( $this->resolver->all() as $candidate ) {
@@ -511,13 +541,76 @@ class TemplatePartController extends Controller
 					return $candidate;
 				}
 			}
-
-			return null;
 		}
 
 		$resolved = $this->resolver->find( $input );
 
 		return $resolved instanceof ResolvedTemplatePart ? $resolved : null;
+	}
+
+	/**
+	 * Whether an all-digit URL parameter names a part by slug, either as
+	 * a DB override in the given theme or as a theme-file part, so it
+	 * isn't mistaken for a row id (#1074). Mirrors
+	 * {@see TemplateController::slugNamesTemplate()}.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @param  string  $slug   The URL parameter.
+	 * @param  string  $theme  The theme the request targets, or `''` when none.
+	 *
+	 * @return bool
+	 */
+	protected function slugNamesTemplatePart( string $slug, string $theme ): bool
+	{
+		if ( '' === $theme ) {
+			return false;
+		}
+
+		$model = self::CMS_TEMPLATE_PART_FQCN;
+
+		if ( $model::query()->where( 'theme', $theme )->where( 'slug', $slug )->exists() ) {
+			return true;
+		}
+
+		// The resolver only reads the active theme, so its entry names the
+		// slug only when that's the theme the request targets.
+		$resolved = $this->resolver->find( $slug );
+
+		return $resolved instanceof ResolvedTemplatePart && $resolved->theme === $theme;
+	}
+
+	/**
+	 * Pick what a PUT to an all-digit URL value updates (#1074).
+	 *
+	 * The editor addresses a row by its id, but `404` can also be a slug.
+	 * A row with that id in the target theme wins. Otherwise a slug the
+	 * theme knows takes the `(theme, slug)` upsert path. A row with that
+	 * id in another theme is used only when the body names no theme.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @param  string  $input         The all-digit URL parameter.
+	 * @param  string  $requestTheme  The body's `theme`, or `''` when absent.
+	 * @param  string  $scopeTheme    The body's theme, else the active theme, else `''`.
+	 *
+	 * @return false|Model|null The `TemplatePart` row to update, false for the slug path, or null for a 404.
+	 */
+	protected function numericUpdateTarget( string $input, string $requestTheme, string $scopeTheme ): Model|false|null
+	{
+		$model = self::CMS_TEMPLATE_PART_FQCN;
+
+		$byId = $model::query()->find( (int) $input );
+
+		if ( null !== $byId && ( '' === $scopeTheme || $scopeTheme === (string) $byId->theme ) ) {
+			return $byId;
+		}
+
+		if ( $this->slugNamesTemplatePart( $input, $scopeTheme ) ) {
+			return false;
+		}
+
+		return '' === $requestTheme ? $byId : null;
 	}
 
 	protected function cmsFrameworkAvailable(): bool

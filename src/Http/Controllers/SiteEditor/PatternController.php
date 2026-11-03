@@ -292,10 +292,13 @@ class PatternController extends Controller
 	 *   - the slug (theme patterns whose `wpId` is null).
 	 *
 	 * Numeric ids dispatch through a single resolver scan keyed on
-	 * {@see ResolvedPattern::$wpId}; non-numeric input falls through to
-	 * {@see findPattern()} which already handles the user-prefix dance.
+	 * {@see ResolvedPattern::$wpId}; non-numeric input, and a numeric one
+	 * no id matches, falls through to {@see findPattern()}, which already
+	 * handles the user-prefix dance, so an all-digit slug stays readable
+	 * (#1074).
 	 *
 	 * @since 1.0.0
+	 * @since 1.20.0 A numeric input no id matches is tried as a slug.
 	 */
 	protected function findPatternByIdOrSlug( string $input ): ?ResolvedPattern
 	{
@@ -310,8 +313,6 @@ class PatternController extends Controller
 					return $candidate;
 				}
 			}
-
-			return null;
 		}
 
 		return $this->findPattern( $input );
@@ -321,13 +322,15 @@ class PatternController extends Controller
 	 * Resolve a pattern model row by either id or slug, for write
 	 * paths (update / destroy) that need the underlying Eloquent
 	 * record. Mirrors {@see findPatternByIdOrSlug()} but bypasses the
-	 * resolver because writes target the DB row directly.
+	 * resolver because writes target the DB row directly. A numeric
+	 * input no row id matches is tried as a slug (#1074).
 	 *
 	 * Returns null when the row doesn't exist or when cms-framework
 	 * isn't booted (callers gate on
 	 * {@see cmsFrameworkAvailable()} before invoking).
 	 *
 	 * @since 1.0.0
+	 * @since 1.20.0 A numeric input no row id matches is tried as a slug.
 	 */
 	protected function findPatternModelByIdOrSlug( string $input ): ?object
 	{
@@ -336,8 +339,12 @@ class PatternController extends Controller
 		// `0` cannot match any real DB row; skip the lookup and fall
 		// through to slug resolution (#438).
 		if ( ctype_digit( $input ) && (int) $input > 0 ) {
-			/** @var object|null */
-			return $model::query()->find( (int) $input );
+			$byId = $model::query()->find( (int) $input );
+
+			if ( null !== $byId ) {
+				/** @var object */
+				return $byId;
+			}
 		}
 
 		$storedSlug = $this->ensureUserPrefix( $input );

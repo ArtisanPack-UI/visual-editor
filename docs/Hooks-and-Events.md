@@ -431,6 +431,20 @@ Only entries that resolve to a `.css` file inside the theme's `assets/` director
 
 `$storedBlocks` is the record's stored tree, or the theme file's blocks when the save copies or first overrides a theme file. Custom CSS found there is kept, and vouched for so the model-level guard keeps it too. `$context` is `template`, `template-part`, `block` or `block-pattern`. Older cms-framework versions don't fire the filter; the model-level guard still covers their saves. See [Access Gate](site-editor/Access-Gate.md#custom-css-ability-visual-editoredit-block-css).
 
+### `ap.cmsFramework.siteEditor.reverted`
+
+**Since v1.20.0 (#1018), fired.** A PHP action fired after a template or template-part override is deleted through `DELETE /visual-editor/api/templates/{slug}` or `DELETE /visual-editor/api/template-parts/{slug}`, by slug or by row id. cms-framework 2.16.0 and later fire the same action from their own resolvers, so on those versions one listener covers both packages.
+
+**Signature:** `string $type, ?string $slug, string $theme -> void`
+
+`$type` is `template` or `template-part`. `$theme` is the deleted row's own theme, which can differ from the active theme when the delete used a row id. The action doesn't fire when a `deleting` listener cancels the delete; the endpoint returns a 409 instead. See [Templates](site-editor/Templates.md#reverting-an-override).
+
+```php
+addAction('ap.cmsFramework.siteEditor.reverted', function (string $type, ?string $slug, string $theme): void {
+    // e.g. purge cached pages that render this template
+}, 10, 3);
+```
+
 ### `ap.visualEditor.contentFilter.allowedHtml`
 
 Changes the tags and attributes that authors without the unfiltered-HTML ability can save. Each key is a tag, and its value lists the attributes it adds to the global set (`class`, `id`, `style`, `aria-*` and a few others). A tag added here wins over the list of tags removed with their contents, so it's how to allow something like `iframe`.

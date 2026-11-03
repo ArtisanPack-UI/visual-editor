@@ -30,6 +30,13 @@ it( 'lists an empty array for menus when cms-framework is not integrated', funct
 		->assertExactJson( [] );
 } );
 
+// #1075. The theme query is validated before the standalone short-circuit.
+it( 'returns 422 for an array theme on the menus index when cms-framework is not integrated', function (): void {
+	$this->getJson( '/visual-editor/api/menus?theme[]=x' )
+		->assertUnprocessable()
+		->assertJsonValidationErrors( 'theme' );
+} );
+
 it( 'returns 404 on GET menus/fallback when cms-framework is not integrated', function (): void {
 	$this->getJson( '/visual-editor/api/menus/fallback' )
 		->assertNotFound()
