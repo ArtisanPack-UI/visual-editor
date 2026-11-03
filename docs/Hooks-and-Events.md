@@ -433,7 +433,7 @@ Only entries that resolve to a `.css` file inside the theme's `assets/` director
 
 ### `ap.cmsFramework.siteEditor.reverted`
 
-**Since v1.20.0 (#1018), fired.** A PHP action fired after a template or template-part override is deleted through `DELETE /visual-editor/api/templates/{slug}` or `DELETE /visual-editor/api/template-parts/{slug}`, by slug or by row id. cms-framework fires the same action from its own resolvers, so one listener covers both packages.
+**Since v1.20.0 (#1018), fired.** A PHP action fired after a template or template-part override is deleted through `DELETE /visual-editor/api/templates/{slug}` or `DELETE /visual-editor/api/template-parts/{slug}`, by slug or by row id. cms-framework 2.16.0 and later fire the same action from their own resolvers, so on those versions one listener covers both packages.
 
 **Signature:** `string $type, ?string $slug, string $theme -> void`
 

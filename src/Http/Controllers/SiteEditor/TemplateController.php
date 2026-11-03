@@ -514,7 +514,11 @@ class TemplateController extends Controller
 			return true;
 		}
 
-		return $this->resolver->find( $slug ) instanceof ResolvedTemplate;
+		// The resolver only reads the active theme, so its entry names the
+		// slug only when that's the theme the request targets.
+		$resolved = $this->resolver->find( $slug );
+
+		return $resolved instanceof ResolvedTemplate && $resolved->theme === $theme;
 	}
 
 	/**

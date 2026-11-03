@@ -225,6 +225,17 @@ describe( 'PUT with an all-digit slug', function (): void {
 		expect( $entity['model']::query()->where( 'theme', 'digital-shopfront' )->where( 'slug', '404' )->exists() )->toBeTrue();
 	} )->with( 'site-editor entities' );
 
+	it( 'returns 404 instead of upserting the active theme\'s file into another theme', function ( array $entity ): void {
+		registerNumericSlugThemeFile( $entity );
+
+		$this->putJson( "/visual-editor/api/{$entity['route']}/404", [
+			'theme' => 'other-theme',
+			'title' => 'Renamed',
+		] )->assertNotFound();
+
+		expect( $entity['model']::query()->where( 'slug', '404' )->exists() )->toBeFalse();
+	} )->with( 'site-editor entities' );
+
 	it( 'returns 404 instead of updating a row by id in a theme the body did not name', function ( array $entity ): void {
 		$row = numericSlugRow( $entity, [ 'theme' => 'other-theme', 'slug' => 'archive', 'title' => 'Archive' ] );
 

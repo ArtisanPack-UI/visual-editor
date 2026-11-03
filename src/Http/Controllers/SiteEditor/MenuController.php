@@ -90,6 +90,12 @@ class MenuController extends Controller
 	 */
 	public function index( Request $request ): JsonResponse
 	{
+		$theme = $this->themeQuery( $request );
+
+		if ( null === $theme ) {
+			return $this->invalidThemeQuery();
+		}
+
 		if ( ! $this->cmsFrameworkAvailable() ) {
 			return response()->json( [] );
 		}
@@ -99,12 +105,6 @@ class MenuController extends Controller
 		// `content.blocks` (#440), and without the eager load the
 		// list endpoint would N+1 one items query per menu.
 		$query = $model::query()->with( 'items' )->orderBy( 'id' );
-
-		$theme = $this->themeQuery( $request );
-
-		if ( null === $theme ) {
-			return $this->invalidThemeQuery();
-		}
 
 		if ( '' !== $theme ) {
 			$query->where( 'theme', $theme );
