@@ -243,6 +243,17 @@ function expandQuery(block: Block, queries: Map<string, ResolvedQuery>): Block {
     };
 }
 
+/**
+ * The attributes without their `_resolved*` keys. The query template is
+ * saved content, so its own values must not win over what each result
+ * resolves to (#1078). Mirrors `PostResolver::stripSavedAttributes()`.
+ */
+function withoutResolvedKeys(attributes: Record<string, unknown>): Record<string, unknown> {
+    return Object.fromEntries(
+        Object.entries(attributes).filter(([key]) => !key.startsWith('_resolved')),
+    );
+}
+
 function stampPost(block: Block, post: ResolvedPost): Block {
     const next = cloneBlock(block);
 
@@ -254,14 +265,14 @@ function stampPost(block: Block, post: ResolvedPost): Block {
         next.attributes = {
             _resolvedImageUrl: post.featuredImage?.url ?? '',
             _resolvedImageAlt: post.featuredImage?.alt ?? '',
-            ...(next.attributes as Record<string, unknown>),
+            ...withoutResolvedKeys(next.attributes as Record<string, unknown>),
         };
     }
 
     if (typeof next.name === 'string' && POST_CONTEXT_BLOCKS.has(next.name)) {
         const own =
             typeof next.attributes === 'object' && next.attributes !== null
-                ? (next.attributes as Record<string, unknown>)
+                ? withoutResolvedKeys(next.attributes as Record<string, unknown>)
                 : {};
 
         next.attributes = {

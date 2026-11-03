@@ -100,6 +100,7 @@ class QueryInliner
 	 * carrying expanded post-template instances under `innerBlocks`.
 	 *
 	 * @since 1.0.0
+	 * @since 1.20.0 Added `$stripSavedResolved` (#1078).
 	 *
 	 * @param  array<int, array<string, mixed>>  $tree
 	 * @param  object|null                       $hostPost  Optional host
@@ -111,10 +112,45 @@ class QueryInliner
 	 *                                                     query; the other
 	 *                                                     expansions ignore
 	 *                                                     it.
+	 * @param  bool                              $stripSavedResolved  Whether to strip the
+	 *                                                                `_resolved*` keys
+	 *                                                                `PostResolver` stamps
+	 *                                                                from the tree before
+	 *                                                                expanding it, when a
+	 *                                                                host post is given
+	 *                                                                (#1078). The tree is
+	 *                                                                saved content about to
+	 *                                                                be stamped against that
+	 *                                                                post, so its own values
+	 *                                                                must not win. Pass
+	 *                                                                false when the caller
+	 *                                                                already stripped it, or
+	 *                                                                the tree carries values
+	 *                                                                the host resolved.
+	 *                                                                Query templates are
+	 *                                                                always stripped.
 	 *
 	 * @return array<int, array<string, mixed>>
 	 */
-	public function inline( array $tree, ?object $hostPost = null ): array
+	public function inline( array $tree, ?object $hostPost = null, bool $stripSavedResolved = true ): array
+	{
+		if ( $stripSavedResolved && null !== $hostPost ) {
+			$tree = $this->postResolver->stripSavedAttributes( $tree );
+		}
+
+		return $this->inlineTree( $tree, $hostPost );
+	}
+
+	/**
+	 * Expands every query-family block in `$tree` against `$hostPost`.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @param  array<int, mixed>  $tree
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	protected function inlineTree( array $tree, ?object $hostPost ): array
 	{
 		$previousHostPost = $this->hostPost;
 		$this->hostPost   = $hostPost;
@@ -168,7 +204,7 @@ class QueryInliner
 		// inside template parts that have already been inlined) still
 		// get their loop expanded.
 		if ( isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) ) {
-			$block['innerBlocks'] = $this->inline( $block['innerBlocks'], $this->hostPost );
+			$block['innerBlocks'] = $this->inlineTree( $block['innerBlocks'], $this->hostPost );
 		}
 
 		return $block;
@@ -266,7 +302,7 @@ class QueryInliner
 				continue;
 			}
 
-			$stamped[] = $this->postResolver->stampBlock( $this->cloneBlock( $child ), $post );
+			$stamped[] = $this->stampTemplateBlock( $child, $post );
 		}
 
 		$stamped = $this->resolveIterationBindings( $stamped, $post );
@@ -441,10 +477,7 @@ class QueryInliner
 					continue;
 				}
 
-				$iterationBlocks[] = $this->postResolver->stampBlock(
-					$this->cloneBlock( $child ),
-					$post,
-				);
+				$iterationBlocks[] = $this->stampTemplateBlock( $child, $post );
 			}
 
 			$iterationBlocks = $this->resolveIterationBindings( $iterationBlocks, $post );
@@ -585,10 +618,7 @@ class QueryInliner
 					continue;
 				}
 
-				$iterationBlocks[] = $this->postResolver->stampBlock(
-					$this->cloneBlock( $tmplChild ),
-					$post,
-				);
+				$iterationBlocks[] = $this->stampTemplateBlock( $tmplChild, $post );
 			}
 
 			$iterationBlocks = $this->resolveIterationBindings( $iterationBlocks, $post );
@@ -793,10 +823,7 @@ class QueryInliner
 					continue;
 				}
 
-				$iterationBlocks[] = $this->postResolver->stampBlock(
-					$this->cloneBlock( $tmplChild ),
-					$post,
-				);
+				$iterationBlocks[] = $this->stampTemplateBlock( $tmplChild, $post );
 			}
 
 			$iterationBlocks = $this->resolveIterationBindings( $iterationBlocks, $post );
@@ -1206,10 +1233,7 @@ class QueryInliner
 					continue;
 				}
 
-				$iterationBlocks[] = $this->postResolver->stampBlock(
-					$this->cloneBlock( $child ),
-					$post,
-				);
+				$iterationBlocks[] = $this->stampTemplateBlock( $child, $post );
 			}
 
 			array_push( $expanded, ...$this->resolveIterationBindings( $iterationBlocks, $post ) );
@@ -1450,6 +1474,26 @@ class QueryInliner
 			'attributes'  => array_merge( $attributes, [ '_resolutionError' => $reason ] ),
 			'innerBlocks' => [],
 		] );
+	}
+
+	/**
+	 * Stamp one saved template block against an iteration's post.
+	 *
+	 * The template is saved content, so the `_resolved*` keys
+	 * `PostResolver` stamps are stripped first and every iteration
+	 * renders its own post's values (#1078).
+	 *
+	 * @since 1.20.0
+	 *
+	 * @param  array<string, mixed>  $block
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function stampTemplateBlock( array $block, object $post ): array
+	{
+		$stripped = $this->postResolver->stripSavedAttributes( [ $this->cloneBlock( $block ) ] );
+
+		return $this->postResolver->stampBlock( $stripped[0], $post );
 	}
 
 	/**
