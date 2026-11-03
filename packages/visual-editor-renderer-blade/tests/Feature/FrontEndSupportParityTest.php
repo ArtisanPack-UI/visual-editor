@@ -27,7 +27,7 @@ use Illuminate\Support\Facades\Blade;
  */
 function renderSupportParityBlock( string $name, array $attributes ): string
 {
-	return Blade::render( '<x-ve-blocks :tree="$tree" />', [
+	return Blade::render( '<x-ve-blocks :tree="$tree" :trust-resolved="true" />', [
 		'tree' => [ [ 'clientId' => 'c1', 'name' => $name, 'attributes' => $attributes, 'innerBlocks' => [] ] ],
 	] );
 }
@@ -127,7 +127,7 @@ describe( 'image aspect ratio, scale and duotone (#873)', function (): void {
 	] );
 
 	it( 'applies a custom duotone and emits its filter once', function (): void {
-		$html = Blade::render( '<x-ve-blocks :tree="$tree" />', [
+		$html = Blade::render( '<x-ve-blocks :tree="$tree" :trust-resolved="true" />', [
 			'tree' => [
 				[ 'clientId' => 'a', 'name' => 'core/image', 'attributes' => [ 'url' => '/a.jpg', 'style' => [ 'color' => [ 'duotone' => [ '#000000', '#ff0000' ] ] ] ], 'innerBlocks' => [] ],
 				[ 'clientId' => 'b', 'name' => 'core/image', 'attributes' => [ 'url' => '/b.jpg', 'style' => [ 'color' => [ 'duotone' => [ '#000000', '#ff0000' ] ] ] ], 'innerBlocks' => [] ],
@@ -146,7 +146,7 @@ describe( 'image aspect ratio, scale and duotone (#873)', function (): void {
 	it( 'prints each duotone filter once across two renders on a page (R-10)', function (): void {
 		$tree = [ [ 'clientId' => 'a', 'name' => 'core/image', 'attributes' => [ 'url' => '/a.jpg', 'style' => [ 'color' => [ 'duotone' => [ '#000000', '#ff0000' ] ] ] ], 'innerBlocks' => [] ] ];
 
-		$html = Blade::render( '<x-ve-blocks :tree="$tree" /><x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+		$html = Blade::render( '<x-ve-blocks :tree="$tree" :trust-resolved="true" /><x-ve-blocks :tree="$tree" :trust-resolved="true" />', [ 'tree' => $tree ] );
 
 		preg_match_all( '/<filter id="([^"]+)">/', $html, $matches );
 

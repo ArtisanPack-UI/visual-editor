@@ -36,6 +36,7 @@ use ArtisanPackUI\VisualEditor\Resources\PatternInliner;
 use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
 use ArtisanPackUI\VisualEditor\SiteEditor\NavigationBlockRefResolver;
 use ArtisanPackUI\VisualEditor\Support\BlockShape;
+use ArtisanPackUI\VisualEditor\Support\ResolvedAttributes;
 
 class BlockTreeReferenceResolver
 {
@@ -122,9 +123,11 @@ class BlockTreeReferenceResolver
 	 *
 	 * Used for a navigation overlay part, whose blocks are fetched while
 	 * the page is already rendering and so never went through the page's
-	 * passes (#973).
+	 * passes (#973). The part is saved content, so its `_resolved*`
+	 * attributes are stripped as the page's are (#1096).
 	 *
 	 * @since 1.15.2
+	 * @since 1.20.0 Strips saved `_resolved*` attributes (#1096).
 	 *
 	 * @param  array<int, mixed>  $tree  Block tree in either the `attributes` or legacy `attrs` shape.
 	 *
@@ -135,7 +138,7 @@ class BlockTreeReferenceResolver
 		$blocks = array_values( array_filter( $tree, 'is_array' ) );
 
 		return $this->resolveNavigation(
-			$this->inlineReferences( BlockShape::normalizeTree( $blocks ), $this->currentTheme ),
+			ResolvedAttributes::strip( $this->inlineReferences( BlockShape::normalizeTree( $blocks ), $this->currentTheme ) ),
 			$this->currentTheme,
 		);
 	}

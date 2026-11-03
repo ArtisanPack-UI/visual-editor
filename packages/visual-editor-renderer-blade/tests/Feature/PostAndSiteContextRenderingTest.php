@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Blade;
 
 function renderTree( array $tree ): string
 {
-	return Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+	return Blade::render( '<x-ve-blocks :tree="$tree" :trust-resolved="true" />', [ 'tree' => $tree ] );
 }
 
 function blockNode( string $name, array $attributes = [], array $innerBlocks = [], string $clientId = 'cid' ): array

@@ -25,6 +25,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor;
 
+use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\Concerns\ReadsSiteEditorRouteInput;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\StorePatternRequest;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\UpdatePatternRequest;
 use ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\SiteEditor\PatternAdapter;
@@ -40,6 +41,8 @@ use Illuminate\Routing\Controller;
 
 class PatternController extends Controller
 {
+	use ReadsSiteEditorRouteInput;
+
 	protected const CMS_PATTERN_FQCN = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Models\\BlockPattern';
 
 	protected const CMS_RESOLVER_BINDING = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Resolution\\PatternResolver';
@@ -70,13 +73,20 @@ class PatternController extends Controller
 	 *   scope match every request (Gutenberg convention); patterns with
 	 *   a scope match only when the requested slug is present.
 	 *
+	 * A non-string `source` or `post_type` answers a 422 (#1092).
+	 *
 	 * @since 1.0.0
 	 */
 	public function index( Request $request ): JsonResponse
 	{
 		$patterns = $this->resolver->all();
 
-		$source = trim( (string) $request->query( 'source', '' ) );
+		$source = $this->stringQuery( $request, 'source' );
+
+		if ( null === $source ) {
+			return $this->invalidStringQuery( 'source' );
+		}
+
 		if ( '' !== $source ) {
 			$patterns = array_filter( $patterns, static fn ( ResolvedPattern $p ) => $p->source === $source );
 		}
@@ -86,7 +96,14 @@ class PatternController extends Controller
 			$patterns   = array_filter( $patterns, static fn ( ResolvedPattern $p ) => $p->synced === $wantSynced );
 		}
 
-		$postType = strtolower( trim( (string) $request->query( 'post_type', '' ) ) );
+		$postType = $this->stringQuery( $request, 'post_type' );
+
+		if ( null === $postType ) {
+			return $this->invalidStringQuery( 'post_type' );
+		}
+
+		$postType = strtolower( $postType );
+
 		if ( '' !== $postType ) {
 			$patterns = array_filter(
 				$patterns,
@@ -473,7 +490,7 @@ class PatternController extends Controller
 		$static = (array) config( 'artisanpack.visual-editor.site-editor.patterns', [] );
 		$merged = applyFilters( 'ap.visualEditor.patterns', $static );
 		$merged = is_array( $merged ) ? $merged : [];
-		$merged = array_merge( $merged, $static );
+		$merged = array_replace( $merged, $static );
 
 		$this->resolver = new PatternResolver( $merged );
 

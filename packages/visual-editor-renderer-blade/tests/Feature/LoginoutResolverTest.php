@@ -30,7 +30,7 @@ use Illuminate\Support\Facades\Route;
 
 function loginoutRenderTree( array $tree ): string
 {
-	return Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+	return Blade::render( '<x-ve-blocks :tree="$tree" :trust-resolved="true" />', [ 'tree' => $tree ] );
 }
 
 function loginoutBlockNode( array $attributes = [], string $name = 'artisanpack/loginout' ): array

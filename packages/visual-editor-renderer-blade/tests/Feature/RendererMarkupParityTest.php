@@ -381,7 +381,7 @@ it( 'matches the golden markup shared with the React and Vue renderers', functio
 	}
 
 	$rendered = Blade::render(
-		'<x-ve-blocks :tree="$tree" :resolve-queries="$resolveQueries" />',
+		'<x-ve-blocks :tree="$tree" :resolve-queries="$resolveQueries" :trust-resolved="true" />',
 		[ 'tree' => $tree, 'resolveQueries' => $resolveQueries ],
 	);
 

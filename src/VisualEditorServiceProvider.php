@@ -984,7 +984,12 @@ class VisualEditorServiceProvider extends ServiceProvider
 	 * config seeds the filter, then merges back on top so host-app entries
 	 * win on key collision. A non-array filter return counts as empty.
 	 *
+	 * Merges with `array_replace()`, so an all-digit key such as `'404'`
+	 * (an integer key in PHP) is overwritten instead of renumbered and
+	 * listed twice (#1093).
+	 *
 	 * @since 1.17.1
+	 * @since 1.20.0 Merges with `array_replace()` (#1093).
 	 *
 	 * @param  string  $filter     The filter hook name.
 	 * @param  string  $configKey  The config key holding the static map.
@@ -997,7 +1002,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$filtered = applyFilters( $filter, $static );
 		$filtered = is_array( $filtered ) ? $filtered : [];
 
-		return array_merge( $filtered, $static );
+		return array_replace( $filtered, $static );
 	}
 
 	/**

@@ -90,10 +90,10 @@ class MenuController extends Controller
 	 */
 	public function index( Request $request ): JsonResponse
 	{
-		$theme = $this->themeQuery( $request );
+		$theme = $this->stringQuery( $request, 'theme' );
 
 		if ( null === $theme ) {
-			return $this->invalidThemeQuery();
+			return $this->invalidStringQuery( 'theme' );
 		}
 
 		if ( ! $this->cmsFrameworkAvailable() ) {

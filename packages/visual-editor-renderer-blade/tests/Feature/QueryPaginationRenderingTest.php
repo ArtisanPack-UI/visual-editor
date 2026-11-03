@@ -42,7 +42,7 @@ function singlePagePagination( int $totalPages ): array
  */
 function renderPaginationTree( array $tree ): string
 {
-	return Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+	return Blade::render( '<x-ve-blocks :tree="$tree" :trust-resolved="true" />', [ 'tree' => $tree ] );
 }
 
 it( 'renders nothing when the results fit on one page', function (): void {

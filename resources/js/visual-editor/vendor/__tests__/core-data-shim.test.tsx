@@ -1461,6 +1461,85 @@ describe('core-data-shim save round-trip', () => {
         ).toEqual({ id: 3, slug: 'page', title: 'Updated' });
     });
 
+    it('reads, saves and deletes a template keyed by its <theme>~<slug> id (#1094)', async () => {
+        // A file-only template with an all-digit slug gets `<theme>~<slug>`
+        // as its id, so it can't collide with a row id. The id holds no
+        // slash, so every request goes to the item URL unencoded, and the
+        // record is still mirrored under the `<theme>//<slug>` key
+        // block-library looks templates up by.
+        const record = {
+            id: 'digital-shopfront~404',
+            slug: '404',
+            theme: 'digital-shopfront',
+            title: 'Not Found',
+        };
+        const { fetcher, calls } = mockFetcher(async (_url, init) => {
+            if (init.method === 'PUT') {
+                return jsonResponse({ ...record, id: 41, title: 'Edited' });
+            }
+
+            if (init.method === 'DELETE') {
+                return new Response(null, { status: 204 });
+            }
+
+            return jsonResponse(record);
+        });
+
+        configureCoreDataShim({ apiBase: '/api', fetcher });
+
+        const fetched = await coreResolveSelect().getEntityRecord(
+            'postType',
+            'wp_template',
+            'digital-shopfront~404',
+        );
+
+        expect(fetched).toMatchObject({ id: 'digital-shopfront~404' });
+        expect(calls[0]?.url).toBe('/api/templates/digital-shopfront~404');
+        expect(
+            coreSelect().getEntityRecord(
+                'postType',
+                'wp_template',
+                'digital-shopfront//404',
+            ),
+        ).toMatchObject({ id: 'digital-shopfront~404' });
+
+        coreDispatch().editEntityRecord(
+            'postType',
+            'wp_template',
+            'digital-shopfront~404',
+            { title: 'Edited' },
+        );
+
+        await coreDispatch().saveEditedEntityRecord(
+            'postType',
+            'wp_template',
+            'digital-shopfront~404',
+        );
+
+        expect(calls[1]?.url).toBe('/api/templates/digital-shopfront~404');
+        expect(calls[1]?.init.method).toBe('PUT');
+
+        // The save created the row: block-library's `<theme>//<slug>`
+        // lookup now reaches the saved record, without another fetch.
+        expect(
+            coreSelect().getEntityRecord(
+                'postType',
+                'wp_template',
+                'digital-shopfront//404',
+            ),
+        ).toMatchObject({ id: 41, title: 'Edited' });
+        expect(calls).toHaveLength(2);
+
+        await coreDispatch().deleteEntityRecord(
+            'postType',
+            'wp_template',
+            'digital-shopfront~404',
+        );
+
+        expect(calls[2]?.url).toBe('/api/templates/digital-shopfront~404');
+        expect(calls[2]?.init.method).toBe('DELETE');
+    });
+
     it('saveEditedEntityRecord PUTs even when no base record is cached', async () => {
         // Stage edits for a record that was never fetched — covers the
         // case where the UI is editing an id it knows by reference only.

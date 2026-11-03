@@ -114,7 +114,7 @@ class TemplateAdapter
 		$resolvedBlocks = ThemeBlockMarkup::rewriteCoreToFork( $resolvedBlocks );
 
 		return [
-			'id'             => $template->wpId > 0 ? $template->wpId : $template->slug,
+			'id'             => self::recordId( $template ),
 			'slug'           => $template->slug,
 			'type'           => 'wp_template',
 			'source'         => $template->source,
@@ -135,6 +135,35 @@ class TemplateAdapter
 			'author'         => $template->authorId,
 			'modified'       => $template->modifiedAt,
 		];
+	}
+
+	/**
+	 * The record's API id: its row id when it has a DB row, else its slug.
+	 *
+	 * A file-only record whose slug is all digits, such as `404`, gets the
+	 * `<theme>~<slug>` composite instead, so its id can't match another
+	 * record's row id (#1094). The controllers accept it in `show`,
+	 * `update` and `destroy`. `~` is never percent-encoded, so the id
+	 * reaches the route on servers that reject encoded slashes, and a
+	 * slug can't contain it.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @param  ResolvedTemplate  $template  The resolved template or template part.
+	 *
+	 * @return int|string
+	 */
+	public static function recordId( ResolvedTemplate $template ): int|string
+	{
+		if ( null !== $template->wpId && $template->wpId > 0 ) {
+			return $template->wpId;
+		}
+
+		if ( ctype_digit( $template->slug ) && '' !== $template->theme ) {
+			return $template->theme . '~' . $template->slug;
+		}
+
+		return $template->slug;
 	}
 
 	/**

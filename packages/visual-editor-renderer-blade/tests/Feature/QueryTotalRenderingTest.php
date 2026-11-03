@@ -19,7 +19,7 @@ use Tests\Fixtures\FakeQueryResolver;
  */
 function renderQueryTotal( array $attributes, string $name = 'artisanpack/query-total' ): string
 {
-	return Blade::render( '<x-ve-blocks :tree="$tree" />', [
+	return Blade::render( '<x-ve-blocks :tree="$tree" :trust-resolved="true" />', [
 		'tree' => [
 			[
 				'clientId'    => 'qt',
@@ -124,7 +124,7 @@ it( 'counts a whole query loop end to end', function (): void {
 	$fake->setItems( [ (object) [ 'id' => 3, 'title' => 'C' ], (object) [ 'id' => 4, 'title' => 'D' ] ] );
 	$this->app->instance( QueryResolverContract::class, $fake );
 
-	$html = Blade::render( '<x-ve-blocks :tree="$tree" />', [
+	$html = Blade::render( '<x-ve-blocks :tree="$tree" :trust-resolved="true" />', [
 		'tree' => [
 			[
 				'clientId'    => 'q',

@@ -88,19 +88,34 @@ class TemplateController extends Controller
 	 * showed under every chip (#438). Mirrors the `source` / `synced`
 	 * filtering already in {@see PatternController::index()}.
 	 *
+	 * Also honors `theme` + `slug`, which the core-data shim sends to
+	 * resolve the `<theme>//<slug>` lookups block-library makes, so a
+	 * file-only template with an all-digit slug (id `<theme>~<slug>`,
+	 * #1094) resolves to itself. Mirrors
+	 * {@see TemplatePartController::index()}.
+	 *
+	 * Each filter answers a 422 for a non-string value (#1092).
+	 *
 	 * @since 1.0.0
+	 * @since 1.20.0 Filters by `theme` and `slug`.
 	 */
 	public function index( Request $request ): JsonResponse
 	{
 		$templates = $this->resolver->all();
 
-		$status = trim( (string) $request->query( 'status', '' ) );
+		foreach ( [ 'status', 'theme', 'slug' ] as $field ) {
+			$value = $this->stringQuery( $request, $field );
 
-		if ( '' !== $status ) {
-			$templates = array_filter(
-				$templates,
-				static fn ( ResolvedTemplate $template ): bool => $template->status === $status,
-			);
+			if ( null === $value ) {
+				return $this->invalidStringQuery( $field );
+			}
+
+			if ( '' !== $value ) {
+				$templates = array_filter(
+					$templates,
+					static fn ( ResolvedTemplate $template ): bool => $template->{$field} === $value,
+				);
+			}
 		}
 
 		return response()->json( ( new TemplateAdapter() )->collection( $templates ) );
@@ -118,6 +133,7 @@ class TemplateController extends Controller
 	 * {@see findTemplateByIdOrSlug()} handles both forms.
 	 *
 	 * @since 1.0.0
+	 * @since 1.20.0 Accepts a `<theme>~<slug>` id (#1094).
 	 */
 	public function show( string $slug ): JsonResponse
 	{
@@ -210,6 +226,7 @@ class TemplateController extends Controller
 	 * slug is canonical; body slug, if present, must match.
 	 *
 	 * @since 1.0.0
+	 * @since 1.20.0 Accepts a `<theme>~<slug>` id (#1094).
 	 */
 	public function update( UpdateTemplateRequest $request, string $slug ): JsonResponse
 	{
@@ -222,7 +239,31 @@ class TemplateController extends Controller
 		$model = self::CMS_TEMPLATE_FQCN;
 
 		$requestTheme = (string) ( $validated['theme'] ?? '' );
-		$scopeTheme   = '' !== $requestTheme ? $requestTheme : (string) ( $this->activeThemeSlug() ?? '' );
+
+		// A `<theme>~<slug>` id addresses a file-only record by slug, so
+		// it takes the `(theme, slug)` upsert path in its own theme (#1094).
+		$composite = $this->splitCompositeId( $slug );
+
+		if ( null !== $composite ) {
+			if ( '' !== $requestTheme && $requestTheme !== $composite['theme'] ) {
+				return $this->compositeThemeMismatch();
+			}
+
+			$slug         = $composite['slug'];
+			$requestTheme = $composite['theme'];
+
+			// Only a record that theme has, as a row or as the active
+			// theme's file, so another theme's id can't copy the active
+			// theme's file into it (#1074).
+			if ( ! $this->slugNamesTemplate( $slug, $requestTheme ) ) {
+				return response()->json(
+					[ 'message' => 'Template not found.' ],
+					Response::HTTP_NOT_FOUND,
+				);
+			}
+		}
+
+		$scopeTheme = '' !== $requestTheme ? $requestTheme : (string) ( $this->activeThemeSlug() ?? '' );
 
 		// H7 (#432). Numeric URL parameter → look up the row directly
 		// by primary key (the row already knows its theme + slug). Slug
@@ -232,7 +273,7 @@ class TemplateController extends Controller
 		// All-digit input such as `404` can be a slug too (#1074): a row
 		// id in the target theme wins, then a `(theme, slug)` match, and
 		// an id in another theme only when the body names no theme.
-		$existing = $this->couldBeRowId( $slug )
+		$existing = null === $composite && $this->couldBeRowId( $slug )
 			? $this->numericUpdateTarget( $slug, $requestTheme, $scopeTheme )
 			: false;
 
@@ -342,8 +383,18 @@ class TemplateController extends Controller
 		// surface as 404 — that would imply the update failed. Return
 		// 200 with a fallback message so the client knows to refetch.
 		// Mirrors {@see store()}'s post-create fallback.
-		if ( ! $resolved instanceof ResolvedTemplate ) {
-			return response()->json( [ 'message' => 'Template updated but could not be resolved.' ] );
+		//
+		// The resolver only reads the active theme, so a write to another
+		// theme's row would otherwise answer with the active theme's
+		// record of the same slug. Report the row that was written
+		// instead (#1094).
+		if ( ! $resolved instanceof ResolvedTemplate || $resolved->theme !== (string) $existing->theme ) {
+			return response()->json( [
+				'message' => 'Template updated but could not be resolved.',
+				'id'      => $existing->getKey(),
+				'slug'    => (string) $existing->slug,
+				'theme'   => (string) $existing->theme,
+			] );
 		}
 
 		return response()->json( ( new TemplateAdapter() )->toArray( $resolved ) );
@@ -362,6 +413,7 @@ class TemplateController extends Controller
 	 * @since 1.0.0
 	 * @since 1.20.0 The slug path deletes through the model, so it fires
 	 *               `deleting` / `deleted` like the numeric path.
+	 *               Accepts a `<theme>~<slug>` id (#1094).
 	 */
 	public function destroy( Request $request, string $slug ): JsonResponse
 	{
@@ -371,10 +423,23 @@ class TemplateController extends Controller
 
 		$model = self::CMS_TEMPLATE_FQCN;
 
-		$requestTheme = $this->themeQuery( $request );
+		$requestTheme = $this->stringQuery( $request, 'theme' );
 
 		if ( null === $requestTheme ) {
-			return $this->invalidThemeQuery();
+			return $this->invalidStringQuery( 'theme' );
+		}
+
+		// A `<theme>~<slug>` id names its theme and slug, so it takes the
+		// `(theme, slug)` path, never the row-id one (#1094).
+		$composite = $this->splitCompositeId( $slug );
+
+		if ( null !== $composite ) {
+			if ( '' !== $requestTheme && $requestTheme !== $composite['theme'] ) {
+				return $this->compositeThemeMismatch();
+			}
+
+			$slug         = $composite['slug'];
+			$requestTheme = $composite['theme'];
 		}
 
 		$theme = '' !== $requestTheme ? $requestTheme : (string) ( $this->activeThemeSlug() ?? '' );
@@ -383,7 +448,7 @@ class TemplateController extends Controller
 		// owns its theme already). `0` is the file-only sentinel and
 		// must fall through (#438). An all-digit value such as
 		// `404` can also be a slug (#1074).
-		if ( $this->couldBeRowId( $slug ) ) {
+		if ( null === $composite && $this->couldBeRowId( $slug ) ) {
 			$byId   = $model::query()->find( (int) $slug );
 			$bySlug = '' !== $theme
 				? $model::query()->where( 'theme', $theme )->where( 'slug', $slug )->first()
@@ -470,10 +535,22 @@ class TemplateController extends Controller
 	 * lookup, so an all-digit slug such as `404` stays readable (#1074).
 	 *
 	 * @since 1.0.0
-	 * @since 1.20.0 A numeric input no `wpId` matches is tried as a slug.
+	 * @since 1.20.0 A numeric input no `wpId` matches is tried as a slug,
+	 *               and a `<theme>~<slug>` id resolves by slug (#1094).
 	 */
 	protected function findTemplateByIdOrSlug( string $input ): ?ResolvedTemplate
 	{
+		// A `<theme>~<slug>` id names a file-only record by slug, never
+		// a row (#1094). The resolver only reads the active theme, so the
+		// id's theme has to be that one.
+		$composite = $this->splitCompositeId( $input );
+
+		if ( null !== $composite ) {
+			$resolved = $this->resolver->find( $composite['slug'] );
+
+			return $resolved instanceof ResolvedTemplate && $resolved->theme === $composite['theme'] ? $resolved : null;
+		}
+
 		// `0` is the file-only sentinel `wpId` and never a DB id (#438).
 		if ( $this->couldBeRowId( $input ) ) {
 			$id = (int) $input;
@@ -723,16 +800,19 @@ class TemplateController extends Controller
 	 * Mirrors the merge order used in
 	 * {@see VisualEditorServiceProvider::registerSiteEditorResolvers()}:
 	 * static config is the seed for `applyFilters`, then re-merged on top
-	 * so app-level config wins on key collision.
+	 * so app-level config wins on key collision. `array_replace()` keeps
+	 * an all-digit key such as `'404'`, which PHP stores as an integer;
+	 * `array_merge()` renumbered it and listed the entry twice (#1093).
 	 *
 	 * @since 1.0.0
+	 * @since 1.20.0 Merges with `array_replace()` (#1093).
 	 */
 	protected function refreshResolver(): void
 	{
 		$static = (array) config( 'artisanpack.visual-editor.site-editor.templates', [] );
 		$merged = applyFilters( 'ap.visualEditor.templates', $static );
 		$merged = is_array( $merged ) ? $merged : [];
-		$merged = array_merge( $merged, $static );
+		$merged = array_replace( $merged, $static );
 
 		$this->resolver = new TemplateResolver( $merged );
 
