@@ -1461,13 +1461,14 @@ describe('core-data-shim save round-trip', () => {
         ).toEqual({ id: 3, slug: 'page', title: 'Updated' });
     });
 
-    it('reads, saves and deletes a template keyed by its <theme>//<slug> id (#1094)', async () => {
-        // A file-only template with an all-digit slug gets the composite
-        // as its own id, so it can't collide with a row id. The read
-        // goes through the filtered index, and the save and delete hit
-        // the item URL with the id encoded as one path segment.
+    it('reads, saves and deletes a template keyed by its <theme>~<slug> id (#1094)', async () => {
+        // A file-only template with an all-digit slug gets `<theme>~<slug>`
+        // as its id, so it can't collide with a row id. The id holds no
+        // slash, so every request goes to the item URL unencoded, and the
+        // record is still mirrored under the `<theme>//<slug>` key
+        // block-library looks templates up by.
         const record = {
-            id: 'digital-shopfront//404',
+            id: 'digital-shopfront~404',
             slug: '404',
             theme: 'digital-shopfront',
             title: 'Not Found',
@@ -1481,7 +1482,7 @@ describe('core-data-shim save round-trip', () => {
                 return new Response(null, { status: 204 });
             }
 
-            return jsonResponse([record]);
+            return jsonResponse(record);
         });
 
         configureCoreDataShim({ apiBase: '/api', fetcher });
@@ -1489,41 +1490,53 @@ describe('core-data-shim save round-trip', () => {
         const fetched = await coreResolveSelect().getEntityRecord(
             'postType',
             'wp_template',
-            'digital-shopfront//404',
+            'digital-shopfront~404',
         );
 
-        expect(fetched).toMatchObject({ id: 'digital-shopfront//404' });
-        expect(calls[0]?.url).toBe(
-            '/api/templates?theme=digital-shopfront&slug=404',
-        );
+        expect(fetched).toMatchObject({ id: 'digital-shopfront~404' });
+        expect(calls[0]?.url).toBe('/api/templates/digital-shopfront~404');
+        expect(
+            coreSelect().getEntityRecord(
+                'postType',
+                'wp_template',
+                'digital-shopfront//404',
+            ),
+        ).toMatchObject({ id: 'digital-shopfront~404' });
 
         coreDispatch().editEntityRecord(
             'postType',
             'wp_template',
-            'digital-shopfront//404',
+            'digital-shopfront~404',
             { title: 'Edited' },
         );
 
         await coreDispatch().saveEditedEntityRecord(
             'postType',
             'wp_template',
-            'digital-shopfront//404',
+            'digital-shopfront~404',
         );
 
-        expect(calls[1]?.url).toBe(
-            '/api/templates/digital-shopfront%2F%2F404',
-        );
+        expect(calls[1]?.url).toBe('/api/templates/digital-shopfront~404');
         expect(calls[1]?.init.method).toBe('PUT');
+
+        // The save created the row: block-library's `<theme>//<slug>`
+        // lookup now reaches the saved record, without another fetch.
+        expect(
+            coreSelect().getEntityRecord(
+                'postType',
+                'wp_template',
+                'digital-shopfront//404',
+            ),
+        ).toMatchObject({ id: 41, title: 'Edited' });
+        expect(calls).toHaveLength(2);
 
         await coreDispatch().deleteEntityRecord(
             'postType',
             'wp_template',
-            'digital-shopfront//404',
+            'digital-shopfront~404',
         );
 
-        expect(calls[2]?.url).toBe(
-            '/api/templates/digital-shopfront%2F%2F404',
-        );
+        expect(calls[2]?.url).toBe('/api/templates/digital-shopfront~404');
         expect(calls[2]?.init.method).toBe('DELETE');
     });
 

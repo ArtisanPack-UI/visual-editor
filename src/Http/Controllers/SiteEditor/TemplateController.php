@@ -89,8 +89,9 @@ class TemplateController extends Controller
 	 * filtering already in {@see PatternController::index()}.
 	 *
 	 * Also honors `theme` + `slug`, which the core-data shim sends to
-	 * resolve a `<theme>//<slug>` id, the id a file-only template with an
-	 * all-digit slug gets (#1094). Mirrors
+	 * resolve the `<theme>//<slug>` lookups block-library makes, so a
+	 * file-only template with an all-digit slug (id `<theme>~<slug>`,
+	 * #1094) resolves to itself. Mirrors
 	 * {@see TemplatePartController::index()}.
 	 *
 	 * Each filter answers a 422 for a non-string value (#1092).
@@ -132,7 +133,7 @@ class TemplateController extends Controller
 	 * {@see findTemplateByIdOrSlug()} handles both forms.
 	 *
 	 * @since 1.0.0
-	 * @since 1.20.0 Accepts a `<theme>//<slug>` id (#1094).
+	 * @since 1.20.0 Accepts a `<theme>~<slug>` id (#1094).
 	 */
 	public function show( string $slug ): JsonResponse
 	{
@@ -225,7 +226,7 @@ class TemplateController extends Controller
 	 * slug is canonical; body slug, if present, must match.
 	 *
 	 * @since 1.0.0
-	 * @since 1.20.0 Accepts a `<theme>//<slug>` id (#1094).
+	 * @since 1.20.0 Accepts a `<theme>~<slug>` id (#1094).
 	 */
 	public function update( UpdateTemplateRequest $request, string $slug ): JsonResponse
 	{
@@ -239,7 +240,7 @@ class TemplateController extends Controller
 
 		$requestTheme = (string) ( $validated['theme'] ?? '' );
 
-		// A `<theme>//<slug>` id addresses a file-only record by slug, so
+		// A `<theme>~<slug>` id addresses a file-only record by slug, so
 		// it takes the `(theme, slug)` upsert path in its own theme (#1094).
 		$composite = $this->splitCompositeId( $slug );
 
@@ -382,8 +383,18 @@ class TemplateController extends Controller
 		// surface as 404 — that would imply the update failed. Return
 		// 200 with a fallback message so the client knows to refetch.
 		// Mirrors {@see store()}'s post-create fallback.
-		if ( ! $resolved instanceof ResolvedTemplate ) {
-			return response()->json( [ 'message' => 'Template updated but could not be resolved.' ] );
+		//
+		// The resolver only reads the active theme, so a write to another
+		// theme's row would otherwise answer with the active theme's
+		// record of the same slug. Report the row that was written
+		// instead (#1094).
+		if ( ! $resolved instanceof ResolvedTemplate || $resolved->theme !== (string) $existing->theme ) {
+			return response()->json( [
+				'message' => 'Template updated but could not be resolved.',
+				'id'      => $existing->getKey(),
+				'slug'    => (string) $existing->slug,
+				'theme'   => (string) $existing->theme,
+			] );
 		}
 
 		return response()->json( ( new TemplateAdapter() )->toArray( $resolved ) );
@@ -402,7 +413,7 @@ class TemplateController extends Controller
 	 * @since 1.0.0
 	 * @since 1.20.0 The slug path deletes through the model, so it fires
 	 *               `deleting` / `deleted` like the numeric path.
-	 *               Accepts a `<theme>//<slug>` id (#1094).
+	 *               Accepts a `<theme>~<slug>` id (#1094).
 	 */
 	public function destroy( Request $request, string $slug ): JsonResponse
 	{
@@ -418,7 +429,7 @@ class TemplateController extends Controller
 			return $this->invalidStringQuery( 'theme' );
 		}
 
-		// A `<theme>//<slug>` id names its theme and slug, so it takes the
+		// A `<theme>~<slug>` id names its theme and slug, so it takes the
 		// `(theme, slug)` path, never the row-id one (#1094).
 		$composite = $this->splitCompositeId( $slug );
 
@@ -525,11 +536,11 @@ class TemplateController extends Controller
 	 *
 	 * @since 1.0.0
 	 * @since 1.20.0 A numeric input no `wpId` matches is tried as a slug,
-	 *               and a `<theme>//<slug>` id resolves by slug (#1094).
+	 *               and a `<theme>~<slug>` id resolves by slug (#1094).
 	 */
 	protected function findTemplateByIdOrSlug( string $input ): ?ResolvedTemplate
 	{
-		// A `<theme>//<slug>` id names a file-only record by slug, never
+		// A `<theme>~<slug>` id names a file-only record by slug, never
 		// a row (#1094). The resolver only reads the active theme, so the
 		// id's theme has to be that one.
 		$composite = $this->splitCompositeId( $input );

@@ -76,11 +76,13 @@ trait ReadsSiteEditorRouteInput
 	}
 
 	/**
-	 * Split a `<theme>//<slug>` record id into its parts (#1094).
+	 * Split a `<theme>~<slug>` record id into its parts (#1094).
 	 *
 	 * File-only templates and parts with an all-digit slug use this id,
-	 * so a slug such as `404` can't collide with a row id. Returns null
-	 * when the value isn't in that shape.
+	 * so a slug such as `404` can't collide with a row id. The split is
+	 * on the last `~`, and the slug must be all digits, so a theme slug
+	 * may hold any character. Returns null when the value isn't in that
+	 * shape.
 	 *
 	 * @since 1.20.0
 	 *
@@ -90,17 +92,23 @@ trait ReadsSiteEditorRouteInput
 	 */
 	protected function splitCompositeId( string $input ): ?array
 	{
-		$parts = explode( '//', $input, 2 );
+		$separator = strrpos( $input, '~' );
 
-		if ( 2 !== count( $parts ) || '' === $parts[0] || '' === $parts[1] ) {
+		if ( false === $separator || 0 === $separator ) {
 			return null;
 		}
 
-		return [ 'theme' => $parts[0], 'slug' => $parts[1] ];
+		$slug = substr( $input, $separator + 1 );
+
+		if ( ! ctype_digit( $slug ) ) {
+			return null;
+		}
+
+		return [ 'theme' => substr( $input, 0, $separator ), 'slug' => $slug ];
 	}
 
 	/**
-	 * The 422 returned when a `<theme>//<slug>` id names a different theme
+	 * The 422 returned when a `<theme>~<slug>` id names a different theme
 	 * than the request's `theme` (#1094).
 	 *
 	 * @since 1.20.0

@@ -64,7 +64,7 @@ it( 'lists a static entry keyed by an all-digit slug once', function ( string $r
 		->assertOk()
 		->assertJsonCount( 1 )
 		->assertJsonPath( '0.slug', '404' )
-		->assertJsonPath( '0.id', 'digital-shopfront//404' );
+		->assertJsonPath( '0.id', 'digital-shopfront~404' );
 } )->with( [ 'templates', 'template-parts' ] );
 
 it( 'keeps the static entry when a contributor keys its own entry by the same slug', function ( string $route, string $filter ): void {

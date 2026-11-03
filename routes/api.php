@@ -168,7 +168,7 @@ Route::get( 'blocks', [ VisualEditorBlocksController::class, 'index' ] )
 // Slug-keyed (visual-editor's resolver is scoped to the active theme); reads
 // come through H5's resolver, writes pass through to cms-framework's
 // Template model under a class_exists + binding guard. The `{slug}` segment
-// also takes a `<theme>//<slug>` id, which file-only templates and parts with
+// also takes a `<theme>~<slug>` id, which file-only templates and parts with
 // an all-digit slug get so it can't match a row id (#1094).
 Route::get( 'templates', [ TemplateController::class, 'index' ] )
 	->name( 'visual-editor.api.templates.index' );
@@ -178,16 +178,16 @@ Route::post( 'templates', [ TemplateController::class, 'store' ] )
 	->name( 'visual-editor.api.templates.store' );
 
 Route::get( 'templates/{slug}', [ TemplateController::class, 'show' ] )
-	->where( 'slug', '[A-Za-z0-9_-]+(?://[A-Za-z0-9_-]+)?' )
+	->where( 'slug', '(?:[A-Za-z0-9_-]+|[^/]+~[0-9]+)' )
 	->name( 'visual-editor.api.templates.show' );
 
 Route::put( 'templates/{slug}', [ TemplateController::class, 'update' ] )
-	->where( 'slug', '[A-Za-z0-9_-]+(?://[A-Za-z0-9_-]+)?' )
+	->where( 'slug', '(?:[A-Za-z0-9_-]+|[^/]+~[0-9]+)' )
 	->middleware( EnsureSiteEditorAccess::class )
 	->name( 'visual-editor.api.templates.update' );
 
 Route::delete( 'templates/{slug}', [ TemplateController::class, 'destroy' ] )
-	->where( 'slug', '[A-Za-z0-9_-]+(?://[A-Za-z0-9_-]+)?' )
+	->where( 'slug', '(?:[A-Za-z0-9_-]+|[^/]+~[0-9]+)' )
 	->middleware( EnsureSiteEditorAccess::class )
 	->name( 'visual-editor.api.templates.destroy' );
 
@@ -200,16 +200,16 @@ Route::post( 'template-parts', [ TemplatePartController::class, 'store' ] )
 	->name( 'visual-editor.api.template-parts.store' );
 
 Route::get( 'template-parts/{slug}', [ TemplatePartController::class, 'show' ] )
-	->where( 'slug', '[A-Za-z0-9_-]+(?://[A-Za-z0-9_-]+)?' )
+	->where( 'slug', '(?:[A-Za-z0-9_-]+|[^/]+~[0-9]+)' )
 	->name( 'visual-editor.api.template-parts.show' );
 
 Route::put( 'template-parts/{slug}', [ TemplatePartController::class, 'update' ] )
-	->where( 'slug', '[A-Za-z0-9_-]+(?://[A-Za-z0-9_-]+)?' )
+	->where( 'slug', '(?:[A-Za-z0-9_-]+|[^/]+~[0-9]+)' )
 	->middleware( EnsureSiteEditorAccess::class )
 	->name( 'visual-editor.api.template-parts.update' );
 
 Route::delete( 'template-parts/{slug}', [ TemplatePartController::class, 'destroy' ] )
-	->where( 'slug', '[A-Za-z0-9_-]+(?://[A-Za-z0-9_-]+)?' )
+	->where( 'slug', '(?:[A-Za-z0-9_-]+|[^/]+~[0-9]+)' )
 	->middleware( EnsureSiteEditorAccess::class )
 	->name( 'visual-editor.api.template-parts.destroy' );
 

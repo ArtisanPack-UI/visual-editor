@@ -40,6 +40,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditor\Resources;
 
 use ArtisanPackUI\VisualEditor\Support\BlockShape;
+use ArtisanPackUI\VisualEditor\Support\ResolvedAttributes;
 
 class PatternInliner
 {
@@ -171,7 +172,9 @@ class PatternInliner
 
 		$childStack       = $stack;
 		$childStack[]     = $key;
-		$resolvedChildren = $this->walk( $blocks, $childStack, $depth + 1 );
+		// The pattern is saved content, so its `_resolved*` attributes are
+		// stripped even when the host trusts the tree around it (#1096).
+		$resolvedChildren = $this->walk( ResolvedAttributes::strip( $blocks ), $childStack, $depth + 1 );
 
 		return [
 			'clientId'    => $block['clientId'] ?? null,

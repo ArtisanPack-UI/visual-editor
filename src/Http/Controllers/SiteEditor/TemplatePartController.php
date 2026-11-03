@@ -139,7 +139,7 @@ class TemplatePartController extends Controller
 	 * form. {@see findTemplatePartByIdOrSlug()} handles both.
 	 *
 	 * @since 1.0.0
-	 * @since 1.20.0 Accepts a `<theme>//<slug>` id (#1094).
+	 * @since 1.20.0 Accepts a `<theme>~<slug>` id (#1094).
 	 */
 	public function show( string $slug ): JsonResponse
 	{
@@ -276,7 +276,7 @@ class TemplatePartController extends Controller
 	 * PUT `/visual-editor/api/template-parts/{slug}` — update or upsert.
 	 *
 	 * @since 1.0.0
-	 * @since 1.20.0 Accepts a `<theme>//<slug>` id (#1094).
+	 * @since 1.20.0 Accepts a `<theme>~<slug>` id (#1094).
 	 */
 	public function update( UpdateTemplatePartRequest $request, string $slug ): JsonResponse
 	{
@@ -290,7 +290,7 @@ class TemplatePartController extends Controller
 
 		$requestTheme = (string) ( $validated['theme'] ?? '' );
 
-		// A `<theme>//<slug>` id addresses a file-only record by slug, so
+		// A `<theme>~<slug>` id addresses a file-only record by slug, so
 		// it takes the `(theme, slug)` upsert path in its own theme (#1094).
 		$composite = $this->splitCompositeId( $slug );
 
@@ -437,8 +437,18 @@ class TemplatePartController extends Controller
 		// The DB write succeeded; a post-write resolver miss shouldn't
 		// surface as 404. See {@see TemplateController::update()} for
 		// the full rationale.
-		if ( ! $resolved instanceof ResolvedTemplatePart ) {
-			return response()->json( [ 'message' => 'Template part updated but could not be resolved.' ] );
+		//
+		// The resolver only reads the active theme, so a write to another
+		// theme's row would otherwise answer with the active theme's
+		// record of the same slug. Report the row that was written
+		// instead (#1094).
+		if ( ! $resolved instanceof ResolvedTemplatePart || $resolved->theme !== (string) $existing->theme ) {
+			return response()->json( [
+				'message' => 'Template part updated but could not be resolved.',
+				'id'      => $existing->getKey(),
+				'slug'    => (string) $existing->slug,
+				'theme'   => (string) $existing->theme,
+			] );
 		}
 
 		return response()->json( ( new TemplatePartAdapter() )->toArray( $resolved ) );
@@ -455,7 +465,7 @@ class TemplatePartController extends Controller
 	 * @since 1.0.0
 	 * @since 1.20.0 The slug path deletes through the model, so it fires
 	 *               `deleting` / `deleted` like the numeric path.
-	 *               Accepts a `<theme>//<slug>` id (#1094).
+	 *               Accepts a `<theme>~<slug>` id (#1094).
 	 */
 	public function destroy( Request $request, string $slug ): JsonResponse
 	{
@@ -471,7 +481,7 @@ class TemplatePartController extends Controller
 			return $this->invalidStringQuery( 'theme' );
 		}
 
-		// A `<theme>//<slug>` id names its theme and slug, so it takes the
+		// A `<theme>~<slug>` id names its theme and slug, so it takes the
 		// `(theme, slug)` path, never the row-id one (#1094).
 		$composite = $this->splitCompositeId( $slug );
 
@@ -577,11 +587,11 @@ class TemplatePartController extends Controller
 	 *
 	 * @since 1.0.0
 	 * @since 1.20.0 A numeric input no `wpId` matches is tried as a slug,
-	 *               and a `<theme>//<slug>` id resolves by slug (#1094).
+	 *               and a `<theme>~<slug>` id resolves by slug (#1094).
 	 */
 	protected function findTemplatePartByIdOrSlug( string $input ): ?ResolvedTemplatePart
 	{
-		// A `<theme>//<slug>` id names a file-only record by slug, never
+		// A `<theme>~<slug>` id names a file-only record by slug, never
 		// a row (#1094). The resolver only reads the active theme, so the
 		// id's theme has to be that one.
 		$composite = $this->splitCompositeId( $input );

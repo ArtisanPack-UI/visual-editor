@@ -290,6 +290,29 @@ describe( 'blocks other resolvers stamp (#1096)', function (): void {
 		expect( $tree[0]['attributes'] )->not->toHaveKey( '_resolvedLoginoutUrl' );
 	} );
 
+	it( 'strips saved values from an inlined template part even when the host trusts the tree', function (): void {
+		bindSavedResolvedTemplatePart( [
+			savedResolvedBlock( 'artisanpack/loginout', [
+				'redirectToCurrent'    => false,
+				'_resolvedLoginoutUrl' => 'https://evil.test/login',
+			] ),
+		] );
+
+		$rendered = Blade::render( '<x-ve-blocks :tree="$tree" :trust-resolved="true" />', [
+			'tree' => [
+				savedResolvedBlock( 'core/template-part', [ 'slug' => 'header', 'theme' => 'artisanpack-ui' ] ),
+				savedResolvedBlock( 'artisanpack/breadcrumbs', [
+					'_resolvedTrail' => [ [ 'label' => 'Host crumb', 'url' => 'https://host.test/', 'isCurrent' => true ] ],
+				] ),
+			],
+		] );
+
+		expect( $rendered )
+			->toContain( 'wp-block-artisanpack-loginout' )
+			->not->toContain( 'evil.test' )
+			->toContain( 'Host crumb' );
+	} );
+
 	it( 'keeps every saved value when the host trusts the tree', function (): void {
 		$tree = savedResolvedComponentTree( [
 			savedResolvedBlock( 'artisanpack/breadcrumbs', [
@@ -304,3 +327,28 @@ describe( 'blocks other resolvers stamp (#1096)', function (): void {
 			->and( $tree[1]['attributes']['_resolvedNextPageUrl'] )->toBe( 'https://host.test/page/2' );
 	} );
 } );
+
+/**
+ * Bind a template-part resolver that returns `$blocks` for any slug.
+ *
+ * @param  array<int, array<string, mixed>>  $blocks
+ */
+function bindSavedResolvedTemplatePart( array $blocks ): void
+{
+	app()->instance(
+		'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Resolution\\TemplatePartResolver',
+		new class( $blocks ) {
+			/**
+			 * @param  array<int, array<string, mixed>>  $blocks
+			 */
+			public function __construct( private array $blocks )
+			{
+			}
+
+			public function resolve( string $slug ): ?object
+			{
+				return (object) [ 'slug' => $slug, 'blocks' => $this->blocks ];
+			}
+		},
+	);
+}
