@@ -208,6 +208,10 @@ it( 'keeps the image hover styles for a scope ID at the length limit', function 
 	expect( BlockSupports::compile( $split['element'] )['statesRules'] )
 		->toContain( '.ap-state-' . $match[1] . ':hover' )
 		->toContain( '#ff0000' );
+
+	expect( app( BlockRenderer::class )->flushSupportAssets()['css'] )
+		->toContain( '.ap-state-' . $match[1] . ':hover' )
+		->toContain( '#ff0000' );
 } )->with( [ 61, 62, 64 ] );
 
 it( 'keeps the plain -img suffix for an ID that fits', function (): void {

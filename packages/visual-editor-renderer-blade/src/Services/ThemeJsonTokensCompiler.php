@@ -65,6 +65,7 @@ use ArtisanPackUI\VisualEditorRendererBlade\Support\StackingStyles;
 
 class ThemeJsonTokensCompiler
 {
+
 	/**
 	 * Fallback content size for layout rules when no
 	 * `--wp--style--global--content-size` is declared (#821). Matches
@@ -91,6 +92,14 @@ class ThemeJsonTokensCompiler
 	 * @since 1.15.0 WordPress's `:link` / `:any-link` / `:visited` states join the list.
 	 */
 	public const ELEMENT_PSEUDO_STATES = ElementsSupport::PSEUDO_STATES;
+	/**
+	 * Skips a wrapper whose block paints a gradient border (its `ve-gb-*`
+	 * scope class), so a theme border moved to an inner element doesn't
+	 * add a second frame inside the gradient ring (#1082).
+	 *
+	 * @since 1.20.0
+	 */
+	protected const GRADIENT_BORDER_GUARD = ':not([class^="ve-gb-"], [class*=" ve-gb-"])';
 
 	/**
 	 * theme.json `outline` keys → CSS properties, as WordPress's
@@ -474,7 +483,7 @@ class ThemeJsonTokensCompiler
 		// pseudo-state sub-nodes (#852).
 		$elements = is_array( $styles['elements'] ?? null ) ? $styles['elements'] : [];
 
-		array_push( $rules, ...$this->compileElementRules( $elements, '' ) );
+		array_push( $rules, ...$this->compileElementRules( $elements, [ '' ] ) );
 
 		// styles.blocks[<name>] — per-block rules. Nested `elements`
 		// produces descendant rules so a block can override headings or
@@ -486,13 +495,14 @@ class ThemeJsonTokensCompiler
 				continue;
 			}
 
-			$blockSelector = $this->blockSelector( $blockName );
+			$blockSelectors = $this->blockSelectors( $blockName );
 
-			array_push( $rules, ...$this->compileBlockNode( $blockName, $blockSelector, $node ) );
+			array_push( $rules, ...$this->compileBlockNode( $blockName, $blockSelectors, $node ) );
 
 			$nestedElements = is_array( $node['elements'] ?? null ) ? $node['elements'] : [];
+			$prefixes       = array_map( static fn ( string $selector ): string => $selector . ' ', $blockSelectors );
 
-			array_push( $rules, ...$this->compileElementRules( $nestedElements, $blockSelector . ' ' ) );
+			array_push( $rules, ...$this->compileElementRules( $nestedElements, $prefixes ) );
 		}
 
 		return implode( "\n\n", $rules );
@@ -509,17 +519,19 @@ class ThemeJsonTokensCompiler
 	 * `a:where(:not(.wp-element-button)):hover`. The pseudo is
 	 * appended to every selector in the element's list (`button` →
 	 * `.wp-element-button:hover, .wp-block-button__link:hover`), and
-	 * `$prefix` (a block selector plus a space) scopes each one.
+	 * each of `$prefixes` (a block selector plus a space) scopes each one.
 	 *
 	 * @since 1.14.0
 	 * @since 1.15.0 Limits pseudo states to `link` and `button`.
+	 * @since 1.20.0 Takes a list of prefixes.
 	 *
 	 * @param  array<mixed>  $elements  Element name → style node.
-	 * @param  string        $prefix    Descendant prefix, `''` at the root.
+	 * @param  list<string>  $prefixes  Descendant prefixes (a block's selectors
+	 *                                  plus a space), `[ '' ]` at the root.
 	 *
 	 * @return list<string>
 	 */
-	protected function compileElementRules( array $elements, string $prefix ): array
+	protected function compileElementRules( array $elements, array $prefixes ): array
 	{
 		$rules = [];
 
@@ -534,7 +546,14 @@ class ThemeJsonTokensCompiler
 				continue;
 			}
 
-			$scoped       = array_map( static fn ( string $selector ): string => $prefix . $selector, $selectors );
+			$scoped = [];
+
+			foreach ( $prefixes as $prefix ) {
+				foreach ( $selectors as $selector ) {
+					$scoped[] = $prefix . $selector;
+				}
+			}
+
 			$declarations = $this->compileStyleNode( $node );
 
 			if ( '' !== $declarations ) {
@@ -706,30 +725,46 @@ class ThemeJsonTokensCompiler
 	 * frame doesn't wrap the caption and doesn't double up with a
 	 * border the block sets on the image. Of the `root` entries (Button,
 	 * Table), only the shadow follows them ({@see self::featureSuffixes()}).
+	 * A moved border skips a wrapper with a gradient border
+	 * ({@see self::GRADIENT_BORDER_GUARD}).
 	 *
 	 * @since 1.20.0
 	 *
+	 * @param  list<string>          $blockSelectors  From {@see self::blockSelectors()}.
 	 * @param  array<string, mixed>  $node
 	 *
 	 * @return list<string>
 	 */
-	protected function compileBlockNode( string $blockName, string $blockSelector, array $node ): array
+	protected function compileBlockNode( string $blockName, array $blockSelectors, array $node ): array
 	{
 		$groups   = $this->styleNodeGroups( $node );
 		$features = $this->featureSuffixes( $blockName );
-		$targets  = [ $blockSelector => [] ];
+		$wrapper  = implode( ', ', $blockSelectors );
+		$targets  = [ $wrapper => [ 'selectors' => $blockSelectors, 'declarations' => [] ] ];
 
 		foreach ( $groups as $group => $declarations ) {
-			$selector = isset( $features[ $group ] ) ? $blockSelector . $features[ $group ] : $blockSelector;
+			$selectors = $blockSelectors;
 
-			$targets[ $selector ] = array_merge( $targets[ $selector ] ?? [], $declarations );
+			if ( isset( $features[ $group ] ) ) {
+				// A block that paints a gradient border keeps it on its
+				// wrapper (`BlockSupports::splitBorderAndShadow()`), so
+				// the theme's border would add a second frame on the
+				// inner element there.
+				$guard     = 'border' === $group ? self::GRADIENT_BORDER_GUARD : '';
+				$selectors = array_map( static fn ( string $selector ): string => $selector . $guard . $features[ $group ], $blockSelectors );
+			}
+
+			$key = implode( ', ', $selectors );
+
+			$targets[ $key ]['selectors']    = $selectors;
+			$targets[ $key ]['declarations'] = array_merge( $targets[ $key ]['declarations'] ?? [], $declarations );
 		}
 
 		$rules = [];
 
-		foreach ( $targets as $selector => $declarations ) {
-			if ( [] !== $declarations ) {
-				$rules[] = $this->whereRule( [ $selector ], implode( "\n\t", $declarations ) );
+		foreach ( $targets as $target ) {
+			if ( [] !== $target['declarations'] ) {
+				$rules[] = $this->whereRule( $target['selectors'], implode( "\n\t", $target['declarations'] ) );
 			}
 		}
 
@@ -820,25 +855,38 @@ class ThemeJsonTokensCompiler
 	}
 
 	/**
-	 * Translate a Gutenberg block name (`namespace/slug`) into its
-	 * front-end class selector (`.wp-block-namespace-slug`). Block names
-	 * outside the `namespace/slug` shape lose only the slash → dash
-	 * substitution; downstream CSS authoring still resolves correctly.
+	 * Translate a Gutenberg block name (`namespace/slug`) into the
+	 * front-end class selectors it renders. Block names outside the
+	 * `namespace/slug` shape lose only the slash → dash substitution;
+	 * downstream CSS authoring still resolves correctly.
 	 *
 	 * The `core/` namespace is dropped, as in WordPress's own block
 	 * class names: `core/group` renders `.wp-block-group`, so a
-	 * `.wp-block-core-group` rule would match nothing.
+	 * `.wp-block-core-group` rule would match nothing. A first-party
+	 * `artisanpack/x` block can be a fork of `core/x` (rendering
+	 * `.wp-block-x`, as `artisanpack/image` does) or its own block
+	 * (rendering `.wp-block-artisanpack-x`), so both are targeted, as in
+	 * {@see BlockStyleCssCompiler::blockSelectors()}.
 	 *
 	 * @since 1.2.0
 	 * @since 1.14.0 Drops the `core/` namespace.
+	 * @since 1.20.0 Returns a list; `artisanpack/x` targets both class forms.
+	 *
+	 * @return list<string>
 	 */
-	protected function blockSelector( string $blockName ): string
+	protected function blockSelectors( string $blockName ): array
 	{
 		if ( str_starts_with( $blockName, 'core/' ) ) {
-			$blockName = substr( $blockName, 5 );
+			return [ '.wp-block-' . str_replace( '/', '-', substr( $blockName, 5 ) ) ];
 		}
 
-		return '.wp-block-' . str_replace( '/', '-', $blockName );
+		if ( str_starts_with( $blockName, 'artisanpack/' ) ) {
+			$name = str_replace( '/', '-', substr( $blockName, 12 ) );
+
+			return [ '.wp-block-' . $name, '.wp-block-artisanpack-' . $name ];
+		}
+
+		return [ '.wp-block-' . str_replace( '/', '-', $blockName ) ];
 	}
 
 	/**
@@ -1154,7 +1202,7 @@ class ThemeJsonTokensCompiler
 			$declarations[] = sprintf(
 				'--wp--preset--%s--%s: %s;',
 				$this->slug( $category ),
-				$this->slug( $slug ),
+				PresetRegistry::presetSlug( $slug ),
 				$value,
 			);
 		}

@@ -242,6 +242,7 @@ describe( 'GradientBorderEmitter value guard (#1083)', function (): void {
 
 	it( 'drops gradients that open a comment', function (): void {
 		expect( $this->emitter->emit( '.scope', [ 'idle' => 'linear-gradient(red, blue) /*' ] ) )->toBe( '' );
+		expect( $this->emitter->emit( '.scope', [ 'breakpoints' => [ 'md' => 'linear-gradient(red, blue) */' ] ] ) )->toBe( '' );
 
 		$css = $this->emitter->emit( '.scope', [
 			'idle'        => 'linear-gradient(red, blue)',

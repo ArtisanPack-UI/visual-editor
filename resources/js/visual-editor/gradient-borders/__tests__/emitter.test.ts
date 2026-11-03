@@ -215,6 +215,7 @@ describe( 'emitGradientBorderCss value guard (#1083)', () => {
 
 	it( 'drops gradients that open a comment', () => {
 		expect( emitGradientBorderCss( '.scope', { ...baseline, idle: `${ gradient } /*` }, states, breakpoints ) ).toBe( '' )
+		expect( emitGradientBorderCss( '.scope', { ...baseline, breakpoints: { md: `${ gradient } */` } }, states, breakpoints ) ).toBe( '' )
 
 		const css = emitGradientBorderCss(
 			'.scope',

@@ -265,7 +265,7 @@ describe( 'styles.* CSS rule emission', function (): void {
 			->toContain( 'padding-right: 1.5rem;' );
 	} );
 
-	it( 'emits per-block rules under the .wp-block-<namespace>-<slug> selector', function (): void {
+	it( 'emits per-block rules under both class forms an artisanpack block renders', function (): void {
 		$css = ( new ThemeJsonTokensCompiler() )->compile( [
 			'styles' => [
 				'blocks' => [
@@ -279,7 +279,7 @@ describe( 'styles.* CSS rule emission', function (): void {
 		] );
 
 		expect( $css )
-			->toContain( ':root :where(.wp-block-artisanpack-form) {' )
+			->toContain( ':root :where(.wp-block-form, .wp-block-artisanpack-form) {' )
 			->toContain( 'background-color: var(--wp--preset--color--surface);' )
 			->toContain( 'border-color: var(--wp--preset--color--divider);' )
 			->toContain( 'border-width: 1px;' )
@@ -308,7 +308,7 @@ describe( 'styles.* CSS rule emission', function (): void {
 		expect( $css )
 			->toContain( 'body {' )
 			->toContain( '--wp--style--block-gap: 2em;' )
-			->toContain( ':root :where(.wp-block-artisanpack-group) {' )
+			->toContain( ':root :where(.wp-block-group, .wp-block-artisanpack-group) {' )
 			->toContain( '--wp--style--block-gap: 3rem;' );
 	} );
 
@@ -325,7 +325,7 @@ describe( 'styles.* CSS rule emission', function (): void {
 			],
 		] );
 
-		expect( $css )->toContain( ':root :where(.wp-block-artisanpack-form a:where(:not(.wp-element-button))) {' )
+		expect( $css )->toContain( ':root :where(.wp-block-form a:where(:not(.wp-element-button)), .wp-block-artisanpack-form a:where(:not(.wp-element-button))) {' )
 			->and( $css )->toContain( 'color: #ff0000;' );
 	} );
 
@@ -356,7 +356,7 @@ describe( 'styles.* CSS rule emission', function (): void {
 		] );
 
 		expect( $css )->toContain( ':root :where(.wp-block-group) {' )
-			->and( $css )->toContain( ':root :where(.wp-block-artisanpack-form) {' )
+			->and( $css )->toContain( ':root :where(.wp-block-form, .wp-block-artisanpack-form) {' )
 			->and( $css )->not->toContain( 'wp-block-core-' );
 	} );
 
@@ -1083,7 +1083,7 @@ it( 'skips block style variations when asked to (#876)', function (): void {
 } );
 
 describe( 'styles.blocks inner-element features (#1082)', function (): void {
-	it( 'sends a block border and shadow to the element its selectors name', function ( string $block, string $selector ): void {
+	it( 'sends a block border and shadow to the element its selectors name', function ( string $block, array $wrappers ): void {
 		$css = $this->compiler->compile( [
 			'styles' => [
 				'blocks' => [
@@ -1096,13 +1096,24 @@ describe( 'styles.blocks inner-element features (#1082)', function (): void {
 			],
 		] );
 
-		expect( $css )->toContain( ':root :where(' . $selector . ") {\n\tbackground-color: #eeeeee;\n}" )
-			->toContain( ':root :where(' . $selector . " img) {\n\tborder-color: #111111;\n\tborder-style: solid;\n\tborder-width: 2px;\n\tborder-radius: 4px;\n\tbox-shadow: var(--wp--preset--shadow--natural);\n}" );
+		$list = static fn ( string $suffix ): string => implode( ', ', array_map( static fn ( string $wrapper ): string => $wrapper . $suffix, $wrappers ) );
+
+		expect( $css )->toContain( ':root :where(' . $list( '' ) . ") {\n\tbackground-color: #eeeeee;\n}" )
+			->toContain( ':root :where(' . $list( ':not([class^="ve-gb-"], [class*=" ve-gb-"]) img' ) . ") {\n\tborder-color: #111111;\n\tborder-style: solid;\n\tborder-width: 2px;\n\tborder-radius: 4px;\n}" )
+			->toContain( ':root :where(' . $list( ' img' ) . ") {\n\tbox-shadow: var(--wp--preset--shadow--natural);\n}" );
 	} )->with( [
-		'image'               => [ 'core/image', '.wp-block-image' ],
-		'post featured image' => [ 'core/post-featured-image', '.wp-block-post-featured-image' ],
-		'artisanpack image'   => [ 'artisanpack/image', '.wp-block-artisanpack-image' ],
+		'image'               => [ 'core/image', [ '.wp-block-image' ] ],
+		'post featured image' => [ 'core/post-featured-image', [ '.wp-block-post-featured-image' ] ],
+		'artisanpack image'   => [ 'artisanpack/image', [ '.wp-block-image', '.wp-block-artisanpack-image' ] ],
 	] );
+
+	it( 'keeps a theme border off the image of a block with a gradient border', function (): void {
+		$css = $this->compiler->compile( [
+			'styles' => [ 'blocks' => [ 'core/image' => [ 'border' => [ 'width' => '2px' ] ] ] ],
+		] );
+
+		expect( $css )->toContain( ':root :where(.wp-block-image:not([class^="ve-gb-"], [class*=" ve-gb-"]) img) {' );
+	} );
 
 	it( 'keeps an avatar shadow on the wrapper and its border on the image', function (): void {
 		$css = $this->compiler->compile( [
@@ -1114,7 +1125,7 @@ describe( 'styles.blocks inner-element features (#1082)', function (): void {
 		] );
 
 		expect( $css )->toContain( ":root :where(.wp-block-avatar) {\n\tbox-shadow: 0 0 1px red;\n}" )
-			->toContain( ":root :where(.wp-block-avatar img) {\n\tborder-width: 1px;\n}" );
+			->toContain( ':root :where(.wp-block-avatar:not([class^="ve-gb-"], [class*=" ve-gb-"]) img) {' . "\n\tborder-width: 1px;\n}" );
 	} );
 
 	it( 'leaves other blocks on the wrapper', function ( string $block, string $selector ): void {
@@ -1150,7 +1161,7 @@ describe( 'styles.blocks inner-element features (#1082)', function (): void {
 			'styles' => [ 'blocks' => [ 'core/image' => [ 'border' => [ 'width' => '2px' ] ] ] ],
 		] );
 
-		expect( $css )->toContain( ":root :where(.wp-block-image img) {\n\tborder-width: 2px;\n}" )
+		expect( $css )->toContain( ':root :where(.wp-block-image:not([class^="ve-gb-"], [class*=" ve-gb-"]) img) {' . "\n\tborder-width: 2px;\n}" )
 			->not->toContain( ':root :where(.wp-block-image) {' );
 	} );
 
@@ -1161,4 +1172,23 @@ describe( 'styles.blocks inner-element features (#1082)', function (): void {
 
 		expect( $css )->not->toContain( 'box-shadow' );
 	} );
+} );
+
+it( 'declares a camelCase or snake_case preset slug the way references name it', function (): void {
+	config()->set( 'artisanpack.visual-editor.presets', [] );
+
+	$css = $this->compiler->compile( [
+		'settings' => [
+			'shadow' => [
+				'presets' => [
+					[ 'slug' => 'softGlow', 'shadow' => '0 0 4px red' ],
+					[ 'slug' => 'hard_edge', 'shadow' => '2px 2px 0 black' ],
+				],
+			],
+		],
+	] );
+
+	expect( $css )->toContain( '--wp--preset--shadow--soft-glow: 0 0 4px red;' )
+		->toContain( '--wp--preset--shadow--hard-edge: 2px 2px 0 black;' )
+		->not->toContain( '--softglow' );
 } );
