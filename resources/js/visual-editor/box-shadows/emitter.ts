@@ -30,6 +30,8 @@
 
 import type { BreakpointRegistry } from '../responsive/registry'
 import type { StateRegistry } from '../states/registry'
+import { presetSlug } from '../support/preset-slug'
+import { isGradient as isSafeGradient } from '../support/safe-css-value'
 import type { ResolvedBoxShadow, ResolvedShadowLayer } from './types'
 
 const IMAGE_BLOCKS = [ 'core/image', 'artisanpack/image' ]
@@ -39,7 +41,6 @@ export const DEFAULT_TRANSITION =
 
 const CSS_WHITELIST      = /[^a-zA-Z0-9_+\-*/.,()%#\s]/g
 const GRADIENT_WHITELIST = /[^a-zA-Z0-9_+\-*/.,()%#:\s]/g
-const SLUG_WHITELIST     = /[^a-z0-9_-]/gi
 
 function sanitizeCss( value: string ): string {
 	return value.replace( CSS_WHITELIST, '' )
@@ -49,8 +50,92 @@ function sanitizeGradient( value: string ): string {
 	return value.replace( GRADIENT_WHITELIST, '' )
 }
 
-function sanitizeSlug( value: string ): string {
-	return value.replace( SLUG_WHITELIST, '' )
+/**
+ * A structured layer field, sanitized, or `null` to treat it as unset
+ * (#1083). The allowlist keeps `/`, `*` and `(`, so the cleaned value
+ * must also be balanced and free of comment delimiters and `//`: an
+ * unterminated comment or function would swallow every later rule in the
+ * shared `<style>` block. A gradient lands on `background`, which
+ * fetches, so it must also be one gradient that can't load a `url()`.
+ * Mirrors PHP `BoxShadowEmitter::safeField()`.
+ */
+function safeField( value: string | null | undefined, gradient = false ): string | null {
+	if ( 'string' !== typeof value ) {
+		return null
+	}
+
+	const clean = ( gradient ? sanitizeGradient( value ) : sanitizeCss( value ) ).trim()
+
+	if ( '' === clean || clean.includes( '//' ) || ! isBalanced( clean ) ) {
+		return null
+	}
+
+	return ! gradient || isSafeGradient( clean ) ? clean : null
+}
+
+/**
+ * The layer with every structured field run through {@link safeField},
+ * or `null` when nothing usable is left. Mirrors PHP
+ * `BoxShadowEmitter::normalizeLayer()`.
+ */
+function safeLayer( layer: ResolvedShadowLayer ): ResolvedShadowLayer | null {
+	const preset   = trimmedOrNull( layer.preset )
+	const value    = trimmedOrNull( layer.value )
+	const offsetX  = safeField( layer.offsetX )
+	const offsetY  = safeField( layer.offsetY )
+	const blur     = safeField( layer.blur )
+	const spread   = safeField( layer.spread )
+	const color    = safeField( layer.color )
+	const gradient = safeField( layer.gradient, true )
+
+	// A rejected gradient drops the layer rather than painting it as a
+	// solid shadow: the Image block keeps a gradient shadow on its figure,
+	// so a solid fallback would wrap the caption (#1083).
+	if ( null === preset && null === value && null === gradient && null !== trimmedOrNull( layer.gradient ) ) {
+		return null
+	}
+
+	const hasStructured = null !== offsetX
+		|| null !== offsetY
+		|| null !== blur
+		|| null !== spread
+		|| null !== color
+		|| null !== gradient
+		|| layer.inset
+
+	if ( null === preset && null === value && ! hasStructured ) {
+		return null
+	}
+
+	return {
+		...layer,
+		preset,
+		value,
+		offsetX: offsetX ?? '0px',
+		offsetY: offsetY ?? '0px',
+		blur: blur ?? '0px',
+		spread: spread ?? '0px',
+		color,
+		gradient,
+	}
+}
+
+function trimmedOrNull( value: string | null | undefined ): string | null {
+	return 'string' === typeof value && '' !== value.trim() ? value.trim() : null
+}
+
+function safeLayerMap( layers: Record<string, ResolvedShadowLayer> ): Record<string, ResolvedShadowLayer> {
+	const out: Record<string, ResolvedShadowLayer> = {}
+
+	for ( const [ key, layer ] of Object.entries( layers ) ) {
+		const safe = safeLayer( layer )
+
+		if ( null !== safe ) {
+			out[ key ] = safe
+		}
+	}
+
+	return out
 }
 
 /**
@@ -71,7 +156,9 @@ function solidBoxShadow( layer: ResolvedShadowLayer ): string {
 }
 
 function presetBoxShadow( layer: ResolvedShadowLayer ): string {
-	const slug = sanitizeSlug( layer.preset ?? '' )
+	// The slug rule every preset declaration uses, so a theme's
+	// `soft_glow` resolves to its `--soft-glow` property (#1084).
+	const slug = presetSlug( layer.preset ?? '' )
 
 	if ( '' === slug ) {
 		return ''
@@ -147,10 +234,14 @@ function isGradient( layer: ResolvedShadowLayer ): boolean {
 }
 
 /**
- * Whether parentheses and brackets balance without crossing — PHP
- * `CssValue::isBalanced()`.
+ * Whether parentheses and brackets balance without crossing and no
+ * comment delimiter appears — PHP `CssValue::isBalanced()`.
  */
 function isBalanced( value: string ): boolean {
+	if ( value.includes( '/*' ) || value.includes( '*/' ) ) {
+		return false
+	}
+
 	const closers: string[] = []
 
 	for ( const char of value ) {
@@ -267,9 +358,9 @@ export function emitBoxShadowCss(
 		return ''
 	}
 
-	const idle     = payload.idle
-	const stateMap = payload.states
-	const bpMap    = payload.breakpoints
+	const idle     = null !== payload.idle ? safeLayer( payload.idle ) : null
+	const stateMap = safeLayerMap( payload.states )
+	const bpMap    = safeLayerMap( payload.breakpoints )
 
 	const hasNonIdle =
 		0 < Object.keys( stateMap ).length || 0 < Object.keys( bpMap ).length

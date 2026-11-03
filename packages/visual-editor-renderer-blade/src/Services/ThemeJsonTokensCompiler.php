@@ -487,11 +487,8 @@ class ThemeJsonTokensCompiler
 			}
 
 			$blockSelector = $this->blockSelector( $blockName );
-			$declarations  = $this->compileStyleNode( $node );
 
-			if ( '' !== $declarations ) {
-				$rules[] = $this->whereRule( [ $blockSelector ], $declarations );
-			}
+			array_push( $rules, ...$this->compileBlockNode( $blockName, $blockSelector, $node ) );
 
 			$nestedElements = is_array( $node['elements'] ?? null ) ? $node['elements'] : [];
 
@@ -590,8 +587,9 @@ class ThemeJsonTokensCompiler
 	 * letterSpacing,textTransform,textDecoration}`,
 	 * `spacing.{padding,margin,blockGap}` (string or per-side object),
 	 * `border.{color,style,width,radius}` (radius may be string or
-	 * per-corner object), and `outline.{color,offset,style,width}` (a
-	 * theme's focus indicator, e.g. `elements.button[":focus"].outline`).
+	 * per-corner object), `shadow` (a string), and
+	 * `outline.{color,offset,style,width}` (a theme's focus indicator,
+	 * e.g. `elements.button[":focus"].outline`).
 	 *
 	 * Preset references (`var:preset|color|primary`) expand to the
 	 * corresponding CSS custom property reference; non-preset values
@@ -601,18 +599,43 @@ class ThemeJsonTokensCompiler
 	 *
 	 * @since 1.2.0
 	 * @since 1.15.0 Compiles `outline.*`; drops values that aren't printable.
+	 * @since 1.20.0 Compiles `shadow` (#1082).
 	 *
 	 * @param  array<string, mixed>  $node
 	 */
 	protected function compileStyleNode( array $node ): string
 	{
-		$declarations = [];
+		return implode( "\n\t", array_merge( ...array_values( $this->styleNodeGroups( $node ) ) ) );
+	}
+
+	/**
+	 * A style node's declarations ({@see self::compileStyleNode()}), keyed
+	 * by group (`color`, `typography`, `spacing`, `border`, `shadow`,
+	 * `outline`) so a block can send a group to an inner element (#1082).
+	 * Empty groups are left out.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @param  array<string, mixed>  $node
+	 *
+	 * @return array<string, list<string>>
+	 */
+	protected function styleNodeGroups( array $node ): array
+	{
+		$groups = [
+			'color'      => [],
+			'typography' => [],
+			'spacing'    => [],
+			'border'     => [],
+			'shadow'     => [],
+			'outline'    => [],
+		];
 
 		$color = is_array( $node['color'] ?? null ) ? $node['color'] : [];
 
-		$this->pushDeclaration( $declarations, 'background-color', $color['background'] ?? null );
-		$this->pushDeclaration( $declarations, 'background', $color['gradient'] ?? null );
-		$this->pushDeclaration( $declarations, 'color', $color['text'] ?? null );
+		$this->pushDeclaration( $groups['color'], 'background-color', $color['background'] ?? null );
+		$this->pushDeclaration( $groups['color'], 'background', $color['gradient'] ?? null );
+		$this->pushDeclaration( $groups['color'], 'color', $color['text'] ?? null );
 
 		$typography    = is_array( $node['typography'] ?? null ) ? $node['typography'] : [];
 		$typographyMap = [
@@ -627,7 +650,7 @@ class ThemeJsonTokensCompiler
 		];
 
 		foreach ( $typographyMap as $key => $property ) {
-			$this->pushDeclaration( $declarations, $property, $typography[ $key ] ?? null );
+			$this->pushDeclaration( $groups['typography'], $property, $typography[ $key ] ?? null );
 		}
 
 		$spacing = is_array( $node['spacing'] ?? null ) ? $node['spacing'] : [];
@@ -636,41 +659,116 @@ class ThemeJsonTokensCompiler
 			$value = $spacing[ $box ] ?? null;
 
 			if ( ! is_array( $value ) ) {
-				$this->pushDeclaration( $declarations, $box, $value );
+				$this->pushDeclaration( $groups['spacing'], $box, $value );
 
 				continue;
 			}
 
 			foreach ( [ 'top', 'right', 'bottom', 'left' ] as $side ) {
-				$this->pushDeclaration( $declarations, $box . '-' . $side, $value[ $side ] ?? null );
+				$this->pushDeclaration( $groups['spacing'], $box . '-' . $side, $value[ $side ] ?? null );
 			}
 		}
 
-		$this->pushDeclaration( $declarations, '--wp--style--block-gap', $spacing['blockGap'] ?? null );
+		$this->pushDeclaration( $groups['spacing'], '--wp--style--block-gap', $spacing['blockGap'] ?? null );
 
 		$border = is_array( $node['border'] ?? null ) ? $node['border'] : [];
 
 		foreach ( [ 'color', 'style', 'width' ] as $property ) {
-			$this->pushDeclaration( $declarations, 'border-' . $property, $border[ $property ] ?? null );
+			$this->pushDeclaration( $groups['border'], 'border-' . $property, $border[ $property ] ?? null );
 		}
 
 		$radius = $border['radius'] ?? null;
 
 		if ( is_array( $radius ) ) {
 			foreach ( [ 'topLeft', 'topRight', 'bottomLeft', 'bottomRight' ] as $corner ) {
-				$this->pushDeclaration( $declarations, 'border-' . $this->kebabCase( $corner ) . '-radius', $radius[ $corner ] ?? null );
+				$this->pushDeclaration( $groups['border'], 'border-' . $this->kebabCase( $corner ) . '-radius', $radius[ $corner ] ?? null );
 			}
 		} else {
-			$this->pushDeclaration( $declarations, 'border-radius', $radius );
+			$this->pushDeclaration( $groups['border'], 'border-radius', $radius );
 		}
+
+		$this->pushDeclaration( $groups['shadow'], 'box-shadow', $node['shadow'] ?? null );
 
 		$outline = is_array( $node['outline'] ?? null ) ? $node['outline'] : [];
 
 		foreach ( self::OUTLINE_PROPERTIES as $key => $property ) {
-			$this->pushDeclaration( $declarations, $property, $outline[ $key ] ?? null );
+			$this->pushDeclaration( $groups['outline'], $property, $outline[ $key ] ?? null );
 		}
 
-		return implode( "\n\t", $declarations );
+		return array_filter( $groups, static fn ( array $group ): bool => [] !== $group );
+	}
+
+	/**
+	 * Rules for one `styles.blocks` node's own declarations. Groups a
+	 * core block paints on an inner element go to that element instead of
+	 * the wrapper, from {@see BlockStyleCssCompiler::FEATURE_SELECTORS}
+	 * (#1082): an Image's border and shadow land on its `<img>`, so the
+	 * frame doesn't wrap the caption and doesn't double up with a
+	 * border the block sets on the image. Of the `root` entries (Button,
+	 * Table), only the shadow follows them ({@see self::featureSuffixes()}).
+	 *
+	 * @since 1.20.0
+	 *
+	 * @param  array<string, mixed>  $node
+	 *
+	 * @return list<string>
+	 */
+	protected function compileBlockNode( string $blockName, string $blockSelector, array $node ): array
+	{
+		$groups   = $this->styleNodeGroups( $node );
+		$features = $this->featureSuffixes( $blockName );
+		$targets  = [ $blockSelector => [] ];
+
+		foreach ( $groups as $group => $declarations ) {
+			$selector = isset( $features[ $group ] ) ? $blockSelector . $features[ $group ] : $blockSelector;
+
+			$targets[ $selector ] = array_merge( $targets[ $selector ] ?? [], $declarations );
+		}
+
+		$rules = [];
+
+		foreach ( $targets as $selector => $declarations ) {
+			if ( [] !== $declarations ) {
+				$rules[] = $this->whereRule( [ $selector ], implode( "\n\t", $declarations ) );
+			}
+		}
+
+		return $rules;
+	}
+
+	/**
+	 * The per-group selector suffixes for a block's inner elements. The
+	 * `root` entry applies to `shadow` only: shadows are new to this
+	 * compiler, so they can land where WordPress paints them (a Button's
+	 * link, a Table's `<table>`), while the groups it always printed stay
+	 * on the wrapper. Only `core/` and `artisanpack/` names are mapped, as
+	 * in {@see BlockStyleCssCompiler::featureSelectors()}.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @return array<string, string>
+	 */
+	protected function featureSuffixes( string $blockName ): array
+	{
+		if ( ! str_contains( $blockName, '/' ) ) {
+			return [];
+		}
+
+		[ $namespace, $name ] = explode( '/', $blockName, 2 );
+
+		if ( 'core' !== $namespace && 'artisanpack' !== $namespace ) {
+			return [];
+		}
+
+		$features = BlockStyleCssCompiler::FEATURE_SELECTORS[ $name ] ?? [];
+
+		if ( isset( $features['root'] ) ) {
+			$features['shadow'] ??= $features['root'];
+
+			unset( $features['root'] );
+		}
+
+		return $features;
 	}
 
 	/**

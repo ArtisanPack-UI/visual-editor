@@ -182,3 +182,92 @@ describe( 'BoxShadowEmitter raw values (#900)', function (): void {
 		expect( $css )->toBe( '' );
 	} );
 } );
+
+describe( 'BoxShadowEmitter structured field guard (#1083)', function (): void {
+	it( 'treats a structured field that opens or closes a comment as unset', function ( string $field, string $value ): void {
+		$css = $this->emitter->emit( '.scope', [
+			'idle' => bsLayer( [ 'offsetX' => '2px', 'blur' => '4px', 'color' => '#000', $field => $value ] ),
+		] );
+
+		expect( $css )->not->toContain( '/*' )
+			->not->toContain( '*/' )
+			->not->toContain( '//' )
+			->toStartWith( '.scope{box-shadow:' )
+			->toEndWith( '}' );
+	} )->with( [
+		'offsetX comment open'      => [ 'offsetX', '/*' ],
+		'offsetY comment close'     => [ 'offsetY', '*/' ],
+		'blur double slash'         => [ 'blur', '1px//' ],
+		'spread unbalanced'         => [ 'spread', 'calc(1px' ],
+		'color comment open'        => [ 'color', 'red /*' ],
+		'joined once stripped'      => [ 'offsetX', '/"*' ],
+	] );
+
+	it( 'falls back to the defaults for rejected lengths and color', function (): void {
+		$css = $this->emitter->emit( '.scope', [
+			'idle' => bsLayer( [ 'offsetX' => '/*', 'offsetY' => '2px', 'blur' => '4px', 'spread' => '0', 'color' => '/*' ] ),
+		] );
+
+		expect( $css )->toBe( '.scope{box-shadow:0px 2px 4px 0 currentColor}' );
+	} );
+
+	it( 'drops a layer when every structured field is rejected', function (): void {
+		$css = $this->emitter->emit( '.scope', [
+			'idle' => [ 'offsetX' => '/*', 'color' => '*/' ],
+		] );
+
+		expect( $css )->toBe( '' );
+	} );
+
+	it( 'drops a layer whose gradient is rejected, rather than painting it solid', function ( string $gradient ): void {
+		$css = $this->emitter->emit( '.scope', [
+			'idle' => bsLayer( [ 'blur' => '4px', 'gradient' => $gradient ] ),
+		] );
+
+		expect( $css )->toBe( '' );
+	} )->with( [
+		'comment open'        => [ 'linear-gradient(red, blue) /*' ],
+		'url'                 => [ 'url(http:evil.example/t.png)' ],
+		'relative url'        => [ 'url(t.png)' ],
+		'image-set'           => [ 'image-set(http:evil.example/t.png 1x)' ],
+		'gradient then url'   => [ 'linear-gradient(red, blue),url(t.png)' ],
+		'url inside gradient' => [ 'linear-gradient(url(t.png), blue)' ],
+	] );
+
+	it( 'keeps a preset when its gradient is rejected', function (): void {
+		$css = $this->emitter->emit( '.scope', [
+			'idle' => bsLayer( [ 'preset' => 'natural', 'gradient' => 'url(t.png)' ] ),
+		] );
+
+		expect( $css )->toBe( '.scope{box-shadow:var(--wp--preset--shadow--natural)}' );
+	} );
+
+	it( 'keeps a gradient or preset reference', function ( string $gradient ): void {
+		$css = $this->emitter->emit( '.scope', [ 'idle' => bsLayer( [ 'gradient' => $gradient ] ) ] );
+
+		expect( $css )->toContain( 'background:' . $gradient . ';' );
+	} )->with( [
+		'linear' => [ 'linear-gradient(135deg, rgba(0, 0, 0, 0.5), var(--x))' ],
+		'var'    => [ 'var(--wp--preset--gradient--sunset)' ],
+	] );
+
+	it( 'keeps calc() and color functions', function (): void {
+		$css = $this->emitter->emit( '.scope', [
+			'idle' => bsLayer( [ 'offsetX' => 'calc(1px * 2)', 'color' => 'rgba(0, 0, 0, 0.5)' ] ),
+		] );
+
+		expect( $css )->toBe( '.scope{box-shadow:calc(1px * 2) 0 0 0 rgba(0, 0, 0, 0.5)}' );
+	} );
+} );
+
+describe( 'BoxShadowEmitter preset slugs (#1084)', function (): void {
+	it( 'normalizes a preset slug the way its declaration does', function ( string $preset, string $expected ): void {
+		$css = $this->emitter->emit( '.scope', [ 'idle' => bsLayer( [ 'preset' => $preset ] ) ] );
+
+		expect( $css )->toBe( '.scope{box-shadow:var(--wp--preset--shadow--' . $expected . ')}' );
+	} )->with( [
+		'underscore' => [ 'soft_glow', 'soft-glow' ],
+		'camelCase'  => [ 'softGlow', 'soft-glow' ],
+		'plain'      => [ 'natural', 'natural' ],
+	] );
+} );

@@ -1081,3 +1081,84 @@ it( 'skips block style variations when asked to (#876)', function (): void {
 	expect( $this->compiler->compile( $themeJson, false ) )->toContain( ':root :where(.wp-block-group) {' )
 		->not->toContain( 'is-style-card' );
 } );
+
+describe( 'styles.blocks inner-element features (#1082)', function (): void {
+	it( 'sends a block border and shadow to the element its selectors name', function ( string $block, string $selector ): void {
+		$css = $this->compiler->compile( [
+			'styles' => [
+				'blocks' => [
+					$block => [
+						'color'  => [ 'background' => '#eeeeee' ],
+						'border' => [ 'width' => '2px', 'style' => 'solid', 'color' => '#111111', 'radius' => '4px' ],
+						'shadow' => 'var:preset|shadow|natural',
+					],
+				],
+			],
+		] );
+
+		expect( $css )->toContain( ':root :where(' . $selector . ") {\n\tbackground-color: #eeeeee;\n}" )
+			->toContain( ':root :where(' . $selector . " img) {\n\tborder-color: #111111;\n\tborder-style: solid;\n\tborder-width: 2px;\n\tborder-radius: 4px;\n\tbox-shadow: var(--wp--preset--shadow--natural);\n}" );
+	} )->with( [
+		'image'               => [ 'core/image', '.wp-block-image' ],
+		'post featured image' => [ 'core/post-featured-image', '.wp-block-post-featured-image' ],
+		'artisanpack image'   => [ 'artisanpack/image', '.wp-block-artisanpack-image' ],
+	] );
+
+	it( 'keeps an avatar shadow on the wrapper and its border on the image', function (): void {
+		$css = $this->compiler->compile( [
+			'styles' => [
+				'blocks' => [
+					'core/avatar' => [ 'border' => [ 'width' => '1px' ], 'shadow' => '0 0 1px red' ],
+				],
+			],
+		] );
+
+		expect( $css )->toContain( ":root :where(.wp-block-avatar) {\n\tbox-shadow: 0 0 1px red;\n}" )
+			->toContain( ":root :where(.wp-block-avatar img) {\n\tborder-width: 1px;\n}" );
+	} );
+
+	it( 'leaves other blocks on the wrapper', function ( string $block, string $selector ): void {
+		$css = $this->compiler->compile( [
+			'styles' => [
+				'blocks' => [ $block => [ 'border' => [ 'width' => '3px' ], 'shadow' => '0 0 2px red' ] ],
+			],
+		] );
+
+		expect( $css )->toContain( ':root :where(' . $selector . ") {\n\tborder-width: 3px;\n\tbox-shadow: 0 0 2px red;\n}" )
+			->not->toContain( $selector . ' img' );
+	} )->with( [
+		'group'  => [ 'core/group', '.wp-block-group' ],
+		'custom' => [ 'acme/image', '.wp-block-acme-image' ],
+	] );
+
+	it( 'puts a button or table shadow where the block paints, and keeps its border on the wrapper', function ( string $block, string $selector, string $inner ): void {
+		$css = $this->compiler->compile( [
+			'styles' => [
+				'blocks' => [ $block => [ 'border' => [ 'width' => '3px' ], 'shadow' => '0 0 2px red' ] ],
+			],
+		] );
+
+		expect( $css )->toContain( ':root :where(' . $selector . ") {\n\tborder-width: 3px;\n}" )
+			->toContain( ':root :where(' . $selector . $inner . ") {\n\tbox-shadow: 0 0 2px red;\n}" );
+	} )->with( [
+		'button' => [ 'core/button', '.wp-block-button', ' .wp-block-button__link' ],
+		'table'  => [ 'core/table', '.wp-block-table', ' > table' ],
+	] );
+
+	it( 'prints nothing for the image when its moved groups are all it has', function (): void {
+		$css = $this->compiler->compile( [
+			'styles' => [ 'blocks' => [ 'core/image' => [ 'border' => [ 'width' => '2px' ] ] ] ],
+		] );
+
+		expect( $css )->toContain( ":root :where(.wp-block-image img) {\n\tborder-width: 2px;\n}" )
+			->not->toContain( ':root :where(.wp-block-image) {' );
+	} );
+
+	it( 'drops a shadow that would break out of the stylesheet', function (): void {
+		$css = $this->compiler->compile( [
+			'styles' => [ 'blocks' => [ 'core/image' => [ 'shadow' => '0 0 1px red /*' ] ] ],
+		] );
+
+		expect( $css )->not->toContain( 'box-shadow' );
+	} );
+} );

@@ -21,15 +21,15 @@ it( 'emits gradient-border device overrides as max-width, tablet before mobile',
 	$emitter = new GradientBorderEmitter( StateRegistry::fromLayers( [], [] ), $this->registry );
 
 	$css = $emitter->emit( '.scope', [
-		'idle'        => 'red',
+		'idle'        => 'var(--red)',
 		// Stored smallest-first; emission must still be descending.
-		'breakpoints' => [ 'mobile' => 'green', 'tablet' => 'blue', 'md' => 'gold' ],
+		'breakpoints' => [ 'mobile' => 'var(--green)', 'tablet' => 'var(--blue)', 'md' => 'var(--gold)' ],
 	] );
 
 	expect( $css )
-		->toContain( '@media (max-width:767px){.scope::before{background:green}}' )
-		->toContain( '@media (max-width:1023px){.scope::before{background:blue}}' )
-		->toContain( '@media (min-width:768px){.scope::before{background:gold}}' );
+		->toContain( '@media (max-width:767px){.scope::before{background:var(--green)}}' )
+		->toContain( '@media (max-width:1023px){.scope::before{background:var(--blue)}}' )
+		->toContain( '@media (min-width:768px){.scope::before{background:var(--gold)}}' );
 
 	expect( strpos( $css, 'min-width:768px' ) )->toBeLessThan( strpos( $css, 'max-width:1023px' ) );
 	expect( strpos( $css, 'max-width:1023px' ) )->toBeLessThan( strpos( $css, 'max-width:767px' ) );

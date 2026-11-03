@@ -48,7 +48,7 @@ describe( 'emitGradientBorderCss', () => {
 	it( 'defaults width to 1px and radius to inherit when absent', () => {
 		const css = emitGradientBorderCss(
 			'.scope',
-			{ ...baseline, idle: 'red' },
+			{ ...baseline, idle: 'var(--r)' },
 			states,
 			breakpoints,
 		)
@@ -60,7 +60,7 @@ describe( 'emitGradientBorderCss', () => {
 	it( 'emits explicit border-radius when supplied', () => {
 		const css = emitGradientBorderCss(
 			'.scope',
-			{ ...baseline, idle: 'red', radius: '8px' },
+			{ ...baseline, idle: 'var(--r)', radius: '8px' },
 			states,
 			breakpoints,
 		)
@@ -73,7 +73,7 @@ describe( 'emitGradientBorderCss', () => {
 			'.scope',
 			{
 				...baseline,
-				idle:   'red',
+				idle:   'var(--r)',
 				radius: {
 					topLeft:     '4px',
 					topRight:    '8px',
@@ -94,25 +94,25 @@ describe( 'emitGradientBorderCss', () => {
 	it( 'wraps hover under @media (hover: hover) and emits the override', () => {
 		const css = emitGradientBorderCss(
 			'.scope',
-			{ ...baseline, idle: 'red', states: { hover: 'blue' } },
+			{ ...baseline, idle: 'var(--r)', states: { hover: 'var(--b)' } },
 			states,
 			breakpoints,
 		)
 
 		expect( css ).toContain( '@media (hover: hover){' )
-		expect( css ).toContain( '.scope:hover::before{background:blue}' )
+		expect( css ).toContain( '.scope:hover::before{background:var(--b)}' )
 		expect( css ).toContain( '.scope::before{transition:' )
 	} )
 
 	it( 'emits per-breakpoint overrides under @media (min-width)', () => {
 		const css = emitGradientBorderCss(
 			'.scope',
-			{ ...baseline, idle: 'red', breakpoints: { md: 'blue' } },
+			{ ...baseline, idle: 'var(--r)', breakpoints: { md: 'var(--b)' } },
 			states,
 			breakpoints,
 		)
 
-		expect( css ).toContain( '@media (min-width:768px){.scope::before{background:blue}}' )
+		expect( css ).toContain( '@media (min-width:768px){.scope::before{background:var(--b)}}' )
 	} )
 
 	it( 'sanitises gradient and width values to drop context-breaking characters', () => {
@@ -140,7 +140,7 @@ describe( 'emitGradientBorderCss', () => {
 	it( 'lets a Cover stop clipping where overflow-clip-margin is unsupported (#912)', () => {
 		const css = emitGradientBorderCss(
 			'.scope',
-			{ ...baseline, idle: 'red', width: '3px', radius: '12px' },
+			{ ...baseline, idle: 'var(--r)', width: '3px', radius: '12px' },
 			states,
 			breakpoints,
 		)
@@ -156,7 +156,7 @@ describe( 'emitGradientBorderCss', () => {
 	it( 'insets each per-corner radius by the ring width in the Cover fallback', () => {
 		const css = emitGradientBorderCss(
 			'.scope',
-			{ ...baseline, idle: 'red', width: '3px', radius: { topLeft: '12px', topRight: '1rem' } },
+			{ ...baseline, idle: 'var(--r)', width: '3px', radius: { topLeft: '12px', topRight: '1rem' } },
 			states,
 			breakpoints,
 		)
@@ -167,12 +167,83 @@ describe( 'emitGradientBorderCss', () => {
 	it( 'leaves Cover background layers square in the fallback when no radius is set', () => {
 		const css = emitGradientBorderCss(
 			'.scope',
-			{ ...baseline, idle: 'red', width: '3px' },
+			{ ...baseline, idle: 'var(--r)', width: '3px' },
 			states,
 			breakpoints,
 		)
 
 		expect( css ).toContain( '@supports not (overflow-clip-margin:border-box){.scope.wp-block-cover{overflow:visible}}' )
 		expect( css ).not.toContain( 'wp-block-cover__background' )
+	} )
+} )
+
+describe( 'emitGradientBorderCss value guard (#1083)', () => {
+	const gradient = 'linear-gradient(red, blue)'
+
+	it.each( [
+		[ 'width', '/*' ],
+		[ 'width', 'calc(2px' ],
+		[ 'radius', '4px */' ],
+		[ 'radius', { topLeft: '4px//', topRight: '2px' } ],
+		[ 'width', '/"*' ],
+	] as const )( 'treats a %s of %j as unset', ( field, value ) => {
+		const css = emitGradientBorderCss( '.scope', { ...baseline, idle: gradient, [ field ]: value }, states, breakpoints )
+
+		expect( css ).not.toContain( '/*' )
+		expect( css ).not.toContain( '*/' )
+		expect( css ).not.toContain( '//' )
+		expect( css ).toContain( `background:${ gradient }` )
+	} )
+
+	it( 'falls back to the default width for a rejected width', () => {
+		const css = emitGradientBorderCss( '.scope', { ...baseline, idle: gradient, width: '/*' }, states, breakpoints )
+
+		expect( css ).toContain( 'inset:calc(-1 * 1px);padding:1px;' )
+	} )
+
+	it( 'keeps the safe corners of a per-corner radius', () => {
+		const css = emitGradientBorderCss(
+			'.scope',
+			{ ...baseline, idle: gradient, radius: { topLeft: '/*', topRight: '2px' } },
+			states,
+			breakpoints,
+		)
+
+		expect( css ).toContain( 'border-top-right-radius:2px' )
+		expect( css ).not.toContain( 'border-top-left-radius' )
+	} )
+
+	it( 'drops gradients that open a comment', () => {
+		expect( emitGradientBorderCss( '.scope', { ...baseline, idle: `${ gradient } /*` }, states, breakpoints ) ).toBe( '' )
+
+		const css = emitGradientBorderCss(
+			'.scope',
+			{
+				...baseline,
+				idle:        gradient,
+				states:      { hover: 'linear-gradient(red, blue /*' },
+				breakpoints: { md: `${ gradient } */` },
+			},
+			states,
+			breakpoints,
+		)
+
+		expect( css ).not.toContain( '/*' )
+		expect( css ).not.toContain( '*/' )
+		expect( css ).not.toContain( ':hover' )
+	} )
+
+	it.each( [
+		'url(http:evil.example/t.png)',
+		'image-set(t.png 1x)',
+		'linear-gradient(red,red) padding-box,url(t.png)',
+	] )( 'drops the gradient %s, which could fetch a resource', ( bad ) => {
+		expect( emitGradientBorderCss( '.scope', { ...baseline, idle: bad }, states, breakpoints ) ).toBe( '' )
+
+		const css = emitGradientBorderCss( '.scope', { ...baseline, idle: gradient, states: { hover: bad } }, states, breakpoints )
+
+		expect( css ).not.toContain( 'url(' )
+		expect( css ).not.toContain( 'image-set(' )
+		expect( css ).not.toContain( ':hover' )
 	} )
 } )

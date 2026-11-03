@@ -54,6 +54,7 @@ namespace ArtisanPackUI\VisualEditor\GradientBorder;
 
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use ArtisanPackUI\VisualEditor\States\StateRegistry;
+use ArtisanPackUI\VisualEditor\Support\CssValue;
 
 class GradientBorderEmitter
 {
@@ -123,10 +124,11 @@ class GradientBorderEmitter
 			return '';
 		}
 
-		$idle        = self::stringOrNull( $payload['idle'] ?? null );
-		$states      = self::stringMap( $payload['states'] ?? [] );
-		$breakpoints = self::stringMap( $payload['breakpoints'] ?? [] );
-		$width       = self::stringOrNull( $payload['width'] ?? null ) ?? '1px';
+		$idle        = self::safeValue( $payload['idle'] ?? null, true );
+		$states      = self::safeMap( $payload['states'] ?? [] );
+		$breakpoints = self::safeMap( $payload['breakpoints'] ?? [] );
+		$width       = self::safeValue( $payload['width'] ?? null ) ?? '1px';
+		$radius      = self::safeRadius( $payload['radius'] ?? null );
 
 		if ( null === $idle && [] === $states && [] === $breakpoints ) {
 			return '';
@@ -156,7 +158,7 @@ class GradientBorderEmitter
 		// `overflow: clip`, so other blocks are unaffected.
 		$rules[] = sprintf( '%s{position:relative;border-color:transparent !important;overflow-clip-margin:border-box}', $scope );
 
-		$rules[] = self::coverClipFallback( $scope, $payload['radius'] ?? null, $width );
+		$rules[] = self::coverClipFallback( $scope, $radius, $width );
 
 		// Idle ::before rule. Always emitted when *any* gradient value
 		// exists at any state/breakpoint so the cascade has a base to
@@ -166,7 +168,7 @@ class GradientBorderEmitter
 		$rules[]      = sprintf(
 			'%s::before{%s}',
 			$scope,
-			self::baseBeforeDeclarations( $idleGradient, $width, $payload['radius'] ?? null ),
+			self::baseBeforeDeclarations( $idleGradient, $width, $radius ),
 		);
 
 		$hasNonIdle = [] !== $states || [] !== $breakpoints;
@@ -543,6 +545,92 @@ class GradientBorderEmitter
 			}
 
 			$out[ $key ] = $resolved;
+		}
+
+		return $out;
+	}
+
+	/**
+	 * A payload value, sanitized, or `null` to treat it as unset (#1083).
+	 *
+	 * The character allowlists keep `/`, `*` and `(` for `calc()` and
+	 * gradient functions, so the cleaned value must also be balanced and
+	 * free of comment delimiters and `//`: an unterminated comment or
+	 * function would swallow every later rule in the shared `<style>`
+	 * block. The check runs on the cleaned value, since stripping can join
+	 * `/"*` into `/*`. A gradient lands on `background`, which fetches, so
+	 * it must also be one gradient that can't load a `url()`
+	 * ({@see CssValue::isGradient()}). Mirrors
+	 * {@see BoxShadowEmitter::safeField()}.
+	 *
+	 * @since 1.20.0
+	 */
+	protected static function safeValue( mixed $value, bool $gradient = false ): ?string
+	{
+		if ( ! is_string( $value ) ) {
+			return null;
+		}
+
+		$clean = trim( $gradient ? self::sanitizeGradient( $value ) : self::sanitizeCss( $value ) );
+
+		if ( '' === $clean || str_contains( $clean, '//' ) || ! CssValue::isBalanced( $clean ) ) {
+			return null;
+		}
+
+		return ! $gradient || CssValue::isGradient( $clean ) ? $clean : null;
+	}
+
+	/**
+	 * A `[ key => gradient ]` map with every value run through
+	 * {@see self::safeValue()}; rejected and non-string-keyed entries are
+	 * dropped.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @return array<string, string>
+	 */
+	protected static function safeMap( mixed $raw ): array
+	{
+		$out = [];
+
+		foreach ( self::stringMap( $raw ) as $key => $value ) {
+			$safe = self::safeValue( $value, true );
+
+			if ( null !== $safe ) {
+				$out[ $key ] = $safe;
+			}
+		}
+
+		return $out;
+	}
+
+	/**
+	 * The authored radius with any value {@see self::safeValue()} rejects
+	 * removed: a string radius becomes `null`, and a per-corner array
+	 * loses that corner.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @return array<string, string>|string|null
+	 */
+	protected static function safeRadius( mixed $radius ): array|string|null
+	{
+		if ( is_string( $radius ) ) {
+			return self::safeValue( $radius );
+		}
+
+		if ( ! is_array( $radius ) ) {
+			return null;
+		}
+
+		$out = [];
+
+		foreach ( $radius as $corner => $value ) {
+			$safe = is_string( $corner ) ? self::safeValue( $value ) : null;
+
+			if ( null !== $safe ) {
+				$out[ $corner ] = $safe;
+			}
 		}
 
 		return $out;
