@@ -1,5 +1,23 @@
 {
-    "$comment": "Canonical list of block names every renderer (blade/react/vue) MUST register. Sourced from packages/visual-editor-renderer-{blade,react,vue}. Updated whenever the V2 fork lands a new artisanpack/* block. `bladeDynamic` names blocks the blade renderer serves through the dynamic pipeline instead of a static partial (checked in react/vue only). `bladeOnly` names blocks the blade renderer ships as a partial while react/vue fall back to server (DynamicBlock) rendering (checked in blade only). CI runs scripts/verify-renderer-parity.mjs to fail the build on drift.",
+    "$comment": "Canonical list of block names every renderer (blade/react/vue) MUST register. Sourced from packages/visual-editor-renderer-{blade,react,vue}. Updated whenever the V2 fork lands a new artisanpack/* block. `bladeDynamic` names blocks the blade renderer serves through the dynamic pipeline instead of a static partial (checked in react/vue only). `bladeOnly` names blocks the blade renderer ships as a partial while react/vue fall back to server (DynamicBlock) rendering (checked in blade only). `codeLanguages` is the Code block's language list, which each renderer and the shared highlighter must match. CI runs scripts/verify-renderer-parity.mjs to fail the build on drift.",
+    "codeLanguages": [
+        "plaintext",
+        "html",
+        "css",
+        "javascript",
+        "typescript",
+        "php",
+        "python",
+        "ruby",
+        "go",
+        "rust",
+        "json",
+        "yaml",
+        "bash",
+        "sql",
+        "markdown",
+        "blade"
+    ],
     "bladeDynamic": [],
     "bladeOnly": [
         "core/html",

@@ -20,9 +20,9 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Http\Controllers;
 
-use ArtisanPackUI\VisualEditor\Effects\CustomCssGuard;
 use ArtisanPackUI\VisualEditor\Http\Requests\UpdateResourceContentRequest;
 use ArtisanPackUI\VisualEditor\Resources\ResourceResolver;
+use ArtisanPackUI\VisualEditor\Support\BlockContentGuard;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
@@ -65,8 +65,8 @@ class ResourceContentController extends Controller
 		/** @var array<int, array<string, mixed>> $blocks */
 		$blocks = $request->validated( 'blocks' );
 
-		// #881 — only users with the block-CSS ability may add Custom CSS.
-		$blocks = app( CustomCssGuard::class )->filter( $blocks, $model->getBlockContent() );
+		// #881, #1062 — Custom CSS and unfiltered markup need their abilities.
+		$blocks = app( BlockContentGuard::class )->filter( $blocks, $model->getBlockContent() );
 
 		$model->setBlockContent( $blocks );
 		$model->save();

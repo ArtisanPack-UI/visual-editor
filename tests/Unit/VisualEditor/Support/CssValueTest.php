@@ -59,3 +59,24 @@ it( 'checks balance and comments for whitelisted values', function (): void {
 		->and( CssValue::isBalanced( 'ease ]' ) )->toBeFalse()
 		->and( CssValue::isBalanced( '([)]' ) )->toBeFalse();
 } );
+
+it( 'accepts a single gradient or var() reference', function ( string $value ): void {
+	expect( CssValue::isGradient( $value ) )->toBeTrue();
+} )->with( [
+	'linear'           => 'linear-gradient(135deg, rgba(0, 0, 0, 0.5), var(--x))',
+	'repeating radial' => 'repeating-radial-gradient(circle, red, color-mix(in srgb, red, blue))',
+	'var'              => 'var(--wp--preset--gradient--sunset)',
+] );
+
+it( 'rejects a gradient that could fetch a resource or add a layer', function ( string $value ): void {
+	expect( CssValue::isGradient( $value ) )->toBeFalse();
+} )->with( [
+	'url'                 => 'url(t.png)',
+	'image-set'           => 'image-set(t.png 1x)',
+	'url inside gradient' => 'linear-gradient(url(t.png), blue)',
+	'second layer'        => 'linear-gradient(red, blue),url(t.png)',
+	'trailing keyword'    => 'linear-gradient(red, blue) padding-box',
+	'unclosed'            => 'linear-gradient(red, blue',
+	'plain color'         => 'red',
+	'var with fallback'   => 'var(--x, url(t.png))',
+] );

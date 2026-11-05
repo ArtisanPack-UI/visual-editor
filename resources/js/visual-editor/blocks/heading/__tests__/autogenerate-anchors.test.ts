@@ -3,7 +3,7 @@
  * `TocResolver` and the React / Vue renderers print as the heading `id`.
  */
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { generateAnchor, getSlug, setAnchor } from '../autogenerate-anchors';
 
@@ -21,6 +21,15 @@ function claim(clientId: string, content: string): string | null {
 describe('autogenerate-anchors', () => {
     afterEach(() => {
         clientIds.splice(0).forEach((clientId) => setAnchor(clientId, null));
+    });
+
+    it('parses content outside the live document', () => {
+        const createElement = vi.spyOn(document, 'createElement');
+
+        expect(getSlug('Hi <img src="x" onerror="alert(1)">')).toBe('hi');
+        expect(createElement).not.toHaveBeenCalled();
+
+        createElement.mockRestore();
     });
 
     it('slugs Latin text like the upstream port', () => {

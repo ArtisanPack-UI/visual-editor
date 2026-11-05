@@ -163,6 +163,22 @@ describe('TopBar', () => {
         );
     });
 
+    it('reads as dirty once the content has loaded', () => {
+        render(<TopBar {...defaultProps({ saveStatus: 'idle' })} />);
+
+        expect(
+            screen.getByTestId('ap-visual-editor-top-bar-save-status')
+        ).toHaveTextContent('Unsaved changes');
+    });
+
+    it('shows no save status until the content has loaded (#1055)', () => {
+        render(<TopBar {...defaultProps({ saveStatus: 'idle', contentLoaded: false })} />);
+
+        expect(
+            screen.getByTestId('ap-visual-editor-top-bar-save-status')
+        ).toBeEmptyDOMElement();
+    });
+
     it('surfaces the save status label and lastSavedAt timestamp', () => {
         const { rerender } = render(
             <TopBar {...defaultProps({ saveStatus: 'saving' })} />

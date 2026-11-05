@@ -12,6 +12,11 @@
  * or `:resolve-patterns="false"` to opt out of either resolution step
  * and render the raw tree.
  *
+ * Saved `_resolved*` attributes are stripped from the tree before any
+ * resolver runs, so only values stamped during the render reach the
+ * views (#1096). Pass `:trust-resolved="true"` for a tree the host
+ * resolved itself; see {@see ResolvedAttributes}.
+ *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditorRendererBlade
  *
@@ -34,6 +39,7 @@ use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesEmissionTracker;
 use ArtisanPackUI\VisualEditor\SiteEditor\NavigationBlockRefResolver;
 use ArtisanPackUI\VisualEditor\Support\BlockShape;
+use ArtisanPackUI\VisualEditor\Support\ResolvedAttributes;
 use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\BreadcrumbsResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\BusinessInfoResolver;
@@ -105,6 +111,7 @@ class BlocksComponent extends Component
 		protected ?BoxShadowCssAccumulator $boxShadowAccumulator = null,
 		protected ?PositionCssAccumulator $positionAccumulator = null,
 		bool $resolveToc = true,
+		bool $trustResolved = false,
 	) {
 		if ( null === $this->boxShadowAccumulator ) {
 			$this->boxShadowAccumulator = app( BoxShadowCssAccumulator::class );
@@ -126,11 +133,23 @@ class BlocksComponent extends Component
 		// (see BlockTreeReferenceResolver::inlineReferences()).
 		$resolved = $this->referenceResolver()->inlineReferences( $normalized, $defaultTheme, $resolveParts, $resolvePatterns );
 
+		// The tree is saved content (template parts and patterns
+		// included), and most resolvers below keep any `_resolved*` key a
+		// block already has. Strip every one of them here, with or without
+		// a post, so saved markup can't replace what a resolver computes
+		// (#1078, #1096). A host that passes a tree it resolved itself
+		// sets `trust-resolved` to keep its values.
+		if ( ! $trustResolved ) {
+			$resolved = ResolvedAttributes::strip( $resolved );
+		}
+
 		// Query inlining runs before nav-block resolution so a `core/query`
 		// loop with a navigation block inside it (rare but legal) still
-		// gets each cloned nav block resolved to its menu items.
+		// gets each cloned nav block resolved to its menu items. The tree
+		// was stripped above (or is trusted), so the inliner doesn't strip
+		// it again.
 		$resolved = $resolveQueries
-			? $this->queryInliner->inline( $resolved, is_object( $post ) ? $post : null )
+			? $this->queryInliner->inline( $resolved, is_object( $post ) ? $post : null, false )
 			: $resolved;
 
 		// Comment inlining runs after query inlining so a `core/query` loop

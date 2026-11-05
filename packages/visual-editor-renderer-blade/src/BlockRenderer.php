@@ -28,6 +28,7 @@ use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingResolver;
 use ArtisanPackUI\VisualEditor\Support\BlockMarkupHydrator;
 use ArtisanPackUI\VisualEditor\Support\BlockShape;
+use ArtisanPackUI\VisualEditor\Support\ResolvedAttributes;
 use ArtisanPackUI\VisualEditor\Visibility\VisibilityContext;
 use ArtisanPackUI\VisualEditor\Visibility\VisibilityDecision;
 use ArtisanPackUI\VisualEditor\Visibility\VisibilityEvaluator;
@@ -44,6 +45,7 @@ use ArtisanPackUI\VisualEditorRendererBlade\Services\PositionCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveImages;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\StateCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\TabIdStamper;
 use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Contracts\Support\Htmlable;
@@ -354,6 +356,7 @@ class BlockRenderer
 	 *
 	 * @since 1.5.5
 	 * @since 1.15.2 Resolves navigation menus and records the theme for nested overlay renders (#973).
+	 * @since 1.20.0 Strips saved `_resolved*` attributes (#1096).
 	 *
 	 * @param  string   $markup        Raw block markup, e.g. the contents of a theme `templates/*.html` file.
 	 * @param  ?string  $defaultTheme  Theme assumed for `template-part` blocks that omit a `theme` attribute.
@@ -368,10 +371,12 @@ class BlockRenderer
 			$tree = app( BlockMarkupHydrator::class )->hydrate( $markup );
 
 			// The same reference passes `BlocksComponent` runs: parts,
-			// then synced patterns, then navigation menus (#973).
+			// then synced patterns, then navigation menus (#973). The
+			// markup is saved content, so its `_resolved*` attributes are
+			// stripped before the renderer stamps its own (#1096).
 			$references = app( BlockTreeReferenceResolver::class );
 			$tree       = $references->resolveNavigation(
-				$references->inlineReferences( $tree, $defaultTheme ),
+				ResolvedAttributes::strip( $references->inlineReferences( $tree, $defaultTheme ) ),
 				$defaultTheme,
 			);
 		} catch ( Throwable $e ) {
@@ -444,6 +449,11 @@ class BlockRenderer
 			// Token Inserter) resolve at render time. Silent no-op when
 			// cms-framework is not on the classpath.
 			$tree = $this->resolveInlineTokens( $tree );
+
+			// #1057 — unique tab ids across the page. A nested render keeps
+			// the ids the outer call stamped, because a partial re-rendering
+			// its children must print the same ids.
+			$tree = app( TabIdStamper::class )->stamp( $tree, 1 === $this->renderDepth );
 
 			// #1031 — one query for every image in the tree.
 			if ( 1 === $this->renderDepth ) {
@@ -849,7 +859,9 @@ class BlockRenderer
 	 * Pre-existing `_resolved*` keys win — a host that has already
 	 * resolved values upstream (custom Inertia payload, theme
 	 * customizer, etc.) keeps full control. The resolver acts as the
-	 * default fallback, not an override.
+	 * default fallback, not an override. Saved trees reach this pass
+	 * with their `_resolved*` keys stripped, so only a host that passes
+	 * `trust-resolved` gets that control (#1096).
 	 *
 	 * @since 1.0.0
 	 *
@@ -887,7 +899,8 @@ class BlockRenderer
 	 * Pre-existing `_resolved*` keys win — hosts that have already
 	 * resolved the envelope upstream (Inertia payload, custom auth
 	 * middleware, etc.) keep control. The resolver is the default
-	 * fallback, not an override. Mirrors {@see stampSiteMeta}.
+	 * fallback, not an override. Mirrors {@see stampSiteMeta}, including
+	 * the strip that keeps saved values out (#1096).
 	 *
 	 * @since 1.0.0
 	 *

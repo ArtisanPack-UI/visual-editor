@@ -78,6 +78,12 @@ export interface TemplateProps {
      */
     duotonePresets?: DuotonePresets;
     /**
+     * The theme's lightbox default, forwarded to {@link BlockTree}.
+     *
+     * @since 1.20.0
+     */
+    lightboxDefault?: boolean;
+    /**
      * URL of the page being rendered, forwarded to {@link BlockTree} so
      * navigation links mark the current page.
      *
@@ -137,6 +143,10 @@ export const Template = defineComponent({
             type: [Array, Object] as PropType<DuotonePresets>,
             default: undefined,
         },
+        lightboxDefault: {
+            type: Boolean,
+            default: false,
+        },
         currentUrl: {
             type: String as PropType<string | null | undefined>,
             default: undefined,
@@ -189,6 +199,7 @@ export const Template = defineComponent({
                         maxPatternDepth: props.maxPatternDepth,
                         customCssAllowUrls: props.customCssAllowUrls,
                         duotonePresets: props.duotonePresets,
+                        lightboxDefault: props.lightboxDefault,
                         currentUrl: props.currentUrl,
                     }),
                 ]),

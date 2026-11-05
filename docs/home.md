@@ -48,7 +48,7 @@ The Visual Editor is designed to give Laravel apps a first-class block-based aut
 
 The block editor for a single resource — a post, page, or any custom Eloquent model. Mounted with a single Blade component.
 
-- [[Post Editor]] — Surface tour and what each region does
+- [[Post Editor]] — Surface tour and what each region does, including pasting Markdown and importing pasted images
 - [[post-editor/Getting Started]] — Mount your first editor in five minutes
 - [[post-editor/Blade Component]] — `<x-visual-editor />` reference
 - [[post-editor/Composed View]] — Editing content inside its resolved template
@@ -77,6 +77,7 @@ The block library — what ships, how to author your own, and how to wire respon
 - [[Blocks]] — Block library overview and the `artisanpack/*` allow-list
 - [[blocks/Custom Blocks]] — Authoring your own blocks (static and dynamic)
 - [[blocks/Icon Block]] — The `artisanpack/icon` block (FA Free + admin upload)
+- [[blocks/Code Block]] — Language selection, syntax highlighting and token theming for `artisanpack/code`
 - [[blocks/Social Icons]] — The `artisanpack/social-links` block (48 services, per-icon styles) (v1.18)
 - [[blocks/Responsive Design Tools]] — Per-breakpoint values on block controls
 - [[blocks/State Design Tools]] — Per-state overrides (hover, focus, active, etc.)
@@ -128,6 +129,7 @@ All endpoints use the `/visual-editor/api/` prefix and run through the middlewar
 - `POST /blocks/preview` — Dynamic block editor preview rendering; also takes an `items` batch of up to 25 blocks (since v1.17.0)
 - `GET /blocks` — Enabled-block manifest (allow/deny lists applied)
 - `POST /query/resolve` — `core/query` block resolution
+- `GET /taxonomies/{taxonomy}/terms` — term list for the Query Loop's taxonomy filter
 
 ### Site editor
 - `GET/POST/PUT/DELETE /templates`, `/template-parts` — Templates and parts (wp_template shape)

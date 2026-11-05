@@ -1,0 +1,21 @@
+<figure class="wp-block-image">
+  <img alt="a" src="https://example.test/a.jpg" style="aspect-ratio: 16/10; object-fit: cover; object-position: 50% 0%" />
+</figure>
+<figure class="wp-block-image is-resized has-custom-border">
+  <img alt="b" src="https://example.test/b.jpg" style="border-width: 1px; border-style: solid; object-fit: contain; object-position: 25% 100%; width: 300px" width="300" />
+</figure>
+<figure class="wp-block-image">
+  <img alt="c" src="https://example.test/c.jpg" style="object-fit: cover; object-position: 50% 67%" />
+</figure>
+<figure class="wp-block-image">
+  <img alt="d" src="https://example.test/d.jpg" style="object-fit: cover" />
+</figure>
+<figure class="wp-block-image">
+  <img alt="e" src="https://example.test/e.jpg" style="object-fit: cover" />
+</figure>
+<figure class="wp-block-image">
+  <img alt="g" src="https://example.test/g.jpg" style="object-fit: cover" />
+</figure>
+<figure class="wp-block-image">
+  <img alt="f" src="https://example.test/f.jpg" />
+</figure>

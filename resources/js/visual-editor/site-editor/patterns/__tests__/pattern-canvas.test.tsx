@@ -13,6 +13,7 @@ vi.mock('../../../editor/spacing-preset-styles', () => ({
 }));
 
 vi.mock('@wordpress/block-editor', () => ({
+    __unstableEditorStyles: (): null => null,
     BlockList: (): JSX.Element => <div data-testid="ap-stub-block-list" />,
     BlockToolbar: (): JSX.Element => <div data-testid="ap-stub-block-toolbar" />,
     BlockTools: ({ children }: { children?: ReactNode }): JSX.Element => (
@@ -26,6 +27,7 @@ vi.mock('@wordpress/block-editor', () => ({
     ),
 }));
 
+import { CANVAS_LAYOUT_STYLES } from '../../../editor-settings';
 import { PatternCanvas } from '../pattern-canvas';
 
 describe('PatternCanvas', () => {
@@ -41,6 +43,17 @@ describe('PatternCanvas', () => {
 
         expect(style).not.toBeNull();
         expect(style?.textContent).toContain('.editor-styles-wrapper');
+    });
+
+    it('inlines the layout baseline the iframe gets from canvasStyles (#1040)', () => {
+        render(<PatternCanvas title="Test pattern" synced={false} />);
+
+        const surface = document.querySelector('.ap-pattern-canvas__surface');
+        const sheets = Array.from(surface?.querySelectorAll('style') ?? []).map(
+            (style) => style.textContent
+        );
+
+        expect(sheets).toContain(CANVAS_LAYOUT_STYLES);
     });
 
     it('renders the loading state without the canvas surface', () => {

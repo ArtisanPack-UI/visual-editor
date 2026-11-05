@@ -32,27 +32,27 @@ interface Variation {
 const example = {
     innerBlocks: [
         {
-            name: 'core/paragraph',
+            name: 'artisanpack/paragraph',
             attributes: { content: __('One.', TEXT_DOMAIN) },
         },
         {
-            name: 'core/paragraph',
+            name: 'artisanpack/paragraph',
             attributes: { content: __('Two.', TEXT_DOMAIN) },
         },
         {
-            name: 'core/paragraph',
+            name: 'artisanpack/paragraph',
             attributes: { content: __('Three.', TEXT_DOMAIN) },
         },
         {
-            name: 'core/paragraph',
+            name: 'artisanpack/paragraph',
             attributes: { content: __('Four.', TEXT_DOMAIN) },
         },
         {
-            name: 'core/paragraph',
+            name: 'artisanpack/paragraph',
             attributes: { content: __('Five.', TEXT_DOMAIN) },
         },
         {
-            name: 'core/paragraph',
+            name: 'artisanpack/paragraph',
             attributes: { content: __('Six.', TEXT_DOMAIN) },
         },
     ],

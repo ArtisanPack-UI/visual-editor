@@ -140,7 +140,7 @@ It takes these attributes:
 |-----------|---------|--------|
 | `:theme-json` | `null` | The `theme.json` array to compile into `<style data-ve-theme-tokens>`. |
 | `:bundle` | `true` | `false` skips the block-library `<link>`s. |
-| `:interactive` | `true` | `false` skips the accordion / tabs assets. |
+| `:interactive` | `true` | `false` skips the accordion / tabs assets and the Image and Gallery lightbox, whose images then stay ordinary images. |
 | `asset-base` | `/vendor/visual-editor-renderer-blade` | Serve the CSS and scripts from another base URL, such as a CDN. A custom base always uses plain file names, even after [`visual-editor:publish-assets`](frontend-performance.md#publishing-static-assets). |
 | `:global-styles` | `true` | *Since v1.15.0.* `false` means this component never prints the global styles itself. See [Global styles placement](#global-styles-placement). |
 | `:block-style-variations` | `true` | *Since v1.15.0.* `false` keeps the theme's `styles.blocks.*.variations` out of the theme tokens. |
@@ -421,11 +421,13 @@ works either way.
 > **Security.** `$markup` must already be trusted to render. Block partials
 > emit recovered rich-text unescaped — that is what makes a paragraph's
 > `<strong>` survive the round trip — so hydration is safe over theme files,
-> patterns, and editor-authored content that passed the post editor's
-> authorization, and **not** over visitor-submitted markup, which it would
-> turn into stored XSS. It is not a sanitizer. This is the same trust
-> boundary Gutenberg draws around block markup. Run untrusted markup through
-> your own sanitizer (e.g. `kses()` from `artisanpack-ui/security`) first.
+> patterns, and editor-authored content, which saving filters unless the
+> author holds the unfiltered-HTML ability (see
+> [`content_filter`](Configuration.md#content_filter)), and **not** over
+> visitor-submitted markup, which it would turn into stored XSS. It is not a
+> sanitizer. This is the same trust boundary Gutenberg draws around block
+> markup. Run other untrusted markup through `BlockHtmlSanitizer` or your own
+> sanitizer first.
 
 ### Registering a custom block renderer
 
@@ -616,6 +618,40 @@ rules at the new widths (`<style data-ve-flex-layout>`). Call
 `setBreakpoints()` before the first render, and stop linking the
 published `flex-layout.css`: its default-width rules would still fire.
 
+### Image lightbox
+
+*Since v1.20.0 (#1046, #1071)* — an Image block whose **Click to enlarge**
+setting is on renders as a lightbox figure, and the overlay script loads
+the first time one mounts. The theme default lives on the server, so pass
+it in: `<BlockTree tree={…} lightboxDefault />`. A block's own setting wins
+over the default, and a linked image never opens a lightbox. A
+`_veLightbox` key already on the tree is ignored, so a pasted or stored
+block can't turn the lightbox on.
+
+The overlay's text and the trigger's accessible name are English by
+default. Pass your translations to `setLightboxLabels()` once, before the
+first render, the same way as `setBreakpoints()`:
+
+```tsx
+import { setLightboxLabels } from '@artisanpack-ui/visual-editor-renderer-react';
+
+setLightboxLabels({
+    dialog: 'Vergrößertes Bild',
+    close: 'Schließen',
+    previous: 'Vorheriges Bild',
+    next: 'Nächstes Bild',
+    position: 'Bild :current von :total',
+    enlarge: 'Bild vergrößern',
+    enlargeWithAlt: 'Bild vergrößern: :alt',
+});
+```
+
+Any key you leave out keeps its default, and `setLightboxLabels()` with
+no argument restores all of them. `:alt` is replaced with the image's alt
+text, and the overlay fills in `:current` and `:total` as a gallery steps.
+`getLightboxLabels()` returns the set in effect, and the `LightboxLabels`
+type is exported too. Blade translates the same strings through `__()`.
+
 ### Navigation overlay
 
 *Since v1.13.0 (#804).* The React and Vue renderers render
@@ -744,14 +780,15 @@ overlay content in the named `overlay` slot instead of the default slot.
 
 The [styles `<BlockTree>` prints](#styles-blocktree-prints) and the
 [breakpoint setup](#breakpoints) are the same too. In templates, pass the
-1.15 props in kebab case, and import `setBreakpoints` from the Vue
-package:
+1.15 props in kebab case, and import `setBreakpoints` and
+[`setLightboxLabels`](#image-lightbox) from the Vue package:
 
 ```vue
 <BlockTree
     :tree="post.content"
     :duotone-presets="duotonePresets"
     :custom-css-allow-urls="customCssAllowUrls"
+    :lightbox-default="lightboxDefault"
 />
 ```
 

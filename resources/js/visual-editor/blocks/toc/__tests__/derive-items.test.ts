@@ -7,7 +7,7 @@
  * `tests/Unit/VisualEditor/Resources/TocResolverTest.php`.
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
     containsPostContent,
@@ -212,5 +212,20 @@ describe('filterItemsBySource', () => {
 
         expect(containsPostContent(loopOnly as never)).toBe(false);
         expect(filterItemsBySource(deriveHeadingItems(loopOnly as never), 'post-content', false)).toHaveLength(2);
+    });
+});
+
+describe('heading markup', () => {
+    it('parses stored heading content in an inert document', () => {
+        const createElement = vi.spyOn(document, 'createElement');
+
+        const [item] = deriveHeadingItems([
+            heading(2, 'Hi <img src="x" onerror="alert(1)">') as never,
+        ]);
+
+        expect(item.text).toBe('Hi');
+        expect(createElement).not.toHaveBeenCalled();
+
+        createElement.mockRestore();
     });
 });

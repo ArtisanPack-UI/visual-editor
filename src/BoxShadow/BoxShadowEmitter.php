@@ -37,6 +37,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\BoxShadow;
 
+use ArtisanPackUI\VisualEditor\Resources\PresetRegistry;
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use ArtisanPackUI\VisualEditor\States\StateRegistry;
 use ArtisanPackUI\VisualEditor\Support\CssValue;
@@ -177,6 +178,21 @@ class BoxShadowEmitter
 	}
 
 	/**
+	 * Whether a layer paints through a pseudo-element, not `box-shadow`.
+	 *
+	 * @since 1.2.0
+	 * @since 1.20.0 Public (#1052).
+	 *
+	 * @param  array<string, mixed>  $layer
+	 */
+	public static function isGradient( array $layer ): bool
+	{
+		return null === ( $layer['preset'] ?? null )
+			&& null === ( $layer['value'] ?? null )
+			&& null !== ( $layer['gradient'] ?? null );
+	}
+
+	/**
 	 * Build the CSS rule for a layer in idle/breakpoint context where
 	 * the scope itself is the selector.
 	 *
@@ -234,7 +250,9 @@ class BoxShadowEmitter
 	protected static function layerBoxShadowValue( array $layer ): string
 	{
 		if ( null !== ( $layer['preset'] ?? null ) ) {
-			$slug = self::sanitizeSlug( (string) $layer['preset'] );
+			// The slug rule every preset declaration uses, so a theme's
+			// `soft_glow` resolves to its `--soft-glow` property (#1084).
+			$slug = PresetRegistry::presetSlug( (string) $layer['preset'] );
 
 			if ( '' === $slug ) {
 				return '';
@@ -339,18 +357,29 @@ class BoxShadowEmitter
 		$preset = $layer['preset'] ?? null;
 		$preset = is_string( $preset ) && '' !== trim( $preset ) ? trim( $preset ) : null;
 
-		$gradient = $layer['gradient'] ?? null;
-		$gradient = is_string( $gradient ) && '' !== trim( $gradient ) ? trim( $gradient ) : null;
+		$gradient = self::safeField( $layer['gradient'] ?? null, true );
 
 		$value = $layer['value'] ?? null;
 		$value = is_string( $value ) && '' !== trim( $value ) ? trim( $value ) : null;
 
-		$hasStructured =
-			self::nonEmptyString( $layer['offsetX'] ?? null )
-			|| self::nonEmptyString( $layer['offsetY'] ?? null )
-			|| self::nonEmptyString( $layer['blur'] ?? null )
-			|| self::nonEmptyString( $layer['spread'] ?? null )
-			|| self::nonEmptyString( $layer['color'] ?? null )
+		// A rejected gradient drops the layer rather than painting it as a
+		// solid shadow: the Image block keeps a gradient shadow on its
+		// figure, so a solid fallback would wrap the caption (#1083).
+		if ( null === $preset && null === $value && null === $gradient && self::nonEmptyString( $layer['gradient'] ?? null ) ) {
+			return null;
+		}
+
+		$offsetX = self::safeField( $layer['offsetX'] ?? null );
+		$offsetY = self::safeField( $layer['offsetY'] ?? null );
+		$blur    = self::safeField( $layer['blur'] ?? null );
+		$spread  = self::safeField( $layer['spread'] ?? null );
+		$color   = self::safeField( $layer['color'] ?? null );
+
+		$hasStructured = null !== $offsetX
+			|| null !== $offsetY
+			|| null !== $blur
+			|| null !== $spread
+			|| null !== $color
 			|| null !== $gradient
 			|| true === ( $layer['inset'] ?? false );
 
@@ -359,11 +388,11 @@ class BoxShadowEmitter
 		}
 
 		return [
-			'offsetX'  => self::coerceCss( $layer['offsetX'] ?? null, '0px' ),
-			'offsetY'  => self::coerceCss( $layer['offsetY'] ?? null, '0px' ),
-			'blur'     => self::coerceCss( $layer['blur'] ?? null, '0px' ),
-			'spread'   => self::coerceCss( $layer['spread'] ?? null, '0px' ),
-			'color'    => self::nonEmptyString( $layer['color'] ?? null ) ? trim( (string) $layer['color'] ) : null,
+			'offsetX'  => $offsetX ?? '0px',
+			'offsetY'  => $offsetY ?? '0px',
+			'blur'     => $blur ?? '0px',
+			'spread'   => $spread ?? '0px',
+			'color'    => $color,
 			'gradient' => $gradient,
 			'inset'    => true === ( $layer['inset'] ?? false ),
 			'preset'   => $preset,
@@ -399,16 +428,6 @@ class BoxShadowEmitter
 		}
 
 		return $out;
-	}
-
-	/**
-	 * @param  array<string, mixed>  $layer
-	 */
-	protected static function isGradient( array $layer ): bool
-	{
-		return null === ( $layer['preset'] ?? null )
-			&& null === ( $layer['value'] ?? null )
-			&& null !== ( $layer['gradient'] ?? null );
 	}
 
 	/**
@@ -489,20 +508,34 @@ class BoxShadowEmitter
 		return (string) preg_replace( '/[^a-zA-Z0-9_+\-*\/.,()%#:\s]/', '', $value );
 	}
 
-	protected static function sanitizeSlug( string $value ): string
-	{
-		return (string) preg_replace( '/[^a-z0-9_-]/i', '', $value );
-	}
-
-	protected static function coerceCss( mixed $value, string $fallback ): string
+	/**
+	 * A structured layer field, sanitized, or `null` to treat it as unset
+	 * (#1083).
+	 *
+	 * The character allowlist keeps `/`, `*` and `(` for `calc()` and
+	 * color functions, so the cleaned value must also be balanced and free
+	 * of comment delimiters and `//`, as `BlockSupports::safeCssValue()`
+	 * requires: an unterminated comment or function would swallow every
+	 * later rule in the shared `<style>` block. The check runs on the
+	 * cleaned value, since stripping can join `/"*` into `/*`. A gradient
+	 * paints a `background`, which fetches, so it must also be one
+	 * gradient that can't load a `url()` ({@see CssValue::isGradient()}).
+	 *
+	 * @since 1.20.0
+	 */
+	protected static function safeField( mixed $value, bool $gradient = false ): ?string
 	{
 		if ( ! is_string( $value ) ) {
-			return $fallback;
+			return null;
 		}
 
-		$trimmed = trim( $value );
+		$clean = trim( $gradient ? self::sanitizeGradient( $value ) : self::sanitizeCss( $value ) );
 
-		return '' === $trimmed ? $fallback : $trimmed;
+		if ( '' === $clean || str_contains( $clean, '//' ) || ! CssValue::isBalanced( $clean ) ) {
+			return null;
+		}
+
+		return ! $gradient || CssValue::isGradient( $clean ) ? $clean : null;
 	}
 
 	protected static function nonEmptyString( mixed $value ): bool

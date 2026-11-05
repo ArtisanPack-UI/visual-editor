@@ -9,7 +9,8 @@
  * block reads that list at runtime to register one inserter variation per
  * taxonomy and to populate the taxonomy picker in its Settings sidebar,
  * so custom taxonomies registered by the host surface in the editor with
- * no further wiring.
+ * no further wiring. The Query Loop reads the same list for its taxonomy
+ * filter, narrowed by each entry's optional `postTypes`.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor
@@ -36,6 +37,12 @@ class TaxonomyRegistry
 	protected const SAFE_SLUG_PATTERN = '/^[a-z0-9_-]+$/';
 
 	/**
+	 * Post type character set, matching
+	 * `QueryPostTypeRegistry::SAFE_VALUE_PATTERN`.
+	 */
+	protected const SAFE_POST_TYPE_PATTERN = '/^[A-Za-z0-9_-]{1,64}$/';
+
+	/**
 	 * Resolve the configured taxonomies into a normalised descriptor list.
 	 *
 	 * Falls back to the `category` / `post_tag` defaults when the config
@@ -43,8 +50,9 @@ class TaxonomyRegistry
 	 * surfaces the two built-in taxonomies.
 	 *
 	 * @since 1.9.0
+	 * @since 1.20.0 Descriptors may carry `postTypes`.
 	 *
-	 * @return array<int, array{slug: string, label: string, plural: string}>
+	 * @return array<int, array{slug: string, label: string, plural: string, postTypes?: list<string>}>
 	 */
 	public static function fromConfig(): array
 	{
@@ -57,16 +65,17 @@ class TaxonomyRegistry
 	 * Normalise a raw taxonomy map into descriptor rows.
 	 *
 	 * Accepts either a `slug => label` string entry or a
-	 * `slug => ['label' => ..., 'plural' => ...]` array entry. Entries
-	 * whose slug is empty, non-string, or outside {@see self::SAFE_SLUG_PATTERN}
-	 * are skipped. When the result is empty the built-in defaults are
-	 * returned instead.
+	 * `slug => ['label' => ..., 'plural' => ..., 'postTypes' => [...]]`
+	 * array entry. Entries whose slug is empty, non-string, or outside
+	 * {@see self::SAFE_SLUG_PATTERN} are skipped. When the result is empty
+	 * the built-in defaults are returned instead.
 	 *
 	 * @since 1.9.0
+	 * @since 1.20.0 Keeps a declared `postTypes` list.
 	 *
 	 * @param  array<mixed>  $map  Raw config map.
 	 *
-	 * @return array<int, array{slug: string, label: string, plural: string}>
+	 * @return array<int, array{slug: string, label: string, plural: string, postTypes?: list<string>}>
 	 */
 	protected static function normalise( array $map ): array
 	{
@@ -94,14 +103,21 @@ class TaxonomyRegistry
 
 			$seen[ $slug ] = true;
 
-			$label  = self::resolveLabel( $slug, $definition );
-			$plural = self::resolvePlural( $label, $definition );
+			$label     = self::resolveLabel( $slug, $definition );
+			$plural    = self::resolvePlural( $label, $definition );
+			$postTypes = self::resolvePostTypes( $definition );
 
-			$taxonomies[] = [
+			$descriptor = [
 				'slug'   => $slug,
 				'label'  => $label,
 				'plural' => $plural,
 			];
+
+			if ( [] !== $postTypes ) {
+				$descriptor['postTypes'] = $postTypes;
+			}
+
+			$taxonomies[] = $descriptor;
 		}
 
 		if ( [] === $taxonomies ) {
@@ -153,6 +169,39 @@ class TaxonomyRegistry
 		}
 
 		return Str::plural( $label );
+	}
+
+	/**
+	 * Read the post types a taxonomy is bound to, dropping duplicates and
+	 * values outside {@see self::SAFE_POST_TYPE_PATTERN}.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @param  mixed  $definition  Raw config value for the slug.
+	 *
+	 * @return list<string> Empty when the entry doesn't declare any.
+	 */
+	protected static function resolvePostTypes( mixed $definition ): array
+	{
+		if ( ! is_array( $definition ) || ! isset( $definition['postTypes'] ) || ! is_array( $definition['postTypes'] ) ) {
+			return [];
+		}
+
+		$postTypes = [];
+
+		foreach ( $definition['postTypes'] as $postType ) {
+			if ( ! is_string( $postType ) ) {
+				continue;
+			}
+
+			$postType = trim( $postType );
+
+			if ( 1 === preg_match( self::SAFE_POST_TYPE_PATTERN, $postType ) && ! in_array( $postType, $postTypes, true ) ) {
+				$postTypes[] = $postType;
+			}
+		}
+
+		return $postTypes;
 	}
 
 	/**

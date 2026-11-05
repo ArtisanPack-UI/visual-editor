@@ -78,6 +78,12 @@ export interface TemplateProps {
      */
     duotonePresets?: DuotonePresets;
     /**
+     * The theme's lightbox default, forwarded to {@link BlockTree}.
+     *
+     * @since 1.20.0
+     */
+    lightboxDefault?: boolean;
+    /**
      * URL of the page being rendered, forwarded to {@link BlockTree} so
      * navigation links mark the current page.
      *
@@ -99,6 +105,7 @@ export function Template({
     globalStylesCss,
     customCssAllowUrls = true,
     duotonePresets,
+    lightboxDefault,
     currentUrl,
 }: TemplateProps): ReactElement {
     const matched = useMemo(() => resolveTemplate(templates, slug, theme), [templates, slug, theme]);
@@ -147,6 +154,7 @@ export function Template({
                     maxPatternDepth={maxPatternDepth}
                     customCssAllowUrls={customCssAllowUrls}
                     duotonePresets={duotonePresets}
+                    lightboxDefault={lightboxDefault}
                     currentUrl={currentUrl}
                 />
             </div>

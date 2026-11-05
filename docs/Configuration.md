@@ -370,7 +370,7 @@ Since v1.12.0 the front end declares every spacing preset the pickers offer, and
 
 ## `taxonomies`
 
-**Since v1.9 (#771).** Taxonomies registered here are surfaced in the `artisanpack/post-terms` Settings-sidebar picker and get one inserter variation each. Resolved through `TaxonomyRegistry`; the editor mount stamps them as `data-taxonomies` for both the post and site editors.
+**Since v1.9 (#771).** Taxonomies registered here are surfaced in the `artisanpack/post-terms` Settings-sidebar picker and get one inserter variation each, and since v1.20 (#1029) they're listed in the `artisanpack/query` Filters panel. Resolved through `TaxonomyRegistry`; the editor mount stamps them as `data-taxonomies` for both the post and site editors.
 
 Keys are the taxonomy slug stamped onto the block's `term` attribute (matching the slugs `PostResolver::resolvePostTerms()` reads from the post's relations). Each value is either a display label, or an array with `label` and an optional `plural` for richer inserter keywords:
 
@@ -384,6 +384,26 @@ Keys are the taxonomy slug stamped onto the block's `term` attribute (matching t
 ```
 
 The `category` and `post_tag` defaults mirror WordPress core's built-in public taxonomies.
+
+**Since v1.20 (#1029).** An array entry can also set `postTypes` to limit which Query Loop post types offer the taxonomy:
+
+```php
+'package' => [ 'label' => 'Package', 'postTypes' => [ 'post' ] ],
+```
+
+Without `postTypes`, a custom taxonomy is offered for every post type. `category` and `post_tag` are always offered for `post` only, because their term ids come from cms-framework's post tables. The values are the same slugs the Query Loop's Post type picker uses, and a block saved with the plural (`posts`) is matched by its singular. `postTypes` doesn't affect `post-terms`.
+
+#### The Query Loop's taxonomy filter
+
+In the editor, **Query Loop → Inspector → Filters** shows a **Taxonomy** select listing the taxonomies offered for the loop's post type, and a **Terms** checkbox list for the one picked. Checking terms saves them as `query.taxQuery`:
+
+```json
+{ "taxonomy": "category", "terms": [ 3, 7 ], "operator": "IN" }
+```
+
+The loop then shows posts in any of those terms, and the preview updates as the selection changes. Unchecking the last term or clearing the taxonomy removes the filter, and changing the post type clears a filter the new type doesn't offer. A saved filter on a taxonomy the post type no longer lists stays visible as *(unavailable)* so it can be removed.
+
+Terms come from `GET /visual-editor/api/taxonomies/{taxonomy}/terms`, which reads `category` and `post_tag` from cms-framework and asks the [`ap.visualEditor.terms`](Hooks-and-Events.md#apvisualeditorterms) filter for any other taxonomy. Filtering the front end on a custom taxonomy also needs a query resolver that handles it; for cms-framework that's [cms-framework#439](https://github.com/ArtisanPack-UI/cms-framework/issues/439).
 
 ---
 
@@ -571,6 +591,40 @@ See [[AI Features]] for the full feature and access guide.
 See [Access Gate](site-editor/Access-Gate.md#custom-css-ability-visual-editoredit-block-css) and [Effects](blocks/Effects.md).
 
 ---
+
+## `content_filter`
+
+Block content is printed unescaped on the public site, so markup is filtered when it's saved.
+
+```php
+'content_filter' => [
+    'unfiltered_html_capability' => 'unfiltered_html',
+],
+```
+
+- `unfiltered_html_capability` — what the default `visual-editor.unfiltered-html` gate requires ([checked the same way](#how-capabilities-are-checked) as `custom_css_capability`). **Nobody has it until you grant it to a role.** Set to `''` to filter everyone, or redefine the gate for your own rule.
+
+Users with the ability save markup as sent, and get Custom HTML in the inserter. For everyone else, each save reduces every string holding markup to an allowlist of tags, attributes, link schemes and inline styles, on every block-content model and whichever route wrote it. This removes scripts, event handlers, iframes, embeds and `javascript:` links.
+
+Markup already stored on a record is kept exactly as it is, so an author can move or keep a block an administrator wrote, but can't add or change markup. Existing content isn't rewritten: a value is only filtered once someone without the ability changes it. Writes with no signed-in user from the console, such as seeders and queued jobs, aren't filtered.
+
+To allow more, use the [`ap.visualEditor.contentFilter.allowedHtml`](Hooks-and-Events.md#apvisualeditorcontentfilterallowedhtml) filter.
+
+## `media_import`
+
+After a paste creates Image blocks with external URLs, the editor offers to import them into the media library. Nothing downloads until the author accepts. The server does the fetching, so it refuses non-HTTP(S) URLs, other ports, URLs with credentials, and any host with an internal address, including through a redirect.
+
+```php
+'media_import' => [
+    'max_size_kb'        => 10240,
+    'allowed_mime_types' => [ 'image/avif', 'image/gif', 'image/jpeg', 'image/png', 'image/webp' ],
+],
+```
+
+- `max_size_kb` — the largest image the server will download.
+- `allowed_mime_types` — accepted types, read from the file's bytes. SVG can't be added, because it can hold script.
+
+Importing needs `artisanpack-ui/media-library` and its `create` policy for media, and the offer only appears for users who have both. Downloads bypass any proxy, because a proxy would do its own DNS lookup, so a server that can only reach the internet through one can't import. An image that can't be imported keeps its external URL.
 
 ## `visibility`
 

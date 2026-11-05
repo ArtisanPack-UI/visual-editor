@@ -84,6 +84,13 @@ describe('visibilityBreakpoints', () => {
 });
 
 describe('buildVisibilityCanvasCss', () => {
+    it('neither hides nor dims a block that only carries a content rule', () => {
+        const value: VisibilityAttribute = { content: { source: 'relatedPosts', condition: 'hasResults' } };
+
+        expect(buildVisibilityCanvasCss('abc', value, visibilityBreakpoints(), null)).toBe('');
+        expect(buildVisibilityCanvasCss('abc', value, visibilityBreakpoints(), 375)).toBe('');
+    });
+
     const breakpoints = visibilityBreakpoints();
     const mdHidden    = { screenSize: { direction: 'hide' as const, breakpoints: ['md'] } };
 

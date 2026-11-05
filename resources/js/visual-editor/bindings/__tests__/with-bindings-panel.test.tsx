@@ -1,4 +1,4 @@
-import { act, fireEvent, render } from '@testing-library/react'
+import { act, fireEvent, render, waitFor } from '@testing-library/react'
 import { useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -18,7 +18,31 @@ vi.mock( '@wordpress/block-editor', () => ( {
 	InspectorControls: ( { children }: { children: React.ReactNode } ) => (
 		<div data-testid="inspector">{ children }</div>
 	),
+	store: 'core/block-editor',
 } ) )
+
+const mergeStore = vi.hoisted( () => ( {
+	previous:    null as string | null,
+	next:        null as string | null,
+	names:       {} as Record<string, string>,
+	attributes:  {} as Record<string, Record<string, unknown>>,
+	selectBlock: vi.fn(),
+} ) )
+
+vi.mock( '@wordpress/data', async ( importOriginal ) => {
+	const actual = await importOriginal<Record<string, unknown>>()
+	const registry = {
+		select:   () => ( {
+			getPreviousBlockClientId: () => mergeStore.previous,
+			getNextBlockClientId:     () => mergeStore.next,
+			getBlockName:             ( id: string ) => mergeStore.names[ id ] ?? null,
+			getBlockAttributes:       ( id: string ) => mergeStore.attributes[ id ] ?? null,
+		} ),
+		dispatch: () => ( { selectBlock: mergeStore.selectBlock } ),
+	}
+
+	return { ...actual, useRegistry: () => registry }
+} )
 
 vi.mock( '@wordpress/i18n', () => ( {
 	__: ( text: string ) => text,
@@ -71,16 +95,28 @@ vi.mock( '../api', () => ( {
 	resolveBindingsBatch: vi.fn( async () => [] ),
 } ) )
 
+vi.mock( '../../editor/content-type-registry', () => ( {
+	getContentTypes: () => [
+		{ slug: 'page', plural: 'pages', label: 'Page' },
+		{ slug: 'package', plural: 'packages', label: 'Package' },
+	],
+} ) )
+
 import { __setBlockType, __clearBlockTypes } from '@wordpress/blocks'
 
+import { fetchBindingFields, resolveBindingsBatch } from '../api'
 import { BoundAttributesContext, useBoundAttributes } from '../bound-attributes-context'
+import { clearResolvedBindingsCache } from '../resolve-batcher'
 import { resetBindingSourcesCache } from '../use-binding-sources'
-import { withBindingsPanel } from '../with-bindings-panel'
+import { setBindingsResourceContext, withBindingsPanel } from '../with-bindings-panel'
 
 interface CapturedProps {
 	name: string
 	attributes: Record<string, unknown>
 	setAttributes: ( updates: Record<string, unknown> ) => void
+	context?: Record<string, unknown>
+	clientId?: string
+	mergeBlocks?: ( forward?: boolean ) => void
 }
 
 let captured: CapturedProps | null = null
@@ -290,6 +326,221 @@ describe( 'withBindingsPanel', () => {
 			} )
 
 			expect( JSON.parse( getByTestId( 'bound' ).textContent ?? '' ) ).toEqual( {} )
+		} )
+	} )
+
+	describe( 'binding target (#1041)', () => {
+		const PREVIEW_KEY = 'artisanpack/postPreview'
+		const SAVED       = { title: 'v1.2.0', bindings: { title: { source: 'custom_field', args: { key: 'version' } } } }
+
+		interface BatchItem {
+			key: string
+			context: { resource: string | null; id: number | string | null }
+		}
+
+		const batchMock = vi.mocked( resolveBindingsBatch )
+
+		function sentContexts(): BatchItem[ 'context' ][] {
+			return batchMock.mock.calls.flatMap( ( [ items ] ) => items.map( ( item ) => item.context ) )
+		}
+
+		beforeEach( () => {
+			clearResolvedBindingsCache()
+			batchMock.mockReset()
+			vi.mocked( fetchBindingFields ).mockClear()
+			batchMock.mockImplementation( async ( items ) => items.map( ( item ) => ( {
+				key: item.key,
+				values: { title: `${ item.context.resource }:${ item.context.id }` },
+			} ) ) )
+			__setBlockType( 'demo/text', { title: { type: 'string' } } )
+			setBindingsResourceContext( 'pages', 7 )
+		} )
+
+		afterEach( () => {
+			setBindingsResourceContext( null, null )
+		} )
+
+		function renderBlock( context?: Record<string, unknown> ) {
+			const setAttributes = vi.fn()
+			const element       = ( next?: Record<string, unknown> ): JSX.Element => (
+				<Wrapped
+					name="demo/text"
+					attributes={ SAVED }
+					setAttributes={ setAttributes }
+					context={ next }
+				/>
+			)
+			const view = render( element( context ) )
+
+			return { setAttributes, update: ( next: Record<string, unknown> ) => view.rerender( element( next ) ) }
+		}
+
+		it( 'resolves a top-level block against the page being edited', async () => {
+			renderBlock( { postType: 'page', postId: 7 } )
+
+			await waitFor( () => expect( captured?.attributes.title ).toBe( 'pages:7' ) )
+			expect( sentContexts() ).toEqual( [ { resource: 'pages', id: 7 } ] )
+		} )
+
+		it( 'resolves a block in Single Content against the picked record', async () => {
+			renderBlock( { postType: 'package', postId: 12, [ PREVIEW_KEY ]: null } )
+
+			await waitFor( () => expect( captured?.attributes.title ).toBe( 'packages:12' ) )
+			expect( sentContexts() ).toEqual( [ { resource: 'packages', id: 12 } ] )
+		} )
+
+		it( 'updates the bound value when the picked record changes', async () => {
+			const { update } = renderBlock( { postType: 'package', postId: 12, [ PREVIEW_KEY ]: { id: 12 } } )
+
+			await waitFor( () => expect( captured?.attributes.title ).toBe( 'packages:12' ) )
+
+			update( { postType: 'package', postId: 13, [ PREVIEW_KEY ]: { id: 13 } } )
+
+			await waitFor( () => expect( captured?.attributes.title ).toBe( 'packages:13' ) )
+		} )
+
+		it( 'resolves each Query Loop row against its own record', async () => {
+			const rows = [ 1, 2, 3 ].map( ( postId ) => (
+				<Wrapped
+					key={ postId }
+					name="demo/text"
+					attributes={ SAVED }
+					setAttributes={ vi.fn() }
+					context={ { postType: 'package', postId, [ PREVIEW_KEY ]: { id: postId } } }
+				/>
+			) )
+
+			render( <>{ rows }</> )
+
+			await waitFor( () => expect( batchMock ).toHaveBeenCalled() )
+			expect( sentContexts() ).toEqual( [
+				{ resource: 'packages', id: 1 },
+				{ resource: 'packages', id: 2 },
+				{ resource: 'packages', id: 3 },
+			] )
+		} )
+
+		it( 'never writes the resolved value back to the saved attributes', async () => {
+			const { setAttributes } = renderBlock( { postType: 'package', postId: 12, [ PREVIEW_KEY ]: null } )
+
+			await waitFor( () => expect( captured?.attributes.title ).toBe( 'packages:12' ) )
+
+			expect( setAttributes ).not.toHaveBeenCalled()
+			expect( SAVED.title ).toBe( 'v1.2.0' )
+		} )
+
+		it( 'lists the picked record\'s fields in the Bindings panel', async () => {
+			renderBlock( { postType: 'package', postId: 12, [ PREVIEW_KEY ]: null } )
+
+			await waitFor( () => expect( fetchBindingFields ).toHaveBeenCalled() )
+
+			expect( vi.mocked( fetchBindingFields ).mock.calls.at( -1 )?.[ 1 ] ).toBe( 'packages' )
+		} )
+	} )
+
+	describe( 'merge guard for bound rich text (#1043)', () => {
+		const PARAGRAPH = { content: { type: 'rich-text' }, url: { type: 'string' } }
+
+		beforeEach( () => {
+			__setBlockType( 'artisanpack/paragraph', PARAGRAPH )
+			__setBlockType( 'artisanpack/heading', { content: { type: 'rich-text' }, url: { type: 'string' } } )
+			mergeStore.previous    = 'prev'
+			mergeStore.next        = 'next'
+			mergeStore.names       = { self: 'artisanpack/paragraph', prev: 'artisanpack/heading', next: 'artisanpack/paragraph' }
+			mergeStore.attributes  = { self: {}, prev: {}, next: {} }
+			mergeStore.selectBlock.mockReset()
+		} )
+
+		function renderParagraph( mergeBlocks: ( forward?: boolean ) => void, attributes: Record<string, unknown> = {} ): void {
+			mergeStore.attributes.self = attributes
+
+			render(
+				<Wrapped
+					name="artisanpack/paragraph"
+					clientId="self"
+					attributes={ attributes }
+					setAttributes={ vi.fn() }
+					mergeBlocks={ mergeBlocks }
+				/>,
+			)
+		}
+
+		it( 'moves the caret instead of merging into a bound heading', () => {
+			mergeStore.attributes.prev = { bindings: { content: { source: 'x' } } }
+
+			const mergeBlocks = vi.fn()
+
+			renderParagraph( mergeBlocks )
+			captured?.mergeBlocks?.( false )
+
+			expect( mergeBlocks ).not.toHaveBeenCalled()
+			expect( mergeStore.selectBlock ).toHaveBeenCalledWith( 'prev', -1 )
+		} )
+
+		it( 'does not merge a bound paragraph forward into its neighbour', () => {
+			const attributes  = { bindings: { content: { source: 'x' } } }
+			const mergeBlocks = vi.fn()
+
+			renderParagraph( mergeBlocks, attributes )
+			captured?.mergeBlocks?.( true )
+
+			expect( mergeBlocks ).not.toHaveBeenCalled()
+			expect( mergeStore.selectBlock ).toHaveBeenCalledWith( 'next', 0 )
+		} )
+
+		it( 'merges as usual when neither block is bound', () => {
+			const mergeBlocks = vi.fn()
+
+			renderParagraph( mergeBlocks )
+			captured?.mergeBlocks?.( false )
+
+			expect( mergeBlocks ).toHaveBeenCalledWith( false )
+			expect( mergeStore.selectBlock ).not.toHaveBeenCalled()
+		} )
+
+		it( 'does not block a merge for a binding on a non-rich-text attribute', () => {
+			mergeStore.attributes.prev = { bindings: { url: { source: 'x' } } }
+
+			const mergeBlocks = vi.fn()
+
+			renderParagraph( mergeBlocks )
+			captured?.mergeBlocks?.( false )
+
+			expect( mergeBlocks ).toHaveBeenCalledWith( false )
+		} )
+
+		it( 'does nothing at the first block, with no neighbour to select', () => {
+			mergeStore.previous = null
+
+			const attributes  = { bindings: { content: { source: 'x' } } }
+			const mergeBlocks = vi.fn()
+
+			renderParagraph( mergeBlocks, attributes )
+			captured?.mergeBlocks?.( false )
+
+			expect( mergeBlocks ).not.toHaveBeenCalled()
+			expect( mergeStore.selectBlock ).not.toHaveBeenCalled()
+		} )
+
+		it( 'guards a block with no bindable attributes too', () => {
+			__setBlockType( 'demo/plain', {} )
+			mergeStore.names.self      = 'demo/plain'
+			mergeStore.attributes.prev = { bindings: { content: { source: 'x' } } }
+
+			const mergeBlocks = vi.fn()
+
+			render(
+				<Wrapped name="demo/plain" clientId="self" attributes={ {} } setAttributes={ vi.fn() } mergeBlocks={ mergeBlocks } />,
+			)
+			captured?.mergeBlocks?.( false )
+
+			expect( mergeBlocks ).not.toHaveBeenCalled()
+		} )
+
+		it( 'passes no mergeBlocks when the block was given none', () => {
+			render( <Wrapped name="artisanpack/paragraph" clientId="self" attributes={ {} } setAttributes={ vi.fn() } /> )
+
+			expect( captured?.mergeBlocks ).toBeUndefined()
 		} )
 	} )
 } )

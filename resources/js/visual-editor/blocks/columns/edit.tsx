@@ -48,6 +48,7 @@ import { getResponsiveRegistry } from '../../responsive/registry';
 import {
     FlexContainerControls,
     serializeFlex,
+    useFlexCanvasStyles,
     type ArtisanpackFlexAttribute,
 } from '../_shared/flex-controls';
 import {
@@ -249,6 +250,7 @@ function ColumnsEditContainer({
         attributes.artisanpackFlex ?? null,
         flexRegistry,
     );
+    useFlexCanvasStyles(clientId, flexResult, flexRegistry);
     const photoGridWrapper = getPhotoGridWrapperProps(attributes);
     const classes = clsx(
         'wp-block-columns',

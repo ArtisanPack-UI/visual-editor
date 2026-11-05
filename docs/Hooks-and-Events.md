@@ -45,6 +45,20 @@ See [[Content Model#2-the-resource-map]] for the full contract.
 
 ---
 
+### `ap.visualEditor.search.resourceUrl`
+
+Supply the public URL of a record in entity search. The link selector uses a model's `permalink` or `url` attribute and leaves out records that have neither, so a custom content type needs one of those or this filter to appear in results.
+
+**Signature:** `?string $url, Model $record, string $resource -> ?string`
+
+```php
+addFilter('ap.visualEditor.search.resourceUrl', function (?string $url, Model $record, string $resource): ?string {
+    return 'books' === $resource ? route('books.show', $record) : $url;
+});
+```
+
+---
+
 ### `ap.visualEditor.templates` / `templateParts` / `patterns` / `navigation`
 
 Register site-editor entities at runtime. Each filter slug merges into the matching `config('artisanpack.visual-editor.site-editor.*')` array.
@@ -239,6 +253,19 @@ The picker only controls what authors can choose. Whatever `postType` a saved bl
 
 ---
 
+### `ap.visualEditor.visibility.registerContentSources`
+
+**Since v1.20.** PHP filter that receives the `ContentSourceRegistry` so a host or package can add sources to the [Content visibility rule](visibility.md#content). Must return the registry. A registered source appears in the Visibility panel automatically. See [Adding a content source](visibility.md#adding-a-content-source).
+
+```php
+use ArtisanPackUI\VisualEditor\Visibility\ContentSourceRegistry;
+
+addFilter( 'ap.visualEditor.visibility.registerContentSources', function ( ContentSourceRegistry $registry ) {
+    $registry->register( new \App\Visibility\ProductLoopSource() );
+    return $registry;
+} );
+```
+
 ### `ap.visualEditor.localeData`
 
 *Since v1.15.1 (#896).* Supplies or adjusts the Jed locale data the
@@ -310,7 +337,7 @@ The block emits no `Review` / `AggregateRating` JSON-LD by design — self-servi
 
 ### `ap.visualEditor.terms`
 
-**Since v1.15.2 (#960).** PHP filter that supplies the terms the `artisanpack/categories` (Terms List) block lists for a taxonomy other than `category` and `post_tag`, which the block reads from cms-framework itself. Fires at render time with the block's `taxonomy` attribute.
+**Since v1.15.2 (#960).** PHP filter that supplies the terms the `artisanpack/categories` (Terms List) block lists for a taxonomy other than `category` and `post_tag`, which the block reads from cms-framework itself. Fires at render time with the block's `taxonomy` attribute. Since v1.20 (#1029) it also fires when an author opens the `artisanpack/query` term picker, with `showEmpty` set to `true` in `$attrs`.
 
 **Signature:** `null $terms, string $taxonomy, array $attrs -> array|null`
 
@@ -398,11 +425,39 @@ Only entries that resolve to a `.css` file inside the theme's `assets/` director
 
 ### `ap.cmsFramework.siteEditor.blockContent`
 
-**Since v1.15.0, consumed** (the filter ships with cms-framework 2.15.0). cms-framework runs every block tree its Site Editor API is about to store (templates, template parts, synced blocks and block patterns, plus theme-file copies such as `PatternResolver::cloneToUser()`) through this filter. Visual-editor hooks it to apply the Custom CSS guard (`CustomCssGuard::filter()`) for users without the `visual-editor.edit-block-css` ability.
+**Since v1.15.0, consumed** (the filter ships with cms-framework 2.15.0). cms-framework runs every block tree its Site Editor API is about to store (templates, template parts, synced blocks and block patterns, plus theme-file copies such as `PatternResolver::cloneToUser()`) through this filter. Visual-editor hooks it to apply the Custom CSS guard for users without the `visual-editor.edit-block-css` ability and, since v1.20.0, the markup filter for users without `visual-editor.unfiltered-html` (both through `BlockContentGuard::filter()`).
 
 **Signature:** `array $blocks, ?array $storedBlocks, string $context -> array`
 
 `$storedBlocks` is the record's stored tree, or the theme file's blocks when the save copies or first overrides a theme file. Custom CSS found there is kept, and vouched for so the model-level guard keeps it too. `$context` is `template`, `template-part`, `block` or `block-pattern`. Older cms-framework versions don't fire the filter; the model-level guard still covers their saves. See [Access Gate](site-editor/Access-Gate.md#custom-css-ability-visual-editoredit-block-css).
+
+### `ap.cmsFramework.siteEditor.reverted`
+
+**Since v1.20.0 (#1018), fired.** A PHP action fired after a template or template-part override is deleted through `DELETE /visual-editor/api/templates/{slug}` or `DELETE /visual-editor/api/template-parts/{slug}`, by slug or by row id. cms-framework 2.16.0 and later fire the same action from their own resolvers, so on those versions one listener covers both packages.
+
+**Signature:** `string $type, ?string $slug, string $theme -> void`
+
+`$type` is `template` or `template-part`. `$theme` is the deleted row's own theme, which can differ from the active theme when the delete used a row id. The action doesn't fire when a `deleting` listener cancels the delete; the endpoint returns a 409 instead. See [Templates](site-editor/Templates.md#reverting-an-override).
+
+```php
+addAction('ap.cmsFramework.siteEditor.reverted', function (string $type, ?string $slug, string $theme): void {
+    // e.g. purge cached pages that render this template
+}, 10, 3);
+```
+
+### `ap.visualEditor.contentFilter.allowedHtml`
+
+Changes the tags and attributes that authors without the unfiltered-HTML ability can save. Each key is a tag, and its value lists the attributes it adds to the global set (`class`, `id`, `style`, `aria-*` and a few others). A tag added here wins over the list of tags removed with their contents, so it's how to allow something like `iframe`.
+
+```php
+addFilter('ap.visualEditor.contentFilter.allowedHtml', function (array $tags): array {
+    $tags['iframe'] = ['src', 'width', 'height', 'allowfullscreen'];
+
+    return $tags;
+});
+```
+
+Allowing a tag lets any author use it on any page, so an `iframe` this way can load any site. `href`, `src`, `srcset`, `poster`, `cite` and `style` values are still checked.
 
 ### `ap.visualEditor.requiredStylesheets`
 
@@ -644,6 +699,8 @@ See [[site-editor/Access Gate]] for the contract and bundled implementations.
 Post-editor content-authoring endpoints (the icon picker, the SVG sanitizer and pattern previews) check the `visual-editor.edit-content` Gate ability instead. The package defines it only when the host hasn't, so `Gate::define('visual-editor.edit-content', …)` replaces the default. See [Access Gate](site-editor/Access-Gate.md#content-authoring-ability-visual-editoredit-content).
 
 **Since v1.15.0 (#881)**, writing a block's Custom CSS (Effects panel) checks the `visual-editor.edit-block-css` Gate ability (`BlockCssAccess::ABILITY`). The package's default denies everyone who lacks the `effects.custom_css_capability` capability (default `edit_block_css`), and it is defined only when the host hasn't defined the ability itself. Without it the editor hides the field and every save keeps only the Custom CSS already stored on the record. See [Access Gate](site-editor/Access-Gate.md#custom-css-ability-visual-editoredit-block-css).
+
+**Since v1.20.0 (#1062)**, saving block markup unfiltered checks the `visual-editor.unfiltered-html` Gate ability (`UnfilteredHtmlAccess::ABILITY`). The default denies everyone who lacks the `content_filter.unfiltered_html_capability` capability (default `unfiltered_html`), and it is defined only when the host hasn't defined the ability itself. See [`content_filter`](Configuration.md#content_filter).
 
 ---
 

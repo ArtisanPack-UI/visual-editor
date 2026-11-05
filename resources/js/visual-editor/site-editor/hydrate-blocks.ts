@@ -25,6 +25,37 @@ export interface LoadedContent {
 }
 
 /**
+ * Fill in the registered attribute defaults a block's stored attributes
+ * are missing. Returns `attributes` itself when there's nothing to fill.
+ * Unregistered blocks are left alone.
+ */
+function fillSchemaDefaults(
+    name: string,
+    attributes: Record<string, unknown>
+): Record<string, unknown> {
+    const schema = (getBlockType(name)?.attributes ?? {}) as Record<
+        string,
+        { default?: unknown }
+    >;
+
+    let filled = attributes;
+
+    for (const [key, definition] of Object.entries(schema)) {
+        if (definition?.default === undefined || attributes[key] !== undefined) {
+            continue;
+        }
+
+        if (filled === attributes) {
+            filled = { ...attributes };
+        }
+
+        filled[key] = definition.default;
+    }
+
+    return filled;
+}
+
+/**
  * Walk a pre-parsed block tree and fill in any registered attribute
  * defaults the persisted JSON is missing. Recurses into `innerBlocks`
  * so nested blocks get the same treatment. Unregistered blocks are
@@ -33,32 +64,15 @@ export interface LoadedContent {
  */
 export function applySchemaDefaults(blocks: BlockInstance[]): BlockInstance[] {
     return blocks.map((block) => {
-        const blockType = getBlockType(block.name);
-        const schema = (blockType?.attributes ?? {}) as Record<
-            string,
-            { default?: unknown }
-        >;
-
-        const filled: Record<string, unknown> = { ...(block.attributes ?? {}) };
-        let mutated = false;
-
-        for (const [key, definition] of Object.entries(schema)) {
-            if (definition?.default === undefined) {
-                continue;
-            }
-
-            if (filled[key] === undefined) {
-                filled[key] = definition.default;
-                mutated = true;
-            }
-        }
+        const attributes = (block.attributes ?? {}) as Record<string, unknown>;
+        const filled = fillSchemaDefaults(block.name, attributes);
 
         const inner =
             Array.isArray(block.innerBlocks) && block.innerBlocks.length > 0
                 ? applySchemaDefaults(block.innerBlocks)
                 : block.innerBlocks;
 
-        if (!mutated && inner === block.innerBlocks) {
+        if (filled === attributes && inner === block.innerBlocks) {
             return block;
         }
 
@@ -88,13 +102,25 @@ function mintClientId(): string {
 /**
  * Give server-parsed blocks the editor-instance fields they lack.
  *
- * Trees the site editor saved are full `BlockInstance`s and pass through
- * untouched. Trees the server parsed from markup — e.g. a template part
- * created from Gutenberg's serialized-string payload (#809) — arrive as
- * bare `{name, attributes, innerBlocks}` with no `clientId`, and
- * `BlockEditorProvider` renders nothing for them. Those get a fresh
- * `clientId`, `isValid: true`, and object-shaped attributes (PHP encodes
- * an empty array as `[]`).
+ * Trees the editors saved are full `BlockInstance`s and keep their fields.
+ * Trees that came from anywhere else — a template part created from
+ * Gutenberg's serialized-string payload (#809), a page seeded with
+ * `setBlockContent()` (#1055) — arrive as bare
+ * `{name, attributes, innerBlocks}` with no `clientId`, and
+ * `BlockEditorProvider` renders nothing for them because its store keys
+ * every block by `clientId`. Any missing field gets filled independently:
+ * a fresh `clientId`, `isValid: true`, and object-shaped attributes (PHP
+ * encodes an empty array as `[]`).
+ *
+ * Blocks without a stored `clientId` also get their schema defaults, since
+ * nothing ever ran `createBlock()` for them. Saved blocks don't: a block
+ * can clear a defaulted attribute on purpose, as a fill spacer does with
+ * `height`, and restoring it would make the block clear it again on every
+ * load, which reads as an edit and autosaves.
+ *
+ * The `blockName` and `attrs` keys are read the way `BlockShape` reads them
+ * on the server, which renders those blocks, and aren't kept: a stale copy
+ * would sit next to the live attributes after the first save.
  *
  * Deliberately not `createBlock()`: it swaps unregistered names for
  * `core/missing`, which this package doesn't register either, so it
@@ -108,9 +134,13 @@ export function ensureEditorInstances(blocks: readonly unknown[]): BlockInstance
             continue;
         }
 
-        const block = candidate as Partial<BlockInstance> & Record<string, unknown>;
+        const { blockName, attrs, ...block } = candidate as Partial<BlockInstance>
+            & Record<string, unknown>;
+        const name = [block.name, blockName, block.type].find(
+            (value): value is string => typeof value === 'string' && value !== '',
+        );
 
-        if (typeof block.name !== 'string') {
+        if (name === undefined) {
             continue;
         }
 
@@ -118,23 +148,19 @@ export function ensureEditorInstances(blocks: readonly unknown[]): BlockInstance
             ? ensureEditorInstances(block.innerBlocks)
             : [];
 
-        if (typeof block.clientId === 'string' && block.clientId !== '') {
-            out.push({ ...block, innerBlocks } as BlockInstance);
-            continue;
-        }
-
-        const attributes =
-            block.attributes !== null
-            && typeof block.attributes === 'object'
-            && !Array.isArray(block.attributes)
-                ? block.attributes
-                : {};
+        const hasClientId = typeof block.clientId === 'string' && block.clientId !== '';
+        const attributes = (
+            [block.attributes, attrs].find(
+                (value) => value !== null && typeof value === 'object' && !Array.isArray(value),
+            ) ?? {}
+        ) as Record<string, unknown>;
 
         out.push({
             ...block,
-            clientId: mintClientId(),
-            isValid: true,
-            attributes,
+            name,
+            clientId: hasClientId ? block.clientId : mintClientId(),
+            isValid: block.isValid ?? true,
+            attributes: hasClientId ? attributes : fillSchemaDefaults(name, attributes),
             innerBlocks,
         } as BlockInstance);
     }

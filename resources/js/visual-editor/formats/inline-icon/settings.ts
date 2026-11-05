@@ -20,7 +20,8 @@ export const INLINE_ICON_CLASS = 'ap-inline-icon';
  * fetched (offline / transient error). A `contentEditable: false` object
  * with an *empty* body is dropped by `@wordpress/rich-text` on save, so a
  * non-empty placeholder keeps the reference span alive — the server
- * hydrator replaces it with the resolved SVG at render regardless.
+ * hydrator replaces it with the resolved SVG at render regardless, and
+ * `InlineIconCanvasHydrator` fills it in while editing (#1039).
  */
 export const SET_ICON_PLACEHOLDER_SVG = '<svg aria-hidden="true" viewBox="0 0 24 24"></svg>';
 
@@ -127,10 +128,10 @@ export function buildInlineIconAttributes(
 
 /**
  * Inline style forced onto every inline-icon `<svg>` so it renders
- * correctly with zero reliance on an external stylesheet. This matters
- * because the editor canvas is a same-origin iframe that a bundle-level
- * `import './inline-icon.css'` never reaches — without inline styles the
- * glyph renders at its intrinsic (huge) size. `display:inline-block`
+ * correctly with zero reliance on an external stylesheet. A saved icon
+ * can lose them, so `inline-icon.css` sets the same sizing, and the
+ * canvas gets a copy through `canvas-styles.ts` (#1039). Without either,
+ * the glyph renders at its intrinsic (huge) size. `display:inline-block`
  * overrides CSS resets that set `svg { display: block }` (e.g. Tailwind's
  * Preflight), which would otherwise push the icon onto its own line;
  * sizing at `1em` lets the icon scale with the span's `font-size`;

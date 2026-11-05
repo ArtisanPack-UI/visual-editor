@@ -64,7 +64,12 @@ function plainText(html: string): string {
         return html.replace(/<[^>]*>/g, '').trim();
     }
 
-    const shell = document.createElement('div');
+    // An inert document, because heading content comes from stored data
+    // and a detached element in this one would still load `<img onerror>`
+    // and run it.
+    const shell = document.implementation
+        .createHTMLDocument('')
+        .createElement('div');
     shell.innerHTML = html;
 
     return (shell.innerText ?? shell.textContent ?? '').trim();

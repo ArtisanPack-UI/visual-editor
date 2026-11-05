@@ -16,6 +16,7 @@
  *   2. Walks every registered {@see VisibilityRule} against the block's
  *      `artisanpackVisibility.{rule.key}` slice, combining the returned
  *      {@see VisibilityDecision}s. Any single `hidden()` wins outright.
+ *      A {@see BlockAwareVisibilityRule} also receives the block.
  *
  * The `ap.visualEditor.visibility.evaluated` action fires once per
  * block after evaluation completes, receiving `[decision, blockName,
@@ -224,7 +225,9 @@ class VisibilityEvaluator
 			}
 
 			try {
-				$next = $rule->evaluate( $ruleAttrs, $context );
+				$next = $rule instanceof BlockAwareVisibilityRule
+					? $rule->evaluateBlock( $ruleAttrs, $block, $context )
+					: $rule->evaluate( $ruleAttrs, $context );
 			} catch ( Throwable $e ) {
 				report( $e );
 				continue;

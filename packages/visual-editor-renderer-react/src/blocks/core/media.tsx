@@ -4,11 +4,20 @@
  * rendered output is interchangeable with the server-side renderer.
  */
 
+import { useEffect, useRef } from 'react';
 import { attrBoolean, attrInt, attrString, classList } from '../../support/attributes';
-import { compileBlockSupports } from '../../support/blockSupports';
+import { compileBlockSupports, compileBoxShadow, splitBorderSupports } from '../../support/blockSupports';
 import { styleProp } from '../../support/styleProp';
 import { safeCssValue } from '../../support/cssValue';
 import { safeUrl } from '../../support/urlSanitizer';
+import {
+    lightboxLabelsJson,
+    LIGHTBOX_TRIGGER_ICON_PATH,
+    bindLightbox,
+    imageHasLightbox,
+    lightboxNavigationType,
+    lightboxTriggerLabel,
+} from '../../support/lightbox';
 import type { BlockRendererProps } from '../../types';
 
 /**
@@ -57,17 +66,47 @@ function imageDimension(value: unknown): { attr?: number; style?: string } {
 }
 
 /**
- * The `<img>` style for the image block's `aspectRatio` + `scale`
- * attributes (#873), mirroring `image.blade.php`: the ratio must pass
- * `safeCssValue`, the scale must be a known object-fit keyword. The
- * resolved width / height (#985) follow, in the editor `save()` order.
+ * The `object-position` for an image `focalPoint` (#1054), mirroring
+ * `image.blade.php`: a missing axis defaults to the center, as in the
+ * editor's `mediaPosition()`, and anything but a number from 0 to 1 drops
+ * the whole value.
+ */
+function imageFocalPosition(focalPoint: unknown): string | null {
+    if (typeof focalPoint !== 'object' || focalPoint === null) {
+        return null;
+    }
+
+    const { x, y } = focalPoint as { x?: unknown; y?: unknown };
+    const percentages: string[] = [];
+
+    for (const axis of [x, y]) {
+        const value = axis === undefined ? 0.5 : axis;
+
+        if (typeof value !== 'number' || !(value >= 0 && value <= 1)) {
+            return null;
+        }
+
+        percentages.push(`${Math.round(value * 100)}%`);
+    }
+
+    return percentages.join(' ');
+}
+
+/**
+ * The `<img>` style for the image block's `aspectRatio`, `scale` and
+ * `focalPoint` attributes (#873, #1054), mirroring `image.blade.php`: the
+ * ratio must pass `safeCssValue`, the scale must be a known object-fit
+ * keyword, and the focal point only applies alongside a scale. The border
+ * and shadow (#1052) lead and the resolved width / height (#985) follow,
+ * in the editor `save()` order.
  */
 function imageStyle(
     attributes: Record<string, unknown>,
+    borderAndShadow: Record<string, string>,
     width: string | undefined,
     height: string | undefined,
 ): Record<string, string> | undefined {
-    const style: Record<string, string> = {};
+    const style: Record<string, string> = { ...borderAndShadow };
     const aspectRatio =
         typeof attributes.aspectRatio === 'string' ? safeCssValue(attributes.aspectRatio) : null;
     const scale = attributes.scale;
@@ -78,6 +117,12 @@ function imageStyle(
 
     if (typeof scale === 'string' && IMAGE_SCALES.includes(scale)) {
         style.objectFit = scale;
+
+        const focalPosition = imageFocalPosition(attributes.focalPoint);
+
+        if (focalPosition !== null) {
+            style.objectPosition = focalPosition;
+        }
     }
 
     if (width !== undefined) {
@@ -138,21 +183,46 @@ export function ImageBlock({ attributes }: BlockRendererProps): JSX.Element {
     const sizeSlug = attrString(attributes.sizeSlug);
     const className = attrString(attributes.className);
 
-    const supports = compileBlockSupports(attributes);
-    // Blade order: base, size, is-resized (#985), duotone scope (stamped by
-    // `stampDuotoneScopes()`), then the supports' align, the other
-    // supports (#920) and className.
+    // #1046 — a link wins over the lightbox.
+    const lightbox = imageHasLightbox(attributes);
+    const figureRef = useRef<HTMLElement>(null);
+
+    useEffect(() => {
+        if (lightbox && figureRef.current !== null) {
+            void bindLightbox(figureRef.current);
+        }
+    }, [lightbox]);
+
+    // #1052 — block.json skips border and shadow serialization: as in
+    // `save()`, they paint on the `<img>`, so the caption sits outside them.
+    const { wrapper, element: border } = splitBorderSupports(attributes);
+    const shadow = compileBoxShadow(attributes);
+    const hasCustomBorder = border.classNames.length > 0 || Object.keys(border.style).length > 0;
+    const supports = compileBlockSupports(wrapper);
+    // Blade order: base, size, is-resized (#985), a custom border (#1052),
+    // duotone scope (stamped by `stampDuotoneScopes()`), the lightbox, then
+    // the supports' align, the other supports (#920) and className.
     const figureClasses = classList([
         'wp-block-image',
         sizeSlug !== '' ? `size-${sizeSlug}` : null,
         width.style !== undefined || height.style !== undefined ? 'is-resized' : null,
+        hasCustomBorder ? 'has-custom-border' : null,
         attrString(attributes._veDuotone) || null,
+        lightbox ? 'wp-lightbox-container' : null,
         align !== '' ? `align${align}` : null,
         ...supports.classNames,
         className,
     ]);
 
-    const imgClass = id > 0 ? `wp-image-${id}` : undefined;
+    // Blade order: element support classes (the idle border, then its
+    // responsive scope), then `wp-image-N`.
+    const imgClass =
+        classList([
+            ...border.classNames,
+            attrString(attributes._veImgResponsiveScope) || null,
+            id > 0 ? `wp-image-${id}` : null,
+        ]) || undefined;
+    const borderAndShadow = shadow === null ? border.style : { ...border.style, boxShadow: shadow };
     const img =
         url === '' ? null : (
             <img
@@ -161,12 +231,17 @@ export function ImageBlock({ attributes }: BlockRendererProps): JSX.Element {
                 className={imgClass}
                 width={width.attr}
                 height={height.attr}
-                style={imageStyle(attributes, width.style, height.style)}
+                style={imageStyle(attributes, borderAndShadow, width.style, height.style)}
             />
         );
 
     return (
-        <figure className={figureClasses} style={styleProp(supports.style)}>
+        <figure
+            ref={figureRef}
+            className={figureClasses}
+            style={styleProp(supports.style)}
+            data-ap-lightbox-labels={lightbox ? lightboxLabelsJson() : undefined}
+        >
             {img !== null && href !== '' ? (
                 <a className={link.className} href={href} target={link.target} rel={link.rel}>
                     {img}
@@ -174,8 +249,21 @@ export function ImageBlock({ attributes }: BlockRendererProps): JSX.Element {
             ) : (
                 img
             )}
+            {lightbox ? (
+                <button
+                    type="button"
+                    className="lightbox-trigger"
+                    aria-haspopup="dialog"
+                    aria-label={lightboxTriggerLabel(alt)}
+                    style={{ display: 'none' }}
+                >
+                    <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
+                        <path fill="currentColor" d={LIGHTBOX_TRIGGER_ICON_PATH} />
+                    </svg>
+                </button>
+            ) : null}
             {caption.trim() !== '' ? (
-                <figcaption dangerouslySetInnerHTML={{ __html: caption }} />
+                <figcaption className="wp-element-caption" dangerouslySetInnerHTML={{ __html: caption }} />
             ) : null}
         </figure>
     );
@@ -198,7 +286,11 @@ export function GalleryBlock({ attributes, children }: BlockRendererProps): JSX.
     ]);
 
     return (
-        <figure className={classes} style={styleProp(supports.style)}>
+        <figure
+            className={classes}
+            style={styleProp(supports.style)}
+            data-ap-lightbox-navigation={lightboxNavigationType(attributes.navigationButtonType)}
+        >
             {children}
             {caption.trim() !== '' ? (
                 <figcaption

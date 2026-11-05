@@ -364,3 +364,65 @@ it( 'keeps every output path of the component unchanged outside the middleware',
 		->toContain( 'data-ve-tabs>' )
 		->toContain( '<style data-ve-layout-baseline>' );
 } );
+
+it( 'removes the code highlighter from a page with no highlighted code', function ( string $body ): void {
+	expect( optimizedPage( $body ) )->not->toContain( 'data-ve-code-highlight' );
+} )->with( [
+	'no code'        => [ '<p>Plain text.</p>' ],
+	'bare code'      => [ '<pre class="wp-block-code"><code>a</code></pre>' ],
+	'plain text'     => [ '<pre class="wp-block-code"><code class="language-plaintext">a</code></pre>' ],
+	'unrelated name' => [ '<div class="language-switcher"></div>' ],
+] );
+
+it( 'keeps the code highlighter stylesheet and script on a page that needs them', function (): void {
+	expect( optimizedPage( '<pre class="wp-block-code"><code class="language-php">a</code></pre>' ) )
+		->toContain( 'frontend/code-highlight.css" data-ve-code-highlight>' )
+		->toContain( 'frontend/code-highlight.js" defer data-ve-code-highlight></script>' );
+} );
+
+it( 'keeps the code highlighter on every page when a host requires it', function (): void {
+	addFilter( 'ap.visualEditor.requiredStylesheets', fn ( array $required ): array => [
+		...$required,
+		FrontendStylesOptimizer::CODE_HIGHLIGHT_ATTRIBUTE,
+	] );
+
+	expect( optimizedPage( '<p>Plain text.</p>' ) )->toContain( 'frontend/code-highlight.js' );
+
+	removeAllFilters( 'ap.visualEditor.requiredStylesheets' );
+} );
+
+it( 'leaves the masonry script alone when it removes the code highlighter', function (): void {
+	expect( optimizedPage( '<p>Plain text.</p>' ) )->toContain( 'data-ve-masonry-fallback' );
+} );
+
+it( 'keeps the code highlighter when conditional stylesheets are off', function (): void {
+	config()->set( 'artisanpack.visual-editor.frontend_styles.conditional', false );
+
+	expect( optimizedPage( '<p>Plain text.</p>' ) )->toContain( 'frontend/code-highlight.js' );
+} );
+
+it( 'removes the lightbox from a page without one', function (): void {
+	expect( optimizedPage( '<figure class="wp-block-image"><img src="a.jpg" alt=""></figure>' ) )
+		->not->toContain( 'data-ve-lightbox' );
+} );
+
+it( 'keeps the lightbox stylesheet and script on a page that needs them', function (): void {
+	expect( optimizedPage( '<figure class="wp-block-image wp-lightbox-container"></figure>' ) )
+		->toContain( 'frontend/lightbox.css" data-ve-lightbox>' )
+		->toContain( 'frontend/lightbox.js" defer data-ve-lightbox></script>' );
+} );
+
+it( 'keeps the lightbox on every page when a host requires it', function (): void {
+	addFilter( 'ap.visualEditor.requiredStylesheets', fn ( array $required ): array => [
+		...$required,
+		FrontendStylesOptimizer::LIGHTBOX_ATTRIBUTE,
+	] );
+
+	expect( optimizedPage( '<p>Plain text.</p>' ) )->toContain( 'frontend/lightbox.js' );
+
+	removeAllFilters( 'ap.visualEditor.requiredStylesheets' );
+} );
+
+it( 'skips the lightbox when a host opts out of interactivity', function (): void {
+	expect( Blade::render( '<x-ve-blocks-styles :interactive="false" />' ) )->not->toContain( 'data-ve-lightbox' );
+} );

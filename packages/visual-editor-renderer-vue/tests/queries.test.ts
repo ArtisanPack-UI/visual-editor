@@ -196,12 +196,12 @@ describe('inlineQueries', () => {
         expect((stamped?.attributes as Record<string, unknown>)?._resolvedTitle).toBe('Inner');
     });
 
-    it('passes through pre-existing _resolved attrs without overwriting', () => {
+    it('stamps the result over a _resolved attr saved in the template (#1078)', () => {
         const tree = [
             makeQueryBlock([
                 {
                     name: 'core/post-title',
-                    attributes: { _resolvedTitle: 'Host override' },
+                    attributes: { _resolvedTitle: 'Saved value' },
                     innerBlocks: [],
                 } as Block,
             ]),
@@ -215,7 +215,77 @@ describe('inlineQueries', () => {
         const stamped = result[0].innerBlocks?.[0].innerBlocks?.[0].innerBlocks?.[0];
 
         expect((stamped?.attributes as Record<string, unknown>)?._resolvedTitle).toBe(
-            'Host override'
+            'Resolver value'
         );
+    });
+});
+
+describe('inlineQueries saved _resolved* attributes (#1078)', () => {
+    it('stamps each result over values saved in the template', () => {
+        const tree = [
+            makeQueryBlock([
+                {
+                    name: 'core/post-title',
+                    attributes: {
+                        level: 2,
+                        _resolvedTitle: 'Spoofed',
+                        _resolvedPermalink: 'https://evil.test/',
+                    },
+                    innerBlocks: [],
+                } as Block,
+                {
+                    name: 'core/cover',
+                    attributes: { useFeaturedImage: true, _resolvedImageUrl: 'https://evil.test/x.png' },
+                    innerBlocks: [],
+                } as Block,
+            ]),
+        ];
+
+        const result = inlineQueries(tree, {
+            queries: [{ queryId: 'q1', posts: [fakePost(1, 'A'), fakePost(2, 'B')] }],
+        });
+        const items = result[0].innerBlocks?.[0].innerBlocks ?? [];
+        const title = (index: number) =>
+            items[index].innerBlocks?.[0].attributes as Record<string, unknown>;
+        const cover = items[0].innerBlocks?.[1].attributes as Record<string, unknown>;
+
+        expect(title(0)).toMatchObject({ level: 2, _resolvedTitle: 'A', _resolvedPermalink: '/posts/1' });
+        expect(title(1)).toMatchObject({ _resolvedTitle: 'B', _resolvedPermalink: '/posts/2' });
+        expect(cover._resolvedImageUrl).toBe('');
+    });
+
+    it('drops saved links on blocks it does not stamp itself', () => {
+        const tree = [
+            makeQueryBlock([
+                {
+                    name: 'artisanpack/social-share-content',
+                    attributes: {
+                        socialIcons: ['facebook'],
+                        _resolvedShareLinks: [{ slug: 'facebook', url: 'https://evil.test/' }],
+                    },
+                    innerBlocks: [],
+                } as Block,
+                {
+                    name: 'artisanpack/post-title',
+                    attributes: { _resolvedPermalink: 'https://evil.test/' },
+                    innerBlocks: [],
+                } as Block,
+                {
+                    name: 'core/paragraph',
+                    attributes: { _resolvedSomething: 'kept' },
+                    innerBlocks: [],
+                } as Block,
+            ]),
+        ];
+
+        const result = inlineQueries(tree, {
+            queries: [{ queryId: 'q1', posts: [fakePost(1, 'A')] }],
+        });
+        const children = result[0].innerBlocks?.[0].innerBlocks?.[0].innerBlocks ?? [];
+        const attrs = (index: number) => children[index].attributes as Record<string, unknown>;
+
+        expect(attrs(0)).toEqual({ socialIcons: ['facebook'] });
+        expect(attrs(1)).toEqual({});
+        expect(attrs(2)).toEqual({ _resolvedSomething: 'kept' });
     });
 });

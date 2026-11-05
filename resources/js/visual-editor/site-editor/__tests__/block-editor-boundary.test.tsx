@@ -85,7 +85,7 @@ vi.mock('../../states/StateInspectorSync', () => ({
 }));
 
 import { BlockEditorBoundary } from '../block-editor-boundary';
-import { DEFAULT_CANVAS_STYLES } from '../../editor-settings';
+import { CANVAS_LAYOUT_STYLES, DEFAULT_CANVAS_STYLES } from '../../editor-settings';
 import { resetThemeGlobalStylesCssCache } from '../use-theme-global-styles-css';
 
 describe('BlockEditorBoundary', () => {
@@ -155,7 +155,7 @@ describe('BlockEditorBoundary', () => {
         expect(CONVERT_TO_PATTERN_CONTROL_MOCK).not.toHaveBeenCalled();
     });
 
-    it('passes only DEFAULT_CANVAS_STYLES to the provider when no theme CSS is available (Keystone #47)', () => {
+    it('passes only the package defaults to the provider when no theme CSS is available (Keystone #47, #1040)', () => {
         LATEST_SETTINGS.value = null;
         resetThemeGlobalStylesCssCache();
 
@@ -171,8 +171,10 @@ describe('BlockEditorBoundary', () => {
         );
 
         const settings = LATEST_SETTINGS.value as { styles: { css: string }[] };
-        expect(settings.styles).toHaveLength(1);
-        expect(settings.styles[0]?.css).toBe(DEFAULT_CANVAS_STYLES);
+        expect(settings.styles.map((style) => style.css)).toEqual([
+            DEFAULT_CANVAS_STYLES,
+            CANVAS_LAYOUT_STYLES,
+        ]);
     });
 
     it('appends the theme global-styles CSS after DEFAULT_CANVAS_STYLES so it wins on cascade (Keystone #47)', () => {
@@ -195,9 +197,11 @@ describe('BlockEditorBoundary', () => {
         const settings = LATEST_SETTINGS.value as { styles: { css: string }[] };
         // Order matters — Gutenberg cascades the array in order, so the
         // theme CSS must come after the package's default baseline.
-        expect(settings.styles).toHaveLength(2);
-        expect(settings.styles[0]?.css).toBe(DEFAULT_CANVAS_STYLES);
-        expect(settings.styles[1]?.css).toBe(themeCss);
+        expect(settings.styles.map((style) => style.css)).toEqual([
+            DEFAULT_CANVAS_STYLES,
+            CANVAS_LAYOUT_STYLES,
+            themeCss,
+        ]);
     });
 
     it('exposes onNavigateToEntityRecord on the provider settings so the Create Overlay flow can switch the canvas (Keystone #55)', () => {

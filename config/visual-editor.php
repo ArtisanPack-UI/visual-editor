@@ -45,7 +45,8 @@ return [
 	| The taxonomies the editor surfaces when authors configure a
 	| `post-terms` block: one inserter variation per entry (so
 	| "Categories", "Tags", and any custom taxonomy each get their own
-	| tile) plus the taxonomy picker in the block's Settings sidebar.
+	| tile) plus the taxonomy picker in the block's Settings sidebar. The
+	| Query Loop's Filters panel lists them too.
 	|
 	| Keys are the taxonomy slug stamped onto the block's `term`
 	| attribute — matching the slugs `PostResolver::resolvePostTerms()`
@@ -55,6 +56,12 @@ return [
 	|
 	|     'genre' => 'Genre',
 	|     'topic' => [ 'label' => 'Topic', 'plural' => 'Topics' ],
+	|
+	| Add `postTypes` to limit which Query Loop post types offer the
+	| taxonomy. Without it, a custom taxonomy is offered for every post
+	| type. `category` and `post_tag` are always offered for `post` only:
+	|
+	|     'package' => [ 'label' => 'Package', 'postTypes' => [ 'post' ] ],
 	|
 	| The `category` and `post_tag` defaults mirror WordPress core's
 	| built-in public taxonomies; hosts append their custom taxonomies
@@ -1021,6 +1028,44 @@ return [
 		// Custom CSS that uses one is then dropped. URLs must be quoted
 		// either way.
 		'custom_css_allow_urls' => true,
+	],
+
+	/*
+	|--------------------------------------------------------------------------
+	| Block Content Filter (#1062)
+	|--------------------------------------------------------------------------
+	|
+	| `unfiltered_html_capability` is the capability the default
+	| `visual-editor.unfiltered-html` gate requires before a user's block
+	| markup is saved as sent (checked the same way as
+	| `custom_css_capability`). Anyone else's markup is reduced to an
+	| allowlist on save, which removes scripts, event handlers, iframes
+	| and script-scheme links, and they don't get Custom HTML in the
+	| inserter. Markup already stored on a record is left alone until
+	| someone changes it. Redefine the gate to use your own rule; set to
+	| '' to filter everyone. The allowlist can be changed with the
+	| `ap.visualEditor.contentFilter.allowedHtml` filter.
+	|
+	*/
+	'content_filter' => [
+		'unfiltered_html_capability' => 'unfiltered_html',
+	],
+
+	/*
+	|--------------------------------------------------------------------------
+	| Media Import (#1066)
+	|--------------------------------------------------------------------------
+	|
+	| Limits on the images an author can pull into the media library after
+	| pasting content with external images. The server downloads each one,
+	| refusing internal addresses, so these bound what it will accept. SVG
+	| can't be added, because it can hold script. The media library's own
+	| size and type limits apply as well.
+	|
+	*/
+	'media_import' => [
+		'max_size_kb'        => 10240,
+		'allowed_mime_types' => [ 'image/avif', 'image/gif', 'image/jpeg', 'image/png', 'image/webp' ],
 	],
 
 	/*

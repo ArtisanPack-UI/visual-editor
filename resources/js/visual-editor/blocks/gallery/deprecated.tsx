@@ -102,7 +102,7 @@ function getImageBlock(
     sizeSlug: string | undefined,
     linkTo: string
 ) {
-    return createBlock('core/image', {
+    return createBlock('artisanpack/image', {
         ...(image.id && { id: parseInt(String(image.id), 10) }),
         url: image.url,
         alt: image.alt,

@@ -69,6 +69,34 @@ When the image has a link, the **Advanced** panel adds **Link CSS class** (`link
 
 ---
 
+## Click to enlarge (v1.20)
+
+*Since v1.20.0 (#1046, #1070, #1071).* An image can open full size in an overlay on the published page.
+
+- **Image block.** **Inspector → Settings → Enlarge on click** turns it on or off for that image, saved as `lightbox.enabled`. A linked image can't enlarge: the toggle is disabled until you remove the link, and a link always wins.
+- **Gallery block.** **Link to → Enlarge on click** turns it on for every image in the Gallery, with **Previous** and **Next** buttons and the arrow keys moving between them. A screen reader hears each image's position and alt text as it changes ("Image 2 of 5: …"). **None**, **Media files** and **Attachment pages** turn it off. When no image in the Gallery has its own setting, images added later follow the theme default like the rest; an emptied Gallery set to **None** keeps **None** for new images.
+- **Theme default.** A theme turns it on for every image in `theme.json`:
+
+  ```json
+  {
+      "settings": {
+          "blocks": {
+              "artisanpack/image": {
+                  "lightbox": { "enabled": true, "allowEditing": true }
+              }
+          }
+      }
+  }
+  ```
+
+  `core/image` works as the key too. A block's own setting overrides the theme, so an author can opt one image out. `allowEditing: false` hides the editor controls; an image already saved with its own setting keeps it.
+
+The overlay is a modal dialog: focus moves to its **Close** button, stays inside it, and returns to the image on close. Escape closes it, the page behind it is inert and doesn't scroll, the alt text and caption carry through, and animations respect `prefers-reduced-motion`.
+
+**Front-end assets.** `<x-ve-blocks-styles>` loads `frontend/lightbox.{css,js}` only on pages that print a lightbox, and `:interactive="false"` leaves them out, in which case the image stays an ordinary image. The React and Vue renderers load the overlay the first time a lightbox mounts. Pass the theme default as the `lightboxDefault` prop, and translate the overlay's text with `setLightboxLabels()`; see [Renderers](../renderers.md#image-lightbox). A page that loads both the Blade script and a React or Vue copy opens a single overlay.
+
+---
+
 ## Attributes
 
 The block ships the full upstream `core/image` attribute schema plus these fork-specific additions:

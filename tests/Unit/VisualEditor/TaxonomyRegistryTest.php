@@ -69,3 +69,33 @@ it( 'drops entries whose slug is outside the safe identifier set', function (): 
 		[ 'slug' => 'genre', 'label' => 'Genre', 'plural' => 'Genres' ],
 	] );
 } );
+
+it( 'keeps a declared postTypes list', function (): void {
+	config()->set( 'artisanpack.visual-editor.taxonomies', [
+		'package' => [ 'label' => 'Package', 'postTypes' => [ 'post', 'case-study' ] ],
+	] );
+
+	expect( TaxonomyRegistry::fromConfig() )->toBe( [
+		[ 'slug' => 'package', 'label' => 'Package', 'plural' => 'Packages', 'postTypes' => [ 'post', 'case-study' ] ],
+	] );
+} );
+
+it( 'drops unsafe and duplicate postTypes values', function (): void {
+	config()->set( 'artisanpack.visual-editor.taxonomies', [
+		'package' => [ 'label' => 'Package', 'postTypes' => [ ' post ', 'post', 'bad type', 7 ] ],
+	] );
+
+	expect( TaxonomyRegistry::fromConfig()[0]['postTypes'] )->toBe( [ 'post' ] );
+} );
+
+it( 'omits postTypes when none survive', function (): void {
+	config()->set( 'artisanpack.visual-editor.taxonomies', [
+		'package' => [ 'label' => 'Package', 'postTypes' => [ 'bad type' ] ],
+		'genre'   => [ 'label' => 'Genre', 'postTypes' => 'post' ],
+	] );
+
+	expect( TaxonomyRegistry::fromConfig() )->toBe( [
+		[ 'slug' => 'package', 'label' => 'Package', 'plural' => 'Packages' ],
+		[ 'slug' => 'genre', 'label' => 'Genre', 'plural' => 'Genres' ],
+	] );
+} );

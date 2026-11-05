@@ -58,6 +58,7 @@ import { registerBackgroundControls } from '../background-controls';
 import { registerBindingsAttribute } from '../bindings/register-attribute';
 import { registerBindingsPanel } from '../bindings/with-bindings-panel';
 import { registerArtisanPackBlocks } from '../blocks';
+import { EditorSnackbars } from '../editor/editor-snackbars';
 import { registerThemeBlockStyles } from '../block-style-registry';
 import { registerDynamicContent } from '../dynamic-content';
 import { registerDynamicLinkFormat } from '../formats/dynamic-link/register';
@@ -331,6 +332,8 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
     return (
         <ToastProvider>
             <SiteEditorAppShell {...props} />
+            {/* After the shell, so Tab from the inspector reaches a snackbar's action. */}
+            <EditorSnackbars />
         </ToastProvider>
     );
 }

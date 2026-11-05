@@ -31,7 +31,10 @@ import {
 } from '../../editor-settings';
 import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { CanvasThemeStyles } from '../canvas-theme-styles';
+import { CanvasLayoutStyles, CanvasStyleOverrides } from '../../editor/canvas-layout-styles';
 import { SpacingPresetStyles } from '../../editor/spacing-preset-styles';
+import { MarkdownPasteBridge } from '../../editor/markdown-paste';
+import { InlineIconCanvasHydrator } from '../../formats/inline-icon/canvas-hydrator';
 
 import './pattern-canvas.css';
 
@@ -135,12 +138,18 @@ export function PatternCanvas(props: PatternCanvasProps): JSX.Element {
                      * to browser-default serif.
                      */}
                     <style>{DEFAULT_CANVAS_STYLES}</style>
+                    {/* #1040: the layout baseline the iframe gets from `canvasStyles`. */}
+                    <CanvasLayoutStyles />
                     {/* Keystone #47: wide/full alignment overrides. */}
                     <style>{ALIGNMENT_OVERRIDE_STYLES}</style>
                     {/* Keystone #47: theme CSS inlined after defaults so it wins on cascade. */}
                     <CanvasThemeStyles apiBase={apiBase} />
                     {/* #814: spacing presets in effect, after the theme sheet. */}
                     <SpacingPresetStyles />
+                    {/* #1040: per-container Block spacing, flex and element rules. */}
+                    <CanvasStyleOverrides />
+                    <InlineIconCanvasHydrator />
+                    <MarkdownPasteBridge />
                     <BlockTools>
                         <WritingFlow>
                             <ObserveTyping>

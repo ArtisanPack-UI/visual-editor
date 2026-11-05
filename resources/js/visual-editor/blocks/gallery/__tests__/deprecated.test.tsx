@@ -140,6 +140,6 @@ describe('gallery deprecation chain', () => {
         expect(nextAttrs.linkTo).toBe('media');
         expect(nextAttrs.allowResize).toBe(false);
         expect(innerBlocks).toHaveLength(1);
-        expect(innerBlocks[0].name).toBe('core/image');
+        expect(innerBlocks[0].name).toBe('artisanpack/image');
     });
 });

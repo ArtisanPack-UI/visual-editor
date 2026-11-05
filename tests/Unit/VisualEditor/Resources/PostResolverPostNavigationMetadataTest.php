@@ -106,6 +106,28 @@ it( 'stamps the post-terms _resolvedTermsByTaxonomy map keyed by taxonomy', func
 	'artisanpack' => [ 'artisanpack/post-terms' ],
 ] );
 
+it( 'stamps a host-registered custom taxonomy into the post-terms map (#1029)', function (): void {
+	$post        = navMetadataPost();
+	$post->terms = [
+		(object) [
+			'taxonomy' => 'package',
+			'name'     => 'Hooks',
+			'slug'     => 'hooks',
+			'url'      => 'https://example.test/blog/package/hooks',
+		],
+	];
+
+	$resolved = ( new PostResolver() )->stampBlock(
+		[ 'name' => 'artisanpack/post-terms', 'attributes' => [ 'term' => 'package' ], 'innerBlocks' => [] ],
+		$post,
+	);
+
+	expect( $resolved['attributes']['_resolvedTermsByTaxonomy']['package'][0] )->toMatchArray( [
+		'name' => 'Hooks',
+		'url'  => 'https://example.test/blog/package/hooks',
+	] );
+} );
+
 it( 'merges categories/tags shortcut relations into the post-terms map', function (): void {
 	$post             = new stdClass();
 	$post->categories = [

@@ -220,6 +220,11 @@ class SvgSanitizer
 	 * Iterates children into a snapshot first because we mutate the live
 	 * NodeList as we remove nodes — iterating it directly skips siblings.
 	 *
+	 * Only elements and text survive. The output is read by a browser's
+	 * HTML parser, which disagrees with XML about where a comment,
+	 * processing instruction or CDATA section ends, so markup that's inert
+	 * inside one here can be live there (#1062).
+	 *
 	 * @param  array<int, string> $warnings
 	 */
 	private function scrubNode( DOMNode $node, array &$warnings ): void
@@ -230,7 +235,16 @@ class SvgSanitizer
 		}
 
 		foreach ( $children as $child ) {
+			if ( XML_CDATA_SECTION_NODE === $child->nodeType ) {
+				$node->replaceChild( $node->ownerDocument->createTextNode( (string) $child->nodeValue ), $child );
+				continue;
+			}
+
 			if ( ! $child instanceof DOMElement ) {
+				if ( XML_TEXT_NODE !== $child->nodeType ) {
+					$node->removeChild( $child );
+				}
+
 				continue;
 			}
 

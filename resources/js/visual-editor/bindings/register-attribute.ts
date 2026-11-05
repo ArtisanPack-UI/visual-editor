@@ -9,6 +9,11 @@
  * `setAttributes( { bindings } )` and Gutenberg round-trips the value
  * through save/parse identically to today's non-bound blocks.
  *
+ * The same filter declares the block context the bindings HOC reads
+ * (#1041). Gutenberg hands an `editor.BlockEdit` filter only the context
+ * keys the block lists in `usesContext`, so without this a block inside
+ * Single Content or a Query Loop can't tell which record it belongs to.
+ *
  * @package @artisanpack-ui/visual-editor
  * @since 1.1.0
  */
@@ -26,24 +31,34 @@ interface GlobalSentinelHost {
 	[ REGISTERED_KEY ]?: boolean;
 }
 
+/**
+ * Context keys the bindings HOC reads to find a block's record.
+ *
+ * @since 1.20.0
+ */
+export const BINDING_CONTEXT_KEYS: readonly string[] = [
+	'postId',
+	'postType',
+	'artisanpack/postPreview',
+];
+
 interface BlockSettingsLike {
 	attributes?: Record<string, unknown>;
+	usesContext?: string[];
 	[ key: string ]: unknown;
 }
 
 function injectBindingsAttribute( settings: BlockSettingsLike ): BlockSettingsLike {
-	if ( settings.attributes && 'bindings' in settings.attributes ) {
-		return settings;
-	}
+	const attributes = settings.attributes ?? {};
 
 	return {
 		...settings,
-		attributes: {
-			...( settings.attributes ?? {} ),
-			bindings: {
-				type: 'object',
-			},
-		},
+		attributes: 'bindings' in attributes
+			? attributes
+			: { ...attributes, bindings: { type: 'object' } },
+		usesContext: [
+			...new Set( [ ...( settings.usesContext ?? [] ), ...BINDING_CONTEXT_KEYS ] ),
+		],
 	};
 }
 

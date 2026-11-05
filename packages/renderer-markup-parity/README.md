@@ -20,8 +20,10 @@ This directory closes that gap.
   renderers.
 - **The Blade suite writes the goldens.**
   `packages/visual-editor-renderer-blade/tests/Feature/RendererMarkupParityTest.php`
-  renders each fixture through `<x-ve-blocks>`, canonicalizes it, and
-  compares it against `goldens/<name>.txt`.
+  renders each fixture through `<x-ve-blocks :trust-resolved="true">`,
+  canonicalizes it, and compares it against `goldens/<name>.txt`. Fixtures
+  carry host-resolved `_resolved*` values, which `<x-ve-blocks>` strips
+  from an untrusted tree (#1096).
 - **The JS suite reads them.** `tests/blade-parity.test.ts` renders each
   fixture through the React and Vue SSR entry points, canonicalizes with
   the same algorithm, and asserts the result equals the golden.

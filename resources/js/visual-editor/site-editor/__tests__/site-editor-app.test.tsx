@@ -370,6 +370,16 @@ describe('SiteEditorApp', () => {
         ).toBeInTheDocument();
     });
 
+    it('puts the notifications region after the shell, so Tab from the inspector reaches it (#1066)', () => {
+        renderApp();
+
+        const shell = screen.getByTestId('ap-site-editor-shell');
+        const region = screen.getByRole('region', { name: 'Editor notifications' });
+
+        expect(shell.contains(region)).toBe(false);
+        expect(shell.compareDocumentPosition(region) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
     it('lands on Templates by default and reflects it in the mode indicator', () => {
         renderApp();
 

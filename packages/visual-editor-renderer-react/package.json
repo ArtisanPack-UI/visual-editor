@@ -1,6 +1,6 @@
 {
     "name": "@artisanpack-ui/visual-editor-renderer-react",
-    "version": "1.19.0",
+    "version": "1.20.0",
     "description": "React renderer for ArtisanPack UI visual-editor block trees. Designed for Inertia+React apps.",
     "license": "MIT",
     "author": "Jacob Martella <me@jacobmartella.com>",
@@ -15,7 +15,8 @@
     },
     "files": [
         "src",
-        "README.md"
+        "README.md",
+        "NOTICE.md"
     ],
     "keywords": [
         "react",

@@ -118,6 +118,14 @@ class BlocksStylesComponent extends Component
 
 	public string $masonryScriptSrc;
 
+	public string $codeHighlightStyleHref;
+
+	public string $codeHighlightScriptSrc;
+
+	public string $lightboxStyleHref;
+
+	public string $lightboxScriptSrc;
+
 	public string $interactivityScriptSrc;
 
 	public bool $emitBlockLibrary;
@@ -162,7 +170,9 @@ class BlocksStylesComponent extends Component
 	 * @param  bool  $interactive  Set to false to skip the accordion + tabs front-end stylesheets
 	 *                             and interactivity script. The script also upgrades the Social
 	 *                             Share Content copy-link chip (#963), which stays a plain link
-	 *                             to the post without it. Defaults to on.
+	 *                             to the post without it. It also skips the Image and Gallery
+	 *                             lightbox (#1046), whose images then stay ordinary images.
+	 *                             Defaults to on.
 	 * @param  bool  $blockStyleVariations  Set to false to skip compiling the theme.json
 	 *                                      `styles.blocks.*.variations` into the tokens
 	 *                                      `<style>` (#876). They are skipped anyway once the
@@ -204,6 +214,10 @@ class BlocksStylesComponent extends Component
 		$this->postVariantStyleHref     = $url( 'frontend/post-variant.css' );
 		$this->masonryStyleHref         = $url( 'frontend/masonry.css' );
 		$this->masonryScriptSrc         = $url( 'frontend/masonry-fallback.js' );
+		$this->codeHighlightStyleHref   = $url( 'frontend/code-highlight.css' );
+		$this->codeHighlightScriptSrc   = $url( 'frontend/code-highlight.js' );
+		$this->lightboxStyleHref        = $url( 'frontend/lightbox.css' );
+		$this->lightboxScriptSrc        = $url( 'frontend/lightbox.js' );
 		$this->interactivityScriptSrc   = $url( 'frontend/interactivity.js' );
 		$this->emitBlockLibrary         = $bundle;
 		$this->emitInteractive          = $interactive;

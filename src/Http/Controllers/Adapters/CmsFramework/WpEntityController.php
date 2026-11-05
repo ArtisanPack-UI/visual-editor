@@ -29,10 +29,12 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Http\Controllers\Adapters\CmsFramework;
 
-use ArtisanPackUI\VisualEditor\Effects\CustomCssGuard;
 use ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\WpEntityResource;
 use ArtisanPackUI\VisualEditor\Resources\ResourceResolver;
+use ArtisanPackUI\VisualEditor\Support\BlockContentGuard;
+use ArtisanPackUI\VisualEditor\Support\BlockHtmlSanitizer;
 use ArtisanPackUI\VisualEditor\Support\RecordIdList;
+use ArtisanPackUI\VisualEditor\Support\UnfilteredHtmlAccess;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -50,6 +52,16 @@ abstract class WpEntityController extends Controller
 	 * within the cap.
 	 */
 	protected const MAX_PER_PAGE = 100;
+
+	/**
+	 * Fields Post Title / Post Excerpt print unescaped, so a new or changed
+	 * value is filtered for a user without the unfiltered-HTML ability.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @var list<string>
+	 */
+	protected const HTML_FILTERED_FIELDS = [ 'title', 'excerpt' ];
 
 	public function __construct( protected ResourceResolver $resolver )
 	{
@@ -278,15 +290,35 @@ abstract class WpEntityController extends Controller
 	 * fields (categories/tags, parent/menu_order/template).
 	 *
 	 * @since 1.0.0
+	 * @since 1.20.0 Filters a new or changed title or excerpt through
+	 *               {@see BlockHtmlSanitizer} for a user without the
+	 *               unfiltered-HTML ability.
 	 *
 	 * @param  array<string, mixed>  $data
 	 */
 	protected function fill( Model $model, array $data ): Model
 	{
+		// #1062 — Post Title and Post Excerpt print these unescaped, so a
+		// changed value needs the unfiltered-HTML ability.
+		$filtered = ! Gate::allows( UnfilteredHtmlAccess::ABILITY );
+
 		foreach ( $this->fillableFields() as $field ) {
-			if ( array_key_exists( $field, $data ) ) {
-				$model->setAttribute( $field, $data[ $field ] );
+			if ( ! array_key_exists( $field, $data ) ) {
+				continue;
 			}
+
+			$value = $data[ $field ];
+
+			if (
+				$filtered
+				&& is_string( $value )
+				&& in_array( $field, self::HTML_FILTERED_FIELDS, true )
+				&& ( ! $model->exists || $value !== (string) $model->getOriginal( $field ) )
+			) {
+				$value = app( BlockHtmlSanitizer::class )->sanitize( $value );
+			}
+
+			$model->setAttribute( $field, $value );
 		}
 
 		// `featured_media` is the WP-shape attribute name; cms-framework
@@ -334,9 +366,9 @@ abstract class WpEntityController extends Controller
 			? array_values( $content['blocks'] )
 			: [];
 
-		// #881 — only users with the block-CSS ability may add Custom CSS.
+		// #881, #1062 — Custom CSS and unfiltered markup need their abilities.
 		$stored = $model->exists && method_exists( $model, 'getBlockContent' ) ? $model->getBlockContent() : null;
-		$blocks = app( CustomCssGuard::class )->filter( $blocks, $stored );
+		$blocks = app( BlockContentGuard::class )->filter( $blocks, $stored );
 
 		$model->setBlockContent( $blocks );
 

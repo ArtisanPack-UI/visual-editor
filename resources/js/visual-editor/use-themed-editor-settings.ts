@@ -268,6 +268,55 @@ export function extractThemePhotoGrid(
     return ap as Record<string, unknown>;
 }
 
+/**
+ * The image lightbox settings from `settings.blocks` (#1046). Only these
+ * forward: the rest of `settings.blocks` would start overriding the editor's
+ * global settings per block.
+ */
+export function extractThemeLightboxBlocks(
+    settings: Record<string, unknown>,
+): Record<string, { lightbox: unknown }> | null {
+    const blocks = (settings.blocks ?? {}) as Record<string, { lightbox?: unknown } | undefined>;
+    const out: Record<string, { lightbox: unknown }> = {};
+
+    for (const name of ['artisanpack/image', 'core/image']) {
+        const lightbox = blocks[name]?.lightbox;
+
+        if (lightbox !== null && typeof lightbox === 'object') {
+            out[name] = { lightbox };
+        }
+    }
+
+    return Object.keys(out).length === 0 ? null : out;
+}
+
+/**
+ * Layer the image lightbox settings onto editor settings, leaving the rest of
+ * them as they are.
+ */
+export function withThemeLightboxBlocks<T extends object>(
+    settings: T,
+    lightboxBlocks: Record<string, { lightbox: unknown }> | null,
+): T {
+    if (lightboxBlocks === null) {
+        return settings;
+    }
+
+    const features =
+        (settings as { __experimentalFeatures?: { blocks?: Record<string, object> } })
+            .__experimentalFeatures ?? {};
+    const blocks = { ...features.blocks };
+
+    for (const [name, setting] of Object.entries(lightboxBlocks)) {
+        blocks[name] = { ...blocks[name], ...setting };
+    }
+
+    return {
+        ...settings,
+        __experimentalFeatures: { ...features, blocks },
+    };
+}
+
 export function extractThemeGradients(
     settings: Record<string, unknown>,
 ): readonly GradientEntry[] | null {
@@ -333,6 +382,7 @@ export function useThemedEditorSettings(
         const rawThemeSpacingSizes = extractThemeSpacingSizes(themeSettings);
         const themeGradients = extractThemeGradients(themeSettings);
         const themePhotoGrid = extractThemePhotoGrid(themeSettings);
+        const themeLightboxBlocks = extractThemeLightboxBlocks(themeSettings);
 
         // #773 — layer host-registered presets on top of whichever base
         // layer exists (theme.json when a theme ships presets, package
@@ -401,10 +451,10 @@ export function useThemedEditorSettings(
             !needsPhotoGrid
         ) {
             if (extraSettings !== undefined && Object.keys(extraSettings).length > 0) {
-                return { ...editorSettings, ...extraSettings };
+                return withThemeLightboxBlocks({ ...editorSettings, ...extraSettings }, themeLightboxBlocks);
             }
 
-            return editorSettings;
+            return withThemeLightboxBlocks(editorSettings, themeLightboxBlocks);
         }
 
         const nextStyles = needsStyles
@@ -420,7 +470,7 @@ export function useThemedEditorSettings(
         const baseArtisanpack =
             (baseFeatures as { artisanpack?: Record<string, unknown> }).artisanpack ?? {};
 
-        return {
+        return withThemeLightboxBlocks({
             ...editorSettings,
             styles: nextStyles,
             ...(extraSettings ?? {}),
@@ -497,6 +547,6 @@ export function useThemedEditorSettings(
                         : {}),
                 },
             },
-        };
+        }, themeLightboxBlocks);
     }, [themeCss, themeBase, extraSettings]);
 }

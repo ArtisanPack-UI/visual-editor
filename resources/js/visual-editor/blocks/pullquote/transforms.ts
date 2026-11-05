@@ -54,40 +54,40 @@ const transforms = {
         },
     ],
     to: [
-        {
-            type: 'block',
-            blocks: ['core/paragraph'],
+        ...['core/paragraph', 'artisanpack/paragraph'].map((blockName) => ({
+            type: 'block' as const,
+            blocks: [blockName],
             transform: ({ value, citation }: PullquoteAttributes) => {
                 const paragraphs = [];
                 if (value) {
-                    paragraphs.push(createBlock('core/paragraph', { content: value }));
+                    paragraphs.push(createBlock(blockName, { content: value }));
                 }
                 if (citation) {
-                    paragraphs.push(createBlock('core/paragraph', { content: citation }));
+                    paragraphs.push(createBlock(blockName, { content: citation }));
                 }
                 if (paragraphs.length === 0) {
-                    return createBlock('core/paragraph', { content: '' });
+                    return createBlock(blockName, { content: '' });
                 }
                 return paragraphs;
             },
-        },
-        {
-            type: 'block',
-            blocks: ['core/heading'],
+        })),
+        ...['core/heading', 'artisanpack/heading'].map((blockName) => ({
+            type: 'block' as const,
+            blocks: [blockName],
             transform: ({ value, citation }: PullquoteAttributes) => {
                 if (!value) {
-                    return createBlock('core/heading', { content: citation });
+                    return createBlock(blockName, { content: citation });
                 }
-                const headingBlock = createBlock('core/heading', { content: value });
+                const headingBlock = createBlock(blockName, { content: value });
                 if (!citation) {
                     return headingBlock;
                 }
                 return [
                     headingBlock,
-                    createBlock('core/heading', { content: citation }),
+                    createBlock(blockName, { content: citation }),
                 ];
             },
-        },
+        })),
         {
             type: 'block',
             blocks: ['core/pullquote'],

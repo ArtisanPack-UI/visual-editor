@@ -9,6 +9,7 @@ import {
     resetBlockRegistry,
     unregisterBlockRenderer,
 } from '../src/registry';
+import { TabsBlock } from '../src/blocks/artisanpack/tabs';
 import { registerCoreBlocks } from '../src/blocks/registerCoreBlocks';
 import { blockRendererProps } from '../src/blocks/shared';
 import { setBreakpoints } from '../src/visibility';
@@ -206,7 +207,189 @@ describe('Core media blocks', () => {
         expect(html).toContain('alt="An image"');
         expect(html).toContain('class="wp-image-42"');
         expect(html).toContain('href="https://example.test/full.jpg"');
-        expect(html).toContain('<figcaption>A <em>caption</em></figcaption>');
+        expect(html).toContain('<figcaption class="wp-element-caption">A <em>caption</em></figcaption>');
+    });
+
+    it('prints the focal point after object-fit (#1054)', () => {
+        const html = renderTree([
+            makeBlock('core/image', {
+                url: 'https://example.test/image.jpg',
+                alt: 'x',
+                aspectRatio: '16/10',
+                scale: 'cover',
+                focalPoint: { x: 0.5, y: 0 },
+                width: '300px',
+            }),
+        ]);
+
+        expect(html).toContain('object-fit: cover; object-position: 50% 0%; width: 300px');
+    });
+
+    it('defaults a missing focal point axis to the center (#1054)', () => {
+        const html = renderTree([
+            makeBlock('core/image', {
+                url: 'https://example.test/image.jpg',
+                alt: 'x',
+                scale: 'cover',
+                focalPoint: { y: 1 },
+            }),
+        ]);
+
+        expect(html).toContain('object-position: 50% 100%');
+    });
+
+    it.each([
+        ['an out-of-range axis', { x: 1.5, y: 0 }],
+        ['a negative axis', { x: 0.5, y: -0.1 }],
+        ['a numeric string', { x: '0.5', y: 0 }],
+        ['a hostile string', { x: '0;position:fixed', y: 0 }],
+        ['a boolean', { x: true, y: 0 }],
+        ['a null axis', { x: null, y: 0 }],
+        ['a non-object', 'top'],
+    ])('drops a focal point with %s (#1054)', (_label, focalPoint) => {
+        const html = renderTree([
+            makeBlock('core/image', {
+                url: 'https://example.test/image.jpg',
+                alt: 'x',
+                scale: 'cover',
+                focalPoint,
+            }),
+        ]);
+
+        expect(html).toContain('object-fit: cover');
+        expect(html).not.toContain('object-position');
+    });
+
+    it('ignores the focal point without a known scale (#1054)', () => {
+        const html = renderTree([
+            makeBlock('core/image', {
+                url: 'https://example.test/image.jpg',
+                alt: 'x',
+                focalPoint: { x: 0.5, y: 0 },
+            }),
+            makeBlock('core/image', {
+                url: 'https://example.test/image.jpg',
+                alt: 'x',
+                scale: 'stretch',
+                focalPoint: { x: 0.5, y: 0 },
+            }),
+        ]);
+
+        expect(html).not.toContain('object-position');
+    });
+
+    it('paints the border and shadow on the image, not the figure (#1052)', () => {
+        const html = renderTree([
+            makeBlock('core/image', {
+                id: 42,
+                url: 'https://example.test/image.jpg',
+                alt: 'x',
+                caption: 'Caption',
+                borderColor: 'primary',
+                style: {
+                    border: { width: '3px', radius: '12px' },
+                    shadow: 'var:preset|shadow|natural',
+                    spacing: { margin: { top: '1rem' } },
+                },
+            }),
+        ]);
+
+        expect(html).toContain('<figure class="wp-block-image has-custom-border" style="margin-top: 1rem;">');
+        expect(html).toContain('class="has-border-color has-primary-border-color wp-image-42"');
+        expect(html).toMatch(/<img[^>]*style="[^"]*border-radius: 12px[^"]*box-shadow: var\(--wp--preset--shadow--natural\)/);
+        expect(html).toContain('<figcaption class="wp-element-caption">Caption</figcaption>');
+    });
+
+    it('prints a structured shadow on the image and leaves a gradient one out (#1052)', () => {
+        const structured = renderTree([
+            makeBlock('core/image', {
+                url: 'https://example.test/image.jpg',
+                style: { shadow: { offsetY: '4px', blur: '8px', color: 'rgba(0, 0, 0, 0.5)', inset: true } },
+            }),
+        ]);
+        const gradient = renderTree([
+            makeBlock('core/image', {
+                url: 'https://example.test/image.jpg',
+                style: { shadow: { blur: '8px', gradient: 'linear-gradient(red, blue)' } },
+            }),
+        ]);
+
+        expect(structured).toContain('box-shadow: inset 0px 4px 8px 0px rgba(0, 0, 0, 0.5)');
+        expect(structured).toContain('<figure class="wp-block-image">');
+        expect(gradient).not.toContain('box-shadow');
+    });
+
+    it('keeps the border on the figure for a hover or breakpoint gradient (#1052)', () => {
+        for (const overrides of [
+            { states: { _scopeId: 'a', 'style.border.gradient': { hover: 'linear-gradient(red, blue)' } } },
+            { responsive: { 'border.gradient': { md: 'linear-gradient(red, blue)' } } },
+        ]) {
+            const html = renderTree([
+                makeBlock('core/image', {
+                    url: 'https://example.test/image.jpg',
+                    style: { border: { width: '2px' } },
+                    ...overrides,
+                }),
+            ]);
+
+            expect(html).toMatch(/<figure class="wp-block-image" style="[^"]*border-width: 2px/);
+        }
+    });
+
+    it('moves responsive border overrides to the image (#1052)', () => {
+        const html = renderTree([
+            makeBlock('core/image', {
+                id: 7,
+                url: 'https://example.test/image.jpg',
+                caption: 'Caption',
+                style: { border: { width: '1px' } },
+                responsive: {
+                    'style.border.width': { mobile: '6px' },
+                    'style.spacing.margin': { mobile: { top: '2rem' } },
+                },
+            }),
+        ]);
+
+        const imgClass = /<img[^>]*class="([^"]*)"/.exec(html)?.[1] ?? '';
+        const figureClass = /<figure[^>]*class="([^"]*)"/.exec(html)?.[1] ?? '';
+        const imgScope = /ve-r-[0-9a-f]+/.exec(imgClass)?.[0] ?? '';
+        const figureScope = /ve-r-[0-9a-f]+/.exec(figureClass)?.[0] ?? '';
+
+        expect(imgScope).not.toBe('');
+        expect(imgClass).toMatch(new RegExp(`${imgScope} wp-image-7$`));
+        // The figure keeps its other overrides, under a different scope.
+        expect(figureScope).not.toBe('');
+        expect(figureScope).not.toBe(imgScope);
+        expect(html).toMatch(new RegExp(`\\.${imgScope}\\.${imgScope}\\.${imgScope}\\s*\\{\\s*border-width:\\s*6px`));
+        expect(html).not.toMatch(new RegExp(`\\.${figureScope}[^}]*border-width`));
+    });
+
+    it('ignores a saved image responsive scope (#1052)', () => {
+        const html = renderTree([
+            makeBlock('core/image', { url: 'https://example.test/image.jpg', _veImgResponsiveScope: 'injected"x' }),
+        ]);
+
+        expect(html).not.toContain('injected');
+    });
+
+    it('resolves a camelCase structured shadow preset the way Blade does (#1052)', () => {
+        const html = renderTree([
+            makeBlock('core/image', { url: 'https://example.test/image.jpg', style: { shadow: { preset: 'softGlow' } } }),
+        ]);
+
+        expect(html).toMatch(/<img[^>]*style="[^"]*box-shadow: var\(--wp--preset--shadow--soft-glow\)/);
+    });
+
+    it('keeps a gradient border on the figure (#1052)', () => {
+        const html = renderTree([
+            makeBlock('core/image', {
+                url: 'https://example.test/image.jpg',
+                style: { border: { gradient: 'linear-gradient(red, blue)', width: '2px' } },
+            }),
+        ]);
+
+        expect(html).toMatch(/<figure class="wp-block-image" style="[^"]*border-width: 2px/);
+        expect(html).not.toContain('has-custom-border');
     });
 
     it('drops unsafe URL schemes from image hrefs', () => {
@@ -734,6 +917,25 @@ describe('Core design blocks', () => {
         expect(html).toContain('d="m9 6 6 6-6 6"');
         expect(html).not.toContain('schema.org/BreadcrumbList');
         expect(html).not.toContain('itemprop="position"');
+    });
+
+    it('omits breadcrumbs schema microdata when the attribute was never saved', () => {
+        const tree = [
+            makeBlock('artisanpack/breadcrumbs', {
+                _resolvedTrail: [
+                    { label: 'Home', url: '/' },
+                    { label: 'Page', current: true },
+                ],
+            }),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('ap-breadcrumbs__link');
+        expect(html).not.toContain('schema.org/BreadcrumbList');
+        expect(html).not.toContain('schema.org/ListItem');
+        expect(html).not.toContain('itemprop=');
+        expect(html).not.toContain('itemscope');
     });
 
     it('drops unsafe URLs from breadcrumbs trail entries', () => {
@@ -1271,6 +1473,69 @@ describe('Core design blocks', () => {
         expect(html).toContain('id="tabs-panel-tab-2"');
         expect(html).toContain('aria-labelledby="tabs-tab-tab-1"');
         expect(html).toContain('aria-labelledby="tabs-tab-tab-2"');
+    });
+
+    it('keeps ids unique across Tabs blocks that share tabId values', () => {
+        const tabs = (): ReturnType<typeof makeBlock> =>
+            makeBlock('artisanpack/tabs', {}, [
+                makeBlock('artisanpack/tab-section', { label: 'Overview', tabId: 'overview' }),
+                makeBlock('artisanpack/tab-section', { label: 'Specs', tabId: 'specs' }),
+            ]);
+
+        const html = renderTree([tabs(), tabs()]);
+        const ids = [...html.matchAll(/\bid="(tabs-(?:tab|panel)-[^"]*)"/g)].map((match) => match[1]);
+
+        expect(ids).toHaveLength(8);
+        expect(new Set(ids).size).toBe(8);
+        expect(html).toContain('id="tabs-panel-overview"');
+        expect(html).toContain('id="tabs-panel-overview-2"');
+        expect(html).toContain('href="#tabs-panel-overview-2"');
+        expect(html).toContain('aria-controls="tabs-panel-specs-2"');
+        expect(html).toContain('aria-labelledby="tabs-tab-specs-2"');
+    });
+
+    it('keeps ids unique across Tabs blocks whose sections have no tabId', () => {
+        const tabs = (): ReturnType<typeof makeBlock> =>
+            makeBlock('artisanpack/tabs', {}, [
+                makeBlock('artisanpack/tab-section', { label: 'One' }),
+                makeBlock('artisanpack/tab-section', { label: 'Two' }),
+            ]);
+
+        const html = renderTree([tabs(), tabs()]);
+
+        expect(html).toContain('id="tabs-panel-tab-1"');
+        expect(html).toContain('id="tabs-panel-tab-1-2"');
+        expect(html).toContain('id="tabs-panel-tab-2-2"');
+    });
+
+    it('ignores an id stored on a tab section', () => {
+        const html = renderTree([
+            makeBlock('artisanpack/tabs', {}, [
+                makeBlock('artisanpack/tab-section', { tabId: 'overview', _resolvedTabId: 'forged' }),
+            ]),
+        ]);
+
+        expect(html).toContain('id="tabs-panel-overview"');
+        expect(html).not.toContain('forged');
+    });
+
+    it('keeps ids unique within a Tabs block rendered on its own', () => {
+        const wrapper = mount(TabsBlock, {
+            props: {
+                name: 'artisanpack/tabs',
+                attributes: {},
+                innerBlocks: [
+                    makeBlock('artisanpack/tab-section', { _resolvedTabId: 'same' }),
+                    makeBlock('artisanpack/tab-section', { tabId: 'same' }),
+                    makeBlock('artisanpack/tab-section', { _resolvedTabId: 'same' }),
+                ],
+            },
+        });
+        const html = wrapper.html();
+
+        expect(html).toContain('id="tabs-panel-same"');
+        expect(html).toContain('id="tabs-panel-same-2"');
+        expect(html).toContain('id="tabs-panel-same-3"');
     });
 
     it('renders a tab-section without aria wiring when tabId is empty', () => {

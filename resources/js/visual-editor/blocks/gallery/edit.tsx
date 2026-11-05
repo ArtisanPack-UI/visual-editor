@@ -46,7 +46,7 @@ import {
     useSettings,
     RichText,
 } from '@wordpress/block-editor';
-import { useEffect, useMemo } from '@wordpress/element';
+import { useEffect, useMemo, useRef } from '@wordpress/element';
 import { __, _x, sprintf } from '@wordpress/i18n';
 import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { useSelect, useDispatch } from '@wordpress/data';
@@ -62,9 +62,11 @@ import {
     fullscreen,
 } from '@wordpress/icons';
 
+import { useLightboxSetting } from '../image/use-lightbox-setting';
 import { sharedIcon } from './shared-icon';
 import { defaultColumnsNumber, pickRelevantMediaFiles } from './shared';
 import {
+    followsThemeLightbox,
     getHrefAndDestination,
     getUpdatedLinkTargetSettings,
     getImageSizeAttributes,
@@ -92,8 +94,16 @@ interface LinkOption {
 }
 
 // Built per render so the labels pick up locale data loaded after import.
-function linkOptionsList(): LinkOption[] {
-    return [
+/**
+ * The link a new Gallery starts with. With the theme's lightbox default on it
+ * starts on the lightbox, so `none` always means the author chose it.
+ */
+export function defaultLinkDestination(lightboxDefault: boolean): string {
+    return lightboxDefault ? LINK_DESTINATION_LIGHTBOX : LINK_DESTINATION_NONE;
+}
+
+export function linkOptionsList(allowLightbox: boolean): LinkOption[] {
+    const options: LinkOption[] = [
         {
             icon: customLink,
             label: __('Link images to attachment pages', TEXT_DOMAIN),
@@ -120,6 +130,10 @@ function linkOptionsList(): LinkOption[] {
             noticeText: __('None', TEXT_DOMAIN),
         },
     ];
+
+    return allowLightbox
+        ? options
+        : options.filter((option) => option.value !== LINK_DESTINATION_LIGHTBOX);
 }
 
 function navigationButtonTypeOptions(): Array<{ label: string; value: string }> {
@@ -133,7 +147,7 @@ function navigationButtonTypeOptions(): Array<{ label: string; value: string }> 
 const ALLOWED_MEDIA_TYPES = ['image'];
 
 
-const DEFAULT_BLOCK = { name: 'core/image' };
+const DEFAULT_BLOCK = { name: 'artisanpack/image' };
 const EMPTY_ARRAY: readonly never[] = [];
 
 // Inlined from `@wordpress/block-library/src/utils/hooks.js` so the fork
@@ -216,24 +230,18 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
     } = props;
 
     const settingsResult = useSettings(
-        'blocks.core/image.lightbox',
         'dimensions.aspectRatios.default',
         'dimensions.aspectRatios.theme',
         'dimensions.defaultAspectRatios'
     ) as readonly [
-        { allowEditing?: boolean; enabled?: boolean } | undefined,
         ReadonlyArray<{ name: string; ratio: string }> | undefined,
         ReadonlyArray<{ name: string; ratio: string }> | undefined,
         boolean | undefined,
     ];
-    const [lightboxSetting, defaultRatios, themeRatios, showDefaultRatios] =
-        settingsResult;
+    const [defaultRatios, themeRatios, showDefaultRatios] = settingsResult;
+    const lightboxSetting = useLightboxSetting();
 
-    const linkOptions = !lightboxSetting?.allowEditing
-        ? linkOptionsList().filter(
-              (option) => option.value !== LINK_DESTINATION_LIGHTBOX
-          )
-        : linkOptionsList();
+    const linkOptions = linkOptionsList(lightboxSetting.allowEditing);
 
     const {
         navigationButtonType,
@@ -349,7 +357,7 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
 
     const newImages = useGetNewImages(images, imageData);
 
-    const hasLightboxImages = lightboxSetting?.enabled
+    const hasLightboxImages = lightboxSetting.enabled
         ? images.filter(
               (image) =>
                   image.attributes?.lightbox?.enabled === undefined ||
@@ -375,11 +383,30 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
         ...(themeOptions || []),
     ];
 
+    // #1071 — an empty Gallery has no images to show whether None was picked,
+    // so images added after it emptied keep None rather than follow the theme.
+    // Runs before the effect below, which reads it.
+    const galleryWasEmpty = useRef(false);
+
     useEffect(() => {
+        if (images.length === 0) {
+            galleryWasEmpty.current = true;
+        }
+    }, [images.length]);
+
+    useEffect(() => {
+        // #1071 — the post editor loads stored blocks without
+        // `originalContent`, so saved images come through here as new too.
+        // The check covers every image, not only the older ones, so a saved
+        // image and one just added get the same answer.
+        const followTheme =
+            !galleryWasEmpty.current &&
+            followsThemeLightbox(linkTo, images, lightboxSetting);
+
         newImages?.forEach((newImage) => {
             __unstableMarkNextChangeAsNotPersistent();
             updateBlockAttributes(newImage.clientId as string, {
-                ...buildImageAttributes(newImage.attributes),
+                ...buildImageAttributes(newImage.attributes, followTheme),
                 id: newImage.id,
                 align: undefined,
             });
@@ -401,7 +428,8 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
             caption?: string | { length?: number };
             alt?: string;
             linkDestination?: string;
-        }
+        },
+        followTheme: boolean
     ): Record<string, unknown> {
         const image = imageAttributes.id
             ? (imageData.find(
@@ -433,16 +461,25 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
                 ? incomingCaption.length
                 : (incomingCaption?.length ?? 0);
 
+        const link = getHrefAndDestination(
+            image as Parameters<typeof getHrefAndDestination>[0],
+            linkTo,
+            (imageAttributes as { linkDestination?: string }).linkDestination,
+            imageAttributes as Parameters<typeof getHrefAndDestination>[3],
+            lightboxSetting
+        );
+
+        // #1071 — an image with its own link still turns the lightbox off.
+        if (followTheme && link.linkDestination === LINK_DESTINATION_NONE) {
+            link.lightbox = imageAttributes.lightbox;
+        }
+
         return {
             ...pickRelevantMediaFiles(
                 image as Parameters<typeof pickRelevantMediaFiles>[0],
                 sizeSlug
             ),
-            ...getHrefAndDestination(
-                image as Parameters<typeof getHrefAndDestination>[0],
-                linkTo,
-                (imageAttributes as { linkDestination?: string }).linkDestination
-            ),
+            ...link,
             ...newLinkTarget,
             className: newClassName,
             sizeSlug,
@@ -532,7 +569,7 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
         );
 
         const newBlocks = newImageList.map((image) =>
-            createBlock('core/image', {
+            createBlock('artisanpack/image', {
                 id: image.id,
                 blob: image.blob,
                 url: image.url,
@@ -730,7 +767,7 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
                         };
                     }
                 ).wp?.media?.view?.settings?.defaultProps?.link ||
-                LINK_DESTINATION_NONE;
+                defaultLinkDestination(lightboxSetting.enabled);
             setAttributes({ linkTo: defaultLink });
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1064,7 +1101,7 @@ export default function GalleryEdit(props: GalleryEditProps): ReactElement {
                         inlineToolbar
                         __unstableOnSplitAtEnd={() =>
                             insertBlocksAfter?.(
-                                createBlock('core/paragraph')
+                                createBlock('artisanpack/paragraph')
                             )
                         }
                     />

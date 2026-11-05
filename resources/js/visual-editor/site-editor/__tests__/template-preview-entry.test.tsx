@@ -37,6 +37,7 @@ vi.mock('@wordpress/block-editor', () => ({
         value: Record<string, unknown>;
         children?: ReactNode;
     }) => <StubBlockContext.Provider value={value}>{children}</StubBlockContext.Provider>,
+    __unstableEditorStyles: (): null => null,
     BlockList: () => {
         const Component = blockListSlot.Component;
 

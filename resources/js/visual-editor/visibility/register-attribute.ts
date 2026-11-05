@@ -11,7 +11,8 @@
  * declare it by hand.
  *
  * The injected attribute is a plain `object` matching the shape the
- * PHP `VisibilityEvaluator` consumes — see `types.ts` for the schema.
+ * PHP `VisibilityEvaluator` consumes — see `types.ts` for the schema,
+ * including the `content` slice (#1030).
  *
  * @package @artisanpack-ui/visual-editor
  * @since 1.4.0

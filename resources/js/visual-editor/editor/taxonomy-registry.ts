@@ -8,7 +8,8 @@
  * one block variation per taxonomy — so "Categories", "Tags", and any
  * custom taxonomy each get an inserter tile — and to populate the
  * taxonomy picker in the block's Settings sidebar, letting authors switch
- * taxonomy without hand-editing markup.
+ * taxonomy without hand-editing markup. The Query Loop's Filters panel
+ * reads the same list through {@see getTaxonomiesForPostType}.
  *
  * Both the post editor (`[data-ap-visual-editor]`) and the site editor
  * (`[data-ap-site-editor]`) stamp the attribute, so the registry reads
@@ -27,10 +28,14 @@ import { __ } from '@wordpress/i18n';
 
 import { TEXT_DOMAIN } from '../vendor/i18n';
 
+import { resolvePostType } from './content-type-slugs';
+
 export interface TaxonomyDescriptor {
     readonly slug: string;
     readonly label: string;
     readonly plural: string;
+    /** Post types the taxonomy applies to, when the host declares them. */
+    readonly postTypes?: ReadonlyArray<string>;
 }
 
 /**
@@ -51,6 +56,17 @@ function fallbackTaxonomies(): ReadonlyArray<TaxonomyDescriptor> {
 // name (`term-${slug}`), so constrain it to a safe identifier set —
 // mirroring the PHP registry's guard.
 const SAFE_SLUG_PATTERN = /^[a-z0-9_-]+$/;
+
+// Mirrors the PHP registry's `SAFE_POST_TYPE_PATTERN`.
+const SAFE_POST_TYPE_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
+
+// The built-ins' terms always come from cms-framework's post tables, and
+// those ids mean nothing to another post type's query, so a host's
+// `postTypes` can't widen them.
+const BUILT_IN_POST_TYPES: ReadonlyMap<string, ReadonlyArray<string>> = new Map([
+    ['category', ['post']],
+    ['post_tag', ['post']],
+]);
 
 // `undefined` = not read yet; `null` = read, nothing usable stamped.
 let cached: ReadonlyArray<TaxonomyDescriptor> | null | undefined;
@@ -97,7 +113,22 @@ function parseFromElement(
                     ? rawPlural.trim()
                     : label;
 
-            result.push(Object.freeze({ slug, label, plural }));
+            const rawPostTypes = (entry as { postTypes?: unknown }).postTypes;
+            const postTypes = Array.isArray(rawPostTypes)
+                ? rawPostTypes.filter(
+                      (postType): postType is string =>
+                          typeof postType === 'string' && SAFE_POST_TYPE_PATTERN.test(postType)
+                  )
+                : [];
+
+            result.push(
+                Object.freeze({
+                    slug,
+                    label,
+                    plural,
+                    ...(postTypes.length > 0 ? { postTypes: Object.freeze(postTypes) } : {}),
+                })
+            );
         }
 
         return result.length > 0 ? Object.freeze(result) : null;
@@ -122,6 +153,26 @@ export function getTaxonomies(): ReadonlyArray<TaxonomyDescriptor> {
     }
 
     return cached ?? fallbackTaxonomies();
+}
+
+/**
+ * Returns the taxonomies that apply to a post type: the built-ins for
+ * `post`, custom taxonomies listing it in `postTypes`, and custom
+ * taxonomies that declare no post types at all.
+ *
+ * A saved block can carry the plural (`posts`), so the type is
+ * normalised to its singular slug first, as `QueryInliner` does on render.
+ *
+ * @since 1.20.0
+ */
+export function getTaxonomiesForPostType(postType: string): ReadonlyArray<TaxonomyDescriptor> {
+    const type = resolvePostType(postType);
+
+    return getTaxonomies().filter((taxonomy) => {
+        const postTypes = BUILT_IN_POST_TYPES.get(taxonomy.slug) ?? taxonomy.postTypes;
+
+        return postTypes === undefined || postTypes.includes(type);
+    });
 }
 
 /**

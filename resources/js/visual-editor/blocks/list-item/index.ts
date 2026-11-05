@@ -13,7 +13,20 @@ import icon from './inserter-icon';
 
 import './list-item.css';
 
-export { edit, save, metadata, icon, deprecated, transforms };
+/**
+ * Join two list items' content on merge (#1043). Mirrors upstream's `merge`.
+ */
+function merge<T extends { content: string }>(
+    attributes: T,
+    attributesToMerge: { content: string }
+): T {
+    return {
+        ...attributes,
+        content: attributes.content + attributesToMerge.content,
+    };
+}
+
+export { edit, save, metadata, icon, deprecated, transforms, merge };
 
 export default {
     name: metadata.name,
@@ -23,4 +36,5 @@ export default {
     icon,
     deprecated,
     transforms,
+    merge,
 };

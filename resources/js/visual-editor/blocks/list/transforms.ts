@@ -260,7 +260,12 @@ const transforms = {
         },
     ],
     to: [
-        ...['core/paragraph', 'core/heading'].map((blockName) => ({
+        ...[
+            'core/paragraph',
+            'core/heading',
+            'artisanpack/paragraph',
+            'artisanpack/heading',
+        ].map((blockName) => ({
             type: 'block' as const,
             blocks: [blockName],
             transform: (

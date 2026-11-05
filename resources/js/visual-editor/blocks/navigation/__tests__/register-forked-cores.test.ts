@@ -44,6 +44,9 @@ vi.mock('@wordpress/block-library/build-module/loginout/index.mjs', async () =>
 vi.mock('@wordpress/block-library/build-module/block/index.mjs', async () =>
     (await import('./wp-blocks-cjs')).fakeUpstreamInit('core/block'),
 );
+vi.mock('@wordpress/block-library/build-module/html/index.mjs', async () =>
+    (await import('./wp-blocks-cjs')).fakeUpstreamInit('core/html'),
+);
 import { getBlockType } from '@wordpress/blocks';
 
 import { registerAnimationsAttribute } from '../../../animations/register-attribute';

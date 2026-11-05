@@ -85,8 +85,14 @@ use ArtisanPackUI\VisualEditor\States\StateValueResolver;
 use ArtisanPackUI\VisualEditor\Support\BlockMarkupHydrator;
 use ArtisanPackUI\VisualEditor\Support\HookAliases;
 use ArtisanPackUI\VisualEditor\View\Components\VisualEditorComponent;
+use ArtisanPackUI\VisualEditor\Visibility\ContentSourceRegistry;
+use ArtisanPackUI\VisualEditor\Visibility\ContentSources\PaginationContentSource;
+use ArtisanPackUI\VisualEditor\Visibility\ContentSources\PostNavigationContentSource;
+use ArtisanPackUI\VisualEditor\Visibility\ContentSources\QueryContentSource;
+use ArtisanPackUI\VisualEditor\Visibility\ContentSources\RelatedPostsContentSource;
 use ArtisanPackUI\VisualEditor\Visibility\RuleRegistry as VisibilityRuleRegistry;
 use ArtisanPackUI\VisualEditor\Visibility\Rules\BrowserOsDeviceRule;
+use ArtisanPackUI\VisualEditor\Visibility\Rules\ContentRule;
 use ArtisanPackUI\VisualEditor\Visibility\Rules\DateTimeWindowRule;
 use ArtisanPackUI\VisualEditor\Visibility\Rules\HideRule;
 use ArtisanPackUI\VisualEditor\Visibility\Rules\LoginStateRule;
@@ -354,6 +360,9 @@ class VisualEditorServiceProvider extends ServiceProvider
 		// values a controller vouched for never outlive the request.
 		$this->app->scoped( Effects\CustomCssModelGuard::class, static fn (): Effects\CustomCssModelGuard => new Effects\CustomCssModelGuard() );
 
+		// #1062 — the block markup filter, scoped for the same reason.
+		$this->app->scoped( Support\BlockHtmlGuard::class );
+
 		// #876 — block style variations. Code registrations live in a
 		// singleton so they survive from boot() to render; the resolver
 		// is scoped because it merges in the per-request global styles.
@@ -614,7 +623,23 @@ class VisualEditorServiceProvider extends ServiceProvider
 				$app->make( SpecificUserRule::class ),
 				$app->make( DateTimeWindowRule::class ),
 				$app->make( RecurringScheduleRule::class ),
+				$app->make( ContentRule::class ),
 			] );
+		} );
+
+		// Scoped and filtered in `boot()` for the same reasons as the
+		// rule registry above.
+		$this->app->scoped( ContentSourceRegistry::class, function () {
+			return new ContentSourceRegistry( [
+				new QueryContentSource(),
+				new RelatedPostsContentSource(),
+				new PostNavigationContentSource(),
+				new PaginationContentSource(),
+			] );
+		} );
+
+		$this->app->scoped( ContentRule::class, function ( $app ) {
+			return new ContentRule( $app->make( ContentSourceRegistry::class ) );
 		} );
 
 		$this->app->scoped( VisibilityEvaluator::class, function ( $app ) {
@@ -722,6 +747,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		//     scoped closure (an intra-boot resolve captured an empty
 		//     filter chain).
 		$this->applyVisibilityRulesFilter();
+		$this->applyVisibilityContentSourcesFilter();
 
 		// 1c. Layer the `ap.visualEditor.registerFontSources` filter
 		//     over the Font Library source registry via `extend()`, so
@@ -760,6 +786,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->registerAiGate();
 		$this->registerContentGate();
 		$this->registerBlockCssGate();
+		$this->registerUnfilteredHtmlGate();
 		$this->registerSiteEditorCustomCssFilter();
 
 		Gate::policy( VisualEditorPost::class, VisualEditorPostPolicy::class );
@@ -957,7 +984,12 @@ class VisualEditorServiceProvider extends ServiceProvider
 	 * config seeds the filter, then merges back on top so host-app entries
 	 * win on key collision. A non-array filter return counts as empty.
 	 *
+	 * Merges with `array_replace()`, so an all-digit key such as `'404'`
+	 * (an integer key in PHP) is overwritten instead of renumbered and
+	 * listed twice (#1093).
+	 *
 	 * @since 1.17.1
+	 * @since 1.20.0 Merges with `array_replace()` (#1093).
 	 *
 	 * @param  string  $filter     The filter hook name.
 	 * @param  string  $configKey  The config key holding the static map.
@@ -970,7 +1002,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$filtered = applyFilters( $filter, $static );
 		$filtered = is_array( $filtered ) ? $filtered : [];
 
-		return array_merge( $filtered, $static );
+		return array_replace( $filtered, $static );
 	}
 
 	/**
@@ -1037,6 +1069,28 @@ class VisualEditorServiceProvider extends ServiceProvider
 			static function ( VisibilityRuleRegistry $registry ): VisibilityRuleRegistry {
 				$filtered = applyFilters( 'ap.visualEditor.visibility.registerRules', $registry );
 				return $filtered instanceof VisibilityRuleRegistry ? $filtered : $registry;
+			},
+		);
+	}
+
+	/**
+	 * Layer the `ap.visualEditor.visibility.registerContentSources`
+	 * filter over every fresh {@see ContentSourceRegistry} instance, the
+	 * same way {@see applyVisibilityRulesFilter()} treats the rules.
+	 *
+	 * @since 1.20.0
+	 */
+	protected function applyVisibilityContentSourcesFilter(): void
+	{
+		if ( ! function_exists( 'applyFilters' ) ) {
+			return;
+		}
+
+		$this->app->extend(
+			ContentSourceRegistry::class,
+			static function ( ContentSourceRegistry $registry ): ContentSourceRegistry {
+				$filtered = applyFilters( 'ap.visualEditor.visibility.registerContentSources', $registry );
+				return $filtered instanceof ContentSourceRegistry ? $filtered : $registry;
 			},
 		);
 	}
@@ -1744,7 +1798,26 @@ class VisualEditorServiceProvider extends ServiceProvider
 	}
 
 	/**
-	 * Run {@see Effects\CustomCssGuard} on the block trees cms-framework's
+	 * Define the default `visual-editor.unfiltered-html` gate unless the
+	 * host already has (#1062). Denies by default; see
+	 * {@see Support\UnfilteredHtmlAccess}.
+	 *
+	 * @since 1.20.0
+	 */
+	protected function registerUnfilteredHtmlGate(): void
+	{
+		if ( Gate::has( Support\UnfilteredHtmlAccess::ABILITY ) ) {
+			return;
+		}
+
+		Gate::define(
+			Support\UnfilteredHtmlAccess::ABILITY,
+			static fn ( ?\Illuminate\Contracts\Auth\Authenticatable $user ): bool => Support\UnfilteredHtmlAccess::allows( $user ),
+		);
+	}
+
+	/**
+	 * Run {@see Support\BlockContentGuard} on the block trees cms-framework's
 	 * Site Editor API is about to store (F-1), through its
 	 * `ap.cmsFramework.siteEditor.blockContent` filter
 	 * (`$blocks, ?array $storedBlocks, string $context`). The filter runs
@@ -1766,7 +1839,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		addFilter(
 			'ap.cmsFramework.siteEditor.blockContent',
-			static fn ( mixed $blocks, mixed $storedBlocks = null ): mixed => app( Effects\CustomCssGuard::class )->filter( $blocks, $storedBlocks ),
+			static fn ( mixed $blocks, mixed $storedBlocks = null ): mixed => app( Support\BlockContentGuard::class )->filter( $blocks, $storedBlocks ),
 		);
 	}
 

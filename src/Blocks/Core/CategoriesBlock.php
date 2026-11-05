@@ -152,6 +152,29 @@ class CategoriesBlock extends DynamicBlock
 	}
 
 	/**
+	 * Returns every term of a taxonomy, empty ones included, for the Query
+	 * Loop's term picker. Shares the block's sources: cms-framework for
+	 * `category` / `post_tag`, the {@see self::FILTER_TERMS} filter for
+	 * anything else.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @param  string  $taxonomy  Taxonomy slug.
+	 *
+	 * @return Collection<int, object> Empty when the taxonomy has no source.
+	 */
+	public function termsForTaxonomy( string $taxonomy ): Collection
+	{
+		$attrs = $this->validateAttrs( [ 'taxonomy' => $taxonomy, 'showEmpty' => true ] );
+
+		if ( in_array( $attrs['taxonomy'], [ 'category', 'post_tag' ], true ) && ! class_exists( PostCategory::class ) ) {
+			return new Collection();
+		}
+
+		return $this->fetchTerms( $attrs ) ?? new Collection();
+	}
+
+	/**
 	 * Returns the terms of the block's taxonomy, or `null` when the
 	 * taxonomy is unknown.
 	 *

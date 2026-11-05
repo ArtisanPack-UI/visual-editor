@@ -128,9 +128,11 @@ class PatternPreviewController extends Controller
 	/**
 	 * Resolve a pattern by the id the pattern API hands the client: a
 	 * numeric DB id for user patterns, the slug for theme patterns. Mirrors
-	 * {@see PatternController::findPatternByIdOrSlug()}.
+	 * {@see PatternController::findPatternByIdOrSlug()}, including the slug
+	 * fallback for a numeric id that matches no pattern (#1074).
 	 *
 	 * @since 1.13.0
+	 * @since 1.20.0 A numeric input no id matches is tried as a slug.
 	 */
 	protected function findPattern( string $id ): ?ResolvedPattern
 	{
@@ -145,8 +147,6 @@ class PatternPreviewController extends Controller
 					return $candidate;
 				}
 			}
-
-			return null;
 		}
 
 		$resolved = $resolver->find( $id );

@@ -5,6 +5,8 @@
 	data-id="{{ $modelId }}"
 	data-api-base="{{ $apiBase }}"
 	@if( $canEditBlockCss ) data-can-edit-block-css="true" @endif
+	@if( $canUseUnfilteredHtml ) data-can-use-unfiltered-html="true" @endif
+	@if( $canImportMedia ) data-can-import-media="true" @endif
 	data-custom-css-allow-urls="{{ $customCssAllowUrls ? 'true' : 'false' }}"
 	@isset($initialTitle) data-title="{{ $initialTitle }}" @endisset
 	@isset($initialSlug) data-slug="{{ $initialSlug }}" @endisset
@@ -37,6 +39,10 @@
 	     defaults) so the viewport switcher's registry hydrates with
 	     host-configured `label` / `previewWidthPx` overrides. --}}
 	data-breakpoints="{{ json_encode( $breakpoints ) }}"
+	{{-- #1030 — sources the Visibility panel's Content rule offers,
+	     including any registered through
+	     `ap.visualEditor.visibility.registerContentSources`. --}}
+	data-visibility-content-sources="{{ json_encode( app( \ArtisanPackUI\VisualEditor\Visibility\ContentSourceRegistry::class )->toEditorPayload(), JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS ) }}"
 	{{-- #773 — host-provided palette / font-size / font-family /
 	     spacing-size presets. Merged into `editorSettings` by
 	     `preset-registry.ts` at editor boot and layered on top of the

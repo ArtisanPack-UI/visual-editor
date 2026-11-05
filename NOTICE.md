@@ -47,17 +47,8 @@ The bundled `.svg` source assets live under
 | tabs | [`window-restore`](https://fontawesome.com/icons/window-restore) |
 | toc | [`list-ol`](https://fontawesome.com/icons/list-ol) |
 
-The Social Share Content block's LinkedIn and Copy link chip glyphs embed
-path data from Font Awesome Free v7.2.0 (Brands
-[`linkedin-in`](https://fontawesome.com/icons/linkedin-in) and Solid
-[`link`](https://fontawesome.com/icons/link)), licensed under
-[CC BY 4.0][cc-by-4]. The paths are scaled and centred into a 24×24
-viewBox and repeated in the share-icon registries
-(`resources/js/visual-editor/blocks/_shared/social-icons.ts`,
-`packages/visual-editor-renderer-blade/src/Support/SocialIconRegistry.php`
-and the React / Vue `src/blocks/artisanpack/socialIcons.ts`).
-
-The Social Icons block's service glyphs embed path data copied verbatim
+The Social Icons, Author Social Icons and Social Share Content blocks'
+glyphs embed path data copied verbatim
 from Font Awesome Free v7.2.0 (Brands, plus Solid `link`, `rss` and
 `envelope` for the Link, RSS Feed and Mail services), licensed under
 [CC BY 4.0][cc-by-4]. The Gravatar glyph comes from
@@ -69,3 +60,34 @@ and the React / Vue `src/blocks/artisanpack/socialLinkServices.ts`).
 
 [fa-free]: https://fontawesome.com/license/free
 [cc-by-4]: https://creativecommons.org/licenses/by/4.0/
+
+## Prism
+
+The Code block highlighter bundles [Prism](https://prismjs.com) v1.30.0 by
+Lea Verou and contributors, licensed under the
+[MIT License](https://github.com/PrismJS/prism/blob/v1.30.0/LICENSE). It is
+included in `frontend/code-highlight.js` in the Blade renderer and
+`src/support/codeHighlighter.generated.js` in the React and Vue renderers.
+Its licence:
+
+    MIT LICENSE
+
+    Copyright (c) 2012 Lea Verou
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+    THE SOFTWARE.

@@ -232,6 +232,58 @@ class PostResolver
 	}
 
 	/**
+	 * Remove the `_resolved*` attributes this resolver stamps from a
+	 * saved block tree.
+	 *
+	 * Stamping keeps any `_resolved*` key a block already carries, so a
+	 * value stamped earlier in the same render (a query loop's
+	 * iteration, a host's own pre-pass) is not overwritten. Saved
+	 * content must not get that precedence, or anyone who can edit a
+	 * block's markup could save their own `_resolvedShareLinks` and
+	 * point a chip at any URL (#1078). Run this on a saved tree before
+	 * the first stamping pass. A host that wants to supply precomputed
+	 * values adds them after this call.
+	 *
+	 * Only the blocks this resolver stamps lose their `_resolved*` keys:
+	 * every supported block, the adjacent-post containers, and a cover
+	 * set to use the featured image. Other blocks keep theirs.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @param  array<int, mixed>  $tree  Saved block tree in the `attributes` shape.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function stripSavedAttributes( array $tree ): array
+	{
+		$out = [];
+
+		foreach ( $tree as $block ) {
+			if ( ! is_array( $block ) ) {
+				continue;
+			}
+
+			$name = isset( $block['name'] ) && is_string( $block['name'] ) ? $block['name'] : '';
+
+			if ( isset( $block['attributes'] ) && is_array( $block['attributes'] ) && $this->stampsBlock( $name, $block['attributes'] ) ) {
+				$block['attributes'] = array_filter(
+					$block['attributes'],
+					static fn ( mixed $key ): bool => ! is_string( $key ) || ! str_starts_with( $key, '_resolved' ),
+					ARRAY_FILTER_USE_KEY,
+				);
+			}
+
+			if ( isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) ) {
+				$block['innerBlocks'] = $this->stripSavedAttributes( $block['innerBlocks'] );
+			}
+
+			$out[] = $block;
+		}
+
+		return $out;
+	}
+
+	/**
 	 * Stamp a single block (and its inner blocks) against the given post.
 	 *
 	 * @since 1.0.0
@@ -306,10 +358,31 @@ class PostResolver
 	}
 
 	/**
+	 * Whether {@see stampBlock()} stamps `_resolved*` attributes on a
+	 * block with this name and these attributes.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 *
+	 * @return bool True when the block gets `_resolved*` stamps.
+	 */
+	protected function stampsBlock( string $name, array $attributes ): bool
+	{
+		if ( in_array( $name, self::SUPPORTED_BLOCKS, true ) || array_key_exists( $name, self::ADJACENT_POST_CONTAINERS ) ) {
+			return true;
+		}
+
+		return in_array( $name, self::FEATURED_IMAGE_COVERS, true ) && ! empty( $attributes['useFeaturedImage'] );
+	}
+
+	/**
 	 * Returns the stamped `_resolved*` attributes for a single block /
 	 * post pair. Returned as a "defaults" map — pre-existing
 	 * `_resolved*` keys on the block win on merge so a host that has
-	 * already resolved values upstream keeps full control.
+	 * already resolved values upstream keeps full control. Saved
+	 * content does not get that precedence: the render pipelines strip
+	 * its keys first with {@see stripSavedAttributes()} (#1078).
 	 *
 	 * @since 1.0.0
 	 * @since 1.15.2 Accepts the block's own attributes, so `post-date`

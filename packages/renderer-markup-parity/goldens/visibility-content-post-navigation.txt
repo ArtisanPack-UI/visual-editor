@@ -1,0 +1,7 @@
+<div class="wp-block-group is-layout-flow wp-block-group-is-layout-flow">
+  <div class="wp-block-post-navigation-link">
+    <a aria-label="Previous post" href="https://example.com/older">
+      "Older"
+    </a>
+  </div>
+</div>

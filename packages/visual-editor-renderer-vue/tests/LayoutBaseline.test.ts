@@ -104,3 +104,33 @@ describe('LayoutBaseline nested block gap reset (M-15)', () => {
         expect(blade).toContain(block);
     });
 });
+
+describe('LayoutBaseline lightbox defaults (#1070)', () => {
+    const rules = [
+        'html .wp-lightbox-container { display: block; }',
+        'html:not(.ap-lightbox-ready) .wp-lightbox-container img { cursor: auto; }',
+    ];
+
+    // These check rule text: jsdom's getComputedStyle ignores specificity, so
+    // it can't show which rule wins. The `html` prefix is what beats the
+    // block library's same-specificity `.wp-lightbox-container` rule in any
+    // load order a host picks.
+    it('carries the lightbox rules with an html prefix that out-specifies the block library', () => {
+        for (const rule of rules) {
+            expect(LAYOUT_BASELINE_CSS).toContain(rule);
+        }
+    });
+
+    it('matches the Blade baseline, which loads without lightbox.css', async () => {
+        const { readFileSync } = await import('node:fs');
+        const { resolve } = await import('node:path');
+        const blade = readFileSync(
+            resolve(__dirname, '../../visual-editor-renderer-blade/resources/views/components/blocks-styles.blade.php'),
+            'utf8'
+        );
+        const baseline = /<style data-ve-layout-baseline>([\s\S]*?)<\/style>/.exec(blade)?.[1] ?? '';
+
+        expect(baseline).toContain(rules.join('\n'));
+        expect(LAYOUT_BASELINE_CSS).toContain(rules.join('\n'));
+    });
+});

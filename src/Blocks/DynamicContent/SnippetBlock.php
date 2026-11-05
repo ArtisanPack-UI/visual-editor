@@ -32,6 +32,7 @@ namespace ArtisanPackUI\VisualEditor\Blocks\DynamicContent;
 
 use ArtisanPackUI\VisualEditor\Blocks\DynamicBlock;
 use ArtisanPackUI\VisualEditor\Services\DynamicContent\SnippetCycleGuard;
+use ArtisanPackUI\VisualEditor\Support\ResolvedAttributes;
 use Throwable;
 
 class SnippetBlock extends DynamicBlock
@@ -110,8 +111,10 @@ class SnippetBlock extends DynamicBlock
 		$this->pushScope( $ownerSlug );
 
 		try {
+			// The snippet is saved content, so its `_resolved*` attributes
+			// can't replace what the renderer stamps (#1096).
 			$renderer = app( $rendererClass );
-			$html     = $renderer->render( $blocks );
+			$html     = $renderer->render( ResolvedAttributes::strip( $blocks ) );
 		} catch ( Throwable $e ) {
 			report( $e );
 

@@ -103,6 +103,32 @@ export interface RecurringScheduleRuleAttrs {
     windows?: RecurringWindow[];
 }
 
+/**
+ * The Content rule (#1030). `source` and `condition` are open-ended
+ * because hosts register their own sources.
+ *
+ * @since 1.20.0
+ */
+export interface ContentRuleAttrs {
+    source?: string;
+    condition?: string;
+    match?: Combinator;
+    direction?: Direction;
+}
+
+/**
+ * A source the Content subsection can offer, as the server publishes
+ * it. `blocks` is empty for a source that doesn't match on block name.
+ *
+ * @since 1.20.0
+ */
+export interface VisibilityContentSourceOption {
+    key: string;
+    label: string;
+    blocks: string[];
+    conditions: Array<{ value: string; label: string }>;
+}
+
 export interface VisibilityAttribute {
     hide?: HideRuleAttrs;
     screenSize?: ScreenSizeRuleAttrs;
@@ -114,6 +140,7 @@ export interface VisibilityAttribute {
     specificUser?: SpecificUserRuleAttrs;
     dateTimeWindow?: DateTimeWindowRuleAttrs;
     recurring?: RecurringScheduleRuleAttrs;
+    content?: ContentRuleAttrs;
 }
 
 export const RULE_KEYS = [
@@ -127,6 +154,7 @@ export const RULE_KEYS = [
     'specificUser',
     'dateTimeWindow',
     'recurring',
+    'content',
 ] as const;
 
 export type RuleKey = (typeof RULE_KEYS)[number];
@@ -181,6 +209,10 @@ export function isVisibilityActive(value: VisibilityAttribute | null | undefined
     }
 
     if ((value.recurring?.windows?.length ?? 0) > 0) {
+        return true;
+    }
+
+    if (value.content?.source) {
         return true;
     }
 

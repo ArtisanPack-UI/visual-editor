@@ -4,12 +4,20 @@
  * rendered output is interchangeable with the server-side renderer.
  */
 
-import { defineComponent, h } from 'vue';
+import { defineComponent, h, onMounted, onUpdated, ref } from 'vue';
 import type { VNode } from 'vue';
 import { attrBoolean, attrInt, attrString, classList } from '../../support/attributes';
-import { compileBlockSupports } from '../../support/blockSupports';
+import { compileBlockSupports, compileBoxShadow, splitBorderSupports } from '../../support/blockSupports';
 import { safeCssValue } from '../../support/cssValue';
 import { safeUrl } from '../../support/urlSanitizer';
+import {
+    lightboxLabelsJson,
+    LIGHTBOX_TRIGGER_ICON_PATH,
+    bindLightbox,
+    imageHasLightbox,
+    lightboxNavigationType,
+    lightboxTriggerLabel,
+} from '../../support/lightbox';
 import { blockRendererProps, withStyle } from '../shared';
 
 /**
@@ -58,17 +66,47 @@ function imageDimension(value: unknown): { attr?: number; style?: string } {
 }
 
 /**
- * The `<img>` style for the image block's `aspectRatio` + `scale`
- * attributes (#873), mirroring `image.blade.php`: the ratio must pass
- * `safeCssValue`, the scale must be a known object-fit keyword. The
- * resolved width / height (#985) follow, in the editor `save()` order.
+ * The `object-position` for an image `focalPoint` (#1054), mirroring
+ * `image.blade.php`: a missing axis defaults to the center, as in the
+ * editor's `mediaPosition()`, and anything but a number from 0 to 1 drops
+ * the whole value.
+ */
+function imageFocalPosition(focalPoint: unknown): string | null {
+    if (typeof focalPoint !== 'object' || focalPoint === null) {
+        return null;
+    }
+
+    const { x, y } = focalPoint as { x?: unknown; y?: unknown };
+    const percentages: string[] = [];
+
+    for (const axis of [x, y]) {
+        const value = axis === undefined ? 0.5 : axis;
+
+        if (typeof value !== 'number' || !(value >= 0 && value <= 1)) {
+            return null;
+        }
+
+        percentages.push(`${Math.round(value * 100)}%`);
+    }
+
+    return percentages.join(' ');
+}
+
+/**
+ * The `<img>` style for the image block's `aspectRatio`, `scale` and
+ * `focalPoint` attributes (#873, #1054), mirroring `image.blade.php`: the
+ * ratio must pass `safeCssValue`, the scale must be a known object-fit
+ * keyword, and the focal point only applies alongside a scale. The border
+ * and shadow (#1052) lead and the resolved width / height (#985) follow,
+ * in the editor `save()` order.
  */
 function imageStyle(
     attributes: Record<string, unknown>,
+    borderAndShadow: Record<string, string>,
     width: string | undefined,
     height: string | undefined,
 ): Record<string, string> | undefined {
-    const style: Record<string, string> = {};
+    const style: Record<string, string> = { ...borderAndShadow };
     const aspectRatio =
         typeof attributes.aspectRatio === 'string' ? safeCssValue(attributes.aspectRatio) : null;
     const scale = attributes.scale;
@@ -79,6 +117,12 @@ function imageStyle(
 
     if (typeof scale === 'string' && IMAGE_SCALES.includes(scale)) {
         style.objectFit = scale;
+
+        const focalPosition = imageFocalPosition(attributes.focalPoint);
+
+        if (focalPosition !== null) {
+            style.objectPosition = focalPosition;
+        }
     }
 
     if (width !== undefined) {
@@ -129,6 +173,17 @@ export const ImageBlock = defineComponent({
     name: 'ImageBlock',
     props: blockRendererProps,
     setup(props) {
+        const figureRef = ref<HTMLElement | null>(null);
+
+        function bind(): void {
+            if (figureRef.value !== null && imageHasLightbox(props.attributes)) {
+                void bindLightbox(figureRef.value);
+            }
+        }
+
+        onMounted(bind);
+        onUpdated(bind);
+
         return () => {
             const url = safeUrl(props.attributes.url);
             const alt = attrString(props.attributes.alt);
@@ -142,15 +197,24 @@ export const ImageBlock = defineComponent({
             const sizeSlug = attrString(props.attributes.sizeSlug);
             const className = attrString(props.attributes.className);
 
-            const supports = compileBlockSupports(props.attributes);
-            // Blade order: base, size, is-resized (#985), duotone scope (stamped by
-            // `stampDuotoneScopes()`), then the supports' align, the other
-            // supports (#920) and className.
+            // #1052 — block.json skips border and shadow serialization: as in
+            // `save()`, they paint on the `<img>`, so the caption sits outside them.
+            const { wrapper, element: border } = splitBorderSupports(props.attributes);
+            const shadow = compileBoxShadow(props.attributes);
+            const hasCustomBorder = border.classNames.length > 0 || Object.keys(border.style).length > 0;
+            const supports = compileBlockSupports(wrapper);
+            // #1046 — a link wins over the lightbox.
+            const lightbox = imageHasLightbox(props.attributes);
+            // Blade order: base, size, is-resized (#985), a custom border (#1052),
+            // duotone scope (stamped by `stampDuotoneScopes()`), the lightbox, then
+            // the supports' align, the other supports (#920) and className.
             const figureClasses = classList([
                 'wp-block-image',
                 sizeSlug !== '' ? `size-${sizeSlug}` : null,
                 width.style !== undefined || height.style !== undefined ? 'is-resized' : null,
+                hasCustomBorder ? 'has-custom-border' : null,
                 attrString(props.attributes._veDuotone) || null,
+                lightbox ? 'wp-lightbox-container' : null,
                 align !== '' ? `align${align}` : null,
                 ...supports.classNames,
                 className,
@@ -158,8 +222,16 @@ export const ImageBlock = defineComponent({
 
             const imgProps: Record<string, unknown> = { src: url, alt };
 
-            if (id > 0) {
-                imgProps.class = `wp-image-${id}`;
+            // Blade order: element support classes (the idle border, then its
+            // responsive scope), then `wp-image-N`.
+            const imgClass = classList([
+                ...border.classNames,
+                attrString(props.attributes._veImgResponsiveScope) || null,
+                id > 0 ? `wp-image-${id}` : null,
+            ]);
+
+            if (imgClass !== '') {
+                imgProps.class = imgClass;
             }
 
             if (width.attr !== undefined) {
@@ -170,7 +242,8 @@ export const ImageBlock = defineComponent({
                 imgProps.height = height.attr;
             }
 
-            const style = imageStyle(props.attributes, width.style, height.style);
+            const borderAndShadow = shadow === null ? border.style : { ...border.style, boxShadow: shadow };
+            const style = imageStyle(props.attributes, borderAndShadow, width.style, height.style);
 
             if (style !== undefined) {
                 imgProps.style = style;
@@ -207,11 +280,37 @@ export const ImageBlock = defineComponent({
                 }
             }
 
-            if (caption.trim() !== '') {
-                children.push(h('figcaption', { innerHTML: caption }));
+            if (lightbox) {
+                children.push(
+                    h(
+                        'button',
+                        {
+                            type: 'button',
+                            class: 'lightbox-trigger',
+                            'aria-haspopup': 'dialog',
+                            'aria-label': lightboxTriggerLabel(alt),
+                            style: { display: 'none' },
+                        },
+                        [
+                            h('svg', { width: '12', height: '12', viewBox: '0 0 12 12', 'aria-hidden': 'true', focusable: 'false' }, [
+                                h('path', { fill: 'currentColor', d: LIGHTBOX_TRIGGER_ICON_PATH }),
+                            ]),
+                        ]
+                    )
+                );
             }
 
-            return h('figure', withStyle({ class: figureClasses }, supports.style), children);
+            if (caption.trim() !== '') {
+                children.push(h('figcaption', { class: 'wp-element-caption', innerHTML: caption }));
+            }
+
+            const figureProps: Record<string, unknown> = { ref: figureRef, class: figureClasses };
+
+            if (lightbox) {
+                figureProps['data-ap-lightbox-labels'] = lightboxLabelsJson();
+            }
+
+            return h('figure', withStyle(figureProps, supports.style), children);
         };
     },
 });
@@ -250,7 +349,14 @@ export const GalleryBlock = defineComponent({
                 );
             }
 
-            return h('figure', withStyle({ class: classes }, supports.style), children);
+            const figureProps: Record<string, unknown> = { class: classes };
+            const navigationType = lightboxNavigationType(props.attributes.navigationButtonType);
+
+            if (navigationType !== undefined) {
+                figureProps['data-ap-lightbox-navigation'] = navigationType;
+            }
+
+            return h('figure', withStyle(figureProps, supports.style), children);
         };
     },
 });

@@ -33,11 +33,13 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor;
 
 use ArtisanPackUI\VisualEditor\Effects\CustomCssGuard;
+use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\Concerns\ReadsSiteEditorRouteInput;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\MenuContentBlocksRule;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\StoreMenuRequest;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\UpdateMenuRequest;
 use ArtisanPackUI\VisualEditor\SiteEditor\MenuItemBlockBridge;
 use ArtisanPackUI\VisualEditor\SiteEditor\Previews\PatternPreviewCache;
+use ArtisanPackUI\VisualEditor\Support\BlockContentGuard;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -49,6 +51,8 @@ use Illuminate\Support\Str;
 
 class MenuController extends Controller
 {
+	use ReadsSiteEditorRouteInput;
+
 	protected const CMS_MENU_FQCN = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Models\\Menu';
 
 	protected const CMS_RESOLVER_BINDING = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Resolution\\MenuResolver';
@@ -86,6 +90,12 @@ class MenuController extends Controller
 	 */
 	public function index( Request $request ): JsonResponse
 	{
+		$theme = $this->stringQuery( $request, 'theme' );
+
+		if ( null === $theme ) {
+			return $this->invalidStringQuery( 'theme' );
+		}
+
 		if ( ! $this->cmsFrameworkAvailable() ) {
 			return response()->json( [] );
 		}
@@ -96,7 +106,6 @@ class MenuController extends Controller
 		// list endpoint would N+1 one items query per menu.
 		$query = $model::query()->with( 'items' )->orderBy( 'id' );
 
-		$theme = trim( (string) $request->query( 'theme', '' ) );
 		if ( '' !== $theme ) {
 			$query->where( 'theme', $theme );
 		}
@@ -413,8 +422,8 @@ class MenuController extends Controller
 	 */
 	protected function resolveContentBlocks( mixed $content, ?array $storedBlocks = null ): array
 	{
-		// #881 — only users with the block-CSS ability may add Custom CSS.
-		$blocks = app( CustomCssGuard::class )->filter( $this->contentToBlocks( $content ), $storedBlocks );
+		// #881, #1062 — Custom CSS and unfiltered markup need their abilities.
+		$blocks = app( BlockContentGuard::class )->filter( $this->contentToBlocks( $content ), $storedBlocks );
 
 		// `content.blocks` is already checked by the form request; this
 		// also bounds the trees parsed out of a `content` / `content.raw`
@@ -447,9 +456,8 @@ class MenuController extends Controller
 				$attributes = json_decode( $attributes, true );
 			}
 
-			if ( is_array( $attributes ) ) {
-				$blocks[] = [ 'attributes' => $attributes ];
-			}
+			// The label is stored in its own column, not in the attributes.
+			$blocks[] = [ 'attributes' => ( is_array( $attributes ) ? $attributes : [] ) + [ 'label' => $item->label ?? null ] ];
 		}
 
 		return $blocks;

@@ -15,7 +15,20 @@ import icon from './inserter-icon';
 
 import './button.css';
 
-export { edit, save, metadata, icon, deprecated, transforms };
+/**
+ * Join two buttons' text on merge (#1043). Mirrors upstream's `merge`.
+ */
+function merge<T extends { text?: string }>(
+    attributes: T,
+    { text = '' }: { text?: string }
+): T {
+    return {
+        ...attributes,
+        text: (attributes.text || '') + text,
+    };
+}
+
+export { edit, save, metadata, icon, deprecated, transforms, merge };
 
 export default {
     name: metadata.name,
@@ -25,4 +38,5 @@ export default {
     icon,
     deprecated,
     transforms,
+    merge,
 };

@@ -35,6 +35,7 @@ import { ensureMediaBridgeFilter } from '../media-bridge';
 import { useThemedEditorSettings } from '../use-themed-editor-settings';
 
 import { registerArtisanPackBlocks } from '../blocks';
+import { EditorSnackbars } from './editor-snackbars';
 import { registerThemeBlockStyles } from '../block-style-registry';
 
 import { BlockLibrarySidebar } from './block-library-sidebar';
@@ -1390,6 +1391,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
         () => (
             <TopBar
                 saveStatus={saveStatus}
+                contentLoaded={loadStatus === 'ready'}
                 lastSavedAt={lastSavedAt}
                 saveErrorMessage={saveError?.message ?? null}
                 canUndo={history.past.length > 0}
@@ -1428,6 +1430,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
             inserterOpen,
             inspectorOpen,
             lastSavedAt,
+            loadStatus,
             patternModalTriggerAvailable,
             previewUrl,
             saveError,
@@ -1687,6 +1690,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
                 {shortcutsModal}
                 {pagePatternModal}
             </div>
+            <EditorSnackbars />
         </SlotFillProvider>
     );
 }

@@ -87,6 +87,28 @@ class BlockStyleCssCompiler
 	];
 
 	/**
+	 * Where a block's styles land when that isn't the wrapper, mirroring
+	 * the block.json `selectors` of the core blocks that declare them: a
+	 * button is painted on its inner link, a table on its `<table>`, an
+	 * image's border and shadow on its `<img>`. Keyed by group (`root`
+	 * covers every group without its own entry); each selector suffix is
+	 * appended to the variation's wrapper selectors. The Blade renderer's
+	 * `ThemeJsonTokensCompiler` reads it for `styles.blocks` too (#1082).
+	 *
+	 * @since 1.15.0
+	 * @since 1.20.0 Public.
+	 *
+	 * @var array<string, array<string, string>>
+	 */
+	public const FEATURE_SELECTORS = [
+		'button'              => [ 'root' => ' .wp-block-button__link' ],
+		'table'               => [ 'root' => ' > table' ],
+		'image'               => [ 'border' => ' img', 'shadow' => ' img' ],
+		'post-featured-image' => [ 'border' => ' img', 'shadow' => ' img' ],
+		'avatar'              => [ 'border' => ' img' ],
+	];
+
+	/**
 	 * theme.json `typography` keys → CSS properties.
 	 *
 	 * @since 1.15.0
@@ -116,26 +138,6 @@ class BlockStyleCssCompiler
 		'offset' => 'outline-offset',
 		'style'  => 'outline-style',
 		'width'  => 'outline-width',
-	];
-
-	/**
-	 * Where a block's styles land when that isn't the wrapper, mirroring
-	 * the block.json `selectors` of the core blocks that declare them: a
-	 * button is painted on its inner link, a table on its `<table>`, an
-	 * image's border and shadow on its `<img>`. Keyed by group (`root`
-	 * covers every group without its own entry); each selector suffix is
-	 * appended to the variation's wrapper selectors.
-	 *
-	 * @since 1.15.0
-	 *
-	 * @var array<string, array<string, string>>
-	 */
-	protected const FEATURE_SELECTORS = [
-		'button'              => [ 'root' => ' .wp-block-button__link' ],
-		'table'               => [ 'root' => ' > table' ],
-		'image'               => [ 'border' => ' img', 'shadow' => ' img' ],
-		'post-featured-image' => [ 'border' => ' img', 'shadow' => ' img' ],
-		'avatar'              => [ 'border' => ' img' ],
 	];
 
 	/**

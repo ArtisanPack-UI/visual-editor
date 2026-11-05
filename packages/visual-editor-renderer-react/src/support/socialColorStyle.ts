@@ -13,12 +13,26 @@
  * @since 1.0.0
  */
 
+import { safeCssValue } from './cssValue';
+
 export interface SocialColorAttributes {
     readonly iconColor?: string;
     readonly iconHoverColor?: string;
     readonly iconBackgroundColor?: string;
     readonly iconHoverBackgroundColor?: string;
 }
+
+/**
+ * Custom property each color attribute is written to, in output order.
+ */
+const SOCIAL_COLOR_PROPERTIES: ReadonlyArray<
+    readonly [keyof SocialColorAttributes, string]
+> = [
+    ['iconColor', '--ap-social-color'],
+    ['iconBackgroundColor', '--ap-social-bg'],
+    ['iconHoverColor', '--ap-social-hover-color'],
+    ['iconHoverBackgroundColor', '--ap-social-hover-bg'],
+];
 
 export function buildSocialColorStyle(
     attributes: SocialColorAttributes
@@ -30,29 +44,22 @@ export function buildSocialColorStyle(
     // specificity than `:hover { color: var(...) }` and break the
     // swap silently. The base color reads from `var(--ap-social-color)`
     // in social-icons.css.
-    if (typeof attributes.iconColor === 'string' && attributes.iconColor !== '') {
-        style['--ap-social-color'] = attributes.iconColor;
-    }
+    //
+    // A value that fails `safeCssValue()` is dropped, as the Blade
+    // partials drop it, so a `;` can't add declarations to the chip
+    // (#1079).
+    for (const [attribute, property] of SOCIAL_COLOR_PROPERTIES) {
+        const value = attributes[attribute];
 
-    if (
-        typeof attributes.iconBackgroundColor === 'string' &&
-        attributes.iconBackgroundColor !== ''
-    ) {
-        style['--ap-social-bg'] = attributes.iconBackgroundColor;
-    }
+        if (typeof value !== 'string') {
+            continue;
+        }
 
-    if (
-        typeof attributes.iconHoverColor === 'string' &&
-        attributes.iconHoverColor !== ''
-    ) {
-        style['--ap-social-hover-color'] = attributes.iconHoverColor;
-    }
+        const safe = safeCssValue(value);
 
-    if (
-        typeof attributes.iconHoverBackgroundColor === 'string' &&
-        attributes.iconHoverBackgroundColor !== ''
-    ) {
-        style['--ap-social-hover-bg'] = attributes.iconHoverBackgroundColor;
+        if (safe !== null) {
+            style[property] = safe;
+        }
     }
 
     return style;

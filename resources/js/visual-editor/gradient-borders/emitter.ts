@@ -12,6 +12,7 @@
 
 import type { BreakpointRegistry } from '../responsive/registry'
 import type { StateRegistry } from '../states/registry'
+import { isGradient as isSafeGradient } from '../support/safe-css-value'
 import type { ResolvedGradientBorder } from './types'
 
 export const DEFAULT_TRANSITION =
@@ -26,6 +27,91 @@ function sanitizeCss( value: string ): string {
 
 function sanitizeGradient( value: string ): string {
 	return value.replace( GRADIENT_WHITELIST, '' )
+}
+
+/**
+ * Whether parentheses and brackets balance without crossing and no
+ * comment delimiter appears — PHP `CssValue::isBalanced()`.
+ */
+function isBalanced( value: string ): boolean {
+	if ( value.includes( '/*' ) || value.includes( '*/' ) ) {
+		return false
+	}
+
+	const closers: string[] = []
+
+	for ( const char of value ) {
+		if ( '(' === char ) {
+			closers.push( ')' )
+		} else if ( '[' === char ) {
+			closers.push( ']' )
+		} else if ( ( ')' === char || ']' === char ) && closers.pop() !== char ) {
+			return false
+		}
+	}
+
+	return 0 === closers.length
+}
+
+/**
+ * A payload value, sanitized, or `null` to treat it as unset (#1083).
+ * The allowlists keep `/`, `*` and `(`, so the cleaned value must also
+ * be balanced and free of comment delimiters and `//`, and a gradient
+ * must be one that can't load a `url()`. Mirrors PHP
+ * `GradientBorderEmitter::safeValue()`.
+ */
+function safeValue( value: unknown, gradient = false ): string | null {
+	if ( 'string' !== typeof value ) {
+		return null
+	}
+
+	const clean = ( gradient ? sanitizeGradient( value ) : sanitizeCss( value ) ).trim()
+
+	if ( '' === clean || clean.includes( '//' ) || ! isBalanced( clean ) ) {
+		return null
+	}
+
+	return ! gradient || isSafeGradient( clean ) ? clean : null
+}
+
+function safeMap( raw: Record<string, string> ): Record<string, string> {
+	const out: Record<string, string> = {}
+
+	for ( const [ key, value ] of Object.entries( raw ) ) {
+		const safe = safeValue( value, true )
+
+		if ( '' !== key && null !== safe ) {
+			out[ key ] = safe
+		}
+	}
+
+	return out
+}
+
+/**
+ * The authored radius with every value `safeValue()` rejects removed.
+ * Mirrors PHP `GradientBorderEmitter::safeRadius()`.
+ */
+function safeRadius( radius: ResolvedGradientBorder[ 'radius' ] ): ResolvedGradientBorder[ 'radius' ] {
+	if ( 'string' === typeof radius ) {
+		return safeValue( radius )
+	}
+
+	if ( ! radius || 'object' !== typeof radius ) {
+		return null
+	}
+
+	const out: Record<string, string> = {}
+
+	for ( const [ corner, value ] of Object.entries( radius ) ) {
+		const safe = safeValue( value )
+
+		if ( null !== safe ) {
+			out[ corner ] = safe
+		}
+	}
+
+	return out
 }
 
 function radiusDeclaration( radius: ResolvedGradientBorder[ 'radius' ] ): string {
@@ -209,10 +295,11 @@ export function emitGradientBorderCss(
 		return ''
 	}
 
-	const idle     = payload.idle
-	const stateMap = payload.states
-	const bpMap    = payload.breakpoints
-	const width    = payload.width ?? '1px'
+	const idle     = safeValue( payload.idle, true )
+	const stateMap = safeMap( payload.states )
+	const bpMap    = safeMap( payload.breakpoints )
+	const width    = safeValue( payload.width ) ?? '1px'
+	const radius   = safeRadius( payload.radius )
 
 	const hasNonIdle =
 		0 < Object.keys( stateMap ).length || 0 < Object.keys( bpMap ).length
@@ -239,11 +326,11 @@ export function emitGradientBorderCss(
 		`${ trimmedScope }{position:relative;border-color:transparent !important;overflow-clip-margin:border-box}`,
 	)
 
-	rules.push( coverClipFallback( trimmedScope, payload.radius, width ) )
+	rules.push( coverClipFallback( trimmedScope, radius, width ) )
 
 	const idleGradient = idle ?? 'transparent'
 	rules.push(
-		`${ trimmedScope }::before{${ baseBeforeDeclarations( idleGradient, width, payload.radius ) }}`,
+		`${ trimmedScope }::before{${ baseBeforeDeclarations( idleGradient, width, radius ) }}`,
 	)
 
 	if ( hasNonIdle ) {

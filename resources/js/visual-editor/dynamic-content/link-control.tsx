@@ -80,6 +80,7 @@ export function ArtisanPackLinkControl(props: ArtisanPackLinkControlProps): JSX.
                             onRemove={onRemove}
                             forceIsEditingLink={forceIsEditingLink}
                             settings={settings}
+                            showInitialSuggestions
                         />
                     )
                 }

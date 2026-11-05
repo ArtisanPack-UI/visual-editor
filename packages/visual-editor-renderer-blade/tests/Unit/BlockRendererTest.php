@@ -117,6 +117,22 @@ it( 'renders a code block', function (): void {
 	expect( $html )->toBe( '<pre class="wp-block-code"><code>echo 1;</code></pre>' );
 } );
 
+it( 'prints a code block language as a class on the code element', function (): void {
+	$tree = [ makeBlock( 'artisanpack/code', [ 'content' => '&lt;?php echo 1;', 'language' => 'php' ] ) ];
+
+	$html = $this->normalizeHtml( makeRenderer()->render( $tree ) );
+
+	expect( $html )->toBe( '<pre class="wp-block-code"><code class="language-php">&lt;?php echo 1;</code></pre>' );
+} );
+
+it( 'drops a code block language it does not know', function (): void {
+	$tree = [ makeBlock( 'artisanpack/code', [ 'content' => 'a', 'language' => 'php" onclick="alert(1)' ] ) ];
+
+	$html = $this->normalizeHtml( makeRenderer()->render( $tree ) );
+
+	expect( $html )->toBe( '<pre class="wp-block-code"><code>a</code></pre>' );
+} );
+
 it( 'renders a preformatted block', function (): void {
 	$tree = [ makeBlock( 'core/preformatted', [ 'content' => "line 1\nline 2" ] ) ];
 
@@ -152,7 +168,7 @@ it( 'renders an image block with caption and link', function (): void {
 		->toContain( 'alt="An image"' )
 		->toContain( 'class="wp-image-42"' )
 		->toContain( 'href="https://example.test/full.jpg"' )
-		->toContain( '<figcaption>A <em>caption</em></figcaption>' );
+		->toContain( '<figcaption class="wp-element-caption">A <em>caption</em></figcaption>' );
 } );
 
 it( 'renders a separator block', function (): void {
@@ -985,6 +1001,25 @@ it( 'falls back to safe defaults when breadcrumbs separator is invalid and omits
 	expect( $html )->toContain( 'd="m9 6 6 6-6 6"' )
 		->and( $html )->not->toContain( 'schema.org/BreadcrumbList' )
 		->and( $html )->not->toContain( 'itemprop="position"' );
+} );
+
+it( 'omits breadcrumbs schema microdata when the attribute was never saved', function (): void {
+	$tree = [
+		makeBlock( 'artisanpack/breadcrumbs', [
+			'_resolvedTrail' => [
+				[ 'label' => 'Home', 'url' => '/' ],
+				[ 'label' => 'Page', 'current' => true ],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'ap-breadcrumbs__link' )
+		->and( $html )->not->toContain( 'schema.org/BreadcrumbList' )
+		->and( $html )->not->toContain( 'schema.org/ListItem' )
+		->and( $html )->not->toContain( 'itemprop=' )
+		->and( $html )->not->toContain( 'itemscope' );
 } );
 
 it( 'drops unsafe URLs from breadcrumbs trail entries', function (): void {

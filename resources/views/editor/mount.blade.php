@@ -14,6 +14,8 @@
 		data-id="{{ $modelId }}"
 		data-api-base="{{ $apiBase }}"
 		@can( \ArtisanPackUI\VisualEditor\Effects\BlockCssAccess::ABILITY ) data-can-edit-block-css="true" @endcan
+		@can( \ArtisanPackUI\VisualEditor\Support\UnfilteredHtmlAccess::ABILITY ) data-can-use-unfiltered-html="true" @endcan
+		@if( \ArtisanPackUI\VisualEditor\Support\MediaImportAccess::allows() ) data-can-import-media="true" @endif
 		data-custom-css-allow-urls="{{ config( 'artisanpack.visual-editor.effects.custom_css_allow_urls', true ) ? 'true' : 'false' }}"
 		data-content-types="{{ json_encode( $contentTypes ?? [], JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS ) }}"
 		{{-- #623 — where the site editor SPA is mounted, so the composed
@@ -25,6 +27,10 @@
 		     switcher's registry respects host-configured
 		     `label` / `previewWidthPx` overrides. --}}
 		data-breakpoints="{{ json_encode( app( \ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry::class )->toArray() ) }}"
+		{{-- #1030 — sources the Visibility panel's Content rule offers,
+		     including any registered through
+		     `ap.visualEditor.visibility.registerContentSources`. --}}
+		data-visibility-content-sources="{{ json_encode( app( \ArtisanPackUI\VisualEditor\Visibility\ContentSourceRegistry::class )->toEditorPayload(), JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS ) }}"
 		{{-- #876 — block style variations for the Styles picker. --}}
 		data-block-styles="{{ json_encode( app( \ArtisanPackUI\VisualEditor\BlockStyles\BlockStyleResolver::class )->editorPayload(), JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS ) }}"
 		{{-- #896 — translations for the editor's text domain, from

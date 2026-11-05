@@ -9,26 +9,34 @@
         {
             "fork": "block.json",
             "upstream": "block.json",
-            "status": "adapted",
-            "notes": "name + textdomain swapped.",
+            "status": "extended",
+            "notes": "name + textdomain swapped; adds the `language` attribute (#1044).",
             "result": "skipped-status",
-            "forkDigest": "2517e7d99cfe"
+            "forkDigest": "a565faf0a113"
         },
         {
             "fork": "edit.tsx",
             "upstream": "edit.js",
-            "status": "adapted",
-            "notes": "TypeScript port.",
+            "status": "extended",
+            "notes": "TypeScript port; adds the language select (#1044).",
             "result": "skipped-status",
-            "forkDigest": "84542f7954c6"
+            "forkDigest": "3b2e8db4c452"
         },
         {
             "fork": "save.tsx",
             "upstream": "save.js",
-            "status": "adapted",
-            "notes": "TypeScript port; verbatim escape() handling.",
+            "status": "extended",
+            "notes": "TypeScript port; verbatim escape() handling; prints `language-*` on the code element when a language is set (#1044).",
             "result": "skipped-status",
-            "forkDigest": "40217da11be8"
+            "forkDigest": "5fed2cc3e22e"
+        },
+        {
+            "fork": "languages.ts",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Labels for the language select.",
+            "result": "skipped-status",
+            "forkDigest": "8c0200985525"
         },
         {
             "fork": "deprecated.tsx",
@@ -44,7 +52,7 @@
             "status": "extended",
             "notes": "Upstream raw/input/block transforms preserved; added bidirectional core/code ↔ artisanpack/code + accepts artisanpack/paragraph.",
             "result": "skipped-status",
-            "forkDigest": "e6f0a721ae1b"
+            "forkDigest": "c0531e8975c9"
         },
         {
             "fork": "utils.ts",
@@ -76,7 +84,7 @@
             "status": "rewritten",
             "notes": "Adapted to the visual-editor auto-discovery contract.",
             "result": "skipped-status",
-            "forkDigest": "b67345f8aad6"
+            "forkDigest": "a9c5c21d6df4"
         }
     ]
 }

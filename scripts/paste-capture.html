@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paste capture</title>
+<style>
+	:root { color-scheme: light dark; font: 16px/1.5 system-ui, sans-serif; }
+	body { max-width: 48rem; margin: 2rem auto; padding: 0 1rem; display: grid; gap: 1rem; }
+	label { display: grid; gap: .25rem; font-weight: 600; }
+	input, select, textarea { font: inherit; padding: .5rem; }
+	textarea { min-height: 16rem; font-family: ui-monospace, monospace; font-size: 13px; }
+	#target { border: 2px dashed currentColor; padding: 2rem; text-align: center; border-radius: .5rem; }
+	#target:focus { outline: 3px solid Highlight; }
+	.row { display: flex; gap: 1rem; flex-wrap: wrap; }
+	.row > * { flex: 1 1 12rem; }
+</style>
+</head>
+<body>
+<h1>Paste capture</h1>
+<p>Writes a fixture for <code>editor/__tests__/fixtures/captures/</code> (#1064). Open this file in each browser, copy from the app, then paste below. Nothing leaves this page. Trim private content before committing.</p>
+<div class="row">
+	<label>App <input id="app" placeholder="VS Code"></label>
+	<label>How it was copied <input id="method" placeholder="selection"></label>
+	<label>Expected result
+		<select id="expected">
+			<option value="markdown">Converts as Markdown</option>
+			<option value="rendered">Keeps its rendered formatting</option>
+			<option value="literal">Stays as source text</option>
+		</select>
+	</label>
+</div>
+<div id="target" tabindex="0" contenteditable="true" role="textbox" aria-label="Paste here">Paste here</div>
+<label>Fixture <textarea id="output" readonly></textarea></label>
+<button id="save" type="button" disabled>Download fixture</button>
+<script>
+	const field = ( id ) => document.getElementById( id );
+
+	function browserName() {
+		const agent = navigator.userAgent;
+
+		if ( agent.includes( 'Firefox/' ) ) {
+			return 'firefox';
+		}
+
+		return agent.includes( 'Chrome/' ) ? 'chromium' : 'safari';
+	}
+
+	function fileName( fixture ) {
+		return [ fixture.source, fixture.method, fixture.browser ].join( '-' ).toLowerCase().replace( /[^a-z0-9]+/g, '-' ) + '.json';
+	}
+
+	let fixture = null;
+
+	field( 'target' ).addEventListener( 'paste', ( event ) => {
+		event.preventDefault();
+
+		const data = event.clipboardData;
+
+		fixture = {
+			source: field( 'app' ).value.trim() || 'Unknown',
+			method: field( 'method' ).value.trim() || 'selection',
+			browser: browserName(),
+			expected: field( 'expected' ).value,
+			types: Array.from( data.types ),
+			html: data.getData( 'text/html' ),
+			plainText: data.getData( 'text/plain' ),
+			vscodeEditorData: data.getData( 'vscode-editor-data' ),
+		};
+
+		field( 'output' ).value = JSON.stringify( fixture, null, 4 ) + '\n';
+		field( 'save' ).disabled = false;
+	} );
+
+	field( 'save' ).addEventListener( 'click', () => {
+		const link = document.createElement( 'a' );
+
+		link.href = URL.createObjectURL( new Blob( [ field( 'output' ).value ], { type: 'application/json' } ) );
+		link.download = fileName( fixture );
+		link.click();
+		URL.revokeObjectURL( link.href );
+	} );
+</script>
+</body>
+</html>

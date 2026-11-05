@@ -29,6 +29,7 @@ import {
     FlexContainerControls,
     FlexItemControls,
     serializeFlex,
+    useFlexCanvasStyles,
     type ArtisanpackFlexAttribute,
 } from '../_shared/flex-controls';
 import {
@@ -37,6 +38,7 @@ import {
     type PhotoGridAttribute,
 } from '../_shared/photo-grid';
 import { getResponsiveRegistry } from '../../responsive/registry';
+import { hasOwnShape } from './own-shape';
 
 interface GroupAttributes {
     readonly tagName?: string;
@@ -45,6 +47,8 @@ interface GroupAttributes {
     readonly layout?: { type?: string; [key: string]: unknown };
     readonly style?: unknown;
     readonly backgroundColor?: string;
+    readonly gradient?: string;
+    readonly borderColor?: string;
     readonly textColor?: string;
     readonly fontSize?: string;
     readonly artisanpackFlex?: ArtisanpackFlexAttribute | null;
@@ -87,11 +91,13 @@ export default function GroupEdit({
     name,
     setAttributes,
     clientId,
+    isSelected,
 }: {
     attributes: GroupAttributes;
     name: string;
     setAttributes: (attrs: Partial<GroupAttributes>) => void;
     clientId: string;
+    isSelected?: boolean;
 }): ReactElement {
     const { hasInnerBlocks, themeSupportsLayout } = useSelect(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -126,12 +132,17 @@ export default function GroupEdit({
         attributes.artisanpackFlex ?? null,
         flexRegistry,
     );
+    useFlexCanvasStyles(clientId, flexResult, flexRegistry);
     const photoGridWrapper = getPhotoGridWrapperProps(attributes);
+    // An empty Group used as a decorative shape keeps its styled size:
+    // its appender only shows while selected, and out of flow (#1039).
+    const isEmptyShape = !hasInnerBlocks && hasOwnShape(attributes);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const blockProps = (useBlockProps as any)({
         ref,
         className: clsx(
             'wp-block-group',
+            { 'ap-group-empty-shape': isEmptyShape },
             flexResult.classes,
             photoGridWrapper.className,
         ),
@@ -141,7 +152,7 @@ export default function GroupEdit({
     const [showPlaceholder, setShowPlaceholder] = useShouldShowPlaceHolder({
         attributes,
         usedLayoutType: type,
-        hasInnerBlocks,
+        hasInnerBlocks: hasInnerBlocks || isEmptyShape,
     });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -149,7 +160,10 @@ export default function GroupEdit({
     if (showPlaceholder) {
         renderAppender = false;
     } else if (!hasInnerBlocks) {
-        renderAppender = InnerBlocks.ButtonBlockAppender;
+        renderAppender =
+            isEmptyShape && !isSelected
+                ? false
+                : InnerBlocks.ButtonBlockAppender;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

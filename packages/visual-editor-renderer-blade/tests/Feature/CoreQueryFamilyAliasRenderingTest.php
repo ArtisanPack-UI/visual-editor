@@ -25,7 +25,7 @@ beforeEach( function (): void {
 
 function aliasRenderTree( array $tree ): string
 {
-	return Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+	return Blade::render( '<x-ve-blocks :tree="$tree" :trust-resolved="true" />', [ 'tree' => $tree ] );
 }
 
 function aliasBlockNode( string $name, array $attributes = [], array $innerBlocks = [] ): array
@@ -139,7 +139,7 @@ it( 'loads the pagination stylesheet for a page that only uses core pagination n
 	$this->fake->totalOverride = 4;
 
 	$html = Blade::render(
-		'<x-ve-blocks-styles /><x-ve-blocks :tree="$tree" />',
+		'<x-ve-blocks-styles /><x-ve-blocks :tree="$tree" :trust-resolved="true" />',
 		[ 'tree' => aliasQueryTree( 'core' ) ],
 	);
 

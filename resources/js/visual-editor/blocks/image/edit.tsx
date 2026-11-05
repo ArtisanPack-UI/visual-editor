@@ -20,11 +20,13 @@
  *     expose `utils/caption`.
  *   - `useToolsPanelDropdownMenuProps` is omitted from the inspector
  *     `ToolsPanel`s for the same reason. The defaults are good enough.
- *   - The image cropper / image-editor popover and the lightbox toggle UI
- *     are omitted — they depend on private block-editor APIs unreachable through
- *     the package's `exports`. The corresponding attributes are still
- *     serializable and round-trip through transforms; consumers can set them
- *     via deserialization.
+ *   - The image cropper / image-editor popover is omitted — it depends on
+ *     private block-editor APIs unreachable through the package's `exports`.
+ *     The corresponding attributes are still serializable and round-trip
+ *     through transforms; consumers can set them via deserialization.
+ *   - The lightbox toggle is a plain "Enlarge on click" inspector control
+ *     (#1046) instead of the upstream link-destination option, for the same
+ *     reason.
  */
 
 import type { ReactElement } from 'react';
@@ -44,6 +46,7 @@ import { image as icon } from '@wordpress/icons';
 import { store as noticesStore } from '@wordpress/notices';
 
 import Image, { resolveLinkDestination } from './image-editor';
+import { useImageBorderProps } from './use-image-border-props';
 import { useMaxWidthObserver } from './use-max-width-observer';
 import { isValidFileType } from './utils';
 import {
@@ -218,10 +221,13 @@ function ImageEdit({
     const isExternal = isExternalImage(id, url);
     const src = isExternal ? url : undefined;
 
+    const border = useImageBorderProps(attributes);
+
     const classes = clsx(className, {
         'is-transient': !!temporaryURL,
         'is-resized': !!width || !!height,
         [`size-${sizeSlug}`]: sizeSlug,
+        'has-custom-border': border.hasCustomBorder,
     });
 
     const blockProps = useBlockProps({

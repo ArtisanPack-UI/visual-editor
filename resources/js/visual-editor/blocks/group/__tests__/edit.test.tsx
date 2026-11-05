@@ -5,6 +5,10 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render } from '@testing-library/react';
 
+const innerBlocksOptions = vi.hoisted(() => ({
+    latest: undefined as { renderAppender?: unknown } | undefined,
+}));
+
 vi.mock('@wordpress/i18n', () => ({
     __: (text: string) => text,
     _x: (text: string) => text,
@@ -62,12 +66,16 @@ vi.mock('@wordpress/block-editor', () => ({
     InspectorControls: ({ children }: { children: React.ReactNode }) => (
         <div data-testid="inspector">{children}</div>
     ),
-    InnerBlocks: { ButtonBlockAppender: () => null },
+    InnerBlocks: { ButtonBlockAppender: 'button-appender' },
     useBlockProps: (props?: Record<string, unknown>) => ({ ...props }),
-    useInnerBlocksProps: (props?: Record<string, unknown>) => ({
-        ...props,
-        children: null,
-    }),
+    useInnerBlocksProps: (
+        props?: Record<string, unknown>,
+        options?: { renderAppender?: unknown }
+    ) => {
+        innerBlocksOptions.latest = options;
+
+        return { ...props, children: null };
+    },
     // #594 — Photo Grid controls read theme defaults via `useSettings`.
     useSettings: (...paths: string[]): unknown[] => paths.map(() => undefined),
     store: 'block-editor-store',
@@ -144,5 +152,68 @@ describe('GroupEdit', () => {
         } finally {
             setResponsiveRegistry(null);
         }
+    });
+
+    describe('empty Group shapes (#1039)', () => {
+        const dot = {
+            style: {
+                color: { background: '#000' },
+                dimensions: { minHeight: '14px' },
+            },
+            artisanpackFlex: { item: { basis: { base: '14px' } } },
+        };
+
+        function renderGroup(
+            attributes: Record<string, unknown>,
+            isSelected = false
+        ): HTMLElement {
+            return render(
+                <GroupEdit
+                    attributes={attributes as never}
+                    name="artisanpack/group"
+                    setAttributes={vi.fn()}
+                    clientId="shape"
+                    isSelected={isSelected}
+                />
+            ).container;
+        }
+
+        it('hides the appender on an unselected shape', () => {
+            const container = renderGroup(dot);
+
+            expect(innerBlocksOptions.latest?.renderAppender).toBe(false);
+            expect(container.querySelector('.ap-group-empty-shape')).not.toBeNull();
+        });
+
+        it('keeps a selected shape fillable', () => {
+            renderGroup(dot, true);
+
+            expect(innerBlocksOptions.latest?.renderAppender).toBe('button-appender');
+        });
+
+        it('keeps the appender on a bare Group, which has no other size', () => {
+            const container = renderGroup({ layout: { type: 'flex' } });
+
+            expect(innerBlocksOptions.latest?.renderAppender).toBe('button-appender');
+            expect(container.querySelector('.ap-group-empty-shape')).toBeNull();
+        });
+
+        it('treats a shape with only a flex basis as a shape, not a new Group', () => {
+            const container = renderGroup({
+                artisanpackFlex: { item: { basis: { base: '14px' } } },
+            });
+
+            expect(container.querySelector('[data-testid="placeholder"]')).toBeNull();
+            expect(innerBlocksOptions.latest?.renderAppender).toBe(false);
+        });
+
+        it('publishes its custom flex values to the canvas', () => {
+            renderGroup(dot);
+
+            expect(
+                document.querySelector('style[data-ap-canvas-styles="flex-arbitrary"]')
+                    ?.textContent
+            ).toContain('flex-basis: 14px');
+        });
     });
 });

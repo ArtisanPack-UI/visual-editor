@@ -89,7 +89,7 @@ const transforms = {
     from: [
         {
             type: 'block',
-            blocks: ['core/image'],
+            blocks: ['core/image', 'artisanpack/image'],
             transform: ({
                 caption,
                 url,
@@ -123,7 +123,7 @@ const transforms = {
                         },
                     },
                     [
-                        createBlock('core/paragraph', {
+                        createBlock('artisanpack/paragraph', {
                             content: caption,
                             fontSize: 'large',
                             style: {
@@ -137,7 +137,7 @@ const transforms = {
         },
         {
             type: 'block',
-            blocks: ['core/video'],
+            blocks: ['core/video', 'artisanpack/video'],
             transform: ({
                 caption,
                 src,
@@ -162,7 +162,7 @@ const transforms = {
                         anchor,
                     },
                     [
-                        createBlock('core/paragraph', {
+                        createBlock('artisanpack/paragraph', {
                             content: caption,
                             fontSize: 'large',
                             style: {
@@ -176,7 +176,7 @@ const transforms = {
         },
         {
             type: 'block',
-            blocks: ['core/group'],
+            blocks: ['core/group', 'artisanpack/group'],
             transform: (
                 attributes: GroupAttributes,
                 innerBlocks: InnerBlock[]
@@ -232,7 +232,7 @@ const transforms = {
 
                 return createBlock(name, parentAttributes, [
                     createBlock(
-                        'core/group',
+                        'artisanpack/group',
                         attributesWithoutBackgroundColors,
                         innerBlocks
                     ),
@@ -324,7 +324,7 @@ const transforms = {
         },
         {
             type: 'block',
-            blocks: ['core/group'],
+            blocks: ['core/group', 'artisanpack/group'],
             isMatch: ({ url, useFeaturedImage }: CoverAttributes): boolean => {
                 if (url || useFeaturedImage) {
                     return false;
@@ -358,7 +358,7 @@ const transforms = {
 
                 if (
                     innerBlocks?.length === 1 &&
-                    innerBlocks[0]?.name === 'core/group'
+                    ['core/group', 'artisanpack/group'].includes(innerBlocks[0]?.name)
                 ) {
                     const groupAttributes = cleanEmptyObject(
                         innerBlocks[0].attributes || {}
@@ -371,14 +371,14 @@ const transforms = {
                         groupAttributes?.style?.color?.gradient
                     ) {
                         return createBlock(
-                            'core/group',
+                            'artisanpack/group',
                             groupAttributes ?? {},
                             innerBlocks[0]?.innerBlocks
                         );
                     }
 
                     return createBlock(
-                        'core/group',
+                        'artisanpack/group',
                         {
                             ...transformedColorAttributes,
                             ...(groupAttributes ?? {}),
@@ -414,7 +414,7 @@ const transforms = {
                 }
 
                 return createBlock(
-                    'core/group',
+                    'artisanpack/group',
                     { ...attributes, ...transformedColorAttributes },
                     innerBlocks
                 );

@@ -10,6 +10,9 @@ vi.mock('@wordpress/blocks', () => ({
         attributes: attributes ?? {},
         innerBlocks: [],
     }),
+    getBlockAttributes: (_name: string, html: string) => ({
+        content: html.replace(/<[^>]+>/g, ''),
+    }),
 }));
 
 vi.mock('@wordpress/rich-text', () => ({
@@ -45,6 +48,46 @@ describe('code transforms', () => {
         const result = fromParagraph.transform({ content: 'hi' });
         expect(result.name).toBe('artisanpack/code');
         expect(result.attributes).toMatchObject({ content: 'hi' });
+    });
+
+    describe('raw transform', () => {
+        const raw = transforms.from.find(
+            (t: { type: string }) => t.type === 'raw'
+        ) as unknown as {
+            transform: (node: HTMLElement) => {
+                attributes: Record<string, unknown>;
+            };
+        };
+
+        const pre = (html: string): HTMLElement => {
+            const element = document.createElement('pre');
+            element.innerHTML = html;
+            return element;
+        };
+
+        it.each([
+            ['language-php', 'php'],
+            ['hljs language-js', 'javascript'],
+            ['php language-php', 'php'],
+            ['lang-ts', 'typescript'],
+        ])('reads the language from class "%s"', (className, language) => {
+            const { attributes } = raw.transform(
+                pre(`<code class="${className}">x</code>`)
+            );
+            expect(attributes).toEqual({ content: 'x', language });
+        });
+
+        it('omits a language the block does not list', () => {
+            const { attributes } = raw.transform(
+                pre('<code class="language-cobol">x</code>')
+            );
+            expect(attributes).toEqual({ content: 'x' });
+        });
+
+        it('omits the language when the code has no class', () => {
+            const { attributes } = raw.transform(pre('<code>x</code>'));
+            expect(attributes).toEqual({ content: 'x' });
+        });
     });
 
     it('block transform from core/code → artisanpack/code', () => {

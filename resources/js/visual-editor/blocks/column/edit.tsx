@@ -33,6 +33,7 @@ import {
     FlexContainerControls,
     FlexItemControls,
     serializeFlex,
+    useFlexCanvasStyles,
     type ArtisanpackFlexAttribute,
 } from '../_shared/flex-controls';
 import { getResponsiveRegistry } from '../../responsive/registry';
@@ -106,6 +107,7 @@ export default function ColumnEdit({
         attributes.artisanpackFlex ?? null,
         flexRegistry,
     );
+    useFlexCanvasStyles(clientId, flexResult, flexRegistry);
     const classes = clsx(
         'wp-block-column',
         {

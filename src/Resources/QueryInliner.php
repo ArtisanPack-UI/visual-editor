@@ -41,6 +41,7 @@ use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingResolver;
 use ArtisanPackUI\VisualEditor\Services\HostRelatedTermsResolver;
 use ArtisanPackUI\VisualEditor\Services\QueryResolverContract;
+use ArtisanPackUI\VisualEditor\Support\ResolvedAttributes;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Model;
@@ -100,6 +101,8 @@ class QueryInliner
 	 * carrying expanded post-template instances under `innerBlocks`.
 	 *
 	 * @since 1.0.0
+	 * @since 1.20.0 Added `$stripSavedResolved` (#1078), which strips every
+	 *               `_resolved*` key with or without a host post (#1096).
 	 *
 	 * @param  array<int, array<string, mixed>>  $tree
 	 * @param  object|null                       $hostPost  Optional host
@@ -111,10 +114,47 @@ class QueryInliner
 	 *                                                     query; the other
 	 *                                                     expansions ignore
 	 *                                                     it.
+	 * @param  bool                              $stripSavedResolved  Whether to strip every
+	 *                                                                saved `_resolved*`
+	 *                                                                attribute from the tree
+	 *                                                                before expanding it,
+	 *                                                                with or without a host
+	 *                                                                post (#1078, #1096). The
+	 *                                                                tree is saved content,
+	 *                                                                so its own values must
+	 *                                                                not win over what the
+	 *                                                                resolvers compute. Pass
+	 *                                                                false when the tree was
+	 *                                                                already stripped, or
+	 *                                                                carries values the host
+	 *                                                                resolved; see
+	 *                                                                {@see ResolvedAttributes}.
+	 *                                                                Query templates are
+	 *                                                                always stripped of the
+	 *                                                                keys `PostResolver`
+	 *                                                                stamps.
 	 *
 	 * @return array<int, array<string, mixed>>
 	 */
-	public function inline( array $tree, ?object $hostPost = null ): array
+	public function inline( array $tree, ?object $hostPost = null, bool $stripSavedResolved = true ): array
+	{
+		if ( $stripSavedResolved ) {
+			$tree = ResolvedAttributes::strip( $tree );
+		}
+
+		return $this->inlineTree( $tree, $hostPost );
+	}
+
+	/**
+	 * Expands every query-family block in `$tree` against `$hostPost`.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @param  array<int, mixed>  $tree
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	protected function inlineTree( array $tree, ?object $hostPost ): array
 	{
 		$previousHostPost = $this->hostPost;
 		$this->hostPost   = $hostPost;
@@ -168,7 +208,7 @@ class QueryInliner
 		// inside template parts that have already been inlined) still
 		// get their loop expanded.
 		if ( isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) ) {
-			$block['innerBlocks'] = $this->inline( $block['innerBlocks'], $this->hostPost );
+			$block['innerBlocks'] = $this->inlineTree( $block['innerBlocks'], $this->hostPost );
 		}
 
 		return $block;
@@ -216,7 +256,7 @@ class QueryInliner
 		// block sits in a single-post template, so PostResolver alone
 		// stamps the inner tree against the host post downstream.
 		if ( 0 === $postId ) {
-			$attributes = array_merge( [ '_resolvedHasPost' => null !== $this->hostPost ], $attributes );
+			$attributes = array_merge( $attributes, [ '_resolvedHasPost' => null !== $this->hostPost ] );
 
 			return array_merge( $block, [
 				'attributes'  => $attributes,
@@ -254,7 +294,7 @@ class QueryInliner
 
 		if ( null === $post ) {
 			return array_merge( $block, [
-				'attributes'  => array_merge( [ '_resolvedHasPost' => false ], $attributes ),
+				'attributes'  => array_merge( $attributes, [ '_resolvedHasPost' => false ] ),
 				'innerBlocks' => [],
 			] );
 		}
@@ -266,13 +306,13 @@ class QueryInliner
 				continue;
 			}
 
-			$stamped[] = $this->postResolver->stampBlock( $this->cloneBlock( $child ), $post );
+			$stamped[] = $this->stampTemplateBlock( $child, $post );
 		}
 
 		$stamped = $this->resolveIterationBindings( $stamped, $post );
 
 		return array_merge( $block, [
-			'attributes'  => array_merge( [ '_resolvedHasPost' => true ], $attributes ),
+			'attributes'  => array_merge( $attributes, [ '_resolvedHasPost' => true ] ),
 			'innerBlocks' => $stamped,
 		] );
 	}
@@ -441,10 +481,7 @@ class QueryInliner
 					continue;
 				}
 
-				$iterationBlocks[] = $this->postResolver->stampBlock(
-					$this->cloneBlock( $child ),
-					$post,
-				);
+				$iterationBlocks[] = $this->stampTemplateBlock( $child, $post );
 			}
 
 			$iterationBlocks = $this->resolveIterationBindings( $iterationBlocks, $post );
@@ -585,10 +622,7 @@ class QueryInliner
 					continue;
 				}
 
-				$iterationBlocks[] = $this->postResolver->stampBlock(
-					$this->cloneBlock( $tmplChild ),
-					$post,
-				);
+				$iterationBlocks[] = $this->stampTemplateBlock( $tmplChild, $post );
 			}
 
 			$iterationBlocks = $this->resolveIterationBindings( $iterationBlocks, $post );
@@ -685,8 +719,9 @@ class QueryInliner
 			return array_merge( $block, [
 				'innerBlocks' => [],
 				'attributes'  => array_merge( $attributes, [
-					'_resolvedTotal'  => $paginator->total(),
-					'_resolvedItems'  => count( $results ),
+					'_resolvedTotal'      => $paginator->total(),
+					'_resolvedItems'      => count( $results ),
+					'_resolvedTotalPages' => $paginator->lastPage(),
 				] ),
 			] );
 		}
@@ -704,8 +739,9 @@ class QueryInliner
 			return array_merge( $block, [
 				'innerBlocks' => $filtered,
 				'attributes'  => array_merge( $attributes, [
-					'_resolvedTotal' => $paginator->total(),
-					'_resolvedItems' => 0,
+					'_resolvedTotal'      => $paginator->total(),
+					'_resolvedItems'      => 0,
+					'_resolvedTotalPages' => $paginator->lastPage(),
 				] ),
 			] );
 		}
@@ -791,10 +827,7 @@ class QueryInliner
 					continue;
 				}
 
-				$iterationBlocks[] = $this->postResolver->stampBlock(
-					$this->cloneBlock( $tmplChild ),
-					$post,
-				);
+				$iterationBlocks[] = $this->stampTemplateBlock( $tmplChild, $post );
 			}
 
 			$iterationBlocks = $this->resolveIterationBindings( $iterationBlocks, $post );
@@ -847,8 +880,9 @@ class QueryInliner
 		return array_merge( $block, [
 			'innerBlocks' => $newQueryInner,
 			'attributes'  => array_merge( $attributes, [
-				'_resolvedTotal' => $paginator->total(),
-				'_resolvedItems' => count( $results ),
+				'_resolvedTotal'      => $paginator->total(),
+				'_resolvedItems'      => count( $results ),
+				'_resolvedTotalPages' => $paginator->lastPage(),
 			] ),
 		] );
 	}
@@ -965,7 +999,9 @@ class QueryInliner
 		$attributes = isset( $block['attributes'] ) && is_array( $block['attributes'] ) ? $block['attributes'] : [];
 
 		// Defaults are merged behind the existing attributes so the
-		// host's `_resolved*` overrides win — mirrors PostResolver.
+		// host's `_resolved*` overrides win — mirrors PostResolver. Saved
+		// values are stripped before this by `inline()` or the render
+		// entry point (#1078, #1096).
 		/** @var array<string, mixed> $defaults */
 		$defaults = $this->{$method}( $paginator, $queryAttrs, $attributes );
 
@@ -1203,10 +1239,7 @@ class QueryInliner
 					continue;
 				}
 
-				$iterationBlocks[] = $this->postResolver->stampBlock(
-					$this->cloneBlock( $child ),
-					$post,
-				);
+				$iterationBlocks[] = $this->stampTemplateBlock( $child, $post );
 			}
 
 			array_push( $expanded, ...$this->resolveIterationBindings( $iterationBlocks, $post ) );
@@ -1215,8 +1248,9 @@ class QueryInliner
 		return array_merge( $block, [
 			'innerBlocks' => $expanded,
 			'attributes'  => array_merge( $attributes, [
-				'_resolvedTotal' => $paginator->total(),
-				'_resolvedItems' => count( $results ),
+				'_resolvedTotal'      => $paginator->total(),
+				'_resolvedItems'      => count( $results ),
+				'_resolvedTotalPages' => $paginator->lastPage(),
 			] ),
 		] );
 	}
@@ -1446,6 +1480,26 @@ class QueryInliner
 			'attributes'  => array_merge( $attributes, [ '_resolutionError' => $reason ] ),
 			'innerBlocks' => [],
 		] );
+	}
+
+	/**
+	 * Stamp one saved template block against an iteration's post.
+	 *
+	 * The template is saved content, so the `_resolved*` keys
+	 * `PostResolver` stamps are stripped first and every iteration
+	 * renders its own post's values (#1078).
+	 *
+	 * @since 1.20.0
+	 *
+	 * @param  array<string, mixed>  $block
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function stampTemplateBlock( array $block, object $post ): array
+	{
+		$stripped = $this->postResolver->stripSavedAttributes( [ $this->cloneBlock( $block ) ] );
+
+		return $this->postResolver->stampBlock( $stripped[0], $post );
 	}
 
 	/**

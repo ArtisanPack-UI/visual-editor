@@ -43,6 +43,7 @@ vi.mock('@wordpress/block-library/build-module/page-list-item/index.mjs', () => 
 vi.mock('@wordpress/block-library/build-module/home-link/index.mjs', () => ({ init: () => undefined }));
 vi.mock('@wordpress/block-library/build-module/loginout/index.mjs', () => ({ init: () => undefined }));
 vi.mock('@wordpress/block-library/build-module/block/index.mjs', () => ({ init: () => undefined }));
+vi.mock('@wordpress/block-library/build-module/html/index.mjs', () => ({ init: () => undefined }));
 
 import {
     createBlock,

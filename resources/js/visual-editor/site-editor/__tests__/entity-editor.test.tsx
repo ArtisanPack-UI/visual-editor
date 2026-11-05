@@ -34,6 +34,7 @@ vi.mock('@wordpress/block-editor', () => ({
     BlockContextProvider: ({ children }: { children?: ReactNode }): JSX.Element => (
         <>{children}</>
     ),
+    __unstableEditorStyles: (): null => null,
     BlockList: (): JSX.Element => <div data-testid="ap-stub-block-list" />,
     BlockToolbar: (): JSX.Element => <div data-testid="ap-stub-block-toolbar" />,
     BlockTools: ({ children }: { children?: ReactNode }): JSX.Element => (
@@ -84,6 +85,7 @@ vi.mock('@wordpress/components', () => {
 vi.mock('@wordpress/data', () => ({
     useSelect: () => false,
     useDispatch: () => ({ replaceBlocks: () => undefined }),
+    useRegistry: () => ({}),
 }));
 
 // The `@wordpress/data` stub above has no store API, so keep the

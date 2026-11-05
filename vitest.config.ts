@@ -19,6 +19,18 @@ export default defineConfig({
         globals: true,
         environment: 'jsdom',
         setupFiles: ['./resources/js/visual-editor/test-setup.ts'],
+        // Run the packages that depend on `@wordpress/blocks` through Vite so a
+        // test can use the real stores. Node can't load them directly: that
+        // package imports a JSON file without an import attribute. The rest
+        // stay external, because inlining them changes which module instance
+        // a `vi.mock` or the i18n singleton applies to.
+        server: {
+            deps: {
+                inline: [
+                    /@wordpress\/(blocks|block-editor|block-library|global-styles-engine|patterns|reusable-blocks|server-side-render)\//,
+                ],
+            },
+        },
         include: [
             'resources/js/visual-editor/**/*.{test,spec}.{ts,tsx}',
             'packages/**/tests/**/*.{test,spec}.{ts,tsx}',

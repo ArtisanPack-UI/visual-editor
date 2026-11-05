@@ -37,7 +37,10 @@ import {
 import { TEXT_DOMAIN } from '../vendor/i18n';
 
 import { CanvasThemeStyles } from './canvas-theme-styles';
+import { CanvasLayoutStyles, CanvasStyleOverrides } from '../editor/canvas-layout-styles';
 import { SpacingPresetStyles } from '../editor/spacing-preset-styles';
+import { MarkdownPasteBridge } from '../editor/markdown-paste';
+import { InlineIconCanvasHydrator } from '../formats/inline-icon/canvas-hydrator';
 
 import './entity-editor-canvas.css';
 
@@ -157,6 +160,8 @@ export function EntityEditorCanvas(props: EntityEditorCanvasProps): JSX.Element 
                      * cascade.
                      */}
                     <style>{DEFAULT_CANVAS_STYLES}</style>
+                    {/* #1040: the layout baseline the iframe gets from `canvasStyles`. */}
+                    <CanvasLayoutStyles />
                     {/*
                      * Keystone #47: wide/full alignment overrides
                      * applied to direct children of the root layout.
@@ -175,6 +180,10 @@ export function EntityEditorCanvas(props: EntityEditorCanvasProps): JSX.Element 
                     <CanvasThemeStyles apiBase={apiBase} />
                     {/* #814: spacing presets in effect, after the theme sheet. */}
                     <SpacingPresetStyles />
+                    {/* #1040: per-container Block spacing, flex and element rules. */}
+                    <CanvasStyleOverrides />
+                    <InlineIconCanvasHydrator />
+                    <MarkdownPasteBridge />
                     <BlockTools>
                         <WritingFlow>
                             <ObserveTyping>

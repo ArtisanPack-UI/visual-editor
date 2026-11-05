@@ -20,6 +20,9 @@
  *
  * Hosts serialising trees to Inertia / a JSON payload pipe the tree
  * through {@see prune()} in whatever controller assembles the payload.
+ * Content rules read the `_resolved*` keys, so the tree must already be
+ * through `QueryInliner` and `PostResolver`: an unresolved loop counts
+ * as empty, and the decision carries a `content:unresolved` reason.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor

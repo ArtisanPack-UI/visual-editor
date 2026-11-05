@@ -1,13 +1,16 @@
 # Block Visibility
 
-Runtime rules that decide whether an individual block renders. Ships in
-1.4.0 across three issues:
+Runtime rules that decide whether an individual block renders. Shipped
+in 1.4.0 across three issues, with the Content rule added in 1.20.0:
 
 - **#491 — Contextual rules**: master Hide, screen-size, query-string,
   referrer, browser / OS / device.
 - **#492 — User & auth rules**: login state, user role, specific user.
 - **#493 — Scheduling rules**: single date/time window, recurring
   weekly schedule, per-rule timezone override.
+- **#1030 — Content rules**: show or hide a block based on what a query,
+  related posts, post navigation or pagination block inside it resolved
+  to.
 
 All rules evaluate **server-side** so hidden blocks never emit markup
 — there is no flash of content and no client-only privacy leak.
@@ -36,6 +39,64 @@ Rule shape at a glance:
 | Specific user        | Match by email or id. Autocomplete backed by `/users/search`.     |
 | Date/time window     | Start and/or end datetime. Per-rule timezone override.            |
 | Recurring schedule   | Up to 14 weekly windows (day + `HH:MM` start/end).                |
+| Content              | Whether a loop or link inside the block has anything to show.     |
+
+### Content
+
+*Since v1.20.0 (#1030).* A Content rule shows or hides a block based on
+the dynamic content inside it, so a wrapper doesn't render around nothing.
+
+- **Hide an empty section.** Put the rule on a Group holding a "Related
+  posts" heading and a Related Posts block, with source *Related Posts*,
+  condition *Has results* and *Show when*. With no related posts, the
+  whole Group disappears, heading included.
+- **Hide an empty navigation band.** Put the rule on the Group around your
+  Post Navigation Links, or your Previous Post and Next Post blocks, with
+  source *Post Navigation* and condition *Has a previous or next post*.
+- **Hide a pagination row.** Use source *Query Pagination* and condition
+  *Has more than one page*.
+- **Show a fallback.** Use *Hide when* on a block that also contains the
+  loop to render it only when the loop is empty. Unlike Query No Results,
+  the fallback can sit outside the loop.
+
+The rule checks the block it's on and everything inside that block, and
+below its controls the panel says what it found ("Checks 1 Related Posts
+block"). With several matches, *Any* renders the block when at least one
+passes, and *All* only when every one does.
+
+| Source            | Blocks it inspects                                                         | Conditions                            | Reads                                                         |
+|-------------------|----------------------------------------------------------------------------|---------------------------------------|---------------------------------------------------------------|
+| Query Loop        | `query`                                                                    | `hasResults`                          | `_resolvedTotal`, `_resolvedItems` above zero                 |
+| Related Posts     | `artisanpack/related-posts`                                                | `hasResults`                          | `_resolvedTotal`, `_resolvedItems` above zero                 |
+| Post Navigation   | `post-navigation-link`, `artisanpack/previous-post`, `artisanpack/next-post` | `hasEither`, `hasPrevious`, `hasNext` | `_resolvedPrevUrl`, `_resolvedNextUrl`, `_resolvedHasAdjacent` |
+| Query Pagination  | `query-pagination`, `query`                                                | `hasMultiplePages`                    | `_resolvedTotalPages` above one                               |
+
+`query`, `post-navigation-link` and `query-pagination` match in either the
+`artisanpack` or `core` namespace.
+
+A Previous Post or Next Post block knows only its own neighbour, so
+*Has a next post* is false on a Previous Post block. With *Any*, the Next
+Post block beside it decides; with *All*, the rule fails, as it does for a
+link with no next post.
+
+*Has results* means the current page shows at least one row, so a page
+past the end of a loop counts as empty even though its total is above
+zero. That's the same test Query No Results uses.
+
+The rule is stored under `artisanpackVisibility.content`:
+
+```json
+{"artisanpackVisibility":{"content":{"source":"relatedPosts","condition":"hasResults","match":"any","direction":"show"}}}
+```
+
+If there's nothing for the rule to check, it has no effect and the block
+renders: no matching block, or a `source` or `condition` that isn't
+registered. A matching block that failed to resolve counts as empty, so
+`show` hides the block and `hide` renders it.
+
+The rule only looks inside the block, so it can't react to a loop
+elsewhere on the page. It also reads what the loop resolved to, not what
+rendered, so a loop hidden by its own visibility rule still counts.
 
 ### Screen size
 
@@ -97,10 +158,13 @@ authors see roughly what visitors will see:
   master Hide setting and the server-evaluated rules (login state, user
   role, specific user, date/time, schedule, query string, referrer,
   browser / OS / device) show the block dimmed rather than hidden.
+- **Content rules don't affect the canvas.** They're enforced on the
+  front end only, so a block with just a Content rule is neither hidden
+  nor dimmed, and you can always see and edit what it wraps.
 - **List View labels say why.** A block's List View label gets a suffix:
   "Hidden" (master Hide is on), "Hidden at some screen sizes" (a
   screen-size rule hides it at one or more breakpoints) or
-  "Conditionally visible" (it has a server-evaluated rule). Custom block
+  "Conditionally visible" (it has a server-evaluated or Content rule). Custom block
   names keep the suffix.
 
 The canvas styles for this live in a shared `<style>` in the canvas
@@ -159,6 +223,19 @@ $tree = $pruner->prune( $post->content );
 return Inertia::render( 'PostShow', [ 'blocks' => $tree ] );
 ```
 
+Content rules read the `_resolved*` attributes, so the tree must be
+resolved before you prune it. Otherwise every source counts as empty, and
+the decision carries a `content:unresolved` reason:
+
+```php
+use ArtisanPackUI\VisualEditor\Resources\PostResolver;
+use ArtisanPackUI\VisualEditor\Resources\QueryInliner;
+
+$tree = $queryInliner->inline( $post->content, $post );
+$tree = $postResolver->stampTree( $tree, $post );
+$tree = $pruner->prune( $tree );
+```
+
 ```tsx
 import { BlockTree, filterVisibleBlocks, stampVisibilityScopes } from '@artisanpack-ui/visual-editor-renderer-react';
 
@@ -191,6 +268,17 @@ addAction( 'ap.visualEditor.visibility.evaluated', function ( $decision, $name, 
 } );
 ```
 
+Reasons are recorded on visible decisions too, for rules that had a
+notable reason not to act. The Content rule uses these:
+
+| Reason                       | Meaning                                                              |
+|------------------------------|----------------------------------------------------------------------|
+| `content`                    | The rule hid the block.                                              |
+| `content:no-source`          | No matching block in the subtree, so the rule had no effect.         |
+| `content:unknown-source`     | The saved `source` isn't registered, so the rule had no effect.      |
+| `content:unknown-condition`  | The saved `condition` isn't one of the source's, so it had no effect. |
+| `content:unresolved`         | A matching block never resolved and was counted as empty.            |
+
 ### Adding a custom rule
 
 Implement the `VisibilityRule` interface and register through the
@@ -204,6 +292,65 @@ addFilter( 'ap.visualEditor.visibility.registerRules', function ( RuleRegistry $
     return $registry;
 } );
 ```
+
+A rule that needs the block tree implements
+`BlockAwareVisibilityRule`, whose `evaluateBlock()` receives the block,
+`innerBlocks` included, in place of `evaluate()`.
+
+### Adding a content source
+
+A source tells the Content rule how to read one kind of block, and a
+registered source appears in the panel automatically. Extend
+`AbstractContentSource`, name the blocks, and say which `_resolved*`
+attribute your block carries once it has resolved. A block without that
+attribute counts as empty.
+
+```php
+use ArtisanPackUI\VisualEditor\Visibility\ContentSourceRegistry;
+use ArtisanPackUI\VisualEditor\Visibility\ContentSources\AbstractContentSource;
+
+class ProductLoopSource extends AbstractContentSource
+{
+    public function key(): string
+    {
+        return 'products';
+    }
+
+    public function label(): string
+    {
+        return __( 'Product Loop' );
+    }
+
+    public function blockNames(): array
+    {
+        return [ 'acme/product-loop' ];
+    }
+
+    public function conditions(): array
+    {
+        return [ 'hasProducts' => __( 'Has products' ) ];
+    }
+
+    public function passes( string $condition, array $block ): bool
+    {
+        return $block['attributes']['_resolvedProductCount'] > 0;
+    }
+
+    protected function resolvedKey(): string
+    {
+        return '_resolvedProductCount';
+    }
+}
+
+addFilter( 'ap.visualEditor.visibility.registerContentSources', function ( ContentSourceRegistry $registry ) {
+    $registry->register( new ProductLoopSource() );
+    return $registry;
+} );
+```
+
+To match on something other than the block name, implement `ContentSource`
+directly, or override `matches()`, and return `[]` from `blockNames()`. The
+panel then shows no detected-block hint for that source.
 
 ### Per-block opt-out
 
@@ -230,7 +377,8 @@ CST or CDT.
 
 ### Cache implications
 
-User- and role-based rules make a page's rendered output dependent on
+Content rules depend on the content rather than the visitor, so they add
+no per-visitor caveat. User- and role-based rules make a page's rendered output dependent on
 the visitor. If a scheduled or auth-dependent block sits inside a
 cached template part or output cache, the cache TTL must be shorter
 than the window's precision (for a 5-minute recurring window, the

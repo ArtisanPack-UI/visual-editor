@@ -187,6 +187,13 @@ class BlockSupports
 	protected const ALIGN_VALUES = [ 'wide', 'full', 'left', 'center', 'right' ];
 
 	/**
+	 * The longest state `_scopeId` {@see self::compileStates()} accepts.
+	 *
+	 * @since 1.20.0
+	 */
+	private const SCOPE_ID_MAX_LENGTH = 64;
+
+	/**
 	 * The one grammar for "what characters may appear in a user-authored
 	 * CSS value written into a `<style>` block". Everything a length,
 	 * percentage, `calc()` expression or CSS custom property needs —
@@ -212,41 +219,6 @@ class BlockSupports
 	 * disallowed byte instead of erroring `preg_match` into a false pass.
 	 */
 	private const CSS_VALUE_DISALLOWED = '/[^a-zA-Z0-9_+\-*\/.,()%#\t\n\r\f ]/';
-
-	/**
-	 * The CSS functions a custom gradient may call: the gradient
-	 * functions themselves plus the colour, custom-property and math
-	 * functions their colour stops and lengths use. None of them fetches
-	 * a resource, so a gradient built only from these can never load a
-	 * `url()` / `image-set()`. Mirrored by `GRADIENT_FUNCTIONS` in the
-	 * React and Vue `cssValue.ts`.
-	 *
-	 * @since 1.15.3
-	 */
-	private const GRADIENT_FUNCTIONS = [
-		'linear-gradient',
-		'radial-gradient',
-		'conic-gradient',
-		'repeating-linear-gradient',
-		'repeating-radial-gradient',
-		'repeating-conic-gradient',
-		'rgb',
-		'rgba',
-		'hsl',
-		'hsla',
-		'hwb',
-		'lab',
-		'lch',
-		'oklab',
-		'oklch',
-		'color',
-		'color-mix',
-		'var',
-		'calc',
-		'min',
-		'max',
-		'clamp',
-	];
 
 	/**
 	 * Per-request cache for the position payload produced at the top of
@@ -1015,11 +987,13 @@ class BlockSupports
 	 * `var:preset|gradient|…`) or one
 	 * `(repeating-)?(linear|radial|conic)-gradient(…)` call whose
 	 * parentheses balance and close at the end of the value, and every
-	 * function it calls must be in {@see self::GRADIENT_FUNCTIONS}.
+	 * function it calls must be in {@see CssValue::GRADIENT_FUNCTIONS}
+	 * ({@see CssValue::isGradient()}).
 	 * Commas, parentheses, `%` and `#` stay legal for the colour stops.
 	 * Mirrored by `safeGradientValue()` in the React and Vue renderers.
 	 *
 	 * @since 1.15.3
+	 * @since 1.20.0 Shape check moved to {@see CssValue::isGradient()}.
 	 *
 	 * @param  string  $value  The expanded gradient value.
 	 *
@@ -1027,50 +1001,11 @@ class BlockSupports
 	 */
 	public static function safeGradientValue( string $value ): ?string
 	{
-		if ( null === self::safeCssValue( $value ) ) {
+		if ( null === self::safeCssValue( $value ) || ! CssValue::isGradient( $value ) ) {
 			return null;
 		}
 
-		if ( 1 === preg_match( '/^var\(--[a-zA-Z0-9_-]+\)$/D', $value ) ) {
-			return $value;
-		}
-
-		if ( 1 !== preg_match( '/^(?:repeating-)?(?:linear|radial|conic)-gradient\(/i', $value ) ) {
-			return null;
-		}
-
-		preg_match_all( '/([a-zA-Z_-][a-zA-Z0-9_-]*)\(/', $value, $matches );
-
-		foreach ( $matches[1] as $function ) {
-			if ( ! in_array( strtolower( $function ), self::GRADIENT_FUNCTIONS, true ) ) {
-				return null;
-			}
-		}
-
-		$depth  = 0;
-		$length = strlen( $value );
-
-		for ( $index = 0; $index < $length; $index++ ) {
-			if ( '(' === $value[ $index ] ) {
-				$depth++;
-
-				continue;
-			}
-
-			if ( ')' !== $value[ $index ] ) {
-				continue;
-			}
-
-			$depth--;
-
-			// A close before the end that returns to depth 0 means a
-			// second top-level layer follows the gradient.
-			if ( $depth < 0 || ( 0 === $depth && $index !== $length - 1 ) ) {
-				return null;
-			}
-		}
-
-		return 0 === $depth ? $value : null;
+		return $value;
 	}
 
 	/**
@@ -1278,6 +1213,197 @@ class BlockSupports
 			'classes' => $classes,
 			'style'   => [] !== $style ? implode( '; ', $style ) . ';' : '',
 		];
+	}
+
+	/**
+	 * Split a block's border and shadow supports off its wrapper, for a
+	 * block whose `block.json` skips their serialization and paints them
+	 * on an inner element, as core's Image does on its `<img>` (#1052).
+	 *
+	 * `wrapper` goes to {@see self::wrapperAttrs()} and `element` to
+	 * {@see self::compile()}. State and responsive overrides of those
+	 * supports move too, under their own `-img` state scope, and a state
+	 * `transition` is copied so the moved overrides still animate.
+	 *
+	 * A gradient border or shadow stays on the wrapper: it paints through
+	 * `::before` / `::after`, which an `<img>` can't have.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 *
+	 * @return array{wrapper: array<string, mixed>, element: array<string, mixed>}
+	 */
+	public static function splitBorderAndShadow( array $attributes ): array
+	{
+		$wrapper = $attributes;
+		$element = [];
+		$style   = is_array( $attributes['style'] ?? null ) ? $attributes['style'] : [];
+		$moved   = [];
+
+		if ( null === GradientBorderResolver::resolve( $attributes ) ) {
+			$moved[] = 'border';
+
+			if ( isset( $attributes['borderColor'] ) ) {
+				$element['borderColor'] = $attributes['borderColor'];
+				unset( $wrapper['borderColor'] );
+			}
+
+			if ( isset( $style['border'] ) ) {
+				$element['style']['border'] = $style['border'];
+				unset( $wrapper['style']['border'] );
+			}
+		}
+
+		if ( ! self::hasGradientShadow( $attributes ) ) {
+			$moved[] = 'shadow';
+
+			if ( isset( $style['shadow'] ) ) {
+				$element['style']['shadow'] = $style['shadow'];
+				unset( $wrapper['style']['shadow'] );
+			}
+		}
+
+		if ( [] === $moved ) {
+			return [ 'wrapper' => $wrapper, 'element' => $element ];
+		}
+
+		$pattern = '/^(style\.)?(' . implode( '|', $moved ) . ')(\.|$)/';
+
+		foreach ( [ 'states', 'responsive' ] as $bag ) {
+			if ( ! is_array( $attributes[ $bag ] ?? null ) ) {
+				continue;
+			}
+
+			[ $kept, $overrides ] = self::splitOverrideBag( $attributes[ $bag ], $pattern, 'responsive' === $bag ? $moved : [] );
+
+			if ( [] === $overrides ) {
+				continue;
+			}
+
+			$wrapper[ $bag ] = $kept;
+			$element[ $bag ] = $overrides;
+		}
+
+		if ( isset( $element['states'] ) ) {
+			$scopeId = $attributes['states']['_scopeId'] ?? null;
+
+			if ( is_string( $scopeId ) ) {
+				$element['states']['_scopeId'] = self::imageScopeId( $scopeId );
+			}
+
+			foreach ( [ 'transition', 'style.transition' ] as $path ) {
+				if ( isset( $attributes['states'][ $path ] ) ) {
+					$element['states'][ $path ] = $attributes['states'][ $path ];
+				}
+			}
+		}
+
+		return [ 'wrapper' => $wrapper, 'element' => $element ];
+	}
+
+	/**
+	 * Split a state or responsive bag into the overrides that move to the
+	 * `<img>` and the ones the wrapper keeps. A responsive bag can also hold
+	 * the legacy `style` object (`style.<breakpoint>.border`, #918), whose
+	 * moved supports become `style.<support>` entries; a breakpoint a flat
+	 * key already sets keeps that value, as
+	 * {@see self::foldLegacyResponsivePaths()} would. Mirrored by the React
+	 * and Vue `splitImageResponsive()`.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @param  array<string, mixed>  $bag      The state or responsive bag.
+	 * @param  string                $pattern  The moved-path pattern.
+	 * @param  list<string>          $legacy   Supports to take out of a legacy `style` object.
+	 *
+	 * @return array{0: array<string, mixed>, 1: array<string, mixed>} The kept and moved overrides.
+	 */
+	protected static function splitOverrideBag( array $bag, string $pattern, array $legacy ): array
+	{
+		$moved = array_filter(
+			$bag,
+			static fn ( int|string $path ): bool => 1 === preg_match( $pattern, (string) $path ),
+			ARRAY_FILTER_USE_KEY,
+		);
+		$kept  = array_diff_key( $bag, $moved );
+
+		if ( [] === $legacy || ! is_array( $kept['style'] ?? null ) ) {
+			return [ $kept, $moved ];
+		}
+
+		$changed = false;
+
+		foreach ( $kept['style'] as $breakpoint => $value ) {
+			if ( ! is_string( $breakpoint ) || ! is_array( $value ) ) {
+				continue;
+			}
+
+			foreach ( $legacy as $support ) {
+				$path = 'style.' . $support;
+
+				if ( ! array_key_exists( $support, $value ) || ( isset( $moved[ $path ] ) && ! is_array( $moved[ $path ] ) ) ) {
+					continue;
+				}
+
+				if ( ! isset( $moved[ $path ] ) || ! array_key_exists( $breakpoint, $moved[ $path ] ) ) {
+					$moved[ $path ][ $breakpoint ] = $value[ $support ];
+				}
+
+				unset( $value[ $support ] );
+				$changed = true;
+			}
+
+			if ( $value !== $kept['style'][ $breakpoint ] ) {
+				if ( [] === $value ) {
+					unset( $kept['style'][ $breakpoint ] );
+				} else {
+					$kept['style'][ $breakpoint ] = $value;
+				}
+			}
+		}
+
+		if ( $changed && [] === $kept['style'] ) {
+			unset( $kept['style'] );
+		}
+
+		return [ $kept, $moved ];
+	}
+
+	/**
+	 * The state scope ID for the `<img>` of a block whose border and
+	 * shadow move off its wrapper (#1052): the block's ID plus `-img`.
+	 *
+	 * A valid ID over 60 characters would pass the 64-character limit
+	 * once suffixed and lose its state rules (#1085), so it's cut to 51
+	 * characters plus a hash of the whole ID, which keeps two long IDs
+	 * that share a prefix apart. Editor-minted IDs are far shorter and
+	 * keep the plain suffix. An invalid ID stays invalid, so it still
+	 * produces nothing.
+	 *
+	 * @since 1.20.0
+	 */
+	protected static function imageScopeId( string $scopeId ): string
+	{
+		$suffixed = $scopeId . '-img';
+
+		if ( strlen( $suffixed ) <= self::SCOPE_ID_MAX_LENGTH || ! self::isValidScopeId( $scopeId ) ) {
+			return $suffixed;
+		}
+
+		return substr( $scopeId, 0, 51 ) . '-' . substr( hash( 'sha256', $scopeId ), 0, 8 ) . '-img';
+	}
+
+	/**
+	 * Whether a state `_scopeId` is safe to print into a class attribute
+	 * and a `<style>` selector: an identifier-style token of at most
+	 * {@see self::SCOPE_ID_MAX_LENGTH} characters.
+	 *
+	 * @since 1.20.0
+	 */
+	protected static function isValidScopeId( string $scopeId ): bool
+	{
+		return 1 === preg_match( '/^[a-z0-9][a-z0-9_-]*$/iD', $scopeId ) && strlen( $scopeId ) <= self::SCOPE_ID_MAX_LENGTH;
 	}
 
 	/**
@@ -2207,13 +2333,9 @@ class BlockSupports
 		// the selector (rule injection). The JS minter only ever produces
 		// alphanumeric base-36 strings; anything else is treated as
 		// hostile / corrupted and dropped.
-		$scopeId = null;
-		if ( isset( $bag['_scopeId'] ) && is_string( $bag['_scopeId'] ) ) {
-			$candidate = $bag['_scopeId'];
-			if ( 1 === preg_match( '/^[a-z0-9][a-z0-9_-]*$/i', $candidate ) && strlen( $candidate ) <= 64 ) {
-				$scopeId = $candidate;
-			}
-		}
+		$scopeId = isset( $bag['_scopeId'] ) && is_string( $bag['_scopeId'] ) && self::isValidScopeId( $bag['_scopeId'] )
+			? $bag['_scopeId']
+			: null;
 
 		if ( null === $scopeId ) {
 			return [ 'class' => '', 'rules' => '' ];
@@ -2581,6 +2703,26 @@ class BlockSupports
 			: null;
 
 		return self::composeScopeClass( 've-bs', $candidate, $payload );
+	}
+
+	/**
+	 * Whether any cascade level of a block's shadow is a gradient (#1052).
+	 *
+	 * @since 1.20.0
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 */
+	protected static function hasGradientShadow( array $attributes ): bool
+	{
+		$payload = BoxShadowResolver::resolve( $attributes );
+
+		if ( null === $payload ) {
+			return false;
+		}
+
+		$layers = array_filter( [ $payload['idle'], ...array_values( $payload['states'] ), ...array_values( $payload['breakpoints'] ) ] );
+
+		return [] !== array_filter( $layers, static fn ( array $layer ): bool => BoxShadowEmitter::isGradient( $layer ) );
 	}
 
 	/**

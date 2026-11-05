@@ -64,19 +64,19 @@ const transforms = {
                     // File will be uploaded in componentDidMount()
                     if (file.type.startsWith('video/')) {
                         blocks.push(
-                            createBlock('core/video', {
+                            createBlock('artisanpack/video', {
                                 blob: blobURL,
                             })
                         );
                     } else if (file.type.startsWith('image/')) {
                         blocks.push(
-                            createBlock('core/image', {
+                            createBlock('artisanpack/image', {
                                 blob: blobURL,
                             })
                         );
                     } else if (file.type.startsWith('audio/')) {
                         blocks.push(
-                            createBlock('core/audio', {
+                            createBlock('artisanpack/audio', {
                                 blob: blobURL,
                             })
                         );
@@ -95,7 +95,7 @@ const transforms = {
         },
         {
             type: 'block',
-            blocks: ['core/audio'],
+            blocks: ['core/audio', 'artisanpack/audio'],
             transform: (attributes: MediaSourceAttributes) => {
                 return createBlock(name, {
                     href: attributes.src,
@@ -108,7 +108,7 @@ const transforms = {
         },
         {
             type: 'block',
-            blocks: ['core/video'],
+            blocks: ['core/video', 'artisanpack/video'],
             transform: (attributes: MediaSourceAttributes) => {
                 return createBlock(name, {
                     href: attributes.src,
@@ -121,7 +121,7 @@ const transforms = {
         },
         {
             type: 'block',
-            blocks: ['core/image'],
+            blocks: ['core/image', 'artisanpack/image'],
             transform: (attributes: MediaSourceAttributes) => {
                 return createBlock(name, {
                     href: attributes.url,

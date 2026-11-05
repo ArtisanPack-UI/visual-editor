@@ -13,15 +13,27 @@
  * the glob discovers even though their CSS text is empty.
  */
 
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
+import { LAYOUT_BASELINE_CSS as REACT_LAYOUT_BASELINE_CSS } from '../../../../../packages/visual-editor-renderer-react/src/support/layoutBaselineCss';
+import { LAYOUT_BASELINE_CSS as VUE_LAYOUT_BASELINE_CSS } from '../../../../../packages/visual-editor-renderer-vue/src/support/layoutBaselineCss';
 import {
     ALIGNMENT_OVERRIDE_STYLES,
+    CANVAS_LAYOUT_STYLES,
     COMPOSED_CHROME_STYLES,
     DEFAULT_CANVAS_STYLES,
+    LAYOUT_BASELINE_STYLES,
     POST_EDITOR_FRAMING_STYLES,
 } from '../../editor-settings';
-import { blockStylesheetPaths, canvasStyles } from '../canvas-styles';
+import {
+    FLEX_LAYOUT_STYLE,
+    blockStylesheetPaths,
+    canvasStyles,
+    formatStylesheetPaths,
+} from '../canvas-styles';
 
 describe('canvasStyles', () => {
     it('spaces flex and grid layout children with the block gap, as the front end does (#883)', () => {
@@ -90,6 +102,136 @@ describe('canvasStyles', () => {
     });
 });
 
+describe('layout baseline parity with the front end (#1040)', () => {
+    const bladeTemplate = readFileSync(
+        resolve(
+            __dirname,
+            '../../../../../packages/visual-editor-renderer-blade/resources/views/components/blocks-styles.blade.php'
+        ),
+        'utf8'
+    );
+
+    /** Theme `blockGap` lands on the wrapper, which isn't `body` in the site editor. */
+    const toFrontEndRule = (rule: string): string =>
+        rule.replace(':where(.editor-styles-wrapper)', ':where(body)');
+
+    const canvasRules = LAYOUT_BASELINE_STYLES.trim().split('\n').map(toFrontEndRule);
+
+    /**
+     * Rules that lay out a container's children or carry its gap. Float
+     * rules are left out because `ALIGNMENT_OVERRIDE_STYLES` covers them.
+     */
+    const isLayoutRule = (rule: string): boolean =>
+        /is-layout-(flow|constrained|flex|grid)|--ap-root-block-gap/.test(rule) &&
+        !/align(left|right)/.test(rule);
+
+    it('has every Blade layout rule, in the same order', () => {
+        const baseline = /<style data-ve-layout-baseline>([\s\S]*?)<\/style>/.exec(bladeTemplate);
+
+        expect(baseline).not.toBeNull();
+        expect(canvasRules).toEqual(
+            (baseline?.[1] ?? '').trim().split('\n').filter(isLayoutRule)
+        );
+    });
+
+    it.each([
+        ['React', REACT_LAYOUT_BASELINE_CSS],
+        ['Vue', VUE_LAYOUT_BASELINE_CSS],
+    ])('has every %s layout rule, in the same order', (_renderer, css) => {
+        expect(canvasRules).toEqual(
+            css
+                .split('\n')
+                .filter((rule) => rule.startsWith(':where(') || rule.startsWith('.is-layout-'))
+                .filter(isLayoutRule)
+        );
+    });
+});
+
+describe('element margins in the canvas (#1040)', () => {
+    it('leaves margins out of the specific-selector defaults, where they would beat the layout rules', () => {
+        expect(DEFAULT_CANVAS_STYLES).not.toMatch(/\bmargin\s*:/);
+    });
+
+    it('declares them at zero specificity, ahead of the baseline they tie with', () => {
+        for (const selector of ['p', ':is(h1, h2, h3, h4, h5, h6)', 'blockquote', ':is(ul, ol)', 'pre', 'hr']) {
+            expect(CANVAS_LAYOUT_STYLES).toContain(`:where(.editor-styles-wrapper ${selector}) { margin:`);
+        }
+
+        expect(CANVAS_LAYOUT_STYLES.endsWith(LAYOUT_BASELINE_STYLES)).toBe(true);
+        expect(CANVAS_LAYOUT_STYLES.length).toBeGreaterThan(LAYOUT_BASELINE_STYLES.length);
+    });
+
+    it('prints the baseline before the Flex Layout sheet, so its `.ap-flex` reset wins the tie', () => {
+        const layoutIndex = canvasStyles.findIndex((entry) => entry.css === CANVAS_LAYOUT_STYLES);
+
+        expect(layoutIndex).toBeGreaterThanOrEqual(0);
+        expect(canvasStyles.indexOf(FLEX_LAYOUT_STYLE)).toBeGreaterThan(layoutIndex);
+    });
+
+    it('keeps Accordion and Tabs panel resets off blocks nested in a Group', () => {
+        const css = canvasStyles.map((entry) => entry.css).join('\n');
+
+        expect(css).toContain('.ap-accordion__body > .block-editor-block-list__block');
+        expect(css).toContain('.ap-tab-section > .block-editor-block-list__block');
+        expect(css).not.toContain('.ap-accordion__body .block-editor-block-list__block');
+        expect(css).not.toContain('.ap-tab-section .block-editor-block-list__block');
+    });
+});
+
+describe('code and pre baseline in the canvas (#1051)', () => {
+    const CODE_RULE = ':where(.editor-styles-wrapper code) {';
+    const PANEL_RULE = ':where(.editor-styles-wrapper pre:not(.wp-block-verse)) {';
+    const PANEL_CODE_RULE = ':where(.editor-styles-wrapper pre:not(.wp-block-verse) code) {';
+
+    const ruleBody = (opener: string): string => {
+        const start = DEFAULT_CANVAS_STYLES.indexOf(opener);
+
+        expect(start).toBeGreaterThanOrEqual(0);
+
+        return DEFAULT_CANVAS_STYLES.slice(start, DEFAULT_CANVAS_STYLES.indexOf('}', start));
+    };
+
+    it('drops the specific selectors that beat theme.json block styles', () => {
+        expect(DEFAULT_CANVAS_STYLES).not.toMatch(/(?<!:where\()\.editor-styles-wrapper (code|pre)\b/);
+    });
+
+    it('tints code and panels from the text color rather than a fixed light background', () => {
+        expect(ruleBody(CODE_RULE)).toContain('background: color-mix(in srgb, currentColor 10%, transparent);');
+        expect(ruleBody(PANEL_RULE)).toContain('background: color-mix(in srgb, currentColor 8%, transparent);');
+        expect(DEFAULT_CANVAS_STYLES).not.toContain('#f3f4f6');
+    });
+
+    it('sets no text color, so the theme decides it', () => {
+        expect(ruleBody(CODE_RULE)).not.toMatch(/(^|\s)color:/);
+        expect(ruleBody(PANEL_RULE)).not.toMatch(/(^|\s)color:/);
+    });
+
+    it('does not paint a second chip inside a panel', () => {
+        const panelCode = ruleBody(PANEL_CODE_RULE);
+
+        expect(panelCode).toContain('background: none;');
+        expect(panelCode).toContain('padding: 0;');
+        expect(panelCode).toContain('border-radius: 0;');
+        expect(panelCode).toContain('font-size: inherit;');
+        expect(DEFAULT_CANVAS_STYLES.indexOf(PANEL_CODE_RULE)).toBeGreaterThan(
+            DEFAULT_CANVAS_STYLES.indexOf(CODE_RULE)
+        );
+    });
+});
+
+describe('root block spacing in the post editor (#1040)', () => {
+    const rootGapSelector =
+        '.block-editor-block-list__layout.is-root-container) > * + :where(:not(.block-list-appender))';
+
+    it('spaces root blocks with the block gap, leaving out the appender', () => {
+        expect(POST_EDITOR_FRAMING_STYLES).toContain(`:where(.editor-styles-wrapper ${rootGapSelector}`);
+    });
+
+    it('undoes that gap inside composed-view chrome', () => {
+        expect(COMPOSED_CHROME_STYLES).toContain(`:where(.ap-visual-editor__chrome ${rootGapSelector}`);
+    });
+});
+
 describe('blockStylesheetPaths (#566 glob)', () => {
     it('discovers every block-authored stylesheet by globbing the blocks directory', () => {
         // The glob is `../blocks/*/*.css`. If the wiring breaks (wrong
@@ -146,6 +288,22 @@ describe('blockStylesheetPaths (#566 glob)', () => {
         const entriesBeforeDefaults = canvasStyles.slice(0, defaultsIndex);
         expect(entriesBeforeDefaults.length).toBeGreaterThanOrEqual(
             blockStyleStrings.size
+        );
+    });
+});
+
+describe('format stylesheets in the canvas (#1039)', () => {
+    it('discovers every stylesheet under formats/', () => {
+        expect(formatStylesheetPaths).toContain('../formats/inline-icon/inline-icon.css');
+    });
+
+    it('hands them to the iframe ahead of the canvas defaults', () => {
+        const defaultsIndex = canvasStyles.findIndex(
+            (entry) => entry.css === DEFAULT_CANVAS_STYLES
+        );
+
+        expect(defaultsIndex).toBeGreaterThanOrEqual(
+            blockStylesheetPaths.length + formatStylesheetPaths.length
         );
     });
 });

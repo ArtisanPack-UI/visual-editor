@@ -204,7 +204,8 @@ The Navigation section of the site editor has two view modes:
 
 The link-control picker (used when adding items) hits
 `GET /visual-editor/api/search` to find pages, posts, and template parts
-across the resource map.
+across the resource map. Results only include records the current user
+can view.
 
 Submenus are nested by indenting items under a parent. Drag an item one
 level right to make it a child of the item above it.

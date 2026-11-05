@@ -57,6 +57,7 @@ defineProps<{ post: { content: unknown } }>();
 | `defaultTheme` | `string` | — | Theme assumed for template-part references that don't name one. |
 | `duotonePresets` | `DuotonePresets` | — | The theme's `settings.color.duotone` (flat list or `{ theme, custom, default }`). Needed for `var:preset\|duotone\|…` picks; custom stops work without it. Since 1.15.0. |
 | `customCssAllowUrls` | `boolean` | `true` | Mirror the server's `effects.custom_css_allow_urls`. When `false`, Custom CSS that loads a resource (`url(`, `image-set(`, `image(`, `src(`) is dropped. Also accepted by `<Template>`. Since 1.15.0. |
+| `lightboxDefault` | `boolean` | `false` | The theme's "Enlarge on click" default (#1046), for images with no setting of their own. |
 
 ## Server config: duotone, Custom CSS and breakpoints
 
@@ -65,6 +66,7 @@ and pass it in, so the page matches the Blade renderer:
 
 - `duotonePresets`: `PresetRegistry::activeThemeSettings()['color']['duotone'] ?? null`
 - `customCssAllowUrls`: `config('artisanpack.visual-editor.effects.custom_css_allow_urls')`
+- `lightboxDefault`: `ImageLightbox::themeDefault()`, the theme's "Enlarge on click" default for images with no setting of their own
 
 ```vue
 <BlockTree
@@ -244,3 +246,7 @@ This package ships as part of the ArtisanPack UI visual editor V1 (epic
 `visual-editor` monorepo under `packages/visual-editor-renderer-vue/` and
 is distributed to npm via a subtree split — see `PACKAGING.md` at the
 monorepo root for the release workflow.
+
+## Code block highlighting
+
+A Code block with a language renders as plain code, on the server too, then is highlighted in the browser. The highlighter is imported on first use, so pages with no highlighted block never download it, and it inserts its own `<style data-ve-code-highlight>` tag. A strict `style-src` Content Security Policy blocks that tag, which leaves tokens uncoloured. See [Code Block](../../docs/blocks/Code-Block.md) for theming.

@@ -1,0 +1,14 @@
+<figure class="wp-block-image size-full has-custom-border" style="margin-top: 1rem">
+  <img alt="x" class="has-border-color has-primary-border-color wp-image-7" src="https://example.test/a.jpg" style="border-radius: 12px; border-width: 3px; border-style: solid" />
+  <figcaption class="wp-element-caption">
+    "Caption"
+  </figcaption>
+</figure>
+<figure class="wp-block-image is-resized has-custom-border">
+  <a href="https://example.test/page">
+    <img alt="y" src="https://example.test/b.jpg" style="border-top-left-radius: 4px; border-bottom-right-radius: 8px; border-color: #ff0000; border-style: dashed; border-width: 1px; aspect-ratio: 16/9; width: 300px" width="300" />
+  </a>
+</figure>
+<figure class="wp-block-image has-custom-border">
+  <img alt="z" src="https://example.test/c.jpg" style="border-top-color: #00ff00; border-top-width: 2px; border-top-style: solid" />
+</figure>

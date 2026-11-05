@@ -25,13 +25,14 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor;
 
-use ArtisanPackUI\VisualEditor\Effects\CustomCssGuard;
+use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\Concerns\ReadsSiteEditorRouteInput;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\StorePatternRequest;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\UpdatePatternRequest;
 use ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\SiteEditor\PatternAdapter;
 use ArtisanPackUI\VisualEditor\SiteEditor\Previews\PatternPreviewCache;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\PatternResolver;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedPattern;
+use ArtisanPackUI\VisualEditor\Support\BlockContentGuard;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -40,6 +41,8 @@ use Illuminate\Routing\Controller;
 
 class PatternController extends Controller
 {
+	use ReadsSiteEditorRouteInput;
+
 	protected const CMS_PATTERN_FQCN = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Models\\BlockPattern';
 
 	protected const CMS_RESOLVER_BINDING = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Resolution\\PatternResolver';
@@ -70,13 +73,20 @@ class PatternController extends Controller
 	 *   scope match every request (Gutenberg convention); patterns with
 	 *   a scope match only when the requested slug is present.
 	 *
+	 * A non-string `source` or `post_type` answers a 422 (#1092).
+	 *
 	 * @since 1.0.0
 	 */
 	public function index( Request $request ): JsonResponse
 	{
 		$patterns = $this->resolver->all();
 
-		$source = trim( (string) $request->query( 'source', '' ) );
+		$source = $this->stringQuery( $request, 'source' );
+
+		if ( null === $source ) {
+			return $this->invalidStringQuery( 'source' );
+		}
+
 		if ( '' !== $source ) {
 			$patterns = array_filter( $patterns, static fn ( ResolvedPattern $p ) => $p->source === $source );
 		}
@@ -86,7 +96,14 @@ class PatternController extends Controller
 			$patterns   = array_filter( $patterns, static fn ( ResolvedPattern $p ) => $p->synced === $wantSynced );
 		}
 
-		$postType = strtolower( trim( (string) $request->query( 'post_type', '' ) ) );
+		$postType = $this->stringQuery( $request, 'post_type' );
+
+		if ( null === $postType ) {
+			return $this->invalidStringQuery( 'post_type' );
+		}
+
+		$postType = strtolower( $postType );
+
 		if ( '' !== $postType ) {
 			$patterns = array_filter(
 				$patterns,
@@ -292,10 +309,13 @@ class PatternController extends Controller
 	 *   - the slug (theme patterns whose `wpId` is null).
 	 *
 	 * Numeric ids dispatch through a single resolver scan keyed on
-	 * {@see ResolvedPattern::$wpId}; non-numeric input falls through to
-	 * {@see findPattern()} which already handles the user-prefix dance.
+	 * {@see ResolvedPattern::$wpId}; non-numeric input, and a numeric one
+	 * no id matches, falls through to {@see findPattern()}, which already
+	 * handles the user-prefix dance, so an all-digit slug stays readable
+	 * (#1074).
 	 *
 	 * @since 1.0.0
+	 * @since 1.20.0 A numeric input no id matches is tried as a slug.
 	 */
 	protected function findPatternByIdOrSlug( string $input ): ?ResolvedPattern
 	{
@@ -310,8 +330,6 @@ class PatternController extends Controller
 					return $candidate;
 				}
 			}
-
-			return null;
 		}
 
 		return $this->findPattern( $input );
@@ -321,13 +339,15 @@ class PatternController extends Controller
 	 * Resolve a pattern model row by either id or slug, for write
 	 * paths (update / destroy) that need the underlying Eloquent
 	 * record. Mirrors {@see findPatternByIdOrSlug()} but bypasses the
-	 * resolver because writes target the DB row directly.
+	 * resolver because writes target the DB row directly. A numeric
+	 * input no row id matches is tried as a slug (#1074).
 	 *
 	 * Returns null when the row doesn't exist or when cms-framework
 	 * isn't booted (callers gate on
 	 * {@see cmsFrameworkAvailable()} before invoking).
 	 *
 	 * @since 1.0.0
+	 * @since 1.20.0 A numeric input no row id matches is tried as a slug.
 	 */
 	protected function findPatternModelByIdOrSlug( string $input ): ?object
 	{
@@ -336,8 +356,12 @@ class PatternController extends Controller
 		// `0` cannot match any real DB row; skip the lookup and fall
 		// through to slug resolution (#438).
 		if ( ctype_digit( $input ) && (int) $input > 0 ) {
-			/** @var object|null */
-			return $model::query()->find( (int) $input );
+			$byId = $model::query()->find( (int) $input );
+
+			if ( null !== $byId ) {
+				/** @var object */
+				return $byId;
+			}
 		}
 
 		$storedSlug = $this->ensureUserPrefix( $input );
@@ -432,9 +456,9 @@ class PatternController extends Controller
 			$attributes['block_content'] = array_values( $validated['content']['blocks'] );
 		}
 
-		// #881 — only users with the block-CSS ability may add Custom CSS.
+		// #881, #1062 — Custom CSS and unfiltered markup need their abilities.
 		if ( array_key_exists( 'block_content', $attributes ) ) {
-			$attributes['block_content'] = app( CustomCssGuard::class )->filter( $attributes['block_content'], $storedBlocks );
+			$attributes['block_content'] = app( BlockContentGuard::class )->filter( $attributes['block_content'], $storedBlocks );
 		}
 
 		return $attributes;
@@ -466,7 +490,7 @@ class PatternController extends Controller
 		$static = (array) config( 'artisanpack.visual-editor.site-editor.patterns', [] );
 		$merged = applyFilters( 'ap.visualEditor.patterns', $static );
 		$merged = is_array( $merged ) ? $merged : [];
-		$merged = array_merge( $merged, $static );
+		$merged = array_replace( $merged, $static );
 
 		$this->resolver = new PatternResolver( $merged );
 

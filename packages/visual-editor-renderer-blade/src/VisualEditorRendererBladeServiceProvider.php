@@ -34,6 +34,7 @@ use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\BusinessInfoResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\LoginoutResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\SiteMetaResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Responsive\ResponsiveClassResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\ActiveThemeSettings;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\BlockTreeReferenceResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\BoxShadowCssAccumulator;
@@ -52,6 +53,7 @@ use ArtisanPackUI\VisualEditorRendererBlade\Services\PositionCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveImages;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\StateCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\TabIdStamper;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ThemeJsonTokensCompiler;
 use ArtisanPackUI\VisualEditorRendererBlade\View\Components\BlocksComponent;
 use ArtisanPackUI\VisualEditorRendererBlade\View\Components\BlocksStylesComponent;
@@ -157,6 +159,10 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 			return new NavigationOverlayTracker();
 		} );
 
+		// Scoped so tab ids stay unique across every tree in a request
+		// without a long-lived worker carrying them to the next (#1057).
+		$this->app->scoped( TabIdStamper::class );
+
 		// Scoped so the theme recorded for the render in progress never
 		// outlives the request (Octane / queue). Shares the template-part,
 		// pattern and navigation passes between the components and the
@@ -242,6 +248,10 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 
 		// #873 — sibling accumulator for the duotone filter support's
 		// `<style data-ve-duotone>` rules + hidden `<svg>` filter defs.
+		$this->app->scoped( ActiveThemeSettings::class, function () {
+			return new ActiveThemeSettings();
+		} );
+
 		$this->app->scoped( DuotoneCssAccumulator::class, function () {
 			return new DuotoneCssAccumulator();
 		} );

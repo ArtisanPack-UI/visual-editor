@@ -7,6 +7,7 @@
  */
 
 import { createBlock } from '@wordpress/blocks';
+import type { BlockInstance } from '@wordpress/blocks';
 
 import metadata from './block.json';
 
@@ -29,6 +30,8 @@ interface BlockLike {
     readonly innerBlocks: readonly BlockLike[];
 }
 
+type RawHandler = (options: { HTML: string; mode: 'BLOCKS' }) => BlockInstance[];
+
 const transforms = {
     from: [
         {
@@ -36,7 +39,7 @@ const transforms = {
             blocks: ['core/verse', 'artisanpack/verse'],
             transform: ({ content }: { content: string }) =>
                 createBlock(name, {}, [
-                    createBlock('core/paragraph', { content }),
+                    createBlock('artisanpack/paragraph', { content }),
                 ]),
         },
         {
@@ -53,7 +56,7 @@ const transforms = {
                 createBlock(
                     name,
                     { align, citation, anchor, fontSize, style },
-                    [createBlock('core/paragraph', { content: value })]
+                    [createBlock('artisanpack/paragraph', { content: value })]
                 ),
         },
         {
@@ -61,8 +64,25 @@ const transforms = {
             prefix: '>',
             transform: (content: string) =>
                 createBlock(name, {}, [
-                    createBlock('core/paragraph', { content }),
+                    createBlock('artisanpack/paragraph', { content }),
                 ]),
+        },
+        {
+            type: 'raw',
+            schema: () => ({
+                blockquote: {
+                    children: '*',
+                },
+            }),
+            selector: 'blockquote',
+            transform: (node: Element, handler: RawHandler) =>
+                createBlock(
+                    name,
+                    // A cite can't be parsed out reliably: there may be
+                    // several, or more attribution than the cite holds.
+                    {},
+                    handler({ HTML: node.innerHTML, mode: 'BLOCKS' })
+                ),
         },
         {
             type: 'block',

@@ -2,7 +2,8 @@
  * Query Loop — edit component.
  *
  * Provides inspector controls for all QueryRuntime-supported attributes:
- * post type, posts per page, offset, order/orderBy, and search filter.
+ * post type, posts per page, offset, order/orderBy, and the search and
+ * taxonomy filters.
  * Post type options are host-extensible (#847) — see
  * `post-type-options.ts`.
  * Previews the first matching post via `useQueryPreview` and renders
@@ -38,6 +39,7 @@ import { useQueryPreview } from '../../editor/use-query-preview';
 import { TEXT_DOMAIN } from '../../vendor/i18n';
 import PostVariantsPanel from './post-variants-panel';
 import { getQueryPostTypeOptions } from './post-type-options';
+import TaxonomyFilter, { isTaxonomyAvailable, readTaxQuery } from './taxonomy-filter';
 
 interface QueryEditProps {
     attributes: Record<string, unknown>;
@@ -93,6 +95,19 @@ export default function QueryEdit( {
     const search = typeof query.search === 'string' ? query.search : '';
     const inherit = Boolean( query.inherit );
 
+    // A taxonomy the new post type doesn't support would otherwise filter
+    // on term ids that mean nothing to it.
+    const changePostType = ( value: string ): void => {
+        const taxonomy = readTaxQuery( query.taxQuery )?.taxonomy;
+
+        updateQuery( {
+            postType: value,
+            ...( taxonomy !== undefined && ! isTaxonomyAvailable( taxonomy, value )
+                ? { taxQuery: null }
+                : {} ),
+        } );
+    };
+
     const persistedQueryId =
         typeof attributes.queryId === 'string' || typeof attributes.queryId === 'number'
             ? String( attributes.queryId )
@@ -139,7 +154,7 @@ export default function QueryEdit( {
                         label={ __( 'Post type', TEXT_DOMAIN ) }
                         value={ postType }
                         options={ getQueryPostTypeOptions( postType ) }
-                        onChange={ ( value: string ) => updateQuery( { postType: value } ) }
+                        onChange={ changePostType }
                     />
                     <RangeControl
                         // @ts-expect-error - upstream prop
@@ -195,6 +210,11 @@ export default function QueryEdit( {
                         label={ __( 'Search', TEXT_DOMAIN ) }
                         value={ search }
                         onChange={ ( value: string ) => updateQuery( { search: value } ) }
+                    />
+                    <TaxonomyFilter
+                        postType={ postType }
+                        taxQuery={ query.taxQuery }
+                        onChange={ ( taxQuery ) => updateQuery( { taxQuery } ) }
                     />
                 </PanelBody>
                 <PanelBody title={ __( 'Preview', TEXT_DOMAIN ) } initialOpen={ false }>

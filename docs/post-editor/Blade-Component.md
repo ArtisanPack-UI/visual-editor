@@ -72,11 +72,13 @@ Always set `resource="…"` explicitly when:
 | `PUT` | `{apiBase}/{resource}/{id}/entry` | When a custom content type's title or excerpt changes and the host doesn't handle `onMetadataChange` (since v1.15.3). |
 | `POST` | `{apiBase}/blocks/preview` | When dynamic blocks near the viewport need an editor preview render; batched into one request (since v1.17.0). |
 | `POST` | `{apiBase}/query/resolve` | When a `core/query` block needs paginated results. |
+| `GET` | `{apiBase}/taxonomies/{taxonomy}/terms` | When an author picks a taxonomy in the Query Loop's Filters panel. |
 | `GET` | `{apiBase}/blocks` | Once on mount, to fetch the enabled-block manifest. |
 
 All routes run through the middleware stack in
 `config('artisanpack.visual-editor.api.middleware')` (default
-`['api', 'auth']`). `query/resolve` also requires the
+`['api', 'auth']`). `query/resolve` and `taxonomies/{taxonomy}/terms` also
+require the
 `visual-editor.edit-content` gate (see `content_access.capability`), like
 the other content-authoring endpoints.
 

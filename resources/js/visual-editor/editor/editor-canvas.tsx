@@ -41,8 +41,10 @@ import { useMemo } from 'react';
 
 import { canvasColorTokenStyle } from './canvas-color-tokens';
 import { canvasStyles, FLEX_LAYOUT_STYLE } from './canvas-styles';
+import { InlineIconCanvasHydrator } from '../formats/inline-icon/canvas-hydrator';
 import { ChromeBlocks } from './composed-view/chrome-blocks';
 import { ComposedViewRibbon } from './composed-view/composed-view-ribbon';
+import { MarkdownPasteBridge } from './markdown-paste';
 import { PostTitle } from './post-title';
 import { flexLayoutCss } from './flex-layout-css';
 import { useSpacingPresetCss } from './spacing-preset-styles';
@@ -295,9 +297,15 @@ export function EditorCanvas(props: EditorCanvasProps): JSX.Element {
                     {blockContext !== null ? (
                         <BlockContextProvider value={blockContext}>
                             <ObserveTyping>{blockList}</ObserveTyping>
+                            <InlineIconCanvasHydrator />
+                            <MarkdownPasteBridge />
                         </BlockContextProvider>
                     ) : (
-                        <ObserveTyping>{blockList}</ObserveTyping>
+                        <>
+                            <ObserveTyping>{blockList}</ObserveTyping>
+                            <InlineIconCanvasHydrator />
+                            <MarkdownPasteBridge />
+                        </>
                     )}
                 </BlockCanvas>
             </div>

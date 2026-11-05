@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Blade;
 
 function renderPostTitleAtLevel( string $name, int $level ): string
 {
-	return Blade::render( '<x-ve-blocks :tree="$tree" />', [
+	return Blade::render( '<x-ve-blocks :tree="$tree" :trust-resolved="true" />', [
 		'tree' => [
 			[
 				'clientId'    => 'cid',

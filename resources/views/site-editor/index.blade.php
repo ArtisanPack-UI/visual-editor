@@ -29,6 +29,8 @@
 		data-exit-label="{{ __('← Post editor') }}"
 		data-api-base="/visual-editor/api"
 		@can( \ArtisanPackUI\VisualEditor\Effects\BlockCssAccess::ABILITY ) data-can-edit-block-css="true" @endcan
+		@can( \ArtisanPackUI\VisualEditor\Support\UnfilteredHtmlAccess::ABILITY ) data-can-use-unfiltered-html="true" @endcan
+		@if( \ArtisanPackUI\VisualEditor\Support\MediaImportAccess::allows() ) data-can-import-media="true" @endif
 		data-custom-css-allow-urls="{{ config( 'artisanpack.visual-editor.effects.custom_css_allow_urls', true ) ? 'true' : 'false' }}"
 		data-theme="{{ config('artisanpack.visual-editor.global_styles.theme', 'default') }}"
 		{{-- #617 — the merged breakpoint registry (config +
@@ -36,6 +38,10 @@
 		     viewport switcher's registry from this so host-configured
 		     `label` / `previewWidthPx` overrides reach the UI. --}}
 		data-breakpoints="{{ json_encode( app( \ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry::class )->toArray() ) }}"
+		{{-- #1030 — sources the Visibility panel's Content rule offers,
+		     including any registered through
+		     `ap.visualEditor.visibility.registerContentSources`. --}}
+		data-visibility-content-sources="{{ json_encode( app( \ArtisanPackUI\VisualEditor\Visibility\ContentSourceRegistry::class )->toEditorPayload(), JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS ) }}"
 		{{-- #771 — registered taxonomies drive the post-terms inserter
 		     variations + the Settings-sidebar taxonomy picker. Templates
 		     live in the site editor, so the post-terms block needs the

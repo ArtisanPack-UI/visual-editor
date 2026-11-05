@@ -6,6 +6,10 @@
 <link rel="stylesheet" href="{{ $accordionStyleHref }}" data-ve-accordion>
 <link rel="stylesheet" href="{{ $tabsStyleHref }}" data-ve-tabs>
 <script src="{{ $interactivityScriptSrc }}" defer data-ve-interactivity></script>
+{{-- #1046 — Image and Gallery lightbox. `FrontendStylesOptimizer` removes
+	both tags from a page with no lightbox. --}}
+<link rel="stylesheet" href="{{ $lightboxStyleHref }}" data-ve-lightbox>
+<script src="{{ $lightboxScriptSrc }}" defer data-ve-lightbox></script>
 @endif
 {{-- Grid family CSS is layout-only (no interactivity script), so it
 	loads independently of $emitInteractive. Hosts that opt out of
@@ -65,6 +69,10 @@
 	bootstrap below handles the rest. --}}
 <link rel="stylesheet" href="{{ $masonryStyleHref }}" data-ve-masonry>
 <script src="{{ $masonryScriptSrc }}" defer data-ve-masonry-fallback></script>
+{{-- #1044 — Code block syntax highlighting. `FrontendStylesOptimizer` removes
+	both tags from a page with no highlighted Code block. --}}
+<link rel="stylesheet" href="{{ $codeHighlightStyleHref }}" data-ve-code-highlight>
+<script src="{{ $codeHighlightScriptSrc }}" defer data-ve-code-highlight></script>
 @if( '' !== $themeTokensCss )
 <style data-ve-theme-tokens>{!! $themeTokensCss !!}</style>
 @endif
@@ -155,6 +163,15 @@
 	#1031 — the `<picture>` around an image with a modern format stays out
 	of layout, so `img` rules keep sizing the image against its block.
 
+	#1070 — a lightbox figure stays an ordinary image until the overlay
+	runs, including with `:interactive="false"`, which skips
+	`frontend/lightbox.css`. `display: block` matches that file, so the
+	block library's flex column no longer stretches an image with no
+	width. The zoom-in cursor waits for `ap-lightbox-ready`. The `html`
+	prefixes beat the block library's `.wp-lightbox-container` rules in
+	any load order, while its aligned-image `display: table` rules (two
+	classes) still win.
+
 	#927 — the flex defaults (`flex-wrap: wrap; align-items: center`) sit
 	in a zero-specificity `:where()`, so the Flex panel's `ap-flex-nowrap`
 	/ `ap-items-*` utilities win regardless of load order. They used to
@@ -184,6 +201,8 @@
 :where(.wp-block-gallery.has-nested-images) { gap: var(--wp--style--unstable-gallery-gap, 16px); }
 :where(.wp-block-image.size-full) { width: auto; height: auto; }
 :where(.wp-block-image, .wp-block-post-featured-image, .wp-block-media-text__media) picture { display: contents; }
+html .wp-lightbox-container { display: block; }
+html:not(.ap-lightbox-ready) .wp-lightbox-container img { cursor: auto; }
 :where(.is-layout-constrained, .is-layout-flow) > .alignleft { float: left; margin-inline-start: 0; margin-inline-end: 2em; }
 :where(.is-layout-constrained, .is-layout-flow) > .alignright { float: right; margin-inline-start: 2em; margin-inline-end: 0; }
 :where(.is-layout-constrained, .is-layout-flow) > :is(.alignleft, .alignright) { margin-block-start: var(--wp--style--block-gap, 24px); }

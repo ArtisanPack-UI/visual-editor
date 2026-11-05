@@ -35,6 +35,7 @@ use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSetsController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSetsManagementController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSvgController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSvgSanitizeController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\MediaImportController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\MenuLocationsController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\QueryResolveController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\ResourceAppliedTemplateController;
@@ -49,6 +50,7 @@ use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\PatternController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\PatternPreviewController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\TemplateController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\TemplatePartController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\TaxonomyTermsController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Visibility\UsersSearchController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\VisualEditorBlocksController;
 use ArtisanPackUI\VisualEditor\Http\Middleware\EnsureContentEditorAccess;
@@ -143,6 +145,13 @@ Route::post( 'query/resolve', [ QueryResolveController::class, 'resolve' ] )
 	->middleware( EnsureContentEditorAccess::class )
 	->name( 'visual-editor.api.query.resolve' );
 
+// #1029 — the Query Loop's term picker. Read-only, and gated like
+// `query/resolve` because only the same inspector calls it.
+Route::get( 'taxonomies/{taxonomy}/terms', [ TaxonomyTermsController::class, 'index' ] )
+	->where( 'taxonomy', '[a-z0-9_-]+' )
+	->middleware( EnsureContentEditorAccess::class )
+	->name( 'visual-editor.api.taxonomies.terms.index' );
+
 Route::get( 'blocks', [ VisualEditorBlocksController::class, 'index' ] )
 	->name( 'visual-editor.api.blocks.index' );
 
@@ -158,7 +167,9 @@ Route::get( 'blocks', [ VisualEditorBlocksController::class, 'index' ] )
 // H6 `wp_template` REST surface — see docs/plans/14-cms-framework-site-editor-integration.md §4.5.
 // Slug-keyed (visual-editor's resolver is scoped to the active theme); reads
 // come through H5's resolver, writes pass through to cms-framework's
-// Template model under a class_exists + binding guard.
+// Template model under a class_exists + binding guard. The `{slug}` segment
+// also takes a `<theme>~<slug>` id, which file-only templates and parts with
+// an all-digit slug get so it can't match a row id (#1094).
 Route::get( 'templates', [ TemplateController::class, 'index' ] )
 	->name( 'visual-editor.api.templates.index' );
 
@@ -167,16 +178,16 @@ Route::post( 'templates', [ TemplateController::class, 'store' ] )
 	->name( 'visual-editor.api.templates.store' );
 
 Route::get( 'templates/{slug}', [ TemplateController::class, 'show' ] )
-	->where( 'slug', '[A-Za-z0-9_-]+' )
+	->where( 'slug', '(?:[A-Za-z0-9_-]+|[^/]+~[0-9]+)' )
 	->name( 'visual-editor.api.templates.show' );
 
 Route::put( 'templates/{slug}', [ TemplateController::class, 'update' ] )
-	->where( 'slug', '[A-Za-z0-9_-]+' )
+	->where( 'slug', '(?:[A-Za-z0-9_-]+|[^/]+~[0-9]+)' )
 	->middleware( EnsureSiteEditorAccess::class )
 	->name( 'visual-editor.api.templates.update' );
 
 Route::delete( 'templates/{slug}', [ TemplateController::class, 'destroy' ] )
-	->where( 'slug', '[A-Za-z0-9_-]+' )
+	->where( 'slug', '(?:[A-Za-z0-9_-]+|[^/]+~[0-9]+)' )
 	->middleware( EnsureSiteEditorAccess::class )
 	->name( 'visual-editor.api.templates.destroy' );
 
@@ -189,16 +200,16 @@ Route::post( 'template-parts', [ TemplatePartController::class, 'store' ] )
 	->name( 'visual-editor.api.template-parts.store' );
 
 Route::get( 'template-parts/{slug}', [ TemplatePartController::class, 'show' ] )
-	->where( 'slug', '[A-Za-z0-9_-]+' )
+	->where( 'slug', '(?:[A-Za-z0-9_-]+|[^/]+~[0-9]+)' )
 	->name( 'visual-editor.api.template-parts.show' );
 
 Route::put( 'template-parts/{slug}', [ TemplatePartController::class, 'update' ] )
-	->where( 'slug', '[A-Za-z0-9_-]+' )
+	->where( 'slug', '(?:[A-Za-z0-9_-]+|[^/]+~[0-9]+)' )
 	->middleware( EnsureSiteEditorAccess::class )
 	->name( 'visual-editor.api.template-parts.update' );
 
 Route::delete( 'template-parts/{slug}', [ TemplatePartController::class, 'destroy' ] )
-	->where( 'slug', '[A-Za-z0-9_-]+' )
+	->where( 'slug', '(?:[A-Za-z0-9_-]+|[^/]+~[0-9]+)' )
 	->middleware( EnsureSiteEditorAccess::class )
 	->name( 'visual-editor.api.template-parts.destroy' );
 
@@ -322,6 +333,10 @@ Route::get( 'menu-locations', [ MenuLocationsController::class, 'index' ] )
 // template parts. Read-only.
 Route::get( 'search', [ EntitySearchController::class, 'index' ] )
 	->name( 'visual-editor.api.search.index' );
+
+// #1042 — all-types search behind the block editor's link selector.
+Route::get( 'search/links', [ EntitySearchController::class, 'links' ] )
+	->name( 'visual-editor.api.search.links' );
 
 // #492 — user autocomplete for the "Specific User" visibility rule's
 // InspectorControls picker. Read-only; short-circuits to an empty
@@ -493,6 +508,13 @@ Route::delete( 'pages/{id}', [ PageController::class, 'destroy' ] )
 Route::get( 'attachments/{id}', [ AttachmentController::class, 'show' ] )
 	->where( 'id', '[0-9]+' )
 	->name( 'visual-editor.api.attachments.show' );
+
+// #1066 — imports a pasted external image into the media library. The
+// server makes a request to a URL from pasted content, so this has a tight
+// throttle on top of the checks in `RemoteImageFetcher`.
+Route::post( 'media/import', [ MediaImportController::class, 'store' ] )
+	->middleware( [ EnsureContentEditorAccess::class, 'throttle:30,1,ve-media-import' ] )
+	->name( 'visual-editor.api.media.import' );
 
 // #481 — singleton site-meta envelope consumed by the editor's
 // `artisanpack/site-*` block previews. The shim's URL builder always

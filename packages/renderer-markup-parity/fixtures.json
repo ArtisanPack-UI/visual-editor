@@ -84,6 +84,34 @@
             "fixturesMatching": "^navigation-layout-colors-elements$",
             "reason": "The scoped `.wp-elements-{hash} a:where(:not(.wp-element-button)) { color: … }` rules ElementsSupport pushes into the shared `<style data-ve-elements>` block (#852) — Blade-only, like its scope class.",
             "dropRendererStyleTag": "data-ve-elements"
+        },
+        {
+            "id": "gallery-layout-classes",
+            "issue": "#1046",
+            "fixturesMatching": "^image-lightbox$",
+            "reason": "Blade prints `is-layout-flex wp-block-gallery-is-layout-flex` on a Gallery because its partial mirrors `supports.layout`; the React and Vue Gallery renderers don't. This predates the lightbox and no fixture covered Gallery until this one.",
+            "dropClassTokensMatching": "^(wp-block-gallery-)?is-layout-flex$"
+        },
+        {
+            "id": "image-shadow-mechanism-class",
+            "issue": "#1052",
+            "fixturesMatching": "^image-shadow$",
+            "reason": "Blade scopes an Image's shadow through `BoxShadowCssAccumulator`: a `ve-bs-*` class on the `<img>` plus a stylesheet rule, so state and breakpoint overrides can join it. React and Vue inline the idle `box-shadow` instead (see `image-shadow-mechanism-style`). Same paint, two mechanisms, so the `ve-bs-*` tokens are dropped in this fixture only.",
+            "dropClassTokensMatching": "^ve-bs-"
+        },
+        {
+            "id": "image-shadow-mechanism-style",
+            "issue": "#1052",
+            "fixturesMatching": "^image-shadow$",
+            "reason": "The second part of `image-shadow-mechanism-class`: React and Vue print the idle `box-shadow` as the `<img>`'s inline `style`, where Blade prints none. The fixture holds bare images with no other style, so dropping `style` here loses nothing else.",
+            "dropAttributesMatching": "^style$"
+        },
+        {
+            "id": "image-shadow-mechanism-rule",
+            "issue": "#1052",
+            "fixturesMatching": "^image-shadow$",
+            "reason": "The third part of `image-shadow-mechanism-class`: Blade's scoped shadow rules go in `<style data-ve-box-shadows>`, which React and Vue don't print because their shadow is inline. That tag holds nothing else, so it is dropped in this fixture only.",
+            "dropRendererStyleTag": "data-ve-box-shadows"
         }
     ],
     "fixtures": [
@@ -875,6 +903,27 @@
                         ] }
                     ]
                 }
+            ]
+        },
+        {
+            "name": "tabs-duplicate-ids",
+            "$comment": "#1057: tab ids are unique across Tabs blocks, including empty tabIds that fall back to `tab-N`. The first block keeps its ids.",
+            "tree": [
+                { "clientId": "dt-a", "name": "artisanpack/tabs", "attributes": {}, "innerBlocks": [ { "clientId": "dt-a1", "name": "artisanpack/tab-section", "attributes": { "label": "Overview", "tabId": "overview" }, "innerBlocks": [ { "clientId": "dt-a1p", "name": "core/paragraph", "attributes": { "content": "A1" }, "innerBlocks": [] } ] }, { "clientId": "dt-a2", "name": "artisanpack/tab-section", "attributes": { "label": "Specs", "tabId": "specs" }, "innerBlocks": [ { "clientId": "dt-a2p", "name": "core/paragraph", "attributes": { "content": "A2" }, "innerBlocks": [] } ] } ] },
+                { "clientId": "dt-b", "name": "artisanpack/tabs", "attributes": {}, "innerBlocks": [ { "clientId": "dt-b1", "name": "artisanpack/tab-section", "attributes": { "label": "Overview", "tabId": "overview" }, "innerBlocks": [ { "clientId": "dt-b1p", "name": "core/paragraph", "attributes": { "content": "B1" }, "innerBlocks": [] } ] }, { "clientId": "dt-b2", "name": "artisanpack/tab-section", "attributes": { "label": "Specs", "tabId": "specs" }, "innerBlocks": [ { "clientId": "dt-b2p", "name": "core/paragraph", "attributes": { "content": "B2" }, "innerBlocks": [] } ] } ] },
+                { "clientId": "dt-c", "name": "artisanpack/tabs", "attributes": {}, "innerBlocks": [ { "clientId": "dt-c1", "name": "artisanpack/tab-section", "attributes": { "label": "One", "tabId": "" }, "innerBlocks": [ { "clientId": "dt-c1p", "name": "core/paragraph", "attributes": { "content": "C1" }, "innerBlocks": [] } ] }, { "clientId": "dt-c2", "name": "artisanpack/tab-section", "attributes": { "label": "Two", "tabId": "" }, "innerBlocks": [ { "clientId": "dt-c2p", "name": "core/paragraph", "attributes": { "content": "C2" }, "innerBlocks": [] } ] } ] },
+                { "clientId": "dt-d", "name": "artisanpack/tabs", "attributes": {}, "innerBlocks": [ { "clientId": "dt-d1", "name": "artisanpack/tab-section", "attributes": { "label": "One", "tabId": "" }, "innerBlocks": [ { "clientId": "dt-d1p", "name": "core/paragraph", "attributes": { "content": "D1" }, "innerBlocks": [] } ] }, { "clientId": "dt-d2", "name": "artisanpack/tab-section", "attributes": { "label": "Two", "tabId": "" }, "innerBlocks": [ { "clientId": "dt-d2p", "name": "core/paragraph", "attributes": { "content": "D2" }, "innerBlocks": [] } ] } ] }
+            ]
+        },
+        {
+            "name": "tabs-nested",
+            "$comment": "#1057: Blade renders Tabs inside Tabs or an Accordion twice, which must not cost them their ids. Ids number in document order: a section, the Tabs inside it, then the next section.",
+            "tree": [
+                { "clientId": "nt-outer", "name": "artisanpack/tabs", "attributes": {}, "innerBlocks": [ { "clientId": "nt-o1", "name": "artisanpack/tab-section", "attributes": { "label": "Outer", "tabId": "same" }, "innerBlocks": [ { "clientId": "nt-inner", "name": "artisanpack/tabs", "attributes": {}, "innerBlocks": [ { "clientId": "nt-i1", "name": "artisanpack/tab-section", "attributes": { "label": "Inner", "tabId": "same" }, "innerBlocks": [ { "clientId": "nt-i1p", "name": "core/paragraph", "attributes": { "content": "I1" }, "innerBlocks": [] } ] }, { "clientId": "nt-i2", "name": "artisanpack/tab-section", "attributes": { "label": "Solo", "tabId": "solo" }, "innerBlocks": [ { "clientId": "nt-i2p", "name": "core/paragraph", "attributes": { "content": "I2" }, "innerBlocks": [] } ] } ] } ] }, { "clientId": "nt-o2", "name": "artisanpack/tab-section", "attributes": { "label": "Last", "tabId": "same" }, "innerBlocks": [ { "clientId": "nt-o2p", "name": "core/paragraph", "attributes": { "content": "O2" }, "innerBlocks": [] } ] } ] },
+                { "clientId": "nt-acc", "name": "artisanpack/accordion", "attributes": { "panelId": "nt-panel" }, "innerBlocks": [
+                    { "clientId": "nt-acc-title", "name": "artisanpack/accordion-title", "attributes": {}, "innerBlocks": [ { "clientId": "nt-tp", "name": "core/paragraph", "attributes": { "content": "Title" }, "innerBlocks": [] } ] },
+                    { "clientId": "nt-acc-body", "name": "artisanpack/accordion-body", "attributes": {}, "innerBlocks": [ { "clientId": "nt-acc-tabs", "name": "artisanpack/tabs", "attributes": {}, "innerBlocks": [ { "clientId": "nt-a1", "name": "artisanpack/tab-section", "attributes": { "label": "Kept", "tabId": "kept" }, "innerBlocks": [ { "clientId": "nt-a1p", "name": "core/paragraph", "attributes": { "content": "K1" }, "innerBlocks": [] } ] } ] } ] }
+                ] }
             ]
         },
         {
@@ -4188,6 +4237,30 @@
             ]
         },
         {
+            "name": "author-social-icons-mixed-viewboxes",
+            "$comment": "#1027 — chips use the shared service glyphs, each with its own `viewBox`. `twitter` draws the X glyph, `email` the Mail glyph and `website` the Link glyph, and they keep their saved slugs and labels. `tumblr` is resolved but not picked, so it is dropped.",
+            "tree": [
+                {
+                    "clientId": "asi-mixed",
+                    "name": "artisanpack/author-social-icons",
+                    "attributes": {
+                        "socialIcons": ["twitter", "instagram", "email", "website"],
+                        "iconStyle": "show-label-icon",
+                        "iconsDirection": "horizontal",
+                        "iconsStretch": "auto-width",
+                        "_resolvedAuthorSocialLinks": [
+                            { "slug": "twitter", "url": "https://x.com/example" },
+                            { "slug": "instagram", "url": "https://www.instagram.com/example" },
+                            { "slug": "tumblr", "url": "https://example.tumblr.com" },
+                            { "slug": "email", "url": "mailto:author@example.test" },
+                            { "slug": "website", "url": "https://example.test" }
+                        ]
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
             "name": "social-share-content-linkedin-copy-link",
             "$comment": "#963 — a LinkedIn share chip plus the copy-link chip, which links to the permalink and carries it in `data-ap-copy-link` for the front-end script to upgrade into a copy-to-clipboard button. `email` is resolved but not picked, so it is dropped.",
             "tree": [
@@ -4205,6 +4278,55 @@
                             { "slug": "linkedin", "url": "https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fexample.test%2Fposts%2Fhello" },
                             { "slug": "email", "url": "mailto:?subject=Hello&body=https%3A%2F%2Fexample.test%2Fposts%2Fhello" },
                             { "slug": "copyLink", "url": "https://example.test/posts/hello" }
+                        ]
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "name": "social-chip-colors-hostile",
+            "$comment": "#1079 — color attributes on the author and share chips that aren't safe CSS values are dropped, so a `;` can't add declarations and `url()` can't fetch from another origin. A value with an edge control character is dropped by every renderer, not trimmed, and the safe hover colors are kept.",
+            "tree": [
+                {
+                    "clientId": "asi-hostile",
+                    "name": "artisanpack/author-social-icons",
+                    "attributes": {
+                        "socialIcons": ["facebook"],
+                        "iconColor": "red;position:fixed;inset:0",
+                        "iconBackgroundColor": "url(//evil.test/x.png)",
+                        "iconHoverColor": "#abcdef",
+                        "iconHoverBackgroundColor": "</style><script>alert(1)</script>",
+                        "_resolvedAuthorSocialLinks": [
+                            { "slug": "facebook", "url": "https://www.facebook.com/example" }
+                        ]
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "ssc-hostile",
+                    "name": "artisanpack/social-share-content",
+                    "attributes": {
+                        "socialIcons": ["facebook"],
+                        "iconColor": "blue; background: url(https://evil.test/x.png)",
+                        "iconBackgroundColor": "#112233",
+                        "iconHoverColor": "red}body{display:none",
+                        "iconHoverBackgroundColor": "\"><img src=x onerror=alert(1)>",
+                        "_resolvedShareLinks": [
+                            { "slug": "facebook", "url": "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fexample.test%2Fposts%2Fhello" }
+                        ]
+                    },
+                    "innerBlocks": []
+                },
+                {
+                    "clientId": "asi-edge-control",
+                    "name": "artisanpack/author-social-icons",
+                    "attributes": {
+                        "socialIcons": ["facebook"],
+                        "iconColor": "\u000bred",
+                        "iconHoverColor": " #abcdef ",
+                        "_resolvedAuthorSocialLinks": [
+                            { "slug": "facebook", "url": "https://www.facebook.com/example" }
                         ]
                     },
                     "innerBlocks": []
@@ -7340,6 +7462,354 @@
                         }
                     ]
                 }
+            ]
+        },
+        {
+            "name": "visibility-content-related-posts",
+            "$comment": "#1030 — a Group with a heading and Related Posts disappears, heading included, when there are no related posts; renders normally when there are; and a `direction: hide` fallback shows only for the empty loop.",
+            "resolveQueries": false,
+            "prunedClientIds": [
+                "cv-rp-empty",
+                "cv-fallback-full"
+            ],
+            "tree": [
+                {
+                    "clientId": "cv-rp-empty",
+                    "name": "core/group",
+                    "attributes": {
+                        "artisanpackVisibility": {
+                            "content": {
+                                "source": "relatedPosts",
+                                "condition": "hasResults",
+                                "match": "any",
+                                "direction": "show"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "cv-rp-empty-h",
+                            "name": "core/heading",
+                            "attributes": {
+                                "anchor": "related-empty",
+                                "content": "Related posts",
+                                "level": 2
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "cv-rp-empty-l",
+                            "name": "artisanpack/related-posts",
+                            "attributes": {
+                                "_resolvedTotal": 0,
+                                "_resolvedItems": 0
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                },
+                {
+                    "clientId": "cv-rp-full",
+                    "name": "core/group",
+                    "attributes": {
+                        "artisanpackVisibility": {
+                            "content": {
+                                "source": "relatedPosts",
+                                "condition": "hasResults",
+                                "match": "any",
+                                "direction": "show"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "cv-rp-full-h",
+                            "name": "core/heading",
+                            "attributes": {
+                                "anchor": "related-full",
+                                "content": "Related posts",
+                                "level": 2
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "cv-rp-full-l",
+                            "name": "artisanpack/related-posts",
+                            "attributes": {
+                                "_resolvedTotal": 1,
+                                "_resolvedItems": 1
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "cv-item-21",
+                                    "name": "core/post-template-item",
+                                    "attributes": {
+                                        "postId": 21,
+                                        "className": "related-post post-21"
+                                    },
+                                    "innerBlocks": [
+                                        {
+                                            "clientId": "cv-item-21-p",
+                                            "name": "core/paragraph",
+                                            "attributes": {
+                                                "content": "Related A"
+                                            },
+                                            "innerBlocks": []
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "clientId": "cv-fallback-empty",
+                    "name": "core/group",
+                    "attributes": {
+                        "artisanpackVisibility": {
+                            "content": {
+                                "source": "relatedPosts",
+                                "condition": "hasResults",
+                                "match": "any",
+                                "direction": "hide"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "cv-fallback-empty-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "No other posts yet"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "cv-fallback-empty-l",
+                            "name": "artisanpack/related-posts",
+                            "attributes": {
+                                "_resolvedTotal": 0,
+                                "_resolvedItems": 0
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                },
+                {
+                    "clientId": "cv-fallback-full",
+                    "name": "core/group",
+                    "attributes": {
+                        "artisanpackVisibility": {
+                            "content": {
+                                "source": "relatedPosts",
+                                "condition": "hasResults",
+                                "match": "any",
+                                "direction": "hide"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "cv-fallback-full-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Never shown"
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "cv-fallback-full-l",
+                            "name": "artisanpack/related-posts",
+                            "attributes": {
+                                "_resolvedTotal": 1,
+                                "_resolvedItems": 1
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "cv-item-22",
+                                    "name": "core/post-template-item",
+                                    "attributes": {
+                                        "postId": 22,
+                                        "className": "related-post post-22"
+                                    },
+                                    "innerBlocks": [
+                                        {
+                                            "clientId": "cv-item-22-p",
+                                            "name": "core/paragraph",
+                                            "attributes": {
+                                                "content": "Related B"
+                                            },
+                                            "innerBlocks": []
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "visibility-content-post-navigation",
+            "$comment": "#1030 — a Group of post-navigation links disappears when the post has no neighbours and renders with one.",
+            "resolveQueries": false,
+            "prunedClientIds": [
+                "cv-nav-none"
+            ],
+            "tree": [
+                {
+                    "clientId": "cv-nav-none",
+                    "name": "core/group",
+                    "attributes": {
+                        "artisanpackVisibility": {
+                            "content": {
+                                "source": "postNavigation",
+                                "condition": "hasEither",
+                                "match": "any",
+                                "direction": "show"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "cv-nav-none-p",
+                            "name": "artisanpack/post-navigation-link",
+                            "attributes": {
+                                "type": "previous",
+                                "_resolvedPrevUrl": "",
+                                "_resolvedPrevTitle": "",
+                                "_resolvedNextUrl": "",
+                                "_resolvedNextTitle": ""
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "cv-nav-none-n",
+                            "name": "artisanpack/post-navigation-link",
+                            "attributes": {
+                                "type": "next",
+                                "_resolvedPrevUrl": "",
+                                "_resolvedPrevTitle": "",
+                                "_resolvedNextUrl": "",
+                                "_resolvedNextTitle": ""
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                },
+                {
+                    "clientId": "cv-nav-one",
+                    "name": "core/group",
+                    "attributes": {
+                        "artisanpackVisibility": {
+                            "content": {
+                                "source": "postNavigation",
+                                "condition": "hasEither",
+                                "match": "any",
+                                "direction": "show"
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "cv-nav-one-p",
+                            "name": "artisanpack/post-navigation-link",
+                            "attributes": {
+                                "type": "previous",
+                                "_resolvedPrevUrl": "https://example.com/older",
+                                "_resolvedPrevTitle": "Older",
+                                "_resolvedNextUrl": "",
+                                "_resolvedNextTitle": ""
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "code-language",
+            "$comment": "#1044 — `language` prints as a class on `<code>`, only for a known language, so a hostile value can't reach the attribute. A block with no language keeps a bare `<code>`, and `core/code` and `artisanpack/code` render alike.",
+            "tree": [
+                { "clientId": "cl-none", "name": "artisanpack/code", "attributes": { "content": "plain" }, "innerBlocks": [] },
+                { "clientId": "cl-php", "name": "artisanpack/code", "attributes": { "content": "&lt;?php echo 1;", "language": "php" }, "innerBlocks": [] },
+                { "clientId": "cl-core", "name": "core/code", "attributes": { "content": "const a = 1;", "language": "javascript" }, "innerBlocks": [] },
+                { "clientId": "cl-plain", "name": "artisanpack/code", "attributes": { "content": "text", "language": "plaintext" }, "innerBlocks": [] },
+                { "clientId": "cl-unknown", "name": "artisanpack/code", "attributes": { "content": "text", "language": "cobol" }, "innerBlocks": [] },
+                { "clientId": "cl-hostile", "name": "artisanpack/code", "attributes": { "content": "text", "language": "php\" onclick=\"alert(1)" }, "innerBlocks": [] }
+            ]
+        },
+        {
+            "name": "image-lightbox",
+            "$comment": "#1046 — an enabled image prints the container class, the overlay labels and a hidden trigger after the image, on both image block names. A link wins, and a block with the setting off or absent prints what it always did. A Gallery tells the overlay a non-default navigation button type.",
+            "tree": [
+                { "clientId": "lb-on", "name": "artisanpack/image", "attributes": { "url": "https://example.test/a.jpg", "alt": "A cat", "caption": "Hello", "lightbox": { "enabled": true } }, "innerBlocks": [] },
+                { "clientId": "lb-core", "name": "core/image", "attributes": { "url": "https://example.test/b.jpg", "alt": "", "lightbox": { "enabled": true } }, "innerBlocks": [] },
+                { "clientId": "lb-off", "name": "artisanpack/image", "attributes": { "url": "https://example.test/c.jpg", "alt": "Off", "lightbox": { "enabled": false } }, "innerBlocks": [] },
+                { "clientId": "lb-link", "name": "artisanpack/image", "attributes": { "url": "https://example.test/d.jpg", "alt": "Linked", "href": "https://example.test/page", "lightbox": { "enabled": true } }, "innerBlocks": [] },
+                { "clientId": "lb-gallery", "name": "core/gallery", "attributes": { "navigationButtonType": "both" }, "innerBlocks": [
+                    { "clientId": "lb-gallery-1", "name": "core/image", "attributes": { "url": "https://example.test/e.jpg", "alt": "One", "lightbox": { "enabled": true } }, "innerBlocks": [] }
+                ] }
+            ]
+        },
+        {
+            "name": "image-border-caption",
+            "$comment": "#1052 — border and radius land on the `<img>` with `has-custom-border` on the figure, ahead of the block's own image styles and class, and spacing stays on the figure. The caption keeps `wp-element-caption`.",
+            "tree": [
+                { "clientId": "ib-preset", "name": "core/image", "attributes": { "id": 7, "url": "https://example.test/a.jpg", "alt": "x", "caption": "Caption", "sizeSlug": "full", "borderColor": "primary", "style": { "border": { "width": "3px", "radius": "12px" }, "spacing": { "margin": { "top": "1rem" } } } }, "innerBlocks": [] },
+                { "clientId": "ib-custom", "name": "artisanpack/image", "attributes": { "url": "https://example.test/b.jpg", "alt": "y", "href": "https://example.test/page", "aspectRatio": "16/9", "width": "300px", "style": { "border": { "color": "#ff0000", "style": "dashed", "width": "1px", "radius": { "topLeft": "4px", "bottomRight": "8px" } } } }, "innerBlocks": [] },
+                { "clientId": "ib-side", "name": "core/image", "attributes": { "url": "https://example.test/c.jpg", "alt": "z", "style": { "border": { "top": { "color": "#00ff00", "width": "2px" } } } }, "innerBlocks": [] }
+            ]
+        },
+        {
+            "name": "image-focal-point",
+            "$comment": "#1054 — `focalPoint` prints as `object-position` after `object-fit` and before `width`, in `save()` order. A missing axis defaults to the center. An invalid point, or one with no scale, prints nothing.",
+            "tree": [
+                { "clientId": "fp-top", "name": "core/image", "attributes": { "url": "https://example.test/a.jpg", "alt": "a", "aspectRatio": "16/10", "scale": "cover", "focalPoint": { "x": 0.5, "y": 0 } }, "innerBlocks": [] },
+                { "clientId": "fp-width", "name": "artisanpack/image", "attributes": { "url": "https://example.test/b.jpg", "alt": "b", "scale": "contain", "focalPoint": { "x": 0.25, "y": 1 }, "width": "300px", "style": { "border": { "width": "1px" } } }, "innerBlocks": [] },
+                { "clientId": "fp-axis", "name": "core/image", "attributes": { "url": "https://example.test/c.jpg", "alt": "c", "scale": "cover", "focalPoint": { "y": 0.667 } }, "innerBlocks": [] },
+                { "clientId": "fp-range", "name": "core/image", "attributes": { "url": "https://example.test/d.jpg", "alt": "d", "scale": "cover", "focalPoint": { "x": 1.5, "y": 0 } }, "innerBlocks": [] },
+                { "clientId": "fp-hostile", "name": "core/image", "attributes": { "url": "https://example.test/e.jpg", "alt": "e", "scale": "cover", "focalPoint": { "x": "0;position:fixed", "y": 0 } }, "innerBlocks": [] },
+                { "clientId": "fp-null", "name": "core/image", "attributes": { "url": "https://example.test/g.jpg", "alt": "g", "scale": "cover", "focalPoint": { "x": null, "y": 0 } }, "innerBlocks": [] },
+                { "clientId": "fp-no-scale", "name": "core/image", "attributes": { "url": "https://example.test/f.jpg", "alt": "f", "focalPoint": { "x": 0.5, "y": 0 } }, "innerBlocks": [] }
+            ]
+        },
+        {
+            "name": "image-shadow",
+            "$comment": "#1052 — an Image's shadow adds nothing to the figure, for a preset string, a camelCase structured preset and a breakpoint override, and the `<img>` keeps its own classes. A breakpoint shadow leaves the figure's own responsive scope as Blade computes it. The shadow itself is delivered differently (see `image-shadow-mechanism-*`), so its value is pinned by each renderer's unit tests instead.",
+            "tree": [
+                { "clientId": "is-string", "name": "core/image", "attributes": { "id": 1, "url": "https://example.test/a.jpg", "alt": "a", "style": { "shadow": "var:preset|shadow|natural" } }, "innerBlocks": [] },
+                { "clientId": "is-preset", "name": "artisanpack/image", "attributes": { "id": 2, "url": "https://example.test/b.jpg", "alt": "b", "style": { "shadow": { "preset": "softGlow" } } }, "innerBlocks": [] },
+                { "clientId": "is-responsive", "name": "core/image", "attributes": { "id": 3, "url": "https://example.test/c.jpg", "alt": "c", "responsive": { "style.shadow": { "mobile": "var:preset|shadow|natural" }, "style.spacing.margin": { "mobile": { "top": "1rem" } } } }, "innerBlocks": [] }
+            ]
+        },
+        {
+            "name": "image-border-responsive",
+            "$comment": "#1052 — a breakpoint border override moves to the `<img>` with the idle border, under its own scope. The figure keeps its other overrides. The legacy `style.<breakpoint>.border` shape moves too, and a breakpoint a flat key already sets keeps the flat value.",
+            "tree": [
+                { "clientId": "ibr", "name": "core/image", "attributes": { "id": 7, "url": "https://example.test/a.jpg", "alt": "a", "caption": "Caption", "style": { "border": { "width": "1px" } }, "responsive": { "style.border.width": { "mobile": "6px" }, "style.spacing.margin": { "mobile": { "top": "2rem" } } } }, "innerBlocks": [] },
+                { "clientId": "ibr-legacy", "name": "core/image", "attributes": { "id": 8, "url": "https://example.test/b.jpg", "alt": "b", "style": { "border": { "width": "1px" } }, "responsive": { "style": { "mobile": { "border": { "width": "4px" }, "spacing": { "margin": { "top": "3rem" } } } } } }, "innerBlocks": [] },
+                { "clientId": "ibr-mixed", "name": "core/image", "attributes": { "id": 9, "url": "https://example.test/c.jpg", "alt": "c", "style": { "border": { "width": "1px" } }, "responsive": { "style.border.width": { "tablet": "5px" }, "style": { "mobile": { "border": { "width": "8px" } }, "tablet": { "border": { "width": "9px" } } } } }, "innerBlocks": [] }
+            ]
+        },
+        {
+            "name": "breadcrumbs-schema-default",
+            "$comment": "#1038 — with `breadcrumbsSchema` unset, breadcrumbs print no schema.org microdata.",
+            "tree": [
+                { "clientId": "bc", "name": "artisanpack/breadcrumbs", "attributes": { "_resolvedTrail": [ { "label": "Home", "url": "https://example.test/" }, { "label": "Blog", "url": "https://example.test/blog" }, { "label": "Hello", "current": true } ] }, "innerBlocks": [] }
+            ]
+        },
+        {
+            "name": "tabs-suffix-collision",
+            "$comment": "#1057 — a tab id that another block already claimed takes the next free suffix: `overview` and `overview-2` in the first Tabs block, then `Overview` in the second sanitizes to `overview` and becomes `overview-3`.",
+            "tree": [
+                { "clientId": "tc-a", "name": "artisanpack/tabs", "attributes": {}, "innerBlocks": [
+                    { "clientId": "tc-a1", "name": "artisanpack/tab-section", "attributes": { "label": "Overview", "tabId": "overview" }, "innerBlocks": [ { "clientId": "tc-a1p", "name": "core/paragraph", "attributes": { "content": "A1" }, "innerBlocks": [] } ] },
+                    { "clientId": "tc-a2", "name": "artisanpack/tab-section", "attributes": { "label": "Overview 2", "tabId": "overview-2" }, "innerBlocks": [ { "clientId": "tc-a2p", "name": "core/paragraph", "attributes": { "content": "A2" }, "innerBlocks": [] } ] }
+                ] },
+                { "clientId": "tc-b", "name": "artisanpack/tabs", "attributes": {}, "innerBlocks": [
+                    { "clientId": "tc-b1", "name": "artisanpack/tab-section", "attributes": { "label": "Overview", "tabId": "Overview" }, "innerBlocks": [ { "clientId": "tc-b1p", "name": "core/paragraph", "attributes": { "content": "B1" }, "innerBlocks": [] } ] }
+                ] }
             ]
         }
     ]

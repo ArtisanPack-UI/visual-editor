@@ -12,12 +12,26 @@
  * @since 1.0.0
  */
 
+import { safeCssValue } from '../../support/safe-css-value';
+
 export interface SocialColorAttributes {
     readonly iconColor?: string;
     readonly iconHoverColor?: string;
     readonly iconBackgroundColor?: string;
     readonly iconHoverBackgroundColor?: string;
 }
+
+/**
+ * Custom property each color attribute is written to, in output order.
+ */
+const SOCIAL_COLOR_PROPERTIES: ReadonlyArray<
+    readonly [keyof SocialColorAttributes, string]
+> = [
+    ['iconColor', '--ap-social-color'],
+    ['iconBackgroundColor', '--ap-social-bg'],
+    ['iconHoverColor', '--ap-social-hover-color'],
+    ['iconHoverBackgroundColor', '--ap-social-hover-bg'],
+];
 
 /**
  * Returns a CSS-style record (compatible with React's `CSSProperties`
@@ -36,31 +50,23 @@ export function buildSocialColorStyle(
     // higher specificity than the `.chip:hover { color: var(...) }`
     // rule and silently break hover swaps; the variable indirection
     // keeps base + hover on equal footing.
+    //
+    // A value that fails `safeCssValue()` is dropped, as the renderers
+    // drop it, so the canvas matches the front end (#1079).
     const style: Record<string, string> = {};
 
-    if (typeof attributes.iconColor === 'string' && attributes.iconColor !== '') {
-        style['--ap-social-color'] = attributes.iconColor;
-    }
+    for (const [attribute, property] of SOCIAL_COLOR_PROPERTIES) {
+        const value = attributes[attribute];
 
-    if (
-        typeof attributes.iconBackgroundColor === 'string' &&
-        attributes.iconBackgroundColor !== ''
-    ) {
-        style['--ap-social-bg'] = attributes.iconBackgroundColor;
-    }
+        if (typeof value !== 'string') {
+            continue;
+        }
 
-    if (
-        typeof attributes.iconHoverColor === 'string' &&
-        attributes.iconHoverColor !== ''
-    ) {
-        style['--ap-social-hover-color'] = attributes.iconHoverColor;
-    }
+        const safe = safeCssValue(value);
 
-    if (
-        typeof attributes.iconHoverBackgroundColor === 'string' &&
-        attributes.iconHoverBackgroundColor !== ''
-    ) {
-        style['--ap-social-hover-bg'] = attributes.iconHoverBackgroundColor;
+        if (safe !== null) {
+            style[property] = safe;
+        }
     }
 
     return style;

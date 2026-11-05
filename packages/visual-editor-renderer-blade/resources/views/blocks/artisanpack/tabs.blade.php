@@ -1,4 +1,5 @@
 @php
+	use ArtisanPackUI\VisualEditorRendererBlade\Services\TabIdStamper;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 
 	$renderer = app( \ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer::class );
@@ -18,59 +19,24 @@
 		$tabsSpacing = 'start';
 	}
 
-	/**
-	 * Normalize a tab id so it's safe to interpolate into HTML id /
-	 * aria-controls / fragment href values. Mirrors the React + Vue
-	 * sanitizeTabId helpers; positional fallback when the persisted
-	 * slug is empty.
-	 */
-	$sanitizeTabId = static function ( string $raw, int $sectionIndex ): string {
-		$slug = strtolower( $raw );
-		$slug = preg_replace( '/[^a-z0-9-]+/', '-', $slug ) ?? '';
-		$slug = trim( $slug, '-' );
-		return '' === $slug ? 'tab-' . $sectionIndex : $slug;
-	};
-
-	/**
-	 * Ensure a tab id is unique within the current tabs block — if the
-	 * author duplicated a tab-section (copy/paste, template clone) two
-	 * sections can land on the same slug, which would collapse the
-	 * trigger / panel ARIA wiring. Append a numeric suffix in that
-	 * case.
-	 */
-	$uniqueTabId = static function ( string $base, array &$used ): string {
-		if ( ! isset( $used[ $base ] ) ) {
-			$used[ $base ] = true;
-			return $base;
-		}
-		$suffix    = 2;
-		$candidate = $base . '-' . $suffix;
-		while ( isset( $used[ $candidate ] ) ) {
-			$suffix++;
-			$candidate = $base . '-' . $suffix;
-		}
-		$used[ $candidate ] = true;
-		return $candidate;
-	};
-
 	// Tab triggers AND panels are derived together from the inner
 	// blocks so the trigger anchor / aria-controls always lines up
 	// with the panel id, even when the section's persisted tabId is
-	// empty.
+	// empty. BlockRenderer::render() has already given each section a
+	// page-unique id (#1057); a block rendered on its own hasn't been
+	// through that pass, so it gets ids unique within this block.
 	$tabs = [];
 	$sectionIndex = 0;
-	$usedIds = [];
 
-	foreach ( $innerBlocks as $child ) {
+	foreach ( ( new TabIdStamper() )->stampSections( $innerBlocks ) as $child ) {
 		if ( ! is_array( $child ) || ( $child['name'] ?? '' ) !== 'artisanpack/tab-section' ) {
 			continue;
 		}
 
 		$sectionIndex++;
 		$childAttrs = isset( $child['attributes'] ) && is_array( $child['attributes'] ) ? $child['attributes'] : [];
-		$label  = (string) ( $childAttrs['label'] ?? '' );
-		$baseId = $sanitizeTabId( (string) ( $childAttrs['tabId'] ?? '' ), $sectionIndex );
-		$tabId  = $uniqueTabId( $baseId, $usedIds );
+		$label = (string) ( $childAttrs['label'] ?? '' );
+		$tabId = $childAttrs[ TabIdStamper::ATTRIBUTE ];
 
 		if ( '' === $label ) {
 			$label = 'Tab ' . $sectionIndex;

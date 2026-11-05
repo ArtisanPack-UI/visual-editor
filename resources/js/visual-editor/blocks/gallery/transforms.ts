@@ -85,7 +85,7 @@ function updateThirdPartyTransformToGallery(block: GalleryBlock): GalleryBlock {
     ) {
         const innerBlocks = (block.attributes.images ?? []).map(
             ({ url, id, alt }) => {
-                return createBlock('core/image', {
+                return createBlock('artisanpack/image', {
                     url,
                     id: id ? parseInt(String(id), 10) : null,
                     alt,
@@ -157,7 +157,7 @@ const transforms = {
         {
             type: 'block',
             isMultiBlock: true,
-            blocks: ['core/image'],
+            blocks: ['core/image', 'artisanpack/image'],
             transform: (
                 attributes: readonly ImageAttributesForBlockTransform[]
             ) => {
@@ -171,7 +171,7 @@ const transforms = {
                     ? sizeSlug
                     : undefined;
 
-                const validImages = attributes.filter(({ url }) => url);
+                const validImages = attributes.filter(({ url, id }) => url || id);
 
                 const innerBlocks = validImages.map((image) => {
                     const next = {
@@ -179,7 +179,7 @@ const transforms = {
                         width: undefined,
                         height: undefined,
                     };
-                    return createBlock('core/image', next);
+                    return createBlock('artisanpack/image', next);
                 });
 
                 return createBlock(name, { align, sizeSlug }, innerBlocks);
@@ -209,7 +209,7 @@ const transforms = {
                         ...(size && { sizeSlug: size }),
                     },
                     imageIds.map((imageId) =>
-                        createBlock('core/image', {
+                        createBlock('artisanpack/image', {
                             id: imageId,
                             ...(size && { sizeSlug: size }),
                         })
@@ -236,7 +236,7 @@ const transforms = {
             },
             transform(files: readonly File[]) {
                 const innerBlocks = files.map((file) =>
-                    createBlock('core/image', {
+                    createBlock('artisanpack/image', {
                         blob: createBlobURL(file),
                     })
                 );

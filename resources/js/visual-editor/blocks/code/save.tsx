@@ -2,7 +2,8 @@
  * Code — saved markup.
  *
  * Ported from `@wordpress/block-library/src/code/save.js` (v9.43.0).
- * Save shape is byte-equivalent to upstream `core/code`.
+ * Save shape is byte-equivalent to upstream `core/code` until a language is
+ * set (#1044), so existing blocks need no deprecation.
  */
 
 import type { ReactElement } from 'react';
@@ -16,6 +17,7 @@ interface ContentValue {
 
 interface CodeSaveAttributes {
     readonly content: string | ContentValue | null | undefined;
+    readonly language?: string;
 }
 
 interface CodeSaveProps {
@@ -39,6 +41,7 @@ export default function CodeSave({ attributes }: CodeSaveProps): ReactElement {
         <pre {...useBlockProps.save()}>
             <RichText.Content
                 tagName="code"
+                className={attributes.language ? `language-${attributes.language}` : undefined}
                 value={escape(resolveContent(attributes.content))}
             />
         </pre>

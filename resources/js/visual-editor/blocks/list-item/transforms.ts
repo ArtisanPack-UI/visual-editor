@@ -33,17 +33,17 @@ const transforms = {
         },
     ],
     to: [
-        {
-            type: 'block',
-            blocks: ['core/paragraph'],
+        ...['core/paragraph', 'artisanpack/paragraph'].map((blockName) => ({
+            type: 'block' as const,
+            blocks: [blockName],
             transform: (
                 attributes: ListItemAttributes,
                 innerBlocks: BlockInstance[] = []
             ) => [
-                createBlock('core/paragraph', attributes),
+                createBlock(blockName, attributes),
                 ...innerBlocks.map((block) => cloneBlock(block)),
             ],
-        },
+        })),
         {
             type: 'block',
             blocks: ['core/list-item'],

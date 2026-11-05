@@ -78,7 +78,7 @@ function normalizeTrail(value: unknown): ReadonlyArray<TrailItem> {
 
 export function BreadcrumbsBlock({ attributes }: BlockRendererProps): ReactElement {
     const separatorIcon = normalizeSeparator(attributes.separatorIcon);
-    const breadcrumbsSchema = attrBoolean(attributes.breadcrumbsSchema, true);
+    const breadcrumbsSchema = attrBoolean(attributes.breadcrumbsSchema, false);
     const trail = normalizeTrail(attributes._resolvedTrail);
     const ariaLabel = attrString(attributes.ariaLabel, 'Breadcrumb');
     const className = attrString(attributes.className);

@@ -13,7 +13,9 @@
  *     also covers markup the renderer never touched this request (a cached
  *     fragment, a page-cache hit, hand-written theme markup using a block's
  *     classes) and classes no block type predicts (the inline-icon format,
- *     the flex and photo-grid supports).
+ *     the flex and photo-grid supports). The Code block highlighter's
+ *     stylesheet and script go the same way (#1044), as do the lightbox's
+ *     (#1046).
  *  2. Moves the head's inline `<style data-ve-*>` run into one fingerprinted
  *     file, through {@see GeneratedStylesheets}.
  *
@@ -64,6 +66,39 @@ class FrontendStylesOptimizer
 		'data-ve-post-variant'     => [ 'wp-block-post-template', 'ap-related-posts' ],
 		'data-ve-masonry'          => [ 'is-layout-masonry', 'ap-grid-layout-masonry', 'ap-masonry' ],
 	];
+
+	/**
+	 * Tag attribute of the Code block highlighter's stylesheet and script
+	 * (#1044). Its token classes only exist once the script has run, so the
+	 * page is matched on the class the renderers print instead of through
+	 * {@see self::STYLESHEET_MARKERS}.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @var string
+	 */
+	public const CODE_HIGHLIGHT_ATTRIBUTE = 'data-ve-code-highlight';
+
+	/**
+	 * Tag attribute of the lightbox's stylesheet and script (#1046), and the
+	 * class that means a page needs them. The overlay's own classes only
+	 * exist once the script has run, so the script is matched on the class
+	 * the renderers print.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @var string
+	 */
+	public const LIGHTBOX_ATTRIBUTE = 'data-ve-lightbox';
+
+	/**
+	 * Class the renderers print on an image that opens in the lightbox.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @var string
+	 */
+	public const LIGHTBOX_MARKER = 'wp-lightbox-container';
 
 	/**
 	 * Inline tags that move into the generated file, in the order the
@@ -154,6 +189,14 @@ class FrontendStylesOptimizer
 		 */
 		$required = (array) applyFilters( 'ap.visualEditor.requiredStylesheets', [] );
 
+		if ( ! in_array( self::CODE_HIGHLIGHT_ATTRIBUTE, $required, true ) && ! $this->hasHighlightedCode( $body ) ) {
+			$head = $this->removeStyleAndScript( $head, self::CODE_HIGHLIGHT_ATTRIBUTE );
+		}
+
+		if ( ! in_array( self::LIGHTBOX_ATTRIBUTE, $required, true ) && ! str_contains( $body, self::LIGHTBOX_MARKER ) ) {
+			$head = $this->removeStyleAndScript( $head, self::LIGHTBOX_ATTRIBUTE );
+		}
+
 		foreach ( self::STYLESHEET_MARKERS as $attribute => $markers ) {
 			if ( in_array( $attribute, $required, true ) || $this->containsAny( $body, $markers ) ) {
 				continue;
@@ -175,6 +218,42 @@ class FrontendStylesOptimizer
 		}
 
 		return $head;
+	}
+
+	/**
+	 * Remove the `<link>` and `<script>` carrying a tag attribute.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @param  string  $head       Document up to `</head>`.
+	 * @param  string  $attribute  The tag attribute.
+	 */
+	protected function removeStyleAndScript( string $head, string $attribute ): string
+	{
+		$quoted = preg_quote( $attribute, '/' );
+
+		return preg_replace(
+			[
+				'/<link\b[^>]*\s' . $quoted . '(?=[\s>\/=])[^>]*>\s*/i',
+				'/<script\b[^>]*\s' . $quoted . '(?=[\s>\/=])[^>]*>\s*<\/script>\s*/i',
+			],
+			'',
+			$head,
+		) ?? $head;
+	}
+
+	/**
+	 * Whether the body has a `<code>` the highlighter would act on.
+	 * `language-plaintext` has no grammar, so it doesn't count.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @param  string  $body  The part of the document after `</head>`.
+	 */
+	protected function hasHighlightedCode( string $body ): bool
+	{
+		// A failed match keeps the tags: this step fails open.
+		return 0 !== preg_match( '/<code\b[^>]*\bclass=["\']?[^"\'>]*\blanguage-(?!plaintext\b)/i', $body );
 	}
 
 	/**

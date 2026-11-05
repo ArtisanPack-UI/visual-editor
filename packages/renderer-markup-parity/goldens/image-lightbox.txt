@@ -1,0 +1,40 @@
+<figure class="wp-block-image wp-lightbox-container" data-ap-lightbox-labels="{\"dialog\":\"Enlarged image\",\"close\":\"Close\",\"previous\":\"Previous image\",\"next\":\"Next image\",\"position\":\"Image :current of :total\"}">
+  <img alt="A cat" src="https://example.test/a.jpg" />
+  <button aria-haspopup="dialog" aria-label="Enlarge image: A cat" class="lightbox-trigger" style="display: none" type="button">
+    <svg aria-hidden="true" focusable="false" height="12" viewbox="0 0 12 12" width="12">
+      <path d="M2 0a2 2 0 0 0-2 2v2h1.5V2a.5.5 0 0 1 .5-.5h2V0H2Zm2 10.5H2a.5.5 0 0 1-.5-.5V8H0v2a2 2 0 0 0 2 2h2v-1.5ZM8 12v-1.5h2a.5.5 0 0 0 .5-.5V8H12v2a2 2 0 0 1-2 2H8Zm2-12a2 2 0 0 1 2 2v2h-1.5V2a.5.5 0 0 0-.5-.5H8V0h2Z" fill="currentColor">
+      </path>
+    </svg>
+  </button>
+  <figcaption class="wp-element-caption">
+    "Hello"
+  </figcaption>
+</figure>
+<figure class="wp-block-image wp-lightbox-container" data-ap-lightbox-labels="{\"dialog\":\"Enlarged image\",\"close\":\"Close\",\"previous\":\"Previous image\",\"next\":\"Next image\",\"position\":\"Image :current of :total\"}">
+  <img alt="" src="https://example.test/b.jpg" />
+  <button aria-haspopup="dialog" aria-label="Enlarge image" class="lightbox-trigger" style="display: none" type="button">
+    <svg aria-hidden="true" focusable="false" height="12" viewbox="0 0 12 12" width="12">
+      <path d="M2 0a2 2 0 0 0-2 2v2h1.5V2a.5.5 0 0 1 .5-.5h2V0H2Zm2 10.5H2a.5.5 0 0 1-.5-.5V8H0v2a2 2 0 0 0 2 2h2v-1.5ZM8 12v-1.5h2a.5.5 0 0 0 .5-.5V8H12v2a2 2 0 0 1-2 2H8Zm2-12a2 2 0 0 1 2 2v2h-1.5V2a.5.5 0 0 0-.5-.5H8V0h2Z" fill="currentColor">
+      </path>
+    </svg>
+  </button>
+</figure>
+<figure class="wp-block-image">
+  <img alt="Off" src="https://example.test/c.jpg" />
+</figure>
+<figure class="wp-block-image">
+  <a href="https://example.test/page">
+    <img alt="Linked" src="https://example.test/d.jpg" />
+  </a>
+</figure>
+<figure class="wp-block-gallery has-nested-images" data-ap-lightbox-navigation="both">
+  <figure class="wp-block-image wp-lightbox-container" data-ap-lightbox-labels="{\"dialog\":\"Enlarged image\",\"close\":\"Close\",\"previous\":\"Previous image\",\"next\":\"Next image\",\"position\":\"Image :current of :total\"}">
+    <img alt="One" src="https://example.test/e.jpg" />
+    <button aria-haspopup="dialog" aria-label="Enlarge image: One" class="lightbox-trigger" style="display: none" type="button">
+      <svg aria-hidden="true" focusable="false" height="12" viewbox="0 0 12 12" width="12">
+        <path d="M2 0a2 2 0 0 0-2 2v2h1.5V2a.5.5 0 0 1 .5-.5h2V0H2Zm2 10.5H2a.5.5 0 0 1-.5-.5V8H0v2a2 2 0 0 0 2 2h2v-1.5ZM8 12v-1.5h2a.5.5 0 0 0 .5-.5V8H12v2a2 2 0 0 1-2 2H8Zm2-12a2 2 0 0 1 2 2v2h-1.5V2a.5.5 0 0 0-.5-.5H8V0h2Z" fill="currentColor">
+        </path>
+      </svg>
+    </button>
+  </figure>
+</figure>

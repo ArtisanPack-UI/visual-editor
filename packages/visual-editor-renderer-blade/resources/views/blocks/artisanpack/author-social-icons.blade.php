@@ -1,6 +1,6 @@
 @php
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
-	use ArtisanPackUI\VisualEditorRendererBlade\Support\SocialIconRegistry;
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\SocialLinkServices;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\UrlSanitizer;
 
 	$validStyles     = [ 'show-label-icon', 'show-icon', 'show-label' ];
@@ -58,7 +58,7 @@
 				continue;
 			}
 
-			$definition = SocialIconRegistry::author( $slug );
+			$definition = SocialLinkServices::author( $slug );
 
 			if ( null === $definition ) {
 				continue;
@@ -71,10 +71,11 @@
 			}
 
 			$chips[] = [
-				'slug'  => $slug,
-				'url'   => $safeUrl,
-				'label' => $definition['label'],
-				'path'  => $definition['path'],
+				'slug'    => $slug,
+				'url'     => $safeUrl,
+				'label'   => $definition['label'],
+				'viewBox' => $definition['viewBox'],
+				'path'    => $definition['path'],
 			];
 		}
 	}
@@ -91,10 +92,12 @@
 		$styleParts[] = 'border-radius:' . $radius . 'px';
 	}
 
-	$iconColor      = is_string( $attributes['iconColor'] ?? null ) ? trim( $attributes['iconColor'] ) : '';
-	$iconHoverColor = is_string( $attributes['iconHoverColor'] ?? null ) ? trim( $attributes['iconHoverColor'] ) : '';
-	$iconBgColor    = is_string( $attributes['iconBackgroundColor'] ?? null ) ? trim( $attributes['iconBackgroundColor'] ) : '';
-	$iconHoverBg    = is_string( $attributes['iconHoverBackgroundColor'] ?? null ) ? trim( $attributes['iconHoverBackgroundColor'] ) : '';
+	// A value that is not a safe CSS value is dropped, so a `;` cannot
+	// add declarations to the chip (#1079).
+	$iconColor      = is_string( $attributes['iconColor'] ?? null ) ? ( BlockSupports::safeCssValue( $attributes['iconColor'] ) ?? '' ) : '';
+	$iconHoverColor = is_string( $attributes['iconHoverColor'] ?? null ) ? ( BlockSupports::safeCssValue( $attributes['iconHoverColor'] ) ?? '' ) : '';
+	$iconBgColor    = is_string( $attributes['iconBackgroundColor'] ?? null ) ? ( BlockSupports::safeCssValue( $attributes['iconBackgroundColor'] ) ?? '' ) : '';
+	$iconHoverBg    = is_string( $attributes['iconHoverBackgroundColor'] ?? null ) ? ( BlockSupports::safeCssValue( $attributes['iconHoverBackgroundColor'] ) ?? '' ) : '';
 
 	// Emit ONLY CSS custom properties — the base color / background
 	// come from `var(--ap-social-color)` / `var(--ap-social-bg)` rules
@@ -124,7 +127,7 @@
 		<div class="ap-author-social-icons__item">
 			<a class="ap-author-social-icons__chip {{ $chip['slug'] }}" href="{{ $chip['url'] }}" aria-label="{{ 'Author on ' . $chip['label'] }}"{!! $styleAttr !!}>
 				@if ( $showIcon )
-					<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true" focusable="false" class="ap-author-social-icons__icon" fill="currentColor"><path d="{{ $chip['path'] }}"></path></svg>
+					<svg xmlns="http://www.w3.org/2000/svg" viewBox="{{ $chip['viewBox'] }}" width="1em" height="1em" aria-hidden="true" focusable="false" class="ap-author-social-icons__icon" fill="currentColor"><path d="{{ $chip['path'] }}"></path></svg>
 				@endif
 				@if ( $showLabel )
 					<span class="ap-author-social-icons__label">{{ $chip['label'] }}</span>

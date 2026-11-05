@@ -434,7 +434,8 @@ it( 'preserves host-stamped _resolvedQueryTitle overrides', function (): void {
 
 	$tree = [ makeQueryBlockWithSiblings( [ $titleMarkup ] ) ];
 
-	$inlined = $this->inliner->inline( $tree );
+	// A host-resolved tree opts out of the saved-value strip (#1096).
+	$inlined = $this->inliner->inline( $tree, null, false );
 
 	$title = array_values( array_filter(
 		$inlined[0]['innerBlocks'],
@@ -518,7 +519,20 @@ it( 'keeps a host-stamped query-total count (#962)', function (): void {
 		[ 'name' => 'artisanpack/query-total', 'attributes' => [ '_resolvedTotal' => 42 ], 'innerBlocks' => [] ],
 	] ) ];
 
-	$total = findQueryTotal( $this->inliner->inline( $tree )[0]['innerBlocks'] );
+	// A host-resolved tree opts out of the saved-value strip (#1096).
+	$total = findQueryTotal( $this->inliner->inline( $tree, null, false )[0]['innerBlocks'] );
 
 	expect( $total['attributes']['_resolvedTotal'] )->toBe( 42 );
+} );
+
+it( 'stamps over a saved query-total count when the tree is stripped (#1096)', function (): void {
+	$this->fake->setItems( [ postFixture( 1, 'A' ) ] );
+
+	$tree = [ makeQueryBlockWithSiblings( [
+		[ 'name' => 'artisanpack/query-total', 'attributes' => [ '_resolvedTotal' => 42 ], 'innerBlocks' => [] ],
+	] ) ];
+
+	$total = findQueryTotal( $this->inliner->inline( $tree )[0]['innerBlocks'] );
+
+	expect( $total['attributes']['_resolvedTotal'] )->toBe( 1 );
 } );

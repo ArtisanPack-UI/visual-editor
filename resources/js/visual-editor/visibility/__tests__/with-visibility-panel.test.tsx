@@ -35,10 +35,31 @@ vi.mock('@wordpress/block-editor', () => ({
     InspectorControls: ({ children }: { children?: ReactNode }) => (
         <div data-testid="inspector-controls">{children}</div>
     ),
+    store: 'core/block-editor',
 }));
 
+const blockTree: Record<string, { name: string; order: string[] }> = {
+    group: { name: 'artisanpack/group', order: ['related'] },
+    related: { name: 'artisanpack/related-posts', order: [] },
+};
+
+const getBlockOrder = vi.fn((clientId: string) => blockTree[clientId]?.order ?? []);
+
+vi.mock('@wordpress/data', () => {
+    const store = {
+        getBlockName: (clientId: string) => blockTree[clientId]?.name ?? null,
+        getBlockOrder: (clientId: string) => getBlockOrder(clientId),
+    };
+
+    return {
+        useSelect: (mapSelect: (select: () => typeof store) => unknown) => mapSelect(() => store),
+    };
+});
+
 vi.mock('../VisibilityPanel', () => ({
-    VisibilityPanel: () => <div data-testid="visibility-panel" />,
+    VisibilityPanel: ({ subtreeBlockNames }: { subtreeBlockNames: string[] }) => (
+        <div data-testid="visibility-panel">{subtreeBlockNames.join(',')}</div>
+    ),
 }));
 
 vi.mock('../user-search', () => ({
@@ -50,8 +71,8 @@ import { withVisibilityPanel } from '../with-visibility-panel';
 const BlockEdit = () => <div data-testid="block-edit" />;
 const Wrapped = withVisibilityPanel(BlockEdit);
 
-function renderBlock(name: string, attributes: Record<string, unknown>): void {
-    render(<Wrapped name={name} attributes={attributes} setAttributes={() => undefined} />);
+function renderBlock(name: string, attributes: Record<string, unknown>, clientId?: string): void {
+    render(<Wrapped name={name} clientId={clientId} attributes={attributes} setAttributes={() => undefined} />);
 }
 
 describe('withVisibilityPanel', () => {
@@ -79,5 +100,25 @@ describe('withVisibilityPanel', () => {
         renderBlock('acme/unregistered', {});
 
         expect(screen.queryByTestId('visibility-panel')).toBeNull();
+    });
+
+    it('hands the panel the subtree when the block has a content rule', () => {
+        renderBlock(
+            'core/navigation-link',
+            { artisanpackVisibility: { content: { source: 'relatedPosts', condition: 'hasResults' } } },
+            'group',
+        );
+
+        expect(screen.getByTestId('visibility-panel').textContent)
+            .toBe('artisanpack/group,artisanpack/related-posts');
+    });
+
+    it('skips the subtree walk without a content rule', () => {
+        getBlockOrder.mockClear();
+
+        renderBlock('core/navigation-link', { artisanpackVisibility: null }, 'group');
+
+        expect(getBlockOrder).not.toHaveBeenCalled();
+        expect(screen.getByTestId('visibility-panel').textContent).toBe('');
     });
 });

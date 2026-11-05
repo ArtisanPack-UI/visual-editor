@@ -126,6 +126,18 @@ class ResourceResolver
 	}
 
 	/**
+	 * Returns every registered resource slug.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @return list<string>
+	 */
+	public function slugs(): array
+	{
+		return array_values( array_filter( array_keys( $this->resources ), 'is_string' ) );
+	}
+
+	/**
 	 * Returns the model class bound to a resource slug.
 	 *
 	 * @since 1.0.0

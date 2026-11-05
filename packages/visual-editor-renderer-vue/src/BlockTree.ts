@@ -36,6 +36,7 @@ import {
 } from './support/navigationOverlayCss';
 import { treeNavigationCollapseCss } from './support/navigationCollapseCss';
 import { stampDuotoneScopes } from './support/duotone';
+import { stampLightboxDefault } from './support/lightbox';
 import type { DuotonePresets } from './support/duotone';
 import { stampEffectsScopes } from './support/effects';
 import { stampHeadingAnchors } from './support/headingAnchors';
@@ -44,6 +45,7 @@ import { stampNavigationCurrent } from './support/navigationCurrent';
 import { stampPhotoGridScopes } from './support/photoGrid';
 import { stampResponsiveScopes } from './support/responsive';
 import { stampSocialLinksContext } from './support/socialLinks';
+import { stampTabIds } from './support/tabIds';
 import {
     DEFAULT_MAX_PATTERN_DEPTH,
     inlinePatterns,
@@ -128,6 +130,14 @@ export interface BlockTreeProps {
      */
     duotonePresets?: DuotonePresets;
     /**
+     * The theme's lightbox default, so images with no setting of their own
+     * follow `settings.blocks.{artisanpack,core}/image.lightbox.enabled` as
+     * they do on the Blade renderer.
+     *
+     * @since 1.20.0
+     */
+    lightboxDefault?: boolean;
+    /**
      * URL of the page being rendered, so navigation links / submenus
      * pointing at it get `current-menu-item` + `aria-current="page"` and
      * the ones leading to it `current-menu-ancestor`, as Blade marks them
@@ -194,6 +204,10 @@ export const BlockTree = defineComponent({
         duotonePresets: {
             type: [Array, Object] as PropType<DuotonePresets>,
             default: undefined,
+        },
+        lightboxDefault: {
+            type: Boolean,
+            default: false,
         },
         currentUrl: {
             type: String as PropType<string | null | undefined>,
@@ -266,8 +280,13 @@ export const BlockTree = defineComponent({
             // host-supplied URL, after every inliner so links from
             // template parts and patterns take part.
             // Social Icons (#1023) — hand each parent's settings to its icons.
-            return stampSocialLinksContext(
-                stampNavigationCurrent(stampHeadingAnchors(withQueries), props.currentUrl)
+            // Tab ids (#1057) — unique across the tree, after every inliner
+            // so sections from template parts, patterns and query rows take
+            // part.
+            return stampTabIds(
+                stampSocialLinksContext(
+                    stampNavigationCurrent(stampHeadingAnchors(withQueries), props.currentUrl)
+                )
             );
         });
 
@@ -334,7 +353,7 @@ export const BlockTree = defineComponent({
         // whose media renders, and print the rules plus the hidden SVG
         // filter definitions Blade drains from `DuotoneCssAccumulator`.
         const duotone = computed(() =>
-            stampDuotoneScopes(effects.value.tree, props.duotonePresets)
+            stampDuotoneScopes(stampLightboxDefault(effects.value.tree, props.lightboxDefault), props.duotonePresets)
         );
 
         const hasNavigationOverlay = computed(() => treeHasNavigationOverlay(duotone.value.tree));

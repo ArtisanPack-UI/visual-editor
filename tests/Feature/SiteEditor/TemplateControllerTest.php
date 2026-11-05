@@ -446,4 +446,103 @@ describe( 'DELETE /visual-editor/api/templates/{slug}', function (): void {
 
 		expect( Template::query()->whereKey( $template->id )->exists() )->toBeFalse();
 	} );
+
+	// #1018. Both URL forms report the revert, so a consumer that flushes
+	// caches on `deleted` or on the revert action never stays stale.
+	it( 'fires deleting and deleted events and the revert action on both URL forms', function ( string $form ): void {
+		$row = Template::create( [
+			'theme'         => 'digital-shopfront',
+			'slug'          => 'archive',
+			'title'         => 'Title',
+			'status'        => 'publish',
+			'is_custom'     => false,
+			'block_content' => [],
+			'author_id'     => null,
+		] );
+
+		$events  = [];
+		$reverts = [];
+
+		Template::deleting( function () use ( &$events ): void {
+			$events[] = 'deleting';
+		} );
+		Template::deleted( function ( Template $deleted ) use ( &$events ): void {
+			$events[] = 'deleted:' . $deleted->slug;
+		} );
+		addAction( 'ap.cmsFramework.siteEditor.reverted', function ( string $type, ?string $slug, string $theme ) use ( &$reverts ): void {
+			$reverts[] = [ $type, $slug, $theme ];
+		} );
+
+		$path = 'id' === $form ? (string) $row->id : 'archive?theme=digital-shopfront';
+
+		$this->deleteJson( '/visual-editor/api/templates/' . $path )->assertNoContent();
+
+		expect( $events )->toBe( [ 'deleting', 'deleted:archive' ] )
+			->and( $reverts )->toBe( [ [ 'template', 'archive', 'digital-shopfront' ] ] )
+			->and( Template::query()->whereKey( $row->id )->exists() )->toBeFalse();
+	} )->with( [ 'slug', 'id' ] );
+
+	it( 'reports the row\'s own theme when reverting an override for an inactive theme', function ( string $form ): void {
+		$row = Template::create( [
+			'theme'         => 'other-theme',
+			'slug'          => 'archive',
+			'title'         => 'Title',
+			'status'        => 'publish',
+			'is_custom'     => false,
+			'block_content' => [],
+			'author_id'     => null,
+		] );
+
+		$reverts = [];
+
+		addAction( 'ap.cmsFramework.siteEditor.reverted', function ( string $type, ?string $slug, string $theme ) use ( &$reverts ): void {
+			$reverts[] = [ $type, $slug, $theme ];
+		} );
+
+		$path = 'id' === $form ? (string) $row->id : 'archive?theme=other-theme';
+
+		$this->deleteJson( '/visual-editor/api/templates/' . $path )->assertNoContent();
+
+		expect( $reverts )->toBe( [ [ 'template', 'archive', 'other-theme' ] ] );
+	} )->with( [ 'slug', 'id' ] );
+
+	it( 'fires no revert action when no override matches the slug', function (): void {
+		$reverts = 0;
+
+		addAction( 'ap.cmsFramework.siteEditor.reverted', function () use ( &$reverts ): void {
+			$reverts++;
+		} );
+
+		$this->deleteJson( '/visual-editor/api/templates/missing?theme=digital-shopfront' )->assertNotFound();
+
+		expect( $reverts )->toBe( 0 );
+	} );
+
+	it( 'returns 409 and keeps the row when a deleting listener cancels the revert', function ( string $form ): void {
+		$row = Template::create( [
+			'theme'         => 'digital-shopfront',
+			'slug'          => 'archive',
+			'title'         => 'Title',
+			'status'        => 'publish',
+			'is_custom'     => false,
+			'block_content' => [],
+			'author_id'     => null,
+		] );
+
+		$reverts = 0;
+
+		Template::deleting( fn (): bool => false );
+		addAction( 'ap.cmsFramework.siteEditor.reverted', function () use ( &$reverts ): void {
+			$reverts++;
+		} );
+
+		$path = 'id' === $form ? (string) $row->id : 'archive?theme=digital-shopfront';
+
+		$this->deleteJson( '/visual-editor/api/templates/' . $path )
+			->assertConflict()
+			->assertJsonPath( 'message', 'Template override could not be reverted.' );
+
+		expect( $reverts )->toBe( 0 )
+			->and( Template::query()->whereKey( $row->id )->exists() )->toBeTrue();
+	} )->with( [ 'slug', 'id' ] );
 } );

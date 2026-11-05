@@ -23,7 +23,7 @@ import { applyBlockGap } from './blockGap';
 import { safeCssValue, safeFontFamilyValue, safeGradientValue } from './cssValue';
 import { applyDimensions, dimensionsClassName } from './dimensions';
 import { presetPickClass } from './layoutBaselineCss';
-import { expandPresetReference } from './presetReference';
+import { expandPresetReference, presetSlug } from './presetReference';
 
 /** The compiled wrapper output: classes in Blade order and a style object (camelCased keys). */
 export interface CompiledBlockSupports {
@@ -103,6 +103,110 @@ export function splitBackgroundSupports(compiled: CompiledBlockSupports): {
     }
 
     return { background, wrapper };
+}
+
+/**
+ * Split a block's border off its wrapper, for a block whose `block.json`
+ * skips border serialization and paints it on an inner element, as the
+ * Image block does on its `<img>` (#1052). Mirrors the border half of
+ * `BlockSupports::splitBorderAndShadow()`: a gradient border stays on the
+ * wrapper, because it can't paint on an `<img>`.
+ */
+export function splitBorderSupports(attributes: Record<string, unknown>): {
+    wrapper: Record<string, unknown>;
+    element: CompiledBlockSupports;
+} {
+    const style = attrRecord(attributes.style);
+
+    if (hasGradientBorder(attributes)) {
+        return { wrapper: attributes, element: { classNames: [], style: {} } };
+    }
+
+    const { border, ...wrapperStyle } = style;
+    const { borderColor, ...wrapper } = attributes;
+
+    return {
+        wrapper: { ...wrapper, style: wrapperStyle },
+        element: compileBlockSupports({ borderColor, style: { border } }),
+    };
+}
+
+/** Whether any cascade level of a block's border is a gradient, as `GradientBorderResolver::resolve()` reads it. */
+export function hasGradientBorder(attributes: Record<string, unknown>): boolean {
+    const overrides = [attrRecord(attributes.states), attrRecord(attributes.responsive)].flatMap((bag) =>
+        ['style.border.gradient', 'border.gradient'].flatMap((path) => Object.values(attrRecord(bag[path]))),
+    );
+
+    return [attrRecord(attrRecord(attributes.style).border).gradient, ...overrides].some(
+        (value) => stringAttr(value) !== '',
+    );
+}
+
+/**
+ * Whether any cascade level of a block's shadow is a gradient one, which
+ * stays on the wrapper. Mirrors `BlockSupports::hasGradientShadow()`: a
+ * layer with no preset and no raw value but a gradient, at the idle, state
+ * or breakpoint level.
+ */
+export function hasGradientShadow(attributes: Record<string, unknown>): boolean {
+    const overrides = [attrRecord(attributes.states), attrRecord(attributes.responsive)].flatMap((bag) =>
+        ['style.shadow', 'shadow'].flatMap((path) => Object.values(attrRecord(bag[path]))),
+    );
+
+    return [attrRecord(attributes.style).shadow, ...overrides].some((layer) => {
+        if (layer === null || typeof layer !== 'object') {
+            return false;
+        }
+
+        const { preset, value, gradient } = layer as Record<string, unknown>;
+
+        return stringAttr(preset) === '' && stringAttr(value) === '' && stringAttr(gradient) !== '';
+    });
+}
+
+/**
+ * The block's idle `box-shadow` value (#1052), or `null` when it has none
+ * or a gradient one, which can't paint on an `<img>`. Mirrors
+ * `BoxShadowResolver::normalizeSubtree()` and
+ * `BoxShadowEmitter::layerBoxShadowValue()`. State and breakpoint overrides
+ * are Blade-only.
+ */
+export function compileBoxShadow(attributes: Record<string, unknown>): string | null {
+    const shadow = attrRecord(attributes.style).shadow;
+
+    if (typeof shadow === 'string') {
+        return shadow.trim() === '' ? null : supportValue('box-shadow', shadow.trim());
+    }
+
+    const layer = attrRecord(shadow);
+    const inset = layer.inset === true;
+    const preset = stringAttr(layer.preset);
+
+    if (preset !== '') {
+        // Blade's `PresetRegistry::presetSlug()` rule, the name the theme
+        // declares: `softGlow` → `soft-glow`.
+        const slug = presetSlug(preset);
+
+        return slug === '' ? null : `var(--wp--preset--shadow--${slug})${inset ? ' inset' : ''}`;
+    }
+
+    if (stringAttr(layer.value) !== '') {
+        return supportValue('box-shadow', stringAttr(layer.value));
+    }
+
+    const sides = [layer.offsetX, layer.offsetY, layer.blur, layer.spread].map(stringAttr);
+    const color = stringAttr(layer.color);
+
+    if (stringAttr(layer.gradient) !== '' || (sides.every((side) => side === '') && color === '' && !inset)) {
+        return null;
+    }
+
+    const value = supportValue(
+        'box-shadow',
+        [...sides.map((side) => side || '0px'), color || 'currentColor'].join(' '),
+    );
+
+    return value !== null && inset ? `inset ${value}` : value;
 }
 
 /**

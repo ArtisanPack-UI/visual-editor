@@ -185,7 +185,7 @@ it( 'derives post-content heading anchors from token-resolved HTML without resol
 		], [], 'pc-1' ),
 	];
 
-	$html = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+	$html = Blade::render( '<x-ve-blocks :tree="$tree" :trust-resolved="true" />', [ 'tree' => $tree ] );
 
 	expect( $html )->toContain( '<h2 id="about-acme">About Acme</h2>' )
 		->and( $html )->toContain( 'href="#about-acme">About Acme</a>' )

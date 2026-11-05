@@ -14,8 +14,10 @@ import {
     extractThemeFontFamilies,
     extractThemeFontSizes,
     extractThemeGradients,
+    extractThemeLightboxBlocks,
     extractThemePalette,
     extractThemeSpacingSizes,
+    withThemeLightboxBlocks,
 } from '../use-themed-editor-settings';
 
 describe('extractThemePalette', () => {
@@ -299,5 +301,65 @@ describe('extractThemeGradients', () => {
                 gradient: 'linear-gradient(135deg, #3b82f6, #06b6d4)',
             },
         ]);
+    });
+});
+
+describe('extractThemeLightboxBlocks (#1046)', () => {
+    it('returns null with nothing to forward', () => {
+        expect(extractThemeLightboxBlocks({})).toBeNull();
+        expect(extractThemeLightboxBlocks({ blocks: { 'core/image': {} } })).toBeNull();
+    });
+
+    it('forwards both image keys', () => {
+        const lightbox = { enabled: true };
+
+        expect(
+            extractThemeLightboxBlocks({
+                blocks: { 'core/image': { lightbox }, 'artisanpack/image': { lightbox } },
+            })
+        ).toEqual({ 'core/image': { lightbox }, 'artisanpack/image': { lightbox } });
+    });
+
+    it('leaves other block settings out', () => {
+        expect(
+            extractThemeLightboxBlocks({
+                blocks: {
+                    'core/image': { color: { custom: false }, lightbox: { enabled: true } },
+                    'core/group': { lightbox: { enabled: true } },
+                },
+            })
+        ).toEqual({ 'core/image': { lightbox: { enabled: true } } });
+    });
+});
+
+describe('withThemeLightboxBlocks (#1046)', () => {
+    const blocks = { 'core/image': { lightbox: { enabled: true } } };
+
+    it('returns the same settings with nothing to add', () => {
+        expect(withThemeLightboxBlocks(editorSettings, null)).toBe(editorSettings);
+    });
+
+    it('keeps an image block\'s other settings', () => {
+        const next = withThemeLightboxBlocks(
+            { __experimentalFeatures: { blocks: { 'core/image': { color: { custom: false } } } } },
+            blocks
+        );
+
+        expect(next.__experimentalFeatures.blocks['core/image']).toEqual({
+            color: { custom: false },
+            lightbox: { enabled: true },
+        });
+    });
+
+    it('adds the blocks and leaves the other features alone', () => {
+        const next = withThemeLightboxBlocks(
+            { __experimentalFeatures: { color: { custom: false }, blocks: { 'core/group': {} } } },
+            blocks
+        );
+
+        expect(next.__experimentalFeatures).toEqual({
+            color: { custom: false },
+            blocks: { 'core/group': {}, ...blocks },
+        });
     });
 });

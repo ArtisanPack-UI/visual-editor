@@ -1,0 +1,129 @@
+/*
+ * Code block token colours (#1044).
+ *
+ * Two palettes. The highlighter measures the background behind each block and
+ * sets `data-ap-code-scheme` for the one that fits. Every token meets WCAG AA
+ * (4.5:1) on a background of luminance 0.7 or more for the light palette, or
+ * 0.04 or less for the dark one. On a background in between, such as a
+ * mid-tone brand colour, the highlighter sets `data-ap-code-tokens="mono"` and
+ * the tokens keep the text colour, so code stays readable but plain. A theme
+ * can set `--ap-code-*` to override a colour, on `:root` for every block or on
+ * `[data-ap-code-scheme="dark"]` for one palette; the monochrome rule still
+ * wins over those. Inside a layer, so any unlayered host rule wins.
+ */
+
+@layer ve-code-highlight {
+    code[data-ap-code-scheme='light'] {
+        --ap-code-default-text: #1f2937;
+        --ap-code-default-comment: #57606a;
+        --ap-code-default-keyword: #a0111f;
+        --ap-code-default-string: #0a3069;
+        --ap-code-default-number: #0550ae;
+        --ap-code-default-function: #6639ba;
+        --ap-code-default-type: #7d4e00;
+        --ap-code-default-tag: #116329;
+        --ap-code-default-attribute: #953800;
+        --ap-code-default-variable: #1f4e79;
+    }
+
+    code[data-ap-code-scheme='dark'] {
+        --ap-code-default-text: #e6edf3;
+        --ap-code-default-comment: #94a3b8;
+        --ap-code-default-keyword: #ff7b72;
+        --ap-code-default-string: #a5d6ff;
+        --ap-code-default-number: #79c0ff;
+        --ap-code-default-function: #d2a8ff;
+        --ap-code-default-type: #ffa657;
+        --ap-code-default-tag: #7ee787;
+        --ap-code-default-attribute: #ffa657;
+        --ap-code-default-variable: #a5d6ff;
+    }
+
+    code[data-ap-code-contrast='low'] {
+        color: var(--ap-code-text, var(--ap-code-default-text));
+    }
+
+    .ap-code-comment,
+    .ap-code-prolog,
+    .ap-code-doctype,
+    .ap-code-cdata {
+        color: var(--ap-code-comment, var(--ap-code-default-comment));
+    }
+
+    .ap-code-keyword,
+    .ap-code-atrule,
+    .ap-code-rule,
+    .ap-code-important {
+        color: var(--ap-code-keyword, var(--ap-code-default-keyword));
+    }
+
+    .ap-code-string,
+    .ap-code-char,
+    .ap-code-attr-value,
+    .ap-code-regex,
+    .ap-code-url,
+    .ap-code-inserted {
+        color: var(--ap-code-string, var(--ap-code-default-string));
+    }
+
+    .ap-code-number,
+    .ap-code-boolean,
+    .ap-code-constant,
+    .ap-code-symbol {
+        color: var(--ap-code-number, var(--ap-code-default-number));
+    }
+
+    .ap-code-function {
+        color: var(--ap-code-function, var(--ap-code-default-function));
+    }
+
+    .ap-code-class-name,
+    .ap-code-builtin {
+        color: var(--ap-code-type, var(--ap-code-default-type));
+    }
+
+    .ap-code-tag,
+    .ap-code-selector,
+    .ap-code-deleted {
+        color: var(--ap-code-tag, var(--ap-code-default-tag));
+    }
+
+    .ap-code-attr-name,
+    .ap-code-property {
+        color: var(--ap-code-attribute, var(--ap-code-default-attribute));
+    }
+
+    .ap-code-variable {
+        color: var(--ap-code-variable, var(--ap-code-default-variable));
+    }
+
+    .ap-code-punctuation,
+    .ap-code-operator {
+        color: var(--ap-code-punctuation, inherit);
+    }
+
+    .ap-code-bold {
+        font-weight: 700;
+    }
+
+    .ap-code-italic {
+        font-style: italic;
+    }
+
+    /* No palette reaches AA on this background: keep the text colour. */
+    code[data-ap-code-tokens='mono'] [class*='ap-code-'] {
+        color: inherit;
+    }
+
+    code[data-ap-code-tokens='mono'] .ap-code-comment {
+        font-style: italic;
+    }
+
+    code[data-ap-code-tokens='mono'][data-ap-code-contrast='low'][data-ap-code-scheme='light'] {
+        color: #000;
+    }
+
+    code[data-ap-code-tokens='mono'][data-ap-code-contrast='low'][data-ap-code-scheme='dark'] {
+        color: #fff;
+    }
+}

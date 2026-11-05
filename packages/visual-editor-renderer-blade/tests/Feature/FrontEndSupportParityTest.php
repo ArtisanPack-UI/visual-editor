@@ -27,7 +27,7 @@ use Illuminate\Support\Facades\Blade;
  */
 function renderSupportParityBlock( string $name, array $attributes ): string
 {
-	return Blade::render( '<x-ve-blocks :tree="$tree" />', [
+	return Blade::render( '<x-ve-blocks :tree="$tree" :trust-resolved="true" />', [
 		'tree' => [ [ 'clientId' => 'c1', 'name' => $name, 'attributes' => $attributes, 'innerBlocks' => [] ] ],
 	] );
 }
@@ -71,8 +71,63 @@ describe( 'image aspect ratio, scale and duotone (#873)', function (): void {
 		expect( $html )->toContain( '<img src="https://example.com/a.jpg" alt=""/>' );
 	} );
 
+	it( 'prints the focal point after object-fit (#1054)', function (): void {
+		$html = renderSupportParityBlock( 'core/image', [
+			'url'         => 'https://example.com/a.jpg',
+			'aspectRatio' => '16/10',
+			'scale'       => 'cover',
+			'focalPoint'  => [ 'x' => 0.5, 'y' => 0 ],
+			'width'       => '300px',
+		] );
+
+		expect( $html )->toContain( 'style="aspect-ratio:16/10;object-fit:cover;object-position:50% 0%;width:300px"' );
+	} );
+
+	it( 'defaults a missing focal point axis to the center (#1054)', function (): void {
+		$html = renderSupportParityBlock( 'core/image', [
+			'url'        => 'https://example.com/a.jpg',
+			'scale'      => 'cover',
+			'focalPoint' => [ 'y' => 1 ],
+		] );
+
+		expect( $html )->toContain( 'object-position:50% 100%' );
+	} );
+
+	it( 'drops an invalid focal point (#1054)', function ( mixed $focalPoint ): void {
+		$html = renderSupportParityBlock( 'core/image', [
+			'url'        => 'https://example.com/a.jpg',
+			'scale'      => 'cover',
+			'focalPoint' => $focalPoint,
+		] );
+
+		expect( $html )->toContain( 'object-fit:cover' )
+			->and( $html )->not->toContain( 'object-position' );
+	} )->with( [
+		'out-of-range axis' => [ [ 'x' => 1.5, 'y' => 0 ] ],
+		'negative axis'     => [ [ 'x' => 0.5, 'y' => -0.1 ] ],
+		'numeric string'    => [ [ 'x' => '0.5', 'y' => 0 ] ],
+		'hostile string'    => [ [ 'x' => '0;position:fixed', 'y' => 0 ] ],
+		'boolean'           => [ [ 'x' => true, 'y' => 0 ] ],
+		'null axis'         => [ [ 'x' => null, 'y' => 0 ] ],
+		'not-a-number'      => [ [ 'x' => NAN, 'y' => 0 ] ],
+		'non-array'         => [ 'top' ],
+	] );
+
+	it( 'ignores the focal point without a known scale (#1054)', function ( array $attributes ): void {
+		$html = renderSupportParityBlock( 'core/image', [
+			'url'        => 'https://example.com/a.jpg',
+			'focalPoint' => [ 'x' => 0.5, 'y' => 0 ],
+			...$attributes,
+		] );
+
+		expect( $html )->not->toContain( 'object-position' );
+	} )->with( [
+		'no scale'      => [ [] ],
+		'unknown scale' => [ [ 'scale' => 'stretch' ] ],
+	] );
+
 	it( 'applies a custom duotone and emits its filter once', function (): void {
-		$html = Blade::render( '<x-ve-blocks :tree="$tree" />', [
+		$html = Blade::render( '<x-ve-blocks :tree="$tree" :trust-resolved="true" />', [
 			'tree' => [
 				[ 'clientId' => 'a', 'name' => 'core/image', 'attributes' => [ 'url' => '/a.jpg', 'style' => [ 'color' => [ 'duotone' => [ '#000000', '#ff0000' ] ] ] ], 'innerBlocks' => [] ],
 				[ 'clientId' => 'b', 'name' => 'core/image', 'attributes' => [ 'url' => '/b.jpg', 'style' => [ 'color' => [ 'duotone' => [ '#000000', '#ff0000' ] ] ] ], 'innerBlocks' => [] ],
@@ -91,7 +146,7 @@ describe( 'image aspect ratio, scale and duotone (#873)', function (): void {
 	it( 'prints each duotone filter once across two renders on a page (R-10)', function (): void {
 		$tree = [ [ 'clientId' => 'a', 'name' => 'core/image', 'attributes' => [ 'url' => '/a.jpg', 'style' => [ 'color' => [ 'duotone' => [ '#000000', '#ff0000' ] ] ] ], 'innerBlocks' => [] ] ];
 
-		$html = Blade::render( '<x-ve-blocks :tree="$tree" /><x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+		$html = Blade::render( '<x-ve-blocks :tree="$tree" :trust-resolved="true" /><x-ve-blocks :tree="$tree" :trust-resolved="true" />', [ 'tree' => $tree ] );
 
 		preg_match_all( '/<filter id="([^"]+)">/', $html, $matches );
 

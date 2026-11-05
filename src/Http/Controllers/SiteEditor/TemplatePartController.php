@@ -29,7 +29,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor;
 
-use ArtisanPackUI\VisualEditor\Effects\CustomCssGuard;
+use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\Concerns\ReadsSiteEditorRouteInput;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\StoreTemplatePartRequest;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\UpdateTemplatePartRequest;
 use ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\SiteEditor\TemplatePartAdapter;
@@ -37,7 +37,9 @@ use ArtisanPackUI\VisualEditor\Rules\TemplateBlockTreeRule;
 use ArtisanPackUI\VisualEditor\SiteEditor\Previews\PatternPreviewCache;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedTemplatePart;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\TemplatePartResolver;
+use ArtisanPackUI\VisualEditor\Support\BlockContentGuard;
 use ArtisanPackUI\VisualEditor\Support\ThemeBlockMarkup;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -47,6 +49,8 @@ use Illuminate\Support\Facades\Validator;
 
 class TemplatePartController extends Controller
 {
+	use ReadsSiteEditorRouteInput;
+
 	protected const CMS_TEMPLATE_PART_FQCN = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Models\\TemplatePart';
 
 	protected const CMS_RESOLVER_BINDING = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Resolution\\TemplatePartResolver';
@@ -83,7 +87,11 @@ class TemplatePartController extends Controller
 	{
 		$parts = $this->resolver->all();
 
-		$area = trim( (string) $request->query( 'area', '' ) );
+		$area = $this->stringQuery( $request, 'area' );
+
+		if ( null === $area ) {
+			return $this->invalidStringQuery( 'area' );
+		}
 
 		if ( '' !== $area ) {
 			$parts = array_filter(
@@ -92,7 +100,11 @@ class TemplatePartController extends Controller
 			);
 		}
 
-		$theme = trim( (string) $request->query( 'theme', '' ) );
+		$theme = $this->stringQuery( $request, 'theme' );
+
+		if ( null === $theme ) {
+			return $this->invalidStringQuery( 'theme' );
+		}
 
 		if ( '' !== $theme ) {
 			$parts = array_filter(
@@ -101,7 +113,11 @@ class TemplatePartController extends Controller
 			);
 		}
 
-		$slug = trim( (string) $request->query( 'slug', '' ) );
+		$slug = $this->stringQuery( $request, 'slug' );
+
+		if ( null === $slug ) {
+			return $this->invalidStringQuery( 'slug' );
+		}
 
 		if ( '' !== $slug ) {
 			$parts = array_filter(
@@ -123,6 +139,7 @@ class TemplatePartController extends Controller
 	 * form. {@see findTemplatePartByIdOrSlug()} handles both.
 	 *
 	 * @since 1.0.0
+	 * @since 1.20.0 Accepts a `<theme>~<slug>` id (#1094).
 	 */
 	public function show( string $slug ): JsonResponse
 	{
@@ -259,6 +276,7 @@ class TemplatePartController extends Controller
 	 * PUT `/visual-editor/api/template-parts/{slug}` — update or upsert.
 	 *
 	 * @since 1.0.0
+	 * @since 1.20.0 Accepts a `<theme>~<slug>` id (#1094).
 	 */
 	public function update( UpdateTemplatePartRequest $request, string $slug ): JsonResponse
 	{
@@ -270,21 +288,53 @@ class TemplatePartController extends Controller
 
 		$model = self::CMS_TEMPLATE_PART_FQCN;
 
-		// H7 (#432). Numeric URL parameter → primary-key update on
-		// the row that already knows its `(theme, slug, area)`. Slug
-		// path keeps the existing upsert behavior so a theme-only
-		// part can be DB-overridden through a PUT. `0` is the file-only
-		// sentinel and must fall through to the slug branch (#438).
-		if ( ctype_digit( $slug ) && (int) $slug > 0 ) {
-			$existing = $model::query()->find( (int) $slug );
+		$requestTheme = (string) ( $validated['theme'] ?? '' );
 
-			if ( null === $existing ) {
+		// A `<theme>~<slug>` id addresses a file-only record by slug, so
+		// it takes the `(theme, slug)` upsert path in its own theme (#1094).
+		$composite = $this->splitCompositeId( $slug );
+
+		if ( null !== $composite ) {
+			if ( '' !== $requestTheme && $requestTheme !== $composite['theme'] ) {
+				return $this->compositeThemeMismatch();
+			}
+
+			$slug         = $composite['slug'];
+			$requestTheme = $composite['theme'];
+
+			// Only a record that theme has, as a row or as the active
+			// theme's file, so another theme's id can't copy the active
+			// theme's file into it (#1074).
+			if ( ! $this->slugNamesTemplatePart( $slug, $requestTheme ) ) {
 				return response()->json(
 					[ 'message' => 'Template part not found.' ],
 					Response::HTTP_NOT_FOUND,
 				);
 			}
+		}
 
+		$scopeTheme = '' !== $requestTheme ? $requestTheme : (string) ( $this->activeThemeSlug() ?? '' );
+
+		// H7 (#432). Numeric URL parameter → primary-key update on
+		// the row that already knows its `(theme, slug, area)`. Slug
+		// path keeps the existing upsert behavior so a theme-only
+		// part can be DB-overridden through a PUT. `0` is the file-only
+		// sentinel and must fall through to the slug branch (#438).
+		// All-digit input such as `404` can be a slug too (#1074): a row
+		// id in the target theme wins, then a `(theme, slug)` match, and
+		// an id in another theme only when the body names no theme.
+		$existing = null === $composite && $this->couldBeRowId( $slug )
+			? $this->numericUpdateTarget( $slug, $requestTheme, $scopeTheme )
+			: false;
+
+		if ( null === $existing ) {
+			return response()->json(
+				[ 'message' => 'Template part not found.' ],
+				Response::HTTP_NOT_FOUND,
+			);
+		}
+
+		if ( $existing instanceof Model ) {
 			if (
 				array_key_exists( 'slug', $validated )
 				&& $validated['slug'] !== (string) $existing->slug
@@ -310,11 +360,7 @@ class TemplatePartController extends Controller
 
 			unset( $validated['slug'] );
 
-			$theme = (string) ( $validated['theme'] ?? '' );
-
-			if ( '' === $theme ) {
-				$theme = (string) ( $this->activeThemeSlug() ?? '' );
-			}
+			$theme = $scopeTheme;
 
 			if ( '' === $theme ) {
 				return response()->json( [
@@ -337,11 +383,20 @@ class TemplatePartController extends Controller
 				// etc.) before layering user-supplied changes on top,
 				// so NOT NULL columns like `title` and `area` always
 				// carry a value (#438).
-				$fileDefaults = $this->fileSourceDefaults( $slug );
+				$fileDefaults = $this->fileSourceDefaults( $slug, $theme );
+
+				// Only the theme's own file seeds the row, so with no file
+				// for this theme the title has to come from the request.
+				if ( [] === $fileDefaults && ! array_key_exists( 'title', $validated ) ) {
+					return response()->json( [
+						'message' => __( 'A title is required to create a template part for this theme.' ),
+						'errors'  => [ 'title' => [ __( 'The title field is required when the theme has no file for this slug.' ) ] ],
+					], Response::HTTP_UNPROCESSABLE_ENTITY );
+				}
 
 				$attributes = array_merge(
 					$fileDefaults,
-					$this->modelAttributesFromRequest( $validated, $this->fileSourceBlocks( $slug ) ),
+					$this->modelAttributesFromRequest( $validated, $this->fileSourceBlocks( $slug, $theme ) ),
 				);
 				$attributes['slug']  = $slug;
 				$attributes['theme'] = $theme;
@@ -391,8 +446,18 @@ class TemplatePartController extends Controller
 		// The DB write succeeded; a post-write resolver miss shouldn't
 		// surface as 404. See {@see TemplateController::update()} for
 		// the full rationale.
-		if ( ! $resolved instanceof ResolvedTemplatePart ) {
-			return response()->json( [ 'message' => 'Template part updated but could not be resolved.' ] );
+		//
+		// The resolver only reads the active theme, so a write to another
+		// theme's row would otherwise answer with the active theme's
+		// record of the same slug. Report the row that was written
+		// instead (#1094).
+		if ( ! $resolved instanceof ResolvedTemplatePart || $resolved->theme !== (string) $existing->theme ) {
+			return response()->json( [
+				'message' => 'Template part updated but could not be resolved.',
+				'id'      => $existing->getKey(),
+				'slug'    => (string) $existing->slug,
+				'theme'   => (string) $existing->theme,
+			] );
 		}
 
 		return response()->json( ( new TemplatePartAdapter() )->toArray( $resolved ) );
@@ -403,9 +468,13 @@ class TemplatePartController extends Controller
 	 * revert to theme by deleting the DB override scoped to `(theme, slug)`.
 	 * Theme is required because cms-framework's unique index is
 	 * `(theme, slug)`; see {@see TemplateController::destroy()} for the
-	 * full rationale.
+	 * full rationale. Returns 409 when a `deleting` listener cancels the
+	 * delete.
 	 *
 	 * @since 1.0.0
+	 * @since 1.20.0 The slug path deletes through the model, so it fires
+	 *               `deleting` / `deleted` like the numeric path.
+	 *               Accepts a `<theme>~<slug>` id (#1094).
 	 */
 	public function destroy( Request $request, string $slug ): JsonResponse
 	{
@@ -415,12 +484,49 @@ class TemplatePartController extends Controller
 
 		$model = self::CMS_TEMPLATE_PART_FQCN;
 
+		$requestTheme = $this->stringQuery( $request, 'theme' );
+
+		if ( null === $requestTheme ) {
+			return $this->invalidStringQuery( 'theme' );
+		}
+
+		// A `<theme>~<slug>` id names its theme and slug, so it takes the
+		// `(theme, slug)` path, never the row-id one (#1094).
+		$composite = $this->splitCompositeId( $slug );
+
+		if ( null !== $composite ) {
+			if ( '' !== $requestTheme && $requestTheme !== $composite['theme'] ) {
+				return $this->compositeThemeMismatch();
+			}
+
+			$slug         = $composite['slug'];
+			$requestTheme = $composite['theme'];
+		}
+
+		$theme = '' !== $requestTheme ? $requestTheme : (string) ( $this->activeThemeSlug() ?? '' );
+
 		// H7 (#432). Numeric URL parameter → primary-key delete; the
-		// row owns its theme so the `?theme=` collision risk doesn't
-		// apply. Slug path keeps the `?theme=` requirement. `0` is the
-		// file-only sentinel and must fall through (#438).
-		if ( ctype_digit( $slug ) && (int) $slug > 0 ) {
-			$existing = $model::query()->find( (int) $slug );
+		// row owns its theme. `0` is the file-only sentinel and must
+		// fall through (#438). An all-digit value such as `404`
+		// can also be a slug (#1074).
+		if ( null === $composite && $this->couldBeRowId( $slug ) ) {
+			$byId   = $model::query()->find( (int) $slug );
+			$bySlug = '' !== $theme
+				? $model::query()->where( 'theme', $theme )->where( 'slug', $slug )->first()
+				: null;
+
+			if ( null !== $byId && '' !== $theme && $theme !== (string) $byId->theme ) {
+				$byIdInTheme = null;
+			} else {
+				$byIdInTheme = $byId;
+			}
+
+			// A named theme marks a slug client, so its slug wins. Otherwise
+			// the editor sent a row id: one in the active theme wins, then
+			// the active theme's slug, then an id in another theme.
+			$existing = '' !== $requestTheme
+				? $bySlug ?? $byIdInTheme
+				: $byIdInTheme ?? $bySlug ?? $byId;
 
 			if ( null === $existing ) {
 				return response()->json(
@@ -429,21 +535,7 @@ class TemplatePartController extends Controller
 				);
 			}
 
-			$existing->delete();
-
-			// #832 — previews embedding this template part render stale otherwise.
-			app( PatternPreviewCache::class )->flush();
-
-			$this->refreshResolver();
-
-			return response()->json( null, Response::HTTP_NO_CONTENT );
-		}
-
-		// Cast to string defensively — see {@see TemplateController::destroy()}.
-		$theme = trim( (string) $request->query( 'theme', '' ) );
-
-		if ( '' === $theme ) {
-			$theme = (string) ( $this->activeThemeSlug() ?? '' );
+			return $this->revertOverride( $existing );
 		}
 
 		if ( '' === $theme ) {
@@ -453,19 +545,41 @@ class TemplatePartController extends Controller
 			], Response::HTTP_UNPROCESSABLE_ENTITY );
 		}
 
-		$deleted = (int) $model::query()
+		$existing = $model::query()
 			->where( 'theme', $theme )
 			->where( 'slug', $slug )
-			->delete();
+			->first();
 
-		if ( 0 === $deleted ) {
+		if ( null === $existing ) {
 			return response()->json( [ 'message' => 'No template-part override to revert.' ], Response::HTTP_NOT_FOUND );
+		}
+
+		return $this->revertOverride( $existing );
+	}
+
+	/**
+	 * Delete an override through its model so `deleting` / `deleted` fire,
+	 * then report the revert on the same action cms-framework's resolvers
+	 * use. Returns 204, or 409 when a `deleting` listener cancels the delete.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @param  Model  $override  The cms-framework `TemplatePart` row.
+	 *
+	 * @return JsonResponse
+	 */
+	protected function revertOverride( Model $override ): JsonResponse
+	{
+		if ( true !== $override->delete() ) {
+			return response()->json( [ 'message' => __( 'Template part override could not be reverted.' ) ], Response::HTTP_CONFLICT );
 		}
 
 		// #832 — previews embedding this template part render stale otherwise.
 		app( PatternPreviewCache::class )->flush();
 
 		$this->refreshResolver();
+
+		doAction( 'ap.cmsFramework.siteEditor.reverted', 'template-part', $override->getAttribute( 'slug' ), $override->getAttribute( 'theme' ) );
 
 		return response()->json( null, Response::HTTP_NO_CONTENT );
 	}
@@ -477,14 +591,28 @@ class TemplatePartController extends Controller
 	 * Resolve a part through the H5 resolver by either DB id or slug.
 	 * Mirrors {@see TemplateController::findTemplateByIdOrSlug()};
 	 * numeric inputs scan the resolver's `all()` for a matching
-	 * `wpId`, slugs fall through to the slug-keyed lookup.
+	 * `wpId`, and slugs, or a numeric input no `wpId` matches, fall
+	 * through to the slug-keyed lookup (#1074).
 	 *
 	 * @since 1.0.0
+	 * @since 1.20.0 A numeric input no `wpId` matches is tried as a slug,
+	 *               and a `<theme>~<slug>` id resolves by slug (#1094).
 	 */
 	protected function findTemplatePartByIdOrSlug( string $input ): ?ResolvedTemplatePart
 	{
-		// `0` is the file-only sentinel and must fall through (#438).
-		if ( ctype_digit( $input ) && (int) $input > 0 ) {
+		// A `<theme>~<slug>` id names a file-only record by slug, never
+		// a row (#1094). The resolver only reads the active theme, so the
+		// id's theme has to be that one.
+		$composite = $this->splitCompositeId( $input );
+
+		if ( null !== $composite ) {
+			$resolved = $this->resolver->find( $composite['slug'] );
+
+			return $resolved instanceof ResolvedTemplatePart && $resolved->theme === $composite['theme'] ? $resolved : null;
+		}
+
+		// `0` is the file-only sentinel `wpId` and never a DB id (#438).
+		if ( $this->couldBeRowId( $input ) ) {
 			$id = (int) $input;
 
 			foreach ( $this->resolver->all() as $candidate ) {
@@ -492,13 +620,76 @@ class TemplatePartController extends Controller
 					return $candidate;
 				}
 			}
-
-			return null;
 		}
 
 		$resolved = $this->resolver->find( $input );
 
 		return $resolved instanceof ResolvedTemplatePart ? $resolved : null;
+	}
+
+	/**
+	 * Whether an all-digit URL parameter names a part by slug, either as
+	 * a DB override in the given theme or as a theme-file part, so it
+	 * isn't mistaken for a row id (#1074). Mirrors
+	 * {@see TemplateController::slugNamesTemplate()}.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @param  string  $slug   The URL parameter.
+	 * @param  string  $theme  The theme the request targets, or `''` when none.
+	 *
+	 * @return bool
+	 */
+	protected function slugNamesTemplatePart( string $slug, string $theme ): bool
+	{
+		if ( '' === $theme ) {
+			return false;
+		}
+
+		$model = self::CMS_TEMPLATE_PART_FQCN;
+
+		if ( $model::query()->where( 'theme', $theme )->where( 'slug', $slug )->exists() ) {
+			return true;
+		}
+
+		// The resolver only reads the active theme, so its entry names the
+		// slug only when that's the theme the request targets.
+		$resolved = $this->resolver->find( $slug );
+
+		return $resolved instanceof ResolvedTemplatePart && $resolved->theme === $theme;
+	}
+
+	/**
+	 * Pick what a PUT to an all-digit URL value updates (#1074).
+	 *
+	 * The editor addresses a row by its id, but `404` can also be a slug.
+	 * A row with that id in the target theme wins. Otherwise a slug the
+	 * theme knows takes the `(theme, slug)` upsert path. A row with that
+	 * id in another theme is used only when the body names no theme.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @param  string  $input         The all-digit URL parameter.
+	 * @param  string  $requestTheme  The body's `theme`, or `''` when absent.
+	 * @param  string  $scopeTheme    The body's theme, else the active theme, else `''`.
+	 *
+	 * @return false|Model|null The `TemplatePart` row to update, false for the slug path, or null for a 404.
+	 */
+	protected function numericUpdateTarget( string $input, string $requestTheme, string $scopeTheme ): Model|false|null
+	{
+		$model = self::CMS_TEMPLATE_PART_FQCN;
+
+		$byId = $model::query()->find( (int) $input );
+
+		if ( null !== $byId && ( '' === $scopeTheme || $scopeTheme === (string) $byId->theme ) ) {
+			return $byId;
+		}
+
+		if ( $this->slugNamesTemplatePart( $input, $scopeTheme ) ) {
+			return false;
+		}
+
+		return '' === $requestTheme ? $byId : null;
 	}
 
 	protected function cmsFrameworkAvailable(): bool
@@ -517,14 +708,20 @@ class TemplatePartController extends Controller
 	 * carries the `area` enum since template parts require it.
 	 *
 	 * @since 1.0.0
+	 * @since 1.20.0 Takes the target theme.
+	 *
+	 * @param  string  $slug   The template part slug.
+	 * @param  string  $theme  The theme being written.
 	 *
 	 * @return array<string, mixed>
 	 */
-	protected function fileSourceDefaults( string $slug ): array
+	protected function fileSourceDefaults( string $slug, string $theme ): array
 	{
 		$resolved = $this->resolver->find( $slug );
 
-		if ( ! $resolved instanceof ResolvedTemplatePart ) {
+		// The resolver only reads the active theme; another theme's
+		// upsert must not inherit that theme's file (#1074).
+		if ( ! $resolved instanceof ResolvedTemplatePart || $resolved->theme !== $theme ) {
 			return [];
 		}
 
@@ -542,14 +739,18 @@ class TemplatePartController extends Controller
 	 * the Custom CSS the theme ships (#881).
 	 *
 	 * @since 1.15.0
+	 * @since 1.20.0 Takes the target theme.
+	 *
+	 * @param  string  $slug   The template part slug.
+	 * @param  string  $theme  The theme being written.
 	 *
 	 * @return array<int, mixed>|null
 	 */
-	protected function fileSourceBlocks( string $slug ): ?array
+	protected function fileSourceBlocks( string $slug, string $theme ): ?array
 	{
 		$resolved = $this->resolver->find( $slug );
 
-		return $resolved instanceof ResolvedTemplatePart ? $resolved->blocks : null;
+		return $resolved instanceof ResolvedTemplatePart && $resolved->theme === $theme ? $resolved->blocks : null;
 	}
 
 	/**
@@ -638,9 +839,9 @@ class TemplatePartController extends Controller
 			$attributes['block_content'] = $blocks;
 		}
 
-		// #881 — only users with the block-CSS ability may add Custom CSS.
+		// #881, #1062 — Custom CSS and unfiltered markup need their abilities.
 		if ( array_key_exists( 'block_content', $attributes ) ) {
-			$attributes['block_content'] = app( CustomCssGuard::class )->filter( $attributes['block_content'], $storedBlocks );
+			$attributes['block_content'] = app( BlockContentGuard::class )->filter( $attributes['block_content'], $storedBlocks );
 		}
 
 		return $attributes;
@@ -676,7 +877,7 @@ class TemplatePartController extends Controller
 		$static = (array) config( 'artisanpack.visual-editor.site-editor.template-parts', [] );
 		$merged = applyFilters( 'ap.visualEditor.templateParts', $static );
 		$merged = is_array( $merged ) ? $merged : [];
-		$merged = array_merge( $merged, $static );
+		$merged = array_replace( $merged, $static );
 
 		$this->resolver = new TemplatePartResolver( $merged );
 

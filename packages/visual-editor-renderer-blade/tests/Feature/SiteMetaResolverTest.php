@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Blade;
 
 function siteRenderTree( array $tree ): string
 {
-	return Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+	return Blade::render( '<x-ve-blocks :tree="$tree" :trust-resolved="true" />', [ 'tree' => $tree ] );
 }
 
 function siteBlockNode( string $name, array $attributes = [], string $clientId = 'site-cid' ): array

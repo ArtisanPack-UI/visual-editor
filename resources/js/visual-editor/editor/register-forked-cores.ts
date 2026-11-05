@@ -61,11 +61,13 @@ import { init as initPageListItem } from '@wordpress/block-library/build-module/
 import { init as initHomeLink } from '@wordpress/block-library/build-module/home-link/index.mjs';
 import { init as initLoginout } from '@wordpress/block-library/build-module/loginout/index.mjs';
 import { init as initSyncedPattern } from '@wordpress/block-library/build-module/block/index.mjs';
+import { init as initHtml } from '@wordpress/block-library/build-module/html/index.mjs';
 
 import { getBlockType } from '@wordpress/blocks';
 import { addFilter, hasFilter } from '@wordpress/hooks';
 
 import { registerForkedBlockCutoverFilter } from './forked-block-cutover';
+import { registerCustomHtmlInserterFilter } from './unfiltered-html-access';
 import { registerNavigationCollapseBreakpointAttribute } from './navigation-collapse-breakpoint';
 
 /**
@@ -151,6 +153,7 @@ const FORKED_CORE_INITS: ReadonlyArray<[string, () => unknown]> = [
     ['core/home-link', initHomeLink],
     ['core/loginout', initLoginout],
     ['core/block', initSyncedPattern],
+    ['core/html', initHtml],
 ];
 
 /**
@@ -164,6 +167,7 @@ export function registerForkedCoreBlocks(): void {
     // but other forks may register through the same boot path).
     registerForkedBlockCutoverFilter();
     registerForkedCoreAnimationsSupportFilter();
+    registerCustomHtmlInserterFilter();
     // #977 — `core/navigation`'s `collapseBreakpoint` attribute must be
     // on the schema before the block registers.
     registerNavigationCollapseBreakpointAttribute();
