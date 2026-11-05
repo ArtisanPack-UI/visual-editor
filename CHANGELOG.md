@@ -6,6 +6,8 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.20.0] - 2026-11-04
+
 ### Upgrade notes
 
 - **Block markup is now filtered on save, and nobody is exempt until you say so ([#1062](https://github.com/ArtisanPack-UI/visual-editor/issues/1062)).** Block content was stored as sent and printed unescaped, so any author could put script on a public page. Saving now reduces markup to an allowlist unless the user holds the new `unfiltered_html` capability, which **no role has until you grant it**. Without it, new `<script>`, `<iframe>` and `<embed>` markup, event handlers and `javascript:` links are removed when saved, and Custom HTML isn't in the inserter. Grant the capability to the roles that need it, or redefine the `visual-editor.unfiltered-html` gate. Saved content isn't rewritten, and stored markup is kept until someone without the capability changes it. If a site uses blocks that store other tags or `data-*` attributes in their attributes, add them with `ap.visualEditor.contentFilter.allowedHtml`. See [`content_filter`](docs/Configuration.md#content_filter).
