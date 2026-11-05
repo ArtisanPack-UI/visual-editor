@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useState } from 'react';
 
+import { resetBindingsApiConfig, setBindingsApiConfig } from '../../../bindings/config';
 import { refreshTaxonomies } from '../../../editor/taxonomy-registry';
 import TaxonomyFilter, {
     isTaxonomyAvailable,
@@ -76,6 +77,7 @@ beforeEach( () => {
 afterEach( () => {
     cleanup();
     vi.unstubAllGlobals();
+    resetBindingsApiConfig();
     document.body.innerHTML = '';
     refreshTaxonomies();
 } );
@@ -129,6 +131,18 @@ describe( 'TaxonomyFilter', () => {
         } );
 
         expect( fetchMock.mock.calls[ 0 ][ 0 ] ).toBe( '/visual-editor/api/taxonomies/package/terms' );
+    } );
+
+    it( 'loads terms under the API base the host configured', async () => {
+        setBindingsApiConfig( { apiBase: '/custom/api' } );
+        respondWithTerms( [] );
+        renderFilter( 'post' );
+
+        fireEvent.change( taxonomySelect(), { target: { value: 'category' } } );
+
+        await waitFor( () => expect( fetchMock ).toHaveBeenCalled() );
+
+        expect( fetchMock.mock.calls[ 0 ][ 0 ] ).toBe( '/custom/api/taxonomies/category/terms' );
     } );
 
     it( 'does not write a taxonomy that has no terms picked', async () => {
@@ -228,6 +242,29 @@ describe( 'TaxonomyFilter', () => {
         fireEvent.change( taxonomySelect(), { target: { value: 'genre' } } );
 
         expect( await screen.findByText( 'No terms found.' ) ).toBeTruthy();
+    } );
+
+    it( 'announces loading and an empty list through one live region (#1029)', async () => {
+        let resolve: ( response: Response ) => void = () => undefined;
+
+        fetchMock.mockReturnValue( new Promise<Response>( ( done ) => {
+            resolve = done;
+        } ) );
+        renderFilter( 'post' );
+
+        const region = screen.getByRole( 'status' );
+
+        expect( region.textContent ).toBe( '' );
+
+        fireEvent.change( taxonomySelect(), { target: { value: 'genre' } } );
+
+        expect( screen.getByRole( 'status' ) ).toBe( region );
+        expect( region.textContent ).toBe( 'Loading terms…' );
+
+        resolve( new Response( JSON.stringify( { data: [] } ), { status: 200 } ) );
+
+        await waitFor( () => expect( region.textContent ).toBe( 'No terms found.' ) );
+        expect( screen.getByRole( 'status' ) ).toBe( region );
     } );
 
     it( 'shows an error when the terms request fails', async () => {

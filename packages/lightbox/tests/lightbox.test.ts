@@ -15,8 +15,8 @@ const read = (path: string): string => readFileSync(resolve(root, path), 'utf8')
 
 const LABELS = JSON.stringify({ dialog: 'Vergrößert', close: 'Schließen', previous: 'Zurück', next: 'Weiter' });
 
-function figure(name: string, extra = ''): string {
-    return `<figure class="wp-block-image wp-lightbox-container" data-ap-lightbox-labels='${LABELS}'>
+function figure(name: string, extra = '', labels = LABELS): string {
+    return `<figure class="wp-block-image wp-lightbox-container" data-ap-lightbox-labels='${labels}'>
         <img src="/${name}.jpg" alt="${name} alt"/>
         <button type="button" class="lightbox-trigger" aria-label="Enlarge image: ${name}" style="display:none"></button>
         ${extra}
@@ -277,6 +277,28 @@ describe('focus and keyboard', () => {
         expect(press('Tab').defaultPrevented).toBe(false);
     });
 
+    it('makes the page behind the open overlay inert, and restores it', () => {
+        page(`<main>${figure('a')}</main><aside inert>Already inert</aside><footer>Footer</footer>`);
+
+        const main = document.querySelector('main') as HTMLElement;
+        const aside = document.querySelector('aside') as HTMLElement;
+        const footer = document.querySelector('footer') as HTMLElement;
+
+        aside.inert = true;
+        trigger().click();
+
+        expect(main.inert).toBe(true);
+        expect(footer.inert).toBe(true);
+        expect(overlay().inert).toBeFalsy();
+
+        press('Escape');
+
+        expect(main.inert).toBe(false);
+        expect(footer.inert).toBe(false);
+        expect(aside.inert).toBe(true);
+        expect(document.activeElement).toBe(trigger());
+    });
+
     it('includes a caption link in the Tab order', () => {
         page(figure('a', '<figcaption><a href="#x">More</a></figcaption>'));
         trigger().click();
@@ -315,13 +337,58 @@ describe('gallery navigation', () => {
         expect(overlaySrc()).toBe('/a.jpg');
     });
 
-    it('announces the new image', () => {
+    const announcement = (): string | null | undefined => overlay().querySelector('[aria-live="polite"]')?.textContent;
+
+    it('announces the new image and where it sits', () => {
         page(gallery());
         trigger(0).click();
 
         press('ArrowRight');
 
-        expect(overlay().querySelector('[aria-live="polite"]')?.textContent).toBe('b alt');
+        expect(announcement()).toBe('Image 2 of 3: b alt');
+    });
+
+    it('announces the position for an image with no alt text', () => {
+        page(`<figure class="wp-block-gallery">${figure('a')}${figure('b')}${figure('c')}</figure>`.replace(/ alt="[a-z] alt"/g, ' alt=""'));
+        trigger(0).click();
+
+        press('ArrowRight');
+
+        expect(announcement()).toBe('Image 2 of 3');
+    });
+
+    it('says something new on every step, even for a repeated alt text', () => {
+        page(`<figure class="wp-block-gallery">${figure('a')}${figure('b')}${figure('c')}</figure>`.replace(/ alt="[a-z] alt"/g, ' alt="Same"'));
+        trigger(0).click();
+
+        press('ArrowRight');
+        const first = announcement();
+        press('ArrowRight');
+
+        expect(first).toBe('Image 2 of 3: Same');
+        expect(announcement()).toBe('Image 3 of 3: Same');
+    });
+
+    it('uses the position label the renderer printed', () => {
+        const labels = JSON.stringify({ position: 'Bild :current von :total' });
+
+        page(`<figure class="wp-block-gallery">${['a', 'b', 'c'].map((name) => figure(name, '', labels)).join('')}</figure>`);
+        trigger(0).click();
+
+        press('ArrowRight');
+
+        expect(announcement()).toBe('Bild 2 von 3: b alt');
+    });
+
+    it('fills in every placeholder in the position label', () => {
+        const labels = JSON.stringify({ position: ':current/:total (:current of :total)' });
+
+        page(`<figure class="wp-block-gallery">${['a', 'b', 'c'].map((name) => figure(name, '', labels)).join('')}</figure>`);
+        trigger(0).click();
+
+        press('ArrowRight');
+
+        expect(announcement()).toBe('2/3 (2 of 3): b alt');
     });
 
     it('skips a linked gallery image, which prints no lightbox', () => {

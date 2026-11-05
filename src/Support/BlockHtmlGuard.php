@@ -26,10 +26,10 @@ use Illuminate\Support\Facades\Gate;
  * read `attributes`, `attrs`, `innerHTML` and `innerContent`, and a
  * third-party partial can print any attribute raw.
  *
- * A string already stored on the record is kept as it is. So an author
- * without the ability can move or keep a Custom HTML block an administrator
- * wrote, but can't add or change markup, and content saved before this
- * filter existed only changes when someone edits it.
+ * A string already stored on the record, outside the skipped keys, is kept
+ * as it is. So an author without the ability can move or keep a Custom HTML
+ * block an administrator wrote, but can't add or change markup, and content
+ * saved before this filter existed only changes when someone edits it.
  *
  * Runs from the same places as
  * {@see \ArtisanPackUI\VisualEditor\Effects\CustomCssGuard}, and bound as a
@@ -53,6 +53,22 @@ class BlockHtmlGuard
 	 * @var list<string>
 	 */
 	protected const SKIPPED_KEYS = [ 'alt', 'customCss', 'search' ];
+
+	/**
+	 * Block attributes every renderer prints escaped, by block name, left
+	 * alone like {@see self::SKIPPED_KEYS} so `Use <Enter>` keeps its text.
+	 * Only a block's own attribute counts: the same key elsewhere, such as
+	 * a binding's `placeholder`, can end up printed raw.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @var array<string, list<string>>
+	 */
+	protected const PLAIN_TEXT_ATTRIBUTES = [
+		'artisanpack/search'       => [ 'placeholder' ],
+		'artisanpack/search-field' => [ 'placeholder' ],
+		'core/search'              => [ 'placeholder' ],
+	];
 
 	/**
 	 * Values vouched for earlier in the request.
@@ -112,18 +128,29 @@ class BlockHtmlGuard
 	}
 
 	/**
-	 * Collect every string holding markup from a stored tree.
+	 * Collect every string holding markup from a stored tree, outside the
+	 * skipped keys.
 	 *
 	 * @since 1.20.0
 	 *
 	 * @param  array<mixed>  $value
 	 * @param  array<string, bool>  $allowed
+	 * @param  list<string>  $plainText  Keys of `$value` left alone, when it's a
+	 *                                   block's attributes.
 	 */
-	protected function collect( array $value, array &$allowed ): void
+	protected function collect( array $value, array &$allowed, array $plainText = [] ): void
 	{
-		foreach ( $value as $item ) {
+		$plainTextAttributes = $this->plainTextAttributes( $value );
+
+		foreach ( $value as $key => $item ) {
+			// A skipped key is never filtered, so its value can't vouch for
+			// the same string under another key.
+			if ( $this->isSkipped( $key, $plainText ) ) {
+				continue;
+			}
+
 			if ( is_array( $item ) ) {
-				$this->collect( $item, $allowed );
+				$this->collect( $item, $allowed, $this->isAttributeBag( $key ) ? $plainTextAttributes : [] );
 			} elseif ( is_string( $item ) && BlockHtmlSanitizer::hasMarkup( $item ) ) {
 				$allowed[ $item ] = true;
 			}
@@ -137,23 +164,69 @@ class BlockHtmlGuard
 	 *
 	 * @param  array<mixed>  $value
 	 * @param  array<string, bool>  $allowed
+	 * @param  list<string>  $plainText  Keys of `$value` left alone, when it's a
+	 *                                   block's attributes.
 	 *
 	 * @return array<mixed>
 	 */
-	protected function clean( array $value, array $allowed ): array
+	protected function clean( array $value, array $allowed, array $plainText = [] ): array
 	{
+		$plainTextAttributes = $this->plainTextAttributes( $value );
+
 		foreach ( $value as $key => $item ) {
-			if ( in_array( $key, self::SKIPPED_KEYS, true ) ) {
+			if ( $this->isSkipped( $key, $plainText ) ) {
 				continue;
 			}
 
 			if ( is_array( $item ) ) {
-				$value[ $key ] = $this->clean( $item, $allowed );
+				$value[ $key ] = $this->clean( $item, $allowed, $this->isAttributeBag( $key ) ? $plainTextAttributes : [] );
 			} elseif ( is_string( $item ) && ! isset( $allowed[ $item ] ) ) {
 				$value[ $key ] = $this->sanitizer->sanitize( $item );
 			}
 		}
 
 		return $value;
+	}
+
+	/**
+	 * Whether a key is left alone.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @param  int|string    $key        The key.
+	 * @param  list<string>  $plainText  The block's plain-text attributes, when
+	 *                                   the key is one of its attributes.
+	 */
+	protected function isSkipped( int|string $key, array $plainText ): bool
+	{
+		return in_array( $key, self::SKIPPED_KEYS, true ) || in_array( $key, $plainText, true );
+	}
+
+	/**
+	 * Whether a key holds a block's attributes, in either tree shape.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @param  int|string  $key  The key.
+	 */
+	protected function isAttributeBag( int|string $key ): bool
+	{
+		return 'attributes' === $key || 'attrs' === $key;
+	}
+
+	/**
+	 * The plain-text attributes of a block, or none when `$value` isn't one.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @param  array<mixed>  $value  A node of the tree.
+	 *
+	 * @return list<string>
+	 */
+	protected function plainTextAttributes( array $value ): array
+	{
+		$name = $value['name'] ?? $value['blockName'] ?? null;
+
+		return is_string( $name ) ? ( self::PLAIN_TEXT_ATTRIBUTES[ $name ] ?? [] ) : [];
 	}
 }

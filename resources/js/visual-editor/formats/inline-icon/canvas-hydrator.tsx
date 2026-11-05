@@ -19,6 +19,7 @@
 import { useEffect, useRef } from 'react';
 import type { ReactElement } from 'react';
 
+import { getBindingsApiConfig } from '../../bindings/config';
 import { fetchIconSvg } from '../../blocks/icon/fetch-svg';
 import { IN_TREE_CANVAS_ROOT } from '../../support/canvas-scoped-styles';
 
@@ -163,8 +164,10 @@ export function InlineIconCanvasHydrator(): ReactElement {
             return undefined;
         }
 
+        // Under the API base the host configured (#1039).
         return watchInlineIconPlaceholders(
             marker.closest( IN_TREE_CANVAS_ROOT ) ?? marker.ownerDocument.body,
+            ( set, name ) => fetchIconSvg( set, name, fetch, getBindingsApiConfig().apiBase ),
         );
     }, [] );
 

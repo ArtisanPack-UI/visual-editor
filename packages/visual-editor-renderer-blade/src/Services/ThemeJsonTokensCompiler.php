@@ -1199,12 +1199,18 @@ class ThemeJsonTokensCompiler
 				continue;
 			}
 
-			$declarations[] = sprintf(
-				'--wp--preset--%s--%s: %s;',
-				$this->slug( $category ),
-				PresetRegistry::presetSlug( $slug ),
-				$value,
-			);
+			$categorySlug = $this->slug( $category );
+			$kebab        = PresetRegistry::presetSlug( $slug );
+			$legacy       = $this->slug( $slug );
+
+			$declarations[] = sprintf( '--wp--preset--%s--%s: %s;', $categorySlug, $kebab, $value );
+
+			// Utilities and `has-*` classes still name the lowercase form
+			// (`slug()` / `BlockSupports::slugify()`), so a camelCase slug
+			// declares both (#1082 follow-up).
+			if ( '' !== $legacy && $legacy !== $kebab ) {
+				$declarations[] = sprintf( '--wp--preset--%s--%s: %s;', $categorySlug, $legacy, $value );
+			}
 		}
 
 		return $declarations;

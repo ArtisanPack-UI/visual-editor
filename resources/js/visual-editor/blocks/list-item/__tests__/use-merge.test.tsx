@@ -106,6 +106,43 @@ describe('useMerge', () => {
         expect(currentOutline(list.clientId)).toEqual(['OneTwo']);
     });
 
+    function bind(block: BlockInstance, attribute = 'content'): BlockInstance {
+        block.attributes.bindings = { [attribute]: { source: 'post_core', args: { key: 'title' } } };
+
+        return block;
+    }
+
+    it('moves the cursor instead of merging into a bound nested item above (#1043)', () => {
+        const nested = bind(item('Nested'));
+        const target = item('Two');
+        const { list, run } = setUp([item('One', [nested]), target], target);
+
+        act(() => run(false));
+
+        expect(currentOutline(list.clientId)).toEqual([['One', [['Nested']]], 'Two']);
+        expect(registry.select(blockEditorStore).getSelectionStart().clientId).toBe(nested.clientId);
+    });
+
+    it('moves the cursor instead of merging a bound item forward (#1043)', () => {
+        const target = bind(item('Bound'));
+        const next = item('Next');
+        const { list, run } = setUp([target, next], target);
+
+        act(() => run(true));
+
+        expect(currentOutline(list.clientId)).toEqual(['Bound', 'Next']);
+        expect(registry.select(blockEditorStore).getSelectionStart().clientId).toBe(next.clientId);
+    });
+
+    it('still merges when only a non-text attribute is bound', () => {
+        const target = item('Two');
+        const { list, run } = setUp([bind(item('One'), 'anchor'), target], target);
+
+        act(() => run(false));
+
+        expect(currentOutline(list.clientId)).toEqual(['OneTwo']);
+    });
+
     it('merges backward into the last nested item above it', () => {
         const target = item('Two');
         const { list, run } = setUp(

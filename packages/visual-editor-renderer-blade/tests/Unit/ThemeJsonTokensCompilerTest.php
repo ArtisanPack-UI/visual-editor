@@ -1188,7 +1188,33 @@ it( 'declares a camelCase or snake_case preset slug the way references name it',
 		],
 	] );
 
+	// The lowercase alias keeps `slug()`-named utilities resolving.
 	expect( $css )->toContain( '--wp--preset--shadow--soft-glow: 0 0 4px red;' )
+		->toContain( '--wp--preset--shadow--softglow: 0 0 4px red;' )
 		->toContain( '--wp--preset--shadow--hard-edge: 2px 2px 0 black;' )
-		->not->toContain( '--softglow' );
+		->and( substr_count( $css, '--wp--preset--shadow--hard-edge:' ) )->toBe( 1 );
+} );
+
+it( 'keeps camelCase palette utilities resolving to a declared property', function (): void {
+	config()->set( 'artisanpack.visual-editor.presets', [] );
+
+	$css = $this->compiler->compile( [
+		'settings' => [ 'color' => [ 'palette' => [ [ 'slug' => 'brandPrimary', 'color' => '#cc0000' ] ] ] ],
+	] );
+
+	expect( $css )->toContain( '--wp--preset--color--brand-primary: #cc0000;' )
+		->toContain( '--wp--preset--color--brandprimary: #cc0000;' )
+		->toContain( '.has-brandprimary-background-color { background-color: var(--wp--preset--color--brandprimary) !important; }' );
+} );
+
+it( 'declares the property a camelCase preset reference in theme styles expands to', function (): void {
+	config()->set( 'artisanpack.visual-editor.presets', [] );
+
+	$css = $this->compiler->compile( [
+		'settings' => [ 'color' => [ 'palette' => [ [ 'slug' => 'brandPrimary', 'color' => '#cc0000' ] ] ] ],
+		'styles'   => [ 'color' => [ 'background' => 'var:preset|color|brandPrimary' ] ],
+	] );
+
+	expect( preg_match( '/background(?:-color)?:\s*var\((--wp--preset--color--[a-z0-9-]+)\)/', $css, $match ) )->toBe( 1 )
+		->and( $css )->toContain( $match[1] . ': #cc0000;' );
 } );

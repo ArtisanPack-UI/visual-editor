@@ -48,7 +48,7 @@ The Visual Editor is designed to give Laravel apps a first-class block-based aut
 
 The block editor for a single resource — a post, page, or any custom Eloquent model. Mounted with a single Blade component.
 
-- [[Post Editor]] — Surface tour and what each region does
+- [[Post Editor]] — Surface tour and what each region does, including pasting Markdown and importing pasted images
 - [[post-editor/Getting Started]] — Mount your first editor in five minutes
 - [[post-editor/Blade Component]] — `<x-visual-editor />` reference
 - [[post-editor/Composed View]] — Editing content inside its resolved template

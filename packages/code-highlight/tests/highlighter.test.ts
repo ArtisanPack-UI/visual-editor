@@ -115,6 +115,51 @@ describe('highlightElement', () => {
         expect(performance.now() - start).toBeLessThan(1000);
     });
 
+    it('leaves very long code plain rather than stall the page', () => {
+        const unterminated = codeElement('blade', '{{-- '.repeat(40000));
+        const start = performance.now();
+
+        expect(highlightElement(unterminated)).toBe(false);
+        expect(performance.now() - start).toBeLessThan(100);
+        expect(unterminated.querySelector('[class*="ap-code-"]')).toBeNull();
+        // Still measured, so unreadable text gets its contrast fix.
+        expect(unterminated.hasAttribute('data-ap-code-scheme')).toBe(true);
+
+        // Exactly at the limit still highlights. Words, not one long word:
+        // Prism's JS grammar backtracks on a single 50k-character word, and
+        // jsdom parses thousands of token spans slowly, so this input keeps
+        // the test about the limit.
+        const atLimit = codeElement('javascript', 'a '.repeat(25000));
+
+        expect(atLimit.textContent).toHaveLength(50000);
+        expect(highlightElement(atLimit)).toBe(true);
+    });
+
+    it('fixes the contrast of over-limit code on a dark section', () => {
+        const section = document.createElement('section');
+        section.setAttribute('style', 'background-color: rgb(36, 41, 51); color: rgb(15, 23, 42);');
+        const code = document.createElement('code');
+        code.className = 'language-javascript';
+        code.textContent = 'a '.repeat(25001);
+        section.appendChild(code);
+        document.body.appendChild(section);
+
+        expect(highlightElement(code)).toBe(false);
+        expect(code.getAttribute('data-ap-code-scheme')).toBe('dark');
+        expect(code.getAttribute('data-ap-code-contrast')).toBe('low');
+    });
+
+    it('leaves code with one very long word plain rather than stall the page', () => {
+        const longWord = codeElement('javascript', `const x = ${'a'.repeat(2001)};`);
+        const start = performance.now();
+
+        expect(highlightElement(longWord)).toBe(false);
+        expect(performance.now() - start).toBeLessThan(100);
+        expect(longWord.querySelector('[class*="ap-code-"]')).toBeNull();
+
+        expect(highlightElement(codeElement('javascript', `const x = ${'a'.repeat(2000)};`))).toBe(true);
+    });
+
     it('leaves plain text, unknown languages and Prism API names untouched', () => {
         for (const language of ['plaintext', 'cobol', 'extend', 'insertBefore', 'constructor']) {
             const code = codeElement(language, 'const a = 1;');
@@ -277,6 +322,27 @@ describe('generated output', () => {
             read('packages/code-highlight/code-highlight.css')
         );
     });
+
+    it.each([
+        ['React', `packages/visual-editor-renderer-react/${generated}`],
+        ['Vue', `packages/visual-editor-renderer-vue/${generated}`],
+        ['Blade', 'packages/visual-editor-renderer-blade/resources/assets/frontend/code-highlight.js'],
+    ])('carries Prism\'s copyright notice in the %s bundle', (_name, path) => {
+        const banner = read(path).split('\n')[0];
+
+        expect(banner.startsWith('/*!')).toBe(true);
+        expect(banner).toContain('Copyright (c) 2012 Lea Verou');
+        expect(banner).toContain('MIT License');
+    });
+
+    it.each([['react'], ['vue']])('ships Prism\'s licence with the %s renderer on npm', (renderer) => {
+        const manifest = JSON.parse(read(`packages/visual-editor-renderer-${renderer}/package.json`)) as { files: string[] };
+        const notice = read(`packages/visual-editor-renderer-${renderer}/NOTICE.md`);
+
+        expect(manifest.files).toContain('NOTICE.md');
+        expect(notice).toContain('Copyright (c) 2012 Lea Verou');
+        expect(notice).toContain('Permission is hereby granted');
+    });
 });
 
 describe('scheme', () => {
@@ -351,6 +417,76 @@ describe('scheme', () => {
         document.body.removeAttribute('data-theme');
     });
 
+    it.each([['rgb(171, 184, 195)'], ['rgb(6, 147, 227)'], ['rgb(55, 65, 81)'], ['rgb(207, 46, 46)'], ['rgb(209, 213, 219)']])(
+        'drops token colours on %s, where no palette meets AA',
+        (background) => {
+            const code = blockOn(background, 'rgb(0, 0, 0)');
+
+            expect(code.getAttribute('data-ap-code-tokens')).toBe('mono');
+        }
+    );
+
+    it.each([
+        ['rgb(255, 255, 255)', 'rgb(31, 41, 55)'],
+        ['rgb(243, 244, 246)', 'rgb(31, 41, 55)'],
+        ['rgb(36, 41, 51)', 'rgb(229, 231, 235)'],
+        ['rgb(0, 0, 0)', 'rgb(229, 231, 235)'],
+    ])('keeps token colours on %s', (background, text) => {
+        expect(blockOn(background, text).hasAttribute('data-ap-code-tokens')).toBe(false);
+    });
+
+    it.each([
+        ['half-transparent white over black, a mid grey', 'rgba(255, 255, 255, 0.5)', 'rgb(0, 0, 0)', 'light', true],
+        ['half-transparent black over white, a mid grey', 'rgba(0, 0, 0, 0.5)', 'rgb(255, 255, 255)', 'light', true],
+        ['a faint tint over white', 'rgba(0, 0, 0, 0.02)', 'rgb(255, 255, 255)', 'light', false],
+        ['a faint tint over near-black', 'rgba(255, 255, 255, 0.02)', 'rgb(13, 17, 23)', 'dark', false],
+    ])('blends a translucent background over the one behind it: %s', (_label, background, behind, scheme, mono) => {
+        document.body.style.backgroundColor = behind;
+
+        const code = blockOn(background, 'rgb(0, 0, 0)');
+
+        document.body.style.backgroundColor = '';
+
+        expect(code.getAttribute('data-ap-code-scheme')).toBe(scheme);
+        expect(code.hasAttribute('data-ap-code-tokens')).toBe(mono);
+    });
+
+    it('blends a translucent background over the white canvas when nothing is painted', () => {
+        const code = blockOn('rgba(0, 0, 0, 0.5)', 'rgb(0, 0, 0)');
+
+        expect(code.getAttribute('data-ap-code-scheme')).toBe('light');
+        expect(code.getAttribute('data-ap-code-tokens')).toBe('mono');
+    });
+
+    it('falls back to the text colour over a dark canvas it can\'t measure', () => {
+        document.documentElement.style.setProperty('color-scheme', 'dark');
+
+        const code = blockOn('rgba(0, 0, 0, 0.5)', 'rgb(229, 231, 235)');
+
+        document.documentElement.style.removeProperty('color-scheme');
+
+        expect(code.getAttribute('data-ap-code-scheme')).toBe('dark');
+        expect(code.hasAttribute('data-ap-code-tokens')).toBe(false);
+    });
+
+    it('keeps token colours when the background can\'t be measured', () => {
+        const code = blockOn('rgb(171, 184, 195)', 'rgb(229, 231, 235)', 'background-image: url(a.png);');
+
+        expect(code.hasAttribute('data-ap-code-tokens')).toBe(false);
+    });
+
+    it('drops the monochrome flag again when the background changes', async () => {
+        const code = blockOn('rgba(0, 0, 0, 0)', 'rgb(15, 23, 42)');
+
+        document.body.style.backgroundColor = 'rgb(171, 184, 195)';
+        await vi.waitFor(() => expect(code.getAttribute('data-ap-code-tokens')).toBe('mono'));
+
+        document.body.style.backgroundColor = 'rgb(255, 255, 255)';
+        await vi.waitFor(() => expect(code.hasAttribute('data-ap-code-tokens')).toBe(false));
+
+        document.body.style.backgroundColor = '';
+    });
+
     it('re-measures when the theme changes', async () => {
         const code = blockOn('rgba(0, 0, 0, 0)', 'rgb(15, 23, 42)');
 
@@ -375,6 +511,31 @@ describe('token colours', () => {
     it('defines every token for both palettes', () => {
         expect(palette('light').map(([name]) => name)).toEqual(palette('dark').map(([name]) => name));
         expect(palette('light')).toHaveLength(10);
+    });
+
+    it('meets AA at the luminance limits the scheme switches to monochrome at', () => {
+        // Pinned to `LIGHT_PALETTE_MIN` / `DARK_PALETTE_MAX` in scheme.js.
+        const luminance = ([r, g, b]: Rgb): number => 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        const ratio = (a: number, b: number): number => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+
+        for (const [name, colour] of palette('light')) {
+            expect(ratio(luminance(toLinear(colour)), 0.7), name).toBeGreaterThanOrEqual(4.5);
+        }
+
+        for (const [name, colour] of palette('dark')) {
+            expect(ratio(luminance(toLinear(colour)), 0.04), name).toBeGreaterThanOrEqual(4.5);
+        }
+
+        const scheme = read('packages/code-highlight/src/scheme.js');
+
+        expect(scheme).toContain('const LIGHT_PALETTE_MIN = 0.7;');
+        expect(scheme).toContain('const DARK_PALETTE_MAX = 0.04;');
+    });
+
+    it('drops token colours in monochrome mode', () => {
+        const body = /code\[data-ap-code-tokens='mono'\] \[class\*='ap-code-'\] \{([^}]*)\}/.exec(css)?.[1] ?? '';
+
+        expect(body).toMatch(/color:\s*inherit;/);
     });
 
     it('lets a theme override every token', () => {

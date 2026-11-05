@@ -64,6 +64,16 @@ it( 'treats only public addresses as public', function ( string $address, bool $
 	'long nat64'         => [ '0064:ff9b:0:0:0:0:7f00:1', false ],
 	'upper 6to4'         => [ '2002:7F00:0001::', false ],
 	'not an address'     => [ 'localhost', false ],
+	'public dns v4'      => [ '8.8.8.8', true ],
+	'public dns v6'      => [ '2606:4700::1111', true ],
+	'ietf assignments'   => [ '192.0.0.1', false ],
+	'benchmarking'       => [ '198.18.0.1', false ],
+	'multicast v4'       => [ '224.0.0.1', false ],
+	'multicast v4 end'   => [ '239.255.255.255', false ],
+	'multicast v6'       => [ 'ff02::1', false ],
+	'discard v6'         => [ '100::1', false ],
+	'teredo'             => [ '2001::1', false ],
+	'translated v4'      => [ '::ffff:0:a9fe:a9fe', false ],
 ] );
 
 it( 'refuses URLs it should not request', function ( string $url ): void {
@@ -212,5 +222,34 @@ it( 'pins the connection to the checked addresses', function (): void {
 	expect( $options['curl'][ CURLOPT_RESOLVE ] )->toBe( [ 'cdn.example.com:443:93.184.216.34' ] )
 		->and( $options['curl'][ CURLOPT_PROTOCOLS ] )->toBe( CURLPROTO_HTTP | CURLPROTO_HTTPS )
 		->and( $options['allow_redirects'] )->toBeFalse()
-		->and( $options['proxy'] )->toBe( '' );
+		->and( $options['proxy'] )->toBe( '' )
+		->and( $options['decode_content'] )->toBeFalse();
+} );
+
+it( 'never asks curl to decode the response', function (): void {
+	Http::fake( [ '*' => pngResponse() ] );
+
+	unlink( fetcherWithDns()->fetch( 'https://cdn.example.com/a.png' )->getPathname() );
+
+	Http::assertSent( fn ( Request $request ): bool => [ 'identity' ] === $request->header( 'Accept-Encoding' ) );
+} );
+
+it( 'refuses an encoded body', function (): void {
+	Http::fake( [ '*' => Http::response( gzencode( base64_decode( TINY_PNG ) ), 200, [ 'Content-Type' => 'image/png', 'Content-Encoding' => 'gzip' ] ) ] );
+
+	expect( fn () => fetcherWithDns()->fetch( 'https://cdn.example.com/a.png' ) )->toThrow( RemoteImageException::class, 'file type' );
+} );
+
+it( 'refuses an encoded body even without the header', function (): void {
+	Http::fake( [ '*' => Http::response( gzencode( base64_decode( TINY_PNG ) ), 200, [ 'Content-Type' => 'image/png' ] ) ] );
+
+	expect( fn () => fetcherWithDns()->fetch( 'https://cdn.example.com/a.png' ) )->toThrow( RemoteImageException::class, 'file type' );
+} );
+
+it( 'refuses a malformed redirect target', function (): void {
+	Http::fake( [ '*' => Http::response( '', 302, [ 'Location' => 'http://a.com:80:81/' ] ) ] );
+
+	expect( fn () => fetcherWithDns()->fetch( 'https://cdn.example.com/a.png' ) )->toThrow( RemoteImageException::class, 'could not be downloaded' );
+
+	Http::assertSentCount( 1 );
 } );

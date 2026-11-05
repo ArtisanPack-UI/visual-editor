@@ -12,13 +12,15 @@
  * @since 1.1.0
  */
 
-import { InspectorControls } from '@wordpress/block-editor';
+import { InspectorControls, store as blockEditorStore } from '@wordpress/block-editor';
 import { getBlockType } from '@wordpress/blocks';
 import { createHigherOrderComponent } from '@wordpress/compose';
+import { useRegistry } from '@wordpress/data';
 import { addFilter } from '@wordpress/hooks';
-import { useMemo, type ComponentType } from 'react';
+import { useCallback, useMemo, type ComponentType } from 'react';
 
 import { resolveBindingTarget } from './binding-target';
+import { hasBoundRichText } from './bound-rich-text';
 import { BindingsPanel, type BindableAttribute } from './BindingsPanel';
 import {
 	BoundAttributesContext,
@@ -49,7 +51,22 @@ interface BlockEditProps {
 	};
 	setAttributes: ( updates: Record<string, unknown> ) => void;
 	context?: Record<string, unknown>;
+	clientId?: string;
+	mergeBlocks?: ( forward?: boolean ) => void;
 	[ key: string ]: unknown;
+}
+
+/** The block-editor store selectors the merge guard reads. */
+interface MergeGuardSelectors {
+	getPreviousBlockClientId: ( clientId: string ) => string | null;
+	getNextBlockClientId: ( clientId: string ) => string | null;
+	getBlockAttributes: ( clientId: string ) => Record<string, unknown> | null;
+	getBlockName: ( clientId: string ) => string | null;
+}
+
+/** The block-editor store action the merge guard dispatches. */
+interface MergeGuardActions {
+	selectBlock: ( clientId: string, initialPosition?: number ) => void;
 }
 
 const BINDABLE_TYPES = new Set( [
@@ -151,6 +168,8 @@ export function setBindingsResourceContext(
 	host.__artisanpackBindingsRecordId = id;
 }
 
+export { hasBoundRichText };
+
 export const withBindingsPanel = createHigherOrderComponent(
 	( BlockEdit: ComponentType<BlockEditProps> ) => {
 		function BindingsBlockEdit( props: BlockEditProps ): JSX.Element {
@@ -184,13 +203,46 @@ export const withBindingsPanel = createHigherOrderComponent(
 				[ bindingsKey ],
 			);
 
+			// #1043 — neither side of a merge may be a block whose
+			// rich-text attribute is bound: its text would vanish into
+			// the stored fallback behind the binding. The caret moves to
+			// the neighbour instead, as Backspace did before 1.20. Before
+			// the early return below, so the hook order stays stable.
+			const registry      = useRegistry();
+			const originalMerge = props.mergeBlocks;
+			const ownClientId   = props.clientId;
+			const guardedMerge  = useCallback( ( forward?: boolean ): void => {
+				if ( undefined === originalMerge || undefined === ownClientId ) {
+					return;
+				}
+
+				const select   = registry.select( blockEditorStore ) as unknown as MergeGuardSelectors;
+				const targetId = forward
+					? select.getNextBlockClientId( ownClientId )
+					: select.getPreviousBlockClientId( ownClientId );
+				const isBound  = ( id: string | null ): boolean =>
+					null !== id && hasBoundRichText( select.getBlockAttributes( id ), select.getBlockName( id ) );
+
+				if ( isBound( ownClientId ) || isBound( targetId ) ) {
+					if ( null !== targetId ) {
+						( registry.dispatch( blockEditorStore ) as unknown as MergeGuardActions )
+							.selectBlock( targetId, forward ? 0 : -1 );
+					}
+
+					return;
+				}
+
+				originalMerge( forward );
+			}, [ registry, originalMerge, ownClientId ] );
+			const mergeProps    = undefined === originalMerge ? {} : { mergeBlocks: guardedMerge };
+
 			// Still provide a context: InnerBlocks render inside the
 			// parent's BlockEdit tree, so without a Provider a block with
 			// no bindable attributes would inherit its parent's map.
 			if ( attributes.length === 0 ) {
 				return (
 					<BoundAttributesContext.Provider value={ NO_BOUND_ATTRIBUTES }>
-						<BlockEdit { ...props } />
+						<BlockEdit { ...props } { ...mergeProps } />
 					</BoundAttributesContext.Provider>
 				);
 			}
@@ -214,7 +266,7 @@ export const withBindingsPanel = createHigherOrderComponent(
 			return (
 				<>
 					<BoundAttributesContext.Provider value={ bound }>
-						<BlockEdit { ...props } attributes={ overlaid } />
+						<BlockEdit { ...props } { ...mergeProps } attributes={ overlaid } />
 					</BoundAttributesContext.Provider>
 					<InspectorControls>
 						<BindingsPanel

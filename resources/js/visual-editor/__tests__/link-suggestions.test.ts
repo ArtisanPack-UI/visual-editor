@@ -4,6 +4,7 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { resetBindingsApiConfig, setBindingsApiConfig } from '../bindings/config';
 import { editorSettings } from '../editor-settings';
 import { fetchLinkSuggestions, mapLinkSuggestions } from '../link-suggestions';
 
@@ -46,6 +47,17 @@ describe('mapLinkSuggestions', () => {
 describe('fetchLinkSuggestions', () => {
     afterEach(() => {
         vi.unstubAllGlobals();
+        resetBindingsApiConfig();
+    });
+
+    it('searches under the API base the host configured', async () => {
+        const fetchStub = stubFetch({ data: [] });
+
+        setBindingsApiConfig({ apiBase: '/custom/api/' });
+
+        await fetchLinkSuggestions('about');
+
+        expect(String(fetchStub.mock.calls[0][0])).toMatch(/^\/custom\/api\/search\/links\?q=/);
     });
 
     it('searches the links endpoint with an encoded query', async () => {

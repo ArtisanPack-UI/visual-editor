@@ -2,7 +2,10 @@
 
 declare( strict_types=1 );
 
+use ArtisanPackUI\VisualEditor\Http\Controllers\EntitySearchController;
 use ArtisanPackUI\VisualEditor\VisualEditorServiceProvider;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Tests\Fixtures\TestBlockContentModel;
 use Tests\Fixtures\TestBlockContentPagePolicy;
@@ -272,4 +275,92 @@ it( 'finds a filter-contributed resource from a typed search', function (): void
 		->assertJsonPath( 'data.0.type', 'category' );
 
 	removeFilter( 'ap.visualEditor.resources', $callback );
+} );
+
+it( 'looks each resource table up in the schema once per request', function (): void {
+	actingAsLinkSearchUser();
+
+	linkableRecord( 'About Us' );
+
+	$controller = app( EntitySearchController::class );
+	$request    = Request::create( '/visual-editor/api/search/links', 'GET', [ 'q' => 'about' ] );
+	// One column listing per table: `pragma_table_xinfo` on SQLite.
+	$isSchema   = static fn ( array $query ): bool => str_contains( $query['query'], 'pragma_table_xinfo' );
+
+	DB::enableQueryLog();
+
+	$controller->links( $request );
+
+	$first = count( array_filter( DB::getQueryLog(), $isSchema ) );
+
+	$controller->links( $request );
+
+	$total = count( array_filter( DB::getQueryLog(), $isSchema ) );
+
+	DB::disableQueryLog();
+
+	// Two resources, so two listings, and none for the repeat.
+	expect( $first )->toBe( 2 )
+		->and( $total )->toBe( $first );
+} );
+
+it( 'stops checking the view policy once the list is full', function (): void {
+	actingAsLinkSearchUser();
+
+	// Both resources have more than enough, so the list fills in the
+	// middle of a round.
+	foreach ( range( 1, 60 ) as $number ) {
+		linkableRecord( sprintf( 'Beta %02d', $number ) );
+		TestLinkablePageModel::create( [ 'title' => sprintf( 'Beta guide %02d', $number ) ] );
+	}
+
+	$checks     = 0;
+	$urlLookups = 0;
+	$counter    = static function ( ?string $url ) use ( &$urlLookups ): ?string {
+		$urlLookups++;
+
+		return $url;
+	};
+
+	addFilter( 'ap.visualEditor.search.resourceUrl', $counter );
+
+	Gate::before( function () use ( &$checks ): ?bool {
+		$checks++;
+
+		return null;
+	} );
+
+	$this->getJson( '/visual-editor/api/search/links?q=beta' )
+		->assertOk()
+		->assertJsonCount( 20, 'data' );
+
+	removeFilter( 'ap.visualEditor.search.resourceUrl', $counter );
+
+	expect( $checks )->toBe( 20 )
+		->and( $urlLookups )->toBe( 20 );
+} );
+
+it( 'reads at most one page of rows per resource while the list fills', function (): void {
+	actingAsLinkSearchUser();
+
+	foreach ( range( 1, 60 ) as $number ) {
+		linkableRecord( sprintf( 'Gamma %02d', $number ) );
+	}
+
+	DB::enableQueryLog();
+
+	$this->getJson( '/visual-editor/api/search/links?q=gamma' )
+		->assertOk()
+		->assertJsonCount( 20, 'data' );
+
+	$reads = array_filter( DB::getQueryLog(), static fn ( array $query ): bool => str_contains( $query['query'], 'LIKE ? ESCAPE' ) );
+
+	DB::disableQueryLog();
+
+	// One read per resource: the page of 20 fills the list.
+	expect( $reads )->toHaveCount( 2 );
+
+	foreach ( $reads as $read ) {
+		expect( $read['query'] )->toContain( 'limit 20' );
+	}
 } );

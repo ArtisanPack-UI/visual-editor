@@ -134,6 +134,25 @@ describe('block merging', () => {
         });
     });
 
+    it('merges into a bound block, since bindings live in a sidecar the store ignores', () => {
+        // Documents why `withBindingsPanel` guards `mergeBlocks` (#1043):
+        // upstream's merge only checks `metadata.bindings`, so the store
+        // appends the text to the hidden fallback behind this binding.
+        const first = createBlock('artisanpack/heading', { content: 'Bound' });
+        const second = createBlock('artisanpack/paragraph', { content: 'Important note' });
+
+        first.attributes.bindings = { content: { source: 'post_core', args: { key: 'title' } } };
+
+        const { blocks } = merge(first, second, {
+            clientId: second.clientId,
+            attributeKey: 'content',
+            offset: 0,
+        });
+
+        expect(blocks).toHaveLength(1);
+        expect(String(blocks[0].attributes.content)).toBe('BoundImportant note');
+    });
+
     it('keeps the cursor at the join on a forward merge', () => {
         const first = createBlock('artisanpack/paragraph', { content: 'Hello' });
         const second = createBlock('artisanpack/paragraph', { content: 'World' });

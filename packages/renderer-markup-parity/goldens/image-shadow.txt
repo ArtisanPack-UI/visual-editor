@@ -1,0 +1,11 @@
+<figure class="wp-block-image">
+  <img alt="a" class="wp-image-1" src="https://example.test/a.jpg" />
+</figure>
+<figure class="wp-block-image">
+  <img alt="b" class="wp-image-2" src="https://example.test/b.jpg" />
+</figure>
+<figure class="wp-block-image ve-r-5db940d4ae">
+  <img alt="c" class="wp-image-3" src="https://example.test/c.jpg" />
+</figure>
+@@ renderer-instance-css @@
+@media (max-width:767px){.ve-r-5db940d4ae.ve-r-5db940d4ae.ve-r-5db940d4ae{margin-top:1rem!important}}

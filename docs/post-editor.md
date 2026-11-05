@@ -207,6 +207,25 @@ or Inertia. Embedding recipes:
 
 ---
 
+## 10. Pasting content
+
+*Since v1.20.0 (#1045, #1065, #1066).*
+
+**Markdown from anywhere.** Markdown pasted as plain text, or copied from a code editor, a notes app or Google Docs (which wrap it in their own HTML), becomes real blocks: headings, lists, links, tables, Quote blocks for blockquotes, and Code blocks for fences. A fence's language, a `language-*` class or a rendered GitHub code block fills in the Code block's **Language** setting. Detection needs clear Markdown signals, so a stray `*` does nothing. Text that holds raw HTML or a script link outside a code fence is pasted literally, and in Chromium browsers code that VS Code labels as another language (Python, YAML, …) stays as it is. Ordinary text and rich paste are unchanged.
+
+**Images from other sites.** When a paste creates Image blocks whose URLs point at another site, a snackbar says how many there are and offers **Import to media library**. Nothing downloads until the author picks it. Each image is then fetched by the server and added to the media library, and the block switches to the local copy, keeping its alt text. The editor announces when the import starts and when it finishes, and an image that can't be imported keeps its external URL.
+
+The offer only appears when importing is possible:
+
+- `artisanpack-ui/media-library` is installed, and
+- the author passes its `create` policy for media.
+
+The server refuses anything but HTTP(S) on the default ports, URLs with credentials, and hosts with an internal or otherwise non-public address, checked again at every redirect (three at most). It downloads only raster image types up to `media_import.max_size_kb`, typed from the file's bytes, never asks for a compressed response, and allows 30 imports a minute per user. See [`media_import`](Configuration.md#media_import).
+
+**Notices.** Snackbars such as the import offer sit in a labelled *Editor notifications* region after the editor. A keyboard user who pastes in the canvas reaches the **Import to media library** action by tabbing forward from the inspector.
+
+---
+
 ## See also
 
 - [Blade component reference](post-editor/Blade-Component.md)

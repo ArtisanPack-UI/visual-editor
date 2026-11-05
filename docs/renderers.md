@@ -618,6 +618,40 @@ rules at the new widths (`<style data-ve-flex-layout>`). Call
 `setBreakpoints()` before the first render, and stop linking the
 published `flex-layout.css`: its default-width rules would still fire.
 
+### Image lightbox
+
+*Since v1.20.0 (#1046, #1071)* — an Image block whose **Click to enlarge**
+setting is on renders as a lightbox figure, and the overlay script loads
+the first time one mounts. The theme default lives on the server, so pass
+it in: `<BlockTree tree={…} lightboxDefault />`. A block's own setting wins
+over the default, and a linked image never opens a lightbox. A
+`_veLightbox` key already on the tree is ignored, so a pasted or stored
+block can't turn the lightbox on.
+
+The overlay's text and the trigger's accessible name are English by
+default. Pass your translations to `setLightboxLabels()` once, before the
+first render, the same way as `setBreakpoints()`:
+
+```tsx
+import { setLightboxLabels } from '@artisanpack-ui/visual-editor-renderer-react';
+
+setLightboxLabels({
+    dialog: 'Vergrößertes Bild',
+    close: 'Schließen',
+    previous: 'Vorheriges Bild',
+    next: 'Nächstes Bild',
+    position: 'Bild :current von :total',
+    enlarge: 'Bild vergrößern',
+    enlargeWithAlt: 'Bild vergrößern: :alt',
+});
+```
+
+Any key you leave out keeps its default, and `setLightboxLabels()` with
+no argument restores all of them. `:alt` is replaced with the image's alt
+text, and the overlay fills in `:current` and `:total` as a gallery steps.
+`getLightboxLabels()` returns the set in effect, and the `LightboxLabels`
+type is exported too. Blade translates the same strings through `__()`.
+
 ### Navigation overlay
 
 *Since v1.13.0 (#804).* The React and Vue renderers render
@@ -746,14 +780,15 @@ overlay content in the named `overlay` slot instead of the default slot.
 
 The [styles `<BlockTree>` prints](#styles-blocktree-prints) and the
 [breakpoint setup](#breakpoints) are the same too. In templates, pass the
-1.15 props in kebab case, and import `setBreakpoints` from the Vue
-package:
+1.15 props in kebab case, and import `setBreakpoints` and
+[`setLightboxLabels`](#image-lightbox) from the Vue package:
 
 ```vue
 <BlockTree
     :tree="post.content"
     :duotone-presets="duotonePresets"
     :custom-css-allow-urls="customCssAllowUrls"
+    :lightbox-default="lightboxDefault"
 />
 ```
 

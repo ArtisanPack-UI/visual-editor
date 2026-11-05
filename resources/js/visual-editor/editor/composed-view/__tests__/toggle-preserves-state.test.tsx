@@ -308,6 +308,18 @@ describe('fixed block-toolbar bar (#791)', () => {
     });
 });
 
+describe('editor notifications region (#1066)', () => {
+    it('sits after the editor shell, so Tab from the inspector reaches a snackbar', async () => {
+        await renderEditor();
+
+        const shell = document.querySelector('.ap-visual-editor__shell') as HTMLElement;
+        const region = screen.getByRole('region', { name: 'Editor notifications' });
+
+        expect(shell.contains(region)).toBe(false);
+        expect(shell.compareDocumentPosition(region) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+});
+
 describe('composed-view toggle preserves editor state (#618)', () => {
     it('composes the canvas when toggled on, and uncomposes when toggled off', async () => {
         const user = userEvent.setup();

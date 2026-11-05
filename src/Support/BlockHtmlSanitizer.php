@@ -315,7 +315,9 @@ class BlockHtmlSanitizer
 		 */
 		$tags = applyFilters( 'ap.visualEditor.contentFilter.allowedHtml', self::ALLOWED_TAGS );
 
-		return is_array( $tags ) ? $tags : self::ALLOWED_TAGS;
+		// A tag mapped to anything but an attribute list would fail every
+		// save, so it's dropped instead.
+		return is_array( $tags ) ? array_filter( $tags, 'is_array' ) : self::ALLOWED_TAGS;
 	}
 
 	/**
@@ -336,9 +338,20 @@ class BlockHtmlSanitizer
 	{
 		$output = '';
 		$offset = 0;
+		$scan   = [ 'position' => 0, 'inTag' => false, 'quote' => null, 'afterEquals' => false ];
 
 		while ( 1 === preg_match( '/<svg\b/i', $html, $match, PREG_OFFSET_CAPTURE, $offset ) ) {
-			$start  = $match[0][1];
+			$start = $match[0][1];
+
+			// Inside another tag's attribute, it's text: a placeholder there
+			// would break the attribute's quoting.
+			if ( $this->isInsideTag( $html, $start, $scan ) ) {
+				$output .= substr( $html, $offset, $start + 4 - $offset );
+				$offset  = $start + 4;
+
+				continue;
+			}
+
 			$tagEnd = strpos( $html, '>', $start );
 
 			if ( false === $tagEnd ) {
@@ -360,6 +373,60 @@ class BlockHtmlSanitizer
 		}
 
 		return $output . substr( $html, $offset );
+	}
+
+	/**
+	 * Whether a position sits inside an open tag, such as in an attribute
+	 * value. Reads the fragment forward from where `$scan` stopped, tracking
+	 * tags (a `<` before a letter or `/`) and quoted attribute values (a
+	 * quote right after `=`), so a `<` or `>` inside a quoted value is text.
+	 * Positions must not decrease between calls that share `$scan`.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @param  string                                                                         $html      The fragment.
+	 * @param  int                                                                            $position  The offset to check.
+	 * @param  array{position: int, inTag: bool, quote: string|null, afterEquals: bool}  $scan      Scanner state, carried between calls.
+	 */
+	protected function isInsideTag( string $html, int $position, array &$scan ): bool
+	{
+		for ( $index = $scan['position']; $index < $position; $index++ ) {
+			$char = $html[ $index ];
+
+			if ( null !== $scan['quote'] ) {
+				if ( $char === $scan['quote'] ) {
+					$scan['quote'] = null;
+				}
+
+				continue;
+			}
+
+			if ( ! $scan['inTag'] ) {
+				$next = $html[ $index + 1 ] ?? '';
+
+				if ( '<' === $char && ( '/' === $next || ctype_alpha( $next ) ) ) {
+					$scan['inTag']       = true;
+					$scan['afterEquals'] = false;
+				}
+
+				continue;
+			}
+
+			if ( '>' === $char ) {
+				$scan['inTag'] = false;
+			} elseif ( $scan['afterEquals'] && ( '"' === $char || "'" === $char ) ) {
+				$scan['quote']       = $char;
+				$scan['afterEquals'] = false;
+			} elseif ( '=' === $char ) {
+				$scan['afterEquals'] = true;
+			} elseif ( ! ctype_space( $char ) ) {
+				$scan['afterEquals'] = false;
+			}
+		}
+
+		$scan['position'] = max( $scan['position'], $position );
+
+		return $scan['inTag'];
 	}
 
 	/**

@@ -756,25 +756,29 @@ function ContentPanel({ value, onChange, sources, subtreeBlockNames }: { value: 
                         : undefined)}
                 />
             </PanelRow>
-            {active && (
-                <div style={SUBSECTION_STYLE}>
-                    <SelectControl
-                        label={__('Source', 'artisanpack-visual-editor')}
-                        value={value?.source ?? ''}
-                        options={sourceOptions}
-                        onChange={selectSource}
-                    />
-                    <SelectControl
-                        label={__('Condition', 'artisanpack-visual-editor')}
-                        value={value?.condition ?? ''}
-                        options={conditions}
-                        onChange={(condition) => onChange({ ...(value ?? {}), condition })}
-                    />
-                    <CombinatorToggle value={value?.match ?? 'any'} onChange={(match) => onChange({ ...(value ?? {}), match })} />
-                    <DirectionToggle value={value?.direction ?? 'show'} onChange={(direction) => onChange({ ...(value ?? {}), direction })} />
-                    <ContentSourceHint source={source} subtreeBlockNames={subtreeBlockNames} />
-                </div>
-            )}
+            {/* The hint's live region stays mounted while the rule is off,
+                so switching it on announces the hint (#1030). */}
+            <div style={active ? SUBSECTION_STYLE : undefined}>
+                {active && (
+                    <>
+                        <SelectControl
+                            label={__('Source', 'artisanpack-visual-editor')}
+                            value={value?.source ?? ''}
+                            options={sourceOptions}
+                            onChange={selectSource}
+                        />
+                        <SelectControl
+                            label={__('Condition', 'artisanpack-visual-editor')}
+                            value={value?.condition ?? ''}
+                            options={conditions}
+                            onChange={(condition) => onChange({ ...(value ?? {}), condition })}
+                        />
+                        <CombinatorToggle value={value?.match ?? 'any'} onChange={(match) => onChange({ ...(value ?? {}), match })} />
+                        <DirectionToggle value={value?.direction ?? 'show'} onChange={(direction) => onChange({ ...(value ?? {}), direction })} />
+                    </>
+                )}
+                <ContentSourceHint source={active ? source : undefined} subtreeBlockNames={subtreeBlockNames} />
+            </div>
         </>
     );
 }
@@ -783,10 +787,13 @@ function ContentPanel({ value, onChange, sources, subtreeBlockNames }: { value: 
  * Names what the rule found in the block's subtree, or warns when it
  * found nothing. Sources that don't match on block name can't be
  * detected here, so they show neither.
+ *
+ * The live region is always rendered and only its text changes: a region
+ * inserted together with its message is often not announced.
  */
-function ContentSourceHint({ source, subtreeBlockNames }: { source: VisibilityContentSourceOption | undefined; subtreeBlockNames: string[] }): JSX.Element | null {
+function ContentSourceHint({ source, subtreeBlockNames }: { source: VisibilityContentSourceOption | undefined; subtreeBlockNames: string[] }): JSX.Element {
     if (source === undefined || source.blocks.length === 0) {
-        return null;
+        return <em role="status" />;
     }
 
     const count = subtreeBlockNames.filter((name) => source.blocks.includes(name)).length;

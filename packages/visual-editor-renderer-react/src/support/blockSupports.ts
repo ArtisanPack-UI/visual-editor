@@ -23,7 +23,7 @@ import { applyBlockGap } from './blockGap';
 import { safeCssValue, safeFontFamilyValue, safeGradientValue } from './cssValue';
 import { applyDimensions, dimensionsClassName } from './dimensions';
 import { presetPickClass } from './layoutBaselineCss';
-import { expandPresetReference } from './presetReference';
+import { expandPresetReference, presetSlug } from './presetReference';
 
 /** The compiled wrapper output: classes in Blade order and a style object (camelCased keys). */
 export interface CompiledBlockSupports {
@@ -132,7 +132,7 @@ export function splitBorderSupports(attributes: Record<string, unknown>): {
 }
 
 /** Whether any cascade level of a block's border is a gradient, as `GradientBorderResolver::resolve()` reads it. */
-function hasGradientBorder(attributes: Record<string, unknown>): boolean {
+export function hasGradientBorder(attributes: Record<string, unknown>): boolean {
     const overrides = [attrRecord(attributes.states), attrRecord(attributes.responsive)].flatMap((bag) =>
         ['style.border.gradient', 'border.gradient'].flatMap((path) => Object.values(attrRecord(bag[path]))),
     );
@@ -140,6 +140,28 @@ function hasGradientBorder(attributes: Record<string, unknown>): boolean {
     return [attrRecord(attrRecord(attributes.style).border).gradient, ...overrides].some(
         (value) => stringAttr(value) !== '',
     );
+}
+
+/**
+ * Whether any cascade level of a block's shadow is a gradient one, which
+ * stays on the wrapper. Mirrors `BlockSupports::hasGradientShadow()`: a
+ * layer with no preset and no raw value but a gradient, at the idle, state
+ * or breakpoint level.
+ */
+export function hasGradientShadow(attributes: Record<string, unknown>): boolean {
+    const overrides = [attrRecord(attributes.states), attrRecord(attributes.responsive)].flatMap((bag) =>
+        ['style.shadow', 'shadow'].flatMap((path) => Object.values(attrRecord(bag[path]))),
+    );
+
+    return [attrRecord(attributes.style).shadow, ...overrides].some((layer) => {
+        if (layer === null || typeof layer !== 'object') {
+            return false;
+        }
+
+        const { preset, value, gradient } = layer as Record<string, unknown>;
+
+        return stringAttr(preset) === '' && stringAttr(value) === '' && stringAttr(gradient) !== '';
+    });
 }
 
 /**
@@ -161,7 +183,11 @@ export function compileBoxShadow(attributes: Record<string, unknown>): string | 
     const preset = stringAttr(layer.preset);
 
     if (preset !== '') {
-        return `var(--wp--preset--shadow--${slugify(preset)})${inset ? ' inset' : ''}`;
+        // Blade's `PresetRegistry::presetSlug()` rule, the name the theme
+        // declares: `softGlow` → `soft-glow`.
+        const slug = presetSlug(preset);
+
+        return slug === '' ? null : `var(--wp--preset--shadow--${slug})${inset ? ' inset' : ''}`;
     }
 
     if (stringAttr(layer.value) !== '') {

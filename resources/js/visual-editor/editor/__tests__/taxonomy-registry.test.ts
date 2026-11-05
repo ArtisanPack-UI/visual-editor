@@ -7,7 +7,15 @@
  * to the built-in defaults.
  */
 
-import { afterEach, describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
+
+vi.mock( '../content-type-registry', () => ( {
+    getContentTypes: () => [
+        { slug: 'post', plural: 'posts', label: 'Post' },
+        { slug: 'page', plural: 'pages', label: 'Page' },
+        { slug: 'package', plural: 'packages', label: 'Package' },
+    ],
+} ) );
 
 import {
     getTaxonomies,
@@ -150,6 +158,19 @@ describe( 'getTaxonomiesForPostType (#1029)', () => {
         mount( 'data-ap-visual-editor', [ { slug: 'constructor', label: 'Builder' } ] );
 
         expect( slugs( 'page' ) ).toEqual( [ 'constructor' ] );
+    } );
+
+    it( 'reads a saved plural post type as its singular slug', () => {
+        expect( slugs( 'posts' ) ).toEqual( slugs( 'post' ) );
+        expect( slugs( 'posts' ) ).toEqual( [ 'category', 'post_tag' ] );
+    } );
+
+    it( 'matches a custom taxonomy against a plural custom post type', () => {
+        mount( 'data-ap-visual-editor', [ { slug: 'library', label: 'Library', postTypes: [ 'package' ] } ] );
+
+        expect( slugs( 'packages' ) ).toEqual( [ 'library' ] );
+        expect( slugs( 'package' ) ).toEqual( [ 'library' ] );
+        expect( slugs( 'pages' ) ).toEqual( [] );
     } );
 
     it( 'drops invalid postTypes values', () => {

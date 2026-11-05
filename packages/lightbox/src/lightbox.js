@@ -25,6 +25,7 @@ const DEFAULT_LABELS = {
     close: 'Close',
     previous: 'Previous image',
     next: 'Next image',
+    position: 'Image :current of :total',
 };
 
 const ICONS = {
@@ -118,6 +119,8 @@ function createOverlay(doc) {
         isOpen: false,
         scrollOverflow: '',
         closeTimer: 0,
+        labels: DEFAULT_LABELS,
+        inerted: [],
     };
 
     close.addEventListener('click', () => closeOverlay(state));
@@ -165,6 +168,7 @@ function applyLabels(state, container) {
     const gallery = container.closest(GALLERY_SELECTOR);
     const type = gallery?.dataset.apLightboxNavigation ?? 'icon';
 
+    state.labels = labels;
     state.root.setAttribute('aria-label', labels.dialog);
     state.close.setAttribute('aria-label', labels.close);
 
@@ -212,7 +216,16 @@ function step(state, offset) {
     }
 
     showImage(state, (state.index + offset + length) % length);
-    state.live.textContent = state.image.alt;
+
+    // The position changes on every step, so the region always has something
+    // new to say, even for an empty or repeated alt text.
+    const position = String(state.labels.position ?? DEFAULT_LABELS.position)
+        .split(':current')
+        .join(String(state.index + 1))
+        .split(':total')
+        .join(String(length));
+
+    state.live.textContent = state.image.alt === '' ? position : `${position}: ${state.image.alt}`;
 }
 
 function openOverlay(container) {
@@ -238,6 +251,14 @@ function openOverlay(container) {
     state.isOpen = true;
     state.scrollOverflow = scroller.style.overflow;
     scroller.style.overflow = 'hidden';
+    // `aria-modal` alone doesn't keep every screen reader's virtual cursor
+    // or touch exploration out of the page behind the dialog.
+    state.inerted = Array.from(root.ownerDocument.body.children).filter(
+        (element) => element !== root && !element.inert
+    );
+    state.inerted.forEach((element) => {
+        element.inert = true;
+    });
     applyLabels(state, container);
     state.previous.button.hidden = images.length < 2;
     state.next.button.hidden = images.length < 2;
@@ -262,6 +283,10 @@ function closeOverlay(state) {
     state.closeTimer = setTimeout(() => {
         root.classList.remove('show-closing-animation');
     }, CLOSE_ANIMATION_MS);
+    state.inerted.forEach((element) => {
+        element.inert = false;
+    });
+    state.inerted = [];
     opener?.focus();
 }
 

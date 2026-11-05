@@ -1,4 +1,4 @@
-<figure class="wp-block-image wp-lightbox-container" data-ap-lightbox-labels="{\"dialog\":\"Enlarged image\",\"close\":\"Close\",\"previous\":\"Previous image\",\"next\":\"Next image\"}">
+<figure class="wp-block-image wp-lightbox-container" data-ap-lightbox-labels="{\"dialog\":\"Enlarged image\",\"close\":\"Close\",\"previous\":\"Previous image\",\"next\":\"Next image\",\"position\":\"Image :current of :total\"}">
   <img alt="A cat" src="https://example.test/a.jpg" />
   <button aria-haspopup="dialog" aria-label="Enlarge image: A cat" class="lightbox-trigger" style="display: none" type="button">
     <svg aria-hidden="true" focusable="false" height="12" viewbox="0 0 12 12" width="12">
@@ -10,7 +10,7 @@
     "Hello"
   </figcaption>
 </figure>
-<figure class="wp-block-image wp-lightbox-container" data-ap-lightbox-labels="{\"dialog\":\"Enlarged image\",\"close\":\"Close\",\"previous\":\"Previous image\",\"next\":\"Next image\"}">
+<figure class="wp-block-image wp-lightbox-container" data-ap-lightbox-labels="{\"dialog\":\"Enlarged image\",\"close\":\"Close\",\"previous\":\"Previous image\",\"next\":\"Next image\",\"position\":\"Image :current of :total\"}">
   <img alt="" src="https://example.test/b.jpg" />
   <button aria-haspopup="dialog" aria-label="Enlarge image" class="lightbox-trigger" style="display: none" type="button">
     <svg aria-hidden="true" focusable="false" height="12" viewbox="0 0 12 12" width="12">
@@ -28,7 +28,7 @@
   </a>
 </figure>
 <figure class="wp-block-gallery has-nested-images" data-ap-lightbox-navigation="both">
-  <figure class="wp-block-image wp-lightbox-container" data-ap-lightbox-labels="{\"dialog\":\"Enlarged image\",\"close\":\"Close\",\"previous\":\"Previous image\",\"next\":\"Next image\"}">
+  <figure class="wp-block-image wp-lightbox-container" data-ap-lightbox-labels="{\"dialog\":\"Enlarged image\",\"close\":\"Close\",\"previous\":\"Previous image\",\"next\":\"Next image\",\"position\":\"Image :current of :total\"}">
     <img alt="One" src="https://example.test/e.jpg" />
     <button aria-haspopup="dialog" aria-label="Enlarge image: One" class="lightbox-trigger" style="display: none" type="button">
       <svg aria-hidden="true" focusable="false" height="12" viewbox="0 0 12 12" width="12">

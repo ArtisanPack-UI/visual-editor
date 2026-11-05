@@ -124,6 +124,57 @@ it( 'answers each post navigation condition independently', function ( string $c
 	'next, previous only'    => [ 'hasNext', '/a', '', false ],
 ] );
 
+it( 'reads the Previous Post and Next Post containers', function ( string $condition, string $match, bool $hasPrevious, bool $hasNext, bool $visible ): void {
+	$block = contentGroup(
+		[ 'source' => 'postNavigation', 'condition' => $condition, 'match' => $match, 'direction' => 'show' ],
+		[
+			contentBlock( 'core/heading', [ 'content' => 'Keep reading' ] ),
+			contentBlock( 'artisanpack/previous-post', [ '_resolvedHasAdjacent' => $hasPrevious ] ),
+			contentBlock( 'artisanpack/next-post', [ '_resolvedHasAdjacent' => $hasNext ] ),
+		],
+	);
+
+	expect( evaluateContent( $block )->isVisible() )->toBe( $visible );
+} )->with( [
+	'either, a one-post blog'      => [ 'hasEither', 'any', false, false, false ],
+	'either, a next post only'     => [ 'hasEither', 'any', false, true, true ],
+	'either, a previous post only' => [ 'hasEither', 'any', true, false, true ],
+	'next, a next post'            => [ 'hasNext', 'any', false, true, true ],
+	'next, a previous post only'   => [ 'hasNext', 'any', true, false, false ],
+	'previous, a previous post'    => [ 'hasPrevious', 'any', true, false, true ],
+	'next, all, both'              => [ 'hasNext', 'all', true, true, false ],
+	'either, all, both'            => [ 'hasEither', 'all', true, true, true ],
+	'either, all, one missing'     => [ 'hasEither', 'all', true, false, false ],
+] );
+
+it( 'counts an unresolved or failed container as having no neighbour', function (): void {
+	$block = contentGroup(
+		[ 'source' => 'postNavigation', 'condition' => 'hasEither' ],
+		[ contentBlock( 'artisanpack/previous-post' ), contentBlock( 'artisanpack/next-post' ) ],
+	);
+
+	expect( evaluateContent( $block )->isHidden() )->toBeTrue();
+
+	$failed = contentGroup(
+		[ 'source' => 'postNavigation', 'condition' => 'hasEither', 'direction' => 'hide' ],
+		[ contentBlock( 'artisanpack/next-post', [ '_resolvedHasAdjacent' => true, '_resolutionError' => 'x' ] ) ],
+	);
+
+	expect( evaluateContent( $failed )->isVisible() )->toBeTrue();
+} );
+
+it( 'hides a band of Previous Post / Next Post containers on a post with no neighbours, end to end', function (): void {
+	$stamped = ( new PostResolver() )->stampTree(
+		[ contentBlock( 'artisanpack/previous-post' ), contentBlock( 'artisanpack/next-post' ) ],
+		(object) [ 'id' => 1 ],
+	);
+
+	$block = contentGroup( [ 'source' => 'postNavigation', 'condition' => 'hasEither' ], $stamped );
+
+	expect( $stamped[0]['attributes'] )->toHaveKey( '_resolvedHasAdjacent' )
+		->and( evaluateContent( $block )->isHidden() )->toBeTrue();
+} );
+
 it( 'hides a pagination row when the loop has a single page', function ( string $name ): void {
 	$rule = [ 'source' => 'pagination', 'condition' => 'hasMultiplePages' ];
 

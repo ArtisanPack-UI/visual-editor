@@ -331,8 +331,9 @@ function sectionKind(section: SiteEditorSectionId): EntityKind | null {
 export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
     return (
         <ToastProvider>
-            <EditorSnackbars />
             <SiteEditorAppShell {...props} />
+            {/* After the shell, so Tab from the inspector reaches a snackbar's action. */}
+            <EditorSnackbars />
         </ToastProvider>
     );
 }

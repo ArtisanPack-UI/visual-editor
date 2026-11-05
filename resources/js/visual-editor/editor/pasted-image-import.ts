@@ -10,6 +10,7 @@
  * @since 1.20.0
  */
 
+import { speak } from '@wordpress/a11y';
 import { store as blockEditorStore } from '@wordpress/block-editor';
 import type { BlockInstance } from '@wordpress/blocks';
 import type { DataRegistry } from '@wordpress/data';
@@ -151,6 +152,17 @@ export async function importExternalImages(
 ): Promise< void > {
     let imported = 0;
     let failed   = 0;
+
+    // Each import waits on a server-side download, so say it has started,
+    // counting only the images still waiting to be imported.
+    const pending = images.filter( ( image ) => null !== pendingImageBlock( registry, image ) ).length;
+
+    if ( pending > 0 ) {
+        speak(
+            /* translators: %d: number of images being imported. */
+            sprintf( _n( 'Importing %d image…', 'Importing %d images…', pending, TEXT_DOMAIN ), pending ),
+        );
+    }
 
     for ( const image of images ) {
         const block = pendingImageBlock( registry, image );

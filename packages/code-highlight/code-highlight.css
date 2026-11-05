@@ -1,11 +1,15 @@
 /*
  * Code block token colours (#1044).
  *
- * Two palettes, both WCAG AA (4.5:1). The highlighter measures the background
- * behind each block and sets `data-ap-code-scheme` for the one that fits. A
- * theme can set `--ap-code-*` to override a colour, on `:root` for every block
- * or on `[data-ap-code-scheme="dark"]` for one palette. Inside a layer, so any
- * unlayered host rule wins.
+ * Two palettes. The highlighter measures the background behind each block and
+ * sets `data-ap-code-scheme` for the one that fits. Every token meets WCAG AA
+ * (4.5:1) on a background of luminance 0.7 or more for the light palette, or
+ * 0.04 or less for the dark one. On a background in between, such as a
+ * mid-tone brand colour, the highlighter sets `data-ap-code-tokens="mono"` and
+ * the tokens keep the text colour, so code stays readable but plain. A theme
+ * can set `--ap-code-*` to override a colour, on `:root` for every block or on
+ * `[data-ap-code-scheme="dark"]` for one palette; the monochrome rule still
+ * wins over those. Inside a layer, so any unlayered host rule wins.
  */
 
 @layer ve-code-highlight {
@@ -104,5 +108,22 @@
 
     .ap-code-italic {
         font-style: italic;
+    }
+
+    /* No palette reaches AA on this background: keep the text colour. */
+    code[data-ap-code-tokens='mono'] [class*='ap-code-'] {
+        color: inherit;
+    }
+
+    code[data-ap-code-tokens='mono'] .ap-code-comment {
+        font-style: italic;
+    }
+
+    code[data-ap-code-tokens='mono'][data-ap-code-contrast='low'][data-ap-code-scheme='light'] {
+        color: #000;
+    }
+
+    code[data-ap-code-tokens='mono'][data-ap-code-contrast='low'][data-ap-code-scheme='dark'] {
+        color: #fff;
     }
 }

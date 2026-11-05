@@ -28,6 +28,8 @@ import { __ } from '@wordpress/i18n';
 
 import { TEXT_DOMAIN } from '../vendor/i18n';
 
+import { resolvePostType } from './content-type-slugs';
+
 export interface TaxonomyDescriptor {
     readonly slug: string;
     readonly label: string;
@@ -158,13 +160,18 @@ export function getTaxonomies(): ReadonlyArray<TaxonomyDescriptor> {
  * `post`, custom taxonomies listing it in `postTypes`, and custom
  * taxonomies that declare no post types at all.
  *
+ * A saved block can carry the plural (`posts`), so the type is
+ * normalised to its singular slug first, as `QueryInliner` does on render.
+ *
  * @since 1.20.0
  */
 export function getTaxonomiesForPostType(postType: string): ReadonlyArray<TaxonomyDescriptor> {
+    const type = resolvePostType(postType);
+
     return getTaxonomies().filter((taxonomy) => {
         const postTypes = BUILT_IN_POST_TYPES.get(taxonomy.slug) ?? taxonomy.postTypes;
 
-        return postTypes === undefined || postTypes.includes(postType);
+        return postTypes === undefined || postTypes.includes(type);
     });
 }
 

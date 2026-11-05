@@ -4,10 +4,11 @@
 
 import { render, waitFor } from '@testing-library/react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import '../src/index';
 import { BlockTree } from '../src/BlockTree';
+import { setLightboxLabels } from '../src/index';
 import { imageHasLightbox, lightboxNavigationType, stampLightboxDefault } from '../src/support/lightbox';
 import { makeBlock } from './helpers';
 
@@ -68,6 +69,19 @@ describe('stampLightboxDefault', () => {
 
         expect(stampLightboxDefault(tree, false)).toBe(tree);
     });
+
+    it('returns the same tree when every image is already stamped', () => {
+        const tree = [makeBlock('core/image', { _veLightbox: true })] as never;
+
+        expect(stampLightboxDefault(tree, true)).toBe(tree);
+    });
+
+    it('drops a saved _veLightbox when the default is off', () => {
+        const tree = [makeBlock('core/group', {}, [makeBlock('core/image', { _veLightbox: true })])] as never;
+        const [group] = stampLightboxDefault(tree, false);
+
+        expect(group.innerBlocks?.[0].attributes).not.toHaveProperty('_veLightbox');
+    });
 });
 
 describe('ImageBlock', () => {
@@ -97,6 +111,15 @@ describe('ImageBlock', () => {
         const html = renderToStaticMarkup(<BlockTree tree={image({}, name)} lightboxDefault />);
 
         expect(html).toContain('wp-lightbox-container');
+    });
+
+    it('ignores a saved _veLightbox without a theme default, as Blade does', () => {
+        const html = renderToStaticMarkup(
+            <BlockTree tree={[makeBlock('core/image', { url: URL, _veLightbox: true })] as Tree} />
+        );
+
+        expect(html).not.toContain('wp-lightbox-container');
+        expect(html).not.toContain('lightbox-trigger');
     });
 
     it('lets a block turn off the theme default', () => {
@@ -149,5 +172,37 @@ describe('GalleryBlock', () => {
         );
 
         expect(html).not.toContain('data-ap-lightbox-navigation');
+    });
+});
+
+describe('setLightboxLabels', () => {
+    afterEach(() => {
+        setLightboxLabels();
+    });
+
+    it('translates the overlay labels and the trigger name', () => {
+        setLightboxLabels({ close: 'Schließen', enlargeWithAlt: 'Vergrößern: :alt', position: 'Bild :current von :total' });
+
+        const html = renderToStaticMarkup(<BlockTree tree={image({ lightbox: { enabled: true } })} />);
+        const labels = /data-ap-lightbox-labels="([^"]*)"/.exec(html)?.[1].replace(/&quot;/g, '"') ?? '{}';
+
+        expect(JSON.parse(labels)).toMatchObject({ close: 'Schließen', dialog: 'Enlarged image', position: 'Bild :current von :total' });
+        expect(html).toContain('aria-label="Vergrößern: A cat"');
+    });
+
+    it('keeps a label passed as undefined or a non-string', () => {
+        setLightboxLabels({ enlargeWithAlt: undefined, close: 7 as unknown as string });
+
+        const html = renderToStaticMarkup(<BlockTree tree={image({ lightbox: { enabled: true } })} />);
+
+        expect(html).toContain('aria-label="Enlarge image: A cat"');
+        expect(html).toContain('&quot;close&quot;:&quot;Close&quot;');
+    });
+
+    it('keeps the English defaults until it is called', () => {
+        const html = renderToStaticMarkup(<BlockTree tree={image({ lightbox: { enabled: true } })} />);
+
+        expect(html).toContain('aria-label="Enlarge image: A cat"');
+        expect(html).toContain('&quot;close&quot;:&quot;Close&quot;');
     });
 });

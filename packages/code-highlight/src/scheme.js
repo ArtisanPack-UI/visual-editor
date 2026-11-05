@@ -13,6 +13,14 @@ const DARK_LUMINANCE = 0.18;
 
 const AA_CONTRAST = 4.5;
 
+/**
+ * Background luminances each palette meets 4.5:1 on, for every token in
+ * code-highlight.css (the comment colour is the binding one in both).
+ * Outside them, token colours are dropped rather than shown unreadable.
+ */
+const LIGHT_PALETTE_MIN = 0.7;
+const DARK_PALETTE_MAX = 0.04;
+
 let context = null;
 
 /**
@@ -50,10 +58,15 @@ function contrast(first, second) {
 }
 
 /**
- * The luminance of the nearest solid background, or `null` if it can't be
- * known, as behind an image or gradient.
+ * The luminance of what's behind an element: each translucent background
+ * blended over the ones below it, down to the first opaque one. `null` if it
+ * can't be known, as behind an image or gradient, or when nothing is painted
+ * and the page asks for a dark canvas, whose colour the browser picks.
  */
 function backgroundLuminance(element) {
+    const layers = [];
+    let base = null;
+
     for (let current = element; current !== null; current = current.parentElement) {
         const style = getComputedStyle(current);
 
@@ -63,12 +76,46 @@ function backgroundLuminance(element) {
 
         const color = readColor(style.backgroundColor);
 
-        if (color !== null && color[3] >= 128) {
-            return luminance(color);
+        if (color === null || color[3] === 0) {
+            continue;
         }
+
+        if (color[3] >= 255) {
+            base = color;
+            break;
+        }
+
+        layers.push(color);
     }
 
-    return null;
+    if (base === null) {
+        if (layers.length === 0) {
+            return null;
+        }
+
+        // Nothing opaque: the layers sit on the browser's canvas, which is
+        // white unless the page opts into a dark one.
+        const scheme = getComputedStyle(element.ownerDocument.documentElement).colorScheme ?? '';
+
+        if (/\bdark\b/.test(scheme) && !/\blight\b/.test(scheme)) {
+            return null;
+        }
+
+        base = [255, 255, 255, 255];
+    }
+
+    let [red, green, blue] = base;
+
+    for (let index = layers.length - 1; index >= 0; index--) {
+        const [r, g, b, a] = layers[index];
+        const alpha = a / 255;
+
+        red = r * alpha + red * (1 - alpha);
+        green = g * alpha + green * (1 - alpha);
+        blue = b * alpha + blue * (1 - alpha);
+    }
+
+    return luminance([red, green, blue]);
 }
 
 /**
@@ -76,6 +123,8 @@ function backgroundLuminance(element) {
  * colour is the best remaining signal: light text implies a dark background.
  * `data-ap-code-contrast="low"` marks text that's unreadable on what's behind
  * it, so the stylesheet can replace it, as it does for punctuation.
+ * `data-ap-code-tokens="mono"` marks a background neither palette reaches AA
+ * on, so the tokens keep the text colour instead.
  *
  * @param {Element} element A highlighted `<code>` element.
  */
@@ -83,6 +132,7 @@ export function applyScheme(element) {
     // Off first: the flag's own replacement colour would read as readable
     // text, clear the flag, and flip it on every later measure.
     element.removeAttribute('data-ap-code-contrast');
+    element.removeAttribute('data-ap-code-tokens');
 
     const text = readColor(getComputedStyle(element).color);
     const textLuminance = text === null ? 0 : luminance(text);
@@ -90,6 +140,10 @@ export function applyScheme(element) {
     const dark = background === null ? textLuminance > DARK_LUMINANCE : background < DARK_LUMINANCE;
 
     element.setAttribute('data-ap-code-scheme', dark ? 'dark' : 'light');
+
+    if (background !== null && (dark ? background > DARK_PALETTE_MAX : background < LIGHT_PALETTE_MIN)) {
+        element.setAttribute('data-ap-code-tokens', 'mono');
+    }
 
     if (background !== null && contrast(textLuminance, background) < AA_CONTRAST) {
         element.setAttribute('data-ap-code-contrast', 'low');

@@ -1671,7 +1671,6 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
 
     return (
         <SlotFillProvider>
-            <EditorSnackbars />
             <div
                 className="ap-visual-editor__shell"
                 data-inserter-open={inserterOpen}
@@ -1691,6 +1690,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
                 {shortcutsModal}
                 {pagePatternModal}
             </div>
+            <EditorSnackbars />
         </SlotFillProvider>
     );
 }

@@ -126,3 +126,14 @@ it( 'tells the overlay a non-default navigation button type', function ( string 
 it( 'prints nothing for the default or an unknown navigation button type', function ( mixed $type ): void {
 	expect( ImageLightbox::navigationAttribute( $type ) )->toBe( '' );
 } )->with( [ 'icon', null, 'x" onclick="y', 1 ] );
+
+it( 'gives the overlay a translatable gallery position label', function (): void {
+	$labels = json_decode( ImageLightbox::labels(), true );
+
+	expect( $labels )->toHaveKey( 'position' )
+		->and( $labels['position'] )->toBe( 'Image :current of :total' );
+
+	app( 'translator' )->addLines( [ '*.Image :current of :total' => 'Bild :current von :total' ], 'en' );
+
+	expect( json_decode( ImageLightbox::labels(), true )['position'] )->toBe( 'Bild :current von :total' );
+} );
