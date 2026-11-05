@@ -15,7 +15,8 @@
     },
     "files": [
         "src",
-        "README.md"
+        "README.md",
+        "NOTICE.md"
     ],
     "keywords": [
         "vue",

@@ -16,6 +16,14 @@ afterEach( () => {
 } );
 
 describe( 'EditorSnackbars', () => {
+    it( 'is a labelled region a keyboard user can find (#1066)', () => {
+        render( <EditorSnackbars /> );
+
+        const region = screen.getByRole( 'region', { name: 'Editor notifications' } );
+
+        expect( region.getAttribute( 'tabindex' ) ).toBe( '-1' );
+    } );
+
     it( 'shows snackbars, not other notices, with their actions', async () => {
         const onClick = vi.fn();
 

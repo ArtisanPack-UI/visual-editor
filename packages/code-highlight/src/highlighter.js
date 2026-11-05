@@ -40,6 +40,9 @@ const SUPPORTED_LANGUAGES = [
 /** Prism's name for a language, where it differs from the block's. */
 const GRAMMAR_NAMES = { html: 'markup' };
 
+/** Longer code stays plain: highlighting it could stall the page. */
+const MAX_HIGHLIGHT_LENGTH = 50000;
+
 // Prism's bare class names (`table`, `tag`, `number`) are also Tailwind and
 // daisyUI classes, so an unprefixed token picks up the host's component CSS.
 // Registered last, so language hooks still see the original names.
@@ -94,7 +97,7 @@ export function highlightElement(element) {
     const language = languageOf(element);
     const text = language === null ? null : plainTextOf(element);
 
-    if (text === null) {
+    if (text === null || text.length > MAX_HIGHLIGHT_LENGTH) {
         return false;
     }
 

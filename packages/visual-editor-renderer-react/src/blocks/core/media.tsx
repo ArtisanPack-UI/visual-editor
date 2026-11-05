@@ -11,7 +11,7 @@ import { styleProp } from '../../support/styleProp';
 import { safeCssValue } from '../../support/cssValue';
 import { safeUrl } from '../../support/urlSanitizer';
 import {
-    LIGHTBOX_LABELS,
+    lightboxLabelsJson,
     LIGHTBOX_TRIGGER_ICON_PATH,
     bindLightbox,
     imageHasLightbox,
@@ -214,7 +214,14 @@ export function ImageBlock({ attributes }: BlockRendererProps): JSX.Element {
         className,
     ]);
 
-    const imgClass = classList([...border.classNames, id > 0 ? `wp-image-${id}` : null]) || undefined;
+    // Blade order: element support classes (the idle border, then its
+    // responsive scope), then `wp-image-N`.
+    const imgClass =
+        classList([
+            ...border.classNames,
+            attrString(attributes._veImgResponsiveScope) || null,
+            id > 0 ? `wp-image-${id}` : null,
+        ]) || undefined;
     const borderAndShadow = shadow === null ? border.style : { ...border.style, boxShadow: shadow };
     const img =
         url === '' ? null : (
@@ -233,7 +240,7 @@ export function ImageBlock({ attributes }: BlockRendererProps): JSX.Element {
             ref={figureRef}
             className={figureClasses}
             style={styleProp(supports.style)}
-            data-ap-lightbox-labels={lightbox ? LIGHTBOX_LABELS : undefined}
+            data-ap-lightbox-labels={lightbox ? lightboxLabelsJson() : undefined}
         >
             {img !== null && href !== '' ? (
                 <a className={link.className} href={href} target={link.target} rel={link.rel}>

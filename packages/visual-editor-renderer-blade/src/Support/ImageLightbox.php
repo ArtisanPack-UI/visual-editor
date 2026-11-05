@@ -113,6 +113,8 @@ class ImageLightbox
 
 	/**
 	 * The overlay's labels, for the figure's `data-ap-lightbox-labels`.
+	 * `position` keeps its `:current` / `:total` placeholders, which the
+	 * overlay fills in as a gallery steps.
 	 *
 	 * @since 1.20.0
 	 */
@@ -124,6 +126,7 @@ class ImageLightbox
 				'close'    => __( 'Close' ),
 				'previous' => __( 'Previous image' ),
 				'next'     => __( 'Next image' ),
+				'position' => __( 'Image :current of :total' ),
 			],
 			JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES,
 		);

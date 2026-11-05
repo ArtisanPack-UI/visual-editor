@@ -165,8 +165,9 @@ restoring the theme version.
 | `DELETE` | `/visual-editor/api/templates/{slug}` | Delete the user record (theme version remains). |
 | `GET/POST/GET/PUT/DELETE` | `/visual-editor/api/template-parts[/{slug}]` | Same surface for template parts. |
 
-All endpoints behind the API middleware stack. Slug regex allows path-style
-segments (`single/post/hello-world`).
+All endpoints behind the API middleware stack. `{slug}` is a slug or row id
+(`[A-Za-z0-9_-]+`), or a `<theme>~<digits>` composite id; it can't contain
+`/`.
 
 ### Slugs and ids
 
@@ -187,6 +188,19 @@ could be either, so it's resolved in this order:
   clients that work by slug send a theme. The override with that slug in that
   theme wins, then a row with that id in that theme. A row in a different
   theme isn't deleted: the response is a 404.
+
+A template or part that exists only as a theme file and whose slug is all
+digits gets the id `<theme>~<slug>`, for example `my-theme~404`, so it can't
+match another record's row id. `GET`, `PUT` and `DELETE` accept it. A `GET`
+only finds it in the active theme, and a `PUT` or `DELETE` whose `theme`
+names a different theme than the id returns a 422 with a `theme` error.
+`GET /visual-editor/api/templates?theme=<theme>&slug=<slug>` finds the same
+record by its parts.
+
+A `PUT` that creates a row for a theme other than the active one starts from
+the request alone: the active theme's file for that slug isn't copied into
+it. Without a `title` in the body, that `PUT` returns a 422 with a `title`
+error.
 
 `?theme=` must be a single string. A value such as `?theme[]=x` returns a
 422 with a `theme` error.

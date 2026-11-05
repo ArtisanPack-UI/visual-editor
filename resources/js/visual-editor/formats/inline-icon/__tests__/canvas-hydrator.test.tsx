@@ -5,6 +5,7 @@
 import { act, render, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { resetBindingsApiConfig, setBindingsApiConfig } from '../../../bindings/config';
 import {
     InlineIconCanvasHydrator,
     isInlineIconPlaceholder,
@@ -30,6 +31,7 @@ function canvas( html: string ): HTMLElement {
 afterEach( () => {
     document.body.innerHTML = '';
     vi.unstubAllGlobals();
+    resetBindingsApiConfig();
 } );
 
 describe( 'isInlineIconPlaceholder', () => {
@@ -194,5 +196,19 @@ describe( 'InlineIconCanvasHydrator', () => {
 
         expect( ( container.firstElementChild as HTMLElement ).hidden ).toBe( true );
         expect( container.children ).toHaveLength( 1 );
+    } );
+
+    it( 'fetches glyphs under the API base the host configured', async () => {
+        const fetchMock = vi.fn( async () => new Response( JSON.stringify( { icons: {} } ), { status: 200 } ) );
+
+        vi.stubGlobal( 'fetch', fetchMock );
+        setBindingsApiConfig( { apiBase: '/custom/api' } );
+        canvas( iconHtml( 'hydrator-base' ) );
+
+        render( <InlineIconCanvasHydrator /> );
+
+        await waitFor( () => expect( fetchMock ).toHaveBeenCalled() );
+
+        expect( String( ( fetchMock.mock.calls[ 0 ] as unknown[] )[ 0 ] ) ).toMatch( /^\/custom\/api\// );
     } );
 } );

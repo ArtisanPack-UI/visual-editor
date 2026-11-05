@@ -4,6 +4,10 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+const { speak } = vi.hoisted( () => ( { speak: vi.fn() } ) );
+
+vi.mock( '@wordpress/a11y', () => ( { speak } ) );
+
 import { setMediaImportAccess } from '../media-import-access';
 import {
     findExternalImages,
@@ -108,6 +112,36 @@ describe( 'requestImport', () => {
 } );
 
 describe( 'importExternalImages', () => {
+    it( 'announces the import before the first download finishes', async () => {
+        speak.mockClear();
+
+        const blocks = { a: image( 'https://x.test/a.png' ), b: image( 'https://x.test/b.png' ) };
+        const { registry } = makeRegistry( blocks );
+        let spokenBeforeFetchResolved = false;
+
+        const fetchImpl = vi.fn( () => {
+            spokenBeforeFetchResolved = speak.mock.calls.some( ( [ message ] ) => 'Importing 2 images…' === message );
+
+            return respond( 201, { id: 1, url: '/m/x.png' } );
+        } );
+
+        await importExternalImages( registry, [
+            { clientId: 'a', url: 'https://x.test/a.png', alt: 'Alt' },
+            { clientId: 'b', url: 'https://x.test/b.png', alt: 'Alt' },
+        ], fetchImpl as never );
+
+        expect( spokenBeforeFetchResolved ).toBe( true );
+        expect( speak ).toHaveBeenCalledWith( 'Importing 2 images…' );
+    } );
+
+    it( 'says nothing when there is nothing to import', async () => {
+        speak.mockClear();
+
+        await importExternalImages( makeRegistry( {} ).registry, [], vi.fn() as never );
+
+        expect( speak ).not.toHaveBeenCalled();
+    } );
+
     it( 'swaps in the local URL, leaving the alt text', async () => {
         const blocks = { a: image( 'https://x.test/a.png' ) };
         const { registry, notices } = makeRegistry( blocks );

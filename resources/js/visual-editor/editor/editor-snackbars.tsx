@@ -13,7 +13,10 @@ import type { ReactElement } from 'react';
 
 import { Snackbar } from '@wordpress/components';
 import { useDispatch, useSelect } from '@wordpress/data';
+import { __ } from '@wordpress/i18n';
 import { store as noticesStore } from '@wordpress/notices';
+
+import { TEXT_DOMAIN } from '../vendor/i18n';
 
 /**
  * The snackbar stack, fixed to the corner of the screen.
@@ -21,6 +24,10 @@ import { store as noticesStore } from '@wordpress/notices';
  * This renders each `Snackbar` rather than a `SnackbarList`, which is
  * positioned absolutely and so would hang off the bottom of the screen
  * from a corner like this one.
+ *
+ * The stack is a labelled region, rendered after the editor shell, so a
+ * keyboard user reaches a snackbar's action (such as "Import to media
+ * library") by tabbing forward from the inspector.
  *
  * @since 1.20.0
  */
@@ -33,6 +40,9 @@ export function EditorSnackbars(): ReactElement {
 
     return (
         <div
+            role="region"
+            aria-label={ __( 'Editor notifications', TEXT_DOMAIN ) }
+            tabIndex={ -1 }
             style={ {
                 position: 'fixed',
                 insetBlockEnd: 16,

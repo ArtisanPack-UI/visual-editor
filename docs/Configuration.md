@@ -391,7 +391,19 @@ The `category` and `post_tag` defaults mirror WordPress core's built-in public t
 'package' => [ 'label' => 'Package', 'postTypes' => [ 'post' ] ],
 ```
 
-Without `postTypes`, a custom taxonomy is offered for every post type. `category` and `post_tag` are always offered for `post` only, because their term ids come from cms-framework's post tables. The values are the same slugs the Query Loop's Post type picker uses. `postTypes` doesn't affect `post-terms`.
+Without `postTypes`, a custom taxonomy is offered for every post type. `category` and `post_tag` are always offered for `post` only, because their term ids come from cms-framework's post tables. The values are the same slugs the Query Loop's Post type picker uses, and a block saved with the plural (`posts`) is matched by its singular. `postTypes` doesn't affect `post-terms`.
+
+#### The Query Loop's taxonomy filter
+
+In the editor, **Query Loop → Inspector → Filters** shows a **Taxonomy** select listing the taxonomies offered for the loop's post type, and a **Terms** checkbox list for the one picked. Checking terms saves them as `query.taxQuery`:
+
+```json
+{ "taxonomy": "category", "terms": [ 3, 7 ], "operator": "IN" }
+```
+
+The loop then shows posts in any of those terms, and the preview updates as the selection changes. Unchecking the last term or clearing the taxonomy removes the filter, and changing the post type clears a filter the new type doesn't offer. A saved filter on a taxonomy the post type no longer lists stays visible as *(unavailable)* so it can be removed.
+
+Terms come from `GET /visual-editor/api/taxonomies/{taxonomy}/terms`, which reads `category` and `post_tag` from cms-framework and asks the [`ap.visualEditor.terms`](Hooks-and-Events.md#apvisualeditorterms) filter for any other taxonomy. Filtering the front end on a custom taxonomy also needs a query resolver that handles it; for cms-framework that's [cms-framework#439](https://github.com/ArtisanPack-UI/cms-framework/issues/439).
 
 ---
 

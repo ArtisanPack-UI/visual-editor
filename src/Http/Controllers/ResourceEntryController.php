@@ -22,6 +22,8 @@ namespace ArtisanPackUI\VisualEditor\Http\Controllers;
 
 use ArtisanPackUI\VisualEditor\Http\Requests\UpdateResourceEntryRequest;
 use ArtisanPackUI\VisualEditor\Resources\ResourceResolver;
+use ArtisanPackUI\VisualEditor\Support\BlockHtmlSanitizer;
+use ArtisanPackUI\VisualEditor\Support\UnfilteredHtmlAccess;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
@@ -51,6 +53,9 @@ class ResourceEntryController extends Controller
 	 * happen.
 	 *
 	 * @since 1.15.3
+	 * @since 1.20.0 Filters a changed title or excerpt through
+	 *               {@see BlockHtmlSanitizer} for a user without the
+	 *               unfiltered-HTML ability.
 	 *
 	 * @param  UpdateResourceEntryRequest  $request   The validated request.
 	 * @param  string                      $resource  The resource slug.
@@ -82,10 +87,22 @@ class ResourceEntryController extends Controller
 			throw ValidationException::withMessages( $errors );
 		}
 
+		// #1062 — titles and excerpts are printed unescaped by Post Title and
+		// Post Excerpt, so a changed value needs the unfiltered-HTML ability.
+		$filtered = ! Gate::allows( UnfilteredHtmlAccess::ABILITY );
+
 		foreach ( self::FIELDS as $field ) {
-			if ( array_key_exists( $field, $data ) ) {
-				$model->setAttribute( $field, $data[ $field ] ?? '' );
+			if ( ! array_key_exists( $field, $data ) ) {
+				continue;
 			}
+
+			$value = (string) ( $data[ $field ] ?? '' );
+
+			if ( $filtered && $value !== (string) $model->getOriginal( $field ) ) {
+				$value = app( BlockHtmlSanitizer::class )->sanitize( $value );
+			}
+
+			$model->setAttribute( $field, $value );
 		}
 
 		$model->save();

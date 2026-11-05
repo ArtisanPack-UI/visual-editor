@@ -1,0 +1,6 @@
+<figure class="wp-block-image">
+  <img alt="a" class="wp-image-1" src="https://example.test/a.jpg" />
+</figure>
+<figure class="wp-block-image">
+  <img alt="b" class="wp-image-2" src="https://example.test/b.jpg" />
+</figure>

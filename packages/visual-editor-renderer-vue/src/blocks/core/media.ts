@@ -11,7 +11,7 @@ import { compileBlockSupports, compileBoxShadow, splitBorderSupports } from '../
 import { safeCssValue } from '../../support/cssValue';
 import { safeUrl } from '../../support/urlSanitizer';
 import {
-    LIGHTBOX_LABELS,
+    lightboxLabelsJson,
     LIGHTBOX_TRIGGER_ICON_PATH,
     bindLightbox,
     imageHasLightbox,
@@ -222,7 +222,13 @@ export const ImageBlock = defineComponent({
 
             const imgProps: Record<string, unknown> = { src: url, alt };
 
-            const imgClass = classList([...border.classNames, id > 0 ? `wp-image-${id}` : null]);
+            // Blade order: element support classes (the idle border, then its
+            // responsive scope), then `wp-image-N`.
+            const imgClass = classList([
+                ...border.classNames,
+                attrString(props.attributes._veImgResponsiveScope) || null,
+                id > 0 ? `wp-image-${id}` : null,
+            ]);
 
             if (imgClass !== '') {
                 imgProps.class = imgClass;
@@ -301,7 +307,7 @@ export const ImageBlock = defineComponent({
             const figureProps: Record<string, unknown> = { ref: figureRef, class: figureClasses };
 
             if (lightbox) {
-                figureProps['data-ap-lightbox-labels'] = LIGHTBOX_LABELS;
+                figureProps['data-ap-lightbox-labels'] = lightboxLabelsJson();
             }
 
             return h('figure', withStyle(figureProps, supports.style), children);

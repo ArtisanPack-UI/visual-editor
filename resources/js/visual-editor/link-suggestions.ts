@@ -10,7 +10,7 @@
  * @since 1.20.0
  */
 
-const SEARCH_URL = '/visual-editor/api/search/links';
+import { getBindingsApiConfig } from './bindings/config';
 
 /**
  * How many results to show before the author has typed, matching core.
@@ -88,7 +88,9 @@ export async function fetchLinkSuggestions(
     const params = new URLSearchParams({ q: search });
 
     try {
-        const response = await fetch(`${SEARCH_URL}?${params.toString()}`, {
+        // Under the API base the host configured, read per call.
+        const searchUrl = `${getBindingsApiConfig().apiBase}/search/links`;
+        const response = await fetch(`${searchUrl}?${params.toString()}`, {
             credentials: 'same-origin',
             headers: { Accept: 'application/json' },
         });

@@ -315,7 +315,9 @@ class BlockHtmlSanitizer
 		 */
 		$tags = applyFilters( 'ap.visualEditor.contentFilter.allowedHtml', self::ALLOWED_TAGS );
 
-		return is_array( $tags ) ? $tags : self::ALLOWED_TAGS;
+		// A tag mapped to anything but an attribute list would fail every
+		// save, so it's dropped instead.
+		return is_array( $tags ) ? array_filter( $tags, 'is_array' ) : self::ALLOWED_TAGS;
 	}
 
 	/**
@@ -338,7 +340,17 @@ class BlockHtmlSanitizer
 		$offset = 0;
 
 		while ( 1 === preg_match( '/<svg\b/i', $html, $match, PREG_OFFSET_CAPTURE, $offset ) ) {
-			$start  = $match[0][1];
+			$start = $match[0][1];
+
+			// Inside another tag's attribute, it's text: a placeholder there
+			// would break the attribute's quoting.
+			if ( $this->isInsideTag( $html, $start ) ) {
+				$output .= substr( $html, $offset, $start + 4 - $offset );
+				$offset  = $start + 4;
+
+				continue;
+			}
+
 			$tagEnd = strpos( $html, '>', $start );
 
 			if ( false === $tagEnd ) {
@@ -360,6 +372,58 @@ class BlockHtmlSanitizer
 		}
 
 		return $output . substr( $html, $offset );
+	}
+
+	/**
+	 * Whether a position sits inside an open tag, such as in an attribute
+	 * value. Finds the last tag opening before it (a `<` before a letter or
+	 * `/`), then looks for that tag's end outside quotes.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @param  string  $html      The fragment.
+	 * @param  int     $position  The offset to check.
+	 */
+	protected function isInsideTag( string $html, int $position ): bool
+	{
+		$length = strlen( $html );
+		$open   = $position;
+
+		do {
+			if ( $open < 1 ) {
+				return false;
+			}
+
+			$open = strrpos( $html, '<', $open - 1 - $length );
+
+			if ( false === $open ) {
+				return false;
+			}
+
+			$next = $html[ $open + 1 ] ?? '';
+		} while ( '/' !== $next && ! ctype_alpha( $next ) );
+
+		$quote = null;
+
+		for ( $index = $open + 1; $index < $position; $index++ ) {
+			$char = $html[ $index ];
+
+			if ( null !== $quote ) {
+				if ( $char === $quote ) {
+					$quote = null;
+				}
+
+				continue;
+			}
+
+			if ( '"' === $char || "'" === $char ) {
+				$quote = $char;
+			} elseif ( '>' === $char ) {
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	/**

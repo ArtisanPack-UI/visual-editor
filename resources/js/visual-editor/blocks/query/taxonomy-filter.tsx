@@ -149,6 +149,13 @@ export default function TaxonomyFilter( {
             } ) )
         : [];
     const listedTerms = [ ...terms, ...missingTerms ];
+    let statusText    = '';
+
+    if ( status === 'loading' ) {
+        statusText = __( 'Loading terms…', TEXT_DOMAIN );
+    } else if ( status === 'ready' && listedTerms.length === 0 ) {
+        statusText = __( 'No terms found.', TEXT_DOMAIN );
+    }
 
     return (
         <div className="ap-query-taxonomy-filter">
@@ -160,20 +167,16 @@ export default function TaxonomyFilter( {
                 options={ options }
                 onChange={ changeTaxonomy }
             />
-            { status === 'loading' && (
-                <p className="ap-query-taxonomy-filter__status" role="status">
-                    { __( 'Loading terms…', TEXT_DOMAIN ) }
-                </p>
-            ) }
+            { /* One live region that is always present, so a screen reader
+                hears its text change: a region inserted together with its
+                message is often skipped. */ }
+            <p className="ap-query-taxonomy-filter__status" role="status" aria-live="polite">
+                { statusText }
+            </p>
             { status === 'error' && (
                 <Notice status="error" isDismissible={ false }>
                     { __( 'Terms could not be loaded.', TEXT_DOMAIN ) }
                 </Notice>
-            ) }
-            { status === 'ready' && listedTerms.length === 0 && (
-                <p className="ap-query-taxonomy-filter__status">
-                    { __( 'No terms found.', TEXT_DOMAIN ) }
-                </p>
             ) }
             { listedTerms.length > 0 && (
                 <fieldset className="ap-query-taxonomy-filter__terms">

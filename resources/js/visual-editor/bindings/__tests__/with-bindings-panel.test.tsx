@@ -18,7 +18,31 @@ vi.mock( '@wordpress/block-editor', () => ( {
 	InspectorControls: ( { children }: { children: React.ReactNode } ) => (
 		<div data-testid="inspector">{ children }</div>
 	),
+	store: 'core/block-editor',
 } ) )
+
+const mergeStore = vi.hoisted( () => ( {
+	previous:    null as string | null,
+	next:        null as string | null,
+	names:       {} as Record<string, string>,
+	attributes:  {} as Record<string, Record<string, unknown>>,
+	selectBlock: vi.fn(),
+} ) )
+
+vi.mock( '@wordpress/data', async ( importOriginal ) => {
+	const actual = await importOriginal<Record<string, unknown>>()
+	const registry = {
+		select:   () => ( {
+			getPreviousBlockClientId: () => mergeStore.previous,
+			getNextBlockClientId:     () => mergeStore.next,
+			getBlockName:             ( id: string ) => mergeStore.names[ id ] ?? null,
+			getBlockAttributes:       ( id: string ) => mergeStore.attributes[ id ] ?? null,
+		} ),
+		dispatch: () => ( { selectBlock: mergeStore.selectBlock } ),
+	}
+
+	return { ...actual, useRegistry: () => registry }
+} )
 
 vi.mock( '@wordpress/i18n', () => ( {
 	__: ( text: string ) => text,
@@ -91,6 +115,8 @@ interface CapturedProps {
 	attributes: Record<string, unknown>
 	setAttributes: ( updates: Record<string, unknown> ) => void
 	context?: Record<string, unknown>
+	clientId?: string
+	mergeBlocks?: ( forward?: boolean ) => void
 }
 
 let captured: CapturedProps | null = null
@@ -409,6 +435,112 @@ describe( 'withBindingsPanel', () => {
 			await waitFor( () => expect( fetchBindingFields ).toHaveBeenCalled() )
 
 			expect( vi.mocked( fetchBindingFields ).mock.calls.at( -1 )?.[ 1 ] ).toBe( 'packages' )
+		} )
+	} )
+
+	describe( 'merge guard for bound rich text (#1043)', () => {
+		const PARAGRAPH = { content: { type: 'rich-text' }, url: { type: 'string' } }
+
+		beforeEach( () => {
+			__setBlockType( 'artisanpack/paragraph', PARAGRAPH )
+			__setBlockType( 'artisanpack/heading', { content: { type: 'rich-text' }, url: { type: 'string' } } )
+			mergeStore.previous    = 'prev'
+			mergeStore.next        = 'next'
+			mergeStore.names       = { self: 'artisanpack/paragraph', prev: 'artisanpack/heading', next: 'artisanpack/paragraph' }
+			mergeStore.attributes  = { self: {}, prev: {}, next: {} }
+			mergeStore.selectBlock.mockReset()
+		} )
+
+		function renderParagraph( mergeBlocks: ( forward?: boolean ) => void, attributes: Record<string, unknown> = {} ): void {
+			mergeStore.attributes.self = attributes
+
+			render(
+				<Wrapped
+					name="artisanpack/paragraph"
+					clientId="self"
+					attributes={ attributes }
+					setAttributes={ vi.fn() }
+					mergeBlocks={ mergeBlocks }
+				/>,
+			)
+		}
+
+		it( 'moves the caret instead of merging into a bound heading', () => {
+			mergeStore.attributes.prev = { bindings: { content: { source: 'x' } } }
+
+			const mergeBlocks = vi.fn()
+
+			renderParagraph( mergeBlocks )
+			captured?.mergeBlocks?.( false )
+
+			expect( mergeBlocks ).not.toHaveBeenCalled()
+			expect( mergeStore.selectBlock ).toHaveBeenCalledWith( 'prev', -1 )
+		} )
+
+		it( 'does not merge a bound paragraph forward into its neighbour', () => {
+			const attributes  = { bindings: { content: { source: 'x' } } }
+			const mergeBlocks = vi.fn()
+
+			renderParagraph( mergeBlocks, attributes )
+			captured?.mergeBlocks?.( true )
+
+			expect( mergeBlocks ).not.toHaveBeenCalled()
+			expect( mergeStore.selectBlock ).toHaveBeenCalledWith( 'next', 0 )
+		} )
+
+		it( 'merges as usual when neither block is bound', () => {
+			const mergeBlocks = vi.fn()
+
+			renderParagraph( mergeBlocks )
+			captured?.mergeBlocks?.( false )
+
+			expect( mergeBlocks ).toHaveBeenCalledWith( false )
+			expect( mergeStore.selectBlock ).not.toHaveBeenCalled()
+		} )
+
+		it( 'does not block a merge for a binding on a non-rich-text attribute', () => {
+			mergeStore.attributes.prev = { bindings: { url: { source: 'x' } } }
+
+			const mergeBlocks = vi.fn()
+
+			renderParagraph( mergeBlocks )
+			captured?.mergeBlocks?.( false )
+
+			expect( mergeBlocks ).toHaveBeenCalledWith( false )
+		} )
+
+		it( 'does nothing at the first block, with no neighbour to select', () => {
+			mergeStore.previous = null
+
+			const attributes  = { bindings: { content: { source: 'x' } } }
+			const mergeBlocks = vi.fn()
+
+			renderParagraph( mergeBlocks, attributes )
+			captured?.mergeBlocks?.( false )
+
+			expect( mergeBlocks ).not.toHaveBeenCalled()
+			expect( mergeStore.selectBlock ).not.toHaveBeenCalled()
+		} )
+
+		it( 'guards a block with no bindable attributes too', () => {
+			__setBlockType( 'demo/plain', {} )
+			mergeStore.names.self      = 'demo/plain'
+			mergeStore.attributes.prev = { bindings: { content: { source: 'x' } } }
+
+			const mergeBlocks = vi.fn()
+
+			render(
+				<Wrapped name="demo/plain" clientId="self" attributes={ {} } setAttributes={ vi.fn() } mergeBlocks={ mergeBlocks } />,
+			)
+			captured?.mergeBlocks?.( false )
+
+			expect( mergeBlocks ).not.toHaveBeenCalled()
+		} )
+
+		it( 'passes no mergeBlocks when the block was given none', () => {
+			render( <Wrapped name="artisanpack/paragraph" clientId="self" attributes={ {} } setAttributes={ vi.fn() } /> )
+
+			expect( captured?.mergeBlocks ).toBeUndefined()
 		} )
 	} )
 } )

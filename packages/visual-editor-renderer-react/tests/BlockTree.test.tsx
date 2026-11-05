@@ -332,6 +332,50 @@ describe('Core media blocks', () => {
         }
     });
 
+    it('moves responsive border overrides to the image (#1052)', () => {
+        const html = renderTree([
+            makeBlock('core/image', {
+                id: 7,
+                url: 'https://example.test/image.jpg',
+                caption: 'Caption',
+                style: { border: { width: '1px' } },
+                responsive: {
+                    'style.border.width': { mobile: '6px' },
+                    'style.spacing.margin': { mobile: { top: '2rem' } },
+                },
+            }),
+        ]);
+
+        const imgClass = /<img[^>]*class="([^"]*)"/.exec(html)?.[1] ?? '';
+        const figureClass = /<figure[^>]*class="([^"]*)"/.exec(html)?.[1] ?? '';
+        const imgScope = /ve-r-[0-9a-f]+/.exec(imgClass)?.[0] ?? '';
+        const figureScope = /ve-r-[0-9a-f]+/.exec(figureClass)?.[0] ?? '';
+
+        expect(imgScope).not.toBe('');
+        expect(imgClass).toMatch(new RegExp(`${imgScope} wp-image-7$`));
+        // The figure keeps its other overrides, under a different scope.
+        expect(figureScope).not.toBe('');
+        expect(figureScope).not.toBe(imgScope);
+        expect(html).toMatch(new RegExp(`\\.${imgScope}\\.${imgScope}\\.${imgScope}\\s*\\{\\s*border-width:\\s*6px`));
+        expect(html).not.toMatch(new RegExp(`\\.${figureScope}[^}]*border-width`));
+    });
+
+    it('ignores a saved image responsive scope (#1052)', () => {
+        const html = renderTree([
+            makeBlock('core/image', { url: 'https://example.test/image.jpg', _veImgResponsiveScope: 'injected"x' }),
+        ]);
+
+        expect(html).not.toContain('injected');
+    });
+
+    it('resolves a camelCase structured shadow preset the way Blade does (#1052)', () => {
+        const html = renderTree([
+            makeBlock('core/image', { url: 'https://example.test/image.jpg', style: { shadow: { preset: 'softGlow' } } }),
+        ]);
+
+        expect(html).toMatch(/<img[^>]*style="[^"]*box-shadow: var\(--wp--preset--shadow--soft-glow\)/);
+    });
+
     it('keeps a gradient border on the figure (#1052)', () => {
         const html = renderTree([
             makeBlock('core/image', {

@@ -12,11 +12,12 @@
  * @since 1.1.0
  */
 
-import { InspectorControls } from '@wordpress/block-editor';
+import { InspectorControls, store as blockEditorStore } from '@wordpress/block-editor';
 import { getBlockType } from '@wordpress/blocks';
 import { createHigherOrderComponent } from '@wordpress/compose';
+import { useRegistry } from '@wordpress/data';
 import { addFilter } from '@wordpress/hooks';
-import { useMemo, type ComponentType } from 'react';
+import { useCallback, useMemo, type ComponentType } from 'react';
 
 import { resolveBindingTarget } from './binding-target';
 import { BindingsPanel, type BindableAttribute } from './BindingsPanel';
@@ -49,7 +50,22 @@ interface BlockEditProps {
 	};
 	setAttributes: ( updates: Record<string, unknown> ) => void;
 	context?: Record<string, unknown>;
+	clientId?: string;
+	mergeBlocks?: ( forward?: boolean ) => void;
 	[ key: string ]: unknown;
+}
+
+/** The block-editor store selectors the merge guard reads. */
+interface MergeGuardSelectors {
+	getPreviousBlockClientId: ( clientId: string ) => string | null;
+	getNextBlockClientId: ( clientId: string ) => string | null;
+	getBlockAttributes: ( clientId: string ) => Record<string, unknown> | null;
+	getBlockName: ( clientId: string ) => string | null;
+}
+
+/** The block-editor store action the merge guard dispatches. */
+interface MergeGuardActions {
+	selectBlock: ( clientId: string, initialPosition?: number ) => void;
 }
 
 const BINDABLE_TYPES = new Set( [
@@ -132,6 +148,36 @@ function collectBindableAttributes( blockName: string ): BindableAttribute[] {
 	return out;
 }
 
+/**
+ * Whether a block has a binding on one of its rich-text attributes.
+ *
+ * Bindings live in this package's own `attributes.bindings` sidecar, not
+ * upstream's `metadata.bindings`, so the block editor's own merge guard
+ * for bound blocks never fires (#1043). A merge would write the
+ * neighbour's text into the hidden stored value behind the binding.
+ *
+ * @since 1.20.0
+ */
+export function hasBoundRichText(
+	attributes: Record<string, unknown> | null | undefined,
+	blockName: string | null | undefined,
+): boolean {
+	const bindings = attributes?.bindings as BindingsMap | null | undefined;
+
+	if ( ! bindings || typeof bindings !== 'object' || ! blockName ) {
+		return false;
+	}
+
+	const schema = ( getBlockType( blockName )?.attributes ?? {} ) as Record<string, BlockAttributeSchema>;
+
+	return Object.keys( bindings ).some( ( key ) => {
+		const attribute = schema[ key ];
+		const type      = Array.isArray( attribute?.type ) ? attribute?.type[ 0 ] : attribute?.type;
+
+		return 'rich-text' === type || 'rich-text' === attribute?.source || 'html' === attribute?.source;
+	} );
+}
+
 function getBindingsResource(): string | null {
 	const host = globalThis as unknown as GlobalSentinelHost;
 	return host.__artisanpackBindingsResource ?? null;
@@ -184,13 +230,46 @@ export const withBindingsPanel = createHigherOrderComponent(
 				[ bindingsKey ],
 			);
 
+			// #1043 — neither side of a merge may be a block whose
+			// rich-text attribute is bound: its text would vanish into
+			// the stored fallback behind the binding. The caret moves to
+			// the neighbour instead, as Backspace did before 1.20. Before
+			// the early return below, so the hook order stays stable.
+			const registry      = useRegistry();
+			const originalMerge = props.mergeBlocks;
+			const ownClientId   = props.clientId;
+			const guardedMerge  = useCallback( ( forward?: boolean ): void => {
+				if ( undefined === originalMerge || undefined === ownClientId ) {
+					return;
+				}
+
+				const select   = registry.select( blockEditorStore ) as unknown as MergeGuardSelectors;
+				const targetId = forward
+					? select.getNextBlockClientId( ownClientId )
+					: select.getPreviousBlockClientId( ownClientId );
+				const isBound  = ( id: string | null ): boolean =>
+					null !== id && hasBoundRichText( select.getBlockAttributes( id ), select.getBlockName( id ) );
+
+				if ( isBound( ownClientId ) || isBound( targetId ) ) {
+					if ( null !== targetId ) {
+						( registry.dispatch( blockEditorStore ) as unknown as MergeGuardActions )
+							.selectBlock( targetId, forward ? 0 : -1 );
+					}
+
+					return;
+				}
+
+				originalMerge( forward );
+			}, [ registry, originalMerge, ownClientId ] );
+			const mergeProps    = undefined === originalMerge ? {} : { mergeBlocks: guardedMerge };
+
 			// Still provide a context: InnerBlocks render inside the
 			// parent's BlockEdit tree, so without a Provider a block with
 			// no bindable attributes would inherit its parent's map.
 			if ( attributes.length === 0 ) {
 				return (
 					<BoundAttributesContext.Provider value={ NO_BOUND_ATTRIBUTES }>
-						<BlockEdit { ...props } />
+						<BlockEdit { ...props } { ...mergeProps } />
 					</BoundAttributesContext.Provider>
 				);
 			}
@@ -214,7 +293,7 @@ export const withBindingsPanel = createHigherOrderComponent(
 			return (
 				<>
 					<BoundAttributesContext.Provider value={ bound }>
-						<BlockEdit { ...props } attributes={ overlaid } />
+						<BlockEdit { ...props } { ...mergeProps } attributes={ overlaid } />
 					</BoundAttributesContext.Provider>
 					<InspectorControls>
 						<BindingsPanel

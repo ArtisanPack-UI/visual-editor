@@ -334,11 +334,20 @@ class TemplateController extends Controller
 				// before layering user-supplied changes on top, so
 				// NOT NULL columns like `title` always carry a value
 				// even when the editor only changed blocks (#438).
-				$fileDefaults = $this->fileSourceDefaults( $slug );
+				$fileDefaults = $this->fileSourceDefaults( $slug, $theme );
+
+				// Only the theme's own file seeds the row, so with no file
+				// for this theme the title has to come from the request.
+				if ( [] === $fileDefaults && ! array_key_exists( 'title', $validated ) ) {
+					return response()->json( [
+						'message' => __( 'A title is required to create a template for this theme.' ),
+						'errors'  => [ 'title' => [ __( 'The title field is required when the theme has no file for this slug.' ) ] ],
+					], Response::HTTP_UNPROCESSABLE_ENTITY );
+				}
 
 				$attributes = array_merge(
 					$fileDefaults,
-					$this->modelAttributesFromRequest( $validated, $this->fileSourceBlocks( $slug ) ),
+					$this->modelAttributesFromRequest( $validated, $this->fileSourceBlocks( $slug, $theme ) ),
 				);
 				$attributes['slug']  = $slug;
 				$attributes['theme'] = $theme;
@@ -510,7 +519,7 @@ class TemplateController extends Controller
 	protected function revertOverride( Model $override ): JsonResponse
 	{
 		if ( true !== $override->delete() ) {
-			return response()->json( [ 'message' => 'Template override could not be reverted.' ], Response::HTTP_CONFLICT );
+			return response()->json( [ 'message' => __( 'Template override could not be reverted.' ) ], Response::HTTP_CONFLICT );
 		}
 
 		$this->refreshResolver();
@@ -647,20 +656,26 @@ class TemplateController extends Controller
 	 * `description`, `status`, `is_custom` — so the editor can save
 	 * blocks-only payloads without 1364 NOT NULL violations on columns
 	 * it doesn't echo. Returns an empty array if the resolver can't
-	 * find the slug (e.g. a brand-new custom template the user is
-	 * creating from scratch through PUT — then required fields must
-	 * come from the request body, surfaced by the model's NOT NULL
-	 * column constraints if the client misses any).
+	 * find the slug in `$theme` (e.g. a brand-new custom template the
+	 * user is creating from scratch through PUT, or another theme's row)
+	 * — then required fields must come from the request body, and
+	 * `update()` refuses a missing title with a 422.
 	 *
 	 * @since 1.0.0
+	 * @since 1.20.0 Takes the target theme.
+	 *
+	 * @param  string  $slug   The template slug.
+	 * @param  string  $theme  The theme being written.
 	 *
 	 * @return array<string, mixed>
 	 */
-	protected function fileSourceDefaults( string $slug ): array
+	protected function fileSourceDefaults( string $slug, string $theme ): array
 	{
 		$resolved = $this->resolver->find( $slug );
 
-		if ( ! $resolved instanceof ResolvedTemplate ) {
+		// The resolver only reads the active theme; another theme's
+		// upsert must not inherit that theme's file (#1074).
+		if ( ! $resolved instanceof ResolvedTemplate || $resolved->theme !== $theme ) {
 			return [];
 		}
 
@@ -677,14 +692,18 @@ class TemplateController extends Controller
 	 * the Custom CSS the theme ships (#881).
 	 *
 	 * @since 1.15.0
+	 * @since 1.20.0 Takes the target theme.
+	 *
+	 * @param  string  $slug   The template slug.
+	 * @param  string  $theme  The theme being written.
 	 *
 	 * @return array<int, mixed>|null
 	 */
-	protected function fileSourceBlocks( string $slug ): ?array
+	protected function fileSourceBlocks( string $slug, string $theme ): ?array
 	{
 		$resolved = $this->resolver->find( $slug );
 
-		return $resolved instanceof ResolvedTemplate ? $resolved->blocks : null;
+		return $resolved instanceof ResolvedTemplate && $resolved->theme === $theme ? $resolved->blocks : null;
 	}
 
 	/**

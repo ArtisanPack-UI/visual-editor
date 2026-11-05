@@ -91,6 +91,13 @@ fight the CSS:
 | Load-error banner | `<p class="…--error">` | `@artisanpack-ui/react/feedback` `Alert` |
 | Save-error toasts | Gutenberg `Snackbar` | `@artisanpack-ui/react/feedback` `ToastProvider` + `useToast` ([`save-notifications.tsx`](../../resources/js/visual-editor/editor/save-notifications.tsx)) |
 
+Notices raised through `core/notices`, by blocks or the pasted-image import
+offer (#1066), are the exception: they stay Gutenberg `Snackbar`s, shown in a
+labelled *Editor notifications* region after the editor shell
+([`editor-snackbars.tsx`](../../resources/js/visual-editor/editor/editor-snackbars.tsx)),
+so they keep their action buttons and inherit DaisyUI tokens like the
+components below. Save errors still use the toast above.
+
 Internal Gutenberg components — `SelectControl`, `RangeControl`,
 `ToolsPanel`, tooltips, the block toolbar — stay as-is and inherit DaisyUI
 tokens via the overlay.

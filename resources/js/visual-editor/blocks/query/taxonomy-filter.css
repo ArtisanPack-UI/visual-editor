@@ -35,6 +35,11 @@
     margin: 16px 0 0;
 }
 
+/* The live region is always there; empty, it takes no space. */
+.ap-query-taxonomy-filter__status:empty {
+    margin: 0;
+}
+
 .ap-query-taxonomy-filter .components-notice {
     margin: 16px 0 0;
 }

@@ -13,6 +13,14 @@ const DARK_LUMINANCE = 0.18;
 
 const AA_CONTRAST = 4.5;
 
+/**
+ * Background luminances each palette meets 4.5:1 on, for every token in
+ * code-highlight.css (the comment colour is the binding one in both).
+ * Outside them, token colours are dropped rather than shown unreadable.
+ */
+const LIGHT_PALETTE_MIN = 0.7;
+const DARK_PALETTE_MAX = 0.04;
+
 let context = null;
 
 /**
@@ -76,6 +84,8 @@ function backgroundLuminance(element) {
  * colour is the best remaining signal: light text implies a dark background.
  * `data-ap-code-contrast="low"` marks text that's unreadable on what's behind
  * it, so the stylesheet can replace it, as it does for punctuation.
+ * `data-ap-code-tokens="mono"` marks a background neither palette reaches AA
+ * on, so the tokens keep the text colour instead.
  *
  * @param {Element} element A highlighted `<code>` element.
  */
@@ -83,6 +93,7 @@ export function applyScheme(element) {
     // Off first: the flag's own replacement colour would read as readable
     // text, clear the flag, and flip it on every later measure.
     element.removeAttribute('data-ap-code-contrast');
+    element.removeAttribute('data-ap-code-tokens');
 
     const text = readColor(getComputedStyle(element).color);
     const textLuminance = text === null ? 0 : luminance(text);
@@ -90,6 +101,10 @@ export function applyScheme(element) {
     const dark = background === null ? textLuminance > DARK_LUMINANCE : background < DARK_LUMINANCE;
 
     element.setAttribute('data-ap-code-scheme', dark ? 'dark' : 'light');
+
+    if (background !== null && (dark ? background > DARK_PALETTE_MAX : background < LIGHT_PALETTE_MIN)) {
+        element.setAttribute('data-ap-code-tokens', 'mono');
+    }
 
     if (background !== null && contrast(textLuminance, background) < AA_CONTRAST) {
         element.setAttribute('data-ap-code-contrast', 'low');

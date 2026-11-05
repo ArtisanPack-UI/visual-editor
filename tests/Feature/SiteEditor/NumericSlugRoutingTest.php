@@ -498,5 +498,88 @@ it( 'emits a composite id with no slash, so it needs no encoded slash in the URL
 } )->with( 'site-editor entities' );
 
 it( 'treats a tilde value with a non-numeric slug as an ordinary slug (#1094)', function ( array $entity ): void {
-	$this->getJson( "/visual-editor/api/{$entity['route']}/digital-shopfront~header" )->assertNotFound();
+	$url = "/visual-editor/api/{$entity['route']}/digital-shopfront~header";
+
+	$this->getJson( $url )->assertNotFound();
 } )->with( 'site-editor entities' );
+
+/**
+ * A group block with Custom CSS.
+ *
+ * @return array<string, mixed>
+ */
+function siteFileCssBlock(): array
+{
+	return [
+		'name'        => 'core/group',
+		'attributes'  => [ 'artisanpackEffects' => [ 'opacity' => 50, 'customCss' => 'color: red;' ] ],
+		'innerBlocks' => [],
+	];
+}
+
+/**
+ * Register an active-theme file `header` whose block carries Custom CSS.
+ * `area` is read by template parts only.
+ *
+ * @param  array<string, mixed>  $entity  The dataset entry.
+ */
+function registerActiveThemeHeaderFile( array $entity ): void
+{
+	config()->set( "artisanpack.visual-editor.site-editor.{$entity['route']}", [
+		'header' => [
+			'slug'    => 'header',
+			'theme'   => 'digital-shopfront',
+			'title'   => 'Shopfront header',
+			'area'    => 'header',
+			'source'  => 'theme',
+			'content' => [ 'raw' => '', 'blocks' => [ siteFileCssBlock() ] ],
+		],
+	] );
+
+	rebuildResolversForNumericSlugTest();
+}
+
+describe( 'PUT with a slug the active theme ships a file for (#1074)', function (): void {
+	it( 'does not seed another theme\'s row from the active theme\'s file', function ( array $entity ): void {
+		registerActiveThemeHeaderFile( $entity );
+
+		$this->putJson( "/visual-editor/api/{$entity['route']}/header", [
+			'theme'   => 'other-theme',
+			'title'   => 'X',
+			'area'    => 'header',
+			'content' => [ 'raw' => '', 'blocks' => [ siteFileCssBlock() ] ],
+		] )->assertOk();
+
+		$row = $entity['model']::query()->where( 'theme', 'other-theme' )->where( 'slug', 'header' )->sole();
+
+		expect( $row->title )->toBe( 'X' )
+			->and( $row->block_content[0]['attributes']['artisanpackEffects'] )->toBe( [ 'opacity' => 50 ] );
+	} )->with( 'site-editor entities' );
+
+	it( 'asks for a title instead of failing when another theme has no file', function ( array $entity ): void {
+		registerActiveThemeHeaderFile( $entity );
+
+		$this->putJson( "/visual-editor/api/{$entity['route']}/header", [
+			'theme'   => 'other-theme',
+			'area'    => 'header',
+			'content' => [ 'raw' => '', 'blocks' => [] ],
+		] )->assertUnprocessable()->assertJsonValidationErrors( [ 'title' ] );
+
+		expect( $entity['model']::query()->where( 'theme', 'other-theme' )->exists() )->toBeFalse();
+	} )->with( 'site-editor entities' );
+
+	it( 'still seeds the active theme\'s own row from its file', function ( array $entity ): void {
+		registerActiveThemeHeaderFile( $entity );
+
+		$this->putJson( "/visual-editor/api/{$entity['route']}/header", [
+			'theme'   => 'digital-shopfront',
+			'area'    => 'header',
+			'content' => [ 'raw' => '', 'blocks' => [ siteFileCssBlock() ] ],
+		] )->assertOk();
+
+		$row = $entity['model']::query()->where( 'theme', 'digital-shopfront' )->where( 'slug', 'header' )->sole();
+
+		expect( $row->title )->toBe( 'Shopfront header' )
+			->and( $row->block_content[0]['attributes']['artisanpackEffects']['customCss'] )->toBe( 'color: red;' );
+	} )->with( 'site-editor entities' );
+} );

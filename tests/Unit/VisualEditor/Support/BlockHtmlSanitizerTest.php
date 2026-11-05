@@ -175,3 +175,24 @@ it( 'can be widened by the host', function (): void {
 
 	removeAllFilters( 'ap.visualEditor.contentFilter.allowedHtml' );
 } );
+
+it( 'ignores a host filter result that maps a tag to something other than a list', function (): void {
+	addFilter( 'ap.visualEditor.contentFilter.allowedHtml', fn (): array => [ 'p' => true, 'em' => [] ] );
+
+	expect( fn () => sanitizeBlockHtml( '<p class="x">a</p><em class="y">b</em>' ) )->not->toThrow( TypeError::class )
+		->and( sanitizeBlockHtml( '<p class="x">a</p><em class="y">b</em>' ) )->toBe( 'a<em class="y">b</em>' );
+
+	removeAllFilters( 'ap.visualEditor.contentFilter.allowedHtml' );
+} );
+
+it( 'leaves an svg inside an attribute value as text', function ( string $html, string $expected ): void {
+	expect( sanitizeBlockHtml( $html ) )->toBe( $expected );
+} )->with( [
+	'img alt'                 => [ '<img alt="<svg/>" src="a.png">', '<img alt="&lt;svg/&gt;" src="a.png">' ],
+	'title with a viewBox'    => [ '<p title="<svg viewBox=\'0 0 1 1\'></svg>">x</p>', '<p title="&lt;svg viewBox=&#039;0 0 1 1&#039;&gt;&lt;/svg&gt;">x</p>' ],
+	'after a quoted gt'       => [ '<p title="a>b" class="<svg/>">x</p>', '<p title="a&gt;b" class="&lt;svg/&gt;">x</p>' ],
+] );
+
+it( 'still extracts an svg after a bare less-than in text', function (): void {
+	expect( sanitizeBlockHtml( 'a < b <svg viewBox="0 0 1 1"><path d="M0 0"/></svg>' ) )->toContain( 'viewBox="0 0 1 1"' );
+} );

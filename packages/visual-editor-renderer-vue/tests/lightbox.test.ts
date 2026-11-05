@@ -5,10 +5,11 @@
 import { mount, flushPromises } from '@vue/test-utils';
 import { renderToString } from '@vue/server-renderer';
 import { createSSRApp, h } from 'vue';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import '../src/index';
 import { BlockTree } from '../src/BlockTree';
+import { setLightboxLabels } from '../src/index';
 import { imageHasLightbox, stampLightboxDefault } from '../src/support/lightbox';
 import { makeBlock } from './helpers';
 import type { Block } from '../src/types';
@@ -49,6 +50,20 @@ describe('stampLightboxDefault', () => {
 
         expect(stampLightboxDefault(tree, true)[0].innerBlocks?.[0].attributes?._veLightbox).toBe(true);
     });
+
+    it('returns the same tree when there is nothing to change', () => {
+        const plain = [makeBlock('core/image', {})] as Block[];
+        const stamped = [makeBlock('core/image', { _veLightbox: true })] as Block[];
+
+        expect(stampLightboxDefault(plain, false)).toBe(plain);
+        expect(stampLightboxDefault(stamped, true)).toBe(stamped);
+    });
+
+    it('drops a saved _veLightbox when the default is off', () => {
+        const tree = [makeBlock('core/group', {}, [makeBlock('core/image', { _veLightbox: true })])] as Block[];
+
+        expect(stampLightboxDefault(tree, false)[0].innerBlocks?.[0].attributes).not.toHaveProperty('_veLightbox');
+    });
 });
 
 describe('ImageBlock', () => {
@@ -66,6 +81,13 @@ describe('ImageBlock', () => {
 
     it.each([['core/image'], ['artisanpack/image']])('applies the theme default to %s', async (name) => {
         expect(await ssr(image({}, name), { lightboxDefault: true })).toContain('wp-lightbox-container');
+    });
+
+    it('ignores a saved _veLightbox without a theme default, as Blade does', async () => {
+        const html = await ssr([makeBlock('core/image', { url: URL, _veLightbox: true })] as Block[]);
+
+        expect(html).not.toContain('wp-lightbox-container');
+        expect(html).not.toContain('lightbox-trigger');
     });
 
     it('lets a block turn off the theme default', async () => {
@@ -108,5 +130,27 @@ describe('GalleryBlock', () => {
         expect(await ssr([makeBlock('core/gallery', { navigationButtonType: 'icon' })] as Block[])).not.toContain(
             'data-ap-lightbox-navigation'
         );
+    });
+});
+
+describe('setLightboxLabels', () => {
+    afterEach(() => {
+        setLightboxLabels();
+    });
+
+    it('translates the overlay labels and the trigger name', async () => {
+        setLightboxLabels({ close: 'Schließen', enlargeWithAlt: 'Vergrößern: :alt' });
+
+        const html = await ssr(image({ lightbox: { enabled: true } }));
+        const labels = /data-ap-lightbox-labels="([^"]*)"/.exec(html)?.[1].replace(/&quot;/g, '"') ?? '{}';
+
+        expect(JSON.parse(labels)).toMatchObject({ close: 'Schließen', dialog: 'Enlarged image', position: 'Image :current of :total' });
+        expect(html).toContain('aria-label="Vergrößern: A cat"');
+    });
+
+    it('keeps the English defaults until it is called', async () => {
+        const html = await ssr(image({ lightbox: { enabled: true } }));
+
+        expect(html).toContain('aria-label="Enlarge image: A cat"');
     });
 });

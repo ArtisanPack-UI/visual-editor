@@ -51,8 +51,8 @@ the dynamic content inside it, so a wrapper doesn't render around nothing.
   condition *Has results* and *Show when*. With no related posts, the
   whole Group disappears, heading included.
 - **Hide an empty navigation band.** Put the rule on the Group around your
-  Post Navigation Links, with source *Post Navigation* and condition *Has
-  a previous or next post*.
+  Post Navigation Links, or your Previous Post and Next Post blocks, with
+  source *Post Navigation* and condition *Has a previous or next post*.
 - **Hide a pagination row.** Use source *Query Pagination* and condition
   *Has more than one page*.
 - **Show a fallback.** Use *Hide when* on a block that also contains the
@@ -64,15 +64,20 @@ below its controls the panel says what it found ("Checks 1 Related Posts
 block"). With several matches, *Any* renders the block when at least one
 passes, and *All* only when every one does.
 
-| Source            | Blocks it inspects                     | Conditions                                    | Reads                                         |
-|-------------------|----------------------------------------|-----------------------------------------------|-----------------------------------------------|
-| Query Loop        | `query`                                | `hasResults`                                  | `_resolvedTotal`, `_resolvedItems` above zero |
-| Related Posts     | `artisanpack/related-posts`            | `hasResults`                                  | `_resolvedTotal`, `_resolvedItems` above zero |
-| Post Navigation   | `post-navigation-link`                 | `hasEither`, `hasPrevious`, `hasNext`         | `_resolvedPrevUrl`, `_resolvedNextUrl`        |
-| Query Pagination  | `query-pagination`, `query`            | `hasMultiplePages`                            | `_resolvedTotalPages` above one               |
+| Source            | Blocks it inspects                                                         | Conditions                            | Reads                                                         |
+|-------------------|----------------------------------------------------------------------------|---------------------------------------|---------------------------------------------------------------|
+| Query Loop        | `query`                                                                    | `hasResults`                          | `_resolvedTotal`, `_resolvedItems` above zero                 |
+| Related Posts     | `artisanpack/related-posts`                                                | `hasResults`                          | `_resolvedTotal`, `_resolvedItems` above zero                 |
+| Post Navigation   | `post-navigation-link`, `artisanpack/previous-post`, `artisanpack/next-post` | `hasEither`, `hasPrevious`, `hasNext` | `_resolvedPrevUrl`, `_resolvedNextUrl`, `_resolvedHasAdjacent` |
+| Query Pagination  | `query-pagination`, `query`                                                | `hasMultiplePages`                    | `_resolvedTotalPages` above one                               |
 
 `query`, `post-navigation-link` and `query-pagination` match in either the
 `artisanpack` or `core` namespace.
+
+A Previous Post or Next Post block knows only its own neighbour, so
+*Has a next post* is false on a Previous Post block. With *Any*, the Next
+Post block beside it decides; with *All*, the rule fails, as it does for a
+link with no next post.
 
 *Has results* means the current page shows at least one row, so a page
 past the end of a loop counts as empty even though its total is above

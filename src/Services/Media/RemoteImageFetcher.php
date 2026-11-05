@@ -22,6 +22,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
+use InvalidArgumentException;
 
 /**
  * Downloads an author-supplied image URL into a temporary file (#1066).
@@ -70,9 +71,10 @@ class RemoteImageFetcher
 
 	/**
 	 * IPv6 prefixes that carry an IPv4 address, which PHP's reserved-range
-	 * filter doesn't look inside: IPv4-mapped, IPv4-compatible, NAT64 (the
-	 * well-known prefix and RFC 8215's local-use one) and 6to4. Hex strings, compared with the address's packed bytes so every
-	 * way of writing it counts.
+	 * filter doesn't look inside: IPv4-mapped, IPv4-translated, IPv4-compatible,
+	 * NAT64 (the well-known prefix and RFC 8215's local-use one) and 6to4. Hex
+	 * strings, compared with the address's packed bytes so every way of
+	 * writing it counts.
 	 *
 	 * @since 1.20.0
 	 *
@@ -80,6 +82,7 @@ class RemoteImageFetcher
 	 */
 	protected const TUNNELLED_IPV6 = [
 		'00000000000000000000ffff',
+		'0000000000000000ffff0000',
 		'000000000000000000000000',
 		'0064ff9b0000000000000000',
 		'0064ff9b0001',
@@ -121,7 +124,12 @@ class RemoteImageFetcher
 				break;
 			}
 
-			$url = (string) UriResolver::resolve( new Uri( $url ), new Uri( $location ) );
+			// A malformed `Location` is the remote host's fault, not a 500.
+			try {
+				$url = (string) UriResolver::resolve( new Uri( $url ), new Uri( $location ) );
+			} catch ( InvalidArgumentException ) {
+				break;
+			}
 		}
 
 		throw new RemoteImageException( __( 'The image could not be downloaded.' ) );
@@ -176,11 +184,22 @@ class RemoteImageFetcher
 	 */
 	public function isPublicAddress( string $address ): bool
 	{
-		if ( false === filter_var( $address, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) ) {
+		if ( false === filter_var( $address, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE | FILTER_FLAG_GLOBAL_RANGE ) ) {
 			return false;
 		}
 
 		$hex = bin2hex( (string) inet_pton( $address ) );
+
+		// Multicast (224.0.0.0/4 and ff00::/8), which PHP's global-range
+		// filter lets through. Read from the packed bytes, like the
+		// prefixes below.
+		$isMulticast = 8 === strlen( $hex )
+			? 'e' === $hex[0]
+			: str_starts_with( $hex, 'ff' );
+
+		if ( $isMulticast ) {
+			return false;
+		}
 
 		foreach ( self::TUNNELLED_IPV6 as $prefix ) {
 			if ( 32 === strlen( $hex ) && str_starts_with( $hex, $prefix ) ) {
@@ -244,7 +263,11 @@ class RemoteImageFetcher
 				->connectTimeout( 5 )
 				->timeout( 20 )
 				->accept( 'image/*' )
+				->withHeaders( [ 'Accept-Encoding' => 'identity' ] )
 				->withOptions( [
+					// Decoded bytes aren't counted by the size cap, so never
+					// decode: a small gzip body could expand without limit.
+					'decode_content' => false,
 					// A proxy would resolve the host itself, past the pin.
 					'proxy' => '',
 					// `+`, because a spread would renumber curl's integer keys.
@@ -299,6 +322,13 @@ class RemoteImageFetcher
 	 */
 	protected function toFile( string $url, Response $response ): UploadedFile
 	{
+		$encoding = strtolower( trim( $response->header( 'Content-Encoding' ) ) );
+
+		// An encoded body would only be decoded past the size cap.
+		if ( '' !== $encoding && 'identity' !== $encoding ) {
+			throw new RemoteImageException( __( 'This file type cannot be imported.' ) );
+		}
+
 		$body = $response->body();
 
 		if ( ! $response->successful() || '' === $body ) {

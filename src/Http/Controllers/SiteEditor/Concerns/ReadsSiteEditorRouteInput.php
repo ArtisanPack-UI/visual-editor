@@ -67,7 +67,7 @@ trait ReadsSiteEditorRouteInput
 	 */
 	protected function invalidStringQuery( string $key ): JsonResponse
 	{
-		$message = sprintf( 'The %s query parameter must be a string.', $key );
+		$message = __( 'The :parameter query parameter must be a string.', [ 'parameter' => $key ] );
 
 		return response()->json( [
 			'message' => $message,
@@ -117,7 +117,7 @@ trait ReadsSiteEditorRouteInput
 	 */
 	protected function compositeThemeMismatch(): JsonResponse
 	{
-		$message = 'The theme does not match the theme in the record id.';
+		$message = __( 'The theme does not match the theme in the record id.' );
 
 		return response()->json( [
 			'message' => $message,

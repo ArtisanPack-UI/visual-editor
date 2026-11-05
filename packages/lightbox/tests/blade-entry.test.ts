@@ -8,6 +8,8 @@ import { resolve } from 'node:path';
 
 import { expect, it } from 'vitest';
 
+import { bindLightbox } from '../../visual-editor-renderer-react/src/support/lightboxOverlay.generated.js';
+
 const bundle = readFileSync(
     resolve(__dirname, '../../visual-editor-renderer-blade/resources/assets/frontend/lightbox.js'),
     'utf8'
@@ -28,4 +30,16 @@ it('opens one overlay from a delegated click, even if the script runs twice', ()
     document.querySelector<HTMLButtonElement>('.lightbox-trigger')?.click();
 
     expect(document.querySelectorAll('.wp-lightbox-overlay.active')).toHaveLength(1);
+});
+
+it('leaves clicks to the Blade copy when the module copy binds too', () => {
+    window.dispatchEvent(new PopStateEvent('popstate'));
+
+    const figure = document.querySelector<HTMLElement>('.wp-lightbox-container') as HTMLElement;
+
+    bindLightbox(figure);
+    document.querySelector<HTMLButtonElement>('.lightbox-trigger')?.click();
+
+    expect(document.querySelectorAll('.wp-lightbox-overlay.active')).toHaveLength(1);
+    expect(document.querySelectorAll('.wp-lightbox-overlay')).toHaveLength(1);
 });

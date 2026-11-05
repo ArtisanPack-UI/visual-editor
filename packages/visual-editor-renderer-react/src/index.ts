@@ -83,6 +83,8 @@ export type {
     BreakpointMap,
     DeviceBreakpointDefinition,
 } from './visibility';
+export { getLightboxLabels, setLightboxLabels } from './support/lightbox';
+export type { LightboxLabels } from './support/lightbox';
 export { DUOTONE_TARGETS, compileDuotone, stampDuotoneScopes } from './support/duotone';
 export { matchNavigationUrl, stampNavigationCurrent } from './support/navigationCurrent';
 export type { NavigationCurrentState } from './support/navigationCurrent';

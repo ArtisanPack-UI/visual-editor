@@ -19,6 +19,7 @@
 import { getBreakpoints, getDeviceBreakpoints } from '../visibility';
 import type { Block } from '../types';
 import { phpTrim } from './attributes';
+import { hasGradientBorder } from './blockSupports';
 import { columnsGapValue } from './blockGap';
 import { cssNumber } from './cssNumber';
 import { expandPresetReference } from './presetReference';
@@ -30,6 +31,15 @@ const SPACER_BLOCK_NAME = 'core/spacer';
 
 /** Blocks rendered by the Columns partial, whose gap rules set `--ap-columns-gap` (#914). */
 const COLUMNS_BLOCK_NAMES = ['core/columns', 'artisanpack/columns'];
+
+/** Blocks that paint their border on the inner `<img>` (#1052). */
+const IMAGE_BLOCK_NAMES = ['core/image', 'artisanpack/image'];
+
+/**
+ * Responsive paths that move with the border onto the `<img>`. Mirrors the
+ * pattern in `BlockSupports::splitBorderAndShadow()`.
+ */
+const IMAGE_BORDER_PATH = /^(style\.)?border(\.|$)/;
 
 /**
  * Per-side longhands for a responsive property whose object value is not
@@ -427,7 +437,9 @@ export function compileSpacerWidth(attributes: Record<string, unknown>): Respons
  * the way Blade's `BlockSupports::compile()` adds it), collecting the
  * rules for one `<style data-ve-responsive>` block. A spacer's width
  * scope lands on the renderer-owned `_veSpacerWidthScope` attribute,
- * because Blade appends it after every compiled class.
+ * because Blade appends it after every compiled class. An image's border
+ * overrides get their own scope on `_veImgResponsiveScope`, which the
+ * Image block prints on its `<img>`, next to the idle border (#1052).
  */
 export function stampResponsiveScopes(tree: Block[]): { tree: Block[]; css: string } {
     const seen = new Set<string>();
@@ -456,7 +468,7 @@ export function stampResponsiveScopes(tree: Block[]): { tree: Block[]; css: stri
                 raw === null ||
                 typeof raw !== 'object' ||
                 Array.isArray(raw) ||
-                !('responsive' in raw || '_veSpacerWidthScope' in raw)
+                !('responsive' in raw || '_veSpacerWidthScope' in raw || '_veImgResponsiveScope' in raw)
             ) {
                 return { ...block, innerBlocks } as Block;
             }
@@ -465,9 +477,31 @@ export function stampResponsiveScopes(tree: Block[]): { tree: Block[]; css: stri
             // so an author-crafted block can't inject class tokens.
             const attrs: Record<string, unknown> = { ...(raw as Record<string, unknown>) };
             delete attrs._veSpacerWidthScope;
+            delete attrs._veImgResponsiveScope;
 
             const name = typeof block.name === 'string' ? block.name.trim() : '';
-            const scope = compileResponsive(attrs, RESPONSIVE_CSS_PROPERTY_MAP, COLUMNS_BLOCK_NAMES.includes(name));
+            let bag = attrs;
+
+            if (IMAGE_BLOCK_NAMES.includes(name) && isPhpArray(attrs.responsive) && !hasGradientBorder(attrs)) {
+                const all = attrs.responsive;
+                const imgBag = Object.fromEntries(Object.entries(all).filter(([path]) => IMAGE_BORDER_PATH.test(path)));
+
+                if (Object.keys(imgBag).length > 0) {
+                    const imgScope = compileResponsive({ ...attrs, responsive: imgBag }, RESPONSIVE_CSS_PROPERTY_MAP);
+
+                    if (imgScope !== null) {
+                        collect(imgScope);
+                        attrs._veImgResponsiveScope = imgScope.className;
+                    }
+
+                    bag = {
+                        ...attrs,
+                        responsive: Object.fromEntries(Object.entries(all).filter(([path]) => !IMAGE_BORDER_PATH.test(path))),
+                    };
+                }
+            }
+
+            const scope = compileResponsive(bag, RESPONSIVE_CSS_PROPERTY_MAP, COLUMNS_BLOCK_NAMES.includes(name));
 
             if (scope !== null) {
                 collect(scope);

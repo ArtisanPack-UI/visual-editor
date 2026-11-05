@@ -1,14 +1,14 @@
 /**
  * `useTaxonomyTerms` — loads a taxonomy's terms for the Query Loop's
- * Filters panel from `GET /visual-editor/api/taxonomies/{taxonomy}/terms`
- * (#1029).
+ * Filters panel from `GET {apiBase}/taxonomies/{taxonomy}/terms` (#1029),
+ * under the API base the host configured.
  *
  * @since 1.20.0
  */
 
 import { useEffect, useState } from 'react';
 
-const API_BASE = '/visual-editor/api';
+import { getBindingsApiConfig } from '../../bindings/config';
 
 export interface TaxonomyTerm {
     id: number;
@@ -50,7 +50,7 @@ export function useTaxonomyTerms( taxonomy: string ): TaxonomyTermsState {
 
         const controller = new AbortController();
 
-        fetch( `${ API_BASE }/taxonomies/${ encodeURIComponent( taxonomy ) }/terms`, {
+        fetch( `${ getBindingsApiConfig().apiBase }/taxonomies/${ encodeURIComponent( taxonomy ) }/terms`, {
             credentials: 'same-origin',
             headers: { Accept: 'application/json' },
             signal: controller.signal,

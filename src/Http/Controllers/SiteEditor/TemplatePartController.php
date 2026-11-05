@@ -383,11 +383,20 @@ class TemplatePartController extends Controller
 				// etc.) before layering user-supplied changes on top,
 				// so NOT NULL columns like `title` and `area` always
 				// carry a value (#438).
-				$fileDefaults = $this->fileSourceDefaults( $slug );
+				$fileDefaults = $this->fileSourceDefaults( $slug, $theme );
+
+				// Only the theme's own file seeds the row, so with no file
+				// for this theme the title has to come from the request.
+				if ( [] === $fileDefaults && ! array_key_exists( 'title', $validated ) ) {
+					return response()->json( [
+						'message' => __( 'A title is required to create a template part for this theme.' ),
+						'errors'  => [ 'title' => [ __( 'The title field is required when the theme has no file for this slug.' ) ] ],
+					], Response::HTTP_UNPROCESSABLE_ENTITY );
+				}
 
 				$attributes = array_merge(
 					$fileDefaults,
-					$this->modelAttributesFromRequest( $validated, $this->fileSourceBlocks( $slug ) ),
+					$this->modelAttributesFromRequest( $validated, $this->fileSourceBlocks( $slug, $theme ) ),
 				);
 				$attributes['slug']  = $slug;
 				$attributes['theme'] = $theme;
@@ -562,7 +571,7 @@ class TemplatePartController extends Controller
 	protected function revertOverride( Model $override ): JsonResponse
 	{
 		if ( true !== $override->delete() ) {
-			return response()->json( [ 'message' => 'Template part override could not be reverted.' ], Response::HTTP_CONFLICT );
+			return response()->json( [ 'message' => __( 'Template part override could not be reverted.' ) ], Response::HTTP_CONFLICT );
 		}
 
 		// #832 — previews embedding this template part render stale otherwise.
@@ -699,14 +708,20 @@ class TemplatePartController extends Controller
 	 * carries the `area` enum since template parts require it.
 	 *
 	 * @since 1.0.0
+	 * @since 1.20.0 Takes the target theme.
+	 *
+	 * @param  string  $slug   The template part slug.
+	 * @param  string  $theme  The theme being written.
 	 *
 	 * @return array<string, mixed>
 	 */
-	protected function fileSourceDefaults( string $slug ): array
+	protected function fileSourceDefaults( string $slug, string $theme ): array
 	{
 		$resolved = $this->resolver->find( $slug );
 
-		if ( ! $resolved instanceof ResolvedTemplatePart ) {
+		// The resolver only reads the active theme; another theme's
+		// upsert must not inherit that theme's file (#1074).
+		if ( ! $resolved instanceof ResolvedTemplatePart || $resolved->theme !== $theme ) {
 			return [];
 		}
 
@@ -724,14 +739,18 @@ class TemplatePartController extends Controller
 	 * the Custom CSS the theme ships (#881).
 	 *
 	 * @since 1.15.0
+	 * @since 1.20.0 Takes the target theme.
+	 *
+	 * @param  string  $slug   The template part slug.
+	 * @param  string  $theme  The theme being written.
 	 *
 	 * @return array<int, mixed>|null
 	 */
-	protected function fileSourceBlocks( string $slug ): ?array
+	protected function fileSourceBlocks( string $slug, string $theme ): ?array
 	{
 		$resolved = $this->resolver->find( $slug );
 
-		return $resolved instanceof ResolvedTemplatePart ? $resolved->blocks : null;
+		return $resolved instanceof ResolvedTemplatePart && $resolved->theme === $theme ? $resolved->blocks : null;
 	}
 
 	/**

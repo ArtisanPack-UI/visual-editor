@@ -1,0 +1,9 @@
+<figure class="wp-block-image has-custom-border ve-r-76972f7b4a">
+  <img alt="a" class="ve-r-30ef6a4f58 wp-image-7" src="https://example.test/a.jpg" style="border-width: 1px; border-style: solid" />
+  <figcaption class="wp-element-caption">
+    "Caption"
+  </figcaption>
+</figure>
+@@ renderer-instance-css @@
+@media (max-width:767px){.ve-r-30ef6a4f58.ve-r-30ef6a4f58.ve-r-30ef6a4f58{border-width:6px!important}}
+@media (max-width:767px){.ve-r-76972f7b4a.ve-r-76972f7b4a.ve-r-76972f7b4a{margin-top:2rem!important}}

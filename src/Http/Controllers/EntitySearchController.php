@@ -52,8 +52,10 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\LazyCollection;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
+use Iterator;
 use RuntimeException;
 
 class EntitySearchController extends Controller
@@ -70,6 +72,17 @@ class EntitySearchController extends Controller
 	 * first matches are ones the user can't see.
 	 */
 	protected const CANDIDATE_MULTIPLIER = 5;
+
+	/**
+	 * Search columns already looked up this request, by connection and
+	 * table, so the link search doesn't introspect the schema on every
+	 * keystroke for every resource.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @var array<string, string|null>
+	 */
+	protected array $searchColumns = [];
 
 	/**
 	 * @since 1.20.0
@@ -113,6 +126,9 @@ class EntitySearchController extends Controller
 	 * Rows without a public URL are left out, since they can't be linked
 	 * to. An empty query returns the most recently updated content.
 	 *
+	 * Each resource's rows are read lazily, so the `view` policy and URL
+	 * lookup only run on rows until the list is full.
+	 *
 	 * @since 1.20.0
 	 */
 	public function links( Request $request ): JsonResponse
@@ -121,12 +137,9 @@ class EntitySearchController extends Controller
 		$groups = [];
 
 		foreach ( $this->resolver->slugs() as $slug ) {
-			$rows = $this->searchResource( $slug, Str::singular( $slug ), $q, '' === $q );
-
-			$groups[] = array_values( array_filter(
-				$rows,
-				static fn ( array $row ): bool => null !== $row['url'],
-			) );
+			$groups[] = $this->candidateRows( $slug, Str::singular( $slug ), $q, '' === $q )
+				->filter( static fn ( array $row ): bool => null !== $row['url'] )
+				->getIterator();
 		}
 
 		$matches = $this->takeFromEachGroup( $groups );
@@ -198,11 +211,12 @@ class EntitySearchController extends Controller
 
 	/**
 	 * Takes rows from each group in turn, up to `MAX_RESULTS`, so one type
-	 * with many matches can't push the others out of the list.
+	 * with many matches can't push the others out of the list. A group is
+	 * only read as far as the list needs.
 	 *
 	 * @since 1.20.0
 	 *
-	 * @param  list<list<array{type: string, id: int|string, title: string, url: ?string}>>  $groups
+	 * @param  list<Iterator<int, array{type: string, id: int|string, title: string, url: ?string}>>  $groups
 	 *
 	 * @return list<array{type: string, id: int|string, title: string, url: ?string}>
 	 */
@@ -210,15 +224,25 @@ class EntitySearchController extends Controller
 	{
 		$rows = [];
 
-		for ( $index = 0; $index < self::MAX_RESULTS; $index++ ) {
-			foreach ( $groups as $group ) {
-				if ( isset( $group[ $index ] ) ) {
-					$rows[] = $group[ $index ];
+		while ( [] !== $groups ) {
+			foreach ( $groups as $index => $group ) {
+				if ( ! $group->valid() ) {
+					unset( $groups[ $index ] );
+
+					continue;
 				}
+
+				$rows[] = $group->current();
+
+				if ( count( $rows ) >= self::MAX_RESULTS ) {
+					return $rows;
+				}
+
+				$group->next();
 			}
 		}
 
-		return array_slice( $rows, 0, self::MAX_RESULTS );
+		return $rows;
 	}
 
 	/**
@@ -261,17 +285,40 @@ class EntitySearchController extends Controller
 	 */
 	protected function searchResource( string $slug, string $type, string $needle, bool $mostRecent = false ): array
 	{
+		return $this->candidateRows( $slug, $type, $needle, $mostRecent )
+			->take( self::MAX_RESULTS )
+			->values()
+			->all();
+	}
+
+	/**
+	 * The rows of a resource that match a search and that the user may
+	 * view, shaped for the picker. The query runs right away; the `view`
+	 * policy and the URL lookup run per row, only as far as the caller
+	 * reads.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @param  string  $slug        The registered resource slug.
+	 * @param  string  $type        The `type` value for the returned rows.
+	 * @param  string  $needle      The search term.
+	 * @param  bool    $mostRecent  Whether to order by last update instead of title.
+	 *
+	 * @return LazyCollection<int, array{type: string, id: int|string, title: string, url: ?string}>
+	 */
+	protected function candidateRows( string $slug, string $type, string $needle, bool $mostRecent ): LazyCollection
+	{
 		try {
 			$query = $this->resolver->query( $slug );
 		} catch ( InvalidArgumentException|RuntimeException ) {
-			return [];
+			return LazyCollection::empty();
 		}
 
 		$model        = $query->getModel();
 		$searchColumn = $this->resolveSearchColumn( $model );
 
 		if ( null === $searchColumn ) {
-			return [];
+			return LazyCollection::empty();
 		}
 
 		if ( '' !== $needle ) {
@@ -295,19 +342,19 @@ class EntitySearchController extends Controller
 
 		$this->applyOrder( $query, $model, $searchColumn, $mostRecent );
 
+		// `get()` rather than `cursor()`, so the resource's eager loads
+		// still apply; only the per-row work below is lazy.
 		return $query
 			->limit( self::MAX_RESULTS * self::CANDIDATE_MULTIPLIER )
 			->get()
+			->lazy()
 			->filter( fn ( Model $row ): bool => Gate::allows( 'view', $row ) )
-			->take( self::MAX_RESULTS )
 			->map( fn ( Model $row ): array => [
 				'type'  => $type,
 				'id'    => $row->getKey(),
 				'title' => (string) ( $row->{$searchColumn} ?? '' ),
 				'url'   => $this->resolveResourceUrl( $row, $slug ),
-			] )
-			->values()
-			->all();
+			] );
 	}
 
 	/**
@@ -341,17 +388,28 @@ class EntitySearchController extends Controller
 	 * rename columns to wire into the picker.
 	 *
 	 * @since 1.0.0
-	 * @since 1.20.0 Takes the model instance rather than its class.
+	 * @since 1.20.0 Takes the model instance rather than its class, and
+	 *               looks each table up once per request.
 	 */
 	protected function resolveSearchColumn( Model $model ): ?string
 	{
+		$key = $model->getConnectionName() . '|' . $model->getTable();
+
+		if ( array_key_exists( $key, $this->searchColumns ) ) {
+			return $this->searchColumns[ $key ];
+		}
+
+		// One listing instead of a `hasColumn()` per candidate; compared
+		// without case, as `hasColumn()` does.
+		$columns = array_map( 'strtolower', Schema::connection( $model->getConnectionName() )->getColumnListing( $model->getTable() ) );
+
 		foreach ( [ 'title', 'name' ] as $candidate ) {
-			if ( Schema::connection( $model->getConnectionName() )->hasColumn( $model->getTable(), $candidate ) ) {
-				return $candidate;
+			if ( in_array( $candidate, $columns, true ) ) {
+				return $this->searchColumns[ $key ] = $candidate;
 			}
 		}
 
-		return null;
+		return $this->searchColumns[ $key ] = null;
 	}
 
 	/**

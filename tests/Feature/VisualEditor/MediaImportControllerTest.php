@@ -133,4 +133,14 @@ describe( 'with a media library', function (): void {
 
 		$this->postJson( MEDIA_IMPORT_URL, [ 'url' => 'https://cdn.example.com/a.png' ] )->assertForbidden();
 	} );
+
+	it( 'is throttled to 30 imports a minute', function (): void {
+		fakeFetcher( new RemoteImageException( 'This address cannot be imported.' ) );
+
+		for ( $attempt = 0; $attempt < 30; $attempt++ ) {
+			$this->postJson( MEDIA_IMPORT_URL, [ 'url' => 'https://cdn.example.com/a.png' ] )->assertUnprocessable();
+		}
+
+		$this->postJson( MEDIA_IMPORT_URL, [ 'url' => 'https://cdn.example.com/a.png' ] )->assertTooManyRequests();
+	} );
 } );

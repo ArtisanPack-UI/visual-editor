@@ -174,6 +174,44 @@ describe('Content subsection', () => {
     it('shows no hint for a source it can\'t detect by name', () => {
         renderPanel({ ...RELATED, source: 'products', condition: 'inStock' }, ['acme/products']);
 
-        expect(screen.queryByRole('status')).toBeNull();
+        expect(screen.getByRole('status').textContent).toBe('');
+    });
+
+    it('keeps one live region while the hint changes (#1030)', () => {
+        const props = {
+            onChange: vi.fn(),
+            breakpointOptions: [],
+            roleOptions: [],
+            searchUsers: async () => [],
+            contentSources: SOURCES,
+        };
+        const { rerender } = render(<VisibilityPanel {...props} value={{ content: RELATED }} subtreeBlockNames={[]} />);
+        const region = screen.getByRole('status');
+
+        expect(region.textContent).toContain('this rule has no effect');
+
+        rerender(<VisibilityPanel {...props} value={{ content: RELATED }} subtreeBlockNames={['artisanpack/related-posts']} />);
+
+        expect(screen.getByRole('status')).toBe(region);
+        expect(region.textContent).toBe('Checks 1 Related Posts block.');
+    });
+
+    it('has the live region in place before the rule is switched on (#1030)', () => {
+        const props = {
+            onChange: vi.fn(),
+            breakpointOptions: [],
+            roleOptions: [],
+            searchUsers: async () => [],
+            contentSources: SOURCES,
+        };
+        const { rerender } = render(<VisibilityPanel {...props} value={null} subtreeBlockNames={[]} />);
+        const region = screen.getByRole('status');
+
+        expect(region.textContent).toBe('');
+
+        rerender(<VisibilityPanel {...props} value={{ content: RELATED }} subtreeBlockNames={[]} />);
+
+        expect(screen.getByRole('status')).toBe(region);
+        expect(region.textContent).toContain('this rule has no effect');
     });
 });

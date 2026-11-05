@@ -13,13 +13,55 @@ import type { Block } from '../types';
 /** Gallery navigation button types that need telling to the overlay. */
 const NAVIGATION_TYPES = ['text', 'both'];
 
-/** The overlay's labels, for the figure's `data-ap-lightbox-labels`. */
-export const LIGHTBOX_LABELS = JSON.stringify({
+/**
+ * The lightbox's user-facing text. Blade translates these through `__()`
+ * (`ImageLightbox::labels()`); here a host passes its translations to
+ * {@link setLightboxLabels}. `:alt` in `enlargeWithAlt` is the image's alt
+ * text, and `:current` / `:total` in `position` are filled in by the
+ * overlay.
+ */
+export interface LightboxLabels {
+    dialog: string;
+    close: string;
+    previous: string;
+    next: string;
+    position: string;
+    enlarge: string;
+    enlargeWithAlt: string;
+}
+
+const DEFAULT_LIGHTBOX_LABELS: Readonly<LightboxLabels> = {
     dialog: 'Enlarged image',
     close: 'Close',
     previous: 'Previous image',
     next: 'Next image',
-});
+    position: 'Image :current of :total',
+    enlarge: 'Enlarge image',
+    enlargeWithAlt: 'Enlarge image: :alt',
+};
+
+let labels: LightboxLabels = { ...DEFAULT_LIGHTBOX_LABELS };
+
+/**
+ * Replace some or all of the lightbox's text, for example with the host's
+ * translations. Call it before rendering, as with `setBreakpoints()`.
+ * Calling it with no argument restores the English defaults.
+ */
+export function setLightboxLabels(next?: Partial<LightboxLabels>): void {
+    labels = next === undefined ? { ...DEFAULT_LIGHTBOX_LABELS } : { ...labels, ...next };
+}
+
+/** The lightbox's text in effect. */
+export function getLightboxLabels(): Readonly<LightboxLabels> {
+    return labels;
+}
+
+/** The overlay's labels, for the figure's `data-ap-lightbox-labels`. */
+export function lightboxLabelsJson(): string {
+    const { dialog, close, previous, next, position } = labels;
+
+    return JSON.stringify({ dialog, close, previous, next, position });
+}
 
 /** The trigger's icon path. Decorative: the button has its own label. */
 export const LIGHTBOX_TRIGGER_ICON_PATH =
@@ -42,7 +84,7 @@ export function imageHasLightbox(attributes: Record<string, unknown>): boolean {
 
 /** The trigger's accessible name. */
 export function lightboxTriggerLabel(alt: string): string {
-    return alt.trim() === '' ? 'Enlarge image' : `Enlarge image: ${alt}`;
+    return alt.trim() === '' ? labels.enlarge : labels.enlargeWithAlt.split(':alt').join(alt);
 }
 
 /** The Gallery's `data-ap-lightbox-navigation` value, if it needs one. */
@@ -53,13 +95,15 @@ export function lightboxNavigationType(type: unknown): string | undefined {
 /**
  * Apply the theme's default to every image in a tree. The theme setting lives
  * on the server, so hosts pass it to `<BlockTree>`, as with `duotonePresets`.
+ *
+ * `_veLightbox` belongs to the renderer: one already on the input tree, from
+ * a pasted or stored block, is replaced, so it can't turn the lightbox on
+ * where Blade wouldn't. A tree with nothing to change comes back as is.
  */
 export function stampLightboxDefault(tree: Block[], enabled: boolean): Block[] {
-    if (!enabled) {
-        return tree;
-    }
+    let changed = false;
 
-    return tree.map((block) => {
+    const next = tree.map((block) => {
         if (block === null || typeof block !== 'object') {
             return block;
         }
@@ -67,11 +111,32 @@ export function stampLightboxDefault(tree: Block[], enabled: boolean): Block[] {
         const innerBlocks = Array.isArray(block.innerBlocks)
             ? stampLightboxDefault(block.innerBlocks, enabled)
             : block.innerBlocks;
+        const isImage = block.name === 'core/image' || block.name === 'artisanpack/image';
+        const attributes = attrRecord(block.attributes);
+        const stamp = isImage && (enabled ? attributes._veLightbox !== true : '_veLightbox' in attributes);
 
-        return block.name === 'core/image' || block.name === 'artisanpack/image'
-            ? { ...block, attributes: { ...block.attributes, _veLightbox: true }, innerBlocks }
-            : { ...block, innerBlocks };
+        if (!stamp && innerBlocks === block.innerBlocks) {
+            return block;
+        }
+
+        changed = true;
+
+        if (!stamp) {
+            return { ...block, innerBlocks };
+        }
+
+        const stamped: Record<string, unknown> = { ...attributes };
+
+        if (enabled) {
+            stamped._veLightbox = true;
+        } else {
+            delete stamped._veLightbox;
+        }
+
+        return { ...block, attributes: stamped, innerBlocks };
     });
+
+    return changed ? next : tree;
 }
 
 /**

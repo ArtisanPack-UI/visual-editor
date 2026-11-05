@@ -91,12 +91,71 @@ it( 'does not vouch for stored values for later requests', function (): void {
 	expect( app( BlockHtmlGuard::class )->filterAgainst( $theme, null )[0]['attributes']['content'] )->toBe( '' );
 } );
 
+it( 'does not vouch for markup stored under a skipped key', function ( array $stored ): void {
+	allowUnfilteredHtml( false );
+
+	$incoming = [ [ 'name' => 'core/html', 'attributes' => [ 'content' => '<img src=x onerror=alert(1)>' ] ] ];
+
+	expect( app( BlockHtmlGuard::class )->filterAgainst( $incoming, $stored )[0]['attributes']['content'] )->not->toContain( 'onerror' );
+
+	app()->forgetScopedInstances();
+
+	expect( app( BlockHtmlGuard::class )->filter( $incoming, $stored )[0]['attributes']['content'] )->not->toContain( 'onerror' );
+} )->with( [
+	'alt'    => [ [ [ 'name' => 'core/image', 'attributes' => [ 'alt' => '<img src=x onerror=alert(1)>' ] ] ] ],
+	'search' => [ [ [ 'name' => 'core/query', 'attributes' => [ 'query' => [ 'search' => '<img src=x onerror=alert(1)>' ] ] ] ] ],
+] );
+
 it( 'leaves plain text fields alone', function (): void {
 	allowUnfilteredHtml( false );
 
 	$blocks = [ [ 'name' => 'artisanpack/image', 'attributes' => [ 'alt' => 'List<String> diagram', 'query' => [ 'search' => 'Vector<int>' ] ] ] ];
 
 	expect( app( BlockHtmlGuard::class )->filter( $blocks ) )->toBe( $blocks );
+} );
+
+it( 'leaves a search placeholder alone', function ( string $name, string $shape ): void {
+	allowUnfilteredHtml( false );
+
+	$nameKey = 'attrs' === $shape ? 'blockName' : 'name';
+	$blocks  = [ [ $nameKey => $name, $shape => [ 'placeholder' => 'Use <Enter> to submit', 'label' => 'List<String> & Map<K, V>' ] ] ];
+
+	$filtered = app( BlockHtmlGuard::class )->filter( $blocks );
+
+	expect( $filtered[0][ $shape ]['placeholder'] )->toBe( 'Use <Enter> to submit' )
+		->and( $filtered[0][ $shape ]['label'] )->not->toContain( '<String>' );
+} )->with( [
+	'core/search'              => [ 'core/search', 'attributes' ],
+	'core/search, parsed tree' => [ 'core/search', 'attrs' ],
+	'artisanpack/search'       => [ 'artisanpack/search', 'attributes' ],
+	'artisanpack/search-field' => [ 'artisanpack/search-field', 'attributes' ],
+] );
+
+it( 'filters a placeholder anywhere but a search block\'s own attributes', function ( array $block ): void {
+	allowUnfilteredHtml( false );
+
+	$filtered = app( BlockHtmlGuard::class )->filter( [ $block ] );
+
+	expect( json_encode( $filtered ) )->not->toContain( 'onerror' );
+} )->with( [
+	'binding placeholder' => [ [
+		'name'       => 'artisanpack/paragraph',
+		'attributes' => [ 'bindings' => [ 'content' => [ 'source' => 'x', 'onEmpty' => 'placeholder', 'placeholder' => '<img src=x onerror=alert(1)>' ] ] ],
+	] ],
+	'search binding'      => [ [
+		'name'       => 'core/search',
+		'attributes' => [ 'bindings' => [ 'label' => [ 'source' => 'x', 'placeholder' => '<img src=x onerror=alert(1)>' ] ] ],
+	] ],
+	'other block'         => [ [ 'name' => 'acme/field', 'attributes' => [ 'placeholder' => '<img src=x onerror=alert(1)>' ] ] ],
+] );
+
+it( 'does not vouch for markup stored in a search placeholder', function (): void {
+	allowUnfilteredHtml( false );
+
+	$stored   = [ [ 'name' => 'core/search', 'attributes' => [ 'placeholder' => '<img src=x onerror=alert(1)>' ] ] ];
+	$incoming = [ [ 'name' => 'core/html', 'attributes' => [ 'content' => '<img src=x onerror=alert(1)>' ] ] ];
+
+	expect( app( BlockHtmlGuard::class )->filter( $incoming, $stored )[0]['attributes']['content'] )->not->toContain( 'onerror' );
 } );
 
 it( 'leaves Custom CSS to its own guard', function (): void {

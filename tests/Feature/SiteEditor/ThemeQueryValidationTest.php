@@ -153,3 +153,38 @@ it( 'still filters by string list values (#1092)', function (): void {
 
 	$this->getJson( '/visual-editor/api/patterns?source=theme&post_type=page' )->assertOk();
 } );
+
+/**
+ * Serve JSON translations for a throwaway locale, the way a host's
+ * `lang/<locale>.json` does. `addLines()` can't hold these keys: it reads
+ * dots as nesting, and every one of them ends in a full stop.
+ *
+ * @param  array<string, string>  $lines  Source string => translation.
+ */
+function useSiteEditorTranslations( array $lines ): void
+{
+	$directory = sys_get_temp_dir() . '/ve-lang-' . uniqid();
+
+	mkdir( $directory );
+	file_put_contents( $directory . '/xx.json', (string) json_encode( $lines ) );
+
+	app( 'translator' )->addJsonPath( $directory );
+	app()->setLocale( 'xx' );
+}
+
+it( 'translates the query parameter error', function (): void {
+	useSiteEditorTranslations( [ 'The :parameter query parameter must be a string.' => 'X :parameter' ] );
+
+	$this->getJson( '/visual-editor/api/templates?status[]=a' )
+		->assertUnprocessable()
+		->assertJsonPath( 'message', 'X status' )
+		->assertJsonPath( 'errors.status.0', 'X status' );
+} );
+
+it( 'translates the composite id theme mismatch', function (): void {
+	useSiteEditorTranslations( [ 'The theme does not match the theme in the record id.' => 'Theme mismatch, translated' ] );
+
+	$this->putJson( '/visual-editor/api/templates/digital-shopfront~404', [ 'theme' => 'other-theme', 'title' => 'X' ] )
+		->assertUnprocessable()
+		->assertJsonPath( 'message', 'Theme mismatch, translated' );
+} );
