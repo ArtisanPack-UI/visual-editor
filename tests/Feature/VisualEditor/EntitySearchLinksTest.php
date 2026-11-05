@@ -307,11 +307,22 @@ it( 'looks each resource table up in the schema once per request', function (): 
 it( 'stops checking the view policy once the list is full', function (): void {
 	actingAsLinkSearchUser();
 
+	// Both resources have more than enough, so the list fills in the
+	// middle of a round.
 	foreach ( range( 1, 60 ) as $number ) {
 		linkableRecord( sprintf( 'Beta %02d', $number ) );
+		TestLinkablePageModel::create( [ 'title' => sprintf( 'Beta guide %02d', $number ) ] );
 	}
 
-	$checks = 0;
+	$checks     = 0;
+	$urlLookups = 0;
+	$counter    = static function ( ?string $url ) use ( &$urlLookups ): ?string {
+		$urlLookups++;
+
+		return $url;
+	};
+
+	addFilter( 'ap.visualEditor.search.resourceUrl', $counter );
 
 	Gate::before( function () use ( &$checks ): ?bool {
 		$checks++;
@@ -323,5 +334,33 @@ it( 'stops checking the view policy once the list is full', function (): void {
 		->assertOk()
 		->assertJsonCount( 20, 'data' );
 
-	expect( $checks )->toBeLessThanOrEqual( 21 );
+	removeFilter( 'ap.visualEditor.search.resourceUrl', $counter );
+
+	expect( $checks )->toBe( 20 )
+		->and( $urlLookups )->toBe( 20 );
+} );
+
+it( 'reads at most one page of rows per resource while the list fills', function (): void {
+	actingAsLinkSearchUser();
+
+	foreach ( range( 1, 60 ) as $number ) {
+		linkableRecord( sprintf( 'Gamma %02d', $number ) );
+	}
+
+	DB::enableQueryLog();
+
+	$this->getJson( '/visual-editor/api/search/links?q=gamma' )
+		->assertOk()
+		->assertJsonCount( 20, 'data' );
+
+	$reads = array_filter( DB::getQueryLog(), static fn ( array $query ): bool => str_contains( $query['query'], 'LIKE ? ESCAPE' ) );
+
+	DB::disableQueryLog();
+
+	// One read per resource: the page of 20 fills the list.
+	expect( $reads )->toHaveCount( 2 );
+
+	foreach ( $reads as $read ) {
+		expect( $read['query'] )->toContain( 'limit 20' );
+	}
 } );

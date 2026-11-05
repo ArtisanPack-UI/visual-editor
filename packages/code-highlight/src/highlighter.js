@@ -43,6 +43,37 @@ const GRAMMAR_NAMES = { html: 'markup' };
 /** Longer code stays plain: highlighting it could stall the page. */
 const MAX_HIGHLIGHT_LENGTH = 50000;
 
+/**
+ * Code with a longer unbroken word stays plain too: Prism's identifier
+ * patterns rescan a word from each of its characters, so one 50,000-character
+ * word takes seconds.
+ */
+const MAX_WORD_LENGTH = 2000;
+
+/** Whether the text has a run of word characters longer than the limit. */
+function hasLongWord(text) {
+    let run = 0;
+
+    for (let index = 0; index < text.length; index++) {
+        const code = text.charCodeAt(index);
+        const isWord =
+            (code >= 48 && code <= 57) ||
+            (code >= 65 && code <= 90) ||
+            (code >= 97 && code <= 122) ||
+            code === 95 ||
+            code === 36 ||
+            code >= 0xa0;
+
+        run = isWord ? run + 1 : 0;
+
+        if (run > MAX_WORD_LENGTH) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 // Prism's bare class names (`table`, `tag`, `number`) are also Tailwind and
 // daisyUI classes, so an unprefixed token picks up the host's component CSS.
 // Registered last, so language hooks still see the original names.
@@ -97,7 +128,16 @@ export function highlightElement(element) {
     const language = languageOf(element);
     const text = language === null ? null : plainTextOf(element);
 
-    if (text === null || text.length > MAX_HIGHLIGHT_LENGTH) {
+    if (text === null) {
+        return false;
+    }
+
+    // Too long to highlight, but the text colour still needs its
+    // contrast check.
+    if (text.length > MAX_HIGHLIGHT_LENGTH || hasLongWord(text)) {
+        applyScheme(element);
+        watchScheme();
+
         return false;
     }
 

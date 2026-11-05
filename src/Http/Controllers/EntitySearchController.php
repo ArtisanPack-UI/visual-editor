@@ -222,23 +222,29 @@ class EntitySearchController extends Controller
 	 */
 	protected function takeFromEachGroup( array $groups ): array
 	{
-		$rows = [];
+		$rows  = [];
+		$taken = [];
 
 		while ( [] !== $groups ) {
 			foreach ( $groups as $index => $group ) {
+				// Advance only on the group's next turn, so a list that fills
+				// up never checks rows it won't show.
+				if ( isset( $taken[ $index ] ) ) {
+					$group->next();
+				}
+
 				if ( ! $group->valid() ) {
 					unset( $groups[ $index ] );
 
 					continue;
 				}
 
-				$rows[] = $group->current();
+				$rows[]          = $group->current();
+				$taken[ $index ] = true;
 
 				if ( count( $rows ) >= self::MAX_RESULTS ) {
 					return $rows;
 				}
-
-				$group->next();
 			}
 		}
 
@@ -293,9 +299,10 @@ class EntitySearchController extends Controller
 
 	/**
 	 * The rows of a resource that match a search and that the user may
-	 * view, shaped for the picker. The query runs right away; the `view`
-	 * policy and the URL lookup run per row, only as far as the caller
-	 * reads.
+	 * view, shaped for the picker. Rows are read in pages of `MAX_RESULTS`,
+	 * with the resource's eager loads, and the `view` policy and the URL
+	 * lookup run per row, only as far as the caller reads. So a search across
+	 * many resources holds at most one page of models for each.
 	 *
 	 * @since 1.20.0
 	 *
@@ -342,12 +349,14 @@ class EntitySearchController extends Controller
 
 		$this->applyOrder( $query, $model, $searchColumn, $mostRecent );
 
-		// `get()` rather than `cursor()`, so the resource's eager loads
-		// still apply; only the per-row work below is lazy.
+		// The key breaks ties, so pages of an offset read never overlap.
+		$query->orderBy( $model->getQualifiedKeyName() );
+
+		// `lazy()` rather than `cursor()`, so the resource's eager loads
+		// still apply to each page.
 		return $query
-			->limit( self::MAX_RESULTS * self::CANDIDATE_MULTIPLIER )
-			->get()
-			->lazy()
+			->lazy( self::MAX_RESULTS )
+			->take( self::MAX_RESULTS * self::CANDIDATE_MULTIPLIER )
 			->filter( fn ( Model $row ): bool => Gate::allows( 'view', $row ) )
 			->map( fn ( Model $row ): array => [
 				'type'  => $type,

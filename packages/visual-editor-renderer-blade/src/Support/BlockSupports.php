@@ -1275,17 +1275,13 @@ class BlockSupports
 				continue;
 			}
 
-			$overrides = array_filter(
-				$attributes[ $bag ],
-				static fn ( int|string $path ): bool => 1 === preg_match( $pattern, (string) $path ),
-				ARRAY_FILTER_USE_KEY,
-			);
+			[ $kept, $overrides ] = self::splitOverrideBag( $attributes[ $bag ], $pattern, 'responsive' === $bag ? $moved : [] );
 
 			if ( [] === $overrides ) {
 				continue;
 			}
 
-			$wrapper[ $bag ] = array_diff_key( $attributes[ $bag ], $overrides );
+			$wrapper[ $bag ] = $kept;
 			$element[ $bag ] = $overrides;
 		}
 
@@ -1304,6 +1300,74 @@ class BlockSupports
 		}
 
 		return [ 'wrapper' => $wrapper, 'element' => $element ];
+	}
+
+	/**
+	 * Split a state or responsive bag into the overrides that move to the
+	 * `<img>` and the ones the wrapper keeps. A responsive bag can also hold
+	 * the legacy `style` object (`style.<breakpoint>.border`, #918), whose
+	 * moved supports become `style.<support>` entries; a breakpoint a flat
+	 * key already sets keeps that value, as
+	 * {@see self::foldLegacyResponsivePaths()} would. Mirrored by the React
+	 * and Vue `splitImageResponsive()`.
+	 *
+	 * @since 1.20.0
+	 *
+	 * @param  array<string, mixed>  $bag      The state or responsive bag.
+	 * @param  string                $pattern  The moved-path pattern.
+	 * @param  list<string>          $legacy   Supports to take out of a legacy `style` object.
+	 *
+	 * @return array{0: array<string, mixed>, 1: array<string, mixed>} The kept and moved overrides.
+	 */
+	protected static function splitOverrideBag( array $bag, string $pattern, array $legacy ): array
+	{
+		$moved = array_filter(
+			$bag,
+			static fn ( int|string $path ): bool => 1 === preg_match( $pattern, (string) $path ),
+			ARRAY_FILTER_USE_KEY,
+		);
+		$kept  = array_diff_key( $bag, $moved );
+
+		if ( [] === $legacy || ! is_array( $kept['style'] ?? null ) ) {
+			return [ $kept, $moved ];
+		}
+
+		$changed = false;
+
+		foreach ( $kept['style'] as $breakpoint => $value ) {
+			if ( ! is_string( $breakpoint ) || ! is_array( $value ) ) {
+				continue;
+			}
+
+			foreach ( $legacy as $support ) {
+				$path = 'style.' . $support;
+
+				if ( ! array_key_exists( $support, $value ) || ( isset( $moved[ $path ] ) && ! is_array( $moved[ $path ] ) ) ) {
+					continue;
+				}
+
+				if ( ! isset( $moved[ $path ] ) || ! array_key_exists( $breakpoint, $moved[ $path ] ) ) {
+					$moved[ $path ][ $breakpoint ] = $value[ $support ];
+				}
+
+				unset( $value[ $support ] );
+				$changed = true;
+			}
+
+			if ( $value !== $kept['style'][ $breakpoint ] ) {
+				if ( [] === $value ) {
+					unset( $kept['style'][ $breakpoint ] );
+				} else {
+					$kept['style'][ $breakpoint ] = $value;
+				}
+			}
+		}
+
+		if ( $changed && [] === $kept['style'] ) {
+			unset( $kept['style'] );
+		}
+
+		return [ $kept, $moved ];
 	}
 
 	/**

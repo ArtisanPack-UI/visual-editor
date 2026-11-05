@@ -380,6 +380,17 @@ describe('gallery navigation', () => {
         expect(announcement()).toBe('Bild 2 von 3: b alt');
     });
 
+    it('fills in every placeholder in the position label', () => {
+        const labels = JSON.stringify({ position: ':current/:total (:current of :total)' });
+
+        page(`<figure class="wp-block-gallery">${['a', 'b', 'c'].map((name) => figure(name, '', labels)).join('')}</figure>`);
+        trigger(0).click();
+
+        press('ArrowRight');
+
+        expect(announcement()).toBe('2/3 (2 of 3): b alt');
+    });
+
     it('skips a linked gallery image, which prints no lightbox', () => {
         page(
             `<figure class="wp-block-gallery">${figure('a')}<figure class="wp-block-image"><a href="/x"><img src="/x.jpg" alt=""/></a></figure>${figure('b')}</figure>`

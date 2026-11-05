@@ -122,7 +122,8 @@ describe('highlightElement', () => {
         expect(highlightElement(unterminated)).toBe(false);
         expect(performance.now() - start).toBeLessThan(100);
         expect(unterminated.querySelector('[class*="ap-code-"]')).toBeNull();
-        expect(unterminated.hasAttribute('data-ap-code-scheme')).toBe(false);
+        // Still measured, so unreadable text gets its contrast fix.
+        expect(unterminated.hasAttribute('data-ap-code-scheme')).toBe(true);
 
         // Exactly at the limit still highlights. Words, not one long word:
         // Prism's JS grammar backtracks on a single 50k-character word, and
@@ -132,6 +133,31 @@ describe('highlightElement', () => {
 
         expect(atLimit.textContent).toHaveLength(50000);
         expect(highlightElement(atLimit)).toBe(true);
+    });
+
+    it('fixes the contrast of over-limit code on a dark section', () => {
+        const section = document.createElement('section');
+        section.setAttribute('style', 'background-color: rgb(36, 41, 51); color: rgb(15, 23, 42);');
+        const code = document.createElement('code');
+        code.className = 'language-javascript';
+        code.textContent = 'a '.repeat(25001);
+        section.appendChild(code);
+        document.body.appendChild(section);
+
+        expect(highlightElement(code)).toBe(false);
+        expect(code.getAttribute('data-ap-code-scheme')).toBe('dark');
+        expect(code.getAttribute('data-ap-code-contrast')).toBe('low');
+    });
+
+    it('leaves code with one very long word plain rather than stall the page', () => {
+        const longWord = codeElement('javascript', `const x = ${'a'.repeat(2001)};`);
+        const start = performance.now();
+
+        expect(highlightElement(longWord)).toBe(false);
+        expect(performance.now() - start).toBeLessThan(100);
+        expect(longWord.querySelector('[class*="ap-code-"]')).toBeNull();
+
+        expect(highlightElement(codeElement('javascript', `const x = ${'a'.repeat(2000)};`))).toBe(true);
     });
 
     it('leaves plain text, unknown languages and Prism API names untouched', () => {
@@ -409,6 +435,40 @@ describe('scheme', () => {
         expect(blockOn(background, text).hasAttribute('data-ap-code-tokens')).toBe(false);
     });
 
+    it.each([
+        ['half-transparent white over black, a mid grey', 'rgba(255, 255, 255, 0.5)', 'rgb(0, 0, 0)', 'light', true],
+        ['half-transparent black over white, a mid grey', 'rgba(0, 0, 0, 0.5)', 'rgb(255, 255, 255)', 'light', true],
+        ['a faint tint over white', 'rgba(0, 0, 0, 0.02)', 'rgb(255, 255, 255)', 'light', false],
+        ['a faint tint over near-black', 'rgba(255, 255, 255, 0.02)', 'rgb(13, 17, 23)', 'dark', false],
+    ])('blends a translucent background over the one behind it: %s', (_label, background, behind, scheme, mono) => {
+        document.body.style.backgroundColor = behind;
+
+        const code = blockOn(background, 'rgb(0, 0, 0)');
+
+        document.body.style.backgroundColor = '';
+
+        expect(code.getAttribute('data-ap-code-scheme')).toBe(scheme);
+        expect(code.hasAttribute('data-ap-code-tokens')).toBe(mono);
+    });
+
+    it('blends a translucent background over the white canvas when nothing is painted', () => {
+        const code = blockOn('rgba(0, 0, 0, 0.5)', 'rgb(0, 0, 0)');
+
+        expect(code.getAttribute('data-ap-code-scheme')).toBe('light');
+        expect(code.getAttribute('data-ap-code-tokens')).toBe('mono');
+    });
+
+    it('falls back to the text colour over a dark canvas it can\'t measure', () => {
+        document.documentElement.style.setProperty('color-scheme', 'dark');
+
+        const code = blockOn('rgba(0, 0, 0, 0.5)', 'rgb(229, 231, 235)');
+
+        document.documentElement.style.removeProperty('color-scheme');
+
+        expect(code.getAttribute('data-ap-code-scheme')).toBe('dark');
+        expect(code.hasAttribute('data-ap-code-tokens')).toBe(false);
+    });
+
     it('keeps token colours when the background can\'t be measured', () => {
         const code = blockOn('rgb(171, 184, 195)', 'rgb(229, 231, 235)', 'background-image: url(a.png);');
 
@@ -473,7 +533,9 @@ describe('token colours', () => {
     });
 
     it('drops token colours in monochrome mode', () => {
-        expect(css).toContain("code[data-ap-code-tokens='mono'] [class*='ap-code-']");
+        const body = /code\[data-ap-code-tokens='mono'\] \[class\*='ap-code-'\] \{([^}]*)\}/.exec(css)?.[1] ?? '';
+
+        expect(body).toMatch(/color:\s*inherit;/);
     });
 
     it('lets a theme override every token', () => {

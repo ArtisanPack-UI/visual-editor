@@ -20,6 +20,7 @@ import { addFilter } from '@wordpress/hooks';
 import { useCallback, useMemo, type ComponentType } from 'react';
 
 import { resolveBindingTarget } from './binding-target';
+import { hasBoundRichText } from './bound-rich-text';
 import { BindingsPanel, type BindableAttribute } from './BindingsPanel';
 import {
 	BoundAttributesContext,
@@ -148,36 +149,6 @@ function collectBindableAttributes( blockName: string ): BindableAttribute[] {
 	return out;
 }
 
-/**
- * Whether a block has a binding on one of its rich-text attributes.
- *
- * Bindings live in this package's own `attributes.bindings` sidecar, not
- * upstream's `metadata.bindings`, so the block editor's own merge guard
- * for bound blocks never fires (#1043). A merge would write the
- * neighbour's text into the hidden stored value behind the binding.
- *
- * @since 1.20.0
- */
-export function hasBoundRichText(
-	attributes: Record<string, unknown> | null | undefined,
-	blockName: string | null | undefined,
-): boolean {
-	const bindings = attributes?.bindings as BindingsMap | null | undefined;
-
-	if ( ! bindings || typeof bindings !== 'object' || ! blockName ) {
-		return false;
-	}
-
-	const schema = ( getBlockType( blockName )?.attributes ?? {} ) as Record<string, BlockAttributeSchema>;
-
-	return Object.keys( bindings ).some( ( key ) => {
-		const attribute = schema[ key ];
-		const type      = Array.isArray( attribute?.type ) ? attribute?.type[ 0 ] : attribute?.type;
-
-		return 'rich-text' === type || 'rich-text' === attribute?.source || 'html' === attribute?.source;
-	} );
-}
-
 function getBindingsResource(): string | null {
 	const host = globalThis as unknown as GlobalSentinelHost;
 	return host.__artisanpackBindingsResource ?? null;
@@ -196,6 +167,8 @@ export function setBindingsResourceContext(
 	host.__artisanpackBindingsResource = resource;
 	host.__artisanpackBindingsRecordId = id;
 }
+
+export { hasBoundRichText };
 
 export const withBindingsPanel = createHigherOrderComponent(
 	( BlockEdit: ComponentType<BlockEditProps> ) => {

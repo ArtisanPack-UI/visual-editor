@@ -117,10 +117,12 @@ describe( 'importExternalImages', () => {
 
         const blocks = { a: image( 'https://x.test/a.png' ), b: image( 'https://x.test/b.png' ) };
         const { registry } = makeRegistry( blocks );
-        let spokenBeforeFetchResolved = false;
+        let spokenBeforeFirstFetch: boolean | undefined;
 
         const fetchImpl = vi.fn( () => {
-            spokenBeforeFetchResolved = speak.mock.calls.some( ( [ message ] ) => 'Importing 2 images…' === message );
+            if ( undefined === spokenBeforeFirstFetch ) {
+                spokenBeforeFirstFetch = speak.mock.calls.some( ( [ message ] ) => 'Importing 2 images…' === message );
+            }
 
             return respond( 201, { id: 1, url: '/m/x.png' } );
         } );
@@ -130,8 +132,33 @@ describe( 'importExternalImages', () => {
             { clientId: 'b', url: 'https://x.test/b.png', alt: 'Alt' },
         ], fetchImpl as never );
 
-        expect( spokenBeforeFetchResolved ).toBe( true );
+        expect( spokenBeforeFirstFetch ).toBe( true );
         expect( speak ).toHaveBeenCalledWith( 'Importing 2 images…' );
+    } );
+
+    it( 'counts only the images still waiting to be imported', async () => {
+        speak.mockClear();
+
+        const blocks = { a: image( 'https://x.test/a.png' ), b: image( '/m/already-local.png' ) };
+        const { registry } = makeRegistry( blocks );
+
+        await importExternalImages( registry, [
+            { clientId: 'a', url: 'https://x.test/a.png', alt: 'Alt' },
+            { clientId: 'b', url: 'https://x.test/b.png', alt: 'Alt' },
+            { clientId: 'gone', url: 'https://x.test/c.png', alt: 'Alt' },
+        ], ( () => respond( 201, { id: 1, url: '/m/x.png' } ) ) as never );
+
+        expect( speak ).toHaveBeenCalledWith( 'Importing 1 image…' );
+    } );
+
+    it( 'says nothing when every image has changed or gone', async () => {
+        speak.mockClear();
+
+        await importExternalImages( makeRegistry( { a: image( '/m/local.png' ) } ).registry, [
+            { clientId: 'a', url: 'https://x.test/a.png', alt: 'Alt' },
+        ], vi.fn() as never );
+
+        expect( speak ).not.toHaveBeenCalled();
     } );
 
     it( 'says nothing when there is nothing to import', async () => {

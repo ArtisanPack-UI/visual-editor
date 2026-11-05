@@ -6,6 +6,11 @@
  * neighbours aren't always its siblings: the line above can be a nested item,
  * and the line below can sit in a parent list. This walks the visible lines,
  * then merges or outdents, so Backspace and Delete match upstream (#1043).
+ *
+ * Unlike upstream, a merge into or out of an item whose text is bound to
+ * data only moves the cursor: the bound value hides the stored text the
+ * merge would write to. The bindings HOC guards the `mergeBlocks` prop, but
+ * this hook dispatches the action itself.
  */
 
 import { store as blockEditorStore } from '@wordpress/block-editor';
@@ -13,6 +18,7 @@ import { isUnmodifiedBlock } from '@wordpress/blocks';
 import type { BlockInstance } from '@wordpress/blocks';
 import { useDispatch, useRegistry, useSelect } from '@wordpress/data';
 
+import { hasBoundRichText } from '../../../bindings/bound-rich-text';
 import metadata from '../block.json';
 import useOutdentListItem from './use-outdent-list-item';
 
@@ -25,6 +31,7 @@ interface BlockEditorSelectors {
     getBlockRootClientId(clientId: string): string | null;
     getBlockName(clientId: string): string | null;
     getBlock(clientId: string): BlockInstance;
+    getBlockAttributes(clientId: string): Record<string, unknown> | null;
 }
 
 interface BlockEditorActions {
@@ -36,6 +43,7 @@ interface BlockEditorActions {
         index?: number
     ): void;
     removeBlock(clientId: string, selectPrevious?: boolean): void;
+    selectBlock(clientId: string, initialPosition?: number): void;
 }
 
 export default function useMerge(
@@ -50,8 +58,9 @@ export default function useMerge(
         getBlockRootClientId,
         getBlockName,
         getBlock,
+        getBlockAttributes,
     } = useSelect(blockEditorStore) as unknown as BlockEditorSelectors;
-    const { mergeBlocks, moveBlocksToPosition, removeBlock } = useDispatch(
+    const { mergeBlocks, moveBlocksToPosition, removeBlock, selectBlock } = useDispatch(
         blockEditorStore
     ) as unknown as BlockEditorActions;
     const outdentListItem = useOutdentListItem();
@@ -114,8 +123,23 @@ export default function useMerge(
         return getBlockOrder(order[0])[0];
     }
 
+    function isBound(id: string): boolean {
+        return hasBoundRichText(getBlockAttributes(id), getBlockName(id));
+    }
+
     return (forward) => {
         function mergeWithNested(clientIdA: string, clientIdB: string): void {
+            // Either side bound: move the cursor to the other line instead.
+            if (isBound(clientIdA) || isBound(clientIdB)) {
+                if (forward) {
+                    selectBlock(clientIdB, 0);
+                } else {
+                    selectBlock(clientIdA, -1);
+                }
+
+                return;
+            }
+
             registry.batch(() => {
                 // When merging a sub list item with a higher next list item,
                 // any nested list items have to move too.

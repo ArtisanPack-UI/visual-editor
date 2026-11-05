@@ -143,6 +143,28 @@ export function hasGradientBorder(attributes: Record<string, unknown>): boolean 
 }
 
 /**
+ * Whether any cascade level of a block's shadow is a gradient one, which
+ * stays on the wrapper. Mirrors `BlockSupports::hasGradientShadow()`: a
+ * layer with no preset and no raw value but a gradient, at the idle, state
+ * or breakpoint level.
+ */
+export function hasGradientShadow(attributes: Record<string, unknown>): boolean {
+    const overrides = [attrRecord(attributes.states), attrRecord(attributes.responsive)].flatMap((bag) =>
+        ['style.shadow', 'shadow'].flatMap((path) => Object.values(attrRecord(bag[path]))),
+    );
+
+    return [attrRecord(attributes.style).shadow, ...overrides].some((layer) => {
+        if (layer === null || typeof layer !== 'object') {
+            return false;
+        }
+
+        const { preset, value, gradient } = layer as Record<string, unknown>;
+
+        return stringAttr(preset) === '' && stringAttr(value) === '' && stringAttr(gradient) !== '';
+    });
+}
+
+/**
  * The block's idle `box-shadow` value (#1052), or `null` when it has none
  * or a gradient one, which can't paint on an `<img>`. Mirrors
  * `BoxShadowResolver::normalizeSubtree()` and

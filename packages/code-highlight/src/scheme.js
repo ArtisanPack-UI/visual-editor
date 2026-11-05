@@ -58,10 +58,15 @@ function contrast(first, second) {
 }
 
 /**
- * The luminance of the nearest solid background, or `null` if it can't be
- * known, as behind an image or gradient.
+ * The luminance of what's behind an element: each translucent background
+ * blended over the ones below it, down to the first opaque one. `null` if it
+ * can't be known, as behind an image or gradient, or when nothing is painted
+ * and the page asks for a dark canvas, whose colour the browser picks.
  */
 function backgroundLuminance(element) {
+    const layers = [];
+    let base = null;
+
     for (let current = element; current !== null; current = current.parentElement) {
         const style = getComputedStyle(current);
 
@@ -71,12 +76,46 @@ function backgroundLuminance(element) {
 
         const color = readColor(style.backgroundColor);
 
-        if (color !== null && color[3] >= 128) {
-            return luminance(color);
+        if (color === null || color[3] === 0) {
+            continue;
         }
+
+        if (color[3] >= 255) {
+            base = color;
+            break;
+        }
+
+        layers.push(color);
     }
 
-    return null;
+    if (base === null) {
+        if (layers.length === 0) {
+            return null;
+        }
+
+        // Nothing opaque: the layers sit on the browser's canvas, which is
+        // white unless the page opts into a dark one.
+        const scheme = getComputedStyle(element.ownerDocument.documentElement).colorScheme ?? '';
+
+        if (/\bdark\b/.test(scheme) && !/\blight\b/.test(scheme)) {
+            return null;
+        }
+
+        base = [255, 255, 255, 255];
+    }
+
+    let [red, green, blue] = base;
+
+    for (let index = layers.length - 1; index >= 0; index--) {
+        const [r, g, b, a] = layers[index];
+        const alpha = a / 255;
+
+        red = r * alpha + red * (1 - alpha);
+        green = g * alpha + green * (1 - alpha);
+        blue = b * alpha + blue * (1 - alpha);
+    }
+
+    return luminance([red, green, blue]);
 }
 
 /**

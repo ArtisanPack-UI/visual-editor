@@ -45,10 +45,27 @@ let labels: LightboxLabels = { ...DEFAULT_LIGHTBOX_LABELS };
 /**
  * Replace some or all of the lightbox's text, for example with the host's
  * translations. Call it before rendering, as with `setBreakpoints()`.
- * Calling it with no argument restores the English defaults.
+ * Calling it with no argument restores the English defaults. A key that's
+ * missing, `undefined` or not a string keeps its current text.
  */
 export function setLightboxLabels(next?: Partial<LightboxLabels>): void {
-    labels = next === undefined ? { ...DEFAULT_LIGHTBOX_LABELS } : { ...labels, ...next };
+    if (next === undefined) {
+        labels = { ...DEFAULT_LIGHTBOX_LABELS };
+
+        return;
+    }
+
+    const merged: LightboxLabels = { ...labels };
+
+    for (const key of Object.keys(DEFAULT_LIGHTBOX_LABELS) as Array<keyof LightboxLabels>) {
+        const value: unknown = next[key];
+
+        if (typeof value === 'string') {
+            merged[key] = value;
+        }
+    }
+
+    labels = merged;
 }
 
 /** The lightbox's text in effect. */

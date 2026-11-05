@@ -220,8 +220,10 @@ function step(state, offset) {
     // The position changes on every step, so the region always has something
     // new to say, even for an empty or repeated alt text.
     const position = String(state.labels.position ?? DEFAULT_LABELS.position)
-        .replace(':current', String(state.index + 1))
-        .replace(':total', String(length));
+        .split(':current')
+        .join(String(state.index + 1))
+        .split(':total')
+        .join(String(length));
 
     state.live.textContent = state.image.alt === '' ? position : `${position}: ${state.image.alt}`;
 }

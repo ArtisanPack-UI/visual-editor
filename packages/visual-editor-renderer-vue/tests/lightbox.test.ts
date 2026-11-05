@@ -139,13 +139,22 @@ describe('setLightboxLabels', () => {
     });
 
     it('translates the overlay labels and the trigger name', async () => {
-        setLightboxLabels({ close: 'Schließen', enlargeWithAlt: 'Vergrößern: :alt' });
+        setLightboxLabels({ close: 'Schließen', enlargeWithAlt: 'Vergrößern: :alt', position: 'Bild :current von :total' });
 
         const html = await ssr(image({ lightbox: { enabled: true } }));
         const labels = /data-ap-lightbox-labels="([^"]*)"/.exec(html)?.[1].replace(/&quot;/g, '"') ?? '{}';
 
-        expect(JSON.parse(labels)).toMatchObject({ close: 'Schließen', dialog: 'Enlarged image', position: 'Image :current of :total' });
+        expect(JSON.parse(labels)).toMatchObject({ close: 'Schließen', dialog: 'Enlarged image', position: 'Bild :current von :total' });
         expect(html).toContain('aria-label="Vergrößern: A cat"');
+    });
+
+    it('keeps a label passed as undefined or a non-string', async () => {
+        setLightboxLabels({ enlargeWithAlt: undefined, close: 7 as unknown as string });
+
+        const html = await ssr(image({ lightbox: { enabled: true } }));
+
+        expect(html).toContain('aria-label="Enlarge image: A cat"');
+        expect(html).toContain('&quot;close&quot;:&quot;Close&quot;');
     });
 
     it('keeps the English defaults until it is called', async () => {

@@ -7776,17 +7776,20 @@
         },
         {
             "name": "image-shadow",
-            "$comment": "#1052 — an Image's shadow adds nothing to the figure, for a preset string and a camelCase structured preset, and the `<img>` keeps its own classes. The shadow itself is delivered differently (see `image-shadow-mechanism-*`), so its value is pinned by each renderer's unit tests instead.",
+            "$comment": "#1052 — an Image's shadow adds nothing to the figure, for a preset string, a camelCase structured preset and a breakpoint override, and the `<img>` keeps its own classes. A breakpoint shadow leaves the figure's own responsive scope as Blade computes it. The shadow itself is delivered differently (see `image-shadow-mechanism-*`), so its value is pinned by each renderer's unit tests instead.",
             "tree": [
                 { "clientId": "is-string", "name": "core/image", "attributes": { "id": 1, "url": "https://example.test/a.jpg", "alt": "a", "style": { "shadow": "var:preset|shadow|natural" } }, "innerBlocks": [] },
-                { "clientId": "is-preset", "name": "artisanpack/image", "attributes": { "id": 2, "url": "https://example.test/b.jpg", "alt": "b", "style": { "shadow": { "preset": "softGlow" } } }, "innerBlocks": [] }
+                { "clientId": "is-preset", "name": "artisanpack/image", "attributes": { "id": 2, "url": "https://example.test/b.jpg", "alt": "b", "style": { "shadow": { "preset": "softGlow" } } }, "innerBlocks": [] },
+                { "clientId": "is-responsive", "name": "core/image", "attributes": { "id": 3, "url": "https://example.test/c.jpg", "alt": "c", "responsive": { "style.shadow": { "mobile": "var:preset|shadow|natural" }, "style.spacing.margin": { "mobile": { "top": "1rem" } } } }, "innerBlocks": [] }
             ]
         },
         {
             "name": "image-border-responsive",
-            "$comment": "#1052 — a breakpoint border override moves to the `<img>` with the idle border, under its own scope. The figure keeps its other overrides.",
+            "$comment": "#1052 — a breakpoint border override moves to the `<img>` with the idle border, under its own scope. The figure keeps its other overrides. The legacy `style.<breakpoint>.border` shape moves too, and a breakpoint a flat key already sets keeps the flat value.",
             "tree": [
-                { "clientId": "ibr", "name": "core/image", "attributes": { "id": 7, "url": "https://example.test/a.jpg", "alt": "a", "caption": "Caption", "style": { "border": { "width": "1px" } }, "responsive": { "style.border.width": { "mobile": "6px" }, "style.spacing.margin": { "mobile": { "top": "2rem" } } } }, "innerBlocks": [] }
+                { "clientId": "ibr", "name": "core/image", "attributes": { "id": 7, "url": "https://example.test/a.jpg", "alt": "a", "caption": "Caption", "style": { "border": { "width": "1px" } }, "responsive": { "style.border.width": { "mobile": "6px" }, "style.spacing.margin": { "mobile": { "top": "2rem" } } } }, "innerBlocks": [] },
+                { "clientId": "ibr-legacy", "name": "core/image", "attributes": { "id": 8, "url": "https://example.test/b.jpg", "alt": "b", "style": { "border": { "width": "1px" } }, "responsive": { "style": { "mobile": { "border": { "width": "4px" }, "spacing": { "margin": { "top": "3rem" } } } } } }, "innerBlocks": [] },
+                { "clientId": "ibr-mixed", "name": "core/image", "attributes": { "id": 9, "url": "https://example.test/c.jpg", "alt": "c", "style": { "border": { "width": "1px" } }, "responsive": { "style.border.width": { "tablet": "5px" }, "style": { "mobile": { "border": { "width": "8px" } }, "tablet": { "border": { "width": "9px" } } } } }, "innerBlocks": [] }
             ]
         },
         {

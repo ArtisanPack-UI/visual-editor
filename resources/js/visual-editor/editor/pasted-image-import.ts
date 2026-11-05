@@ -153,11 +153,14 @@ export async function importExternalImages(
     let imported = 0;
     let failed   = 0;
 
-    // Each import waits on a server-side download, so say it has started.
-    if ( images.length > 0 ) {
+    // Each import waits on a server-side download, so say it has started,
+    // counting only the images still waiting to be imported.
+    const pending = images.filter( ( image ) => null !== pendingImageBlock( registry, image ) ).length;
+
+    if ( pending > 0 ) {
         speak(
             /* translators: %d: number of images being imported. */
-            sprintf( _n( 'Importing %d image…', 'Importing %d images…', images.length, TEXT_DOMAIN ), images.length ),
+            sprintf( _n( 'Importing %d image…', 'Importing %d images…', pending, TEXT_DOMAIN ), pending ),
         );
     }
 

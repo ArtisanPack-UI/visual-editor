@@ -19,7 +19,7 @@
 import { getBreakpoints, getDeviceBreakpoints } from '../visibility';
 import type { Block } from '../types';
 import { phpTrim } from './attributes';
-import { hasGradientBorder } from './blockSupports';
+import { hasGradientBorder, hasGradientShadow } from './blockSupports';
 import { columnsGapValue } from './blockGap';
 import { cssNumber } from './cssNumber';
 import { expandPresetReference } from './presetReference';
@@ -36,10 +36,74 @@ const COLUMNS_BLOCK_NAMES = ['core/columns', 'artisanpack/columns'];
 const IMAGE_BLOCK_NAMES = ['core/image', 'artisanpack/image'];
 
 /**
- * Responsive paths that move with the border onto the `<img>`. Mirrors the
- * pattern in `BlockSupports::splitBorderAndShadow()`.
+ * Split an image's responsive bag into the overrides that move to the
+ * `<img>` with its border and shadow, and the ones the figure keeps. A
+ * legacy `style` object (`style.<breakpoint>.border`, #918) gives up its
+ * moved supports as `style.<support>` entries, and a breakpoint a flat key
+ * already sets keeps that value. Mirrors
+ * `BlockSupports::splitBorderAndShadow()` / `splitOverrideBag()`.
  */
-const IMAGE_BORDER_PATH = /^(style\.)?border(\.|$)/;
+function splitImageResponsive(
+    responsive: Record<string, unknown>,
+    moved: readonly string[]
+): { kept: Record<string, unknown>; element: Record<string, unknown> } {
+    const pattern = new RegExp(`^(style\\.)?(${moved.join('|')})(\\.|$)`);
+    const element = Object.fromEntries(Object.entries(responsive).filter(([path]) => pattern.test(path)));
+    const kept = Object.fromEntries(Object.entries(responsive).filter(([path]) => !pattern.test(path)));
+    const legacy = kept.style;
+
+    if (!isPhpArray(legacy)) {
+        return { kept, element };
+    }
+
+    const style: Record<string, unknown> = { ...legacy };
+    let changed = false;
+
+    for (const [breakpoint, value] of Object.entries(legacy)) {
+        if (!isPhpArray(value) || Array.isArray(value)) {
+            continue;
+        }
+
+        const rest: Record<string, unknown> = { ...value };
+
+        for (const support of moved) {
+            const path = `style.${support}`;
+            const existing = element[path];
+
+            if (!hasOwn(rest, support) || (existing !== undefined && !isPhpArray(existing))) {
+                continue;
+            }
+
+            const target: Record<string, unknown> = { ...((existing as Record<string, unknown> | undefined) ?? {}) };
+
+            if (!hasOwn(target, breakpoint)) {
+                target[breakpoint] = rest[support];
+            }
+
+            element[path] = target;
+            delete rest[support];
+            changed = true;
+        }
+
+        if (Object.keys(rest).length !== Object.keys(value).length) {
+            if (Object.keys(rest).length === 0) {
+                delete style[breakpoint];
+            } else {
+                style[breakpoint] = rest;
+            }
+        }
+    }
+
+    if (changed) {
+        if (Object.keys(style).length === 0) {
+            delete kept.style;
+        } else {
+            kept.style = style;
+        }
+    }
+
+    return { kept, element };
+}
 
 /**
  * Per-side longhands for a responsive property whose object value is not
@@ -482,22 +546,24 @@ export function stampResponsiveScopes(tree: Block[]): { tree: Block[]; css: stri
             const name = typeof block.name === 'string' ? block.name.trim() : '';
             let bag = attrs;
 
-            if (IMAGE_BLOCK_NAMES.includes(name) && isPhpArray(attrs.responsive) && !hasGradientBorder(attrs)) {
-                const all = attrs.responsive;
-                const imgBag = Object.fromEntries(Object.entries(all).filter(([path]) => IMAGE_BORDER_PATH.test(path)));
+            // A gradient border or shadow stays on the figure, as in Blade.
+            const moved = [
+                ...(hasGradientBorder(attrs) ? [] : ['border']),
+                ...(hasGradientShadow(attrs) ? [] : ['shadow']),
+            ];
 
-                if (Object.keys(imgBag).length > 0) {
-                    const imgScope = compileResponsive({ ...attrs, responsive: imgBag }, RESPONSIVE_CSS_PROPERTY_MAP);
+            if (IMAGE_BLOCK_NAMES.includes(name) && isPhpArray(attrs.responsive) && moved.length > 0) {
+                const { kept, element } = splitImageResponsive(attrs.responsive, moved);
+
+                if (Object.keys(element).length > 0) {
+                    const imgScope = compileResponsive({ ...attrs, responsive: element }, RESPONSIVE_CSS_PROPERTY_MAP);
 
                     if (imgScope !== null) {
                         collect(imgScope);
                         attrs._veImgResponsiveScope = imgScope.className;
                     }
 
-                    bag = {
-                        ...attrs,
-                        responsive: Object.fromEntries(Object.entries(all).filter(([path]) => !IMAGE_BORDER_PATH.test(path))),
-                    };
+                    bag = { ...attrs, responsive: kept };
                 }
             }
 

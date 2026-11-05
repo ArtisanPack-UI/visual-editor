@@ -193,6 +193,15 @@ it( 'leaves an svg inside an attribute value as text', function ( string $html, 
 	'after a quoted gt'       => [ '<p title="a>b" class="<svg/>">x</p>', '<p title="a&gt;b" class="&lt;svg/&gt;">x</p>' ],
 ] );
 
+it( 'extracts an svg after an earlier attribute that holds a tag-like value', function ( string $html ): void {
+	expect( sanitizeBlockHtml( $html ) )->toContain( 'viewBox="0 0 1 1"' );
+} )->with( [
+	'less-than in a quoted title'    => [ '<p title="<b">text<svg viewBox="0 0 1 1"><path d="M0 0"/></svg></p>' ],
+	'greater-than in a quoted title' => [ '<p title="a>b">text<svg viewBox="0 0 1 1"><path d="M0 0"/></svg></p>' ],
+	'quote in an unquoted value'     => [ '<p title=a"b>text<svg viewBox="0 0 1 1"><path d="M0 0"/></svg></p>' ],
+	'after an earlier svg'           => [ '<svg viewBox="0 0 2 2"><path d="M0 0"/></svg><p title="<i">x</p><svg viewBox="0 0 1 1"><path d="M0 0"/></svg>' ],
+] );
+
 it( 'still extracts an svg after a bare less-than in text', function (): void {
 	expect( sanitizeBlockHtml( 'a < b <svg viewBox="0 0 1 1"><path d="M0 0"/></svg>' ) )->toContain( 'viewBox="0 0 1 1"' );
 } );
