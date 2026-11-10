@@ -721,9 +721,15 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
     // the undo/redo availability is state, and it changes rarely.
     const historyRef = useRef<EditorHistory>(EMPTY_EDITOR_HISTORY);
     const [undoAvailability, setUndoAvailability] = useState<UndoAvailability>(NO_UNDO);
-    // The selection an undo or redo restores. `BlockEditorProvider` reads
-    // it when it resets to the restored tree, so the caret comes back.
-    const [restoredSelection, setRestoredSelection] = useState<HistorySelection | undefined>(undefined);
+    // The tree an undo or redo restored, with its selection.
+    // `BlockEditorProvider` applies `selection` whenever it resets to a
+    // tree it didn't emit, so the selection is only forwarded while
+    // `blocks` is still that exact tree; a later reset (a pattern insert,
+    // say) must not reapply an old caret.
+    const [restored, setRestored] = useState<{
+        readonly blocks: BlockInstance[];
+        readonly selection?: HistorySelection;
+    } | null>(null);
 
     const currentMetadata = useMemo(
         (): MetadataChange => ({
@@ -1145,11 +1151,16 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
             }
 
             commitHistory(step.history);
-            setRestoredSelection(step.entry.selection);
+
             // A fresh array, because undoing uncommitted typing restores
             // the tree the provider already holds as `value`; the same
-            // reference wouldn't make it reset its store.
-            onBlocksChange([...step.entry.blocks]);
+            // reference wouldn't make it reset its store. `onBlocksChange`
+            // stores the array as given, so it also identifies the tree
+            // the selection belongs to.
+            const restoredBlocks = [...step.entry.blocks];
+
+            setRestored({ blocks: restoredBlocks, selection: step.entry.selection });
+            onBlocksChange(restoredBlocks);
         },
         [commitHistory, onBlocksChange]
     );
@@ -1549,7 +1560,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
     const editorBody = (
         <BlockEditorProvider
             value={blocks}
-            selection={restoredSelection}
+            selection={restored !== null && restored.blocks === blocks ? restored.selection : undefined}
             settings={themedSettings}
             onInput={handleInput}
             onChange={handleChange}

@@ -121,6 +121,12 @@ function forwardDragToRootList(element: HTMLElement, event: DragEvent): void {
     }
 
     const rect = (root.lastElementChild ?? root).getBoundingClientRect();
+
+    // Too small to pin a point inside; the drop zone's own positioning
+    // handles it better than a point outside the block would.
+    if (rect.width < 2 || rect.height < 2) {
+        return;
+    }
     const forwarded = new view.DragEvent(event.type, {
         bubbles: false,
         cancelable: true,

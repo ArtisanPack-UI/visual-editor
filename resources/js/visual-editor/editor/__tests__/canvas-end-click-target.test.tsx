@@ -373,6 +373,29 @@ describe('CanvasEndClickTarget', () => {
             expect(relatedTarget).toBe(firstBlock);
         });
 
+        it('forwards nothing when the last block has no size to pin a point in', () => {
+            const { target, root } = setUpWithRoot();
+            const received = vi.fn();
+
+            vi.spyOn(screen.getByTestId('last-block'), 'getBoundingClientRect').mockReturnValue({
+                left: 10,
+                right: 10,
+                top: 100,
+                bottom: 100,
+                width: 0,
+                height: 0,
+                x: 10,
+                y: 100,
+                toJSON: () => ({}),
+            });
+            root!.addEventListener('drop', received);
+
+            const original = drag(target, 'drop');
+
+            expect(received).not.toHaveBeenCalled();
+            expect(original.defaultPrevented).toBe(false);
+        });
+
         it('forwards nothing when the previous sibling is not the root list', () => {
             const { target } = setUpWithRoot(false);
             const notRoot = screen.getByTestId('not-root');
