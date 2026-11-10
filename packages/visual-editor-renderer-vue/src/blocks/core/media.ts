@@ -329,6 +329,8 @@ export const GalleryBlock = defineComponent({
             const classes = classList([
                 'wp-block-gallery',
                 'has-nested-images',
+                'is-layout-flex',
+                'wp-block-gallery-is-layout-flex',
                 columns > 0 ? `columns-${columns}` : null,
                 imageCrop ? 'is-cropped' : null,
                 ...supports.classNames,
