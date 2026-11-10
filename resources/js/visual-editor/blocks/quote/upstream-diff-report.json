@@ -20,7 +20,7 @@
             "status": "adapted",
             "notes": "TypeScript port. Inlines a minimal citation editor using RichText; the upstream Caption utility is not vendored (single-use, post-V2 enhancement target).",
             "result": "skipped-status",
-            "forkDigest": "9139e916ebd0"
+            "forkDigest": "a0f9743f2f13"
         },
         {
             "fork": "save.tsx",
@@ -36,7 +36,7 @@
             "status": "adapted",
             "notes": "Full 5-entry chain ported verbatim (v4 → v0). `migrateToQuoteV2` exported for the edit-side hook.",
             "result": "skipped-status",
-            "forkDigest": "880320e205b2"
+            "forkDigest": "2297fe5c764b"
         },
         {
             "fork": "transforms.ts",
@@ -44,7 +44,7 @@
             "status": "extended",
             "notes": "Upstream raw/prefix/multi-block transforms preserved; added bidirectional block transforms for core/quote ↔ artisanpack/quote and accepts artisanpack/* peers (verse, pullquote, paragraph, heading, list).",
             "result": "skipped-status",
-            "forkDigest": "cfc56ad12af4"
+            "forkDigest": "b3d89b8aad35"
         },
         {
             "fork": "quote.css",
