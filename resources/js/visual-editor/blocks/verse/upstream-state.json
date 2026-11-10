@@ -17,7 +17,7 @@
     },
     "files": [
         { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped." },
-        { "fork": "edit.tsx", "upstream": "edit.js", "status": "adapted", "notes": "TypeScript port. `useDeprecatedTextAlign` not vendored; deprecation chain handles legacy `textAlign`." },
+        { "fork": "edit.tsx", "upstream": "edit.js", "status": "extended", "notes": "TypeScript port. `useDeprecatedTextAlign` not vendored; deprecation chain handles legacy `textAlign`. Enter exits on a double Enter via `_shared/use-exit-on-double-enter` instead of upstream's triple Enter (`__unstableOnSplitAtDoubleLineEnd`) (#1101)." },
         { "fork": "save.tsx", "upstream": "save.js", "status": "adapted", "notes": "TypeScript port." },
         { "fork": "deprecated.tsx", "upstream": "deprecated.js", "status": "adapted", "notes": "Full 3-entry chain ported verbatim (v3 → v1). Imports `migrate-text-align` and `migrate-font-family` from blocks/_shared." },
         { "fork": "transforms.ts", "upstream": "transforms.js", "status": "extended", "notes": "Upstream paragraph transforms preserved; added bidirectional core/verse ↔ artisanpack/verse and accepts artisanpack/paragraph." },
@@ -30,6 +30,7 @@
         "_shared/migrate-font-family.ts"
     ],
     "knownDivergences": [
+        "Enter exits on a double Enter (`_shared/use-exit-on-double-enter`) instead of upstream's triple Enter, so a trailing blank line can't be typed at the end of the block (#1101).",
         "_shared/migrate-font-family.ts inlines a self-contained `cleanEmptyObject` rather than depending on @wordpress/block-editor's privateApis-gated helper.",
         "edit.tsx omits the upstream `useDeprecatedTextAlign` hook."
     ],

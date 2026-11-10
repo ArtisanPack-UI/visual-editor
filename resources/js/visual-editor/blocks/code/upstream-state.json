@@ -17,7 +17,7 @@
     },
     "files": [
         { "fork": "block.json", "upstream": "block.json", "status": "extended", "notes": "name + textdomain swapped; adds the `language` attribute (#1044)." },
-        { "fork": "edit.tsx", "upstream": "edit.js", "status": "extended", "notes": "TypeScript port; adds the language select (#1044)." },
+        { "fork": "edit.tsx", "upstream": "edit.js", "status": "extended", "notes": "TypeScript port; adds the language select (#1044). Enter exits on a double Enter via `_shared/use-exit-on-double-enter` instead of upstream's triple Enter (`__unstableOnSplitAtDoubleLineEnd`) (#1101)." },
         { "fork": "save.tsx", "upstream": "save.js", "status": "extended", "notes": "TypeScript port; verbatim escape() handling; prints `language-*` on the code element when a language is set (#1044)." },
         { "fork": "languages.ts", "upstream": "n/a", "status": "added", "notes": "Labels for the language select." },
         { "fork": "deprecated.tsx", "upstream": "n/a", "status": "added", "notes": "No upstream deprecation chain; empty array preserves the file shape across forks." },
@@ -29,6 +29,7 @@
     ],
     "vendoredPrimitives": [],
     "knownDivergences": [
+        "Enter exits on a double Enter (`_shared/use-exit-on-double-enter`) instead of upstream's triple Enter, so a trailing blank line can't be typed at the end of the block (#1101).",
         "utils.ts inlines the upstream `pipe` composition rather than depending on `@wordpress/compose.pipe`.",
         "transforms.ts adds bidirectional block transforms with core/code.",
         "The `language` attribute and its `language-*` class have no upstream equivalent (#1044). Blocks with no language still save byte-equivalent to upstream."
