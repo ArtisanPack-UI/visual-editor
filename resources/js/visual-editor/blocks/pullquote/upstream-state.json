@@ -17,7 +17,7 @@
     },
     "files": [
         { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped." },
-        { "fork": "edit.tsx", "upstream": "edit.js", "status": "adapted", "notes": "TypeScript port. Figure/BlockQuote string aliases inlined (no separate files)." },
+        { "fork": "edit.tsx", "upstream": "edit.js", "status": "extended", "notes": "TypeScript port. Figure/BlockQuote string aliases inlined (no separate files). Enter at the end of the quote text exits the block, like the citation (#1101)." },
         { "fork": "save.tsx", "upstream": "save.js", "status": "adapted", "notes": "TypeScript port." },
         { "fork": "deprecated.tsx", "upstream": "deprecated.js", "status": "adapted", "notes": "Full 6-entry chain ported (v5 → v0). v2.save omits the named-color → hex lookup that upstream did via `select(blockEditorStore)` — calling a store inside save() is impure. Migration semantics preserved." },
         { "fork": "transforms.ts", "upstream": "transforms.js", "status": "extended", "notes": "Upstream paragraph/heading transforms preserved; added bidirectional core/pullquote ↔ artisanpack/pullquote and accepts artisanpack/paragraph + artisanpack/heading." },
@@ -28,6 +28,7 @@
     ],
     "vendoredPrimitives": [],
     "knownDivergences": [
+        "Enter at the end of the quote text exits the block (upstream inserts a line break there) (#1101).",
         "deprecated.tsx v2.save drops the upstream `select(blockEditorStore).getSettings().colors` named-color lookup. Legacy pullquote blocks persisted with default style + a named `mainColor` (no `customMainColor`) may not validate against v2's save shape and will fall through to v1 or get re-serialized as the current shape on first edit.",
         "edit.tsx inlines Figure ('figure') and BlockQuote ('blockquote') as direct JSX rather than importing the single-line string-alias files from upstream.",
         "transforms.ts adds bidirectional block transforms with core/pullquote."

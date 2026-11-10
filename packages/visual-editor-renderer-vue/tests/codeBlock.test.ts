@@ -69,12 +69,12 @@ describe('CodeBlock', () => {
     it('highlights in the browser, and again when the content changes', async () => {
         const wrapper = mount(BlockTree, { props: { tree: tree({ content: 'const a = 1;', language: 'javascript' }) } });
 
-        await settle();
-        expect(wrapper.find('.ap-code-keyword').text()).toBe('const');
+        // The highlighter is a lazily imported chunk; poll for its output,
+        // as the React twin does, rather than assume one tick is enough.
+        await vi.waitFor(() => expect(wrapper.find('.ap-code-keyword').text()).toBe('const'));
 
         await wrapper.setProps({ tree: tree({ content: 'let b = 2;', language: 'javascript' }) });
-        await settle();
-        expect(wrapper.find('.ap-code-keyword').text()).toBe('let');
+        await vi.waitFor(() => expect(wrapper.find('.ap-code-keyword').text()).toBe('let'));
     });
 
     it('never loads the highlighter without a language to highlight', async () => {

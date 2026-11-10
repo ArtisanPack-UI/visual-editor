@@ -17,10 +17,10 @@
         {
             "fork": "edit.tsx",
             "upstream": "edit.js",
-            "status": "adapted",
-            "notes": "TypeScript port; semantics verbatim.",
+            "status": "extended",
+            "notes": "TypeScript port. Enter exits on a double Enter via `_shared/use-exit-on-double-enter` instead of upstream's triple Enter (`__unstableOnSplitAtDoubleLineEnd`) (#1101).",
             "result": "skipped-status",
-            "forkDigest": "15e659dba057"
+            "forkDigest": "f060fe96a1f3"
         },
         {
             "fork": "save.tsx",

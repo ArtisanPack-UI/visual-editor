@@ -5,12 +5,13 @@
  */
 
 import type { ReactElement } from 'react';
+import type { BlockInstance } from '@wordpress/blocks';
 import { __ } from '@wordpress/i18n';
 import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { InspectorControls, RichText, useBlockProps } from '@wordpress/block-editor';
-import { createBlock, getDefaultBlockName } from '@wordpress/blocks';
 import { PanelBody, SelectControl } from '@wordpress/components';
 
+import { useExitOnDoubleEnter } from '../_shared/use-exit-on-double-enter';
 import { CODE_LANGUAGE_LABELS } from './languages';
 
 interface CodeAttributes {
@@ -21,19 +22,33 @@ interface CodeAttributes {
 interface CodeEditProps {
     readonly attributes: CodeAttributes;
     readonly setAttributes: (next: Partial<CodeAttributes>) => void;
+    readonly clientId: string;
     readonly onRemove?: () => void;
-    readonly insertBlocksAfter?: (block: unknown) => void;
+    readonly insertBlocksAfter?: (blocks: BlockInstance | BlockInstance[]) => void;
     readonly mergeBlocks?: (forward?: boolean) => void;
 }
 
+/**
+ * Renders the code RichText and the language setting.
+ *
+ * @param props Block edit props.
+ *
+ * @return The editor-side code block.
+ */
 export default function CodeEdit({
     attributes,
     setAttributes,
+    clientId,
     onRemove,
     insertBlocksAfter,
     mergeBlocks,
 }: CodeEditProps): ReactElement {
     const blockProps = useBlockProps();
+    const exitOnDoubleEnterRef = useExitOnDoubleEnter({
+        clientId,
+        setAttributes: setAttributes as (next: Record<string, unknown>) => void,
+        insertBlocksAfter,
+    });
     const languageOptions = [
         { label: __('None', TEXT_DOMAIN), value: '' },
         { label: __('Plain text', TEXT_DOMAIN), value: 'plaintext' },
@@ -59,6 +74,7 @@ export default function CodeEdit({
             </InspectorControls>
             <pre {...blockProps}>
                 <RichText
+                    ref={exitOnDoubleEnterRef}
                     tagName="code"
                     identifier="content"
                     value={attributes.content}
@@ -69,12 +85,6 @@ export default function CodeEdit({
                     aria-label={__('Code', TEXT_DOMAIN)}
                     preserveWhiteSpace
                     __unstablePastePlainText
-                    __unstableOnSplitAtDoubleLineEnd={() => {
-                        const defaultName = getDefaultBlockName();
-                        if (defaultName) {
-                            insertBlocksAfter?.(createBlock(defaultName));
-                        }
-                    }}
                 />
             </pre>
         </>

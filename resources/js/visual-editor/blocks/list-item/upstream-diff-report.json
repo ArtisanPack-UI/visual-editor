@@ -17,10 +17,10 @@
         {
             "fork": "edit.tsx",
             "upstream": "edit.js",
-            "status": "rewritten",
-            "notes": "Simplified edit. Upstream's `useEnter`, `useSpace` and `useIndentListItem` hooks are deferred to post-I7; `useMerge` and `useOutdentListItem` are ported (#1043). RichText editing and inner-block nesting still work.",
+            "status": "adapted",
+            "notes": "TypeScript port; `core/list-item` swapped for the fork's name. `useMerge` (#1043) and `useEnter`, `useSpace`, `useIndentListItem` and the indent/outdent toolbar (#1101) are ported.",
             "result": "skipped-status",
-            "forkDigest": "7f70e1f00d12"
+            "forkDigest": "16868d843686"
         },
         {
             "fork": "hooks/use-merge.ts",
@@ -28,7 +28,7 @@
             "status": "adapted",
             "notes": "TypeScript port; `core/list-item` swapped for the fork's name.",
             "result": "skipped-status",
-            "forkDigest": "6710f9899852"
+            "forkDigest": "dcbe020228aa"
         },
         {
             "fork": "hooks/use-outdent-list-item.ts",
@@ -37,6 +37,30 @@
             "notes": "TypeScript port; `core/list-item` swapped for the fork's name.",
             "result": "skipped-status",
             "forkDigest": "fe3fe8946ffd"
+        },
+        {
+            "fork": "hooks/use-enter.ts",
+            "upstream": "hooks/use-enter.js",
+            "status": "extended",
+            "notes": "TypeScript port; `core/list-item` swapped for the fork's name. Drops the empty head list when the first item is emptied, and skips items whose text is bound to data (#1101).",
+            "result": "skipped-status",
+            "forkDigest": "8247722386c5"
+        },
+        {
+            "fork": "hooks/use-space.ts",
+            "upstream": "hooks/use-space.js",
+            "status": "adapted",
+            "notes": "TypeScript port (#1101).",
+            "result": "skipped-status",
+            "forkDigest": "f966ea93492d"
+        },
+        {
+            "fork": "hooks/use-indent-list-item.ts",
+            "upstream": "hooks/use-indent-list-item.js",
+            "status": "adapted",
+            "notes": "TypeScript port; `core/list` swapped for the fork's name. Returns false on the first item instead of throwing (#1101).",
+            "result": "skipped-status",
+            "forkDigest": "07abb24f7b75"
         },
         {
             "fork": "save.tsx",

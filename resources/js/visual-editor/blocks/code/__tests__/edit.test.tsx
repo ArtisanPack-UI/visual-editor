@@ -3,16 +3,11 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import type { ReactNode } from 'react';
+import type { ReactNode, Ref } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 
 vi.mock('@wordpress/i18n', () => ({
     __: (text: string) => text,
-}));
-
-vi.mock('@wordpress/blocks', () => ({
-    createBlock: vi.fn(),
-    getDefaultBlockName: () => 'core/paragraph',
 }));
 
 vi.mock('@wordpress/components', () => ({
@@ -37,27 +32,39 @@ vi.mock('@wordpress/components', () => ({
     ),
 }));
 
-vi.mock('@wordpress/block-editor', () => ({
-    useBlockProps: Object.assign(
-        (props?: Record<string, unknown>) => ({ ...props }),
-        { save: (props?: Record<string, unknown>) => ({ ...props }) }
-    ),
-    InspectorControls: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-    RichText: function RichText(props: {
-        value?: string;
-        onChange?: (value: string) => void;
-        placeholder?: string;
-    }) {
-        return (
-            <div
-                role="textbox"
-                aria-label="code-rich-text"
-                data-placeholder={props.placeholder}
-                onClick={() => props.onChange?.('console.log(1)')}
-                dangerouslySetInnerHTML={{ __html: props.value ?? '' }}
-            />
-        );
-    },
+vi.mock('@wordpress/block-editor', async () => {
+    const { forwardRef } = await import('react');
+
+    return {
+        useBlockProps: Object.assign(
+            (props?: Record<string, unknown>) => ({ ...props }),
+            { save: (props?: Record<string, unknown>) => ({ ...props }) }
+        ),
+        InspectorControls: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+        RichText: forwardRef(function RichText(props: {
+            value?: string;
+            onChange?: (value: string) => void;
+            placeholder?: string;
+        }, ref: Ref<HTMLDivElement>) {
+            return (
+                <div
+                    ref={ref}
+                    role="textbox"
+                    aria-label="code-rich-text"
+                    data-placeholder={props.placeholder}
+                    onClick={() => props.onChange?.('console.log(1)')}
+                    dangerouslySetInnerHTML={{ __html: props.value ?? '' }}
+                />
+            );
+        }),
+    };
+});
+
+const exitRef = vi.hoisted(() => vi.fn());
+const useExitOnDoubleEnterSpy = vi.hoisted(() => vi.fn(() => exitRef));
+
+vi.mock('../../_shared/use-exit-on-double-enter', () => ({
+    useExitOnDoubleEnter: useExitOnDoubleEnterSpy,
 }));
 
 import CodeEdit from '../edit';
@@ -114,5 +121,27 @@ describe('CodeEdit', () => {
         fireEvent.change(screen.getByRole('combobox', { name: 'Language' }), { target: { value: '' } });
 
         expect(setAttributes).toHaveBeenCalledWith({ language: undefined });
+    });
+
+    it('exits on a double Enter through the shared hook (#1101)', () => {
+        const setAttributes = vi.fn();
+        const insertBlocksAfter = vi.fn();
+        render(
+            <CodeEdit
+                attributes={{ content: 'foo' }}
+                setAttributes={setAttributes}
+                clientId="block-1"
+                insertBlocksAfter={insertBlocksAfter}
+            />
+        );
+
+        expect(useExitOnDoubleEnterSpy).toHaveBeenLastCalledWith({
+            clientId: 'block-1',
+            setAttributes,
+            insertBlocksAfter,
+        });
+        expect(exitRef).toHaveBeenCalledWith(
+            screen.getByRole('textbox', { name: 'code-rich-text' })
+        );
     });
 });

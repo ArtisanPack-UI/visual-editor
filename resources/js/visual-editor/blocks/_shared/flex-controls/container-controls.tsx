@@ -16,7 +16,6 @@ import {
 	ToggleControl,
 	__experimentalToggleGroupControl as ToggleGroupControl,
 	__experimentalToggleGroupControlOption as ToggleGroupControlOption,
-	__experimentalNumberControl as NumberControl,
 	TextControl,
 } from '@wordpress/components'
 import { __ } from '@wordpress/i18n'
@@ -229,7 +228,3 @@ export function FlexContainerControls( {
 
 // Re-export for tests that need the helper directly.
 export { updateContainer }
-
-// Suppress unused-import warnings for primitives kept for parity with the
-// inspector pattern even when this build path doesn't reach them.
-void NumberControl

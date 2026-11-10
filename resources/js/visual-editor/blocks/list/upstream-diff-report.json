@@ -20,7 +20,7 @@
             "status": "rewritten",
             "notes": "Simplified edit. Upstream's indent/outdent toolbar reaches into private block-editor dispatch surface (replaceBlocks via useOutdentList hook) — deferred to post-I7 customization. The Unordered/Ordered toggle and ordered-list settings panel are preserved. Inner-block template uses artisanpack/list-item.",
             "result": "skipped-status",
-            "forkDigest": "552cb28337f6"
+            "forkDigest": "569ad1937e1e"
         },
         {
             "fork": "save.tsx",

@@ -53,8 +53,19 @@ Theme CSS injection is driven by the active global-styles record (see
 on boot and injected into the iframe via the React renderer's
 `<GlobalStyles>` component.
 
-Block selection, drag-and-drop, undo/redo, and keyboard shortcuts come
-from `@wordpress/block-editor` unchanged.
+Block selection, drag-and-drop, and keyboard shortcuts come from
+`@wordpress/block-editor` unchanged.
+
+*Since v1.21.0 (#1102).* Clicking the empty area below the content adds an
+empty paragraph and puts the caret in it, or moves the caret into an empty
+paragraph that's already last, so repeated clicks never stack them. Nothing
+is added where the content is template-locked or doesn't allow paragraphs.
+Blocks and files dragged onto that area land after the last block.
+
+*Since v1.21.0 (#1109).* Undo and redo step through one edit at a time. A
+run of typing is its own step, ended by a structural change (splitting,
+inserting, moving or removing a block, or a toolbar or sidebar change) or by
+typing in another block, and undo and redo put the caret back where it was.
 
 The topbar's **View with template** switch composes the
 resolved template's header and footer around the canvas as a read-only
@@ -194,6 +205,22 @@ Standard Gutenberg shortcuts: `⌘B`/`⌘I`/`⌘U`, `⌘K` (link),
 
 The shortcut help modal is restyled with `@artisanpack-ui/react`'s
 `Modal` so it picks up the host theme.
+
+### Leaving a block with Enter
+
+*Since v1.21.0 (#1101).*
+
+| Block | Key | Result |
+|-------|-----|--------|
+| List | Enter on an empty item | A nested item moves out one level. A top-level item ends the list and continues in a paragraph below, splitting the list if the item was in the middle. |
+| List | Tab or Space at the start of an item | Nests the item under the one above. The toolbar's **Indent** button does the same. |
+| List | Shift+Tab at the start of an item | Moves the item out one level. The toolbar's **Outdent** button does the same. |
+| Code, Preformatted, Poetry | Enter at the end of a blank last line | Removes that blank line and continues in a paragraph below. Shift+Enter always adds a newline. |
+| Quote | Enter in an empty last paragraph | Continues in a paragraph below the quote. |
+| Pullquote | Enter at the end of the text or citation | Continues in a paragraph below. Shift+Enter adds a line break. |
+
+Where a paragraph can't be added after the block, for example inside a
+container that doesn't allow one, Enter keeps its usual behavior.
 
 ---
 

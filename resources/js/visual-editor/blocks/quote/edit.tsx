@@ -18,7 +18,9 @@ import {
     RichText,
     useBlockProps,
     useInnerBlocksProps,
+    store as blockEditorStore,
 } from '@wordpress/block-editor';
+import { useSelect } from '@wordpress/data';
 
 interface QuoteAttributes {
     readonly textAlign?: string;
@@ -42,8 +44,26 @@ export default function QuoteEdit({
     attributes,
     setAttributes,
     className,
+    clientId,
 }: QuoteEditProps): ReactElement {
     const { textAlign, citation, allowedBlocks } = attributes;
+
+    // An empty citation is held back until the template paragraph exists
+    // (#1105). A freshly inserted quote is selected before its template
+    // paragraph is inserted, so the block's focus-first-element effect
+    // would otherwise land the caret in the empty citation. With no text
+    // field to focus, the template insert moves the caret into the
+    // paragraph instead, matching upstream `core/quote`. A citation that
+    // already has content always shows.
+    const hasInnerBlocks = useSelect(
+        (select) =>
+            (
+                select(blockEditorStore) as {
+                    getBlockCount: (rootClientId: string) => number;
+                }
+            ).getBlockCount(clientId) > 0,
+        [clientId]
+    );
 
     const blockProps = useBlockProps({
         className: clsx(className, {
@@ -70,17 +90,19 @@ export default function QuoteEdit({
             </BlockControls>
             <blockquote {...innerBlocksProps}>
                 {(innerBlocksProps as { children?: React.ReactNode }).children}
-                <RichText
-                    identifier="citation"
-                    tagName="cite"
-                    style={{ display: 'block' }}
-                    value={citation ?? ''}
-                    onChange={(nextCitation: string) =>
-                        setAttributes({ citation: nextCitation })
-                    }
-                    placeholder={__('Add citation', TEXT_DOMAIN)}
-                    className="wp-block-quote__citation"
-                />
+                {(hasInnerBlocks || !RichText.isEmpty(citation)) && (
+                    <RichText
+                        identifier="citation"
+                        tagName="cite"
+                        style={{ display: 'block' }}
+                        value={citation ?? ''}
+                        onChange={(nextCitation: string) =>
+                            setAttributes({ citation: nextCitation })
+                        }
+                        placeholder={__('Add citation', TEXT_DOMAIN)}
+                        className="wp-block-quote__citation"
+                    />
+                )}
             </blockquote>
         </>
     );

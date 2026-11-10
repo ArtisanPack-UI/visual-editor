@@ -27,7 +27,7 @@
     <img alt="Linked" src="https://example.test/d.jpg" />
   </a>
 </figure>
-<figure class="wp-block-gallery has-nested-images" data-ap-lightbox-navigation="both">
+<figure class="wp-block-gallery has-nested-images is-layout-flex wp-block-gallery-is-layout-flex" data-ap-lightbox-navigation="both">
   <figure class="wp-block-image wp-lightbox-container" data-ap-lightbox-labels="{\"dialog\":\"Enlarged image\",\"close\":\"Close\",\"previous\":\"Previous image\",\"next\":\"Next image\",\"position\":\"Image :current of :total\"}">
     <img alt="One" src="https://example.test/e.jpg" />
     <button aria-haspopup="dialog" aria-label="Enlarge image: One" class="lightbox-trigger" style="display: none" type="button">

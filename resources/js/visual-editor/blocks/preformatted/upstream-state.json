@@ -17,7 +17,7 @@
     },
     "files": [
         { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped." },
-        { "fork": "edit.tsx", "upstream": "edit.js", "status": "adapted", "notes": "TypeScript port; semantics verbatim." },
+        { "fork": "edit.tsx", "upstream": "edit.js", "status": "extended", "notes": "TypeScript port. Enter exits on a double Enter via `_shared/use-exit-on-double-enter` instead of upstream's triple Enter (`__unstableOnSplitAtDoubleLineEnd`) (#1101)." },
         { "fork": "save.tsx", "upstream": "save.js", "status": "adapted", "notes": "TypeScript port; semantics verbatim." },
         { "fork": "deprecated.tsx", "upstream": "n/a", "status": "added", "notes": "No upstream deprecation chain; empty array preserves the file shape." },
         { "fork": "transforms.ts", "upstream": "transforms.js", "status": "extended", "notes": "Upstream raw/block transforms preserved; added bidirectional core/preformatted ↔ artisanpack/preformatted and accepts artisanpack/code, artisanpack/paragraph, artisanpack/verse as from-sources." },
@@ -27,6 +27,7 @@
     ],
     "vendoredPrimitives": [],
     "knownDivergences": [
+        "Enter exits on a double Enter (`_shared/use-exit-on-double-enter`) instead of upstream's triple Enter, so a trailing blank line can't be typed at the end of the block (#1101).",
         "transforms.ts adds bidirectional core/preformatted ↔ artisanpack/preformatted."
     ],
     "triage": {

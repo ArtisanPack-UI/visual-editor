@@ -27,6 +27,14 @@ vi.mock('@wordpress/block-editor', () => ({
     ),
 }));
 
+// #1102 — the click target reads the block-editor store, which the
+// `@wordpress/block-editor` mock above doesn't provide. It has its own suite.
+vi.mock('../../../editor/canvas-end-click-target', () => ({
+    CanvasEndClickTarget: ({ compact }: { compact?: boolean }): JSX.Element => (
+        <div data-testid="ap-stub-canvas-end-click-target" data-compact={compact === true ? 'true' : 'false'} />
+    ),
+}));
+
 import { CANVAS_LAYOUT_STYLES } from '../../../editor-settings';
 import { PatternCanvas } from '../pattern-canvas';
 

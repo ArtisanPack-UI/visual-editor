@@ -89,6 +89,14 @@ vi.mock('../post-title', () => ({
     ),
 }));
 
+// #1102 — the click target reads the block-editor store, which the
+// `@wordpress/block-editor` mock above doesn't provide. It has its own suite.
+vi.mock('../canvas-end-click-target', () => ({
+    CanvasEndClickTarget: ({ compact }: { compact?: boolean }): JSX.Element => (
+        <div data-testid="ap-stub-canvas-end-click-target" data-compact={compact === true ? 'true' : 'false'} />
+    ),
+}));
+
 import { canvasStyles, FLEX_LAYOUT_STYLE } from '../canvas-styles';
 import { BreakpointRegistry, LEGACY_DEFAULTS, setResponsiveRegistry } from '../../responsive/registry';
 import { EditorCanvas } from '../editor-canvas';
@@ -377,6 +385,55 @@ describe('EditorCanvas', () => {
             expect(
                 screen.queryByTestId('ap-composed-view-ribbon-cta')
             ).not.toBeInTheDocument();
+        });
+    });
+
+    describe('#1102 click-below-the-content target', () => {
+        function expectFollowsBlockList(target: HTMLElement): void {
+            expect(
+                screen.getByTestId('ap-stub-block-list').compareDocumentPosition(target) &
+                    Node.DOCUMENT_POSITION_FOLLOWING
+            ).toBeTruthy();
+        }
+
+        it('renders a full-height target after the block list in bare-content mode', () => {
+            render(
+                <EditorCanvas
+                    showTitle
+                    title=""
+                    onTitleChange={() => undefined}
+                    blockContext={null}
+                    chrome={null}
+                />
+            );
+
+            const target = screen.getByTestId('ap-stub-canvas-end-click-target');
+
+            expect(screen.getByTestId('ap-stub-block-canvas')).toContainElement(target);
+            expect(target).toHaveAttribute('data-compact', 'false');
+            expectFollowsBlockList(target);
+        });
+
+        it('renders a compact target after the block list in the composed view', () => {
+            render(
+                <EditorCanvas
+                    showTitle
+                    title=""
+                    onTitleChange={() => undefined}
+                    blockContext={null}
+                    chrome={{
+                        header: [],
+                        footer: [],
+                        templateName: 'Single Post',
+                        templateSlug: 'single',
+                    }}
+                />
+            );
+
+            const target = screen.getByTestId('ap-stub-canvas-end-click-target');
+
+            expect(target).toHaveAttribute('data-compact', 'true');
+            expectFollowsBlockList(target);
         });
     });
 
