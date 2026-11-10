@@ -10,7 +10,7 @@ vi.mock('@wordpress/i18n', () => ({
 }));
 
 vi.mock('@wordpress/blocks', () => ({
-    createBlock: vi.fn(),
+    createBlock: vi.fn((name: string) => ({ name })),
     getDefaultBlockName: () => 'core/paragraph',
 }));
 
@@ -36,6 +36,7 @@ vi.mock('@wordpress/block-editor', () => ({
             onChange?: (v: string) => void;
             placeholder?: string;
             identifier?: string;
+            __unstableOnSplitAtEnd?: () => void;
         }) {
             return (
                 <div
@@ -43,6 +44,11 @@ vi.mock('@wordpress/block-editor', () => ({
                     aria-label={`pullquote-${props.identifier}`}
                     data-placeholder={props.placeholder}
                     onClick={() => props.onChange?.(`new-${props.identifier}`)}
+                    onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                            props.__unstableOnSplitAtEnd?.();
+                        }
+                    }}
                     dangerouslySetInnerHTML={{ __html: props.value ?? '' }}
                 />
             );
@@ -94,4 +100,26 @@ describe('PullquoteEdit', () => {
         fireEvent.click(screen.getByText('align:none'));
         expect(setAttributes).toHaveBeenCalledWith({ textAlign: 'right' });
     });
+
+    it.each(['value', 'citation'])(
+        'exits to a default block on Enter at the end of the %s (#1101)',
+        (identifier) => {
+            const insertBlocksAfter = vi.fn();
+            render(
+                <PullquoteEdit
+                    attributes={{ value: 'Quote', citation: 'Someone' }}
+                    setAttributes={vi.fn()}
+                    isSelected
+                    insertBlocksAfter={insertBlocksAfter}
+                />
+            );
+
+            fireEvent.keyDown(
+                screen.getByRole('textbox', { name: `pullquote-${identifier}` }),
+                { key: 'Enter' }
+            );
+
+            expect(insertBlocksAfter).toHaveBeenCalledWith({ name: 'core/paragraph' });
+        }
+    );
 });

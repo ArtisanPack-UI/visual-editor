@@ -2,6 +2,9 @@
  * Pullquote — editor-side render.
  *
  * Ported from `@wordpress/block-library/src/pullquote/edit.js` (v9.43.0).
+ * Unlike upstream, Enter at the end of the quote text also leaves the block
+ * (as it already does at the end of the citation), so the caret continues
+ * in a new paragraph below (#1101). Shift+Enter still adds a line break.
  */
 
 import type { ReactElement } from 'react';
@@ -42,6 +45,12 @@ export default function PullquoteEdit({
         }),
     });
     const shouldShowCitation = !RichText.isEmpty(citation) || isSelected;
+    const exitToDefaultBlock = (): void => {
+        const defaultName = getDefaultBlockName();
+        if (defaultName) {
+            insertBlocksAfter?.(createBlock(defaultName));
+        }
+    };
 
     return (
         <>
@@ -64,6 +73,7 @@ export default function PullquoteEdit({
                         }
                         aria-label={__('Pullquote text', TEXT_DOMAIN)}
                         placeholder={__('Add quote', TEXT_DOMAIN)}
+                        __unstableOnSplitAtEnd={exitToDefaultBlock}
                     />
                     {shouldShowCitation && (
                         <RichText
@@ -77,12 +87,7 @@ export default function PullquoteEdit({
                                 setAttributes({ citation: nextCitation })
                             }
                             className="wp-block-pullquote__citation"
-                            __unstableOnSplitAtEnd={() => {
-                                const defaultName = getDefaultBlockName();
-                                if (defaultName) {
-                                    insertBlocksAfter?.(createBlock(defaultName));
-                                }
-                            }}
+                            __unstableOnSplitAtEnd={exitToDefaultBlock}
                         />
                     )}
                 </blockquote>

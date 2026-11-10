@@ -17,9 +17,12 @@
     },
     "files": [
         { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain + parent + allowedBlocks updated to artisanpack/* names." },
-        { "fork": "edit.tsx", "upstream": "edit.js", "status": "rewritten", "notes": "Simplified edit. Upstream's `useEnter`, `useSpace` and `useIndentListItem` hooks are deferred to post-I7; `useMerge` and `useOutdentListItem` are ported (#1043). RichText editing and inner-block nesting still work." },
+        { "fork": "edit.tsx", "upstream": "edit.js", "status": "adapted", "notes": "TypeScript port; `core/list-item` swapped for the fork's name. `useMerge` (#1043) and `useEnter`, `useSpace`, `useIndentListItem` and the indent/outdent toolbar (#1101) are ported." },
         { "fork": "hooks/use-merge.ts", "upstream": "hooks/use-merge.js", "status": "adapted", "notes": "TypeScript port; `core/list-item` swapped for the fork's name." },
         { "fork": "hooks/use-outdent-list-item.ts", "upstream": "hooks/use-outdent-list-item.js", "status": "adapted", "notes": "TypeScript port; `core/list-item` swapped for the fork's name." },
+        { "fork": "hooks/use-enter.ts", "upstream": "hooks/use-enter.js", "status": "extended", "notes": "TypeScript port; `core/list-item` swapped for the fork's name. Drops the empty head list when the first item is emptied, and skips items whose text is bound to data (#1101)." },
+        { "fork": "hooks/use-space.ts", "upstream": "hooks/use-space.js", "status": "adapted", "notes": "TypeScript port (#1101)." },
+        { "fork": "hooks/use-indent-list-item.ts", "upstream": "hooks/use-indent-list-item.js", "status": "adapted", "notes": "TypeScript port; `core/list` swapped for the fork's name. Returns false on the first item instead of throwing (#1101)." },
         { "fork": "save.tsx", "upstream": "save.js", "status": "adapted", "notes": "TypeScript port; verbatim save shape." },
         { "fork": "deprecated.tsx", "upstream": "n/a", "status": "added", "notes": "No upstream deprecation chain; empty array preserves the file shape." },
         { "fork": "transforms.ts", "upstream": "transforms.js", "status": "extended", "notes": "Upstream paragraph transform preserved; added bidirectional core/list-item ↔ artisanpack/list-item." },
@@ -29,7 +32,7 @@
     ],
     "vendoredPrimitives": [],
     "knownDivergences": [
-        "edit.tsx omits `useEnter`, `useSpace` and `useIndentListItem`. Tab indent/outdent and Enter-to-split behaviour falls back to the default block-editor behaviour. The post-I7 customization phase ports these.",
+        "hooks/use-enter.ts drops the empty head list when the first top-level item is emptied (upstream leaves an item-less list) and ignores items whose text is bound to data (#1101).",
         "transforms.ts adds bidirectional block transforms with core/list-item."
     ],
     "triage": {

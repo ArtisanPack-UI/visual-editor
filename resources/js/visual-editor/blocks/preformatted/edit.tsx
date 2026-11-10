@@ -8,7 +8,9 @@ import type { ReactElement } from 'react';
 import { __ } from '@wordpress/i18n';
 import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { RichText, useBlockProps } from '@wordpress/block-editor';
-import { createBlock, getDefaultBlockName } from '@wordpress/blocks';
+import type { BlockInstance } from '@wordpress/blocks';
+
+import { useExitOnDoubleEnter } from '../_shared/use-exit-on-double-enter';
 
 interface PreformattedAttributes {
     readonly content: string;
@@ -17,9 +19,10 @@ interface PreformattedAttributes {
 interface PreformattedEditProps {
     readonly attributes: PreformattedAttributes;
     readonly setAttributes: (next: Partial<PreformattedAttributes>) => void;
+    readonly clientId: string;
     readonly mergeBlocks?: (forward?: boolean) => void;
     readonly onRemove?: () => void;
-    readonly insertBlocksAfter?: (block: unknown) => void;
+    readonly insertBlocksAfter?: (blocks: BlockInstance | BlockInstance[]) => void;
     readonly style?: Record<string, unknown>;
 }
 
@@ -30,9 +33,15 @@ export default function PreformattedEdit({
     onRemove,
     insertBlocksAfter,
     style,
+    clientId,
 }: PreformattedEditProps): ReactElement {
     const { content } = attributes;
-    const blockProps = useBlockProps({ style });
+    const exitOnDoubleEnterRef = useExitOnDoubleEnter({
+        clientId,
+        setAttributes: setAttributes as (next: Record<string, unknown>) => void,
+        insertBlocksAfter,
+    });
+    const blockProps = useBlockProps({ style, ref: exitOnDoubleEnterRef });
 
     return (
         <RichText
@@ -49,12 +58,6 @@ export default function PreformattedEdit({
             onMerge={mergeBlocks}
             {...blockProps}
             __unstablePastePlainText
-            __unstableOnSplitAtDoubleLineEnd={() => {
-                const defaultName = getDefaultBlockName();
-                if (defaultName) {
-                    insertBlocksAfter?.(createBlock(defaultName));
-                }
-            }}
         />
     );
 }
