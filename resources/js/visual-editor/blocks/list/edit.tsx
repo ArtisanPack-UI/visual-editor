@@ -2,12 +2,12 @@
  * List — editor-side render.
  *
  * Simplified port of `@wordpress/block-library/src/list/edit.js` (v9.43.0).
- * The upstream edit ships ordered/unordered toggle buttons + indent/outdent
- * toolbar + ordered-list settings panel; this fork ships the toggle buttons
- * and a minimal ordered-list settings panel. The indent/outdent hooks rely
- * on block-editor private dispatch surface and are deferred to the post-I7
- * customization phase. Inner-block insertion still uses
- * `artisanpack/list-item` so list nesting works.
+ * The upstream edit ships ordered/unordered toggle buttons, a list-level
+ * Outdent toolbar button and an ordered-list settings panel; this fork
+ * ships the toggle buttons and a minimal ordered-list settings panel. The
+ * list-level Outdent button is not ported. Each list item handles Enter,
+ * Tab / Shift+Tab and its own Indent / Outdent toolbar (#1101), and
+ * inner-block insertion uses `artisanpack/list-item` so nesting works.
  */
 
 import type { ReactElement } from 'react';

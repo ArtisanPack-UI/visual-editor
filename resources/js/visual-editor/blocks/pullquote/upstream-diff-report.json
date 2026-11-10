@@ -17,10 +17,10 @@
         {
             "fork": "edit.tsx",
             "upstream": "edit.js",
-            "status": "adapted",
-            "notes": "TypeScript port. Figure/BlockQuote string aliases inlined (no separate files).",
+            "status": "extended",
+            "notes": "TypeScript port. Figure/BlockQuote string aliases inlined (no separate files). Enter at the end of the quote text exits the block, like the citation (#1101).",
             "result": "skipped-status",
-            "forkDigest": "67d0aec87b8a"
+            "forkDigest": "0df0b454e49e"
         },
         {
             "fork": "save.tsx",

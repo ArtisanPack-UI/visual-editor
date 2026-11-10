@@ -388,13 +388,6 @@ describe('EditorCanvas', () => {
         });
     });
 
-    /*
-     * #695 — the iframe body is painted through `--ap-editor-canvas-bg`
-     * / `--ap-editor-canvas-fg`. Nothing supplied them, so a dark
-     * theme.json rendered a white canvas with invisible white headings.
-     * These cover the wiring: the tokens ride along in the styles array
-     * for a themed canvas, and stay absent otherwise.
-     */
     describe('#1102 click-below-the-content target', () => {
         function expectFollowsBlockList(target: HTMLElement): void {
             expect(
@@ -444,6 +437,13 @@ describe('EditorCanvas', () => {
         });
     });
 
+    /*
+     * #695 — the iframe body is painted through `--ap-editor-canvas-bg`
+     * / `--ap-editor-canvas-fg`. Nothing supplied them, so a dark
+     * theme.json rendered a white canvas with invisible white headings.
+     * These cover the wiring: the tokens ride along in the styles array
+     * for a themed canvas, and stay absent otherwise.
+     */
     describe('#695 canvas color tokens', () => {
         afterEach(() => {
             mockThemeGlobalStyles = { settings: {}, styles: {} };

@@ -109,6 +109,19 @@ import { KeyboardShortcutsModal } from './keyboard-shortcuts-modal';
 import { useSaveNotifications } from './save-notifications';
 import { TopBar, type ViewMode } from './top-bar';
 import {
+    canRedo as historyCanRedo,
+    canUndo as historyCanUndo,
+    EMPTY_EDITOR_HISTORY,
+    recordChange,
+    recordInput,
+    redo as historyRedo,
+    undo as historyUndo,
+    type EditorHistory,
+    type HistoryEntry,
+    type HistorySelection,
+    type HistoryStep,
+} from './editor-history';
+import {
     composedFallbackNotice,
     hydrateBlocks,
     selectComposedTemplate,
@@ -341,12 +354,18 @@ export interface EditorAppProps {
 
 export { entityTypeForResource } from './entity-type';
 
-interface HistoryState {
-    past: BlockInstance[][];
-    future: BlockInstance[][];
+/** Undo/redo availability, the only history state that renders. */
+interface UndoAvailability {
+    readonly canUndo: boolean;
+    readonly canRedo: boolean;
 }
 
-const EMPTY_HISTORY: HistoryState = { past: [], future: [] };
+/** The second argument `BlockEditorProvider` passes to `onChange` / `onInput`. */
+interface BlockChangeMeta {
+    readonly selection?: HistorySelection;
+}
+
+const NO_UNDO: UndoAvailability = { canUndo: false, canRedo: false };
 
 export function EditorApp(props: EditorAppProps): JSX.Element {
     registerOnce();
@@ -516,6 +535,8 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
         queueMetadataForSave,
         flush,
     } = usePersistence({ ...props, entity: persistenceEntity });
+    const blocksRef = useRef<BlockInstance[]>(blocks);
+    blocksRef.current = blocks;
 
     const { editEntityRecord } = useDispatch('core') as {
         editEntityRecord?: (
@@ -694,18 +715,21 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
     useEffect(() => {
         setVisibilityRoles(props.visibilityRoles ?? []);
     }, [props.visibilityRoles]);
-    const [history, setHistory] = useState<HistoryState>(EMPTY_HISTORY);
-    // Mirror history in a ref so undo/redo handlers can read the latest
-    // snapshot without taking a dep on `history` (which would re-memoize the
-    // TopBar on every edit). Writing side effects inside the setHistory
-    // updater is unsafe under StrictMode double-invocation; keeping the reads
-    // ref-based lets us compute the next state purely.
-    const historyRef = useRef<HistoryState>(EMPTY_HISTORY);
-    historyRef.current = history;
-
-    // `onInput` fires on every keystroke; `onChange` fires on logical commits.
-    // Track the last committed tree so history only records meaningful edits.
-    const lastCommittedRef = useRef<BlockInstance[] | null>(null);
+    // Undo history (see `editor-history.ts`). It lives in a ref because
+    // `onInput` records typing on every keystroke, and re-rendering the
+    // editor per keystroke is what `handleInput` below must avoid. Only
+    // the undo/redo availability is state, and it changes rarely.
+    const historyRef = useRef<EditorHistory>(EMPTY_EDITOR_HISTORY);
+    const [undoAvailability, setUndoAvailability] = useState<UndoAvailability>(NO_UNDO);
+    // The tree an undo or redo restored, with its selection.
+    // `BlockEditorProvider` applies `selection` whenever it resets to a
+    // tree it didn't emit, so the selection is only forwarded while
+    // `blocks` is still that exact tree; a later reset (a pattern insert,
+    // say) must not reapply an old caret.
+    const [restored, setRestored] = useState<{
+        readonly blocks: BlockInstance[];
+        readonly selection?: HistorySelection;
+    } | null>(null);
 
     const currentMetadata = useMemo(
         (): MetadataChange => ({
@@ -905,8 +929,27 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
         [emitMetadata, stageEntityEdit]
     );
 
+    const commitHistory = useCallback((next: EditorHistory): void => {
+        historyRef.current = next;
+
+        const availability: UndoAvailability = {
+            canUndo: historyCanUndo(next),
+            canRedo: historyCanRedo(next),
+        };
+
+        setUndoAvailability((current) =>
+            current.canUndo === availability.canUndo && current.canRedo === availability.canRedo
+                ? current
+                : availability
+        );
+    }, []);
+
+    // The tree the editor loaded is the history's baseline, so the first
+    // edit after load can be undone.
+    const baselineEntry = useCallback((): HistoryEntry => ({ blocks: blocksRef.current }), []);
+
     const handleInput = useCallback(
-        (next: BlockInstance[]): void => {
+        (next: BlockInstance[], meta?: BlockChangeMeta): void => {
             // `onInput` fires on intermediate, non-persistent changes —
             // color-picker drag frames, mid-typing rich-text updates, etc.
             // Calling `setBlocks(next)` here re-renders the entire editor
@@ -918,9 +961,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
             // The block-editor store already has the latest tree from
             // the dispatch that triggered this callback, so the canvas
             // stays in sync without our mirror. We only need to queue a
-            // debounced save — undo/redo still works because `onChange`
-            // (fired on the persistent commit at the end of the drag)
-            // does the React state update and history push.
+            // debounced save and record the change in the undo history.
             //
             // Invariant: letting the `value` prop go stale between
             // commits is SAFE. `use-block-sync` only reacts to
@@ -932,32 +973,26 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
             // cascade we're explicitly avoiding — there's no React
             // pattern that feeds a reactive `value` prop without
             // triggering a render.
+            //
+            // The history is safe to update here: it lives in a ref and
+            // only re-renders when undo or redo availability flips, so a
+            // run of typing becomes its own undo level.
+            commitHistory(
+                recordInput(historyRef.current, { blocks: next, selection: meta?.selection }, baselineEntry())
+            );
             queueBlocksForSave(next);
         },
-        [queueBlocksForSave]
+        [baselineEntry, commitHistory, queueBlocksForSave]
     );
 
     const handleChange = useCallback(
-        (next: BlockInstance[]): void => {
-            // Capture `previous` before mutating the ref so the setHistory
-            // updater (which may be deferred past the mutation below) reads
-            // the right value. Otherwise the deferred updater sees
-            // `lastCommittedRef.current === next` and never commits history.
-            const previous = lastCommittedRef.current;
-            lastCommittedRef.current = next;
-
-            if (previous !== null && previous !== next) {
-                const nextHistory: HistoryState = {
-                    past: [...historyRef.current.past, previous],
-                    future: [],
-                };
-                historyRef.current = nextHistory;
-                setHistory(nextHistory);
-            }
-
+        (next: BlockInstance[], meta?: BlockChangeMeta): void => {
+            commitHistory(
+                recordChange(historyRef.current, { blocks: next, selection: meta?.selection }, baselineEntry())
+            );
             onBlocksChange(next);
         },
-        [onBlocksChange]
+        [baselineEntry, commitHistory, onBlocksChange]
     );
 
     // #621/#655 — composed-view wiring.
@@ -1109,55 +1144,34 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
             return null;
         }, [appliedTemplateState, composedChrome, viewMode]);
 
+    const applyHistoryStep = useCallback(
+        (step: HistoryStep | null): void => {
+            if (step === null) {
+                return;
+            }
+
+            commitHistory(step.history);
+
+            // A fresh array, because undoing uncommitted typing restores
+            // the tree the provider already holds as `value`; the same
+            // reference wouldn't make it reset its store. `onBlocksChange`
+            // stores the array as given, so it also identifies the tree
+            // the selection belongs to.
+            const restoredBlocks = [...step.entry.blocks];
+
+            setRestored({ blocks: restoredBlocks, selection: step.entry.selection });
+            onBlocksChange(restoredBlocks);
+        },
+        [commitHistory, onBlocksChange]
+    );
+
     const handleUndo = useCallback((): void => {
-        const current = historyRef.current;
-
-        if (current.past.length === 0) {
-            return;
-        }
-
-        const previous = current.past[current.past.length - 1];
-
-        if (previous === undefined) {
-            return;
-        }
-
-        const snapshot = lastCommittedRef.current ?? blocks;
-        const nextHistory: HistoryState = {
-            past: current.past.slice(0, -1),
-            future: [...current.future, snapshot],
-        };
-
-        lastCommittedRef.current = previous;
-        historyRef.current = nextHistory;
-        setHistory(nextHistory);
-        onBlocksChange(previous);
-    }, [blocks, onBlocksChange]);
+        applyHistoryStep(historyUndo(historyRef.current));
+    }, [applyHistoryStep]);
 
     const handleRedo = useCallback((): void => {
-        const current = historyRef.current;
-
-        if (current.future.length === 0) {
-            return;
-        }
-
-        const next = current.future[current.future.length - 1];
-
-        if (next === undefined) {
-            return;
-        }
-
-        const snapshot = lastCommittedRef.current ?? blocks;
-        const nextHistory: HistoryState = {
-            past: [...current.past, snapshot],
-            future: current.future.slice(0, -1),
-        };
-
-        lastCommittedRef.current = next;
-        historyRef.current = nextHistory;
-        setHistory(nextHistory);
-        onBlocksChange(next);
-    }, [blocks, onBlocksChange]);
+        applyHistoryStep(historyRedo(historyRef.current));
+    }, [applyHistoryStep]);
 
     // #639 — fetch page-scope patterns whenever the mounted post-type
     // context changes. `patternPostType` is the WP-style singular slug
@@ -1394,8 +1408,8 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
                 contentLoaded={loadStatus === 'ready'}
                 lastSavedAt={lastSavedAt}
                 saveErrorMessage={saveError?.message ?? null}
-                canUndo={history.past.length > 0}
-                canRedo={history.future.length > 0}
+                canUndo={undoAvailability.canUndo}
+                canRedo={undoAvailability.canRedo}
                 onUndo={handleUndo}
                 onRedo={handleRedo}
                 isInserterOpen={inserterOpen}
@@ -1425,8 +1439,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
             handleUndo,
             handleViewModeChange,
             handleViewportChange,
-            history.future.length,
-            history.past.length,
+            undoAvailability,
             inserterOpen,
             inspectorOpen,
             lastSavedAt,
@@ -1547,6 +1560,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
     const editorBody = (
         <BlockEditorProvider
             value={blocks}
+            selection={restored !== null && restored.blocks === blocks ? restored.selection : undefined}
             settings={themedSettings}
             onInput={handleInput}
             onChange={handleChange}

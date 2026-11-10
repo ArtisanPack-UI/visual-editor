@@ -17,10 +17,10 @@
         {
             "fork": "edit.tsx",
             "upstream": "edit.js",
-            "status": "adapted",
-            "notes": "TypeScript port. `useDeprecatedTextAlign` not vendored; deprecation chain handles legacy `textAlign`.",
+            "status": "extended",
+            "notes": "TypeScript port. `useDeprecatedTextAlign` not vendored; deprecation chain handles legacy `textAlign`. Enter exits on a double Enter via `_shared/use-exit-on-double-enter` instead of upstream's triple Enter (`__unstableOnSplitAtDoubleLineEnd`) (#1101).",
             "result": "skipped-status",
-            "forkDigest": "7dfe3892a607"
+            "forkDigest": "7fe8defcf953"
         },
         {
             "fork": "save.tsx",

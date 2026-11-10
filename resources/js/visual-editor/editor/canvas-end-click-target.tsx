@@ -26,19 +26,27 @@
  * Zoom-out mode isn't guarded: it is only reachable through the
  * block editor's private API, which this package doesn't use.
  *
- * The target lives outside the block list, so the root container's
- * drop zone and the multi-selection handlers never see its events.
- * The action runs on `click` rather than `mousedown` so a drag that
- * merely starts or ends here doesn't insert anything.
+ * The target lives outside the block list, so the multi-selection
+ * handlers never see its events. The root container is also the root
+ * drop zone, so the target forwards drag events to it, pinned just
+ * inside the last block's bottom edge: a block or file released below
+ * the content lands after the last block, as it did when this space
+ * was the root container's bottom padding. The action runs on `click`
+ * rather than `mousedown` so a drag that merely starts or ends here
+ * doesn't insert anything.
  */
 
 import { store as blockEditorStore } from '@wordpress/block-editor';
 import { getDefaultBlockName, isUnmodifiedDefaultBlock, type BlockInstance } from '@wordpress/blocks';
+import { useRefEffect } from '@wordpress/compose';
 import { useDispatch, useRegistry, useSelect } from '@wordpress/data';
 import type { MouseEvent } from 'react';
 
 /** Root client id of the canvas's top-level block list. */
 const ROOT_CLIENT_ID = '';
+
+/** Drag events forwarded to the root block list's drop zone. */
+const FORWARDED_DRAG_EVENTS = ['dragenter', 'dragover', 'dragleave', 'drop'] as const;
 
 /** Read-only slice of `core/block-editor` selectors used here. */
 interface BlockEditorSelectors {
@@ -87,6 +95,54 @@ function canAppendDefaultBlock(selectors: BlockEditorSelectors): boolean {
     }
 
     return selectors.canInsertBlockType(defaultBlockName, ROOT_CLIENT_ID);
+}
+
+/**
+ * Re-dispatches a drag event from the target onto the root block list
+ * (the target's previous sibling), at the bottom edge of its last block.
+ *
+ * The canvas may be an iframe whose document belongs to another window
+ * than this code, so the event is built with the element's own
+ * `DragEvent`. The copy doesn't bubble: the root's drop zone listens on
+ * the root itself, and the original event keeps bubbling as usual, so
+ * document-level handlers see the drag once. The original's default is
+ * only prevented when the drop zone handled the copy, which is what
+ * lets the browser allow the drop here.
+ *
+ * @param element The target element.
+ * @param event   The drag event the target received.
+ */
+function forwardDragToRootList(element: HTMLElement, event: DragEvent): void {
+    const root = element.previousElementSibling;
+    const view = element.ownerDocument.defaultView;
+
+    if (root === null || view === null || !root.classList.contains('is-root-container')) {
+        return;
+    }
+
+    const rect = (root.lastElementChild ?? root).getBoundingClientRect();
+
+    // Too small to pin a point inside; the drop zone's own positioning
+    // handles it better than a point outside the block would.
+    if (rect.width < 2 || rect.height < 2) {
+        return;
+    }
+    const forwarded = new view.DragEvent(event.type, {
+        bubbles: false,
+        cancelable: true,
+        clientX: Math.min(Math.max(event.clientX, rect.left + 1), rect.right - 1),
+        clientY: rect.bottom - 1,
+        dataTransfer: event.dataTransfer,
+        relatedTarget: event.relatedTarget,
+        shiftKey: event.shiftKey,
+        altKey: event.altKey,
+        ctrlKey: event.ctrlKey,
+        metaKey: event.metaKey,
+    });
+
+    if (!root.dispatchEvent(forwarded)) {
+        event.preventDefault();
+    }
 }
 
 /**
@@ -141,6 +197,16 @@ export function CanvasEndClickTarget(props: CanvasEndClickTargetProps): JSX.Elem
         insertDefaultBlock({}, ROOT_CLIENT_ID, order.length);
     };
 
+    const forwardDragRef = useRefEffect((element: HTMLDivElement) => {
+        const onDrag = (event: DragEvent): void => forwardDragToRootList(element, event);
+
+        FORWARDED_DRAG_EVENTS.forEach((type) => element.addEventListener(type, onDrag));
+
+        return () => {
+            FORWARDED_DRAG_EVENTS.forEach((type) => element.removeEventListener(type, onDrag));
+        };
+    }, []);
+
     const className = [
         'ap-canvas-end-click-target',
         compact ? 'ap-canvas-end-click-target--compact' : '',
@@ -154,6 +220,7 @@ export function CanvasEndClickTarget(props: CanvasEndClickTargetProps): JSX.Elem
         // Enter / the inserter, so the target stays out of the a11y tree.
         <div
             aria-hidden="true"
+            ref={forwardDragRef}
             className={className}
             data-testid="ap-canvas-end-click-target"
             onClick={isEnabled ? onClick : undefined}

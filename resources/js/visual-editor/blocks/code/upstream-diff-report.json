@@ -18,9 +18,9 @@
             "fork": "edit.tsx",
             "upstream": "edit.js",
             "status": "extended",
-            "notes": "TypeScript port; adds the language select (#1044).",
+            "notes": "TypeScript port; adds the language select (#1044). Enter exits on a double Enter via `_shared/use-exit-on-double-enter` instead of upstream's triple Enter (`__unstableOnSplitAtDoubleLineEnd`) (#1101).",
             "result": "skipped-status",
-            "forkDigest": "3b2e8db4c452"
+            "forkDigest": "f299cbe8a662"
         },
         {
             "fork": "save.tsx",
