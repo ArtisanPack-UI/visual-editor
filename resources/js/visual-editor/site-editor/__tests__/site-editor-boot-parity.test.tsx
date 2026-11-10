@@ -189,6 +189,13 @@ afterEach(() => {
     window.history.replaceState(null, '', '/');
 });
 
+/**
+ * The test re-imports the whole site-editor module graph after
+ * `vi.resetModules()`, which takes about 3 s alone and has passed the
+ * default 5 s under a loaded full run.
+ */
+const BOOT_TEST_TIMEOUT_MS = 20_000;
+
 describe('site-editor boot parity (#799)', () => {
     it('registers every ArtisanPack default section during ensureEditorBoot()', async () => {
         const { SiteEditorApp } = await import('../site-editor-app');
@@ -233,5 +240,5 @@ describe('site-editor boot parity (#799)', () => {
         expect(navigationCollapse.registerNavigationCollapseBreakpoint).toHaveBeenCalledTimes(1);
         // #876 — theme block style variations reach the Styles picker.
         expect(blockStyles.registerThemeBlockStyles).toHaveBeenCalledTimes(1);
-    });
+    }, BOOT_TEST_TIMEOUT_MS);
 });
