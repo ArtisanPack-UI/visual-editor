@@ -54,6 +54,14 @@ vi.mock('../../editor/spacing-preset-styles', () => ({
     SpacingPresetStyles: () => null,
 }));
 
+// #1102 — the click target reads the block-editor store, which the
+// `@wordpress/block-editor` mock above doesn't provide. It has its own suite.
+vi.mock('../../editor/canvas-end-click-target', () => ({
+    CanvasEndClickTarget: ({ compact }: { compact?: boolean }): JSX.Element => (
+        <div data-testid="ap-stub-canvas-end-click-target" data-compact={compact === true ? 'true' : 'false'} />
+    ),
+}));
+
 import PostTitleEdit from '../../blocks/post-title/edit';
 import PostExcerptEdit from '../../blocks/post-excerpt/edit';
 import PostContentEdit from '../../blocks/post-content/edit';

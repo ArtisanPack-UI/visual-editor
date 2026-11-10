@@ -228,6 +228,31 @@ export const DEFAULT_CANVAS_STYLES = `
     border: 0;
     border-top: 1px solid #e5e7eb;
 }
+
+/*
+ * #1102 — the empty area below the root block list. Clicking it appends
+ * (or focuses) a trailing empty paragraph, so it gets enough height to be
+ * an easy target and a text cursor while it can take the default block.
+ * While it can't (a template lock, for example) clicks pass through to the
+ * canvas, so clicking below the content still clears the block selection.
+ * The composed view shrinks it so the footer chrome stays near the
+ * content.
+ */
+.editor-styles-wrapper .ap-canvas-end-click-target {
+    min-height: max(96px, 40vh);
+}
+
+.editor-styles-wrapper .ap-canvas-end-click-target--compact {
+    min-height: 96px;
+}
+
+.editor-styles-wrapper .ap-canvas-end-click-target.is-enabled {
+    cursor: text;
+}
+
+.editor-styles-wrapper .ap-canvas-end-click-target:not(.is-enabled) {
+    pointer-events: none;
+}
 `;
 
 /**
@@ -430,7 +455,7 @@ export const ALIGNMENT_OVERRIDE_STYLES = `
  */
 export const POST_EDITOR_FRAMING_STYLES = `
 .editor-styles-wrapper .block-editor-block-list__layout.is-root-container {
-    padding: 48px 24px 96px;
+    padding: 48px 24px 0;
 }
 
 .editor-styles-wrapper .block-editor-block-list__layout.is-root-container > .wp-block:not(.alignwide):not(.alignfull):not(.alignleft):not(.alignright) {

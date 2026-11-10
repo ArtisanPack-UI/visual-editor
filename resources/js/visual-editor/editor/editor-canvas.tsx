@@ -39,6 +39,7 @@ import { __ } from '@wordpress/i18n';
 import type { BlockInstance } from '@wordpress/blocks';
 import { useMemo } from 'react';
 
+import { CanvasEndClickTarget } from './canvas-end-click-target';
 import { canvasColorTokenStyle } from './canvas-color-tokens';
 import { canvasStyles, FLEX_LAYOUT_STYLE } from './canvas-styles';
 import { InlineIconCanvasHydrator } from '../formats/inline-icon/canvas-hydrator';
@@ -239,9 +240,17 @@ export function EditorCanvas(props: EditorCanvasProps): JSX.Element {
     // get no per-part badge — and it renders in here rather than in the
     // editor shell so it sticks to the top of the *preview* and scrolls
     // with it. Bare-content mode (`chrome === null`) never mounts it.
+    //
+    // #1102 — `CanvasEndClickTarget` follows the root list in both modes
+    // so clicking below the last block continues the document. In the
+    // composed view it sits above the footer chrome, kept compact so the
+    // footer stays close to the content.
     const blockList =
         chrome === null || chrome === undefined ? (
-            <BlockList layout={ROOT_CANVAS_LAYOUT} />
+            <>
+                <BlockList layout={ROOT_CANVAS_LAYOUT} />
+                <CanvasEndClickTarget />
+            </>
         ) : (
             <>
                 <ComposedViewRibbon
@@ -255,6 +264,7 @@ export function EditorCanvas(props: EditorCanvasProps): JSX.Element {
                     label={__('Template header (read-only)', TEXT_DOMAIN)}
                 />
                 <BlockList layout={ROOT_CANVAS_LAYOUT} />
+                <CanvasEndClickTarget compact />
                 <ChromeBlocks
                     blocks={chrome.footer}
                     region="footer"
