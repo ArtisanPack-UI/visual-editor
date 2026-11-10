@@ -40,6 +40,7 @@ import { CanvasThemeStyles } from './canvas-theme-styles';
 import { CanvasLayoutStyles, CanvasStyleOverrides } from '../editor/canvas-layout-styles';
 import { SpacingPresetStyles } from '../editor/spacing-preset-styles';
 import { MarkdownPasteBridge } from '../editor/markdown-paste';
+import { CanvasEndClickTarget } from '../editor/canvas-end-click-target';
 import { InlineIconCanvasHydrator } from '../formats/inline-icon/canvas-hydrator';
 
 import './entity-editor-canvas.css';
@@ -197,6 +198,8 @@ export function EntityEditorCanvas(props: EntityEditorCanvasProps): JSX.Element 
                                 <BlockContextProvider value={blockContext ?? NO_BLOCK_CONTEXT}>
                                     <BlockList layout={ROOT_CANVAS_LAYOUT} />
                                 </BlockContextProvider>
+                                {/* #1102: click below the last block to keep writing. */}
+                                <CanvasEndClickTarget />
                             </ObserveTyping>
                         </WritingFlow>
                     </BlockTools>

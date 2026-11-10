@@ -108,6 +108,12 @@ vi.mock('../../editor/convert-to-pattern-control', () => ({
     ConvertToPatternControl: () => null,
 }));
 
+// #1102 — the click target reads the block-editor store, which the
+// `@wordpress/block-editor` mock above doesn't provide. It has its own suite.
+vi.mock('../../editor/canvas-end-click-target', () => ({
+    CanvasEndClickTarget: () => null,
+}));
+
 const FETCH_MOCK = vi.fn();
 const UPDATE_MOCK = vi.fn();
 
