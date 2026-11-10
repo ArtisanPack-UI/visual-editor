@@ -502,7 +502,7 @@ describe('Core media blocks', () => {
 
         const html = renderTree(tree);
 
-        expect(html).toContain('<figure class="wp-block-gallery has-nested-images columns-3 is-cropped">');
+        expect(html).toContain('<figure class="wp-block-gallery has-nested-images is-layout-flex wp-block-gallery-is-layout-flex columns-3 is-cropped">');
         expect(html).toContain('src="https://example.test/a.jpg"');
         expect(html).toContain('src="https://example.test/b.jpg"');
     });
