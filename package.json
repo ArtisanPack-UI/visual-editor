@@ -102,6 +102,7 @@
         },
         "editorconfig": {
             "minimatch": "^11.0.6"
-        }
+        },
+        "colord": "~2.9.4"
     }
 }
