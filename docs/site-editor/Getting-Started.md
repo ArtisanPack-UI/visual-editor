@@ -108,6 +108,8 @@ Pick a section in the navigator and click an entry. The canvas loads the entity'
 
 Switching entities saves pending edits to the previous entity first (blocking on the network round-trip), then loads the new entity.
 
+*Since v1.21.0 (#1102).* Clicking the empty area below the content adds an empty paragraph and puts the caret in it, in templates, template parts and patterns alike, unless the content is locked or doesn't allow paragraphs. Enter leaves List, Code, Preformatted, Poetry, Quote and Pullquote blocks as described in [Leaving a block with Enter](../post-editor.md#leaving-a-block-with-enter).
+
 ---
 
 ## 5. (Optional) Seed initial templates and patterns

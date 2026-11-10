@@ -17,6 +17,10 @@ Select the block and open **Settings → Language** in the sidebar. The options 
 
 The editor canvas shows the select only, and doesn't highlight the code yet.
 
+## Leaving the block
+
+*Since v1.21.0 (#1101).* Pressing Enter at the end of a blank last line removes that line and continues in a new paragraph below, so a double Enter at the end leaves the block. Shift+Enter always adds a newline, and blank lines in the middle of the code work as usual, but a blank line can't be typed at the very end of the block. Preformatted and Poetry blocks behave the same way.
+
 ## Markup
 
 A block with a language saves the common `language-*` convention on the `<code>` element:
