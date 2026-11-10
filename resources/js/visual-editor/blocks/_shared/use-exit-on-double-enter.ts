@@ -88,6 +88,14 @@ function fromRecord(original: unknown, record: RichTextValue): unknown {
     return toHTMLString({ value: record, preserveWhiteSpace: true } as never);
 }
 
+/**
+ * Returns a ref that exits the block on Enter at the end of a blank last
+ * line, as described in the file header.
+ *
+ * @param options Hook options.
+ *
+ * @return A ref callback for the block's RichText element.
+ */
 export function useExitOnDoubleEnter(
     options: UseExitOnDoubleEnterOptions
 ): (node: HTMLElement | null) => void {

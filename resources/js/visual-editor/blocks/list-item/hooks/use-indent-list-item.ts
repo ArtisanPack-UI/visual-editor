@@ -44,6 +44,15 @@ interface BlockEditorActions {
     multiSelect(startClientId: string, endClientId: string): void;
 }
 
+/**
+ * Returns a callback that nests the item (or the multi-selected items)
+ * under the previous sibling's last nested list, creating one if needed.
+ *
+ * @param clientId The list item's client ID.
+ *
+ * @return A callback that returns true once indented, false when there is
+ *         no previous sibling to nest under.
+ */
 export default function useIndentListItem(
     clientId: string
 ): () => boolean {

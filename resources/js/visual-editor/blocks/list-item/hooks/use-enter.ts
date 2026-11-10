@@ -65,6 +65,16 @@ function contentLength(content: unknown): number {
     return 'string' === typeof content ? content.length : 0;
 }
 
+/**
+ * Returns a ref that handles Enter on an empty list item: outdent when
+ * nested, otherwise split the list around a new default block.
+ *
+ * @param props          Hook props.
+ * @param props.content  The item's current content.
+ * @param props.clientId The item's client ID.
+ *
+ * @return A ref callback for the item's RichText element.
+ */
 export default function useEnter(
     props: UseEnterProps
 ): (node: HTMLElement | null) => void {

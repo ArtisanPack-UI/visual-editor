@@ -28,6 +28,13 @@ interface VerseEditProps {
     readonly style?: Record<string, unknown>;
 }
 
+/**
+ * Renders the verse RichText.
+ *
+ * @param props Block edit props.
+ *
+ * @return The editor-side verse block.
+ */
 export default function VerseEdit({
     attributes,
     setAttributes,

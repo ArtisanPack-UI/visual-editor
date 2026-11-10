@@ -25,6 +25,14 @@ interface BlockEditorSelectors {
     getBlockIndex(clientId: string): number;
 }
 
+/**
+ * Returns a ref that indents the item on Tab or Space at its very start,
+ * and outdents it on Shift+Tab there.
+ *
+ * @param clientId The list item's client ID.
+ *
+ * @return A ref callback for the item's RichText element.
+ */
 export default function useSpace(
     clientId: string
 ): (node: HTMLElement | null) => void {

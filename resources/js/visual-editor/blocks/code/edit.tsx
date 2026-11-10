@@ -28,6 +28,13 @@ interface CodeEditProps {
     readonly mergeBlocks?: (forward?: boolean) => void;
 }
 
+/**
+ * Renders the code RichText and the language setting.
+ *
+ * @param props Block edit props.
+ *
+ * @return The editor-side code block.
+ */
 export default function CodeEdit({
     attributes,
     setAttributes,

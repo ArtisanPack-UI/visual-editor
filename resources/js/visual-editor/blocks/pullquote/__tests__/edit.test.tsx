@@ -14,7 +14,18 @@ vi.mock('@wordpress/blocks', () => ({
     getDefaultBlockName: () => 'core/paragraph',
 }));
 
+const insertion = vi.hoisted(() => ({ allowed: true }));
+
+vi.mock('@wordpress/data', () => ({
+    useSelect: (mapSelect: (select: () => unknown) => unknown) =>
+        mapSelect(() => ({
+            canInsertBlockType: () => insertion.allowed,
+            getBlockRootClientId: () => null,
+        })),
+}));
+
 vi.mock('@wordpress/block-editor', () => ({
+    store: 'core/block-editor',
     useBlockProps: Object.assign(
         (props?: Record<string, unknown>) => ({ ...props }),
         { save: (props?: Record<string, unknown>) => ({ ...props }) }
@@ -43,6 +54,7 @@ vi.mock('@wordpress/block-editor', () => ({
                     role="textbox"
                     aria-label={`pullquote-${props.identifier}`}
                     data-placeholder={props.placeholder}
+                    data-exits={props.__unstableOnSplitAtEnd ? 'yes' : 'no'}
                     onClick={() => props.onChange?.(`new-${props.identifier}`)}
                     onKeyDown={(event) => {
                         if (event.key === 'Enter') {
@@ -122,4 +134,40 @@ describe('PullquoteEdit', () => {
             expect(insertBlocksAfter).toHaveBeenCalledWith({ name: 'core/paragraph' });
         }
     );
+
+    it('does not take over Enter when no block can be inserted after it', () => {
+        insertion.allowed = false;
+        const insertBlocksAfter = vi.fn();
+        render(
+            <PullquoteEdit
+                attributes={{ value: 'Quote', citation: 'Someone' }}
+                setAttributes={vi.fn()}
+                isSelected
+                clientId="pullquote-1"
+                insertBlocksAfter={insertBlocksAfter}
+            />
+        );
+
+        fireEvent.keyDown(screen.getByRole('textbox', { name: 'pullquote-value' }), { key: 'Enter' });
+        fireEvent.keyDown(screen.getByRole('textbox', { name: 'pullquote-citation' }), { key: 'Enter' });
+
+        expect(insertBlocksAfter).not.toHaveBeenCalled();
+        expect(screen.getByRole('textbox', { name: 'pullquote-value' }).dataset.exits).toBe('no');
+        expect(screen.getByRole('textbox', { name: 'pullquote-citation' }).dataset.exits).toBe('no');
+        insertion.allowed = true;
+    });
+
+    it('does not take over Enter without insertBlocksAfter (locked parent)', () => {
+        render(
+            <PullquoteEdit
+                attributes={{ value: 'Quote', citation: 'Someone' }}
+                setAttributes={vi.fn()}
+                isSelected
+                clientId="pullquote-1"
+            />
+        );
+
+        expect(screen.getByRole('textbox', { name: 'pullquote-value' }).dataset.exits).toBe('no');
+        expect(screen.getByRole('textbox', { name: 'pullquote-citation' }).dataset.exits).toBe('no');
+    });
 });

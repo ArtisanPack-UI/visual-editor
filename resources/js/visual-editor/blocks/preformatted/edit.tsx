@@ -26,6 +26,13 @@ interface PreformattedEditProps {
     readonly style?: Record<string, unknown>;
 }
 
+/**
+ * Renders the preformatted RichText.
+ *
+ * @param props Block edit props.
+ *
+ * @return The editor-side preformatted block.
+ */
 export default function PreformattedEdit({
     attributes,
     mergeBlocks,

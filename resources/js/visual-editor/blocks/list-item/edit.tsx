@@ -59,6 +59,14 @@ interface IndentSelectors {
     getBlockName(clientId: string | null): string | null;
 }
 
+/**
+ * Indent / Outdent toolbar buttons for a list item.
+ *
+ * @param props          Component props.
+ * @param props.clientId The list item's client ID.
+ *
+ * @return The two toolbar buttons, disabled where the move isn't possible.
+ */
 export function IndentUI({ clientId }: IndentUIProps): ReactElement {
     const indentListItem = useIndentListItem(clientId);
     const outdentListItem = useOutdentListItem();
@@ -100,6 +108,14 @@ export function IndentUI({ clientId }: IndentUIProps): ReactElement {
     );
 }
 
+/**
+ * Renders a list item's RichText, its nested list and the indent toolbar,
+ * with the Enter, Space/Tab and merge keyboard hooks attached.
+ *
+ * @param props Block edit props.
+ *
+ * @return The editor-side list item.
+ */
 export default function ListItemEdit({
     attributes,
     setAttributes,
