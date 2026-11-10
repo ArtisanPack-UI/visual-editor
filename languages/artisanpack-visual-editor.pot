@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: artisanpack-ui-visual-editor\n"
-"POT-Creation-Date: 2026-11-05T02:24:33+0000\n"
+"POT-Creation-Date: 2026-11-10T22:12:48+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -289,8 +289,8 @@ msgstr ""
 msgid "123 Example Street"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:215
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:221
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:214
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:220
 msgid "16px, 1rem…"
 msgstr ""
 
@@ -450,8 +450,8 @@ msgstr ""
 msgid "Add child of %s"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/pullquote/edit.tsx:75
-#: resources/js/visual-editor/blocks/quote/edit.tsx:81
+#: resources/js/visual-editor/blocks/pullquote/edit.tsx:124
+#: resources/js/visual-editor/blocks/quote/edit.tsx:102
 msgid "Add citation"
 msgstr ""
 
@@ -535,7 +535,7 @@ msgstr ""
 msgid "Add question"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/pullquote/edit.tsx:66
+#: resources/js/visual-editor/blocks/pullquote/edit.tsx:114
 msgid "Add quote"
 msgstr ""
 
@@ -588,7 +588,7 @@ msgstr ""
 msgid "Adjust the appearance of buttons in the lightbox."
 msgstr ""
 
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:191
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:190
 #: resources/js/visual-editor/site-editor/navigation/navigation-inspector.tsx:385
 msgid "Advanced"
 msgstr ""
@@ -598,15 +598,15 @@ msgstr ""
 msgid "AI API responded with %d"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:172
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:171
 msgid "Align Content"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:186
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:185
 msgid "Align Content requires wrapping."
 msgstr ""
 
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:159
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:158
 msgid "Align Items"
 msgstr ""
 
@@ -916,7 +916,7 @@ msgstr ""
 msgid "Base muted"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:168
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:167
 #: resources/js/visual-editor/blocks/_shared/flex-controls/item-controls.tsx:129
 msgid "Baseline"
 msgstr ""
@@ -930,8 +930,8 @@ msgctxt "social link block variation name"
 msgid "Behance"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:155
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:182
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:154
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:181
 msgid "Between"
 msgstr ""
 
@@ -1225,9 +1225,9 @@ msgstr ""
 msgid "Cell"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:153
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:166
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:180
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:152
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:165
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:179
 #: resources/js/visual-editor/blocks/_shared/flex-controls/item-controls.tsx:126
 #: resources/js/visual-editor/blocks/_shared/photo-grid/controls.tsx:63
 #: resources/js/visual-editor/blocks/tabs/edit.tsx:53
@@ -1394,7 +1394,7 @@ msgstr ""
 msgid "Closed"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/code/edit.tsx:69
+#: resources/js/visual-editor/blocks/code/edit.tsx:85
 msgid "Code"
 msgstr ""
 
@@ -1403,7 +1403,7 @@ msgctxt "social link block variation name"
 msgid "CodePen"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:132
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:131
 msgid "Col rev."
 msgstr ""
 
@@ -1465,7 +1465,7 @@ msgstr ""
 msgid "Colors"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:130
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:129
 msgid "Column"
 msgstr ""
 
@@ -1473,7 +1473,7 @@ msgstr ""
 msgid "Column count"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:219
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:218
 msgid "Column Gap"
 msgstr ""
 
@@ -1908,7 +1908,7 @@ msgid "Default styles — apply when no interactive state matches."
 msgstr ""
 
 #: resources/js/visual-editor/editor/composed-view/default-template.ts:34
-#: resources/js/visual-editor/editor/editor-app.tsx:1246
+#: resources/js/visual-editor/editor/editor-app.tsx:1249
 msgid "Default template"
 msgstr ""
 
@@ -2021,7 +2021,7 @@ msgstr ""
 msgid "Dimensions"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:124
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:123
 #: resources/js/visual-editor/blocks/author-social-icons/edit.tsx:208
 #: resources/js/visual-editor/blocks/post-navigation-link/edit.tsx:193
 #: resources/js/visual-editor/blocks/social-share-content/edit.tsx:208
@@ -2233,7 +2233,7 @@ msgid "Edit URL"
 msgstr ""
 
 #. translators: %s: entity title being edited.
-#: resources/js/visual-editor/site-editor/entity-editor-canvas.tsx:85
+#: resources/js/visual-editor/site-editor/entity-editor-canvas.tsx:86
 msgid "Editing %s"
 msgstr ""
 
@@ -2253,13 +2253,13 @@ msgid "Editing content inside %s"
 msgstr ""
 
 #. translators: %s: pattern title.
-#: resources/js/visual-editor/site-editor/patterns/pattern-canvas.tsx:59
+#: resources/js/visual-editor/site-editor/patterns/pattern-canvas.tsx:60
 msgid "Editing pattern: %s"
 msgstr ""
 
 #. translators: %s: post title or fallback.
 #. translators: %s: entity title being edited.
-#: resources/js/visual-editor/editor/editor-app.tsx:1668
+#: resources/js/visual-editor/editor/editor-app.tsx:1671
 #: resources/js/visual-editor/site-editor/site-editor-app.tsx:717
 msgid "Editing: %s"
 msgstr ""
@@ -2501,7 +2501,7 @@ msgstr ""
 msgid "Empty state"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:116
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:115
 msgid "Enable Flex"
 msgstr ""
 
@@ -2517,9 +2517,9 @@ msgstr ""
 msgid "Enables multiple Details blocks with the same name attribute to be connected, with only one open at a time."
 msgstr ""
 
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:154
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:167
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:181
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:153
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:166
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:180
 #: resources/js/visual-editor/blocks/_shared/flex-controls/item-controls.tsx:127
 #: resources/js/visual-editor/visibility/VisibilityPanel.tsx:621
 #: resources/js/visual-editor/visibility/VisibilityPanel.tsx:681
@@ -2787,7 +2787,7 @@ msgstr ""
 msgid "Failed to load pattern."
 msgstr ""
 
-#: resources/js/visual-editor/editor/editor-app.tsx:1213
+#: resources/js/visual-editor/editor/editor-app.tsx:1216
 #: resources/js/visual-editor/editor/inserter-patterns-panel.tsx:356
 #: resources/js/visual-editor/editor/inserter-patterns-panel.tsx:553
 #: resources/js/visual-editor/site-editor/patterns/api-client.ts:314
@@ -2987,7 +2987,7 @@ msgstr ""
 msgid "Flex Item"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:114
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:113
 msgid "Flex Layout"
 msgstr ""
 
@@ -3383,7 +3383,7 @@ msgstr ""
 msgid "Hide when"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/code/edit.tsx:51
+#: resources/js/visual-editor/blocks/code/edit.tsx:66
 msgid "Highlights the code on the published page."
 msgstr ""
 
@@ -3569,6 +3569,14 @@ msgstr ""
 msgid "Includes every smaller screen, phones too."
 msgstr ""
 
+#: resources/js/visual-editor/blocks/list-item/edit.tsx:101
+msgid "Indent"
+msgstr ""
+
+#: resources/js/visual-editor/blocks/list-item/edit.tsx:103
+msgid "Indent list item"
+msgstr ""
+
 #: resources/js/visual-editor/site-editor/fallback-chain.ts:125
 msgid "Index (fallback)"
 msgstr ""
@@ -3714,7 +3722,7 @@ msgstr ""
 msgid "Jane Doe"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:147
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:146
 msgid "Justify Content"
 msgstr ""
 
@@ -3751,7 +3759,7 @@ msgstr ""
 msgid "Label text"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/code/edit.tsx:50
+#: resources/js/visual-editor/blocks/code/edit.tsx:65
 msgid "Language"
 msgstr ""
 
@@ -3931,7 +3939,7 @@ msgid "LinkedIn"
 msgstr ""
 
 #: resources/js/visual-editor/blocks/latest-posts/edit.tsx:235
-#: resources/js/visual-editor/blocks/list-item/edit.tsx:60
+#: resources/js/visual-editor/blocks/list-item/edit.tsx:147
 msgid "List"
 msgstr ""
 
@@ -3939,7 +3947,7 @@ msgstr ""
 msgid "List style"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/list-item/edit.tsx:59
+#: resources/js/visual-editor/blocks/list-item/edit.tsx:146
 msgid "List text"
 msgstr ""
 
@@ -3964,11 +3972,11 @@ msgstr ""
 msgid "Loading blocks…"
 msgstr ""
 
-#: resources/js/visual-editor/editor/editor-app.tsx:1514
+#: resources/js/visual-editor/editor/editor-app.tsx:1516
 msgid "Loading content…"
 msgstr ""
 
-#: resources/js/visual-editor/site-editor/entity-editor-canvas.tsx:99
+#: resources/js/visual-editor/site-editor/entity-editor-canvas.tsx:100
 msgid "Loading entity…"
 msgstr ""
 
@@ -3988,7 +3996,7 @@ msgstr ""
 msgid "Loading menus…"
 msgstr ""
 
-#: resources/js/visual-editor/site-editor/patterns/pattern-canvas.tsx:73
+#: resources/js/visual-editor/site-editor/patterns/pattern-canvas.tsx:74
 msgid "Loading pattern…"
 msgstr ""
 
@@ -4450,7 +4458,7 @@ msgstr ""
 msgid "Next Page"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:141
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:140
 #: resources/js/visual-editor/site-editor/sidebars/menu-sidebar.tsx:50
 msgid "No"
 msgstr ""
@@ -4615,7 +4623,7 @@ msgid "None"
 msgstr ""
 
 #: resources/js/visual-editor/blocks/business-address/edit.tsx:188
-#: resources/js/visual-editor/blocks/code/edit.tsx:38
+#: resources/js/visual-editor/blocks/code/edit.tsx:53
 #: resources/js/visual-editor/blocks/gallery/edit.tsx:130
 #: resources/js/visual-editor/blocks/image/image-editor.tsx:476
 #: resources/js/visual-editor/blocks/post-navigation-link/edit.tsx:229
@@ -4877,6 +4885,14 @@ msgstr ""
 msgid "Other"
 msgstr ""
 
+#: resources/js/visual-editor/blocks/list-item/edit.tsx:93
+msgid "Outdent"
+msgstr ""
+
+#: resources/js/visual-editor/blocks/list-item/edit.tsx:95
+msgid "Outdent list item"
+msgstr ""
+
 #: resources/js/visual-editor/effects/with-effects.tsx:313
 #: resources/js/visual-editor/effects/with-effects.tsx:317
 msgid "Overflow (horizontal)"
@@ -4913,7 +4929,7 @@ msgstr ""
 msgid "Override typography and color for the built-in HTML elements — links, buttons, headings, captions."
 msgstr ""
 
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:198
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:197
 msgid "Overrides per-axis Justify/Align controls when set."
 msgstr ""
 
@@ -5081,7 +5097,7 @@ msgctxt "social link block variation name"
 msgid "Pinterest"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:196
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:195
 msgid "Place Content (shorthand)"
 msgstr ""
 
@@ -5090,7 +5106,7 @@ msgstr ""
 msgid "Placeholder"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/code/edit.tsx:39
+#: resources/js/visual-editor/blocks/code/edit.tsx:54
 msgid "Plain text"
 msgstr ""
 
@@ -5130,7 +5146,7 @@ msgstr ""
 msgid "podcast"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/verse/edit.tsx:48
+#: resources/js/visual-editor/blocks/verse/edit.tsx:64
 msgid "Poetry text"
 msgstr ""
 
@@ -5249,7 +5265,7 @@ msgstr ""
 msgid "Prefix"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/preformatted/edit.tsx:47
+#: resources/js/visual-editor/blocks/preformatted/edit.tsx:63
 msgid "Preformatted text"
 msgstr ""
 
@@ -5313,7 +5329,7 @@ msgid "Preview:"
 msgstr ""
 
 #. translators: %s: template name.
-#: resources/js/visual-editor/editor/editor-app.tsx:1100
+#: resources/js/visual-editor/editor/editor-app.tsx:1129
 msgid "Previewing the “%s” template. Only your content is editable here — the surrounding template areas are edited in the site editor."
 msgstr ""
 
@@ -5353,11 +5369,11 @@ msgstr ""
 msgid "Published"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/pullquote/edit.tsx:74
+#: resources/js/visual-editor/blocks/pullquote/edit.tsx:123
 msgid "Pullquote citation text"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/pullquote/edit.tsx:65
+#: resources/js/visual-editor/blocks/pullquote/edit.tsx:113
 msgid "Pullquote text"
 msgstr ""
 
@@ -5593,7 +5609,7 @@ msgstr ""
 msgid "Reset selection"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:207
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:206
 msgid "Reset shorthand"
 msgstr ""
 
@@ -5632,11 +5648,11 @@ msgstr ""
 msgid "Retry"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:143
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:142
 msgid "Rev."
 msgstr ""
 
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:193
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:192
 msgid "Reverse helpers affect visual order only — keyboard / screen-reader order follows DOM."
 msgstr ""
 
@@ -5665,7 +5681,7 @@ msgstr ""
 msgid "Rotate in"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:129
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:128
 msgid "Row"
 msgstr ""
 
@@ -5678,11 +5694,11 @@ msgstr ""
 msgid "Row count"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:213
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:212
 msgid "Row Gap"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:131
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:130
 msgid "Row rev."
 msgstr ""
 
@@ -5947,7 +5963,7 @@ msgstr ""
 #: resources/js/visual-editor/blocks/archives/edit.tsx:49
 #: resources/js/visual-editor/blocks/audio/edit.tsx:166
 #: resources/js/visual-editor/blocks/categories/edit.tsx:95
-#: resources/js/visual-editor/blocks/code/edit.tsx:46
+#: resources/js/visual-editor/blocks/code/edit.tsx:61
 #: resources/js/visual-editor/blocks/column/edit.tsx:68
 #: resources/js/visual-editor/blocks/columns/edit.tsx:161
 #: resources/js/visual-editor/blocks/cover/edit/inspector-controls.tsx:324
@@ -6431,9 +6447,9 @@ msgstr ""
 msgid "Stacks the block above or below its neighbors. A block that isn’t positioned becomes position: relative."
 msgstr ""
 
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:152
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:165
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:179
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:151
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:164
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:178
 #: resources/js/visual-editor/blocks/_shared/flex-controls/item-controls.tsx:125
 #: resources/js/visual-editor/visibility/VisibilityPanel.tsx:616
 #: resources/js/visual-editor/visibility/VisibilityPanel.tsx:669
@@ -6510,8 +6526,8 @@ msgstr ""
 msgid "Stop simulating this state on the canvas"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:164
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:178
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:163
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:177
 #: resources/js/visual-editor/blocks/_shared/flex-controls/item-controls.tsx:128
 msgid "Stretch"
 msgstr ""
@@ -6628,7 +6644,7 @@ msgstr ""
 
 #: resources/js/visual-editor/editor/synced-pattern-indicator.tsx:75
 #: resources/js/visual-editor/editor/synced-pattern-indicator.tsx:78
-#: resources/js/visual-editor/site-editor/patterns/pattern-canvas.tsx:111
+#: resources/js/visual-editor/site-editor/patterns/pattern-canvas.tsx:112
 msgid "Synced pattern"
 msgstr ""
 
@@ -6741,11 +6757,11 @@ msgstr ""
 msgid "Template (one iteration)"
 msgstr ""
 
-#: resources/js/visual-editor/editor/editor-canvas.tsx:261
+#: resources/js/visual-editor/editor/editor-canvas.tsx:271
 msgid "Template footer (read-only)"
 msgstr ""
 
-#: resources/js/visual-editor/editor/editor-canvas.tsx:255
+#: resources/js/visual-editor/editor/editor-canvas.tsx:264
 msgid "Template header (read-only)"
 msgstr ""
 
@@ -6891,7 +6907,7 @@ msgid "The SVG is sanitized server-side before it’s saved."
 msgstr ""
 
 #. translators: %s: template name.
-#: resources/js/visual-editor/editor/editor-app.tsx:1079
+#: resources/js/visual-editor/editor/editor-app.tsx:1108
 msgid "The template “%s” has no content area, so your content is shown below the whole template."
 msgstr ""
 
@@ -6917,7 +6933,7 @@ msgstr ""
 msgid "The width at and below which the menu collapses behind the open button."
 msgstr ""
 
-#: resources/js/visual-editor/editor/editor-app.tsx:1257
+#: resources/js/visual-editor/editor/editor-app.tsx:1260
 #: resources/js/visual-editor/site-editor/sidebars/global-styles-sidebar.tsx:45
 #: resources/js/visual-editor/site-editor/sidebars/menu-sidebar.tsx:44
 #: resources/js/visual-editor/site-editor/sidebars/template-part-sidebar.tsx:43
@@ -7207,7 +7223,7 @@ msgctxt "unordered list toolbar button"
 msgid "UL"
 msgstr ""
 
-#: resources/js/visual-editor/editor/editor-app.tsx:1539
+#: resources/js/visual-editor/editor/editor-app.tsx:1541
 msgid "Unable to load content."
 msgstr ""
 
@@ -7276,7 +7292,7 @@ msgstr ""
 msgid "Unsynced"
 msgstr ""
 
-#: resources/js/visual-editor/site-editor/patterns/pattern-canvas.tsx:112
+#: resources/js/visual-editor/site-editor/patterns/pattern-canvas.tsx:113
 msgid "Unsynced pattern"
 msgstr ""
 
@@ -7290,7 +7306,7 @@ msgstr ""
 msgid "Unsynced patterns are inserted as a copy of the block tree. Future edits to the pattern only affect new insertions."
 msgstr ""
 
-#: resources/js/visual-editor/editor/editor-app.tsx:1669
+#: resources/js/visual-editor/editor/editor-app.tsx:1672
 msgid "Untitled"
 msgstr ""
 
@@ -7559,8 +7575,8 @@ msgctxt "social link block variation name"
 msgid "WordPress"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:136
-#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:142
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:135
+#: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:141
 msgid "Wrap"
 msgstr ""
 
@@ -7572,7 +7588,7 @@ msgstr ""
 msgid "Write an excerpt (optional)"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/code/edit.tsx:68
+#: resources/js/visual-editor/blocks/code/edit.tsx:84
 msgid "Write code…"
 msgstr ""
 
@@ -7580,11 +7596,11 @@ msgstr ""
 msgid "Write file name…"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/verse/edit.tsx:49
+#: resources/js/visual-editor/blocks/verse/edit.tsx:65
 msgid "Write poetry…"
 msgstr ""
 
-#: resources/js/visual-editor/blocks/preformatted/edit.tsx:48
+#: resources/js/visual-editor/blocks/preformatted/edit.tsx:64
 msgid "Write preformatted text…"
 msgstr ""
 

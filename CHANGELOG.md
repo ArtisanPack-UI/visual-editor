@@ -6,6 +6,27 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.21.0] - 2026-11-10
+
+### Changed
+
+- **Code, Preformatted and Poetry blocks exit on a double Enter** ([#1101](https://github.com/ArtisanPack-UI/visual-editor/issues/1101)). Pressing Enter at the end of a blank last line removes that line and continues in a new paragraph below. Before, the caret stayed in the block however many times Enter was pressed. A blank line can no longer be typed at the very end of these blocks: Shift+Enter still adds one, and blank lines in the middle work as before. Where a paragraph can't be added after the block, Enter adds a newline as usual.
+- **Enter at the end of a Pullquote's text leaves the block** ([#1101](https://github.com/ArtisanPack-UI/visual-editor/issues/1101)). It continues in a new paragraph, as Enter at the end of the citation already did. Shift+Enter still adds a line break.
+- **Updated the development toolchain** to Vite 7 and Vitest 4, and refreshed the locked Symfony packages, which clears the high and critical `npm audit` and `composer audit` advisories in the tools used to build and test the package. The published bundles are still built with Rollup and keep their file layout, and the Blade renderer's lightbox and code highlighting scripts support the same browsers as before. Building the package now needs Node 20.19 or later.
+
+### Fixed
+
+- **Enter on an empty list item leaves the list** ([#1101](https://github.com/ArtisanPack-UI/visual-editor/issues/1101)). Every Enter used to add another empty item. An empty nested item now moves out one level, and an empty top-level item ends the list and continues in a paragraph below, splitting the list when the item was in the middle. An item bound to data is left alone.
+- **Tab and Shift+Tab indent and outdent list items** ([#1101](https://github.com/ArtisanPack-UI/visual-editor/issues/1101)). Tab (or Space) at the start of an item nests it under the one above, Shift+Tab at the start moves it out, and a list item's toolbar has **Indent** and **Outdent** buttons.
+- **Clicking below the last block continues the document** ([#1102](https://github.com/ArtisanPack-UI/visual-editor/issues/1102)). In the post editor, the composed view, the site editor and the pattern editor, a click in the empty area below the content adds an empty paragraph and puts the caret in it, or reuses an empty paragraph that's already last. Nothing is added where the content is template-locked or can't take a paragraph. Blocks and files dragged there land after the last block.
+- **A Quote inserted from the slash inserter puts the caret in its paragraph** ([#1105](https://github.com/ArtisanPack-UI/visual-editor/issues/1105)). Focus stayed on the quote itself, so typing did nothing until you clicked into it.
+- **Undo steps back one edit at a time and puts the caret back** ([#1109](https://github.com/ArtisanPack-UI/visual-editor/issues/1109)). The post editor recorded only structural changes, so undoing a split, an Enter exit or a new block also threw away everything typed before it, and the first edit after opening a document couldn't be undone. Typing is now its own undo step, ended by a structural change or by typing somewhere else, and undo and redo return the caret to where it was instead of leaving focus nowhere.
+- **The React and Vue renderers print the Gallery's layout classes** ([#1069](https://github.com/ArtisanPack-UI/visual-editor/issues/1069)). `is-layout-flex wp-block-gallery-is-layout-flex` was only printed by Blade, so a Gallery could stack its images on React and Vue pages. All three renderers now print the same markup.
+
+### Security
+
+- **Color strings are rejected quickly again.** The editor bundle includes `colord` through `@wordpress/components`, and versions before 2.9.4 were slow to reject oversized malformed color strings ([GHSA-2wm5-q62r-hmrv](https://github.com/advisories/GHSA-2wm5-q62r-hmrv)). The bundle now uses the patched 2.9 release.
+
 ## [1.20.0] - 2026-11-04
 
 ### Upgrade notes
