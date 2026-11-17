@@ -128,6 +128,16 @@ button.ap-social-share-content__chip {
 	background-color: var(--ap-social-links-bg, transparent);
 }
 
+/* #1121 — the icon border properties ride on the `<ul>`, and their names
+ * contain `border-color` / `border-width`. The block library's
+ * `html :where([style*="border-color"])` rules match that substring and
+ * give the list a solid (3px `medium`) border of its own. The list has
+ * no border support, so reset it; one class outranks the `:where()`.
+ */
+.wp-block-artisanpack-social-links:is(.has-icon-border, .has-icon-hover-border-color) {
+	border-style: none;
+}
+
 .wp-block-artisanpack-social-links.has-icon-border .wp-social-link {
 	border-width: var(--ap-social-links-border-width, 1px);
 	border-style: var(--ap-social-links-border-style, solid);
