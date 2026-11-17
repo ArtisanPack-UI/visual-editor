@@ -2,6 +2,7 @@
 
 declare( strict_types=1 );
 
+use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
 use Illuminate\Support\Facades\Blade;
 
@@ -56,7 +57,7 @@ it( 'promotes legacy width attribute into a gap-aware base !important rule', fun
 	expect( $rendered )->toMatch( '/\.ve-w-[a-f0-9]+\.ve-w-[a-f0-9]+\.ve-w-[a-f0-9]+\{flex-basis:calc\(50% - var\(--ap-columns-gap, var\(--wp--style--block-gap, 0\.5em\)\) \* 0\.5\)!important;flex-grow:0!important\}/' );
 } );
 
-it( 'lets Stack on mobile win below 782px, as WordPress does (#910)', function (): void {
+it( 'lets Stack on mobile win at the mobile breakpoint and below (#910, #1122)', function (): void {
 	$tree = [
 		[
 			'clientId'    => 'col-1',
@@ -69,11 +70,33 @@ it( 'lets Stack on mobile win below 782px, as WordPress does (#910)', function (
 	$rendered = $this->stripGlobalStyles( Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] ) );
 	$scope    = '\\.ve-w-[a-f0-9]+\\.ve-w-[a-f0-9]+\\.ve-w-[a-f0-9]+';
 
-	// The "All sizes" width only applies from the stacking breakpoint up,
-	// and everywhere inside a Columns block that doesn't stack on mobile.
-	expect( $rendered )->toMatch( '/@media \\(min-width: 782px\\)\\{' . $scope . '\\{flex-basis:calc\\(52\\.5%/' )
+	// The "All sizes" width applies from just above the mobile breakpoint,
+	// where Columns stop stacking, and everywhere inside a Columns block
+	// that doesn't stack on mobile.
+	expect( $rendered )->toMatch( '/@media \\(min-width: 768px\\)\\{' . $scope . '\\{flex-basis:calc\\(52\\.5%/' )
 		->toMatch( '/\\.wp-block-columns\\.is-not-stacked-on-mobile ' . $scope . '\\{flex-basis:calc\\(52\\.5%/' )
 		->not->toMatch( '/\\}' . $scope . '\\{flex-basis/' );
+} );
+
+it( 'starts the "All sizes" width where a custom mobile breakpoint stops stacking (#1122)', function (): void {
+	app()->instance(
+		BreakpointRegistry::class,
+		BreakpointRegistry::fromLayers( [ 'mobile' => [ 'maxWidthPx' => 599, 'previewWidthPx' => 375 ] ] ),
+	);
+
+	$tree = [
+		[
+			'clientId'    => 'col-1',
+			'name'        => 'artisanpack/column',
+			'attributes'  => [ 'width' => '52.5%' ],
+			'innerBlocks' => [],
+		],
+	];
+
+	$rendered = $this->stripGlobalStyles( Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] ) );
+
+	expect( $rendered )->toMatch( '/@media \\(min-width: 600px\\)\\{\\.ve-w-[a-f0-9]+\\.ve-w-[a-f0-9]+\\.ve-w-[a-f0-9]+\\{flex-basis:calc\\(52\\.5%/' )
+		->not->toContain( 'min-width: 768px' );
 } );
 
 it( 'merges legacy base width with responsive overrides into one rule set', function (): void {
@@ -302,7 +325,7 @@ it( 'keeps a safe base width while dropping a hostile per-breakpoint override', 
 	// no breakpoint `@media` block (only the base rule's stacking-aware
 	// min-width query, #910) and no injected declaration are emitted.
 	expect( $responsive )->toContain( 'flex-basis:calc(50% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.5)!important' );
-	expect( $responsive )->not->toMatch( '/@media (?!\\(min-width: 782px\\))/' );
+	expect( $responsive )->not->toMatch( '/@media (?!\\(min-width: 768px\\))/' );
 	expect( $responsive )->not->toContain( 'html{opacity:0' );
 } );
 

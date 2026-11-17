@@ -170,7 +170,7 @@ Some output is class-based rather than generated per request: the flex utility s
 
 #### Columns and Media & Text stacking
 
-Since 1.12.1, Columns and Media & Text stack at the `mobile` breakpoint (767px by default) instead of the block library's fixed 781px / 600px thresholds, so the editor's Mobile preview and the front end agree. The Blade renderer builds these rules from the registry's `mobile` max-width; the bundled Columns and Media & Text block stylesheets use the default 767px. Columns marked *not stacked on mobile* and Media & Text blocks without *Stack on mobile* are left alone.
+Since 1.12.1, Columns and Media & Text stack at the `mobile` breakpoint (767px by default) instead of the block library's fixed 781px / 600px thresholds, so the editor's Mobile preview and the front end agree. The Blade renderer builds these rules from the registry's `mobile` max-width; the bundled Columns and Media & Text block stylesheets use the default 767px. Columns marked *not stacked on mobile* and Media & Text blocks without *Stack on mobile* are left alone. A column's *All sizes* width follows the same threshold in all three renderers: it applies from one pixel above the `mobile` breakpoint (768px by default), so it never fights the stacking rule, and a row never stops wrapping while a column is still forced to full width.
 
 ### 2.2 Opting a block into responsive support
 

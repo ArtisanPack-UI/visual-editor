@@ -105,11 +105,14 @@ export function columnWidthScope( attributes: Record<string, unknown> ): ColumnW
 
 		if ( key === BASE_KEY ) {
 			// The "All sizes" width applies everywhere only when the parent
-			// doesn't stack on mobile; otherwise it starts at WordPress's
-			// stacking breakpoint so the stacking rule wins on phones (#910).
-			// Descendant combinator: `>` would be escaped in the <style> text.
+			// doesn't stack on mobile; otherwise it starts just above the
+			// registry's `mobile` breakpoint, where Columns stop stacking
+			// (#820), so the stacking rule wins on phones (#910) and the width
+			// is back as soon as the row stops wrapping (#1122). Matches the
+			// Blade partial. Descendant combinator: `>` would be escaped in
+			// the <style> text.
 			rules.push( `.wp-block-columns.is-not-stacked-on-mobile ${ selector }{${ declaration }}` );
-			rules.push( `@media (min-width: 782px){${ selector }{${ declaration }}}` );
+			rules.push( `@media (min-width: ${ unstackedFromPx() }px){${ selector }{${ declaration }}}` );
 			continue;
 		}
 
@@ -126,6 +129,21 @@ export function columnWidthScope( attributes: Record<string, unknown> ): ColumnW
 	}
 
 	return { className, css: rules.join( '' ) };
+}
+
+/**
+ * Mirrors `StackingStyles::DEFAULT_MOBILE_MAX_WIDTH` in the Blade renderer.
+ */
+const DEFAULT_MOBILE_MAX_WIDTH = 767;
+
+/**
+ * The first viewport width at which Columns stop stacking: one pixel above
+ * the registry's `mobile` max-width (#820, #1122).
+ */
+function unstackedFromPx(): number {
+	const mobile = getDeviceBreakpoints().find( ( bp ) => bp.key === 'mobile' );
+
+	return ( mobile?.maxWidthPx ?? DEFAULT_MOBILE_MAX_WIDTH ) + 1;
 }
 
 /**
