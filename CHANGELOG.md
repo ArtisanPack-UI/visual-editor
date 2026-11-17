@@ -6,10 +6,6 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
-### Fixed
-
-- **Social Icons no longer draw a border around the whole list when the icons have one** ([#1121](https://github.com/ArtisanPack-UI/visual-editor/issues/1121)). The icon border settings ride on the list as `--ap-social-links-border-*` properties, and the block library's `[style*="border-color"]` / `[style*="border-width"]` rules matched those names, so the list got a 3px solid border in the text colour. The list's own border is now reset in the editor canvas and on the front end. Saved markup is unchanged.
-
 ## [1.21.0] - 2026-11-10
 
 ### Changed
