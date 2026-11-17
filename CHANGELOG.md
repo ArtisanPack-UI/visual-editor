@@ -6,6 +6,10 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Fixed
+
+- **A column with a width no longer collapses its neighbour between 768px and 781px** ([#1122](https://github.com/ArtisanPack-UI/visual-editor/issues/1122)). Columns stop stacking just above the `mobile` breakpoint (#820), but a column's *All sizes* width only applied from WordPress's 782px (#910). In between, the block library's `flex-basis: 100%` stacking rule still held the width-set column at full width in a row that no longer wraps, so the other column shrank to nothing and the page scrolled sideways. The Blade, React and Vue renderers now start the width one pixel above the `mobile` breakpoint (768px by default, or a host's own width), so it still yields to stacking on phones.
+
 ## [1.21.0] - 2026-11-10
 
 ### Changed

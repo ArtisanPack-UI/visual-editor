@@ -12,4 +12,4 @@
 </div>
 @@ renderer-instance-css @@
 .wp-block-columns.is-not-stacked-on-mobile .ve-w-a1c5bbeca8.ve-w-a1c5bbeca8.ve-w-a1c5bbeca8{flex-basis:calc(40% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.6)!important;flex-grow:0!important}
-@media (min-width: 782px){.ve-w-a1c5bbeca8.ve-w-a1c5bbeca8.ve-w-a1c5bbeca8{flex-basis:calc(40% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.6)!important;flex-grow:0!important}}
+@media (min-width: 768px){.ve-w-a1c5bbeca8.ve-w-a1c5bbeca8.ve-w-a1c5bbeca8{flex-basis:calc(40% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.6)!important;flex-grow:0!important}}

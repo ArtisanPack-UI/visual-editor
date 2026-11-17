@@ -3,6 +3,7 @@
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\FlexSupport;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\LayoutSupport;
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\StackingStyles;
 
 	$flexClasses = FlexSupport::wrapperForBlock( $attributes );
 
@@ -227,15 +228,18 @@
 			);
 
 			// The "All sizes" width applies everywhere only when the
-			// parent doesn't stack on mobile. Otherwise it starts at
-			// WordPress's stacking breakpoint, so the `flex-basis: 100%`
-			// stacking rule wins on phones, as in WordPress (#910).
+			// parent doesn't stack on mobile. Otherwise it starts just
+			// above the registry's `mobile` breakpoint, where Columns
+			// stop stacking (StackingStyles, #820), so the `flex-basis:
+			// 100%` stacking rule wins on phones (#910) and the width
+			// is back as soon as the row stops wrapping (#1122).
 			// Explicit per-breakpoint widths still win in their ranges. A
 			// descendant combinator, because the React and Vue renderers
 			// escape `>` in their <style> text.
 			if ( BreakpointRegistry::BASE_KEY === $bp ) {
-				$widthRules[] = sprintf( '.wp-block-columns.is-not-stacked-on-mobile %s{%s}', $widthSelector, $declaration );
-				$widthRules[] = sprintf( '@media (min-width: 782px){%s{%s}}', $widthSelector, $declaration );
+				$unstackedFrom = ( $widthRegistry->maxWidth( 'mobile' ) ?? StackingStyles::DEFAULT_MOBILE_MAX_WIDTH ) + 1;
+				$widthRules[]  = sprintf( '.wp-block-columns.is-not-stacked-on-mobile %s{%s}', $widthSelector, $declaration );
+				$widthRules[]  = sprintf( '@media (min-width: %dpx){%s{%s}}', $unstackedFrom, $widthSelector, $declaration );
 				continue;
 			}
 

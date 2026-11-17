@@ -8,7 +8,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { columnWidthScope, stampColumnWidthScopes } from '../src/support/columnWidth';
-import { getBreakpoints, setBreakpoints } from '../src/visibility';
+import { getBreakpoints, getDeviceBreakpoints, setBreakpoints } from '../src/visibility';
 import type { Block } from '../src/types';
 
 function column(attributes: Record<string, unknown>): Block {
@@ -22,7 +22,7 @@ describe('columnWidthScope', () => {
         expect(scope?.className).toBe('ve-w-971ccacfaf');
         expect(scope?.css).toBe(
             '.wp-block-columns.is-not-stacked-on-mobile .ve-w-971ccacfaf.ve-w-971ccacfaf.ve-w-971ccacfaf{flex-basis:calc(60% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.4)!important;flex-grow:0!important}' +
-                '@media (min-width: 782px){.ve-w-971ccacfaf.ve-w-971ccacfaf.ve-w-971ccacfaf{flex-basis:calc(60% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.4)!important;flex-grow:0!important}}'
+                '@media (min-width: 768px){.ve-w-971ccacfaf.ve-w-971ccacfaf.ve-w-971ccacfaf{flex-basis:calc(60% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.4)!important;flex-grow:0!important}}'
         );
     });
 
@@ -87,7 +87,7 @@ describe('columnWidthScope', () => {
         expect(mixed).not.toBeNull();
         expect(mixed?.css).toContain('flex-basis:calc(60% -');
         expect(mixed?.css).not.toContain('opacity');
-        expect(mixed?.css).not.toMatch(/@media (?!\(min-width: 782px\))/);
+        expect(mixed?.css).not.toMatch(/@media (?!\(min-width: 768px\))/);
     });
 });
 
@@ -109,7 +109,7 @@ describe('stampColumnWidthScopes', () => {
         expect((columns[2].attributes as Record<string, unknown>)._veColumnWidthScope).toBeUndefined();
 
         // Identical width maps share one scope, so the rule is emitted once.
-        const occurrences = css.split('@media (min-width: 782px){.ve-w-971ccacfaf.ve-w-971ccacfaf.ve-w-971ccacfaf{').length - 1;
+        const occurrences = css.split('@media (min-width: 768px){.ve-w-971ccacfaf.ve-w-971ccacfaf.ve-w-971ccacfaf{').length - 1;
         expect(occurrences).toBe(1);
     });
 
@@ -150,6 +150,19 @@ describe('stampColumnWidthScopes', () => {
             setBreakpoints(prior);
         }
     });
+
+    it('starts the "All sizes" width where a custom mobile breakpoint stops stacking (#1122)', () => {
+        const prior = [...getBreakpoints(), ...getDeviceBreakpoints()];
+        setBreakpoints({ mobile: { maxWidthPx: 599, previewWidthPx: 375 } });
+
+        try {
+            const scope = columnWidthScope({ width: '60%' });
+            expect(scope?.css).toContain('@media (min-width: 600px){');
+            expect(scope?.css).not.toContain('min-width: 768px');
+        } finally {
+            setBreakpoints(prior);
+        }
+    });
 });
 
 describe('desktop-first column widths (#820)', () => {
@@ -160,6 +173,6 @@ describe('desktop-first column widths (#820)', () => {
         expect(scope!.css).toContain('@media (max-width:767px)');
         expect(scope!.css.indexOf('@media (max-width:1023px)')).toBeLessThan(scope!.css.indexOf('@media (max-width:767px)'));
         // Only the base rule's stacking-aware query (#910) uses min-width.
-        expect(scope!.css).not.toMatch(/min-width:(?! 782px)/);
+        expect(scope!.css).not.toMatch(/min-width:(?! 768px)/);
     });
 });
