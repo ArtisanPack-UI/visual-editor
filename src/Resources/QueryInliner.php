@@ -1080,9 +1080,9 @@ class QueryInliner
 				continue;
 			}
 
-			$childAttributes                             = isset( $child['attributes'] ) && is_array( $child['attributes'] ) ? $child['attributes'] : [];
-			$childAttributes['_resolvedPaginationArrow'] = $arrow;
-			$childAttributes['_resolvedShowLabel']       = $showLabel;
+			$childAttributes                              = isset( $child['attributes'] ) && is_array( $child['attributes'] ) ? $child['attributes'] : [];
+			$childAttributes['_resolvedPaginationArrow']  = $arrow;
+			$childAttributes['_resolvedShowLabel']        = $showLabel;
 			$block['innerBlocks'][ $index ]['attributes'] = $childAttributes;
 		}
 
