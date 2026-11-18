@@ -132,3 +132,20 @@ it( 'skips invalid columnCount overrides (zero / negative)', function (): void {
 
 	expect( $rendered )->not->toContain( 'grid-template-columns' );
 } );
+
+it( 'marks columns with Stack on mobile off as not stacked (#1129)', function (): void {
+	$tree = [
+		[
+			'clientId'    => 'cols-ns',
+			'name'        => 'artisanpack/columns',
+			'attributes'  => [ 'isStackedOnMobile' => false ],
+			'innerBlocks' => [],
+		],
+	];
+
+	$rendered = $this->stripGlobalStyles( Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] ) );
+
+	// The class the editor saves and the stacking / width rules test for.
+	expect( $rendered )->toMatch( '/class="wp-block-columns is-layout-flex wp-block-columns-is-layout-flex is-not-stacked-on-mobile"/' )
+		->not->toContain( ' is-stacked-on-mobile' );
+} );

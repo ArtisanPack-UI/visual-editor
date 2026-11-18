@@ -439,6 +439,52 @@
             ]
         },
         {
+            "name": "columns-not-stacked",
+            "tree": [
+                {
+                    "clientId": "cols-ns",
+                    "name": "core/columns",
+                    "attributes": {
+                        "isStackedOnMobile": false
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "col-ns-1",
+                            "name": "core/column",
+                            "attributes": {
+                                "width": 60
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "col-ns-1-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "Left"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        },
+                        {
+                            "clientId": "col-ns-2",
+                            "name": "core/column",
+                            "attributes": {},
+                            "innerBlocks": [
+                                {
+                                    "clientId": "col-ns-2-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "Right"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
             "name": "column-layout-constrained",
             "$comment": "F-3 — a column carries the layout pair (flow by default) and, with a constrained content size and its own Block spacing, a `wp-container-*` scope.",
             "tree": [

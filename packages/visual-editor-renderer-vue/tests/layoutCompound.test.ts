@@ -93,6 +93,13 @@ describe('layout-supporting wrappers emit the compound class', () => {
             'class="wp-block-columns is-layout-flex wp-block-columns-is-layout-flex is-stacked-on-mobile"'
         );
     });
+    it('marks columns with Stack on mobile off as not stacked (#1129)', () => {
+        const tree = [makeBlock('core/columns', { isStackedOnMobile: false }, [])];
+
+        expect(renderTree(tree)).toContain(
+            'class="wp-block-columns is-layout-flex wp-block-columns-is-layout-flex is-not-stacked-on-mobile"'
+        );
+    });
 
     it('pairs the buttons layout class', () => {
         const tree = [makeBlock('core/buttons', {}, [])];
