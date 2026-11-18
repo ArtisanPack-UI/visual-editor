@@ -35,6 +35,56 @@ function selectorsFor(block: string, declaration: string): string[] {
         .map((line) => line.slice(0, line.indexOf(' {')));
 }
 
+/**
+ * Specificity of a selector as [ids, classes, types], enough for these
+ * rules: classes, attribute selectors, `:is()` (its most specific
+ * argument) and `:not()` (its argument), joined by combinators.
+ */
+function specificity(selector: string): [number, number, number] {
+    const total: [number, number, number] = [0, 0, 0];
+    let rest = selector;
+    const pseudo = /:(is|not)\(/;
+    for (let m = pseudo.exec(rest); m; m = pseudo.exec(rest)) {
+        let depth = 1;
+        let i = m.index + m[0].length;
+        while (depth > 0) {
+            if (rest[i] === '(') depth++;
+            if (rest[i] === ')') depth--;
+            i++;
+        }
+        const inner = rest.slice(m.index + m[0].length, i - 1);
+        const args = splitTop(inner).map(specificity);
+        const best = args.reduce((a, b) => (compare(a, b) >= 0 ? a : b));
+        total[0] += best[0];
+        total[1] += best[1];
+        total[2] += best[2];
+        rest = rest.slice(0, m.index) + rest.slice(i);
+    }
+    total[0] += (rest.match(/#[\w-]+/g) || []).length;
+    total[1] += (rest.match(/\.[\w-]+/g) || []).length + (rest.match(/\[[^\]]*\]/g) || []).length;
+    return total;
+}
+
+function splitTop(list: string): string[] {
+    const out: string[] = [];
+    let depth = 0;
+    let start = 0;
+    for (let i = 0; i < list.length; i++) {
+        if (list[i] === '(') depth++;
+        if (list[i] === ')') depth--;
+        if (list[i] === ',' && depth === 0) {
+            out.push(list.slice(start, i).trim());
+            start = i + 1;
+        }
+    }
+    out.push(list.slice(start).trim());
+    return out;
+}
+
+function compare(a: [number, number, number], b: [number, number, number]): number {
+    return a[0] - b[0] || a[1] - b[1] || a[2] - b[2];
+}
+
 function grid(classes: string): HTMLElement {
     const el = document.createElement('div');
     el.className = `ap-grid ${classes}`;
@@ -112,6 +162,26 @@ describe('Grid default collapse (#901)', () => {
         it('drops item spans in a stacked grid', () => {
             expect(item(grid('ap-grid-has-3-base-columns'), 'ap-grid-item-span-2-base-columns').matches(spans)).toBe(true);
             expect(item(grid('ap-grid-has-3-base-columns ap-grid-has-3-mobile-columns'), 'ap-grid-item-span-2-base-columns').matches(spans)).toBe(false);
+        });
+
+        // #1128 — a wide item also matches the Tablet rule's `span 2`, whose
+        // selector is more specific than the plain reset. A reset at least as
+        // specific, later in the file, must match it, or the one-column grid
+        // gains a phantom second column on phones.
+        it('drops the Tablet span of wide items, with a selector that outranks it', () => {
+            const resets = selectorsFor(mediaBlock(767), 'grid-column: auto;');
+            const [tabletSpan] = selectorsFor(mediaBlock(1023), 'grid-column: span 2;');
+            const parent = grid('ap-grid-has-6-base-columns');
+            const wide = item(parent, 'ap-grid-item-span-4-base-columns');
+
+            expect(wide.matches(tabletSpan)).toBe(true);
+            const winning = resets.filter((s) => wide.matches(s) && compare(specificity(s), specificity(tabletSpan)) >= 0);
+            expect(winning.length).toBeGreaterThan(0);
+            expect(css.indexOf(winning[0])).toBeGreaterThan(css.indexOf(tabletSpan));
+
+            const narrow = item(parent, 'ap-grid-item-span-2-base-columns');
+            expect(narrow.matches(spans)).toBe(true);
+            expect(item(grid('ap-grid-has-6-base-columns ap-grid-has-2-mobile-columns'), 'ap-grid-item-span-4-base-columns').matches(winning[0])).toBe(false);
         });
     });
 });
