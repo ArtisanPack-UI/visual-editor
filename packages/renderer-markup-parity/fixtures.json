@@ -7850,6 +7850,79 @@
                     { "clientId": "tc-b1", "name": "artisanpack/tab-section", "attributes": { "label": "Overview", "tabId": "Overview" }, "innerBlocks": [ { "clientId": "tc-b1p", "name": "core/paragraph", "attributes": { "content": "B1" }, "innerBlocks": [] } ] }
                 ] }
             ]
+        },
+        {
+            "name": "query-pagination-window",
+            "$comment": "#1130 — windowed page numbers with an ellipsis gap, and previous / next with the wrapper's chevron arrows and hidden labels, as QueryInliner stamps them.",
+            "tree": [
+                {
+                    "clientId": "qpw",
+                    "name": "artisanpack/query-pagination",
+                    "attributes": {
+                        "paginationArrow": "chevron",
+                        "showLabel": false,
+                        "_resolvedCurrentPage": 2,
+                        "_resolvedTotalPages": 41
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "qpw-prev",
+                            "name": "artisanpack/query-pagination-previous",
+                            "attributes": {
+                                "_resolvedPreviousPageUrl": "/blog?page=1",
+                                "_resolvedCurrentPage": 2,
+                                "_resolvedTotalPages": 41,
+                                "_resolvedPaginationArrow": "chevron",
+                                "_resolvedShowLabel": false
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "qpw-num",
+                            "name": "artisanpack/query-pagination-numbers",
+                            "attributes": {
+                                "midSize": 1,
+                                "_resolvedCurrentPage": 2,
+                                "_resolvedTotalPages": 41,
+                                "_resolvedPageNumbers": [
+                                    {
+                                        "number": 1,
+                                        "url": "/blog?page=1"
+                                    },
+                                    {
+                                        "number": 2,
+                                        "url": "/blog?page=2"
+                                    },
+                                    {
+                                        "number": 3,
+                                        "url": "/blog?page=3"
+                                    },
+                                    {
+                                        "dots": true
+                                    },
+                                    {
+                                        "number": 41,
+                                        "url": "/blog?page=41"
+                                    }
+                                ]
+                            },
+                            "innerBlocks": []
+                        },
+                        {
+                            "clientId": "qpw-next",
+                            "name": "artisanpack/query-pagination-next",
+                            "attributes": {
+                                "_resolvedNextPageUrl": "/blog?page=3",
+                                "_resolvedCurrentPage": 2,
+                                "_resolvedTotalPages": 41,
+                                "_resolvedPaginationArrow": "chevron",
+                                "_resolvedShowLabel": false
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
         }
     ]
 }

@@ -9,6 +9,11 @@
 @if ( count( $pages ) > 1 )
 	<div{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-query-pagination-numbers' ] ) !!}>
 		@foreach ( $pages as $page )
+			{{-- #1130 — a gap in the windowed range. --}}
+			@if ( is_array( $page ) && ! empty( $page['dots'] ) )
+				<span class="page-numbers dots">&hellip;</span>
+				@continue
+			@endif
 			@php
 				$number = isset( $page['number'] ) && is_numeric( $page['number'] ) ? (int) $page['number'] : 0;
 				$href   = UrlSanitizer::safe( isset( $page['url'] ) && is_string( $page['url'] ) ? $page['url'] : '' );

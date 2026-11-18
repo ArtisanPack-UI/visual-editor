@@ -952,6 +952,10 @@ class QueryInliner
 
 			$block = $this->stampQueryControls( $block, $paginator, $queryAttrs );
 
+			if ( 'query-pagination' === $slug ) {
+				$block = $this->stampPaginationArrows( $block );
+			}
+
 			// Recurse into wrappers (artisanpack/query-pagination,
 			// group, etc.) so their pagination / title children get
 			// stamped too. Skip the post-template subtree — its
@@ -1048,6 +1052,44 @@ class QueryInliner
 	}
 
 	/**
+	 * Hand the wrapper's Arrow and Show label settings to its previous
+	 * and next leaves as `_resolvedPaginationArrow` / `_resolvedShowLabel`,
+	 * the way WordPress passes them through block context (#1130). The
+	 * arrow is `none`, `arrow` or `chevron` (`none` when unset or unknown);
+	 * the label shows unless `showLabel` is false.
+	 *
+	 * @param  array<string, mixed>  $block
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function stampPaginationArrows( array $block ): array
+	{
+		$attributes = isset( $block['attributes'] ) && is_array( $block['attributes'] ) ? $block['attributes'] : [];
+		$arrow      = isset( $attributes['paginationArrow'] ) && in_array( $attributes['paginationArrow'], [ 'none', 'arrow', 'chevron' ], true )
+			? $attributes['paginationArrow']
+			: 'none';
+		$showLabel  = ! array_key_exists( 'showLabel', $attributes ) || false !== $attributes['showLabel'];
+
+		if ( ! isset( $block['innerBlocks'] ) || ! is_array( $block['innerBlocks'] ) ) {
+			return $block;
+		}
+
+		foreach ( $block['innerBlocks'] as $index => $child ) {
+			$name = is_array( $child ) && isset( $child['name'] ) && is_string( $child['name'] ) ? $child['name'] : '';
+			if ( 1 !== preg_match( '#^(core|artisanpack)/query-pagination-(previous|next)$#', $name ) ) {
+				continue;
+			}
+
+			$childAttributes                             = isset( $child['attributes'] ) && is_array( $child['attributes'] ) ? $child['attributes'] : [];
+			$childAttributes['_resolvedPaginationArrow'] = $arrow;
+			$childAttributes['_resolvedShowLabel']       = $showLabel;
+			$block['innerBlocks'][ $index ]['attributes'] = $childAttributes;
+		}
+
+		return $block;
+	}
+
+	/**
 	 * @param  array<string, mixed>  $queryAttrs
 	 * @param  array<string, mixed>  $attributes
 	 *
@@ -1082,10 +1124,11 @@ class QueryInliner
 	}
 
 	/**
-	 * Build a `[ { number, url }, ... ]` list of every page in the
-	 * resolved range. V1 emits the full range; honouring the block's
-	 * `midSize` attribute (windowed view around the current page) is
-	 * tracked as a follow-up customization pass.
+	 * Build the page list the numbers leaf renders, windowed the way
+	 * WordPress's `paginate_links()` does (#1130): the first and last
+	 * page, `midSize` pages either side of the current one (2 when
+	 * unset), and a `{ dots: true }` entry for each gap. Pages are
+	 * `{ number, url }`.
 	 *
 	 * @param  array<string, mixed>  $queryAttrs
 	 * @param  array<string, mixed>  $attributes
@@ -1097,8 +1140,25 @@ class QueryInliner
 		$lastPage = max( 1, (int) $paginator->lastPage() );
 		$current  = max( 1, (int) $paginator->currentPage() );
 
+		$midSize = isset( $attributes['midSize'] ) && is_numeric( $attributes['midSize'] ) ? max( 0, (int) $attributes['midSize'] ) : 2;
+		$endSize = 1;
+
 		$pages = [];
+		$dots  = false;
 		for ( $i = 1; $i <= $lastPage; $i++ ) {
+			$inWindow = $i <= $endSize
+				|| $i > $lastPage - $endSize
+				|| ( $i >= $current - $midSize && $i <= $current + $midSize );
+
+			if ( ! $inWindow ) {
+				if ( ! $dots ) {
+					$pages[] = [ 'dots' => true ];
+					$dots    = true;
+				}
+				continue;
+			}
+
+			$dots    = false;
 			$pages[] = [
 				'number' => $i,
 				'url'    => $paginator->url( $i ),

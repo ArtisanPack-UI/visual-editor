@@ -536,3 +536,77 @@ it( 'stamps over a saved query-total count when the tree is stripped (#1096)', f
 
 	expect( $total['attributes']['_resolvedTotal'] )->toBe( 1 );
 } );
+
+/**
+ * Inline a 41-page query (82 rows, 2 per page) on `$page` with the given
+ * pagination wrapper and numbers attributes, and return the pagination
+ * wrapper. Used by the #1130 windowing and arrow cases.
+ *
+ * @param  array<string, mixed>  $wrapperAttributes
+ * @param  array<string, mixed>  $numbersAttributes
+ *
+ * @return array<string, mixed>
+ */
+function inlineFortyOnePagePagination( object $test, int $page, array $wrapperAttributes = [], array $numbersAttributes = [] ): array
+{
+	$test->fake->setItems( [ postFixture( 1, 'A' ), postFixture( 2, 'B' ) ] );
+	$test->fake->totalOverride = 82;
+	$test->fake->perPage       = 2;
+	$test->fake->currentPage   = $page;
+
+	$tree = [ makeQueryBlockWithSiblings( [ [
+		'name'        => 'artisanpack/query-pagination',
+		'attributes'  => $wrapperAttributes,
+		'innerBlocks' => [
+			[ 'name' => 'artisanpack/query-pagination-previous', 'attributes' => [], 'innerBlocks' => [] ],
+			[ 'name' => 'artisanpack/query-pagination-numbers', 'attributes' => $numbersAttributes, 'innerBlocks' => [] ],
+			[ 'name' => 'artisanpack/query-pagination-next', 'attributes' => [], 'innerBlocks' => [] ],
+		],
+	] ] ) ];
+
+	$inlined = $test->inliner->inline( $tree );
+
+	return array_values( array_filter(
+		$inlined[0]['innerBlocks'],
+		static fn ( array $block ): bool => 'artisanpack/query-pagination' === ( $block['name'] ?? '' ),
+	) )[0];
+}
+
+/**
+ * The windowed page list as a compact string: numbers, and `…` for gaps.
+ *
+ * @param  array<string, mixed>  $pagination
+ */
+function pageWindow( array $pagination ): string
+{
+	return implode( ' ', array_map(
+		static fn ( array $page ): string => ! empty( $page['dots'] ) ? '…' : (string) $page['number'],
+		$pagination['innerBlocks'][1]['attributes']['_resolvedPageNumbers'],
+	) );
+}
+
+it( 'windows the page numbers around the current page like paginate_links (#1130)', function (): void {
+	expect( pageWindow( inlineFortyOnePagePagination( $this, 1, [], [ 'midSize' => 1 ] ) ) )->toBe( '1 2 … 41' )
+		->and( pageWindow( inlineFortyOnePagePagination( $this, 20, [], [ 'midSize' => 1 ] ) ) )->toBe( '1 … 19 20 21 … 41' )
+		->and( pageWindow( inlineFortyOnePagePagination( $this, 41, [], [ 'midSize' => 1 ] ) ) )->toBe( '1 … 40 41' )
+		// WordPress's default mid size is 2.
+		->and( pageWindow( inlineFortyOnePagePagination( $this, 20 ) ) )->toBe( '1 … 18 19 20 21 22 … 41' )
+		// No gap is left for a single missing page's worth of numbers.
+		->and( pageWindow( inlineFortyOnePagePagination( $this, 3, [], [ 'midSize' => 1 ] ) ) )->toBe( '1 2 3 4 … 41' );
+} );
+
+it( 'hands the wrapper arrow and label settings to previous and next (#1130)', function (): void {
+	$pagination = inlineFortyOnePagePagination( $this, 2, [ 'paginationArrow' => 'chevron', 'showLabel' => false ] );
+	$previous   = $pagination['innerBlocks'][0]['attributes'];
+	$next       = $pagination['innerBlocks'][2]['attributes'];
+
+	expect( $previous['_resolvedPaginationArrow'] )->toBe( 'chevron' )
+		->and( $previous['_resolvedShowLabel'] )->toBeFalse()
+		->and( $next['_resolvedPaginationArrow'] )->toBe( 'chevron' )
+		->and( $pagination['innerBlocks'][1]['attributes'] )->not->toHaveKey( '_resolvedPaginationArrow' );
+
+	$defaults = inlineFortyOnePagePagination( $this, 2, [ 'paginationArrow' => 'bogus' ] )['innerBlocks'][2]['attributes'];
+
+	expect( $defaults['_resolvedPaginationArrow'] )->toBe( 'none' )
+		->and( $defaults['_resolvedShowLabel'] )->toBeTrue();
+} );

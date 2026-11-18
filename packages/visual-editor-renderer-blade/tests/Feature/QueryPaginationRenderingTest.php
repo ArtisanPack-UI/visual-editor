@@ -76,3 +76,47 @@ it( 'keeps a one-page wrapper that holds other content', function (): void {
 	expect( $html )->toContain( '<nav class="wp-block-query-pagination' )
 		->and( $html )->toContain( 'Page one of one' );
 } );
+
+/**
+ * @param  array<string, mixed>  $attributes
+ */
+function renderPaginationLeaf( string $leaf, array $attributes ): string
+{
+	return renderPaginationTree( [ [
+		'clientId'    => 'leaf-' . $leaf,
+		'name'        => 'artisanpack/query-pagination-' . $leaf,
+		'attributes'  => $attributes,
+		'innerBlocks' => [],
+	] ] );
+}
+
+it( 'renders previous and next with the stamped arrow and label settings (#1130)', function (): void {
+	$next     = [ '_resolvedNextPageUrl' => '/blog?page=3' ];
+	$previous = [ '_resolvedPreviousPageUrl' => '/blog?page=1' ];
+
+	expect( renderPaginationLeaf( 'next', $next + [ '_resolvedPaginationArrow' => 'none' ] ) )->toContain( 'href="/blog?page=3">Next Page</a>' )
+		->and( renderPaginationLeaf( 'next', $next + [ '_resolvedPaginationArrow' => 'arrow' ] ) )
+		->toContain( 'Next Page<span class="wp-block-query-pagination-next-arrow is-arrow-arrow" aria-hidden="true">→</span></a>' )
+		->and( renderPaginationLeaf( 'previous', $previous + [ '_resolvedPaginationArrow' => 'chevron' ] ) )
+		->toContain( '"><span class="wp-block-query-pagination-previous-arrow is-arrow-chevron" aria-hidden="true">«</span>Previous Page</a>' )
+		->and( renderPaginationLeaf( 'next', $next + [ '_resolvedPaginationArrow' => 'chevron', '_resolvedShowLabel' => false ] ) )
+		->toContain( '<span class="screen-reader-text">Next Page</span><span class="wp-block-query-pagination-next-arrow is-arrow-chevron" aria-hidden="true">»</span>' )
+		// Without an arrow the label can't be hidden, or the link would be empty.
+		->and( renderPaginationLeaf( 'next', $next + [ '_resolvedPaginationArrow' => 'none', '_resolvedShowLabel' => false ] ) )
+		->toContain( '>Next Page</a>' );
+} );
+
+it( 'renders a gap in the windowed page list as an ellipsis (#1130)', function (): void {
+	$html = renderPaginationLeaf( 'numbers', [
+		'_resolvedCurrentPage' => 1,
+		'_resolvedTotalPages'  => 41,
+		'_resolvedPageNumbers' => [
+			[ 'number' => 1, 'url' => '/blog?page=1' ],
+			[ 'number' => 2, 'url' => '/blog?page=2' ],
+			[ 'dots' => true ],
+			[ 'number' => 41, 'url' => '/blog?page=41' ],
+		],
+	] );
+
+	expect( preg_replace( '/>\s+</', '><', $html ) )->toContain( '<a class="page-numbers" href="/blog?page=2">2</a><span class="page-numbers dots">&hellip;</span><a class="page-numbers" href="/blog?page=41">41</a>' );
+} );
