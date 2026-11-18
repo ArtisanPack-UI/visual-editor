@@ -1,0 +1,35 @@
+<nav aria-label="Pagination navigation" class="wp-block-query-pagination is-layout-flex wp-block-query-pagination-is-layout-flex">
+  <a class="wp-block-query-pagination-previous" href="/blog?page=1">
+    <span aria-hidden="true" class="wp-block-query-pagination-previous-arrow is-arrow-chevron">
+      "«"
+    </span>
+    <span class="screen-reader-text">
+      "Previous Page"
+    </span>
+  </a>
+  <div class="wp-block-query-pagination-numbers">
+    <a class="page-numbers" href="/blog?page=1">
+      "1"
+    </a>
+    <span aria-current="page" class="page-numbers current">
+      "2"
+    </span>
+    <a class="page-numbers" href="/blog?page=3">
+      "3"
+    </a>
+    <span class="page-numbers dots">
+      "…"
+    </span>
+    <a class="page-numbers" href="/blog?page=41">
+      "41"
+    </a>
+  </div>
+  <a class="wp-block-query-pagination-next" href="/blog?page=3">
+    <span class="screen-reader-text">
+      "Next Page"
+    </span>
+    <span aria-hidden="true" class="wp-block-query-pagination-next-arrow is-arrow-chevron">
+      "»"
+    </span>
+  </a>
+</nav>

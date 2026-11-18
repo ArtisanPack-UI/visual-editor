@@ -11,6 +11,7 @@
  * them as a seventh leaf.
  */
 
+import { Fragment } from 'react';
 import type { JSX } from 'react';
 
 import { attrInt, attrString, classList } from '../../support/attributes';
@@ -67,6 +68,32 @@ export function QueryPaginationBlock({ attributes, innerBlocks, children }: Bloc
     );
 }
 
+const PAGINATION_GLYPHS: Record<'next' | 'previous', Record<string, string>> = {
+    next: { arrow: '→', chevron: '»' },
+    previous: { arrow: '←', chevron: '«' },
+};
+
+/**
+ * #1130 — the wrapper's Arrow and Show label settings, handed down by
+ * QueryInliner as `_resolvedPaginationArrow` / `_resolvedShowLabel`. With
+ * no arrow the label always shows, so the link is never empty; a hidden
+ * label stays for screen readers. Mirrors the Blade partials.
+ */
+function paginationParts(attributes: Record<string, unknown>, side: 'next' | 'previous', label: string): JSX.Element[] {
+    const rawArrow = attributes._resolvedPaginationArrow;
+    const arrow = rawArrow === 'arrow' || rawArrow === 'chevron' ? rawArrow : 'none';
+    const showLabel = arrow === 'none' || attributes._resolvedShowLabel !== false;
+    const labelPart = showLabel ? <Fragment key="label">{label}</Fragment> : <span key="label" className="screen-reader-text">{label}</span>;
+    const glyph = PAGINATION_GLYPHS[side][arrow];
+    const arrowPart = glyph ? (
+        <span key="arrow" className={`wp-block-query-pagination-${side}-arrow is-arrow-${arrow}`} aria-hidden="true">
+            {glyph}
+        </span>
+    ) : null;
+
+    return (side === 'next' ? [labelPart, arrowPart] : [arrowPart, labelPart]).filter((part): part is JSX.Element => part !== null);
+}
+
 // Inactive states render nothing on the front end (issue #599) — the
 // editor still shows a muted placeholder so authors can edit the
 // block; the public renderer stays quiet so themes don't have to
@@ -82,7 +109,7 @@ export function QueryPaginationNextBlock({ attributes }: BlockRendererProps): JS
     }
     return (
         <a className={classes} href={url}>
-            {label} &rarr;
+            {paginationParts(attributes, 'next', label)}
         </a>
     );
 }
@@ -98,7 +125,7 @@ export function QueryPaginationPreviousBlock({ attributes }: BlockRendererProps)
     }
     return (
         <a className={classes} href={url}>
-            &larr; {label}
+            {paginationParts(attributes, 'previous', label)}
         </a>
     );
 }
@@ -123,6 +150,14 @@ export function QueryPaginationNumbersBlock({ attributes }: BlockRendererProps):
     return (
         <div className={classes}>
             {pages.map((page, idx) => {
+                // #1130 — a gap in the windowed range.
+                if ((page as { dots?: unknown }).dots === true) {
+                    return (
+                        <span key={`dots-${idx}`} className="page-numbers dots">
+                            &hellip;
+                        </span>
+                    );
+                }
                 // Accept either a number or a numeric string for `page.number` so the React
                 // / Vue renderers stay in parity with the Blade partial, whose `is_numeric()`
                 // check passes for both `2` and `"2"`. Hosts that pass JSON-decoded payloads

@@ -7,7 +7,7 @@
  * joins them as a seventh leaf.
  */
 
-import { defineComponent, h } from 'vue';
+import { defineComponent, h, type VNode } from 'vue';
 
 import { attrInt, attrString, classList } from '../../support/attributes';
 import { applyBlockGap } from '../../support/blockGap';
@@ -80,6 +80,31 @@ export const QueryPaginationBlock = defineComponent({
 // editor still shows a muted placeholder so authors can edit the
 // block; the public renderer stays quiet so themes don't have to
 // style an always-present-but-sometimes-inactive affordance.
+const PAGINATION_GLYPHS: Record<'next' | 'previous', Record<string, string>> = {
+    next: { arrow: '→', chevron: '»' },
+    previous: { arrow: '←', chevron: '«' },
+};
+
+/**
+ * #1130 — the wrapper's Arrow and Show label settings, handed down by
+ * QueryInliner as `_resolvedPaginationArrow` / `_resolvedShowLabel`. With
+ * no arrow the label always shows, so the link is never empty; a hidden
+ * label stays for screen readers. Mirrors the Blade partials.
+ */
+function paginationParts(attributes: Record<string, unknown>, side: 'next' | 'previous', label: string): Array<VNode | string> {
+    const rawArrow = attributes._resolvedPaginationArrow;
+    const arrow = rawArrow === 'arrow' || rawArrow === 'chevron' ? rawArrow : 'none';
+    const showLabel = arrow === 'none' || attributes._resolvedShowLabel !== false;
+    const labelPart: VNode | string = showLabel ? label : h('span', { class: 'screen-reader-text' }, label);
+    const glyph = PAGINATION_GLYPHS[side][arrow];
+    const arrowPart = glyph
+        ? h('span', { class: `wp-block-query-pagination-${side}-arrow is-arrow-${arrow}`, 'aria-hidden': 'true' }, glyph)
+        : null;
+
+    const parts = side === 'next' ? [labelPart, arrowPart] : [arrowPart, labelPart];
+    return parts.filter((part): part is VNode | string => part !== null);
+}
+
 export const QueryPaginationNextBlock = defineComponent({
     name: 'QueryPaginationNextBlock',
     props: blockRendererProps,
@@ -92,7 +117,7 @@ export const QueryPaginationNextBlock = defineComponent({
             if (url === '') {
                 return null;
             }
-            return h('a', { class: classes, href: url }, `${label} →`);
+            return h('a', { class: classes, href: url }, paginationParts(props.attributes, 'next', label));
         };
     },
 });
@@ -109,7 +134,7 @@ export const QueryPaginationPreviousBlock = defineComponent({
             if (url === '') {
                 return null;
             }
-            return h('a', { class: classes, href: url }, `← ${label}`);
+            return h('a', { class: classes, href: url }, paginationParts(props.attributes, 'previous', label));
         };
     },
 });
@@ -137,6 +162,10 @@ export const QueryPaginationNumbersBlock = defineComponent({
 
             const children = pages
                 .map((page, idx) => {
+                    // #1130 — a gap in the windowed range.
+                    if ((page as { dots?: unknown }).dots === true) {
+                        return h('span', { key: `dots-${idx}`, class: 'page-numbers dots' }, '…');
+                    }
                     // Accept either a number or a numeric string for `page.number` so the
                     // React / Vue renderers stay in parity with the Blade partial, whose
                     // `is_numeric()` check passes for both `2` and `"2"`. Hosts that pass
