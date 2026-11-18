@@ -13,8 +13,14 @@
 		LayoutSupport::pair( 'columns', 'is-layout-flex' )
 	);
 
+	// #1129 — with Stack on mobile off, print the class the editor saves
+	// and WordPress styles key on (`is-not-stacked-on-mobile`): the
+	// block-library stacking rule, StackingStyles (#820) and the "All
+	// sizes" width rule (#910) all test for it.
 	if ( ! empty( $attributes['isStackedOnMobile'] ) || ! isset( $attributes['isStackedOnMobile'] ) ) {
 		$baseClasses[] = 'is-stacked-on-mobile';
+	} else {
+		$baseClasses[] = 'is-not-stacked-on-mobile';
 	}
 
 	if ( ! empty( $attributes['verticalAlignment'] ) ) {

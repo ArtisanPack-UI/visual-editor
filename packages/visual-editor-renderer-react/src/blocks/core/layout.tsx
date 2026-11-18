@@ -135,7 +135,9 @@ export function ColumnsBlock({ attributes, children }: BlockRendererProps): JSX.
     const classes = classList([
         'wp-block-columns',
         ...layoutPair('columns', 'is-layout-flex'),
-        isStacked ? 'is-stacked-on-mobile' : null,
+        // #1129 — the class the editor saves when Stack on mobile is off,
+        // which the block-library, StackingStyles and #910 rules test for.
+        isStacked ? 'is-stacked-on-mobile' : 'is-not-stacked-on-mobile',
         verticalAlignment !== '' ? `are-vertically-aligned-${verticalAlignment}` : null,
         ...flexClasses,
         photoGridScope !== '' ? photoGridScope : null,
