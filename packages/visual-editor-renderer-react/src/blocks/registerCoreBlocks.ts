@@ -32,6 +32,7 @@ import { GridBlock, GridItemBlock } from './artisanpack/grid';
 import { HowtoBlock } from './artisanpack/howto';
 import { MarqueeBlock } from './artisanpack/marquee';
 import { TabSectionBlock, TabsBlock } from './artisanpack/tabs';
+import { CarouselBlock, CarouselSlideBlock } from './artisanpack/carousel';
 import { TocBlock } from './artisanpack/toc';
 import { LoginoutBlock } from './artisanpack/loginout';
 import {
@@ -272,6 +273,8 @@ const CORE_BLOCKS: Record<string, BlockRenderer> = {
     'artisanpack/accordion-body': AccordionBodyBlock,
     'artisanpack/tabs': TabsBlock,
     'artisanpack/tab-section': TabSectionBlock,
+    'artisanpack/carousel': CarouselBlock,
+    'artisanpack/carousel-slide': CarouselSlideBlock,
     // Grid family (#498). Parent grid owns the responsive column count
     // classes + inline gap declarations; each grid item owns its
     // per-breakpoint span classes and inner-layout flex class.

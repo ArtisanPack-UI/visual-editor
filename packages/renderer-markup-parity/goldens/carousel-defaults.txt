@@ -1,0 +1,42 @@
+<div aria-label="Carousel" aria-roledescription="carousel" class="wp-block-artisanpack-carousel ap-carousel is-controls-below" data-ap-carousel="" role="region" style="--ap-carousel-per-view: 3; --ap-carousel-per-view-tablet: 2; --ap-carousel-per-view-mobile: 1">
+  <div class="wp-block-artisanpack-carousel__viewport">
+    <div aria-live="polite" class="wp-block-artisanpack-carousel__track">
+      <div aria-label="1 of 4" aria-roledescription="slide" class="wp-block-artisanpack-carousel-slide ap-carousel-slide" role="group">
+        <p class="wp-block-paragraph">
+          "One"
+        </p>
+      </div>
+      <div aria-label="2 of 4" aria-roledescription="slide" class="wp-block-artisanpack-carousel-slide ap-carousel-slide" role="group">
+        <p class="wp-block-paragraph">
+          "Two"
+        </p>
+      </div>
+      <div aria-label="3 of 4" aria-roledescription="slide" class="wp-block-artisanpack-carousel-slide ap-carousel-slide" role="group">
+        <p class="wp-block-paragraph">
+          "Three"
+        </p>
+      </div>
+      <div aria-label="4 of 4" aria-roledescription="slide" class="wp-block-artisanpack-carousel-slide ap-carousel-slide" role="group">
+        <p class="wp-block-paragraph">
+          "Four"
+        </p>
+      </div>
+    </div>
+  </div>
+  <div class="wp-block-artisanpack-carousel__controls" hidden="">
+    <button aria-label="Previous slide" class="wp-block-artisanpack-carousel__arrow wp-block-artisanpack-carousel__arrow--previous" type="button">
+      <svg aria-hidden="true" focusable="false" height="24" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+        </path>
+      </svg>
+    </button>
+    <div aria-label="Choose a slide" class="wp-block-artisanpack-carousel__dots" data-dot-label="Go to slide :index" role="group">
+    </div>
+    <button aria-label="Next slide" class="wp-block-artisanpack-carousel__arrow wp-block-artisanpack-carousel__arrow--next" type="button">
+      <svg aria-hidden="true" focusable="false" height="24" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+        </path>
+      </svg>
+    </button>
+  </div>
+</div>

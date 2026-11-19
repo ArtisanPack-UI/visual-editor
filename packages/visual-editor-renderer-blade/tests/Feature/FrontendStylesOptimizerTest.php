@@ -112,6 +112,7 @@ it( 'has markers covering every selector of each conditional stylesheet', functi
 	[ 'data-ve-accordion', 'accordion.css' ],
 	[ 'data-ve-tabs', 'tabs.css' ],
 	[ 'data-ve-grid', 'grid.css' ],
+	[ 'data-ve-carousel', 'carousel.css' ],
 	[ 'data-ve-marquee', 'marquee.css' ],
 	[ 'data-ve-social-icons', 'social-icons.css' ],
 	[ 'data-ve-inline-icon', 'inline-icon.css' ],

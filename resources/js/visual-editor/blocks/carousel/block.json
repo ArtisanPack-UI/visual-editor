@@ -1,0 +1,123 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "artisanpack/carousel",
+    "title": "Carousel",
+    "category": "design",
+    "description": "Slide content horizontally with previous and next arrows and position dots.",
+    "keywords": [
+        "carousel",
+        "slider",
+        "slideshow",
+        "testimonials"
+    ],
+    "textdomain": "artisanpack-visual-editor",
+    "attributes": {
+        "slidesPerView": {
+            "type": "number",
+            "default": 3
+        },
+        "showArrows": {
+            "type": "boolean",
+            "default": true
+        },
+        "showDots": {
+            "type": "boolean",
+            "default": true
+        },
+        "controlsPlacement": {
+            "type": "string",
+            "enum": [
+                "below",
+                "split",
+                "overlay"
+            ],
+            "default": "below"
+        },
+        "loop": {
+            "type": "boolean",
+            "default": false
+        },
+        "autoplay": {
+            "type": "boolean",
+            "default": false
+        },
+        "autoplayInterval": {
+            "type": "number",
+            "default": 5
+        },
+        "dimInactive": {
+            "type": "boolean",
+            "default": false
+        },
+        "inactiveOpacity": {
+            "type": "number",
+            "default": 35
+        },
+        "arrowColor": {
+            "type": "string",
+            "default": ""
+        },
+        "arrowBackgroundColor": {
+            "type": "string",
+            "default": ""
+        },
+        "dotColor": {
+            "type": "string",
+            "default": ""
+        },
+        "dotActiveColor": {
+            "type": "string",
+            "default": ""
+        }
+    },
+    "supports": {
+        "align": [
+            "wide",
+            "full"
+        ],
+        "anchor": true,
+        "ariaLabel": true,
+        "className": true,
+        "html": false,
+        "spacing": {
+            "margin": [
+                "top",
+                "bottom"
+            ],
+            "padding": true,
+            "blockGap": true,
+            "__experimentalDefaultControls": {
+                "padding": true,
+                "blockGap": true
+            }
+        },
+        "color": {
+            "background": true,
+            "text": true,
+            "gradients": true,
+            "__experimentalDefaultControls": {
+                "background": true,
+                "text": true
+            }
+        },
+        "shadow": true,
+        "__experimentalBorder": {
+            "color": true,
+            "radius": true,
+            "style": true,
+            "width": true,
+            "__experimentalDefaultControls": {
+                "color": true,
+                "radius": true,
+                "style": true,
+                "width": true
+            }
+        },
+        "artisanpackResponsive": {
+            "attributes": [
+                "slidesPerView"
+            ]
+        }
+    }
+}

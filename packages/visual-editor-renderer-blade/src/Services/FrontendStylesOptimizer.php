@@ -55,6 +55,7 @@ class FrontendStylesOptimizer
 		'data-ve-accordion'        => [ 'ap-accordion' ],
 		'data-ve-tabs'             => [ 'ap-tab' ],
 		'data-ve-grid'             => [ 'ap-grid' ],
+		'data-ve-carousel'         => [ 'wp-block-artisanpack-carousel' ],
 		'data-ve-marquee'          => [ 'ap-marquee' ],
 		'data-ve-social-icons'     => [ 'wp-social-link', 'wp-block-artisanpack-social-links', 'ap-social-share-content', 'ap-author-social-icons' ],
 		'data-ve-inline-icon'      => [ 'ap-inline-icon' ],

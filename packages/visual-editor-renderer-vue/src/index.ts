@@ -85,6 +85,8 @@ export type {
 } from './visibility';
 export { getLightboxLabels, setLightboxLabels } from './support/lightbox';
 export type { LightboxLabels } from './support/lightbox';
+export { getCarouselLabels, setCarouselLabels } from './support/carousel';
+export type { CarouselLabels } from './support/carousel';
 export { DUOTONE_TARGETS, compileDuotone, stampDuotoneScopes } from './support/duotone';
 export { matchNavigationUrl, stampNavigationCurrent } from './support/navigationCurrent';
 export type { NavigationCurrentState } from './support/navigationCurrent';

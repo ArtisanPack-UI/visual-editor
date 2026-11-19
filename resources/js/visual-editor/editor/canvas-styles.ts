@@ -156,6 +156,12 @@ const EDITOR_BLOCK_TWEAKS = `
        RichText without it scrolling out from under their cursor;
        pin the text in place so it's readable. */
     .ap-marquee__text { transform: none !important; white-space: normal !important; }
+
+    /* Carousel (#1127) — "Show all slides" wraps the slides onto rows
+       so off-screen ones can be edited without scrolling the track. */
+    .wp-block-artisanpack-carousel.is-showing-all-slides > .wp-block-artisanpack-carousel__viewport > .wp-block-artisanpack-carousel__track { flex-wrap: wrap; overflow: visible; row-gap: var(--ap-carousel-gap); }
+    .wp-block-artisanpack-carousel-slide > :first-child { margin-block-start: 0 !important; }
+    .wp-block-artisanpack-carousel-slide > :last-child { margin-block-end: 0 !important; }
 `;
 
 /**

@@ -1,0 +1,46 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "artisanpack/carousel-slide",
+    "title": "Slide",
+    "category": "design",
+    "description": "A single carousel slide. Holds any blocks.",
+    "parent": [
+        "artisanpack/carousel"
+    ],
+    "textdomain": "artisanpack-visual-editor",
+    "supports": {
+        "ariaLabel": true,
+        "className": true,
+        "html": false,
+        "reusable": false,
+        "spacing": {
+            "padding": true,
+            "__experimentalDefaultControls": {
+                "padding": true
+            }
+        },
+        "color": {
+            "background": true,
+            "text": true,
+            "gradients": true,
+            "__experimentalDefaultControls": {
+                "background": true,
+                "text": true
+            }
+        },
+        "shadow": true,
+        "__experimentalBorder": {
+            "color": true,
+            "radius": true,
+            "style": true,
+            "width": true,
+            "__experimentalDefaultControls": {
+                "color": true,
+                "radius": true,
+                "style": true,
+                "width": true
+            }
+        }
+    }
+}
