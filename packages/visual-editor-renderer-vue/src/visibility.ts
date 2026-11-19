@@ -377,6 +377,9 @@ export const LIST_ITEM_BLOCKS: ReadonlySet<string> = new Set([
     'core/list-item',
     'artisanpack/list-item',
     'artisanpack/social-link',
+    // Not a list item, but the carousel lays out and steps through its
+    // direct slide children, so a wrapper would hide the slide (#1127).
+    'artisanpack/carousel-slide',
 ]);
 
 function attributesOf(block: Block): Record<string, unknown> | null {

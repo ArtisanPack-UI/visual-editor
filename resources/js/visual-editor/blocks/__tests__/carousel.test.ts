@@ -20,6 +20,7 @@ import carouselSlideSave from '../carousel-slide/save';
 import carouselMetadata from '../carousel/block.json';
 import slideMetadata from '../carousel-slide/block.json';
 import {
+    blockGapValue,
     carouselStyleVariables,
     normalizeAutoplayInterval,
     normalizePlacement,
@@ -107,6 +108,13 @@ describe('carousel settings', () => {
             '--ap-carousel-arrow-color': '#112233',
             '--ap-carousel-dot-color': 'var(--wp--preset--color--primary)',
         });
+    });
+
+    it('expands a spacing preset gap with the declared slug form', () => {
+        expect(blockGapValue({ spacing: { blockGap: 'var:preset|spacing|big_gap' } })).toBe('var(--wp--preset--spacing--big-gap)');
+        expect(blockGapValue({ spacing: { blockGap: 'var:preset|spacing|40' } })).toBe('var(--wp--preset--spacing--40)');
+        expect(blockGapValue({ spacing: { blockGap: '2rem' } })).toBe('2rem');
+        expect(blockGapValue(undefined)).toBeNull();
     });
 
     it('leaves the inactive opacity out unless dimming is on', () => {

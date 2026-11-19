@@ -92,6 +92,118 @@ it( 'labels a slide rendered on its own without numbering it', function (): void
 		->toContain( 'aria-label="Lone slide"' );
 } );
 
+/**
+ * @param  array<int, array<string, mixed>>  $slideAttributes  One entry per slide.
+ */
+function renderCarouselSlides( array $slideAttributes ): string
+{
+	$innerBlocks = [];
+
+	foreach ( $slideAttributes as $index => $attributes ) {
+		$innerBlocks[] = [
+			'clientId'    => 'slide-' . $index,
+			'name'        => 'artisanpack/carousel-slide',
+			'attributes'  => $attributes,
+			'innerBlocks' => [ [
+				'clientId'    => 'p-' . $index,
+				'name'        => 'core/paragraph',
+				'attributes'  => [ 'content' => 'Slide ' . ( $index + 1 ) ],
+				'innerBlocks' => [],
+			] ],
+		];
+	}
+
+	return app( ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer::class )->render( [ [
+		'name'        => 'artisanpack/carousel',
+		'attributes'  => [],
+		'innerBlocks' => $innerBlocks,
+	] ] );
+}
+
+it( 'drops a slide Block Visibility hides and numbers only the slides that render', function (): void {
+	$html = renderCarouselSlides( [
+		[],
+		[ 'artisanpackVisibility' => [ 'hide' => [ 'hidden' => true ] ] ],
+		[],
+	] );
+
+	expect( $html )
+		->not->toContain( 'Slide 2' )
+		->toContain( 'aria-label="1 of 2"' )
+		->toContain( 'aria-label="2 of 2"' )
+		->not->toContain( 'of 3' );
+} );
+
+it( 'counts a slide with its own label without numbering it', function (): void {
+	$html = renderCarouselSlides( [ [ 'ariaLabel' => 'Featured' ], [] ] );
+
+	expect( $html )
+		->toContain( 'aria-label="Featured"' )
+		->toContain( 'aria-label="2 of 2"' )
+		->not->toContain( 'data-ap-carousel-slide' )
+		->not->toContain( 'ap-carousel-slide-' );
+} );
+
+it( 'puts a screen-size visibility scope on the slide itself, not a wrapper', function (): void {
+	$html = renderCarouselSlides( [
+		[],
+		[ 'artisanpackVisibility' => [ 'screenSize' => [ 'direction' => 'hide', 'breakpoints' => [ 'mobile' ] ] ] ],
+	] );
+
+	expect( $html )->toMatch( '/<div class="wp-block-artisanpack-carousel-slide ap-carousel-slide ve-vis-\d+" role="group"/' )
+		->and( $html )->not->toContain( '<div class="ve-vis-' )
+		->and( $html )->toContain( 'aria-label="2 of 2"' );
+} );
+
+it( 'ignores a stored slide token or nonce', function (): void {
+	$html = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => [ [
+		'name'        => 'artisanpack/carousel',
+		'attributes'  => [ '_veCarouselSlides' => 'abc' ],
+		'innerBlocks' => [ [
+			'name'        => 'artisanpack/carousel-slide',
+			'attributes'  => [ '_veCarouselSlide' => 'ap-carousel-slide-abc-7' ],
+			'innerBlocks' => [],
+		] ],
+	] ] ] );
+
+	expect( $html )->toContain( 'aria-label="1 of 1"' )
+		->not->toContain( 'abc' );
+} );
+
+it( 'numbers a nested carousel on its own', function (): void {
+	$slide = static fn ( string $id, array $inner ): array => [
+		'clientId'    => $id,
+		'name'        => 'artisanpack/carousel-slide',
+		'attributes'  => [],
+		'innerBlocks' => $inner,
+	];
+
+	$html = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => [ [
+		'name'        => 'artisanpack/carousel',
+		'attributes'  => [ 'ariaLabel' => 'Outer' ],
+		'innerBlocks' => [
+			$slide( 'o1', [ [
+				'name'        => 'artisanpack/carousel',
+				'attributes'  => [ 'ariaLabel' => 'Inner' ],
+				'innerBlocks' => [ $slide( 'i1', [] ), $slide( 'i2', [] ), $slide( 'i3', [] ) ],
+			] ] ),
+			$slide( 'o2', [] ),
+		],
+	] ] ] );
+
+	expect( substr_count( $html, 'of 3"' ) )->toBe( 3 )
+		->and( substr_count( $html, 'of 2"' ) )->toBe( 2 );
+} );
+
+it( 'reads "false" and "0" flags as off, like the React and Vue renderers', function (): void {
+	$html = renderCarouselTree( [ 'showArrows' => 'false', 'showDots' => '0', 'autoplay' => 'false', 'loop' => '' ] );
+
+	expect( $html )
+		->not->toContain( 'wp-block-artisanpack-carousel__controls' )
+		->not->toContain( 'data-autoplay' )
+		->not->toContain( 'data-loop' );
+} );
+
 it( 'links the carousel stylesheet even without the interactivity script', function (): void {
 	expect( Blade::render( '<x-ve-blocks-styles :interactive="false" />' ) )
 		->toContain( '/vendor/visual-editor-renderer-blade/frontend/carousel.css' )

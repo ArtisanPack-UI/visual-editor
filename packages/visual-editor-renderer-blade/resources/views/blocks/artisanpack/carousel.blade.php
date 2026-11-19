@@ -8,7 +8,24 @@
 	 * reveals the controls and drives the track. Without the script the
 	 * track stays a scroll-snap strip and the controls stay hidden.
 	 */
-	$renderer = app( \ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer::class );
+
+	// The same rules as the React / Vue `attrBoolean()`: booleans as they
+	// are, `''` / `'false'` / `'0'` and zero are false.
+	$flag = static function ( $value, bool $fallback ): bool {
+		if ( is_bool( $value ) ) {
+			return $value;
+		}
+
+		if ( null === $value ) {
+			return $fallback;
+		}
+
+		if ( is_string( $value ) ) {
+			return ! in_array( strtolower( trim( $value ) ), [ '', 'false', '0' ], true );
+		}
+
+		return (bool) $value;
+	};
 
 	$clamp = static function ( $value, int $min, int $max ): ?int {
 		if ( ! is_numeric( $value ) ) {
@@ -30,12 +47,12 @@
 		$placement = 'below';
 	}
 
-	$showArrows  = (bool) ( $attributes['showArrows'] ?? true );
-	$showDots    = (bool) ( $attributes['showDots'] ?? true );
-	$loop        = (bool) ( $attributes['loop'] ?? false );
-	$autoplay    = (bool) ( $attributes['autoplay'] ?? false );
+	$showArrows  = $flag( $attributes['showArrows'] ?? null, true );
+	$showDots    = $flag( $attributes['showDots'] ?? null, true );
+	$loop        = $flag( $attributes['loop'] ?? null, false );
+	$autoplay    = $flag( $attributes['autoplay'] ?? null, false );
 	$interval    = $clamp( $attributes['autoplayInterval'] ?? null, 2, 30 ) ?? 5;
-	$dimInactive = (bool) ( $attributes['dimInactive'] ?? false );
+	$dimInactive = $flag( $attributes['dimInactive'] ?? null, false );
 
 	$styles = [
 		'--ap-carousel-per-view: ' . $perViewBase,
@@ -61,29 +78,41 @@
 		}
 	}
 
-	$slides = [];
+	// BlockRenderer rendered the slides through `carousel-slide.blade.php`
+	// (#1127): only slide children, each labelled with a placeholder token,
+	// and none that Block Visibility hid. Number them now that the count of
+	// slides on the page is known.
+	$slidesHtml = $innerBlocksHtml;
+	$nonce      = (string) ( $attributes['_veCarouselSlides'] ?? '' );
 
-	foreach ( $innerBlocks as $child ) {
-		if ( ! is_array( $child ) || ( $child['name'] ?? '' ) !== 'artisanpack/carousel-slide' ) {
-			continue;
-		}
+	if ( 1 === preg_match( '/^[a-f0-9]+$/', $nonce ) ) {
+		// The token shape `BlockRenderer::carouselSlideToken()` mints. Every
+		// slide carries it in its marker; unlabelled ones also as their
+		// aria-label.
+		$token     = 'ap-carousel-slide-' . $nonce . '-(\d+)';
+		$positions = [];
 
-		$childAttrs = isset( $child['attributes'] ) && is_array( $child['attributes'] ) ? $child['attributes'] : [];
+		$slidesHtml = (string) preg_replace_callback(
+			'/ data-ap-carousel-slide="' . $token . '"/',
+			static function ( array $match ) use ( &$positions ): string {
+				$positions[ $match[1] ] = count( $positions ) + 1;
 
-		// The slide carries its own supports; `anchor` is not one of them.
-		$slideAttrs = $childAttrs;
-		unset( $slideAttrs['anchor'] );
+				return '';
+			},
+			$slidesHtml,
+		);
 
-		$slides[] = [
-			'wrapper'   => BlockSupports::wrapperAttrs( $slideAttrs, [ 'wp-block-artisanpack-carousel-slide', 'ap-carousel-slide' ] ),
-			'ariaLabel' => trim( (string) ( $childAttrs['ariaLabel'] ?? '' ) ),
-			'content'   => isset( $child['innerBlocks'] ) && is_array( $child['innerBlocks'] )
-				? $renderer->render( $child['innerBlocks'] )
-				: '',
-		];
+		$total      = count( $positions );
+		$slidesHtml = (string) preg_replace_callback(
+			'/' . $token . '/',
+			static fn ( array $match ): string => e( __( ':current of :total', [
+				'current' => $positions[ $match[1] ] ?? 0,
+				'total'   => $total,
+			] ) ),
+			$slidesHtml,
+		);
 	}
 
-	$total     = count( $slides );
 	$ariaLabel = trim( (string) ( $attributes['ariaLabel'] ?? '' ) );
 
 	if ( '' === $ariaLabel ) {
@@ -101,9 +130,7 @@
 <div{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses, $styles ) !!} role="region" aria-roledescription="{{ __( 'carousel' ) }}" aria-label="{{ $ariaLabel }}" data-ap-carousel=""@if ( $loop ) data-loop="true"@endif @if ( $autoplay ) data-autoplay="{{ $interval }}"@endif>
 	<div class="wp-block-artisanpack-carousel__viewport">
 		<div class="wp-block-artisanpack-carousel__track" aria-live="polite">
-			@foreach ( $slides as $index => $slide )
-				<div{!! $slide['wrapper'] !!} role="group" aria-roledescription="{{ __( 'slide' ) }}" aria-label="{{ '' !== $slide['ariaLabel'] ? $slide['ariaLabel'] : __( ':current of :total', [ 'current' => $index + 1, 'total' => $total ] ) }}">{!! $slide['content'] !!}</div>
-			@endforeach
+			{!! $slidesHtml !!}
 		</div>
 	</div>
 	@if ( $hasControls )

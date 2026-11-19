@@ -90,12 +90,40 @@ function pointer(type: string, clientX: number, pointerType = 'mouse'): MouseEve
     return event;
 }
 
+interface FakeMotionQuery {
+    matches: boolean;
+    media: string;
+    addEventListener: (type: string, listener: () => void) => void;
+}
+
+const motionQueries: FakeMotionQuery[] = [];
+
 function setReducedMotion(reduce: boolean): void {
+    motionQueries.length = 0;
     Object.defineProperty(window, 'matchMedia', {
         configurable: true,
         writable: true,
-        value: (query: string) => ({ matches: reduce && query.includes('reduce'), media: query }),
+        value: (query: string) => {
+            const listeners: Array<() => void> = [];
+            const mq: FakeMotionQuery & { listeners: Array<() => void> } = {
+                matches: reduce && query.includes('reduce'),
+                media: query,
+                listeners,
+                addEventListener: (_type: string, listener: () => void) => listeners.push(listener),
+            };
+            motionQueries.push(mq);
+
+            return mq;
+        },
     });
+}
+
+/** Flip reduced motion mid-visit, as the OS setting would. */
+function changeReducedMotion(reduce: boolean): void {
+    for (const mq of motionQueries as Array<FakeMotionQuery & { listeners: Array<() => void> }>) {
+        mq.matches = reduce;
+        mq.listeners.forEach((listener) => listener());
+    }
 }
 
 describe('interactivity.js carousel', () => {
@@ -261,7 +289,7 @@ describe('interactivity.js carousel', () => {
         expect(query('.wp-block-artisanpack-carousel__autoplay').textContent).toBe('Play');
     });
 
-    it('never autoplays under prefers-reduced-motion and drops the pause button', () => {
+    it('never autoplays under prefers-reduced-motion and hides the pause button', () => {
         setReducedMotion(true);
         renderCarousel({ slides: 3, perView: 1, autoplay: 3 });
         runScript();
@@ -269,8 +297,71 @@ describe('interactivity.js carousel', () => {
         vi.advanceTimersByTime(9000);
 
         expect(dots()[0].getAttribute('aria-current')).toBe('true');
-        expect(document.querySelector('.wp-block-artisanpack-carousel__autoplay')).toBeNull();
+        expect(query('.wp-block-artisanpack-carousel__autoplay').hidden).toBe(true);
         expect(track().getAttribute('aria-live')).toBe('polite');
+    });
+
+    it('stops autoplay when reduced motion turns on mid-visit and resumes when it turns off', () => {
+        renderCarousel({ slides: 3, perView: 1, autoplay: 3 });
+        runScript();
+
+        changeReducedMotion(true);
+        vi.advanceTimersByTime(9000);
+
+        expect(dots()[0].getAttribute('aria-current')).toBe('true');
+        expect(query('.wp-block-artisanpack-carousel__autoplay').hidden).toBe(true);
+
+        changeReducedMotion(false);
+        vi.advanceTimersByTime(3000);
+
+        expect(dots()[1].getAttribute('aria-current')).toBe('true');
+        expect(query('.wp-block-artisanpack-carousel__autoplay').hidden).toBe(false);
+    });
+
+    it('makes the viewport focusable when there are no arrows or dots, so the keys still work', () => {
+        renderCarousel({ slides: 3, perView: 1, controls: false });
+        runScript();
+
+        const viewport = query('.wp-block-artisanpack-carousel__viewport');
+
+        expect(viewport.getAttribute('tabindex')).toBe('0');
+
+        viewport.focus();
+        viewport.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+
+        expect(slides()[1].hasAttribute('inert')).toBe(false);
+        expect(slides()[0].hasAttribute('inert')).toBe(true);
+    });
+
+    it('leaves the viewport out of the tab order when the controls exist', () => {
+        renderCarousel({ slides: 3, perView: 1 });
+        runScript();
+
+        expect(query('.wp-block-artisanpack-carousel__viewport').hasAttribute('tabindex')).toBe(false);
+    });
+
+    it('picks up a slides-per-view change on a window resize', () => {
+        const root = renderCarousel({ slides: 5, perView: 3 });
+        runScript();
+
+        expect(dots()).toHaveLength(3);
+
+        root.style.setProperty('--ap-carousel-columns', '1');
+        window.dispatchEvent(new Event('resize'));
+
+        expect(dots()).toHaveLength(5);
+    });
+
+    it('skips a slide a screen-size rule hides', () => {
+        renderCarousel({ slides: 4, perView: 1 });
+        slides()[1].style.display = 'none';
+        runScript();
+
+        expect(dots()).toHaveLength(3);
+
+        query<HTMLButtonElement>('.wp-block-artisanpack-carousel__arrow--next').click();
+
+        expect(slides()[2].hasAttribute('inert')).toBe(false);
     });
 
     it('hides the dots when every slide fits in the view', () => {

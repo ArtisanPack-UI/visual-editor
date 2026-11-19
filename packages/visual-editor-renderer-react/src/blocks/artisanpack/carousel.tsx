@@ -59,8 +59,16 @@ function Arrow({ direction, label }: { direction: 'previous' | 'next'; label: st
     );
 }
 
-/** A slide's wrapper class and style, from its own supports. */
-function slideWrapper(attributes: Record<string, unknown>): { className: string; style: Record<string, string> } {
+/**
+ * A slide's wrapper class and style, from its own supports. The carousel
+ * rebuilds its slides from `innerBlocks`, so it adds the screen-size
+ * visibility scope itself (`withScope`); a slide rendered on its own
+ * already has it in `className`, merged by `BlockTree`.
+ */
+function slideWrapper(
+    attributes: Record<string, unknown>,
+    withScope: boolean
+): { className: string; style: Record<string, string> } {
     const supports = compileBlockSupports(attributes);
 
     return {
@@ -69,6 +77,7 @@ function slideWrapper(attributes: Record<string, unknown>): { className: string;
             'ap-carousel-slide',
             ...supports.classNames,
             attrString(attributes.className),
+            withScope ? attrString(attributes._veVisScope) : null,
         ]),
         style: supports.style,
     };
@@ -130,7 +139,7 @@ export function CarouselBlock({ attributes, innerBlocks, children }: BlockRender
             <div className="wp-block-artisanpack-carousel__viewport">
                 <div className="wp-block-artisanpack-carousel__track" aria-live="polite">
                     {slides.map((slide, index) => {
-                        const wrapper = slideWrapper(slide.attributes);
+                        const wrapper = slideWrapper(slide.attributes, true);
                         const slideLabel = attrString(slide.attributes.ariaLabel).trim();
 
                         return (
@@ -184,7 +193,7 @@ export function CarouselBlock({ attributes, innerBlocks, children }: BlockRender
 // carousel re-wraps its slides itself, so this only surfaces when
 // something else renders the slide in isolation.
 export function CarouselSlideBlock({ attributes, children }: BlockRendererProps): JSX.Element {
-    const wrapper = slideWrapper(attributes);
+    const wrapper = slideWrapper(attributes, false);
     const ariaLabel = attrString(attributes.ariaLabel).trim();
 
     return (

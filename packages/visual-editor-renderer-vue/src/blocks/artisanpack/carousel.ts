@@ -79,8 +79,13 @@ function arrow(direction: 'previous' | 'next', label: string): VNode {
     );
 }
 
-/** A slide's wrapper props, from its own supports. */
-function slideProps(attributes: Record<string, unknown>): Record<string, unknown> {
+/**
+ * A slide's wrapper props, from its own supports. The carousel rebuilds
+ * its slides from `innerBlocks`, so it adds the screen-size visibility
+ * scope itself (`withScope`); a slide rendered on its own already has it
+ * in `className`, merged by `BlockTree`.
+ */
+function slideProps(attributes: Record<string, unknown>, withScope: boolean): Record<string, unknown> {
     const supports = compileBlockSupports(attributes);
 
     return withStyle(
@@ -90,6 +95,7 @@ function slideProps(attributes: Record<string, unknown>): Record<string, unknown
                 'ap-carousel-slide',
                 ...supports.classNames,
                 attrString(attributes.className),
+                withScope ? attrString(attributes._veVisScope) : null,
             ]),
         },
         supports.style
@@ -136,7 +142,7 @@ export const CarouselBlock = defineComponent({
                     'div',
                     {
                         key: index,
-                        ...slideProps(slide.attributes),
+                        ...slideProps(slide.attributes, true),
                         role: 'group',
                         'aria-roledescription': labels.slide,
                         'aria-label':
@@ -229,7 +235,7 @@ export const CarouselSlideBlock = defineComponent({
     setup(props, { slots }) {
         return () => {
             const nodeProps: Record<string, unknown> = {
-                ...slideProps(props.attributes),
+                ...slideProps(props.attributes, false),
                 role: 'group',
                 'aria-roledescription': getCarouselLabels().slide,
             };

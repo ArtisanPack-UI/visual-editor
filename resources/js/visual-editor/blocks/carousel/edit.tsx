@@ -10,7 +10,7 @@
  * the front-end script drives the real ones.
  */
 
-import { useEffect, useRef, useState, type CSSProperties, type ReactElement } from 'react';
+import { useRef, useState, useSyncExternalStore, type CSSProperties, type ReactElement } from 'react';
 import {
     BlockControls,
     InspectorControls,
@@ -40,6 +40,7 @@ import {
     MAX_SLIDES_PER_VIEW,
     MIN_AUTOPLAY_INTERVAL,
     MIN_SLIDES_PER_VIEW,
+    blockGapValue,
     carouselStyleVariables,
     normalizeAutoplayInterval,
     normalizeInactiveOpacity,
@@ -75,11 +76,7 @@ function placementOptions(): ReadonlyArray<{ value: ControlsPlacement; label: st
 }
 
 function useActiveBreakpoint(): string {
-    const [active, setActive] = useState<string>(() => getActiveBreakpoint());
-
-    useEffect(() => subscribeActiveBreakpoint((breakpoint) => setActive(breakpoint)), []);
-
-    return active;
+    return useSyncExternalStore(subscribeActiveBreakpoint, getActiveBreakpoint, getActiveBreakpoint);
 }
 
 function slidesPerViewHelp(breakpoint: string): string {
@@ -95,20 +92,6 @@ function slidesPerViewHelp(breakpoint: string): string {
         'Switch the editor to Tablet or Mobile to set those sizes. They default to at most 2 and to 1.',
         TEXT_DOMAIN
     );
-}
-
-/** `var:preset|spacing|40` → `var(--wp--preset--spacing--40)`, anything else as-is. */
-function blockGapValue(style: Record<string, unknown> | undefined): string | null {
-    const spacing = style?.spacing as Record<string, unknown> | undefined;
-    const gap = spacing?.blockGap;
-
-    if (typeof gap !== 'string' || gap === '') {
-        return null;
-    }
-
-    const match = gap.match(/^var:preset\|spacing\|(.+)$/);
-
-    return match ? `var(--wp--preset--spacing--${match[1]})` : gap;
 }
 
 export default function CarouselEdit({ attributes, setAttributes, clientId }: CarouselEditProps): ReactElement {
@@ -191,7 +174,10 @@ export default function CarouselEdit({ attributes, setAttributes, clientId }: Ca
             return;
         }
 
-        track.scrollBy({ left: direction * slide.getBoundingClientRect().width, behavior: 'smooth' });
+        // In a right-to-left track the next slide sits to the left.
+        const sign = window.getComputedStyle(track).direction === 'rtl' ? -1 : 1;
+
+        track.scrollBy({ left: sign * direction * slide.getBoundingClientRect().width, behavior: 'smooth' });
     };
 
     const dots = positionCount(slideCount, activePerView);

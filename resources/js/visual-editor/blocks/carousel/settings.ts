@@ -8,6 +8,7 @@
  * through `safeCssValue()`.
  */
 
+import { presetSlug } from '../../support/preset-slug';
 import { safeCssValue } from '../../support/safe-css-value';
 
 export type ControlsPlacement = 'below' | 'split' | 'overlay';
@@ -135,6 +136,24 @@ export function carouselStyleVariables(attributes: Partial<CarouselAttributes>, 
     }
 
     return style;
+}
+
+/**
+ * The Block spacing gap as a CSS value: `var:preset|spacing|big_gap` →
+ * `var(--wp--preset--spacing--big-gap)`, with the slug normalised like the
+ * declared custom properties; anything else as-is.
+ */
+export function blockGapValue(style: Record<string, unknown> | undefined): string | null {
+    const spacing = style?.spacing as Record<string, unknown> | undefined;
+    const gap = spacing?.blockGap;
+
+    if (typeof gap !== 'string' || gap === '') {
+        return null;
+    }
+
+    const match = gap.match(/^var:preset\|spacing\|(.+)$/);
+
+    return match ? `var(--wp--preset--spacing--${presetSlug(match[1])})` : gap;
 }
 
 /** How many positions the dots stand for: one per first-visible slide. */

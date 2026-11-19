@@ -603,6 +603,8 @@ class BlockRenderer
 		$innerBlocks     = $this->stampSocialLinksContext( $name, $attributes, $innerBlocks );
 		$isLoop          = in_array( $name, self::LOOP_BLOCKS, true );
 
+		[ $attributes, $innerBlocks ] = $this->stampCarouselSlides( $name, $attributes, $innerBlocks );
+
 		if ( $isLoop ) {
 			app( ResponsiveImages::class )->enterLoop();
 		}
@@ -665,6 +667,20 @@ class BlockRenderer
 		}
 
 		return $html;
+	}
+
+	/**
+	 * The placeholder a carousel slide prints as its aria-label until the
+	 * carousel numbers it (#1127).
+	 *
+	 * @since 1.22.0
+	 *
+	 * @param  string  $nonce  The carousel's `_veCarouselSlides` nonce.
+	 * @param  int     $index  The slide's position among its siblings.
+	 */
+	public static function carouselSlideToken( string $nonce, int $index ): string
+	{
+		return 'ap-carousel-slide-' . $nonce . '-' . $index;
 	}
 
 	/**
@@ -849,6 +865,53 @@ class BlockRenderer
 		}
 
 		return $innerBlocks;
+	}
+
+	/**
+	 * Prepares a Carousel's slides so they render through the normal
+	 * pipeline (#1127).
+	 *
+	 * Only `carousel-slide` children are kept. Each one gets a
+	 * `_veCarouselSlide` token, which `carousel-slide.blade.php` prints as
+	 * its aria-label, and the carousel gets the token's nonce as
+	 * `_veCarouselSlides`. Once the slides have rendered, the carousel
+	 * replaces each token with the slide's "n of N" label. Rendering the
+	 * slides here, not in the partial, means Block Visibility drops a
+	 * hidden slide (so N counts only the slides on the page), a
+	 * screen-size rule scopes the slide itself, and each slide renders
+	 * once. Both attributes are always overwritten, so stored content
+	 * can't forge them.
+	 *
+	 * @since 1.22.0
+	 *
+	 * @param  string                            $name         The block name.
+	 * @param  array<string, mixed>              $attributes   The carousel's attributes.
+	 * @param  array<int, array<string, mixed>>  $innerBlocks  The carousel's inner blocks.
+	 *
+	 * @return array{0: array<string, mixed>, 1: array<int, array<string, mixed>>}
+	 */
+	protected function stampCarouselSlides( string $name, array $attributes, array $innerBlocks ): array
+	{
+		if ( 'artisanpack/carousel' !== $name ) {
+			return [ $attributes, $innerBlocks ];
+		}
+
+		$nonce                           = bin2hex( random_bytes( 6 ) );
+		$attributes['_veCarouselSlides'] = $nonce;
+		$slides                          = [];
+
+		foreach ( $innerBlocks as $innerBlock ) {
+			if ( 'artisanpack/carousel-slide' !== ( $innerBlock['name'] ?? null ) ) {
+				continue;
+			}
+
+			$innerAttributes                     = is_array( $innerBlock['attributes'] ?? null ) ? $innerBlock['attributes'] : [];
+			$innerAttributes['_veCarouselSlide'] = self::carouselSlideToken( $nonce, count( $slides ) );
+			$innerBlock['attributes']            = $innerAttributes;
+			$slides[]                            = $innerBlock;
+		}
+
+		return [ $attributes, $slides ];
 	}
 
 	/**
@@ -1172,7 +1235,8 @@ class BlockRenderer
 			return $html;
 		}
 
-		$mergedListItem = $this->mergeScopeIntoListItem( $html, $scopeClass, $css );
+		$mergedListItem = $this->mergeScopeIntoListItem( $html, $scopeClass, $css )
+			?? $this->mergeScopeIntoCarouselSlide( $html, $scopeClass, $css );
 
 		if ( null !== $mergedListItem ) {
 			return $mergedListItem;
@@ -1207,20 +1271,63 @@ class BlockRenderer
 	 */
 	protected function mergeScopeIntoListItem( string $html, string $scopeClass, string $css ): ?string
 	{
+		return $this->mergeScopeIntoRoot( $html, 'li', $scopeClass, $css );
+	}
+
+	/**
+	 * Stamp the visibility scope onto a carousel slide's own `<div>` root
+	 * (#1127). The carousel's track lays out and steps through its direct
+	 * slide children, so a `<div>` wrapper would hide the slide from it.
+	 *
+	 * @since 1.22.0
+	 *
+	 * @param  string  $html        The rendered block markup.
+	 * @param  string  $scopeClass  The per-block `ve-vis-N` scope class.
+	 * @param  string  $css         The `@media` rules targeting the scope class.
+	 *
+	 * @return string|null The merged markup, or null when the markup is not a single slide root.
+	 */
+	protected function mergeScopeIntoCarouselSlide( string $html, string $scopeClass, string $css ): ?string
+	{
+		if ( 1 !== preg_match( '/^<div\b[^>]*\bclass="[^"]*\bwp-block-artisanpack-carousel-slide\b/i', trim( $html ) ) ) {
+			return null;
+		}
+
+		return $this->mergeScopeIntoRoot( $html, 'div', $scopeClass, $css );
+	}
+
+	/**
+	 * Merge the visibility scope onto a block's single `<{$tag}>` root:
+	 * the scope class joins the root's first `class` attribute, the
+	 * `data-ve-vis-scope` marker is added, and the `<style>` rules become
+	 * the root's last child.
+	 *
+	 * @since 1.22.0 Extracted from {@see self::mergeScopeIntoListItem()}.
+	 *
+	 * @param  string  $html        The rendered block markup.
+	 * @param  string  $tag         The root element's tag name (`li`, `div`).
+	 * @param  string  $scopeClass  The per-block `ve-vis-N` scope class.
+	 * @param  string  $css         The `@media` rules targeting the scope class.
+	 *
+	 * @return string|null The merged markup, or null when the markup is not a single `<{$tag}>` root.
+	 */
+	protected function mergeScopeIntoRoot( string $html, string $tag, string $scopeClass, string $css ): ?string
+	{
 		$trimmed = trim( $html );
+		$quoted  = preg_quote( $tag, '/' );
 
-		if ( 1 !== preg_match( '/^<li(?=[\s>\/])/i', $trimmed ) ) {
+		if ( 1 !== preg_match( '/^<' . $quoted . '(?=[\s>\/])/i', $trimmed ) ) {
 			return null;
 		}
 
-		if ( 1 !== preg_match( '/<\/li\s*>$/i', $trimmed, $closeTag ) ) {
+		if ( 1 !== preg_match( '/<\/' . $quoted . '\s*>$/i', $trimmed, $closeTag ) ) {
 			return null;
 		}
 
-		// Walk every `<li` / `</li` token so a run of sibling `<li>`s
+		// Walk every opening / closing tag token so a run of siblings
 		// (`<li>a</li><li>b</li>`) is rejected: the depth may only
 		// return to zero on the final closing tag.
-		preg_match_all( '/<(\/?)li(?=[\s>\/])/i', $trimmed, $tokens, PREG_SET_ORDER );
+		preg_match_all( '/<(\/?)' . $quoted . '(?=[\s>\/])/i', $trimmed, $tokens, PREG_SET_ORDER );
 
 		$depth     = 0;
 		$lastIndex = count( $tokens ) - 1;
@@ -1237,7 +1344,7 @@ class BlockRenderer
 			return null;
 		}
 
-		$openTag = $this->parseOpeningTagAttributes( $trimmed, 3 );
+		$openTag = $this->parseOpeningTagAttributes( $trimmed, 1 + strlen( $tag ) );
 
 		if ( null === $openTag ) {
 			return null;
@@ -1269,7 +1376,8 @@ class BlockRenderer
 		$inner = substr( $trimmed, $openTag['end'] + 1, -strlen( $closeTag[0] ) );
 
 		return sprintf(
-			'<li%s data-ve-vis-scope>%s<style>%s</style>%s',
+			'<%s%s data-ve-vis-scope>%s<style>%s</style>%s',
+			$tag,
 			$attributes,
 			$inner,
 			$css,

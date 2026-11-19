@@ -167,8 +167,8 @@
     // Share of a slide's width a drag must cover before it moves on.
     var CAROUSEL_DRAG_THRESHOLD = 0.2;
 
-    function prefersReducedMotion() {
-        return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    function reducedMotionQuery() {
+        return window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
     }
 
     function childWithClass(parent, className) {
@@ -198,9 +198,12 @@
             return;
         }
 
-        var slides = Array.prototype.filter.call(track.children, function (child) {
+        var allSlides = Array.prototype.filter.call(track.children, function (child) {
             return child.classList.contains(CAROUSEL_SLIDE_CLASS);
         });
+        // The slides on screen: a screen-size visibility rule can hide a
+        // slide at some widths (`display: none` on the slide itself).
+        var slides = allSlides;
 
         if (slides.length === 0) {
             return;
@@ -213,7 +216,14 @@
         var toggle = childWithClass(controls, CAROUSEL_CLASS + '__autoplay');
         var loop = root.getAttribute('data-loop') === 'true';
         var intervalSeconds = parseInt(root.getAttribute('data-autoplay') || '', 10);
-        var canAutoplay = isFinite(intervalSeconds) && intervalSeconds > 0 && !prefersReducedMotion();
+        var hasAutoplay = isFinite(intervalSeconds) && intervalSeconds > 0;
+        var motionQuery = hasAutoplay ? reducedMotionQuery() : null;
+
+        // Read live, so turning reduced motion on mid-visit stops autoplay
+        // and turning it off lets it resume.
+        function canAutoplay() {
+            return hasAutoplay && !(motionQuery && motionQuery.matches);
+        }
 
         var index = 0;
         var perView = 1;
@@ -299,7 +309,7 @@
         }
 
         function syncAutoplay(restart) {
-            var shouldPlay = canAutoplay && !userPaused && !hoverPaused && !document.hidden && lastIndex() > 0;
+            var shouldPlay = canAutoplay() && !userPaused && !hoverPaused && !document.hidden && lastIndex() > 0;
 
             if (timer !== null && (!shouldPlay || restart)) {
                 window.clearInterval(timer);
@@ -363,6 +373,10 @@
         }
 
         function refresh() {
+            var shown = allSlides.filter(function (slide) {
+                return window.getComputedStyle(slide).display !== 'none';
+            });
+            slides = shown.length > 0 ? shown : allSlides;
             perView = readPerView();
             buildDots();
             update();
@@ -540,10 +554,12 @@
         });
 
         if (toggle) {
-            if (!canAutoplay) {
+            if (!hasAutoplay) {
                 toggle.parentNode.removeChild(toggle);
                 toggle = null;
             } else {
+                // No pause button while reduced motion keeps it still.
+                toggle.hidden = !canAutoplay();
                 toggle.addEventListener('click', function () {
                     userPaused = !userPaused;
                     toggle.textContent = toggle.getAttribute(userPaused ? 'data-label-play' : 'data-label-pause') || toggle.textContent;
@@ -552,7 +568,22 @@
             }
         }
 
-        if (canAutoplay) {
+        if (hasAutoplay) {
+            if (motionQuery) {
+                var onMotionChange = function () {
+                    if (toggle) {
+                        toggle.hidden = !canAutoplay();
+                    }
+                    syncAutoplay(false);
+                };
+
+                if (typeof motionQuery.addEventListener === 'function') {
+                    motionQuery.addEventListener('change', onMotionChange);
+                } else if (typeof motionQuery.addListener === 'function') {
+                    motionQuery.addListener(onMotionChange);
+                }
+            }
+
             // Mouse only: a tap fires `mouseenter` with no matching leave,
             // which would stall autoplay on touch screens.
             root.addEventListener('pointerenter', function (event) {
@@ -584,6 +615,13 @@
             });
         }
 
+        // With no arrows or dots, the viewport takes focus so the arrow
+        // keys still reach the carousel; the slides outside the view are
+        // inert, so nothing else in them can.
+        if (viewport && !prev && !next && !dotsHost) {
+            viewport.setAttribute('tabindex', '0');
+        }
+
         track.scrollLeft = 0;
         root.classList.add('is-ready');
         if (controls) {
@@ -592,11 +630,13 @@
 
         refresh();
 
+        // The observer catches container-size changes; the window listener
+        // catches a breakpoint crossing that leaves the carousel's own size
+        // unchanged (a fixed-width carousel).
         if (typeof window.ResizeObserver === 'function') {
             new window.ResizeObserver(refresh).observe(root);
-        } else {
-            window.addEventListener('resize', refresh);
         }
+        window.addEventListener('resize', refresh);
     }
 
     var COPY_LINK_MESSAGES = {

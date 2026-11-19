@@ -68,20 +68,20 @@
  * Once the script runs (`is-ready`) the track slides with a transform
  * and follows a drag, so it stops scrolling natively.
  */
-.wp-block-artisanpack-carousel.is-ready .wp-block-artisanpack-carousel__track {
+.wp-block-artisanpack-carousel.is-ready > .wp-block-artisanpack-carousel__viewport > .wp-block-artisanpack-carousel__track {
     overflow: visible;
     scroll-snap-type: none;
     touch-action: pan-y;
     transition: transform 0.45s ease;
 }
 
-.wp-block-artisanpack-carousel.is-ready.is-dragging .wp-block-artisanpack-carousel__track {
+.wp-block-artisanpack-carousel.is-ready.is-dragging > .wp-block-artisanpack-carousel__viewport > .wp-block-artisanpack-carousel__track {
     transition: none;
     cursor: grabbing;
     user-select: none;
 }
 
-.wp-block-artisanpack-carousel.is-ready .wp-block-artisanpack-carousel-slide {
+.wp-block-artisanpack-carousel.is-ready > .wp-block-artisanpack-carousel__viewport > .wp-block-artisanpack-carousel__track > .wp-block-artisanpack-carousel-slide {
     transition: opacity 0.3s ease;
 }
 
@@ -93,11 +93,11 @@
     overflow-x: clip;
 }
 
-.wp-block-artisanpack-carousel.has-dimmed-inactive.is-ready .wp-block-artisanpack-carousel__viewport {
+.wp-block-artisanpack-carousel.has-dimmed-inactive.is-ready > .wp-block-artisanpack-carousel__viewport {
     overflow: visible;
 }
 
-.wp-block-artisanpack-carousel.has-dimmed-inactive .wp-block-artisanpack-carousel-slide.is-inactive {
+.wp-block-artisanpack-carousel.has-dimmed-inactive > .wp-block-artisanpack-carousel__viewport > .wp-block-artisanpack-carousel__track > .wp-block-artisanpack-carousel-slide.is-inactive {
     opacity: var(--ap-carousel-inactive-opacity, 0.35);
 }
 
@@ -116,16 +116,16 @@
     display: none;
 }
 
-.wp-block-artisanpack-carousel.is-controls-split .wp-block-artisanpack-carousel__controls {
+.wp-block-artisanpack-carousel.is-controls-split > .wp-block-artisanpack-carousel__controls {
     justify-content: flex-end;
 }
 
-.wp-block-artisanpack-carousel.is-controls-split .wp-block-artisanpack-carousel__dots {
+.wp-block-artisanpack-carousel.is-controls-split > .wp-block-artisanpack-carousel__controls > .wp-block-artisanpack-carousel__dots {
     order: -1;
     margin-inline-end: auto;
 }
 
-.wp-block-artisanpack-carousel.is-controls-split .wp-block-artisanpack-carousel__autoplay {
+.wp-block-artisanpack-carousel.is-controls-split > .wp-block-artisanpack-carousel__controls > .wp-block-artisanpack-carousel__autoplay {
     order: -2;
 }
 
@@ -133,18 +133,18 @@
  * Arrows on the sides: centred on the slides, which sit above the
  * 2.5rem controls row (1rem margin + 1.5rem row).
  */
-.wp-block-artisanpack-carousel.is-controls-overlay .wp-block-artisanpack-carousel__arrow {
+.wp-block-artisanpack-carousel.is-controls-overlay > .wp-block-artisanpack-carousel__controls > .wp-block-artisanpack-carousel__arrow {
     position: absolute;
     z-index: 1;
     top: calc((100% - 2.5rem) / 2);
     transform: translateY(-50%);
 }
 
-.wp-block-artisanpack-carousel.is-controls-overlay .wp-block-artisanpack-carousel__arrow--previous {
+.wp-block-artisanpack-carousel.is-controls-overlay > .wp-block-artisanpack-carousel__controls > .wp-block-artisanpack-carousel__arrow--previous {
     inset-inline-start: 0.5rem;
 }
 
-.wp-block-artisanpack-carousel.is-controls-overlay .wp-block-artisanpack-carousel__arrow--next {
+.wp-block-artisanpack-carousel.is-controls-overlay > .wp-block-artisanpack-carousel__controls > .wp-block-artisanpack-carousel__arrow--next {
     inset-inline-end: 0.5rem;
 }
 
@@ -219,6 +219,7 @@
     cursor: pointer;
 }
 
+.wp-block-artisanpack-carousel__viewport:focus-visible,
 .wp-block-artisanpack-carousel__arrow:focus-visible,
 .wp-block-artisanpack-carousel__dot:focus-visible,
 .wp-block-artisanpack-carousel__autoplay:focus-visible {
@@ -227,8 +228,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .wp-block-artisanpack-carousel.is-ready .wp-block-artisanpack-carousel__track,
-    .wp-block-artisanpack-carousel.is-ready .wp-block-artisanpack-carousel-slide {
+    .wp-block-artisanpack-carousel.is-ready > .wp-block-artisanpack-carousel__viewport > .wp-block-artisanpack-carousel__track,
+    .wp-block-artisanpack-carousel.is-ready > .wp-block-artisanpack-carousel__viewport > .wp-block-artisanpack-carousel__track > .wp-block-artisanpack-carousel-slide {
         transition: none;
     }
 }
