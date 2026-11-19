@@ -11,5 +11,5 @@
   </div>
 </div>
 @@ renderer-instance-css @@
-.wp-block-columns.is-not-stacked-on-mobile .ve-w-43e1abfb38.ve-w-43e1abfb38.ve-w-43e1abfb38{flex-basis:calc(60% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.4)!important;flex-grow:0!important}
+:where(.wp-block-columns.is-not-stacked-on-mobile) .ve-w-43e1abfb38.ve-w-43e1abfb38.ve-w-43e1abfb38{flex-basis:calc(60% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.4)!important;flex-grow:0!important}
 @media (min-width: 768px){.ve-w-43e1abfb38.ve-w-43e1abfb38.ve-w-43e1abfb38{flex-basis:calc(60% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.4)!important;flex-grow:0!important}}

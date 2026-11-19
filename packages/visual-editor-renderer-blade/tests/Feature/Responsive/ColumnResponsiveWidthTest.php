@@ -74,7 +74,7 @@ it( 'lets Stack on mobile win at the mobile breakpoint and below (#910, #1122)',
 	// where Columns stop stacking, and everywhere inside a Columns block
 	// that doesn't stack on mobile.
 	expect( $rendered )->toMatch( '/@media \\(min-width: 768px\\)\\{' . $scope . '\\{flex-basis:calc\\(52\\.5%/' )
-		->toMatch( '/\\.wp-block-columns\\.is-not-stacked-on-mobile ' . $scope . '\\{flex-basis:calc\\(52\\.5%/' )
+		->toMatch( '/:where\\(\\.wp-block-columns\\.is-not-stacked-on-mobile\\) ' . $scope . '\\{flex-basis:calc\\(52\\.5%/' )
 		->not->toMatch( '/\\}' . $scope . '\\{flex-basis/' );
 } );
 
@@ -427,3 +427,22 @@ it( 'keeps lengths and CSS functions as widths (#925)', function ( string $width
 
 	expect( $rendered )->toContain( 'flex-basis: ' . $width );
 } )->with( [ '33.33%', '250px', '12.5rem', '.5em', 'calc(50% - 1rem)', 'var(--col-width)' ] );
+
+it( 'lets a Mobile width override the All sizes width inside unstacked Columns (#1134)', function (): void {
+	$tree = [
+		[
+			'clientId'    => 'col-1134',
+			'name'        => 'artisanpack/column',
+			'attributes'  => [ 'width' => '40%', 'responsive' => [ 'width' => [ 'mobile' => '34%' ] ] ],
+			'innerBlocks' => [],
+		],
+	];
+
+	$rendered = $this->stripGlobalStyles( Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] ) );
+	$scope    = '\\.ve-w-[a-f0-9]+\\.ve-w-[a-f0-9]+\\.ve-w-[a-f0-9]+';
+
+	// The unstacked-parent rule must not outrank the Mobile rule: its parent
+	// qualifier is wrapped in :where(), and the Mobile rule comes later.
+	expect( $rendered )->toMatch( '/:where\\(\\.wp-block-columns\\.is-not-stacked-on-mobile\\) ' . $scope . '\\{flex-basis:calc\\(40%.*@media \\(max-width:767px\\)\\{' . $scope . '\\{flex-basis:calc\\(34%/s' )
+		->not->toMatch( '/(?<!:where\\()\\.wp-block-columns\\.is-not-stacked-on-mobile ' . $scope . '/' );
+} );

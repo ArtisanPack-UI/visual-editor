@@ -233,12 +233,14 @@
 			// stop stacking (StackingStyles, #820), so the `flex-basis:
 			// 100%` stacking rule wins on phones (#910) and the width
 			// is back as soon as the row stops wrapping (#1122).
-			// Explicit per-breakpoint widths still win in their ranges. A
-			// descendant combinator, because the React and Vue renderers
-			// escape `>` in their <style> text.
+			// Explicit per-breakpoint widths still win in their ranges: the
+			// parent qualifier sits in `:where()`, so this rule keeps the
+			// (0,3,0) of the per-breakpoint rules and source order decides
+			// (#1134). A descendant combinator, because the React and Vue
+			// renderers escape `>` in their <style> text.
 			if ( BreakpointRegistry::BASE_KEY === $bp ) {
 				$unstackedFrom = ( $widthRegistry->maxWidth( 'mobile' ) ?? StackingStyles::DEFAULT_MOBILE_MAX_WIDTH ) + 1;
-				$widthRules[]  = sprintf( '.wp-block-columns.is-not-stacked-on-mobile %s{%s}', $widthSelector, $declaration );
+				$widthRules[]  = sprintf( ':where(.wp-block-columns.is-not-stacked-on-mobile) %s{%s}', $widthSelector, $declaration );
 				$widthRules[]  = sprintf( '@media (min-width: %dpx){%s{%s}}', $unstackedFrom, $widthSelector, $declaration );
 				continue;
 			}

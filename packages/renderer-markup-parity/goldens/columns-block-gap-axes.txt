@@ -59,7 +59,7 @@
   </div>
 </div>
 @@ renderer-instance-css @@
-.wp-block-columns.is-not-stacked-on-mobile .ve-w-188c1570fa.ve-w-188c1570fa.ve-w-188c1570fa{flex-basis:calc(52.5% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.475)!important;flex-grow:0!important}
-.wp-block-columns.is-not-stacked-on-mobile .ve-w-dc613189f5.ve-w-dc613189f5.ve-w-dc613189f5{flex-basis:calc(47.5% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.525)!important;flex-grow:0!important}
+:where(.wp-block-columns.is-not-stacked-on-mobile) .ve-w-188c1570fa.ve-w-188c1570fa.ve-w-188c1570fa{flex-basis:calc(52.5% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.475)!important;flex-grow:0!important}
+:where(.wp-block-columns.is-not-stacked-on-mobile) .ve-w-dc613189f5.ve-w-dc613189f5.ve-w-dc613189f5{flex-basis:calc(47.5% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.525)!important;flex-grow:0!important}
 @media (min-width: 768px){.ve-w-188c1570fa.ve-w-188c1570fa.ve-w-188c1570fa{flex-basis:calc(52.5% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.475)!important;flex-grow:0!important}}
 @media (min-width: 768px){.ve-w-dc613189f5.ve-w-dc613189f5.ve-w-dc613189f5{flex-basis:calc(47.5% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.525)!important;flex-grow:0!important}}
