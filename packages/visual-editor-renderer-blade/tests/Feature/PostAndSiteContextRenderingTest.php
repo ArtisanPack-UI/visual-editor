@@ -135,6 +135,24 @@ it( 'renders post-excerpt with a more-text link', function (): void {
 	expect( $rendered )->toContain( '<a class="wp-block-post-excerpt__more-link" href="https://example.test/post">Read more</a>' );
 } );
 
+it( 'trims post-excerpt to its Excerpt Length (#1139)', function (): void {
+	$tree = [
+		blockNode( 'core/post-excerpt', [
+			'excerptLength'    => 4,
+			'_resolvedExcerpt' => '<p>One two three four five six seven.</p>',
+		] ),
+		blockNode( 'artisanpack/post-excerpt', [
+			'_resolvedExcerpt' => trim( str_repeat( 'word ', 60 ) ),
+		] ),
+	];
+
+	$rendered = $this->stripGlobalStyles( renderTree( $tree ) );
+
+	expect( $rendered )->toContain( '<p class="wp-block-post-excerpt__excerpt">One two three four…' )
+		->and( $rendered )->not->toContain( 'five' )
+		->and( substr_count( $rendered, 'word' ) )->toBe( 55 );
+} );
+
 it( 'renders a post-date with a datetime attribute and formatted text', function (): void {
 	$tree = [
 		blockNode( 'core/post-date', [

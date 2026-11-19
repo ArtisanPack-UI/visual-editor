@@ -1,0 +1,85 @@
+{
+    "$comment": "Shared ExcerptTrimmer::trim() / trimExcerpt() cases (#1139): [html, excerptLength, expected]. Read by packages/visual-editor-renderer-blade/tests/Unit/ExcerptTrimmerTest.php and packages/visual-editor-renderer-react/tests/excerpt.test.ts (React, Vue and the editor preview), so the trimmers cannot drift. A null, non-numeric or non-positive length falls back to 55.",
+    "cases": [
+        [
+            "Short excerpt.",
+            20,
+            "Short excerpt."
+        ],
+        [
+            "one two three four five",
+            3,
+            "one two three…"
+        ],
+        [
+            "one two three",
+            3,
+            "one two three"
+        ],
+        [
+            "<p>Some <strong>bold</strong> text here</p>",
+            3,
+            "Some bold text…"
+        ],
+        [
+            "  spaced\n\nout\ttext  ",
+            10,
+            "spaced out text"
+        ],
+        [
+            "<script>alert(1)</script>Visible words only",
+            2,
+            "Visible words…"
+        ],
+        [
+            "<style>p{color:red}</style>Styled",
+            5,
+            "Styled"
+        ],
+        [
+            "w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 w25",
+            null,
+            "w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 w25"
+        ],
+        [
+            "w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 w25",
+            0,
+            "w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 w25"
+        ],
+        [
+            "w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 w25",
+            -4,
+            "w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 w25"
+        ],
+        [
+            "w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 w25",
+            "10",
+            "w1 w2 w3 w4 w5 w6 w7 w8 w9 w10…"
+        ],
+        [
+            "w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 w25",
+            "abc",
+            "w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 w25"
+        ],
+        [
+            "one two three…",
+            3,
+            "one two three…"
+        ],
+        [
+            "Caf&eacute; &amp; bar",
+            2,
+            "Caf&eacute; &amp;…"
+        ],
+        [
+            "",
+            10,
+            ""
+        ],
+        [
+            "<p></p>",
+            10,
+            ""
+        ]
+    ]
+}
