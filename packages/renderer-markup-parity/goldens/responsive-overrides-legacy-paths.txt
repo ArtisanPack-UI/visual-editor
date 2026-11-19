@@ -7,7 +7,7 @@
 <div class="wp-block-group is-layout-flex wp-block-group-is-layout-flex ve-r-e776069382">
 </div>
 @@ renderer-instance-css @@
-.wp-block-columns.is-not-stacked-on-mobile .ve-w-3a163ef030.ve-w-3a163ef030.ve-w-3a163ef030{flex-basis:calc(50% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.5)!important;flex-grow:0!important}
+:where(.wp-block-columns.is-not-stacked-on-mobile) .ve-w-3a163ef030.ve-w-3a163ef030.ve-w-3a163ef030{flex-basis:calc(50% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.5)!important;flex-grow:0!important}
 @media (max-width:1023px){.ve-r-c8a1d49c94.ve-r-c8a1d49c94.ve-r-c8a1d49c94{column-gap:3em!important;--ap-columns-gap:3em!important}}
 @media (max-width:1023px){.ve-r-e776069382.ve-r-e776069382.ve-r-e776069382{padding-top:2rem!important}}
 @media (max-width:767px){.ve-r-c8a1d49c94.ve-r-c8a1d49c94.ve-r-c8a1d49c94{column-gap:1em!important;--ap-columns-gap:1em!important}}

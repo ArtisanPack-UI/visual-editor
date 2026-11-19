@@ -21,9 +21,21 @@ describe('columnWidthScope', () => {
 
         expect(scope?.className).toBe('ve-w-971ccacfaf');
         expect(scope?.css).toBe(
-            '.wp-block-columns.is-not-stacked-on-mobile .ve-w-971ccacfaf.ve-w-971ccacfaf.ve-w-971ccacfaf{flex-basis:calc(60% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.4)!important;flex-grow:0!important}' +
+            ':where(.wp-block-columns.is-not-stacked-on-mobile) .ve-w-971ccacfaf.ve-w-971ccacfaf.ve-w-971ccacfaf{flex-basis:calc(60% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.4)!important;flex-grow:0!important}' +
                 '@media (min-width: 768px){.ve-w-971ccacfaf.ve-w-971ccacfaf.ve-w-971ccacfaf{flex-basis:calc(60% - var(--ap-columns-gap, var(--wp--style--block-gap, 0.5em)) * 0.4)!important;flex-grow:0!important}}'
         );
+    });
+
+    it('lets a Mobile width override the All sizes width inside unstacked Columns (#1134)', () => {
+        const css = columnWidthScope({ width: '40%', responsive: { width: { mobile: '34%' } } })?.css ?? '';
+        const unstacked = css.indexOf(':where(.wp-block-columns.is-not-stacked-on-mobile) .ve-w-');
+        const mobile = css.indexOf('@media (max-width:767px){.ve-w-');
+
+        // Same (0,3,0) specificity as the Mobile rule, emitted before it.
+        expect(css).not.toMatch(/(^|\})\.wp-block-columns\.is-not-stacked-on-mobile /);
+        expect(unstacked).toBeGreaterThanOrEqual(0);
+        expect(mobile).toBeGreaterThan(unstacked);
+        expect(css.slice(mobile)).toContain('flex-basis:calc(34%');
     });
 
     it('merges the legacy width with a responsive override', () => {

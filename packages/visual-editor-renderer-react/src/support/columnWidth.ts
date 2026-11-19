@@ -108,10 +108,12 @@ export function columnWidthScope( attributes: Record<string, unknown> ): ColumnW
 			// doesn't stack on mobile; otherwise it starts just above the
 			// registry's `mobile` breakpoint, where Columns stop stacking
 			// (#820), so the stacking rule wins on phones (#910) and the width
-			// is back as soon as the row stops wrapping (#1122). Matches the
+			// is back as soon as the row stops wrapping (#1122). The parent
+			// qualifier sits in `:where()` so per-breakpoint widths, emitted
+			// later at the same (0,3,0), still win (#1134). Matches the
 			// Blade partial. Descendant combinator: `>` would be escaped in
 			// the <style> text.
-			rules.push( `.wp-block-columns.is-not-stacked-on-mobile ${ selector }{${ declaration }}` );
+			rules.push( `:where(.wp-block-columns.is-not-stacked-on-mobile) ${ selector }{${ declaration }}` );
 			rules.push( `@media (min-width: ${ unstackedFromPx() }px){${ selector }{${ declaration }}}` );
 			continue;
 		}
