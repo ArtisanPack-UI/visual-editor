@@ -652,6 +652,41 @@ text, and the overlay fills in `:current` and `:total` as a gallery steps.
 `getLightboxLabels()` returns the set in effect, and the `LightboxLabels`
 type is exported too. Blade translates the same strings through `__()`.
 
+### Carousel
+
+*Since v1.22.0 (#1127)* — `artisanpack/carousel` renders the same markup as
+Blade: a labelled region, slides labelled ":current of :total", and hidden
+controls. The arrows, dots, keyboard, swipe and autoplay come from the Blade
+package's `frontend/interactivity.js`, and the layout from
+`frontend/carousel.css`, so load both on pages that render one. Without the
+script the track stays a scroll-snap strip with the controls hidden.
+
+The labels are English by default. Pass your translations to
+`setCarouselLabels()` before the first render:
+
+```tsx
+import { setCarouselLabels } from '@artisanpack-ui/visual-editor-renderer-react';
+
+setCarouselLabels({
+    region: 'Karussell',
+    carousel: 'Karussell',
+    slide: 'Folie',
+    slidePosition: ':current von :total',
+    previous: 'Vorherige Folie',
+    next: 'Nächste Folie',
+    dots: 'Folie wählen',
+    dot: 'Zu Folie :index',
+    pause: 'Pause',
+    play: 'Abspielen',
+});
+```
+
+`region` is the carousel's label when the block sets no aria-label;
+`carousel` and `slide` are the `aria-roledescription` values. The script
+fills in `:index` on each dot. As with the lightbox, a key you leave out
+keeps its default, `setCarouselLabels()` with no argument restores them all,
+and `getCarouselLabels()` and the `CarouselLabels` type are exported too.
+
 ### Navigation overlay
 
 *Since v1.13.0 (#804).* The React and Vue renderers render
@@ -780,8 +815,9 @@ overlay content in the named `overlay` slot instead of the default slot.
 
 The [styles `<BlockTree>` prints](#styles-blocktree-prints) and the
 [breakpoint setup](#breakpoints) are the same too. In templates, pass the
-1.15 props in kebab case, and import `setBreakpoints` and
-[`setLightboxLabels`](#image-lightbox) from the Vue package:
+1.15 props in kebab case, and import `setBreakpoints`,
+[`setLightboxLabels`](#image-lightbox) and
+[`setCarouselLabels`](#carousel) from the Vue package:
 
 ```vue
 <BlockTree

@@ -7923,6 +7923,37 @@
                     ]
                 }
             ]
+        },
+        {
+            "name": "carousel-defaults",
+            "$comment": "#1127: default carousel — region and slide labels, per-view custom properties with the Tablet / Mobile fallbacks, hidden controls with arrows and an empty dots host.",
+            "tree": [
+                { "clientId": "car-a", "name": "artisanpack/carousel", "attributes": {}, "innerBlocks": [
+                    { "clientId": "cs1", "name": "artisanpack/carousel-slide", "attributes": {}, "innerBlocks": [ { "clientId": "cs1-p", "name": "core/paragraph", "attributes": { "content": "One" }, "innerBlocks": [] } ] },
+                    { "clientId": "cs2", "name": "artisanpack/carousel-slide", "attributes": {}, "innerBlocks": [ { "clientId": "cs2-p", "name": "core/paragraph", "attributes": { "content": "Two" }, "innerBlocks": [] } ] },
+                    { "clientId": "cs3", "name": "artisanpack/carousel-slide", "attributes": {}, "innerBlocks": [ { "clientId": "cs3-p", "name": "core/paragraph", "attributes": { "content": "Three" }, "innerBlocks": [] } ] },
+                    { "clientId": "cs4", "name": "artisanpack/carousel-slide", "attributes": {}, "innerBlocks": [ { "clientId": "cs4-p", "name": "core/paragraph", "attributes": { "content": "Four" }, "innerBlocks": [] } ] }
+                ] }
+            ]
+        },
+        {
+            "name": "carousel-options",
+            "$comment": "#1127: per-breakpoint overrides, loop, autoplay, overlay placement, dimmed inactive slides, control colours (one rejected), no dots, author labels, slide supports, anchor and alignment.",
+            "tree": [
+                { "clientId": "car-b", "name": "artisanpack/carousel", "attributes": { "slidesPerView": 9, "responsive": { "slidesPerView": { "tablet": 3, "mobile": "2" } }, "showDots": false, "controlsPlacement": "overlay", "loop": true, "autoplay": true, "autoplayInterval": 1, "dimInactive": true, "inactiveOpacity": 40, "arrowColor": "#112233", "arrowBackgroundColor": "red;}body{x:y", "dotColor": "var(--wp--preset--color--primary)", "ariaLabel": "Testimonials", "anchor": "reviews", "align": "wide", "className": "is-style-glass", "backgroundColor": "base", "style": { "spacing": { "blockGap": "2rem" } } }, "innerBlocks": [
+                    { "clientId": "co1", "name": "artisanpack/carousel-slide", "attributes": { "className": "featured", "ariaLabel": "Featured quote", "style": { "spacing": { "padding": { "top": "1rem" } } } }, "innerBlocks": [ { "clientId": "co1-p", "name": "core/paragraph", "attributes": { "content": "Quote one" }, "innerBlocks": [] } ] },
+                    { "clientId": "co2", "name": "artisanpack/carousel-slide", "attributes": {}, "innerBlocks": [ { "clientId": "co2-p", "name": "core/paragraph", "attributes": { "content": "Quote two" }, "innerBlocks": [] } ] }
+                ] }
+            ]
+        },
+        {
+            "name": "carousel-no-controls",
+            "$comment": "#1127: arrows and dots off with no autoplay — no controls container; an unknown placement falls back to below.",
+            "tree": [
+                { "clientId": "car-c", "name": "artisanpack/carousel", "attributes": { "slidesPerView": 1, "showArrows": false, "showDots": false, "controlsPlacement": "sideways" }, "innerBlocks": [
+                    { "clientId": "cn1", "name": "artisanpack/carousel-slide", "attributes": {}, "innerBlocks": [ { "clientId": "cn1-p", "name": "core/paragraph", "attributes": { "content": "Only" }, "innerBlocks": [] } ] }
+                ] }
+            ]
         }
     ]
 }

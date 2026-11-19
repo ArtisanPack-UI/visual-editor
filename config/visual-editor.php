@@ -313,6 +313,8 @@ return [
 		'artisanpack/accordion-body',
 		'artisanpack/tabs',
 		'artisanpack/tab-section',
+		'artisanpack/carousel',
+		'artisanpack/carousel-slide',
 		'artisanpack/grid',
 		'artisanpack/grid-item',
 		'artisanpack/next-post',

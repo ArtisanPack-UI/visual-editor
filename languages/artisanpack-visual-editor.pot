@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: artisanpack-ui-visual-editor\n"
-"POT-Creation-Date: 2026-11-10T22:12:48+0000\n"
+"POT-Creation-Date: 2026-11-19T01:50:27+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -408,6 +408,10 @@ msgstr ""
 msgid "Active"
 msgstr ""
 
+#: resources/js/visual-editor/blocks/carousel/edit.tsx:334
+msgid "Active dot"
+msgstr ""
+
 #: resources/js/visual-editor/blocks/gallery/edit.tsx:1050
 #: resources/js/visual-editor/fonts/font-library-modal.tsx:354
 msgid "Add"
@@ -539,6 +543,11 @@ msgstr ""
 msgid "Add quote"
 msgstr ""
 
+#: resources/js/visual-editor/blocks/carousel/edit.tsx:209
+#: resources/js/visual-editor/blocks/carousel/edit.tsx:228
+msgid "Add slide"
+msgstr ""
+
 #: resources/js/visual-editor/blocks/howto/edit.tsx:245
 msgid "Add step"
 msgstr ""
@@ -570,6 +579,10 @@ msgstr ""
 
 #: resources/js/visual-editor/blocks/categories/edit.tsx:172
 msgid "Adds a first item that links to the unfiltered list."
+msgstr ""
+
+#: resources/js/visual-editor/blocks/carousel/edit.tsx:262
+msgid "Adds a pause button. Never plays for visitors who prefer reduced motion."
 msgstr ""
 
 #: resources/js/visual-editor/blocks/accordions/edit.tsx:72
@@ -709,6 +722,14 @@ msgstr ""
 msgid "Applies at %dpx and up."
 msgstr ""
 
+#: resources/js/visual-editor/blocks/carousel/edit.tsx:91
+msgid "Applies at mobile widths. Defaults to 1."
+msgstr ""
+
+#: resources/js/visual-editor/blocks/carousel/edit.tsx:87
+msgid "Applies at tablet widths. Defaults to at most 2."
+msgstr ""
+
 #: resources/js/visual-editor/effects/with-effects.tsx:211
 msgid "Applies to this block only. Write declarations for the block, or nest rules with “&”, e.g. “& img { border-radius: 8px; }”."
 msgstr ""
@@ -748,12 +769,24 @@ msgstr ""
 msgid "Arrow"
 msgstr ""
 
+#: resources/js/visual-editor/blocks/carousel/edit.tsx:324
+msgid "Arrow background"
+msgstr ""
+
+#: resources/js/visual-editor/blocks/carousel/edit.tsx:318
+msgid "Arrow icon"
+msgstr ""
+
 #: resources/js/visual-editor/blocks/breadcrumbs/edit.tsx:37
 msgid "Arrow Right"
 msgstr ""
 
 #: resources/js/visual-editor/blocks/accordion/edit.tsx:45
 msgid "Arrows"
+msgstr ""
+
+#: resources/js/visual-editor/blocks/carousel/edit.tsx:73
+msgid "Arrows on the sides"
 msgstr ""
 
 #: resources/js/visual-editor/blocks/_shared/photo-grid/controls.tsx:199
@@ -839,6 +872,7 @@ msgstr ""
 
 #: resources/js/visual-editor/blocks/audio/edit.tsx:176
 #: resources/js/visual-editor/blocks/audio/edit.tsx:182
+#: resources/js/visual-editor/blocks/carousel/edit.tsx:261
 #: resources/js/visual-editor/blocks/video/edit.tsx:246
 #: resources/js/visual-editor/blocks/video/edit.tsx:254
 msgid "Autoplay"
@@ -928,6 +962,14 @@ msgstr ""
 #: resources/js/visual-editor/blocks/social-link/services.ts:68
 msgctxt "social link block variation name"
 msgid "Behance"
+msgstr ""
+
+#: resources/js/visual-editor/blocks/carousel/edit.tsx:252
+msgid "Behavior"
+msgstr ""
+
+#: resources/js/visual-editor/blocks/carousel/edit.tsx:71
+msgid "Below the slides"
 msgstr ""
 
 #: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:154
@@ -1606,6 +1648,18 @@ msgstr ""
 msgid "Continuous animation"
 msgstr ""
 
+#: resources/js/visual-editor/blocks/carousel/edit.tsx:312
+msgid "Control colors"
+msgstr ""
+
+#: resources/js/visual-editor/blocks/carousel/edit.tsx:245
+msgid "Control placement"
+msgstr ""
+
+#: resources/js/visual-editor/blocks/carousel/edit.tsx:231
+msgid "Controls"
+msgstr ""
+
 #: resources/js/visual-editor/site-editor/patterns/create-pattern-dialog.tsx:214
 msgid "Convert selection to pattern"
 msgstr ""
@@ -1908,7 +1962,7 @@ msgid "Default styles — apply when no interactive state matches."
 msgstr ""
 
 #: resources/js/visual-editor/editor/composed-view/default-template.ts:34
-#: resources/js/visual-editor/editor/editor-app.tsx:1249
+#: resources/js/visual-editor/editor/editor-app.tsx:1260
 msgid "Default template"
 msgstr ""
 
@@ -2017,6 +2071,10 @@ msgctxt "blend mode"
 msgid "Difference"
 msgstr ""
 
+#: resources/js/visual-editor/blocks/carousel/edit.tsx:287
+msgid "Dim slides outside the view"
+msgstr ""
+
 #: resources/js/visual-editor/blocks/icon/edit.tsx:390
 msgid "Dimensions"
 msgstr ""
@@ -2087,6 +2145,10 @@ msgstr ""
 
 #: resources/js/visual-editor/editor/inspector-sidebar.tsx:422
 msgid "Document"
+msgstr ""
+
+#: resources/js/visual-editor/blocks/carousel/edit.tsx:329
+msgid "Dot"
 msgstr ""
 
 #: resources/js/visual-editor/gradient-borders/with-gradient-border-control.tsx:445
@@ -2259,7 +2321,7 @@ msgstr ""
 
 #. translators: %s: post title or fallback.
 #. translators: %s: entity title being edited.
-#: resources/js/visual-editor/editor/editor-app.tsx:1671
+#: resources/js/visual-editor/editor/editor-app.tsx:1682
 #: resources/js/visual-editor/site-editor/site-editor-app.tsx:717
 msgid "Editing: %s"
 msgstr ""
@@ -2787,7 +2849,7 @@ msgstr ""
 msgid "Failed to load pattern."
 msgstr ""
 
-#: resources/js/visual-editor/editor/editor-app.tsx:1216
+#: resources/js/visual-editor/editor/editor-app.tsx:1227
 #: resources/js/visual-editor/editor/inserter-patterns-panel.tsx:356
 #: resources/js/visual-editor/editor/inserter-patterns-panel.tsx:553
 #: resources/js/visual-editor/site-editor/patterns/api-client.ts:314
@@ -3161,6 +3223,10 @@ msgstr ""
 
 #: resources/js/visual-editor/animations/AnimationPanel.tsx:149
 msgid "Glow color"
+msgstr ""
+
+#: resources/js/visual-editor/blocks/carousel/edit.tsx:255
+msgid "Go back to the first slide after the last."
 msgstr ""
 
 #: resources/js/visual-editor/blocks/social-link/services.ts:146
@@ -3561,6 +3627,14 @@ msgid_plural "Importing %d images…"
 msgstr[0] ""
 msgstr[1] ""
 
+#: resources/js/visual-editor/blocks/carousel/edit.tsx:298
+msgid "Inactive slide opacity (%)"
+msgstr ""
+
+#: resources/js/visual-editor/blocks/carousel/edit.tsx:285
+msgid "Inactive slides"
+msgstr ""
+
 #: resources/js/visual-editor/blocks/breadcrumbs/edit.tsx:89
 msgid "Include schema.org markup"
 msgstr ""
@@ -3840,6 +3914,10 @@ msgstr ""
 msgid "Legacy width ranges:"
 msgstr ""
 
+#: resources/js/visual-editor/blocks/carousel/edit.tsx:288
+msgid "Lets the neighboring slides peek in, faded, within the carousel’s padding."
+msgstr ""
+
 #: resources/js/visual-editor/site-editor/styles/panels/blocks-panel.tsx:90
 #: resources/js/visual-editor/site-editor/styles/panels/typography-panel.tsx:205
 msgid "Letter spacing"
@@ -3972,7 +4050,7 @@ msgstr ""
 msgid "Loading blocks…"
 msgstr ""
 
-#: resources/js/visual-editor/editor/editor-app.tsx:1516
+#: resources/js/visual-editor/editor/editor-app.tsx:1527
 msgid "Loading content…"
 msgstr ""
 
@@ -4073,6 +4151,7 @@ msgstr ""
 
 #: resources/js/visual-editor/blocks/audio/edit.tsx:189
 #: resources/js/visual-editor/blocks/audio/edit.tsx:195
+#: resources/js/visual-editor/blocks/carousel/edit.tsx:254
 #: resources/js/visual-editor/blocks/video/edit.tsx:261
 #: resources/js/visual-editor/blocks/video/edit.tsx:267
 msgid "Loop"
@@ -4456,6 +4535,10 @@ msgstr ""
 
 #: resources/js/visual-editor/blocks/query-pagination-next/edit.tsx:43
 msgid "Next Page"
+msgstr ""
+
+#: resources/js/visual-editor/blocks/carousel/edit.tsx:379
+msgid "Next slide"
 msgstr ""
 
 #: resources/js/visual-editor/blocks/_shared/flex-controls/container-controls.tsx:140
@@ -5039,6 +5122,10 @@ msgstr ""
 msgid "Patterns"
 msgstr ""
 
+#: resources/js/visual-editor/blocks/carousel/edit.tsx:347
+msgid "Pause"
+msgstr ""
+
 #: resources/js/visual-editor/editor/document-panels.tsx:168
 msgid "Pending review"
 msgstr ""
@@ -5329,7 +5416,7 @@ msgid "Preview:"
 msgstr ""
 
 #. translators: %s: template name.
-#: resources/js/visual-editor/editor/editor-app.tsx:1129
+#: resources/js/visual-editor/editor/editor-app.tsx:1135
 msgid "Previewing the “%s” template. Only your content is editable here — the surrounding template areas are edited in the site editor."
 msgstr ""
 
@@ -5340,6 +5427,10 @@ msgstr ""
 
 #: resources/js/visual-editor/blocks/query-pagination-previous/edit.tsx:34
 msgid "Previous Page"
+msgstr ""
+
+#: resources/js/visual-editor/blocks/carousel/edit.tsx:354
+msgid "Previous slide"
 msgstr ""
 
 #: resources/js/visual-editor/editor-settings.ts:49
@@ -5870,6 +5961,10 @@ msgstr ""
 msgid "Seconds per scroll loop. Higher values are slower."
 msgstr ""
 
+#: resources/js/visual-editor/blocks/carousel/edit.tsx:272
+msgid "Seconds per slide"
+msgstr ""
+
 #: resources/js/visual-editor/blocks/breadcrumbs/edit.tsx:69
 #: resources/js/visual-editor/editor-settings.ts:77
 msgid "Section"
@@ -6029,6 +6124,14 @@ msgstr ""
 msgid "Show a large initial letter."
 msgstr ""
 
+#: resources/js/visual-editor/blocks/carousel/edit.tsx:205
+msgid "Show all slides"
+msgstr ""
+
+#: resources/js/visual-editor/blocks/carousel/edit.tsx:239
+msgid "Show dots"
+msgstr ""
+
 #: resources/js/visual-editor/blocks/file/edit.tsx:274
 #: resources/js/visual-editor/blocks/file/edit.tsx:280
 msgid "Show download button"
@@ -6111,6 +6214,14 @@ msgstr ""
 #: resources/js/visual-editor/editor/taxonomy-archive-block-overrides.tsx:190
 #: resources/js/visual-editor/editor/taxonomy-archive-block-overrides.tsx:95
 msgid "Show post counts"
+msgstr ""
+
+#: resources/js/visual-editor/blocks/carousel/edit.tsx:233
+msgid "Show previous and next arrows"
+msgstr ""
+
+#: resources/js/visual-editor/blocks/carousel/edit.tsx:205
+msgid "Show slides in a row"
 msgstr ""
 
 #: resources/js/visual-editor/blocks/tag-cloud/edit.tsx:93
@@ -6276,6 +6387,11 @@ msgstr ""
 msgid "Slanted bottom"
 msgstr ""
 
+#. translators: %d: slide position.
+#: resources/js/visual-editor/blocks/carousel/edit.tsx:368
+msgid "Slide %d"
+msgstr ""
+
 #: resources/js/visual-editor/animations/registry.ts:79
 msgid "Slide in down"
 msgstr ""
@@ -6290,6 +6406,14 @@ msgstr ""
 
 #: resources/js/visual-editor/animations/registry.ts:78
 msgid "Slide in up"
+msgstr ""
+
+#: resources/js/visual-editor/blocks/carousel/edit.tsx:213
+msgid "Slides"
+msgstr ""
+
+#: resources/js/visual-editor/blocks/carousel/edit.tsx:215
+msgid "Slides per view"
 msgstr ""
 
 #: resources/js/visual-editor/site-editor/styles/panels/colors-panel.tsx:454
@@ -6413,6 +6537,10 @@ msgstr ""
 
 #: resources/js/visual-editor/animations/registry.ts:90
 msgid "Spin"
+msgstr ""
+
+#: resources/js/visual-editor/blocks/carousel/edit.tsx:72
+msgid "Split: dots left, arrows right"
 msgstr ""
 
 #: resources/js/visual-editor/blocks/social-link/services.ts:255
@@ -6611,6 +6739,10 @@ msgstr ""
 
 #: resources/js/visual-editor/site-editor/styles/panels/variations-panel.tsx:43
 msgid "Switch between theme-provided style presets. Applying a variation overwrites the current user record with the preset's settings and styles — your in-flight edits are discarded."
+msgstr ""
+
+#: resources/js/visual-editor/blocks/carousel/edit.tsx:94
+msgid "Switch the editor to Tablet or Mobile to set those sizes. They default to at most 2 and to 1."
 msgstr ""
 
 #: resources/js/visual-editor/responsive/InspectorScopeChip.tsx:87
@@ -6907,7 +7039,7 @@ msgid "The SVG is sanitized server-side before it’s saved."
 msgstr ""
 
 #. translators: %s: template name.
-#: resources/js/visual-editor/editor/editor-app.tsx:1108
+#: resources/js/visual-editor/editor/editor-app.tsx:1114
 msgid "The template “%s” has no content area, so your content is shown below the whole template."
 msgstr ""
 
@@ -6933,7 +7065,7 @@ msgstr ""
 msgid "The width at and below which the menu collapses behind the open button."
 msgstr ""
 
-#: resources/js/visual-editor/editor/editor-app.tsx:1260
+#: resources/js/visual-editor/editor/editor-app.tsx:1271
 #: resources/js/visual-editor/site-editor/sidebars/global-styles-sidebar.tsx:45
 #: resources/js/visual-editor/site-editor/sidebars/menu-sidebar.tsx:44
 #: resources/js/visual-editor/site-editor/sidebars/template-part-sidebar.tsx:43
@@ -7223,7 +7355,7 @@ msgctxt "unordered list toolbar button"
 msgid "UL"
 msgstr ""
 
-#: resources/js/visual-editor/editor/editor-app.tsx:1541
+#: resources/js/visual-editor/editor/editor-app.tsx:1552
 msgid "Unable to load content."
 msgstr ""
 
@@ -7306,7 +7438,7 @@ msgstr ""
 msgid "Unsynced patterns are inserted as a copy of the block tree. Future edits to the pattern only affect new insertions."
 msgstr ""
 
-#: resources/js/visual-editor/editor/editor-app.tsx:1672
+#: resources/js/visual-editor/editor/editor-app.tsx:1683
 msgid "Untitled"
 msgstr ""
 

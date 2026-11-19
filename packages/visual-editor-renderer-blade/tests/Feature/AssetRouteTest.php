@@ -66,6 +66,7 @@ it( 'serves the frontend stylesheets linked by the styles component', function (
 	'accordion.css',
 	'tabs.css',
 	'grid.css',
+	'carousel.css',
 	'marquee.css',
 	'breadcrumbs.css',
 	'query-pagination.css',

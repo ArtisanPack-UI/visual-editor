@@ -1,0 +1,11 @@
+<div aria-label="Carousel" aria-roledescription="carousel" class="wp-block-artisanpack-carousel ap-carousel is-controls-below" data-ap-carousel="" role="region" style="--ap-carousel-per-view: 1; --ap-carousel-per-view-tablet: 1; --ap-carousel-per-view-mobile: 1">
+  <div class="wp-block-artisanpack-carousel__viewport">
+    <div aria-live="polite" class="wp-block-artisanpack-carousel__track">
+      <div aria-label="1 of 1" aria-roledescription="slide" class="wp-block-artisanpack-carousel-slide ap-carousel-slide" role="group">
+        <p class="wp-block-paragraph">
+          "Only"
+        </p>
+      </div>
+    </div>
+  </div>
+</div>

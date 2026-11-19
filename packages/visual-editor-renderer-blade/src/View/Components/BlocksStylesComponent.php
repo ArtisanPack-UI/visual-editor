@@ -87,6 +87,8 @@ class BlocksStylesComponent extends Component
 
 	public string $gridStyleHref;
 
+	public string $carouselStyleHref;
+
 	public string $marqueeStyleHref;
 
 	public string $socialIconsStyleHref;
@@ -203,6 +205,7 @@ class BlocksStylesComponent extends Component
 		$this->accordionStyleHref       = $url( 'frontend/accordion.css' );
 		$this->tabsStyleHref            = $url( 'frontend/tabs.css' );
 		$this->gridStyleHref            = $url( 'frontend/grid.css' );
+		$this->carouselStyleHref        = $url( 'frontend/carousel.css' );
 		$this->marqueeStyleHref         = $url( 'frontend/marquee.css' );
 		$this->socialIconsStyleHref     = $url( 'frontend/social-icons.css' );
 		$this->inlineIconStyleHref      = $url( 'frontend/inline-icon.css' );

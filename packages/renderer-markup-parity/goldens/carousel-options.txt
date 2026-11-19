@@ -1,0 +1,33 @@
+<div aria-label="Testimonials" aria-roledescription="carousel" class="wp-block-artisanpack-carousel ap-carousel is-controls-overlay has-dimmed-inactive alignwide has-base-background-color has-background is-style-glass" data-ap-carousel="" data-autoplay="2" data-loop="true" id="reviews" role="region" style="--wp--style--block-gap: 2rem; --ap-carousel-per-view: 6; --ap-carousel-per-view-tablet: 3; --ap-carousel-per-view-mobile: 2; --ap-carousel-inactive-opacity: 0.4; --ap-carousel-arrow-color: #112233; --ap-carousel-dot-color: var(--wp--preset--color--primary)">
+  <div class="wp-block-artisanpack-carousel__viewport">
+    <div aria-live="polite" class="wp-block-artisanpack-carousel__track">
+      <div aria-label="Featured quote" aria-roledescription="slide" class="wp-block-artisanpack-carousel-slide ap-carousel-slide featured" role="group" style="padding-top: 1rem">
+        <p class="wp-block-paragraph">
+          "Quote one"
+        </p>
+      </div>
+      <div aria-label="2 of 2" aria-roledescription="slide" class="wp-block-artisanpack-carousel-slide ap-carousel-slide" role="group">
+        <p class="wp-block-paragraph">
+          "Quote two"
+        </p>
+      </div>
+    </div>
+  </div>
+  <div class="wp-block-artisanpack-carousel__controls" hidden="">
+    <button class="wp-block-artisanpack-carousel__autoplay" data-label-pause="Pause" data-label-play="Play" type="button">
+      "Pause"
+    </button>
+    <button aria-label="Previous slide" class="wp-block-artisanpack-carousel__arrow wp-block-artisanpack-carousel__arrow--previous" type="button">
+      <svg aria-hidden="true" focusable="false" height="24" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+        </path>
+      </svg>
+    </button>
+    <button aria-label="Next slide" class="wp-block-artisanpack-carousel__arrow wp-block-artisanpack-carousel__arrow--next" type="button">
+      <svg aria-hidden="true" focusable="false" height="24" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+        </path>
+      </svg>
+    </button>
+  </div>
+</div>
