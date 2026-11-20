@@ -27,9 +27,19 @@ use stdClass;
 /**
  * Renders a taxonomy's terms matching upstream `core/categories` markup.
  * Supports the upstream attributes the editor exposes: `showHierarchy`,
- * `showPostCounts`, `showOnlyTopLevel`, `showEmpty`. `displayAsDropdown`
- * falls back to the list rendering for V1 — the upstream dropdown ships a
- * JS handler we don't run server-side.
+ * `showPostCounts`, `showOnlyTopLevel`, `showEmpty` and `displayAsDropdown`.
+ *
+ * ## Dropdown (#1140)
+ *
+ * `displayAsDropdown` renders upstream's `wp-block-categories-dropdown`:
+ * a `<label>` (the block's `label`, default "Categories"; visually hidden
+ * when `showLabel` is off) and a `<select>` whose first option is a
+ * "— Choose —" prompt, then the "All" item when `showAll` is on, then the
+ * terms (indented by depth with `showHierarchy`, with ` (N)` counts when
+ * `showPostCounts` is on). Each option's value is the term's sanitized
+ * link and the current term is selected. The Blade package's
+ * `frontend/interactivity.js` goes to the chosen link on change; without
+ * JavaScript a `<noscript>` copy of the list keeps every term reachable.
  *
  * ## Taxonomies (#960)
  *
@@ -93,6 +103,13 @@ class CategoriesBlock extends DynamicBlock
 	private const TAXONOMY_SLUG_PATTERN = '/^[a-z0-9_-]+$/';
 
 	/**
+	 * Dropdowns rendered so far, for unique `<select>` ids (#1140).
+	 *
+	 * @since 1.22.0
+	 */
+	private static int $dropdownCount = 0;
+
+	/**
 	 * Key of the term rendered as current during the active
 	 * {@see render()} call; reset at the start of every render.
 	 */
@@ -117,6 +134,8 @@ class CategoriesBlock extends DynamicBlock
 			'countStyle'        => 'badge' === ( $attrs['countStyle'] ?? 'inline' ) ? 'badge' : 'inline',
 			'showAll'           => (bool) ( $attrs['showAll'] ?? false ),
 			'allLabel'          => isset( $attrs['allLabel'] ) && is_string( $attrs['allLabel'] ) ? trim( $attrs['allLabel'] ) : '',
+			'label'             => isset( $attrs['label'] ) && is_string( $attrs['label'] ) ? trim( $attrs['label'] ) : '',
+			'showLabel'         => (bool) ( $attrs['showLabel'] ?? true ),
 			'className'         => isset( $attrs['className'] ) && is_string( $attrs['className'] ) ? $attrs['className'] : '',
 		];
 	}
@@ -143,6 +162,14 @@ class CategoriesBlock extends DynamicBlock
 		}
 
 		$classes = $this->wrapperClasses( $attrs );
+
+		if ( $attrs['displayAsDropdown'] ) {
+			return $this->renderDropdown( $categories, $attrs, $request, sprintf(
+				'<ul class="%s">%s</ul>',
+				e( implode( ' ', $classes ) ),
+				$items,
+			) );
+		}
 
 		return sprintf(
 			'<ul class="%s">%s</ul>',
@@ -357,6 +384,131 @@ class CategoriesBlock extends DynamicBlock
 		}
 
 		return $terms->filter( static fn ( object $term ): bool => isset( $keep[ (int) $term->id ] ) )->values();
+	}
+
+	/**
+	 * Renders the dropdown (#1140): a label, a `<select>` of the terms'
+	 * links, and the list in a `<noscript>` for visitors without
+	 * JavaScript.
+	 *
+	 * @since 1.22.0
+	 *
+	 * @param  Collection<int, object>                                $categories  The terms.
+	 * @param  array<string, mixed>                                   $attrs       Validated block attributes.
+	 * @param  array{path: string, query: array<string, mixed>}|null  $request     The request URL, for the "All" item.
+	 * @param  string                                                 $list        The list markup for `<noscript>`.
+	 */
+	protected function renderDropdown( Collection $categories, array $attrs, ?array $request, string $list ): string
+	{
+		self::$dropdownCount++;
+
+		$id      = 'wp-block-categories-' . self::$dropdownCount;
+		$options = sprintf( '<option value="">%s</option>', e( __( '— Choose —' ) ) );
+
+		if ( $attrs['showAll'] ) {
+			$all = $this->resolveAllItem( $attrs );
+
+			if ( null !== $all ) {
+				$isCurrent = null === $this->currentTermKey
+					&& null !== $request
+					&& $this->urlMatchesRequest( $all['url'], $request )
+					&& ! $this->requestFiltersByTerm( $categories, $all['url'], $request );
+
+				$options .= $this->renderOption(
+					'level-0',
+					$this->sanitizeUrl( $all['url'] ),
+					'' === $attrs['allLabel'] ? __( 'All' ) : $attrs['allLabel'],
+					$attrs['showPostCounts'] ? $all['count'] : null,
+					$isCurrent,
+					0,
+				);
+			}
+		}
+
+		$entries = $attrs['showHierarchy']
+			? $this->flattenHierarchy( $categories, null, 0 )
+			: $categories->map( fn ( object $category ): array => [ $category, 0 ] )->all();
+
+		foreach ( $entries as [ $category, $depth ] ) {
+			$options .= $this->renderOption(
+				'level-' . $depth,
+				$this->sanitizeUrl( (string) $category->permalink ),
+				(string) $category->name,
+				$attrs['showPostCounts'] ? (int) ( $category->posts_count ?? 0 ) : null,
+				null !== $this->currentTermKey && $this->termKey( $category ) === $this->currentTermKey,
+				$depth,
+			);
+		}
+
+		$classes = [ 'wp-block-categories', 'wp-block-categories-dropdown' ];
+
+		if ( '' !== $attrs['className'] ) {
+			$classes[] = $attrs['className'];
+		}
+
+		$label = '' === $attrs['label'] ? __( 'Categories' ) : $attrs['label'];
+
+		return sprintf(
+			'<div class="%s"><label class="%s" for="%s">%s</label><select id="%s" name="%s" class="postform" data-ap-categories-dropdown>%s</select><noscript>%s</noscript></div>',
+			e( implode( ' ', $classes ) ),
+			$attrs['showLabel'] ? 'wp-block-categories__label' : 'wp-block-categories__label screen-reader-text',
+			e( $id ),
+			e( $label ),
+			e( $id ),
+			e( $attrs['taxonomy'] ),
+			$options,
+			$list,
+		);
+	}
+
+	/**
+	 * Builds one dropdown `<option>`, indented three spaces per level and
+	 * followed by ` (N)` when the count is shown, as upstream does.
+	 *
+	 * @since 1.22.0
+	 *
+	 * @param  string    $class      The option's `level-N` class.
+	 * @param  string    $url        The sanitized link (an empty one is disabled).
+	 * @param  string    $name       The option's label.
+	 * @param  int|null  $count      The count to show, or `null`.
+	 * @param  bool      $isCurrent  Whether the option is the page being viewed.
+	 * @param  int       $depth      The term's depth.
+	 */
+	protected function renderOption( string $class, string $url, string $name, ?int $count, bool $isCurrent, int $depth ): string
+	{
+		return sprintf(
+			'<option class="%s" value="%s"%s%s>%s%s%s</option>',
+			e( $class ),
+			e( $url ),
+			$isCurrent ? ' selected' : '',
+			'' === $url ? ' disabled' : '',
+			str_repeat( '&nbsp;&nbsp;&nbsp;', $depth ),
+			e( $name ),
+			null === $count ? '' : sprintf( '&nbsp;&nbsp;(%d)', $count ),
+		);
+	}
+
+	/**
+	 * Depth-first `[term, depth]` pairs for the dropdown's hierarchy.
+	 *
+	 * @since 1.22.0
+	 *
+	 * @param  Collection<int, object>  $categories  The terms.
+	 * @param  int|null                 $parentId    The parent to list children of.
+	 * @param  int                      $depth       The children's depth.
+	 *
+	 * @return array<int, array{0: object, 1: int}>
+	 */
+	protected function flattenHierarchy( Collection $categories, ?int $parentId, int $depth ): array
+	{
+		$entries = [];
+
+		foreach ( $categories->where( 'parent_id', $parentId ) as $category ) {
+			$entries[] = [ $category, $depth ];
+			array_push( $entries, ...$this->flattenHierarchy( $categories, (int) $category->id, $depth + 1 ) );
+		}
+
+		return $entries;
 	}
 
 	/**

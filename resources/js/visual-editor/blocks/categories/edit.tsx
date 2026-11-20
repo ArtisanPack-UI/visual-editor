@@ -12,7 +12,8 @@
  *
  * #960 adds the taxonomy picker (fed by the editor's taxonomy registry,
  * keeping a stored slug the registry doesn't list), the count style, and
- * the "All" item toggle + label.
+ * the "All" item toggle + label. #1140 adds "Display as dropdown" with the
+ * dropdown's label and its "Show label" toggle.
  */
 
 import type { ReactElement } from 'react';
@@ -85,6 +86,9 @@ export default function CategoriesEdit( {
     const showAll = Boolean( attributes.showAll );
     const allLabel =
         typeof attributes.allLabel === 'string' ? attributes.allLabel : '';
+    const displayAsDropdown = Boolean( attributes.displayAsDropdown );
+    const label = typeof attributes.label === 'string' ? attributes.label : '';
+    const showLabel = attributes.showLabel !== false;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const blockProps = ( useBlockProps as any )();
@@ -104,6 +108,43 @@ export default function CategoriesEdit( {
                             setAttributes( { taxonomy: value } )
                         }
                     />
+                    <ToggleControl
+                        // @ts-expect-error - upstream prop
+                        __nextHasNoMarginBottom
+                        label={ __( 'Display as dropdown', TEXT_DOMAIN ) }
+                        checked={ displayAsDropdown }
+                        onChange={ ( value ) =>
+                            setAttributes( { displayAsDropdown: value } )
+                        }
+                    />
+                    { displayAsDropdown && (
+                        <>
+                            <TextControl
+                                // @ts-expect-error - upstream prop
+                                __next40pxDefaultSize
+                                __nextHasNoMarginBottom
+                                label={ __( 'Label', TEXT_DOMAIN ) }
+                                placeholder={ __( 'Categories', TEXT_DOMAIN ) }
+                                value={ label }
+                                onChange={ ( value: string ) =>
+                                    setAttributes( { label: value } )
+                                }
+                            />
+                            <ToggleControl
+                                // @ts-expect-error - upstream prop
+                                __nextHasNoMarginBottom
+                                label={ __( 'Show label', TEXT_DOMAIN ) }
+                                help={ __(
+                                    'When off, the label is still read by screen readers.',
+                                    TEXT_DOMAIN,
+                                ) }
+                                checked={ showLabel }
+                                onChange={ ( value ) =>
+                                    setAttributes( { showLabel: value } )
+                                }
+                            />
+                        </>
+                    ) }
                     <ToggleControl
                         // @ts-expect-error - upstream prop
                         __nextHasNoMarginBottom

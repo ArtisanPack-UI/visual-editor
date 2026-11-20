@@ -408,3 +408,94 @@ it( 'drops host term URLs that hide a script scheme', function ( string $url ): 
 	'newline in scheme' => [ "java\nscript:alert(1)" ],
 	'data URL'          => [ 'data:text/html,<b>x</b>' ],
 ] );
+
+/*
+|--------------------------------------------------------------------------
+| #1140 — Display as dropdown
+|--------------------------------------------------------------------------
+*/
+
+it( 'renders a labelled select of the terms\' links when displayAsDropdown is on', function (): void {
+	test()->block->categories = new Collection( [
+		fakeCategory( 1, 'Laravel', 'laravel', 7 ),
+		fakeCategory( 2, 'PHP', 'php', 3 ),
+	] );
+
+	$html = test()->block->render( test()->block->validateAttrs( [
+		'displayAsDropdown' => true,
+		'label'             => 'Select a Playlist',
+		'showPostCounts'    => true,
+	] ) );
+
+	expect( $html )->toMatch( '#^<div class="wp-block-categories wp-block-categories-dropdown"><label class="wp-block-categories__label" for="(wp-block-categories-\d+)">Select a Playlist</label><select id="\1" name="category" class="postform" data-ap-categories-dropdown>#' )
+		->and( $html )->toContain( '<option value="">— Choose —</option>' )
+		->and( $html )->toContain( '<option class="level-0" value="/blog/category/laravel">Laravel&nbsp;&nbsp;(7)</option>' )
+		->and( $html )->toContain( '<option class="level-0" value="/blog/category/php">PHP&nbsp;&nbsp;(3)</option>' )
+		->and( $html )->toContain( '<noscript><ul class="wp-block-categories wp-block-categories-list"><li class="cat-item cat-item-1">' )
+		->and( $html )->toEndWith( '</noscript></div>' );
+} );
+
+it( 'defaults the dropdown label to Categories and hides it visually when showLabel is off', function (): void {
+	test()->block->categories = new Collection( [ fakeCategory( 1, 'Laravel', 'laravel', 7 ) ] );
+
+	$html = test()->block->render( test()->block->validateAttrs( [
+		'displayAsDropdown' => true,
+		'showLabel'         => false,
+		'className'         => 'is-style-pill',
+	] ) );
+
+	expect( $html )->toContain( '<div class="wp-block-categories wp-block-categories-dropdown is-style-pill">' )
+		->and( $html )->toContain( '<label class="wp-block-categories__label screen-reader-text" for="' )
+		->and( $html )->toContain( '>Categories</label>' );
+} );
+
+it( 'gives each dropdown its own select id', function (): void {
+	test()->block->categories = new Collection( [ fakeCategory( 1, 'Laravel', 'laravel', 7 ) ] );
+
+	$attrs = test()->block->validateAttrs( [ 'displayAsDropdown' => true ] );
+
+	preg_match( '#id="(wp-block-categories-\d+)"#', test()->block->render( $attrs ), $first );
+	preg_match( '#id="(wp-block-categories-\d+)"#', test()->block->render( $attrs ), $second );
+
+	expect( $first[1] )->not->toBe( $second[1] );
+} );
+
+it( 'indents child terms by depth in the dropdown with showHierarchy', function (): void {
+	test()->block->categories = new Collection( [
+		fakeCategory( 1, 'Web', 'web', 4 ),
+		fakeCategory( 2, 'Laravel', 'laravel', 2, 1 ),
+		fakeCategory( 3, 'Livewire', 'livewire', 1, 2 ),
+	] );
+
+	$html = test()->block->render( test()->block->validateAttrs( [ 'displayAsDropdown' => true, 'showHierarchy' => true ] ) );
+
+	expect( $html )->toContain( '<option class="level-0" value="/blog/category/web">Web</option><option class="level-1" value="/blog/category/laravel">&nbsp;&nbsp;&nbsp;Laravel</option><option class="level-2" value="/blog/category/livewire">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Livewire</option>' );
+} );
+
+it( 'selects the current term and adds the All option in the dropdown', function (): void {
+	visitCategoriesUrl( '/blog/category/php' );
+
+	$block             = categoriesBlockWithTotal( 10 );
+	$block->categories = new Collection( [
+		fakeCategory( 1, 'Laravel', 'laravel', 7 ),
+		fakeCategory( 2, 'PHP', 'php', 3 ),
+	] );
+
+	$html = $block->render( $block->validateAttrs( [ 'displayAsDropdown' => true, 'showAll' => true ] ) );
+
+	expect( $html )->toContain( '<option value="">— Choose —</option><option class="level-0" value="' . url( '/blog' ) . '">All</option>' )
+		->and( $html )->toContain( '<option class="level-0" value="/blog/category/php" selected>PHP</option>' )
+		->and( $html )->not->toContain( 'value="/blog/category/laravel" selected' );
+} );
+
+it( 'escapes term names and drops unsafe links in the dropdown', function (): void {
+	$evil            = fakeCategory( 1, '<img src=x onerror=alert(1)>', 'evil', 1 );
+	$evil->permalink = 'javascript:alert(1)';
+
+	test()->block->categories = new Collection( [ $evil ] );
+
+	$html = test()->block->render( test()->block->validateAttrs( [ 'displayAsDropdown' => true ] ) );
+
+	expect( $html )->toContain( '<option class="level-0" value="" disabled>&lt;img src=x onerror=alert(1)&gt;</option>' )
+		->and( $html )->not->toContain( 'value="javascript:' );
+} );
