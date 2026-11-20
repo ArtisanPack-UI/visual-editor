@@ -1,7 +1,7 @@
 /**
  * Front-end interactivity for the interactive block families.
  *
- * Currently wires up four block families:
+ * Currently wires up five block families:
  *
  * - `artisanpack/accordion` — click / Enter / Space toggles the panel
  *   open and closed; mirrors `aria-expanded` and the `hidden` attribute
@@ -20,6 +20,11 @@
  *   so the chip still works without JavaScript; this upgrades it to a
  *   `<button type="button">` that writes the permalink to the clipboard
  *   and announces the result through a polite live region.
+ * - `artisanpack/categories` dropdown (#1140) — the renderer emits a
+ *   `<select data-ap-categories-dropdown>` whose option values are the
+ *   terms' links; choosing one goes there. Only relative and http(s)
+ *   links are followed. Without JavaScript the block's `<noscript>` list
+ *   keeps every term reachable.
  *
  * Vanilla DOM only — no framework dependencies. The script is
  * idempotent: it can run more than once on the same DOM and skips
@@ -763,6 +768,35 @@
         });
     }
 
+    function isNavigableUrl(url) {
+        var trimmed = String(url).replace(/[\u0000-\u0020\u007f]+/g, '');
+
+        if (trimmed === '') {
+            return false;
+        }
+
+        if (/^https?:/i.test(trimmed)) {
+            return true;
+        }
+
+        return /^[^:/?#]*(?:[/?#]|$)/.test(trimmed);
+    }
+
+    function bindCategoriesDropdown(select) {
+        if (select[INIT_FLAG]) {
+            return;
+        }
+        select[INIT_FLAG] = true;
+
+        select.addEventListener('change', function () {
+            var url = select.value;
+
+            if (isNavigableUrl(url)) {
+                window.location.assign(url);
+            }
+        });
+    }
+
     function init() {
         var accordions = document.querySelectorAll('.ap-accordion');
         for (var i = 0; i < accordions.length; i += 1) {
@@ -782,6 +816,11 @@
         var copyLinks = document.querySelectorAll('a[data-ap-copy-link]');
         for (var k = 0; k < copyLinks.length; k += 1) {
             bindCopyLink(copyLinks[k]);
+        }
+
+        var dropdowns = document.querySelectorAll('select[data-ap-categories-dropdown]');
+        for (var d = 0; d < dropdowns.length; d += 1) {
+            bindCategoriesDropdown(dropdowns[d]);
         }
     }
 

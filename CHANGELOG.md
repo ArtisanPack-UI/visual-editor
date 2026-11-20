@@ -6,6 +6,10 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- **Categories can display as a dropdown** ([#1140](https://github.com/ArtisanPack-UI/visual-editor/issues/1140)). **Display as dropdown** used to fall back to the list. It now renders WordPress's `wp-block-categories-dropdown`: a label (the block's Label, "Categories" by default, visually hidden when Show label is off) and a select with a "— Choose —" prompt, the "All" item when it's on, and the terms. Terms are indented with Show hierarchy and counted with Show post counts, and the current term is selected. Choosing a term goes to its archive through `interactivity.js`, which follows only relative and http(s) links. Without JavaScript, a `<noscript>` copy of the list keeps every term reachable. The editor gains the Display as dropdown, Label and Show label controls. This works for every taxonomy the block lists, including host taxonomies.
+
 ### Fixed
 
 - **A column's Mobile or Tablet width now applies inside Columns that don't stack on mobile** ([#1134](https://github.com/ArtisanPack-UI/visual-editor/issues/1134)). The rule that applies the "All sizes" width under an unstacked parent outranked every per-breakpoint width, so a column set to 40% (All sizes) and 34% (Mobile) stayed at 40% on phones. Its parent qualifier is now wrapped in `:where()`, so the per-breakpoint widths win in their ranges. Blade, React and Vue emit the same CSS.

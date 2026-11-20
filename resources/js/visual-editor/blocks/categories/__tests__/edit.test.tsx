@@ -173,4 +173,32 @@ describe( 'CategoriesEdit inspector', () => {
 
         expect( setAttributes ).toHaveBeenCalledWith( { allLabel: 'Everything' } );
     } );
+
+    it( 'reveals the dropdown label controls with Display as dropdown on (#1140)', () => {
+        const setAttributes = vi.fn();
+        const { queryByLabelText, rerender, getByLabelText } = render(
+            <CategoriesEdit attributes={ {} } setAttributes={ setAttributes } />
+        );
+
+        expect( queryByLabelText( 'Label' ) ).toBeNull();
+        expect( queryByLabelText( 'Show label' ) ).toBeNull();
+
+        fireEvent.click( getByLabelText( 'Display as dropdown' ) );
+        expect( setAttributes ).toHaveBeenCalledWith( { displayAsDropdown: true } );
+
+        rerender(
+            <CategoriesEdit
+                attributes={ { displayAsDropdown: true, showLabel: false } }
+                setAttributes={ setAttributes }
+            />
+        );
+
+        fireEvent.change( getByLabelText( 'Label' ), { target: { value: 'Select a Playlist' } } );
+        expect( setAttributes ).toHaveBeenCalledWith( { label: 'Select a Playlist' } );
+
+        const showLabel = getByLabelText( 'Show label' ) as HTMLInputElement;
+        expect( showLabel.checked ).toBe( false );
+        fireEvent.click( showLabel );
+        expect( setAttributes ).toHaveBeenCalledWith( { showLabel: true } );
+    } );
 } );
