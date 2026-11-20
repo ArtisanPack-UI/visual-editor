@@ -22,6 +22,16 @@
             "Some bold text…"
         ],
         [
+            "<a title=\"read > more\">one two</a>",
+            2,
+            "one two"
+        ],
+        [
+            "<p data-x='a>b'>Single quoted here</p>",
+            2,
+            "Single quoted…"
+        ],
+        [
             "  spaced\n\nout\ttext  ",
             10,
             "spaced out text"

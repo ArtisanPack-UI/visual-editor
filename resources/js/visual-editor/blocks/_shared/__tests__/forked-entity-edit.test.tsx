@@ -91,6 +91,22 @@ describe('createEntityPlaceholderEdit', () => {
         expect(queryByText('Site Title')).toBeNull();
     });
 
+    it('formats the stamped resolved text with formatResolved and the block attributes (#1139)', () => {
+        const Edit = createEntityPlaceholderEdit({
+            label: 'Post Excerpt',
+            resolvedKey: '_resolvedExcerpt',
+            kind: 'text',
+            formatResolved: (text, attributes) =>
+                text.split(' ').slice(0, attributes.excerptLength as number).join(' ') + '…',
+        });
+        const { getByText, queryByText } = render(
+            <Edit attributes={{ _resolvedExcerpt: 'one two three four five', excerptLength: 2 }} />
+        );
+
+        expect(getByText('one two…')).not.toBeNull();
+        expect(queryByText('one two three four five')).toBeNull();
+    });
+
     it('renders a labelled placeholder when the value is absent', () => {
         const Edit = createEntityPlaceholderEdit({
             label: 'Post Author',

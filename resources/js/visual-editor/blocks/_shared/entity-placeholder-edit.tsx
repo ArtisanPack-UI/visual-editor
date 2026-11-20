@@ -134,6 +134,13 @@ export interface EntityPlaceholderConfig {
     /** Optional second attribute key (e.g. image alt text). */
     readonly altKey?: string;
     /**
+     * Optional formatter for the stamped `resolvedKey` text (`text` /
+     * `html` kinds), given the block's attributes, so the stamped
+     * preview honours a display setting the same way the extractors do
+     * (e.g. Post Excerpt's Excerpt Length, #1139).
+     */
+    readonly formatResolved?: ( text: string, attributes: AnyProps ) => string;
+    /**
      * Optional extractor that pulls the block's value from the
      * `artisanpack/postPreview` block context the query block pipes
      * down (#483). When the block is inside an `artisanpack/query`
@@ -468,7 +475,11 @@ function readResolvedAttributes(
         return { imageUrl: resolved, imageAlt: alt };
     }
 
-    return { text: resolved };
+    return {
+        text: resolved !== '' && config.formatResolved !== undefined
+            ? config.formatResolved( resolved, attributes ?? {} )
+            : resolved,
+    };
 }
 
 function hasPreviewValue( kind: EntityPreviewKind, value: EntityPreviewValue ): boolean {

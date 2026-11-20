@@ -28,7 +28,9 @@ export function trimExcerpt(html: string, words: unknown): string {
 
     const text = html
         .replace(/<(script|style)[^>]*?>[\s\S]*?<\/\1>/gi, '')
-        .replace(/<[^>]*>/g, '')
+        // A tag ends at the first `>` outside a quoted attribute value, as in
+        // PHP's `strip_tags()`.
+        .replace(/<(?:[^>"']|"[^"]*"|'[^']*')*>/g, '')
         .replace(/\s+/g, ' ')
         .trim();
 

@@ -43,6 +43,8 @@ const ReadonlyPostExcerptEdit = createEntityPlaceholderEdit( {
     label: () => __( 'Post Excerpt', TEXT_DOMAIN ),
     resolvedKey: '_resolvedExcerpt',
     kind: 'text',
+    formatResolved: ( text, attributes ) =>
+        trimExcerpt( text, attributes.excerptLength ),
     fromQueryPreview: ( post, attributes ) =>
         typeof post.excerpt === 'string' && post.excerpt !== ''
             ? { text: trimExcerpt( post.excerpt, attributes.excerptLength ) }
