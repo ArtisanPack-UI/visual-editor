@@ -24,6 +24,7 @@ import { styleProp } from '../../support/styleProp';
 import { layoutWrapperClasses } from '../../support/layoutContainer';
 import { safeCssValue } from '../../support/cssValue';
 import { safeUrl } from '../../support/urlSanitizer';
+import { trimExcerpt } from '../../support/excerpt';
 import type { BlockRendererProps } from '../../types';
 
 function buildLinkProps(
@@ -115,7 +116,7 @@ export function PostExcerptBlock({ attributes }: BlockRendererProps): JSX.Elemen
     const showMoreOnNewLine = attrBoolean(attributes.showMoreOnNewLine, true);
     const className = attrString(attributes.className);
 
-    const excerpt = attrString(attributes._resolvedExcerpt);
+    const excerpt = trimExcerpt(attrString(attributes._resolvedExcerpt), attributes.excerptLength);
     const permalink = safeUrl(attrString(attributes._resolvedPermalink));
 
     const supports = compileBlockSupports(attributes);

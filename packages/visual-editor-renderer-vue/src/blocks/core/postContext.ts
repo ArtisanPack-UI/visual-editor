@@ -21,6 +21,7 @@ import { compileBlockSupports, type CompiledBlockSupports } from '../../support/
 import { layoutWrapperClasses } from '../../support/layoutContainer';
 import { safeCssValue } from '../../support/cssValue';
 import { safeUrl } from '../../support/urlSanitizer';
+import { trimExcerpt } from '../../support/excerpt';
 import { blockRendererProps, withStyle } from '../shared';
 
 function buildLinkProps(
@@ -124,7 +125,7 @@ export const PostExcerptBlock = defineComponent({
             const showMoreOnNewLine = attrBoolean(props.attributes.showMoreOnNewLine, true);
             const className = attrString(props.attributes.className);
 
-            const excerpt = attrString(props.attributes._resolvedExcerpt);
+            const excerpt = trimExcerpt(attrString(props.attributes._resolvedExcerpt), props.attributes.excerptLength);
             const permalink = safeUrl(props.attributes._resolvedPermalink);
 
             const supports = compileBlockSupports(props.attributes);

@@ -1,11 +1,12 @@
 @php
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\ExcerptTrimmer;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\UrlSanitizer;
 
 	$moreText = isset( $attributes['moreText'] ) && is_string( $attributes['moreText'] ) ? $attributes['moreText'] : '';
 	$showMoreOnNewLine = ! isset( $attributes['showMoreOnNewLine'] ) || ! empty( $attributes['showMoreOnNewLine'] );
 
-	$excerpt   = isset( $attributes['_resolvedExcerpt'] ) && is_string( $attributes['_resolvedExcerpt'] ) ? $attributes['_resolvedExcerpt'] : '';
+	$excerpt   = ExcerptTrimmer::trim( isset( $attributes['_resolvedExcerpt'] ) && is_string( $attributes['_resolvedExcerpt'] ) ? $attributes['_resolvedExcerpt'] : '', $attributes['excerptLength'] ?? null );
 	$permalink = UrlSanitizer::safe( isset( $attributes['_resolvedPermalink'] ) && is_string( $attributes['_resolvedPermalink'] ) ? $attributes['_resolvedPermalink'] : '' );
 
 	$moreLink = '';

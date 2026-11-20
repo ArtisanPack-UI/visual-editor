@@ -34,6 +34,7 @@ import {
     readPostEntityIdentity,
     type PostEntityIdentity,
 } from '../_shared/entity-placeholder-edit';
+import { trimExcerpt } from './trim-excerpt';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyProps = Record<string, any>;
@@ -42,13 +43,15 @@ const ReadonlyPostExcerptEdit = createEntityPlaceholderEdit( {
     label: () => __( 'Post Excerpt', TEXT_DOMAIN ),
     resolvedKey: '_resolvedExcerpt',
     kind: 'text',
-    fromQueryPreview: ( post ) =>
+    formatResolved: ( text, attributes ) =>
+        trimExcerpt( text, attributes.excerptLength ),
+    fromQueryPreview: ( post, attributes ) =>
         typeof post.excerpt === 'string' && post.excerpt !== ''
-            ? { text: post.excerpt }
+            ? { text: trimExcerpt( post.excerpt, attributes.excerptLength ) }
             : null,
-    fromPostEntity: ( entity ) => {
+    fromPostEntity: ( entity, attributes ) => {
         const excerpt = readEntityString( entity.excerpt );
-        return excerpt !== '' ? { text: excerpt } : null;
+        return excerpt !== '' ? { text: trimExcerpt( excerpt, attributes.excerptLength ) } : null;
     },
 } );
 
